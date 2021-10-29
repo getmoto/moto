@@ -153,7 +153,10 @@ def test_s3_server_post_unicode_bucket_key():
 
 
 def test_s3_server_post_cors():
+    """Test default CORS headers set by flask-cors plugin"""
     test_client = authenticated_client()
+    # Create the bucket
+    test_client.put("/", "http://tester.localhost:5000/")
 
     preflight_headers = {
         "Access-Control-Request-Method": "POST",
@@ -167,7 +170,6 @@ def test_s3_server_post_cors():
     assert res.status_code in [200, 204]
 
     expected_methods = set(["DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"])
-    assert set(res.headers["Allow"].split(", ")) == expected_methods
     assert (
         set(res.headers["Access-Control-Allow-Methods"].split(", ")) == expected_methods
     )
@@ -181,6 +183,7 @@ def test_s3_server_post_cors():
 
 
 def test_s3_server_post_cors_exposed_header():
+    """Test that we can override default CORS headers with custom bucket rules"""
     # github.com/spulec/moto/issues/4220
 
     cors_config_payload = """<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
@@ -201,7 +204,9 @@ def test_s3_server_post_cors_exposed_header():
 
     # Create the bucket
     test_client.put("/", "http://testcors.localhost:5000/")
-    res = test_client.put("/?cors", "http://testcors.localhost:5000", data=cors_config_payload)
+    res = test_client.put(
+        "/?cors", "http://testcors.localhost:5000", data=cors_config_payload
+    )
     assert res.status_code == 200
 
     cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
@@ -213,9 +218,16 @@ def test_s3_server_post_cors_exposed_header():
         "Origin": "https://localhost:9000",
     }
 
-    preflight_res = test_client.options(
+    preflight_response = test_client.options(
         "/", "http://testcors.localhost:5000/", headers=preflight_headers
     )
-    assert preflight_res.status_code in [200, 204]
-    #assert res.headers
-    breakpoint()
+    assert preflight_response.status_code == 200
+    expected_cors_headers = {
+        "Access-Control-Allow-Methods": "HEAD, GET, PUT, POST, DELETE",
+        "Access-Control-Allow-Origin": "https://example.org",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Expose-Headers": "ETag",
+    }
+    for header_name, header_value in expected_cors_headers.items():
+        assert header_name in preflight_response.headers
+        assert preflight_response.headers[header_name] == header_value

@@ -1,6 +1,7 @@
 import io
 import os
 import re
+from typing import List, Union
 
 from botocore.awsrequest import AWSPreparedRequest
 
@@ -344,18 +345,42 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 404, {}, ""
         return 200, {}, ""
 
+    def _set_cors_headers(self, bucket):
+        """
+        TODO: smarter way of matching the right CORS rule:
+        See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
+
+        "When Amazon S3 receives a preflight request from a browser, it evaluates
+        the CORS configuration for the bucket and uses the first CORSRule rule
+        that matches the incoming browser request to enable a cross-origin request."
+        This here just uses all rules and the last rule will override the previous ones
+        if they are re-defining the same headers.
+        """
+        def _to_string(header: Union[List[str], str]) -> str:
+            # We allow list and strs in header values. Transform lists in comma-separated strings
+            if isinstance(header, list):
+                return ", ".join(header)
+            return header
+
+        for cors_rule in bucket.cors:
+            if cors_rule.allowed_methods is not None:
+                self.headers["Access-Control-Allow-Methods"] = _to_string(cors_rule.allowed_methods)
+            if cors_rule.allowed_origins is not None:
+                self.headers["Access-Control-Allow-Origin"] = _to_string(cors_rule.allowed_origins)
+            if cors_rule.allowed_headers is not None:
+                self.headers["Access-Control-Allow-Headers"] = _to_string(cors_rule.allowed_headers)
+            if cors_rule.exposed_headers is not None:
+                self.headers[
+                    "Access-Control-Expose-Headers"
+                ] = _to_string(cors_rule.exposed_headers)
+            if cors_rule.max_age_seconds is not None:
+                self.headers["Access-Control-Max-Age"] = _to_string(cors_rule.max_age_seconds)
+
+        return self.headers
+
     def _bucket_response_options(self, bucket_name):
         # Return 200 with the headers from the bucket CORS configuration
         self._authenticate_and_authorize_s3_action()
-        # Dict of CORS headers: key is their internal name in CorsRule
-        # and the value is the HTTP header name
-        headers_list = {
-            "allowed_methods": "Access-Control-Allow-Methods",
-            "allowed_origins": "Access-Control-Allow-Origin",
-            "allowed_headers": "Access-Control-Allow-Headers",
-            "exposed_headers": "Access-Control-Expose-Headers",
-            "max_age_seconds": "Access-Control-Max-Age",
-        }
         try:
             bucket = self.backend.head_bucket(bucket_name)
         except MissingBucket:
@@ -365,29 +390,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 "",
             )  # AWS S3 seems to return 403 on OPTIONS and 404 on GET/HEAD
 
-        """
-        TODO: there is a clever way of matching the right CORS rule:
-        See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
-        
-        "When Amazon S3 receives a preflight request from a browser, it evaluates
-        the CORS configuration for the bucket and uses the first CORSRule rule
-        that matches the incoming browser request to enable a cross-origin request."
-        This here just uses all rules and the last rule will override the previous ones
-        if they are re-defining the same headers.
-        """
-        for cors_rule in bucket.cors:
-            if cors_rule.allowed_methods is not None:
-                self.headers["Access-Control-Allow-Methods"] = cors_rule.allowed_methods
-            if cors_rule.allowed_origins is not None:
-                self.headers["Access-Control-Allow-Origin"] = cors_rule.allowed_origins
-            if cors_rule.allowed_headers is not None:
-                self.headers["Access-Control-Allow-Headers"] = cors_rule.allowed_headers
-            if cors_rule.exposed_headers is not None:
-                self.headers[
-                    "Access-Control-Expose-Headers"
-                ] = cors_rule.exposed_headers
-            if cors_rule.max_age_seconds is not None:
-                self.headers["Access-Control-Max-Age"] = cors_rule.max_age_seconds
+        self._set_cors_headers(bucket)
 
         return 200, self.headers, ""
 

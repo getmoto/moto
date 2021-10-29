@@ -4094,7 +4094,7 @@ def test_boto3_put_bucket_cors():
                     "AllowedOrigins": ["*"],
                     "AllowedMethods": ["GET", "POST"],
                     "AllowedHeaders": ["Authorization"],
-                    "ExposeHeaders": ["ETag"],
+                    "ExposeHeaders": ["x-amz-request-id"],
                     "MaxAgeSeconds": 123,
                 },
                 {
