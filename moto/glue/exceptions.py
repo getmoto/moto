@@ -62,3 +62,15 @@ class CrawlerNotFoundException(EntityNotFoundException):
 class VersionNotFoundException(EntityNotFoundException):
     def __init__(self):
         super(VersionNotFoundException, self).__init__("Version not found.")
+
+
+class CrawlerRunningException(GlueClientError):
+    def __init__(self, msg):
+        super(CrawlerRunningException, self).__init__("CrawlerRunningException", msg)
+
+
+class CrawlerNotRunningException(GlueClientError):
+    def __init__(self, msg):
+        super(CrawlerNotRunningException, self).__init__(
+            "CrawlerNotRunningException", msg
+        )

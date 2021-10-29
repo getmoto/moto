@@ -1,3 +1,4 @@
+import json
 import os
 from boto3 import Session
 from datetime import datetime
@@ -13,6 +14,11 @@ class BaseObject(BaseModel):
         for i, word in enumerate(key.split("_")):
             words.append(word.title())
         return "".join(words)
+
+    def update(self, details_json):
+        details = json.loads(details_json)
+        for k in details.keys():
+            setattr(self, k, details[k])
 
     def gen_response_object(self):
         response_object = dict()
@@ -866,6 +872,9 @@ class SageMakerModelBackend(BaseBackend):
         self.notebook_instances = {}
         self.endpoint_configs = {}
         self.endpoints = {}
+        self.experiments = {}
+        self.trials = {}
+        self.trial_components = {}
         self.training_jobs = {}
         self.notebook_instance_lifecycle_configurations = {}
         self.region_name = region_name
@@ -960,6 +969,385 @@ class SageMakerModelBackend(BaseBackend):
                 break
         else:
             raise MissingModel(model=model_name)
+
+    def create_experiment(self, experiment_name):
+        experiment = FakeExperiment(
+            region_name=self.region_name, experiment_name=experiment_name, tags=[]
+        )
+        self.experiments[experiment_name] = experiment
+        return experiment.response_create
+
+    def describe_experiment(self, experiment_name):
+        experiment_data = self.experiments[experiment_name]
+        return {
+            "ExperimentName": experiment_data.experiment_name,
+            "ExperimentArn": experiment_data.experiment_arn,
+            "CreationTime": experiment_data.creation_time,
+            "LastModifiedTime": experiment_data.last_modified_time,
+        }
+
+    def add_tags_to_experiment(self, experiment_arn, tags):
+        experiment = [
+            self.experiments[i]
+            for i in self.experiments
+            if self.experiments[i].experiment_arn == experiment_arn
+        ][0]
+        experiment.tags.extend(tags)
+
+    def add_tags_to_trial(self, trial_arn, tags):
+        trial = [
+            self.trials[i] for i in self.trials if self.trials[i].trial_arn == trial_arn
+        ][0]
+        trial.tags.extend(tags)
+
+    def add_tags_to_trial_component(self, trial_component_arn, tags):
+        trial_component = [
+            self.trial_components[i]
+            for i in self.trial_components
+            if self.trial_components[i].trial_component_arn == trial_component_arn
+        ][0]
+        trial_component.tags.extend(tags)
+
+    def delete_tags_from_experiment(self, experiment_arn, tag_keys):
+        experiment = [
+            self.experiments[i]
+            for i in self.experiments
+            if self.experiments[i].experiment_arn == experiment_arn
+        ][0]
+        experiment.tags = [tag for tag in experiment.tags if tag["Key"] not in tag_keys]
+
+    def delete_tags_from_trial(self, trial_arn, tag_keys):
+        trial = [
+            self.trials[i] for i in self.trials if self.trials[i].trial_arn == trial_arn
+        ][0]
+        trial.tags = [tag for tag in trial.tags if tag["Key"] not in tag_keys]
+
+    def delete_tags_from_trial_component(self, trial_component_arn, tag_keys):
+        trial_component = [
+            self.trial_components[i]
+            for i in self.trial_components
+            if self.trial_components[i].trial_component_arn == trial_component_arn
+        ][0]
+        trial_component.tags = [
+            tag for tag in trial_component.tags if tag["Key"] not in tag_keys
+        ]
+
+    def list_experiments(self):
+        next_index = None
+
+        experiments_fetched = list(self.experiments.values())
+
+        experiment_summaries = [
+            {
+                "ExperimentName": experiment_data.experiment_name,
+                "ExperimentArn": experiment_data.experiment_arn,
+                "CreationTime": experiment_data.creation_time,
+                "LastModifiedTime": experiment_data.last_modified_time,
+            }
+            for experiment_data in experiments_fetched
+        ]
+
+        return {
+            "ExperimentSummaries": experiment_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
+
+    def search(self, resource=None, search_expression=None):
+        next_index = None
+
+        valid_resources = [
+            "Pipeline",
+            "ModelPackageGroup",
+            "TrainingJob",
+            "ExperimentTrialComponent",
+            "FeatureGroup",
+            "Endpoint",
+            "PipelineExecution",
+            "Project",
+            "ExperimentTrial",
+            "Image",
+            "ImageVersion",
+            "ModelPackage",
+            "Experiment",
+        ]
+
+        if resource not in valid_resources:
+            raise AWSValidationException(
+                f"An error occurred (ValidationException) when calling the Search operation: 1 validation error detected: Value '{resource}' at 'resource' failed to satisfy constraint: Member must satisfy enum value set: {valid_resources}"
+            )
+
+        def evaluate_search_expression(item):
+            filters = None
+            if search_expression is not None:
+                filters = search_expression.get("Filters")
+
+            if filters is not None:
+                for f in filters:
+                    if f["Operator"] == "Equals":
+                        if f["Name"].startswith("Tags."):
+                            key = f["Name"][5:]
+                            value = f["Value"]
+
+                            if (
+                                len(
+                                    [
+                                        e
+                                        for e in item.tags
+                                        if e["Key"] == key and e["Value"] == value
+                                    ]
+                                )
+                                == 0
+                            ):
+                                return False
+                        if f["Name"] == "ExperimentName":
+                            experiment_name = f["Value"]
+
+                            if getattr(item, "experiment_name") != experiment_name:
+                                return False
+
+                        if f["Name"] == "TrialName":
+                            raise AWSValidationException(
+                                f"An error occurred (ValidationException) when calling the Search operation: Unknown property name: {f['Name']}"
+                            )
+
+                        if f["Name"] == "Parents.TrialName":
+                            trial_name = f["Value"]
+
+                            if getattr(item, "trial_name") != trial_name:
+                                return False
+
+            return True
+
+        result = {
+            "Results": [],
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
+        if resource == "Experiment":
+            experiments_fetched = list(self.experiments.values())
+
+            experiment_summaries = [
+                {
+                    "ExperimentName": experiment_data.experiment_name,
+                    "ExperimentArn": experiment_data.experiment_arn,
+                    "CreationTime": experiment_data.creation_time,
+                    "LastModifiedTime": experiment_data.last_modified_time,
+                }
+                for experiment_data in experiments_fetched
+                if evaluate_search_expression(experiment_data)
+            ]
+
+            for experiment_summary in experiment_summaries:
+                result["Results"].append({"Experiment": experiment_summary})
+
+        if resource == "ExperimentTrial":
+            trials_fetched = list(self.trials.values())
+
+            trial_summaries = [
+                {
+                    "TrialName": trial_data.trial_name,
+                    "TrialArn": trial_data.trial_arn,
+                    "CreationTime": trial_data.creation_time,
+                    "LastModifiedTime": trial_data.last_modified_time,
+                }
+                for trial_data in trials_fetched
+                if evaluate_search_expression(trial_data)
+            ]
+
+            for trial_summary in trial_summaries:
+                result["Results"].append({"Trial": trial_summary})
+
+        if resource == "ExperimentTrialComponent":
+            trial_components_fetched = list(self.trial_components.values())
+
+            trial_component_summaries = [
+                {
+                    "TrialComponentName": trial_component_data.trial_component_name,
+                    "TrialComponentArn": trial_component_data.trial_component_arn,
+                    "CreationTime": trial_component_data.creation_time,
+                    "LastModifiedTime": trial_component_data.last_modified_time,
+                }
+                for trial_component_data in trial_components_fetched
+                if evaluate_search_expression(trial_component_data)
+            ]
+
+            for trial_component_summary in trial_component_summaries:
+                result["Results"].append({"TrialComponent": trial_component_summary})
+        return result
+
+    def delete_experiment(self, experiment_name):
+        try:
+            del self.experiments[experiment_name]
+        except KeyError:
+            message = "Could not find experiment configuration '{}'.".format(
+                FakeTrial.arn_formatter(experiment_name, self.region_name)
+            )
+            raise ValidationError(message=message)
+
+    def get_experiment_by_arn(self, arn):
+        experiments = [
+            experiment
+            for experiment in self.experiments.values()
+            if experiment.experiment_arn == arn
+        ]
+        if len(experiments) == 0:
+            message = "RecordNotFound"
+            raise ValidationError(message=message)
+        return experiments[0]
+
+    def get_experiment_tags(self, arn):
+        try:
+            experiment = self.get_experiment_by_arn(arn)
+            return experiment.tags or []
+        except RESTError:
+            return []
+
+    def create_trial(
+        self, trial_name, experiment_name,
+    ):
+        trial = FakeTrial(
+            region_name=self.region_name,
+            trial_name=trial_name,
+            experiment_name=experiment_name,
+            tags=[],
+        )
+        self.trials[trial_name] = trial
+        return trial.response_create
+
+    def describe_trial(self, trial_name):
+        try:
+            return self.trials[trial_name].response_object
+        except KeyError:
+            message = "Could not find trial '{}'.".format(
+                FakeTrial.arn_formatter(trial_name, self.region_name)
+            )
+            raise ValidationError(message=message)
+
+    def delete_trial(self, trial_name):
+        try:
+            del self.trials[trial_name]
+        except KeyError:
+            message = "Could not find trial configuration '{}'.".format(
+                FakeTrial.arn_formatter(trial_name, self.region_name)
+            )
+            raise ValidationError(message=message)
+
+    def get_trial_by_arn(self, arn):
+        trials = [trial for trial in self.trials.values() if trial.trial_arn == arn]
+        if len(trials) == 0:
+            message = "RecordNotFound"
+            raise ValidationError(message=message)
+        return trials[0]
+
+    def get_trial_tags(self, arn):
+        try:
+            trial = self.get_trial_by_arn(arn)
+            return trial.tags or []
+        except RESTError:
+            return []
+
+    def list_trials(self, experiment_name=None):
+        next_index = None
+
+        trials_fetched = list(self.trials.values())
+
+        trial_summaries = [
+            {
+                "TrialName": trial_data.trial_name,
+                "TrialArn": trial_data.trial_arn,
+                "CreationTime": trial_data.creation_time,
+                "LastModifiedTime": trial_data.last_modified_time,
+            }
+            for trial_data in trials_fetched
+            if experiment_name is None or trial_data.experiment_name == experiment_name
+        ]
+
+        return {
+            "TrialSummaries": trial_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
+
+    def create_trial_component(
+        self, trial_component_name, trial_name,
+    ):
+        trial_component = FakeTrialComponent(
+            region_name=self.region_name,
+            trial_component_name=trial_component_name,
+            trial_name=trial_name,
+            tags=[],
+        )
+        self.trial_components[trial_component_name] = trial_component
+        return trial_component.response_create
+
+    def delete_trial_component(self, trial_component_name):
+        try:
+            del self.trial_components[trial_component_name]
+        except KeyError:
+            message = "Could not find trial-component configuration '{}'.".format(
+                FakeTrial.arn_formatter(trial_component_name, self.region_name)
+            )
+            raise ValidationError(message=message)
+
+    def get_trial_component_by_arn(self, arn):
+        trial_components = [
+            trial_component
+            for trial_component in self.trial_components.values()
+            if trial_component.trial_component_arn == arn
+        ]
+        if len(trial_components) == 0:
+            message = "RecordNotFound"
+            raise ValidationError(message=message)
+        return trial_components[0]
+
+    def get_trial_component_tags(self, arn):
+        try:
+            trial_component = self.get_trial_component_by_arn(arn)
+            return trial_component.tags or []
+        except RESTError:
+            return []
+
+    def describe_trial_component(self, trial_component_name):
+        try:
+            return self.trial_components[trial_component_name].response_object
+        except KeyError:
+            message = "Could not find trial component '{}'.".format(
+                FakeTrialComponent.arn_formatter(trial_component_name, self.region_name)
+            )
+            raise ValidationError(message=message)
+
+    def _update_trial_component_details(self, trial_component_name, details_json):
+        self.trial_components[trial_component_name].update(details_json)
+
+    def list_trial_components(self, trial_name=None):
+        next_index = None
+
+        trial_components_fetched = list(self.trial_components.values())
+
+        trial_component_summaries = [
+            {
+                "TrialComponentName": trial_component_data.trial_component_name,
+                "TrialComponentArn": trial_component_data.trial_component_arn,
+                "CreationTime": trial_component_data.creation_time,
+                "LastModifiedTime": trial_component_data.last_modified_time,
+            }
+            for trial_component_data in trial_components_fetched
+            if trial_name is None or trial_component_data.trial_name == trial_name
+        ]
+
+        return {
+            "TrialComponentSummaries": trial_component_summaries,
+            "NextToken": str(next_index) if next_index is not None else None,
+        }
+
+    def associate_trial_component(self, params):
+        trial_name = params["TrialName"]
+        trial_component_name = params["TrialComponentName"]
+
+        self.trial_components[trial_component_name].trial_name = trial_name
+
+    def disassociate_trial_component(self, params):
+        trial_component_name = params["TrialComponentName"]
+
+        self.trial_components[trial_component_name].trial_name = None
 
     def create_notebook_instance(
         self,
@@ -1292,6 +1680,9 @@ class SageMakerModelBackend(BaseBackend):
         except RESTError:
             return []
 
+    def _update_training_job_details(self, training_job_name, details_json):
+        self.training_jobs[training_job_name].update(details_json)
+
     def list_training_jobs(
         self,
         next_token,
@@ -1375,6 +1766,111 @@ class SageMakerModelBackend(BaseBackend):
             "TrainingJobSummaries": training_job_summaries,
             "NextToken": str(next_index) if next_index is not None else None,
         }
+
+
+class FakeExperiment(BaseObject):
+    def __init__(
+        self, region_name, experiment_name, tags,
+    ):
+        self.experiment_name = experiment_name
+        self.experiment_arn = FakeExperiment.arn_formatter(experiment_name, region_name)
+        self.tags = tags
+        self.creation_time = self.last_modified_time = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+
+    @property
+    def response_create(self):
+        return {"ExperimentArn": self.experiment_arn}
+
+    @staticmethod
+    def arn_formatter(experiment_arn, region_name):
+        return (
+            "arn:aws:sagemaker:"
+            + region_name
+            + ":"
+            + str(ACCOUNT_ID)
+            + ":experiment/"
+            + experiment_arn
+        )
+
+
+class FakeTrial(BaseObject):
+    def __init__(
+        self, region_name, trial_name, experiment_name, tags,
+    ):
+        self.trial_name = trial_name
+        self.trial_arn = FakeTrial.arn_formatter(trial_name, region_name)
+        self.tags = tags
+        self.experiment_name = experiment_name
+        self.creation_time = self.last_modified_time = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+
+    @property
+    def response_create(self):
+        return {"TrialArn": self.trial_arn}
+
+    @staticmethod
+    def arn_formatter(trial_name, region_name):
+        return (
+            "arn:aws:sagemaker:"
+            + region_name
+            + ":"
+            + str(ACCOUNT_ID)
+            + ":experiment-trial/"
+            + trial_name
+        )
+
+
+class FakeTrialComponent(BaseObject):
+    def __init__(
+        self, region_name, trial_component_name, trial_name, tags,
+    ):
+        self.trial_component_name = trial_component_name
+        self.trial_component_arn = FakeTrialComponent.arn_formatter(
+            trial_component_name, region_name
+        )
+        self.tags = tags
+        self.trial_name = trial_name
+        now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.creation_time = self.last_modified_time = now_string
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+
+    @property
+    def response_create(self):
+        return {"TrialComponentArn": self.trial_component_arn}
+
+    @staticmethod
+    def arn_formatter(trial_component_name, region_name):
+        return (
+            "arn:aws:sagemaker:"
+            + region_name
+            + ":"
+            + str(ACCOUNT_ID)
+            + ":experiment-trial-component/"
+            + trial_component_name
+        )
 
 
 sagemaker_backends = {}

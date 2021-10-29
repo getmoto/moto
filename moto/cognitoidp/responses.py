@@ -432,9 +432,16 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps(auth_result)
 
     def forgot_password(self):
-        return json.dumps(
-            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "..."}}
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        region = find_region_by_value("client_id", client_id)
+        confirmation_code, response = cognitoidp_backends[region].forgot_password(
+            client_id, username
         )
+        self.response_headers[
+            "x-moto-forgot-password-confirmation-code"
+        ] = confirmation_code
+        return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening
     # on localhost (doesn't get a region in the host header), it doesn't know what
@@ -444,9 +451,10 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
+        confirmation_code = self._get_param("ConfirmationCode")
         region = find_region_by_value("client_id", client_id)
         cognitoidp_backends[region].confirm_forgot_password(
-            client_id, username, password
+            client_id, username, password, confirmation_code
         )
         return ""
 
@@ -466,6 +474,15 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         attributes = self._get_param("UserAttributes")
         cognitoidp_backends[self.region].admin_update_user_attributes(
+            user_pool_id, username, attributes
+        )
+        return ""
+
+    def admin_delete_user_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        attributes = self._get_param("UserAttributeNames")
+        cognitoidp_backends[self.region].admin_delete_user_attributes(
             user_pool_id, username, attributes
         )
         return ""

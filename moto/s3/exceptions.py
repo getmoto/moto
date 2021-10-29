@@ -565,3 +565,13 @@ class InvalidTagError(S3ClientError):
         super(InvalidTagError, self).__init__(
             "InvalidTag", value, *args, **kwargs,
         )
+
+
+class ObjectLockConfigurationNotFoundError(S3ClientError):
+    code = 404
+
+    def __init__(self):
+        super(ObjectLockConfigurationNotFoundError, self).__init__(
+            "ObjectLockConfigurationNotFoundError",
+            "Object Lock configuration does not exist for this bucket",
+        )

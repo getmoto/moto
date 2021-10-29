@@ -22,11 +22,11 @@
 
 ## apigateway
 <details>
-<summary>48% implemented</summary>
+<summary>49% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
-- [ ] create_base_path_mapping
+- [X] create_base_path_mapping
 - [X] create_deployment
 - [ ] create_documentation_part
 - [ ] create_documentation_version
@@ -590,11 +590,11 @@
 
 ## cognito-idp
 <details>
-<summary>49% implemented</summary>
+<summary>52% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
-- [ ] admin_confirm_sign_up
+- [X] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
 - [ ] admin_delete_user_attributes
@@ -647,7 +647,7 @@
 - [X] describe_user_pool_client
 - [X] describe_user_pool_domain
 - [ ] forget_device
-- [ ] forgot_password
+- [X] forgot_password
 - [ ] get_csv_header
 - [ ] get_device
 - [X] get_group
@@ -688,7 +688,7 @@
 - [X] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
-- [ ] update_user_pool
+- [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
 - [X] verify_software_token
@@ -1087,6 +1087,7 @@
 - [ ] bundle_instance
 - [ ] cancel_bundle_task
 - [ ] cancel_capacity_reservation
+- [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
 - [ ] cancel_import_task
@@ -1098,6 +1099,7 @@
 - [X] copy_image
 - [X] copy_snapshot
 - [ ] create_capacity_reservation
+- [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
@@ -1229,6 +1231,7 @@
 - [X] describe_availability_zones
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -1419,6 +1422,7 @@
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
+- [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
 - [ ] modify_ebs_default_kms_key_id
@@ -1572,13 +1576,13 @@
 
 ## ecs
 <details>
-<summary>67% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] create_capacity_provider
 - [X] create_cluster
 - [X] create_service
 - [X] create_task_set
-- [ ] delete_account_setting
+- [X] delete_account_setting
 - [X] delete_attributes
 - [ ] delete_capacity_provider
 - [X] delete_cluster
@@ -1595,7 +1599,7 @@
 - [X] describe_tasks
 - [ ] discover_poll_endpoint
 - [ ] execute_command
-- [ ] list_account_settings
+- [X] list_account_settings
 - [X] list_attributes
 - [X] list_clusters
 - [X] list_container_instances
@@ -1604,7 +1608,7 @@
 - [X] list_task_definition_families
 - [X] list_task_definitions
 - [X] list_tasks
-- [ ] put_account_setting
+- [X] put_account_setting
 - [ ] put_account_setting_default
 - [X] put_attributes
 - [ ] put_cluster_capacity_providers
@@ -2067,7 +2071,7 @@
 
 ## glue
 <details>
-<summary>6% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2202,7 +2206,7 @@
 - [ ] resume_workflow_run
 - [ ] search_tables
 - [ ] start_blueprint_run
-- [ ] start_crawler
+- [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
@@ -2211,7 +2215,7 @@
 - [ ] start_ml_labeling_set_generation_task_run
 - [ ] start_trigger
 - [ ] start_workflow_run
-- [ ] stop_crawler
+- [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [ ] stop_trigger
 - [ ] stop_workflow_run
@@ -2965,6 +2969,7 @@
 - [ ] batch_stop
 - [ ] batch_update_schedule
 - [ ] cancel_input_device_transfer
+- [ ] claim_device
 - [X] create_channel
 - [X] create_input
 - [ ] create_input_security_group
@@ -3280,6 +3285,7 @@
 - [ ] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_custom_availability_zone
+- [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
@@ -3296,6 +3302,7 @@
 - [ ] create_global_cluster
 - [X] create_option_group
 - [ ] delete_custom_availability_zone
+- [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
@@ -3360,6 +3367,7 @@
 - [X] list_tags_for_resource
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity
+- [ ] modify_custom_db_engine_version
 - [ ] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
@@ -3565,7 +3573,7 @@
 
 ## route53
 <details>
-<summary>17% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -4011,7 +4019,7 @@
 
 ## ses
 <details>
-<summary>25% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -4035,13 +4043,13 @@
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
 - [ ] describe_configuration_set
-- [ ] describe_receipt_rule
+- [X] describe_receipt_rule
 - [ ] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
 - [ ] get_identity_dkim_attributes
 - [ ] get_identity_mail_from_domain_attributes
-- [ ] get_identity_notification_attributes
+- [X] get_identity_notification_attributes
 - [ ] get_identity_policies
 - [ ] get_identity_verification_attributes
 - [X] get_send_quota
@@ -4066,7 +4074,7 @@
 - [X] send_templated_email
 - [ ] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
-- [ ] set_identity_feedback_forwarding_enabled
+- [X] set_identity_feedback_forwarding_enabled
 - [ ] set_identity_headers_in_notifications_enabled
 - [ ] set_identity_mail_from_domain
 - [X] set_identity_notification_topic
@@ -4404,6 +4412,27 @@
 - [ ] untag_resource
 </details>
 
+## timestream-write
+<details>
+<summary>80% implemented</summary>
+
+- [X] create_database
+- [X] create_table
+- [X] delete_database
+- [X] delete_table
+- [X] describe_database
+- [X] describe_endpoints
+- [X] describe_table
+- [X] list_databases
+- [X] list_tables
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_database
+- [X] update_table
+- [X] write_records
+</details>
+
 ## transcribe
 <details>
 <summary>41% implemented</summary>
@@ -4504,6 +4533,7 @@
 <details>
 
 - accessanalyzer
+- account
 - acm-pca
 - alexaforbusiness
 - amp
@@ -4530,6 +4560,7 @@
 - chime-sdk-identity
 - chime-sdk-messaging
 - cloud9
+- cloudcontrol
 - clouddirectory
 - cloudfront
 - cloudhsm
@@ -4578,6 +4609,7 @@
 - fsx
 - gamelift
 - globalaccelerator
+- grafana
 - greengrass
 - greengrassv2
 - groundstation
@@ -4645,6 +4677,7 @@
 - opensearch
 - opsworkscm
 - outposts
+- panorama
 - personalize
 - personalize-events
 - personalize-runtime
@@ -4697,12 +4730,13 @@
 - synthetics
 - textract
 - timestream-query
-- timestream-write
 - transfer
 - translate
+- voice-id
 - waf
 - waf-regional
 - wellarchitected
+- wisdom
 - workdocs
 - worklink
 - workmail

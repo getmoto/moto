@@ -51,6 +51,14 @@ class UserNotConfirmedException(BadRequest):
         )
 
 
+class ExpiredCodeException(BadRequest):
+    def __init__(self, message):
+        super(ExpiredCodeException, self).__init__()
+        self.description = json.dumps(
+            {"message": message, "__type": "ExpiredCodeException"}
+        )
+
+
 class InvalidParameterException(JsonRESTError):
     def __init__(self, msg=None):
         self.code = 400
