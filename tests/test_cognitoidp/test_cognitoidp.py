@@ -442,6 +442,53 @@ def test_create_user_pool_number_schema_min_bigger_than_max():
 
 
 @mock_cognitoidp
+def test_add_custom_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    custom_attribute = {"Name": "banana", "AttributeDataType": "String"}
+
+    res = conn.add_custom_attributes(
+        UserPoolId=pool_id, CustomAttributes=[custom_attribute]
+    )
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    res = conn.describe_user_pool(UserPoolId=pool_id)
+    described_attribute = next(
+        attr
+        for attr in res["UserPool"]["SchemaAttributes"]
+        if attr["Name"] == "custom:banana"
+    )
+    # Skip verification - already covered by create_user_pool with custom attributes
+    described_attribute.should_not.be.none
+
+
+@mock_cognitoidp
+def test_add_custom_attributes_existing_attribute():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    custom_attribute = {
+        "Name": "banana",
+        "AttributeDataType": "String",
+        "DeveloperOnlyAttribute": True,
+    }
+    pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), Schema=[custom_attribute]
+    )["UserPool"]["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.add_custom_attributes(
+            UserPoolId=pool_id, CustomAttributes=[custom_attribute]
+        )
+
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
+        f"custom:banana: Existing attribute already has name dev:custom:banana."
+    )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_cognitoidp
 def test_list_user_pools():
     conn = boto3.client("cognito-idp", "us-west-2")
 
