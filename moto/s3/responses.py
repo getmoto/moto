@@ -259,6 +259,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def bucket_response(self, request, full_url, headers):
         self.method = request.method
         self.path = self._get_path(request)
+        # Make a copy of request.headers because it's immutable
+        self.headers = dict(request.headers)
         if "host" not in self.headers:
             self.headers["host"] = urlparse(full_url).netloc
 
@@ -1095,6 +1097,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
+        # Make a copy of request.headers because it's immutable
+        self.headers = dict(request.headers)
         if "host" not in self.headers:
             self.headers["host"] = urlparse(full_url).netloc
         response_headers = {}
