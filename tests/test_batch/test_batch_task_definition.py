@@ -158,6 +158,24 @@ def test_describe_task_definition():
 
 
 def register_job_def(batch_client, definition_name="sleep10"):
+    container_properties = {
+        "image": "busybox",
+        "command": ["sleep", "10"],
+    }
+
+    if random.random > 0.5:
+        container_properties.update(
+            {"memory": random.randint(4, 128), "vcpus": 1,}
+        )
+    else:
+        container_properties.update(
+            {
+                "resourceRequirements": [
+                    {"value": "1", "type": "VCPU"},
+                    {"value": str(random.randint(4, 128)), "type": "MEMORY"},
+                ]
+            }
+        )
     return batch_client.register_job_definition(
         jobDefinitionName=definition_name,
         type="container",

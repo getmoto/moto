@@ -227,8 +227,10 @@ def test_create_job_def_cf():
                                 ],
                             ]
                         },
-                        "Vcpus": 2,
-                        "Memory": 2000,
+                        "ResourceRequirements": [
+                            {"Type": "MEMORY", "Value": 2000},
+                            {"Type": "VCPU", "Value": 2},
+                        ],
                         "Command": ["echo", "Hello world"],
                         "LinuxParameters": {"Devices": [{"HostPath": "test-path"}]},
                     },
