@@ -859,8 +859,8 @@ class APIGatewayResponse(BaseResponse):
 
         try:
             if self.method == "GET":
-                # TODO implements
-                pass
+                base_path_mappings = self.backend.get_base_path_mappings(domain_name)
+                return 200, {}, json.dumps({"item": base_path_mappings})
             elif self.method == "POST":
                 base_path = self._get_param("basePath")
                 rest_api_id = self._get_param("restApiId")
@@ -872,5 +872,7 @@ class APIGatewayResponse(BaseResponse):
                 return 201, {}, json.dumps(base_path_mapping_resp)
         except BadRequestException as e:
             return self.error("BadRequestException", e.message)
+        except NotFoundException as e:
+            return self.error("NotFoundException", e.message, 404)
         except ConflictException as e:
             return self.error("ConflictException", e.message, 409)
