@@ -356,6 +356,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         This here just uses all rules and the last rule will override the previous ones
         if they are re-defining the same headers.
         """
+
         def _to_string(header: Union[List[str], str]) -> str:
             # We allow list and strs in header values. Transform lists in comma-separated strings
             if isinstance(header, list):
@@ -364,17 +365,25 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         for cors_rule in bucket.cors:
             if cors_rule.allowed_methods is not None:
-                self.headers["Access-Control-Allow-Methods"] = _to_string(cors_rule.allowed_methods)
+                self.headers["Access-Control-Allow-Methods"] = _to_string(
+                    cors_rule.allowed_methods
+                )
             if cors_rule.allowed_origins is not None:
-                self.headers["Access-Control-Allow-Origin"] = _to_string(cors_rule.allowed_origins)
+                self.headers["Access-Control-Allow-Origin"] = _to_string(
+                    cors_rule.allowed_origins
+                )
             if cors_rule.allowed_headers is not None:
-                self.headers["Access-Control-Allow-Headers"] = _to_string(cors_rule.allowed_headers)
+                self.headers["Access-Control-Allow-Headers"] = _to_string(
+                    cors_rule.allowed_headers
+                )
             if cors_rule.exposed_headers is not None:
-                self.headers[
-                    "Access-Control-Expose-Headers"
-                ] = _to_string(cors_rule.exposed_headers)
+                self.headers["Access-Control-Expose-Headers"] = _to_string(
+                    cors_rule.exposed_headers
+                )
             if cors_rule.max_age_seconds is not None:
-                self.headers["Access-Control-Max-Age"] = _to_string(cors_rule.max_age_seconds)
+                self.headers["Access-Control-Max-Age"] = _to_string(
+                    cors_rule.max_age_seconds
+                )
 
         return self.headers
 
