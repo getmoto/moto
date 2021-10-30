@@ -9,6 +9,7 @@ from moto.core.utils import get_random_hex
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
+    EntityAlreadyExistsException,
     EntityDoesNotExistException,
     DsValidationException,
     InvalidParameterException,
@@ -59,6 +60,15 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.launch_time = datetime.now(timezone.utc).isoformat()
         self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
 
+    def update_alias(self, alias):
+        """Change default alias to given alias."""
+        self.alias = alias
+        self.access_url = f"{alias}.awsapps.com"
+
+    def enable_sso(self, new_state):
+        """Enable/disable sso based on whether new_state is True or False."""
+        self.sso_enabled = new_state
+
     def to_json(self):
         """Convert the attributes into json with CamelCase tags."""
         replacement_keys = {"directory_type": "Type"}
@@ -73,8 +83,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
             if item in replacement_keys:
                 json_result[replacement_keys[item]] = value
             else:
-                parts = item.split("_")
-                new_tag = "".join(x.title() for x in parts)
+                new_tag = "".join(x.title() for x in item.split("_"))
                 json_result[new_tag] = value
         return json_result
 
@@ -265,12 +274,84 @@ class DirectoryServiceBackend(BaseBackend):
                 f"Directory {directory_id} does not exist"
             )
 
+    def create_alias(self, directory_id, alias):
+        """Create and assign an alias to a directory."""
+        self._validate_directory_id(directory_id)
+
+        # The default alias name is the same as the directory name.  Check
+        # whether this directory was already given an alias.
+        directory = self.directories[directory_id]
+        if directory.alias != directory_id:
+            raise InvalidParameterException(
+                "The directory in the request already has an alias. That "
+                "alias must be deleted before a new alias can be created."
+            )
+
+        # Is the alias already in use?
+        if alias in [x.alias for x in self.directories.values()]:
+            raise EntityAlreadyExistsException(f"Alias '{alias}' already exists.")
+
+        # Validate the alias conforms to the length and other constraints.
+        if len(alias) > 62:
+            raise DsValidationException(
+                [("alias", alias, "have length less than or equal to 62")]
+            )
+
+        alias_pattern = r"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*"
+        if not re.match(alias_pattern, alias):
+            json_pattern = alias_pattern.replace("\\", r"\\")
+            msg = fr"satisfy regular expression pattern: {json_pattern}"
+            raise DsValidationException([("alias", alias, msg)])
+
+        directory.update_alias(alias)
+        return {"DirectoryId": directory_id, "Alias": alias}
+
     def delete_directory(self, directory_id):
         """Delete directory with the matching ID."""
         self._validate_directory_id(directory_id)
         self.tagger.delete_all_tags_for_resource(directory_id)
         self.directories.pop(directory_id)
         return directory_id
+
+    def _validate_change_to_sso(self, directory_id, username=None, password=None):
+        """Raise exception if the SSO-related arguments are invalid."""
+        self._validate_directory_id(directory_id)
+
+        if password and len(password) > 128:
+            msg = "have length less than or equal to 128"
+            raise DsValidationException([("password", password, msg)])
+
+        username_pattern = r"[a-zA-Z0-9._-]+"
+        if username and not re.match(username_pattern, username):
+            msg = fr"satisfy regular expression pattern: {username_pattern}"
+            raise DsValidationException([("userName", username, msg)])
+
+    def disable_sso(self, directory_id, username=None, password=None):
+        """Disable single-sign on for a directory."""
+        self._validate_change_to_sso(directory_id, username, password)
+        directory = self.directories[directory_id]
+        directory.enable_sso(False)
+
+    def enable_sso(self, directory_id, username=None, password=None):
+        """Enable single-sign on for a directory."""
+        self._validate_change_to_sso(directory_id, username, password)
+
+        directory = self.directories[directory_id]
+        if directory.alias == directory_id:
+            raise ClientException(
+                f"An alias is required before enabling SSO. DomainId={directory_id}"
+            )
+
+        # TODO - need more testing with a AD Connector directory
+        # An error occurred (EntityDoesNotExistException) when calling the
+        # EnableSso operation: AuthenticateServiceAccount failed. Request id:
+        # 8e420726-67f2-4b0d-9945-f00929327ac0 : Authentication failed for
+        # user: klb : message: enact: realm:userName:klb Kerberos
+        # exception:getKerberosTicket: Krb exception:Client not found in
+        # Kerberos database (6)
+
+        directory = self.directories[directory_id]
+        directory.enable_sso(True)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_directories(

@@ -36,6 +36,13 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"DirectoryId": directory_id})
 
+    def create_alias(self):
+        """Create an alias and assign the alias to the directory."""
+        directory_id = self._get_param("DirectoryId")
+        alias = self._get_param("Alias")
+        response = self.ds_backend.create_alias(directory_id, alias)
+        return json.dumps(response)
+
     def delete_directory(self):
         """Delete a Directory Service directory."""
         directory_id_arg = self._get_param("DirectoryId")
@@ -58,6 +65,22 @@ class DirectoryServiceResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
+
+    def disable_sso(self):
+        """Disable single-sign on for a directory."""
+        directory_id = self._get_param("DirectoryId")
+        username = self._get_param("UserName")
+        password = self._get_param("Password")
+        self.ds_backend.disable_sso(directory_id, username, password)
+        return ""
+
+    def enable_sso(self):
+        """Enable single-sign on for a directory."""
+        directory_id = self._get_param("DirectoryId")
+        username = self._get_param("UserName")
+        password = self._get_param("Password")
+        self.ds_backend.enable_sso(directory_id, username, password)
+        return ""
 
     def get_directory_limits(self):
         """Return directory limit information for the current region."""
