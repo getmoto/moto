@@ -74,6 +74,9 @@ mock_elb_deprecated = lazy_load(".elb", "mock_elb_deprecated")
 mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
 mock_emr = lazy_load(".emr", "mock_emr")
 mock_emr_deprecated = lazy_load(".emr", "mock_emr_deprecated")
+mock_emrcontainers = lazy_load(
+    ".emrcontainers", "mock_emrcontainers", boto3_name="emr-containers"
+)
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")

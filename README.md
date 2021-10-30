@@ -95,6 +95,7 @@ Here's the partial list of the AWS services that currently have support:
 | ELB                       | @mock_elb             |                              |
 | ELBv2                     | @mock_elbv2           |                              |
 | EMR                       | @mock_emr             |                              |
+| EMRContainer              | @mock_emrcontainers   |                              |
 | Forecast                  | @mock_forecast        |                              |                  
 | Glacier                   | @mock_glacier         |                              |
 | Glue                      | @mock_glue            |                              |
