@@ -914,6 +914,74 @@
 - [ ] test_connection
 </details>
 
+## ds
+<details>
+<summary>10% implemented</summary>
+- [ ] accept_shared_directory
+- [ ] add_ip_routes
+- [ ] add_region
+- [X] add_tags_to_resource
+- [ ] cancel_schema_extension
+- [ ] connect_directory
+- [ ] create_alias
+- [ ] create_computer
+- [ ] create_conditional_forwarder
+- [X] create_directory
+- [ ] create_log_subscription
+- [ ] create_microsoft_ad
+- [ ] create_snapshot
+- [ ] create_trust
+- [ ] delete_conditional_forwarder
+- [X] delete_directory
+- [ ] delete_log_subscription
+- [ ] delete_snapshot
+- [ ] delete_trust
+- [ ] deregister_certificate
+- [ ] deregister_event_topic
+- [ ] describe_certificate
+- [ ] describe_client_authentication_settings
+- [ ] describe_conditional_forwarders
+- [X] describe_directories
+- [ ] describe_domain_controllers
+- [ ] describe_event_topics
+- [ ] describe_ldaps_settings
+- [ ] describe_regions
+- [ ] describe_shared_directories
+- [ ] describe_snapshots
+- [ ] describe_trusts
+- [ ] disable_client_authentication
+- [ ] disable_ldaps
+- [ ] disable_radius
+- [ ] disable_sso
+- [ ] enable_client_authentication
+- [ ] enable_ldaps
+- [ ] enable_radius
+- [ ] enable_sso
+- [X] get_directory_limits
+- [ ] get_snapshot_limits
+- [ ] list_certificates
+- [ ] list_ip_routes
+- [ ] list_log_subscriptions
+- [ ] list_schema_extensions
+- [X] list_tags_for_resource
+- [ ] register_certificate
+- [ ] register_event_topic
+- [ ] reject_shared_directory
+- [ ] remove_ip_routes
+- [ ] remove_region
+- [X] remove_tags_from_resource
+- [ ] reset_user_password
+- [ ] restore_from_snapshot
+- [ ] share_directory
+- [ ] start_schema_extension
+- [ ] unshare_directory
+- [ ] update_conditional_forwarder
+- [ ] update_number_of_domain_controllers
+- [ ] update_radius
+- [ ] update_trust
+- [ ] verify_trust
+</details>
+
 ## dynamodb
 <details>
 <summary>56% implemented</summary>
@@ -1790,7 +1858,7 @@
 
 ## emr
 <details>
-<summary>40% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -1803,7 +1871,7 @@
 - [X] delete_security_configuration
 - [ ] delete_studio
 - [ ] delete_studio_session_mapping
-- [ ] describe_cluster
+- [X] describe_cluster
 - [X] describe_job_flows
 - [ ] describe_notebook_execution
 - [ ] describe_release_label
@@ -1844,6 +1912,27 @@
 - [X] terminate_job_flows
 - [ ] update_studio
 - [ ] update_studio_session_mapping
+</details>
+
+## emr-containers
+<details>
+<summary>27% implemented</summary>
+
+- [ ] cancel_job_run
+- [ ] create_managed_endpoint
+- [X] create_virtual_cluster
+- [ ] delete_managed_endpoint
+- [X] delete_virtual_cluster
+- [ ] describe_job_run
+- [ ] describe_managed_endpoint
+- [X] describe_virtual_cluster
+- [ ] list_job_runs
+- [ ] list_managed_endpoints
+- [ ] list_tags_for_resource
+- [X] list_virtual_clusters
+- [ ] start_job_run
+- [ ] tag_resource
+- [ ] untag_resource
 </details>
 
 ## events
@@ -4526,12 +4615,10 @@
 - discovery
 - dlm
 - docdb
-- ds
 - ebs
 - ecr-public
 - elastic-inference
 - elasticache
-- emr-containers
 - es
 - finspace
 - finspace-data

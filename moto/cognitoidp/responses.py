@@ -575,6 +575,14 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    def add_custom_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        custom_attributes = self._get_param("CustomAttributes")
+        cognitoidp_backends[self.region].add_custom_attributes(
+            user_pool_id, custom_attributes
+        )
+        return ""
+
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
     def __init__(self):

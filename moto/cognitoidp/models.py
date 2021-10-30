@@ -162,16 +162,16 @@ class CognitoIdpUserPoolAttribute(BaseModel):
         },
     }
 
-    ATTRIBUTE_DATE_TYPES = {"Boolean", "DateTime", "String", "Number"}
+    ATTRIBUTE_DATA_TYPES = {"Boolean", "DateTime", "String", "Number"}
 
-    def __init__(self, name, schema):
+    def __init__(self, name, custom, schema):
         self.name = name
-        self.custom = self.name not in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA
+        self.custom = custom
         attribute_data_type = schema.get("AttributeDataType", None)
         if (
             attribute_data_type
             and attribute_data_type
-            not in CognitoIdpUserPoolAttribute.ATTRIBUTE_DATE_TYPES
+            not in CognitoIdpUserPoolAttribute.ATTRIBUTE_DATA_TYPES
         ):
             raise InvalidParameterException(
                 f"Validation error detected: Value '{attribute_data_type}' failed to satisfy constraint: Member must satisfy enum value set: [Boolean, Number, String, DateTime]"
@@ -330,10 +330,14 @@ class CognitoIdpUserPool(BaseModel):
         self.sms_mfa_config = None
         self.token_mfa_config = None
 
-        self.schema_attributes = {
-            schema["Name"]: CognitoIdpUserPoolAttribute(schema["Name"], schema)
-            for schema in extended_config.pop("Schema", {})
-        }
+        self.schema_attributes = {}
+        for schema in extended_config.pop("Schema", {}):
+            attribute = CognitoIdpUserPoolAttribute(
+                schema["Name"],
+                schema["Name"] not in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA,
+                schema,
+            )
+            self.schema_attributes[attribute.name] = attribute
         for (
             standard_attribute_name,
             standard_attribute_schema,
@@ -342,7 +346,7 @@ class CognitoIdpUserPool(BaseModel):
                 self.schema_attributes[
                     standard_attribute_name
                 ] = CognitoIdpUserPoolAttribute(
-                    standard_attribute_name, standard_attribute_schema
+                    standard_attribute_name, False, standard_attribute_schema
                 )
 
         self.clients = OrderedDict()
@@ -438,6 +442,22 @@ class CognitoIdpUserPool(BaseModel):
             jws.sign(payload, self.json_web_key, headers, algorithm="RS256"),
             expires_in,
         )
+
+    def add_custom_attributes(self, custom_attributes):
+        attributes = []
+        for attribute_schema in custom_attributes:
+            base_name = attribute_schema["Name"]
+            target_name = "custom:" + base_name
+            if attribute_schema.get("DeveloperOnlyAttribute", False):
+                target_name = "dev:" + target_name
+            if target_name in self.schema_attributes:
+                raise InvalidParameterException(
+                    f"custom:{base_name}: Existing attribute already has name {target_name}."
+                )
+            attribute = CognitoIdpUserPoolAttribute(base_name, True, attribute_schema)
+            attributes.append(attribute)
+        for attribute in attributes:
+            self.schema_attributes[attribute.name] = attribute
 
     def create_id_token(self, client_id, username):
         extra_data = self.get_user_extra_data_by_client_id(client_id, username)
@@ -1552,6 +1572,10 @@ class CognitoIdpBackend(BaseBackend):
             user.status = UserStatus.CONFIRMED
         else:
             user.status = UserStatus.FORCE_CHANGE_PASSWORD
+
+    def add_custom_attributes(self, user_pool_id, custom_attributes):
+        user_pool = self.describe_user_pool(user_pool_id)
+        user_pool.add_custom_attributes(custom_attributes)
 
 
 cognitoidp_backends = {}

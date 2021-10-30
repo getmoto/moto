@@ -414,7 +414,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return ec2_backends[self.region_name]
 
     def add_applications(self, cluster_id, applications):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_applications(applications)
 
     def add_instance_groups(self, cluster_id, instance_groups):
@@ -444,7 +444,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return steps
 
     def add_tags(self, cluster_id, tags):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_tags(tags)
 
     def describe_job_flows(
@@ -479,7 +479,7 @@ class ElasticMapReduceBackend(BaseBackend):
             if step.id == step_id:
                 return step
 
-    def get_cluster(self, cluster_id):
+    def describe_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
         raise EmrError("ResourceNotFoundException", "", "error_json")
@@ -578,7 +578,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return result_groups
 
     def remove_tags(self, cluster_id, tag_keys):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.remove_tags(tag_keys)
 
     def _manage_security_groups(

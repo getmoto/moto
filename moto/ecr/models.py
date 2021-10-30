@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timezone
 from random import random
 from typing import Dict, List
 
@@ -235,7 +235,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id
         self.image_digest = digest
-        self.image_pushed_at = str(datetime.utcnow().isoformat())
+        self.image_pushed_at = str(datetime.now(timezone.utc).isoformat())
         self.last_scan = None
 
     def _create_digest(self):

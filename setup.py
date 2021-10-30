@@ -40,7 +40,7 @@ install_requires = [
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
     "more-itertools",
-    "importlib_metadata ; python_version < '3.8'"
+    "importlib_metadata ; python_version < '3.8'",
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
@@ -72,31 +72,38 @@ all_extra_deps = [
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
 extras_per_service = {}
-for service_name in [service[5:] for service in dir(service_list) if service.startswith("mock_")]:
+for service_name in [
+    service[5:] for service in dir(service_list) if service.startswith("mock_")
+]:
     extras_per_service[service_name] = []
 extras_per_service.update(
-{
-    "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "awslambda": [_dep_docker],
-    "batch": [_dep_docker],
-    "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
-    "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "ec2": [_dep_sshpubkeys],
-    "iotdata": [_dep_jsondiff],
-    "s3": [_dep_PyYAML],
-    "ses": [],
-    "sns": [],
-    "sqs": [],
-    "ssm": [_dep_PyYAML, _dep_dataclasses],
-    # XRay module uses pkg_resources, but doesn't have an explicit dependency listed
-    # This should be fixed in the next version: https://github.com/aws/aws-xray-sdk-python/issues/305
-    "xray": [_dep_aws_xray_sdk, _setuptools],
-})
+    {
+        "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "awslambda": [_dep_docker],
+        "batch": [_dep_docker],
+        "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
+        "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "ec2": [_dep_sshpubkeys],
+        "iotdata": [_dep_jsondiff],
+        "s3": [_dep_PyYAML],
+        "ses": [],
+        "sns": [],
+        "sqs": [],
+        "ssm": [_dep_PyYAML, _dep_dataclasses],
+        # XRay module uses pkg_resources, but doesn't have an explicit
+        # dependency listed.  This should be fixed in the next version:
+        # https://github.com/aws/aws-xray-sdk-python/issues/305
+        "xray": [_dep_aws_xray_sdk, _setuptools],
+    }
+)
+
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
 extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
+# DirectoryService needs EC2 to verify VPCs and subnets.
+extras_per_service["ds"] = extras_per_service["ec2"]
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,
@@ -115,11 +122,7 @@ setup(
     author="Steve Pulec",
     author_email="spulec@gmail.com",
     url="https://github.com/spulec/moto",
-    entry_points={
-        "console_scripts": [
-            "moto_server = moto.server:main",
-        ],
-    },
+    entry_points={"console_scripts": ["moto_server = moto.server:main"]},
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
@@ -136,7 +139,5 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
-    project_urls={
-        "Documentation": "http://docs.getmoto.org/en/latest/",
-    },
+    project_urls={"Documentation": "http://docs.getmoto.org/en/latest/"},
 )

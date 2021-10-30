@@ -1015,8 +1015,8 @@ class FakeBucket(CloudFormationModel):
             assert isinstance(rule.get("AllowedHeader", []), list) or isinstance(
                 rule.get("AllowedHeader", ""), str
             )
-            assert isinstance(rule.get("ExposedHeader", []), list) or isinstance(
-                rule.get("ExposedHeader", ""), str
+            assert isinstance(rule.get("ExposeHeader", []), list) or isinstance(
+                rule.get("ExposeHeader", ""), str
             )
             assert isinstance(rule.get("MaxAgeSeconds", "0"), str)
 
@@ -1034,8 +1034,8 @@ class FakeBucket(CloudFormationModel):
                     rule["AllowedMethod"],
                     rule["AllowedOrigin"],
                     rule.get("AllowedHeader"),
-                    rule.get("ExposedHeader"),
-                    rule.get("MaxAgeSecond"),
+                    rule.get("ExposeHeader"),
+                    rule.get("MaxAgeSeconds"),
                 )
             )
 

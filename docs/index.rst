@@ -40,6 +40,8 @@ Currently implemented Services:
 +---------------------------+-----------------------+------------------------------------+
 | Data Pipeline             | @mock_datapipeline    | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
+| Directory Service         | @mock_ds              | basic endpoints done               |
++---------------------------+-----------------------+------------------------------------+
 | DMS                       | @mock_dms             | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
 | DynamoDB                  | - @mock_dynamodb      | - core endpoints done              |

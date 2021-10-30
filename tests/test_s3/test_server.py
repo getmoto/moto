@@ -153,7 +153,10 @@ def test_s3_server_post_unicode_bucket_key():
 
 
 def test_s3_server_post_cors():
+    """Test default CORS headers set by flask-cors plugin"""
     test_client = authenticated_client()
+    # Create the bucket
+    test_client.put("/", "http://tester.localhost:5000/")
 
     preflight_headers = {
         "Access-Control-Request-Method": "POST",
@@ -167,7 +170,6 @@ def test_s3_server_post_cors():
     assert res.status_code in [200, 204]
 
     expected_methods = set(["DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"])
-    assert set(res.headers["Allow"].split(", ")) == expected_methods
     assert (
         set(res.headers["Access-Control-Allow-Methods"].split(", ")) == expected_methods
     )
@@ -178,3 +180,60 @@ def test_s3_server_post_cors():
     res.headers.should.have.key("Access-Control-Allow-Headers").which.should.equal(
         "origin, x-requested-with"
     )
+
+
+def test_s3_server_post_cors_exposed_header():
+    """Test that we can override default CORS headers with custom bucket rules"""
+    # github.com/spulec/moto/issues/4220
+
+    cors_config_payload = """<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <CORSRule>
+    <AllowedOrigin>https://example.org</AllowedOrigin>
+    <AllowedMethod>HEAD</AllowedMethod>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>PUT</AllowedMethod>
+    <AllowedMethod>POST</AllowedMethod>
+    <AllowedMethod>DELETE</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+    <ExposeHeader>ETag</ExposeHeader>
+    <MaxAgeSeconds>3000</MaxAgeSeconds>
+  </CORSRule>
+</CORSConfiguration>
+    """
+
+    test_client = authenticated_client()
+    preflight_headers = {
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "origin, x-requested-with",
+        "Origin": "https://localhost:9000",
+    }
+    # Returns 403 on non existing bucket
+    preflight_response = test_client.options(
+        "/", "http://testcors.localhost:5000/", headers=preflight_headers
+    )
+    assert preflight_response.status_code == 403
+
+    # Create the bucket
+    test_client.put("/", "http://testcors.localhost:5000/")
+    res = test_client.put(
+        "/?cors", "http://testcors.localhost:5000", data=cors_config_payload
+    )
+    assert res.status_code == 200
+
+    cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
+    assert b"<ExposedHeader>ETag</ExposedHeader>" in cors_res.data
+
+    preflight_response = test_client.options(
+        "/", "http://testcors.localhost:5000/", headers=preflight_headers
+    )
+    assert preflight_response.status_code == 200
+    expected_cors_headers = {
+        "Access-Control-Allow-Methods": "HEAD, GET, PUT, POST, DELETE",
+        "Access-Control-Allow-Origin": "https://example.org",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Expose-Headers": "ETag",
+        "Access-Control-Max-Age": "3000",
+    }
+    for header_name, header_value in expected_cors_headers.items():
+        assert header_name in preflight_response.headers
+        assert preflight_response.headers[header_name] == header_value
