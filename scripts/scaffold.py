@@ -1,20 +1,23 @@
 #!/usr/bin/env python
 """Generates template code and response body for specified boto3's operation.
 
-You only have to select service and operation that you want to add.
+To execute:
+    cd moto  # top-level directory; script will not work from scripts dir
+    ./scripts/scaffold.py
 
-This script looks at the botocore's definition file of specified service and
-operation, and auto-generates codes and reponses.
+When prompted, select the service and operation that you want to add.
+This script will look at the botocore's definition file for the selected
+service and operation, then auto-generate the code and responses.
 
-Basically, this script supports almost all services, as long as its
-protocol is `query`, `json` or `rest-json`.  Even if aws adds new
-services, this script will work as long as the protocol is known.
+Almost all services are supported, as long as the service's protocol is
+`query`, `json` or `rest-json`.  Even if aws adds new services, this script
+will work if the protocol is known.
 
 TODO:
-  - This script doesn't generates functions in `responses.py` for
-    `rest-json`.  Someone will need to add this logic.
-  - In some services's operations, this script might crash. Create an
-    issue on github for the problem.
+  - This script doesn't generate functions in `responses.py` for
+    `rest-json`.  That logic needs to be added.
+  - Some services's operations might cause this script to crash. If that
+    should happen, please create an issue for the problem.
 """
 import os
 import re
@@ -43,7 +46,7 @@ OUTPUT_IGNORED_IN_BACKEND = ["NextMarker"]
 
 
 def print_progress(title, body, color):
-    click.secho("\t{}\t".format(title), fg=color, nl=False)
+    click.secho(f"\t{title}\t", fg=color, nl=False)
     click.echo(body)
 
 
@@ -52,7 +55,7 @@ def select_service_and_operation():
     service_completer = WordCompleter(service_names)
     service_name = prompt("Select service: ", completer=service_completer)
     if service_name not in service_names:
-        click.secho("{} is not valid service".format(service_name), fg="red")
+        click.secho(f"{service_name} is not valid service", fg="red")
         raise click.Abort()
     moto_client = get_moto_implementation(service_name)
     real_client = boto3.client(service_name, region_name="us-east-1")
@@ -72,16 +75,16 @@ def select_service_and_operation():
     click.echo("==Current Implementation Status==")
     for operation_name in operation_names:
         check = "X" if operation_name in implemented else " "
-        click.secho("[{}] {}".format(check, operation_name))
+        click.secho(f"[{check}] {operation_name}")
     click.echo("=================================")
     operation_name = prompt("Select Operation: ", completer=operation_completer)
 
     if operation_name not in operation_names:
-        click.secho("{} is not valid operation".format(operation_name), fg="red")
+        click.secho(f"{operation_name} is not valid operation", fg="red")
         raise click.Abort()
 
     if operation_name in implemented:
-        click.secho("{} is already implemented".format(operation_name), fg="red")
+        click.secho(f"{operation_name} is already implemented", fg="red")
         raise click.Abort()
     return service_name, operation_name
 
@@ -95,7 +98,7 @@ def get_lib_dir(service):
 
 
 def get_test_dir(service):
-    return os.path.join("tests", "test_{}".format(get_escaped_service(service)))
+    return os.path.join("tests", f"test_{get_escaped_service(service)}")
 
 
 def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None):
@@ -123,17 +126,13 @@ def append_mock_to_init_py(service):
     with open(path) as fhandle:
         lines = [_.replace("\n", "") for _ in fhandle.readlines()]
 
-    if any(_ for _ in lines if re.match("^mock_{}.*lazy_load(.*)$".format(service), _)):
+    if any(_ for _ in lines if re.match(f"^mock_{service}.*lazy_load(.*)$", _)):
         return
     filtered_lines = [_ for _ in lines if re.match("^mock_.*lazy_load(.*)$", _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'mock_{} = lazy_load(".{}", "mock_{}", boto3_name="{}")'.format(
-        get_escaped_service(service),
-        get_escaped_service(service),
-        get_escaped_service(service),
-        service,
-    )
+    escaped_service = get_escaped_service(service)
+    new_line = f'mock_{escaped_service} = lazy_load(".{escaped_service}", "mock_{escaped_service}", boto3_name="{service}")'
     lines.insert(last_import_line_index + 1, new_line)
 
     body = "\n".join(lines) + "\n"
@@ -180,7 +179,7 @@ def initialize_service(service, api_protocol):
     tmpl_dir = os.path.join(TEMPLATE_DIR, "test")
     for tmpl_filename in os.listdir(tmpl_dir):
         alt_filename = (
-            "test_{}.py".format(get_escaped_service(service))
+            f"test_{get_escaped_service(service)}.py"
             if tmpl_filename == "test_service.py.j2"
             else None
         )
@@ -213,6 +212,7 @@ def get_function_in_responses(service, operation, protocol):
     You can see example of elbv2 from link below.
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
+    escaped_service = get_escaped_service(service)
     client = boto3.client(service)
 
     aws_operation_name = get_operation_name_in_keys(
@@ -232,7 +232,7 @@ def get_function_in_responses(service, operation, protocol):
     output_names = [
         to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND
     ]
-    body = "\ndef {}(self):\n".format(operation)
+    body = f"\ndef {operation}(self):\n"
 
     for input_name, input_type in inputs.items():
         type_name = input_type.type_name
@@ -244,29 +244,21 @@ def get_function_in_responses(service, operation, protocol):
             arg_line_tmpl = '    {}=self._get_param("{}")\n'
         body += arg_line_tmpl.format(to_snake_case(input_name), input_name)
     if output_names:
-        body += "    {} = self.{}_backend.{}(\n".format(
-            ", ".join(output_names), get_escaped_service(service), operation
-        )
+        body += f"    {', '.join(output_names)} = self.{escaped_service}_backend.{operation}(\n"
     else:
-        body += "    self.{}_backend.{}(\n".format(
-            get_escaped_service(service), operation
-        )
+        body += f"    self.{escaped_service}_backend.{operation}(\n"
     for input_name in input_names:
         body += f"        {input_name}={input_name},\n"
 
     body += "    )\n"
     if protocol == "query":
-        body += "    template = self.response_template({}_TEMPLATE)\n".format(
-            operation.upper()
-        )
-        body += "    return template.render({})\n".format(
-            ", ".join([f"{n}={n}" for n in output_names])
-        )
+        body += f"    template = self.response_template({operation.upper()}_TEMPLATE)\n"
+        names = ", ".join([f"{n}={n}" for n in output_names])
+        body += f"    return template.render({names})\n"
     elif protocol in ["json", "rest-json"]:
         body += "    # TODO: adjust response\n"
-        body += "    return json.dumps(dict({}))\n".format(
-            ", ".join(["{}={}".format(to_lower_camel_case(_), _) for _ in output_names])
-        )
+        names = ", ".join([f"{to_lower_camel_case(_)}={_}" for _ in output_names])
+        body += f"    return json.dumps(dict({names}))\n"
     return body
 
 
@@ -293,11 +285,11 @@ def get_function_in_models(service, operation):
         to_snake_case(_) for _ in outputs.keys() if _ not in OUTPUT_IGNORED_IN_BACKEND
     ]
     if input_names:
-        body = "def {}(self, {}):\n".format(operation, ", ".join(input_names))
+        body = f"def {operation}(self, {', '.join(input_names)}):\n"
     else:
         body = "def {}(self)\n"
     body += "    # implement here\n"
-    body += "    return {}\n\n".format(", ".join(output_names))
+    body += f"    return {', '.join(output_names)}\n\n"
 
     return body
 
@@ -308,14 +300,15 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
 
     class_name = shape.__class__.__name__
     if class_name in ("StringShape", "Shape"):
-        tree = etree.Element(name)
+        tree = etree.Element(name)  # pylint: disable=c-extension-no-member
         if name_prefix:
-            tree.text = "{{ %s.%s }}" % (name_prefix[-1], to_snake_case(name))
+            tree.text = f"{{{{ {name_prefix[-1]}.{to_snake_case(name)} }}}}"
         else:
-            tree.text = "{{ %s }}" % to_snake_case(name)
+            tree.text = f"{{{{ {to_snake_case(name)} }}}}"
         return tree
 
     if class_name in ("ListShape",):
+        # pylint: disable=c-extension-no-member
         replace_list.append((name, name_prefix))
         tree = etree.Element(name)
         t_member = etree.Element("member")
@@ -353,6 +346,7 @@ def get_response_query_template(service, operation):
     xml_namespace = metadata["xmlNamespace"]
 
     # build xml tree
+    # pylint: disable=c-extension-no-member
     t_root = etree.Element(response_wrapper, xmlns=xml_namespace)
 
     # build metadata
@@ -376,25 +370,25 @@ def get_response_query_template(service, operation):
         prefix = replace[1]
         singular_name = singularize(name)
 
-        start_tag = "<%s>" % name
-        iter_name = "{}.{}".format(prefix[-1], name.lower()) if prefix else name.lower()
-        loop_start = "{%% for %s in %s %%}" % (singular_name.lower(), iter_name)
-        end_tag = "</%s>" % name
+        start_tag = f"<{name}>"
+        iter_name = f"{prefix[-1]}.{name.lower()}" if prefix else name.lower()
+        loop_start = f"{{%% for {singular_name.lower()} in {iter_name} %%}}"
+        end_tag = f"</{name}>"
         loop_end = "{{ endfor }}"
 
         start_tag_indexes = [i for i, l in enumerate(xml_body_lines) if start_tag in l]
         if len(start_tag_indexes) != 1:
-            raise Exception("tag %s not found in response body" % start_tag)
+            raise Exception(f"tag {start_tag} not found in response body")
         start_tag_index = start_tag_indexes[0]
         xml_body_lines.insert(start_tag_index + 1, loop_start)
 
         end_tag_indexes = [i for i, l in enumerate(xml_body_lines) if end_tag in l]
         if len(end_tag_indexes) != 1:
-            raise Exception("tag %s not found in response body" % end_tag)
+            raise Exception(f"tag {end_tag} not found in response body")
         end_tag_index = end_tag_indexes[0]
         xml_body_lines.insert(end_tag_index, loop_end)
     xml_body = "\n".join(xml_body_lines)
-    body = '\n{}_TEMPLATE = """{}"""'.format(operation.upper(), xml_body)
+    body = f'\n{operation.upper()}_TEMPLATE = """{xml_body}"""'
     return body
 
 
@@ -454,9 +448,9 @@ def insert_url(service, operation, api_protocol):
 
     # generate url pattern
     if api_protocol == "rest-json":
-        new_line = "    '{0}/.*$': response.dispatch,"
+        new_line = '    "{0}/.*$": response.dispatch,'
     else:
-        new_line = "    '{0}%s$': %sResponse.dispatch," % (uri, service_class)
+        new_line = f'    "{{0}}{uri}$": {service_class}Response.dispatch,'
     if new_line in lines:
         return
     lines.insert(last_elem_line_index + 1, new_line)
@@ -467,10 +461,11 @@ def insert_url(service, operation, api_protocol):
 
 
 def insert_codes(service, operation, api_protocol):
+    escaped_service = get_escaped_service(service)
     func_in_responses = get_function_in_responses(service, operation, api_protocol)
     func_in_models = get_function_in_models(service, operation)
     # edit responses.py
-    responses_path = "moto/{}/responses.py".format(get_escaped_service(service))
+    responses_path = f"moto/{escaped_service}/responses.py"
     print_progress("inserting code", responses_path, "green")
     insert_code_to_class(responses_path, BaseResponse, func_in_responses)
 
@@ -484,7 +479,7 @@ def insert_codes(service, operation, api_protocol):
             fhandle.write("\n".join(lines))
 
     # edit models.py
-    models_path = "moto/{}/models.py".format(get_escaped_service(service))
+    models_path = f"moto/{escaped_service}/models.py"
     print_progress("inserting code", models_path, "green")
     insert_code_to_class(models_path, BaseBackend, func_in_models)
 
@@ -503,15 +498,15 @@ def main():
     else:
         print_progress(
             "skip inserting code",
-            'api protocol "{}" is not supported'.format(api_protocol),
+            f'api protocol "{api_protocol}" is not supported',
             "yellow",
         )
 
     click.echo(
-        'Remaining setup:\n'
+        "Remaining setup:\n"
         '- Add the mock into "docs/index.rst",\n'
         '- Add the mock into "IMPLEMENTATION_COVERAGE.md",\n'
-        '- Run scripts/update_backend_index.py.'
+        "- Run scripts/update_backend_index.py."
     )
 
 
