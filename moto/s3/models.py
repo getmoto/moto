@@ -1035,7 +1035,7 @@ class FakeBucket(CloudFormationModel):
                     rule["AllowedOrigin"],
                     rule.get("AllowedHeader"),
                     rule.get("ExposeHeader"),
-                    rule.get("MaxAgeSecond"),
+                    rule.get("MaxAgeSeconds"),
                 )
             )
 

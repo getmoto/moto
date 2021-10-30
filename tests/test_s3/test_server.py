@@ -196,6 +196,7 @@ def test_s3_server_post_cors_exposed_header():
     <AllowedMethod>DELETE</AllowedMethod>
     <AllowedHeader>*</AllowedHeader>
     <ExposeHeader>ETag</ExposeHeader>
+    <MaxAgeSeconds>3000</MaxAgeSeconds>
   </CORSRule>
 </CORSConfiguration>
     """
@@ -227,6 +228,7 @@ def test_s3_server_post_cors_exposed_header():
         "Access-Control-Allow-Origin": "https://example.org",
         "Access-Control-Allow-Headers": "*",
         "Access-Control-Expose-Headers": "ETag",
+        "Access-Control-Max-Age": "3000",
     }
     for header_name, header_value in expected_cors_headers.items():
         assert header_name in preflight_response.headers
