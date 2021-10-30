@@ -46,11 +46,13 @@ OUTPUT_IGNORED_IN_BACKEND = ["NextMarker"]
 
 
 def print_progress(title, body, color):
+    """Prints a color-code message describing current state of progress."""
     click.secho(f"\t{title}\t", fg=color, nl=False)
     click.echo(body)
 
 
 def select_service_and_operation():
+    """Prompt user to select service and operation."""
     service_names = Session().get_available_services()
     service_completer = WordCompleter(service_names)
     service_name = prompt("Select service: ", completer=service_completer)
@@ -90,18 +92,22 @@ def select_service_and_operation():
 
 
 def get_escaped_service(service):
+    """Remove dashes from the service name."""
     return service.replace("-", "")
 
 
 def get_lib_dir(service):
+    """Return moto path for the location of the code supporting the service."""
     return os.path.join("moto", get_escaped_service(service))
 
 
 def get_test_dir(service):
+    """Return moto path for the test directory for the service."""
     return os.path.join("tests", f"test_{get_escaped_service(service)}")
 
 
 def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None):
+    """Create specified files from Jinja templates for specified service."""
     is_test = "test" in tmpl_dir
     rendered = (
         jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_dir))
@@ -117,13 +123,14 @@ def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None
         print_progress("skip creating", filepath, "yellow")
     else:
         print_progress("creating", filepath, "green")
-        with open(filepath, "w") as fhandle:
+        with open(filepath, "w", encoding="utf-8") as fhandle:
             fhandle.write(rendered)
 
 
 def append_mock_to_init_py(service):
+    """Update __init_.py to add line to load the mock service."""
     path = os.path.join(os.path.dirname(__file__), "..", "moto", "__init__.py")
-    with open(path) as fhandle:
+    with open(path, encoding="utf-8") as fhandle:
         lines = [_.replace("\n", "") for _ in fhandle.readlines()]
 
     if any(_ for _ in lines if re.match(f"^mock_{service}.*lazy_load(.*)$", _)):
@@ -132,16 +139,19 @@ def append_mock_to_init_py(service):
     last_import_line_index = lines.index(filtered_lines[-1])
 
     escaped_service = get_escaped_service(service)
-    new_line = f'mock_{escaped_service} = lazy_load(".{escaped_service}", "mock_{escaped_service}", boto3_name="{service}")'
+    new_line = (
+        f"mock_{escaped_service} = lazy_load("
+        f'".{escaped_service}", "mock_{escaped_service}", boto3_name="{service}")'
+    )
     lines.insert(last_import_line_index + 1, new_line)
 
     body = "\n".join(lines) + "\n"
-    with open(path, "w") as fhandle:
+    with open(path, "w", encoding="utf-8") as fhandle:
         fhandle.write(body)
 
 
 def initialize_service(service, api_protocol):
-    """create lib and test dirs if not exist"""
+    """Create lib and test dirs if they don't exist."""
     lib_dir = get_lib_dir(service)
     test_dir = get_test_dir(service)
 
@@ -149,7 +159,10 @@ def initialize_service(service, api_protocol):
 
     client = boto3.client(service)
     service_class = client.__class__.__name__
-    endpoint_prefix = client._service_model.endpoint_prefix
+    endpoint_prefix = (
+        # pylint: disable=protected-access
+        client._service_model.endpoint_prefix
+    )
 
     tmpl_context = {
         "service": service,
@@ -189,25 +202,31 @@ def initialize_service(service, api_protocol):
 
 
 def to_upper_camel_case(string):
+    """Convert snake case to camel case."""
     return "".join([_.title() for _ in string.split("_")])
 
 
 def to_lower_camel_case(string):
+    """Convert snake to camel case, but start string with lowercase letter."""
     words = string.split("_")
     return "".join(words[:1] + [_.title() for _ in words[1:]])
 
 
 def to_snake_case(string):
+    """Convert camel case to snake case."""
     new_string = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", string)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", new_string).lower()
 
 
 def get_operation_name_in_keys(operation_name, operation_keys):
+    """Return AWS operation name (service) found in list of client services."""
     index = [_.lower() for _ in operation_keys].index(operation_name.lower())
     return operation_keys[index]
 
 
-def get_function_in_responses(service, operation, protocol):
+def get_function_in_responses(
+    service, operation, protocol
+):  # pylint: disable=too-many-locals
     """refers to definition of API in botocore, and autogenerates function
     You can see example of elbv2 from link below.
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
@@ -215,6 +234,7 @@ def get_function_in_responses(service, operation, protocol):
     escaped_service = get_escaped_service(service)
     client = boto3.client(service)
 
+    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -268,6 +288,8 @@ def get_function_in_models(service, operation):
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
     client = boto3.client(service)
+
+    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -326,7 +348,7 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
     raise ValueError("Not supported Shape")
 
 
-def get_response_query_template(service, operation):
+def get_response_query_template(service, operation):  # pylint: disable=too-many-locals
     """refers to definition of API in botocore, and autogenerates template
     Assume that response format is xml when protocol is query
 
@@ -334,6 +356,8 @@ def get_response_query_template(service, operation):
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
     client = boto3.client(service)
+
+    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -393,7 +417,8 @@ def get_response_query_template(service, operation):
 
 
 def insert_code_to_class(path, base_class, new_code):
-    with open(path) as fhandle:
+    """Add code for class handling service's response or backend."""
+    with open(path, encoding="utf-8") as fhandle:
         lines = [_.replace("\n", "") for _ in fhandle.readlines()]
     mod_path = os.path.splitext(path)[0].replace("/", ".")
     mod = importlib.import_module(mod_path)
@@ -412,13 +437,16 @@ def insert_code_to_class(path, base_class, new_code):
     lines = lines[:end_line_no] + func_lines + lines[end_line_no:]
 
     body = "\n".join(lines) + "\n"
-    with open(path, "w") as fhandle:
+    with open(path, "w", encoding="utf-8") as fhandle:
         fhandle.write(body)
 
 
-def insert_url(service, operation, api_protocol):
+def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-locals
+    """Create urls.py with appropriate URL bases and paths."""
     client = boto3.client(service)
     service_class = client.__class__.__name__
+
+    # pylint: disable=protected-access
     aws_operation_name = get_operation_name_in_keys(
         to_upper_camel_case(operation),
         list(client._service_model._service_description["operations"].keys()),
@@ -428,7 +456,7 @@ def insert_url(service, operation, api_protocol):
     path = os.path.join(
         os.path.dirname(__file__), "..", "moto", get_escaped_service(service), "urls.py"
     )
-    with open(path) as fhandle:
+    with open(path, encoding="utf-8") as fhandle:
         lines = [_.replace("\n", "") for _ in fhandle.readlines()]
 
     if any(_ for _ in lines if re.match(uri, _)):
@@ -456,11 +484,12 @@ def insert_url(service, operation, api_protocol):
     lines.insert(last_elem_line_index + 1, new_line)
 
     body = "\n".join(lines) + "\n"
-    with open(path, "w") as fhandle:
+    with open(path, "w", encoding="utf-8") as fhandle:
         fhandle.write(body)
 
 
 def insert_codes(service, operation, api_protocol):
+    """Create the responses.py and models.py for the service and operation."""
     escaped_service = get_escaped_service(service)
     func_in_responses = get_function_in_responses(service, operation, api_protocol)
     func_in_models = get_function_in_models(service, operation)
@@ -472,10 +501,10 @@ def insert_codes(service, operation, api_protocol):
     # insert template
     if api_protocol == "query":
         template = get_response_query_template(service, operation)
-        with open(responses_path) as fhandle:
+        with open(responses_path, encoding="utf-8") as fhandle:
             lines = [_[:-1] for _ in fhandle.readlines()]
         lines += template.splitlines()
-        with open(responses_path, "w") as fhandle:
+        with open(responses_path, "w", encoding="utf-8") as fhandle:
             fhandle.write("\n".join(lines))
 
     # edit models.py
@@ -489,7 +518,10 @@ def insert_codes(service, operation, api_protocol):
 
 @click.command()
 def main():
+    """Create basic files needed for the user's choice of service and op."""
     service, operation = select_service_and_operation()
+
+    # pylint: disable=protected-access
     api_protocol = boto3.client(service)._service_model.metadata["protocol"]
     initialize_service(service, api_protocol)
 
