@@ -1,6 +1,7 @@
 import io
 import os
 import re
+from typing import List, Union
 
 from botocore.awsrequest import AWSPreparedRequest
 
@@ -258,9 +259,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def bucket_response(self, request, full_url, headers):
         self.method = request.method
         self.path = self._get_path(request)
-        self.headers = request.headers
-        if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+        # Make a copy of request.headers because it's immutable
+        self.headers = dict(request.headers)
+        if "Host" not in self.headers:
+            self.headers["Host"] = urlparse(full_url).netloc
         try:
             response = self._bucket_response(request, full_url, headers)
         except S3ClientError as s3error:
@@ -315,6 +317,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._bucket_response_delete(body, bucket_name, querystring)
         elif method == "POST":
             return self._bucket_response_post(request, body, bucket_name)
+        elif method == "OPTIONS":
+            return self._bucket_response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
@@ -341,6 +345,64 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # error response between real and mocked responses.
             return 404, {}, ""
         return 200, {}, ""
+
+    def _set_cors_headers(self, bucket):
+        """
+        TODO: smarter way of matching the right CORS rule:
+        See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
+
+        "When Amazon S3 receives a preflight request from a browser, it evaluates
+        the CORS configuration for the bucket and uses the first CORSRule rule
+        that matches the incoming browser request to enable a cross-origin request."
+        This here just uses all rules and the last rule will override the previous ones
+        if they are re-defining the same headers.
+        """
+
+        def _to_string(header: Union[List[str], str]) -> str:
+            # We allow list and strs in header values. Transform lists in comma-separated strings
+            if isinstance(header, list):
+                return ", ".join(header)
+            return header
+
+        for cors_rule in bucket.cors:
+            if cors_rule.allowed_methods is not None:
+                self.headers["Access-Control-Allow-Methods"] = _to_string(
+                    cors_rule.allowed_methods
+                )
+            if cors_rule.allowed_origins is not None:
+                self.headers["Access-Control-Allow-Origin"] = _to_string(
+                    cors_rule.allowed_origins
+                )
+            if cors_rule.allowed_headers is not None:
+                self.headers["Access-Control-Allow-Headers"] = _to_string(
+                    cors_rule.allowed_headers
+                )
+            if cors_rule.exposed_headers is not None:
+                self.headers["Access-Control-Expose-Headers"] = _to_string(
+                    cors_rule.exposed_headers
+                )
+            if cors_rule.max_age_seconds is not None:
+                self.headers["Access-Control-Max-Age"] = _to_string(
+                    cors_rule.max_age_seconds
+                )
+
+        return self.headers
+
+    def _bucket_response_options(self, bucket_name):
+        # Return 200 with the headers from the bucket CORS configuration
+        self._authenticate_and_authorize_s3_action()
+        try:
+            bucket = self.backend.head_bucket(bucket_name)
+        except MissingBucket:
+            return (
+                403,
+                {},
+                "",
+            )  # AWS S3 seems to return 403 on OPTIONS and 404 on GET/HEAD
+
+        self._set_cors_headers(bucket)
+
+        return 200, self.headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring):
         self._set_action("BUCKET", "GET", querystring)
@@ -1033,9 +1095,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
-        self.headers = request.headers
-        if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+        # Make a copy of request.headers because it's immutable
+        self.headers = dict(request.headers)
+        if "Host" not in self.headers:
+            self.headers["Host"] = urlparse(full_url).netloc
         response_headers = {}
 
         try:
