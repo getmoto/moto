@@ -984,8 +984,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template.render(deleted=deleted_objects, delete_errors=error_names),
         )
 
-    def _handle_range_header(self, request, headers, response_content):
-        response_headers = {}
+    def _handle_range_header(self, request, response_headers, response_content):
         length = len(response_content)
         last = length - 1
         _, rspec = request.headers.get("range").split("=")

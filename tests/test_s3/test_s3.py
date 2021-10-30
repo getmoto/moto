@@ -6486,3 +6486,24 @@ def test_head_object_should_return_default_content_type():
     s3.Object("testbucket", "testobject").content_type.should.equal(
         "binary/octet-stream"
     )
+
+
+@mock_s3
+def test_request_partial_content_should_contain_all_metadata():
+    # github.com/spulec/moto/issues/4203
+    bucket = "bucket"
+    object_key = "key"
+    body = "some text"
+    query_range = "0-3"
+
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket=bucket)
+    obj = boto3.resource("s3").Object(bucket, object_key)
+    obj.put(Body=body)
+
+    response = obj.get(Range="bytes={}".format(query_range))
+
+    assert response["ETag"] == obj.e_tag
+    assert response["LastModified"] == obj.last_modified
+    assert response["ContentLength"] == 4
+    assert response["ContentRange"] == "bytes {}/{}".format(query_range, len(body))
