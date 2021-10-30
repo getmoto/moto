@@ -202,6 +202,16 @@ def test_s3_server_post_cors_exposed_header():
     """
 
     test_client = authenticated_client()
+    preflight_headers = {
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "origin, x-requested-with",
+        "Origin": "https://localhost:9000",
+    }
+    # Returns 403 on non existing bucket
+    preflight_response = test_client.options(
+        "/", "http://testcors.localhost:5000/", headers=preflight_headers
+    )
+    assert preflight_response.status_code == 403
 
     # Create the bucket
     test_client.put("/", "http://testcors.localhost:5000/")
@@ -212,12 +222,6 @@ def test_s3_server_post_cors_exposed_header():
 
     cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
     assert b"<ExposedHeader>ETag</ExposedHeader>" in cors_res.data
-
-    preflight_headers = {
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "origin, x-requested-with",
-        "Origin": "https://localhost:9000",
-    }
 
     preflight_response = test_client.options(
         "/", "http://testcors.localhost:5000/", headers=preflight_headers
