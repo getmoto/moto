@@ -1858,7 +1858,7 @@
 
 ## emr
 <details>
-<summary>40% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -1871,7 +1871,7 @@
 - [X] delete_security_configuration
 - [ ] delete_studio
 - [ ] delete_studio_session_mapping
-- [ ] describe_cluster
+- [X] describe_cluster
 - [X] describe_job_flows
 - [ ] describe_notebook_execution
 - [ ] describe_release_label
