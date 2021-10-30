@@ -178,10 +178,7 @@ def test_describe_task_definition(use_resource_reqs):
 
     resp = batch_client.describe_job_definitions(jobDefinitionName=tagged_name)
     resp["jobDefinitions"][0]["tags"].should.equal(
-        {
-            "foo": "123",
-            "bar": "456",
-        }
+        {"foo": "123", "bar": "456",}
     )
 
     for job_definition in resp["jobDefinitions"]:
@@ -205,10 +202,7 @@ def register_job_def(batch_client, definition_name="sleep10", use_resource_reqs=
         )
     else:
         container_properties.update(
-            {
-                "memory": random.randint(4, 128),
-                "vcpus": 1,
-            }
+            {"memory": random.randint(4, 128), "vcpus": 1,}
         )
 
     return batch_client.register_job_definition(
@@ -233,8 +227,5 @@ def register_job_def_with_tags(batch_client, definition_name="sleep10"):
             "memory": random.randint(4, 128),
             "command": ["sleep", "10"],
         },
-        tags={
-            "foo": "123",
-            "bar": "456",
-        },
+        tags={"foo": "123", "bar": "456",},
     )
