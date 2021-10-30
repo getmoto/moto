@@ -18,7 +18,7 @@ from .test_ds_simple_ad_directory import create_test_directory, TEST_REGION
 
 @mock_ec2
 @mock_ds
-def test_delete_directory():
+def test_ds_delete_directory():
     """Test good and bad invocations of delete_directory()."""
     client = boto3.client("ds", region_name=TEST_REGION)
 
@@ -83,7 +83,7 @@ def test_ds_get_directory_limits():
 
 @mock_ec2
 @mock_ds
-def test_describe_directories():
+def test_ds_describe_directories():
     """Test good and bad invocations of describe_directories()."""
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)

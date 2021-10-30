@@ -16,7 +16,7 @@ from .test_ds_simple_ad_directory import create_test_directory, TEST_REGION
 
 @mock_ec2
 @mock_ds
-def test_add_tags_to_resource():
+def test_ds_add_tags_to_resource():
     """Test the addition of tags to a resource."""
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
@@ -66,7 +66,7 @@ def test_add_tags_to_resource():
 
 @mock_ec2
 @mock_ds
-def test_remove_tags_from_resource():
+def test_ds_remove_tags_from_resource():
     """Test the removal of tags to a resource."""
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
@@ -90,7 +90,7 @@ def test_remove_tags_from_resource():
 
 @mock_ec2
 @mock_ds
-def test_list_tags_for_resource():
+def test_ds_list_tags_for_resource():
     """Test ability to list all tags for a resource."""
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
