@@ -7,9 +7,9 @@ from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
+from .exceptions import ResourceNotFoundException
 
-# String Templates
-from ..config.exceptions import ValidationException, ResourceNotFoundException
+from ..config.exceptions import ValidationException
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"

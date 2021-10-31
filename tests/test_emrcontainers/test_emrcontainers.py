@@ -346,39 +346,31 @@ class TestStartJobRun:
             in exc.value.args
         )
 
-    # todo: Fix this case
-    # Original message: Virtual cluster foobaa doesn't exist.
-    # Mocked message: ResourceArn 'Virtual cluster string doesn't exist.' does not exist
-    # def test_invalid_virtual_cluster_id(self):
-    #     with pytest.raises(ClientError) as exc:
-    #         self.client.start_job_run(
-    #             name="test_job",
-    #             virtualClusterId="foobaa",
-    #             executionRoleArn=self.default_execution_role_arn,
-    #             releaseLabel="foobaa",
-    #             jobDriver={}
-    #         )
-    #
-    #     err = exc.value.response["Error"]
-    #
-    #     assert err["Code"] == "ResourceNotFoundException"
-    #     assert (
-    #         err["Message"] == "Virtual cluster foobaa doesn't exist."
-    #     )
+    def test_invalid_virtual_cluster_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.start_job_run(
+                name="test_job",
+                virtualClusterId="foobaa",
+                executionRoleArn=self.default_execution_role_arn,
+                releaseLabel="foobaa",
+                jobDriver={},
+            )
 
-    # todo: Fix this case
-    # Original message: Release foobaa doesn't exist.
-    # Mocked message: ResourceArn  'Release foobaa doesn't exist.' does not exist.
-    # def test_invalid_release_label(self):
-    #     with pytest.raises(ClientError) as exc:
-    #         self.client.start_job_run(
-    #             name="test_job",
-    #             virtualClusterId=self.virtual_cluster_id,
-    #             executionRoleArn=self.default_execution_role_arn,
-    #             releaseLabel="foobaa",
-    #             jobDriver={},
-    #         )
-    #     err = exc.value.response["Error"]
-    #
-    #     assert err["Code"] == "ResourceNotFoundException"
-    #     assert err["Message"] == "Release foobaa doesn't exist."
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Virtual cluster foobaa doesn't exist."
+
+    def test_invalid_release_label(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.start_job_run(
+                name="test_job",
+                virtualClusterId=self.virtual_cluster_id,
+                executionRoleArn=self.default_execution_role_arn,
+                releaseLabel="foobaa",
+                jobDriver={},
+            )
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Release foobaa doesn't exist."
