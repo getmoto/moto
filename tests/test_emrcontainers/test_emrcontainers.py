@@ -6,7 +6,7 @@ from unittest import SkipTest
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_emrcontainers, settings
 from moto.core import ACCOUNT_ID
@@ -329,3 +329,56 @@ class TestStartJobRun:
             == f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_id}/jobruns/{resp['id']}"
         )
         assert resp["virtualClusterId"] == self.virtual_cluster_id
+
+    def test_invalid_execution_role_arn(self):
+        with pytest.raises(ParamValidationError) as exc:
+            self.client.start_job_run(
+                name="test_job",
+                virtualClusterId="foobaa",
+                executionRoleArn="foobaa",
+                releaseLabel="foobaa",
+                jobDriver={},
+            )
+
+        assert exc.typename == "ParamValidationError"
+        assert (
+            "Parameter validation failed:\nInvalid length for parameter executionRoleArn, value: 6, valid min length: 20"
+            in exc.value.args
+        )
+
+    # todo: Fix this case
+    # Original message: Virtual cluster foobaa doesn't exist.
+    # Mocked message: ResourceArn 'Virtual cluster string doesn't exist.' does not exist
+    # def test_invalid_virtual_cluster_id(self):
+    #     with pytest.raises(ClientError) as exc:
+    #         self.client.start_job_run(
+    #             name="test_job",
+    #             virtualClusterId="foobaa",
+    #             executionRoleArn=self.default_execution_role_arn,
+    #             releaseLabel="foobaa",
+    #             jobDriver={}
+    #         )
+    #
+    #     err = exc.value.response["Error"]
+    #
+    #     assert err["Code"] == "ResourceNotFoundException"
+    #     assert (
+    #         err["Message"] == "Virtual cluster foobaa doesn't exist."
+    #     )
+
+    # todo: Fix this case
+    # Original message: Release foobaa doesn't exist.
+    # Mocked message: ResourceArn  'Release foobaa doesn't exist.' does not exist.
+    # def test_invalid_release_label(self):
+    #     with pytest.raises(ClientError) as exc:
+    #         self.client.start_job_run(
+    #             name="test_job",
+    #             virtualClusterId=self.virtual_cluster_id,
+    #             executionRoleArn=self.default_execution_role_arn,
+    #             releaseLabel="foobaa",
+    #             jobDriver={},
+    #         )
+    #     err = exc.value.response["Error"]
+    #
+    #     assert err["Code"] == "ResourceNotFoundException"
+    #     assert err["Message"] == "Release foobaa doesn't exist."

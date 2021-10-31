@@ -1,4 +1,5 @@
 """EMRContainersBackend class with methods for supported APIs."""
+import re
 from datetime import datetime
 from boto3 import Session
 
@@ -8,7 +9,7 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
 
 # String Templates
-from ..config.exceptions import ValidationException
+from ..config.exceptions import ValidationException, ResourceNotFoundException
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
@@ -253,6 +254,16 @@ class EMRContainersBackend(BaseBackend):
         configuration_overrides,
         tags,
     ):
+
+        if virtual_cluster_id not in self.virtual_clusters.keys():
+            raise ResourceNotFoundException(
+                f"Virtual cluster {virtual_cluster_id} doesn't exist."
+            )
+
+        if not re.match(
+            r"emr-[0-9]{1}\.[0-9]{1,2}\.0-(latest|[0-9]{8})", release_label
+        ):
+            raise ResourceNotFoundException(f"Release {release_label} doesn't exist.")
 
         job = FakeJob(
             name=name,
