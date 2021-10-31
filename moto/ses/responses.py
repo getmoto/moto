@@ -239,6 +239,23 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_RECEIPT_RULE)
         return template.render()
 
+    def describe_receipt_rule_set(self):
+        rule_set_name = self._get_param("RuleSetName")
+
+        rule_set = ses_backend.describe_receipt_rule_set(rule_set_name)
+
+        for i, rule in enumerate(rule_set):
+            formatted_rule = {}
+
+            for k, v in rule.items():
+                self._parse_param(k, v, formatted_rule)
+
+            rule_set[i] = formatted_rule
+
+        template = self.response_template(DESCRIBE_RECEIPT_RULE_SET)
+
+        return template.render(rule_set=rule_set, rule_set_name=rule_set_name)
+
     def describe_receipt_rule(self):
         rule_set_name = self._get_param("RuleSetName")
         rule_name = self._get_param("RuleName")
@@ -515,6 +532,57 @@ CREATE_RECEIPT_RULE = """<CreateReceiptRuleResponse xmlns="http://ses.amazonaws.
     <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
   </ResponseMetadata>
 </CreateReceiptRuleResponse>"""
+
+DESCRIBE_RECEIPT_RULE_SET = """<DescribeReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <DescribeReceiptRuleSetResult>
+    <Rules>
+      {% for rule in rule_set %}
+      <member>
+        <Recipients>
+          {% for recipient in rule["recipients"] %}
+          <member>{{recipient}}</member>
+          {% endfor %}
+        </Recipients>
+        <Name>{{rule["name"]}}</Name>
+        <Actions>
+          {% for action in rule["actions"] %}
+          <member>
+            {% if action["_s3_action"] %}
+            <S3Action>
+              <BucketName>{{action["_s3_action"]["_bucket_name"]}}</BucketName>
+              <KmsKeyArn>{{action["_s3_action"]["_kms_key_arn"]}}</KmsKeyArn>
+              <ObjectKeyPrefix>{{action["_s3_action"]["_object_key_prefix"]}}</ObjectKeyPrefix>
+              <TopicArn>{{action["_s3_action"]["_topic_arn"]}}</TopicArn>
+            </S3Action>
+            {% endif %}
+            {% if action["_bounce_action"] %}
+            <BounceAction>
+              <TopicArn>{{action["_bounce_action"]["_topic_arn"]}}</TopicArn>
+              <SmtpReplyCode>{{action["_bounce_action"]["_smtp_reply_code"]}}</SmtpReplyCode>
+              <StatusCode>{{action["_bounce_action"]["_status_code"]}}</StatusCode>
+              <Message>{{action["_bounce_action"]["_message"]}}</Message>
+              <Sender>{{action["_bounce_action"]["_sender"]}}</Sender>
+            </BounceAction>
+            {% endif %}
+          </member>
+          {% endfor %}
+        </Actions>
+        <TlsPolicy>{{rule["tls_policy"]}}</TlsPolicy>
+        <ScanEnabled>{{rule["scan_enabled"]}}</ScanEnabled>
+        <Enabled>{{rule["enabled"]}}</Enabled>
+      </member>
+      {% endfor %}
+    </Rules>
+    <Metadata>
+      <Name>{{rule_set_name}}</Name>
+      <CreatedTimestamp>2021-10-31</CreatedTimestamp>
+    </Metadata>
+  </DescribeReceiptRuleSetResult>
+  <ResponseMetadata>
+    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
+  </ResponseMetadata>
+</DescribeReceiptRuleSetResponse>
+"""
 
 DESCRIBE_RECEIPT_RULE = """<DescribeReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <DescribeReceiptRuleResult>

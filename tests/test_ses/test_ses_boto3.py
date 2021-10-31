@@ -483,6 +483,76 @@ def test_create_receipt_rule():
 
 
 @mock_ses
+def test_describe_receipt_rule_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    create_receipt_rule_set_response = conn.create_receipt_rule_set(
+        RuleSetName="testRuleSet"
+    )
+
+    create_receipt_rule_set_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(
+        200
+    )
+
+    result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
+
+    result["Metadata"]["Name"].should.equal("testRuleSet")
+    # result['Metadata']['CreatedTimestamp'].should.equal()
+
+    len(result["Rules"]).should.equal(0)
+
+
+@mock_ses
+def test_describe_receipt_rule_set_with_rules():
+    conn = boto3.client("ses", region_name="us-east-1")
+    create_receipt_rule_set_response = conn.create_receipt_rule_set(
+        RuleSetName="testRuleSet"
+    )
+
+    create_receipt_rule_set_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(
+        200
+    )
+
+    receipt_rule = {
+        "Name": "testRule",
+        "Enabled": True,
+        "TlsPolicy": "Optional",
+        "Recipients": ["string"],
+        "Actions": [
+            {
+                "S3Action": {
+                    "TopicArn": "string",
+                    "BucketName": "string",
+                    "ObjectKeyPrefix": "string",
+                    "KmsKeyArn": "string",
+                },
+                "BounceAction": {
+                    "TopicArn": "string",
+                    "SmtpReplyCode": "string",
+                    "StatusCode": "string",
+                    "Message": "string",
+                    "Sender": "string",
+                },
+            }
+        ],
+        "ScanEnabled": False,
+    }
+
+    create_receipt_rule_response = conn.create_receipt_rule(
+        RuleSetName="testRuleSet", Rule=receipt_rule
+    )
+
+    create_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
+
+    result["Metadata"]["Name"].should.equal("testRuleSet")
+    # result['Metadata']['CreatedTimestamp'].should.equal()
+
+    len(result["Rules"]).should.equal(1)
+    result["Rules"][0].should.equal(receipt_rule)
+
+
+@mock_ses
 def test_describe_receipt_rule():
     conn = boto3.client("ses", region_name="us-east-1")
     rule_set_name = "testRuleSet"
