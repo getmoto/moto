@@ -40,6 +40,12 @@ class CloudFormationResponse(BaseResponse):
     def cloudformation_backend(self):
         return cloudformation_backends[self.region]
 
+    @classmethod
+    def cfnresponse(cls, *args, **kwargs):
+        request, full_url, headers = args
+        full_url += "&Action=ProcessCfnResponse"
+        return cls.dispatch(request=request, full_url=full_url, headers=headers)
+
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
         if "localhost" in template_url:
@@ -86,6 +92,20 @@ class CloudFormationResponse(BaseResponse):
             else:
                 raise MissingParameterError(parameter["parameter_key"])
         return result
+
+    def process_cfn_response(self):
+        status = self._get_param("Status")
+        if status == "SUCCESS":
+            stack_id = self._get_param("StackId")
+            request_id = self._get_param("RequestId")
+            logical_resource_id = self._get_param("LogicalResourceId")
+            outputs = self._get_param("Data")
+            stack = self.cloudformation_backend.get_stack(stack_id)
+            custom_resource = stack.get_custom_resource(logical_resource_id)
+            custom_resource.set_data(outputs)
+            stack.verify_readiness()
+
+        return 200, {"status": 200}, {}
 
     def create_stack(self):
         stack_name = self._get_param("StackName")

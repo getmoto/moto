@@ -1908,7 +1908,7 @@ def test_lambda_function():
     # switch this to python as backend lambda only supports python execution.
     lambda_code = """
 def lambda_handler(event, context):
-    return (event, context)
+    return {"event": event}
 """
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1920,7 +1920,7 @@ def lambda_handler(event, context):
                         # CloudFormation expects a string as ZipFile, not a ZIP file base64-encoded
                         "ZipFile": {"Fn::Join": ["\n", lambda_code.splitlines()]}
                     },
-                    "Handler": "lambda_function.handler",
+                    "Handler": "index.lambda_handler",
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
@@ -1954,7 +1954,7 @@ def lambda_handler(event, context):
     result = conn.list_functions()
     result["Functions"].should.have.length_of(1)
     result["Functions"][0]["Description"].should.equal("Test function")
-    result["Functions"][0]["Handler"].should.equal("lambda_function.handler")
+    result["Functions"][0]["Handler"].should.equal("index.lambda_handler")
     result["Functions"][0]["MemorySize"].should.equal(128)
     result["Functions"][0]["Runtime"].should.equal("python2.7")
     result["Functions"][0]["Environment"].should.equal(
@@ -1965,6 +1965,10 @@ def lambda_handler(event, context):
     result = conn.get_function(FunctionName=function_name)
 
     result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(10)
+
+    response = conn.invoke(FunctionName=function_name)
+    result = json.loads(response["Payload"].read())
+    result.should.equal({"event": "{}"})
 
 
 def _make_zipfile(func_str):

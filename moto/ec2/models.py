@@ -376,7 +376,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -420,6 +420,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return set(self._group_set) | set(self.instance.security_groups)
         else:
             return self._group_set
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["PrimaryPrivateIpAddress", "SecondaryPrivateIpAddresses"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -759,7 +763,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -992,6 +996,16 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         eni.instance = None
         eni.attachment_id = None
         eni.device_index = None
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "AvailabilityZone",
+            "PrivateDnsName",
+            "PublicDnsName",
+            "PrivateIp",
+            "PublicIp",
+        ]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -2251,7 +2265,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -2485,6 +2499,10 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             if not self.matches_filter(key, value):
                 return False
         return True
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["GroupId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -3118,7 +3136,7 @@ class SecurityGroupIngress(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -3195,7 +3213,7 @@ class VolumeAttachment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -3245,7 +3263,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -3590,7 +3608,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -4263,7 +4281,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -4412,7 +4430,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -4486,6 +4504,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             return self.state
         else:
             return super().get_filter_value(filter_name, "DescribeSubnets")
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["AvailabilityZone"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -4759,7 +4781,7 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -5021,7 +5043,7 @@ class SubnetRouteTableAssociation(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -5072,7 +5094,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -5275,7 +5297,7 @@ class Route(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -5695,7 +5717,7 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ec2_backend = ec2_backends[region_name]
         return ec2_backend.create_internet_gateway()
@@ -5895,7 +5917,7 @@ class VPCGatewayAttachment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -6178,7 +6200,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]["SpotFleetRequestConfigData"]
         ec2_backend = ec2_backends[region_name]
@@ -6449,7 +6471,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ec2_backend = ec2_backends[region_name]
 
@@ -6472,6 +6494,10 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.public_ip
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["AllocationId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -7143,7 +7169,7 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         _type = properties["Type"]
@@ -7358,7 +7384,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ec2_backend = ec2_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -8159,7 +8185,7 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ec2_backend = ec2_backends[region_name]
         nat_gateway = ec2_backend.create_nat_gateway(

@@ -677,33 +677,6 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
 
-class LogGroup(CloudFormationModel):
-    def __init__(self, spec):
-        # required
-        self.name = spec["LogGroupName"]
-        # optional
-        self.tags = spec.get("Tags", [])
-
-    @staticmethod
-    def cloudformation_name_type():
-        return "LogGroupName"
-
-    @staticmethod
-    def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
-        return "AWS::Logs::LogGroup"
-
-    @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        properties = cloudformation_json["Properties"]
-        tags = properties.get("Tags", {})
-        return logs_backends[region_name].create_log_group(
-            resource_name, tags, **properties
-        )
-
-
 cloudwatch_backends = {}
 for region in Session().get_available_regions("cloudwatch"):
     cloudwatch_backends[region] = CloudWatchBackend(region)

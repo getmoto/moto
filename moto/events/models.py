@@ -217,6 +217,10 @@ class Rule(CloudFormationModel):
             group_id=group_id,
         )
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -236,7 +240,7 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
@@ -332,6 +336,10 @@ class EventBus(CloudFormationModel):
         event_backend = events_backends[region_name]
         event_backend.delete_event_bus(name=self.name)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "Name", "Policy"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -355,7 +363,7 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
@@ -530,6 +538,10 @@ class Archive(CloudFormationModel):
         event_backend = events_backends[region_name]
         event_backend.archives.pop(self.name)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "ArchiveName"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -551,7 +563,7 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]

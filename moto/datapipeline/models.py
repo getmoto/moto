@@ -83,7 +83,7 @@ class Pipeline(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         datapipeline_backend = datapipeline_backends[region_name]
         properties = cloudformation_json["Properties"]
