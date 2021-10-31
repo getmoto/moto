@@ -17,7 +17,6 @@ from werkzeug.serving import run_simple
 
 import moto.backends as backends
 import moto.backend_index as backend_index
-from moto import settings
 from moto.core.utils import convert_flask_to_httpretty_response
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
@@ -198,7 +197,7 @@ class DomainDispatcherApplication(object):
             path_info = environ.get("PATH_INFO", "/")
             service, region = path_info[1 : path_info.index("/", 1)].split("_")
             return service, region
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError):
             return None, None
 
     def __call__(self, environ, start_response):

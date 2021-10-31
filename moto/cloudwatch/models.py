@@ -6,8 +6,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.logs import logs_backends
+from moto.core import BaseBackend, BaseModel
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4

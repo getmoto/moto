@@ -67,5 +67,5 @@ def get_docker_host():
         container_info = os.popen(cmd).read()
         _ip = json.loads(container_info)["NetworkSettings"]["IPAddress"]
         return f"http://{_ip}"
-    except:
+    except:  # noqa
         return "http://host.docker.internal"

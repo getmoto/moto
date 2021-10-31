@@ -97,7 +97,6 @@ class CloudFormationResponse(BaseResponse):
         status = self._get_param("Status")
         if status == "SUCCESS":
             stack_id = self._get_param("StackId")
-            request_id = self._get_param("RequestId")
             logical_resource_id = self._get_param("LogicalResourceId")
             outputs = self._get_param("Data")
             stack = self.cloudformation_backend.get_stack(stack_id)
