@@ -361,6 +361,18 @@ class EMRContainersBackend(BaseBackend):
         sort_key = "id"
         return paginated_list(jobs, sort_key, max_results, next_token)
 
+    def describe_job_run(self, id, virtual_cluster_id):
+        if not re.match(r"[a-z,A-Z,0-9]{19}", id):
+            raise ValidationException("Invalid job run short id")
+
+        if id not in self.jobs.keys():
+            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+
+        if virtual_cluster_id != self.jobs[id].virtual_cluster_id:
+            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+
+        return self.jobs[id].to_dict()
+
 
 emrcontainers_backends = {}
 for available_region in Session().get_available_regions("emr-containers"):

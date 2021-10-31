@@ -122,3 +122,14 @@ class EMRContainersResponse(BaseResponse):
 
         response = {"jobRuns": job_runs, "nextToken": next_token}
         return 200, {}, json.dumps(response)
+
+    def describe_job_run(self):
+        id = self._get_param("jobRunId")
+        virtual_cluster_id = self._get_param("virtualClusterId")
+
+        job_run = self.emrcontainers_backend.describe_job_run(
+            id=id, virtual_cluster_id=virtual_cluster_id,
+        )
+
+        response = {"jobRun": job_run}
+        return 200, {}, json.dumps(response)

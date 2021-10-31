@@ -486,3 +486,95 @@ class TestListJobRuns:
             virtualClusterId=self.virtual_cluster_id, nextToken=resp["nextToken"]
         )
         assert len(resp["jobRuns"]) == 5
+
+
+class TestDescribeJobRun:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, virtual_cluster_factory, job_factory):
+        self.client = client
+        self.virtual_cluster_id = virtual_cluster_factory[0]
+        self.job_list = job_factory
+
+    def test_valid_id_valid_cluster_id(self):
+        self.client.cancel_job_run(
+            id=self.job_list[2], virtualClusterId=self.virtual_cluster_id
+        )
+        resp = self.client.describe_job_run(
+            id=self.job_list[2], virtualClusterId=self.virtual_cluster_id
+        )
+
+        expected = {
+            "arn": f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_id}/jobruns/{self.job_list[2]}",
+            "createdAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "executionRoleArn": f"arn:aws:iam::{ACCOUNT_ID}:role/iamrole-emrcontainers",
+            "finishedAt": (
+                datetime.today()
+                .replace(hour=0, minute=1, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "id": self.job_list[2],
+            "jobDriver": {
+                "sparkSubmitJobDriver": {
+                    "entryPoint": "s3://code/pi.py",
+                    "sparkSubmitParameters": "--conf "
+                    "spark.executor.instances=2 "
+                    "--conf "
+                    "spark.executor.memory=2G "
+                    "--conf "
+                    "spark.driver.memory=2G "
+                    "--conf "
+                    "spark.executor.cores=4",
+                }
+            },
+            "name": "test_job_2",
+            "releaseLabel": "emr-6.3.0-latest",
+            "state": "CANCELLED",
+            "stateDetails": "JobRun CANCELLED successfully.",
+            "virtualClusterId": self.virtual_cluster_id,
+        }
+
+        assert expected.items() <= resp["jobRun"].items()
+
+    def test_invalid_id_invalid_cluster_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.describe_job_run(id="foobaa", virtualClusterId="foobaa")
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "Invalid job run short id"
+
+    def test_invalid_id_valid_cluster_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.describe_job_run(
+                id="foobaa", virtualClusterId=self.virtual_cluster_id
+            )
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "Invalid job run short id"
+
+    def test_valid_id_invalid_cluster_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.describe_job_run(id=self.job_list[0], virtualClusterId="foobaa")
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == f"Job run {self.job_list[0]} doesn't exist."
+
+    def test_non_existing_id_invalid_cluster_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.describe_job_run(
+                id="123456789abcdefghij", virtualClusterId=self.virtual_cluster_id
+            )
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == f"Job run 123456789abcdefghij doesn't exist."
