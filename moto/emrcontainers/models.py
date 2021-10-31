@@ -5,7 +5,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
-from .utils import random_cluster_id, get_partition, paginated_list
+from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
 
 # String Templates
 from ..config.exceptions import ValidationException
@@ -16,8 +16,15 @@ VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     + ":/virtualclusters/{virtual_cluster_id}"
 )
 
+JOB_ARN_TEMPLATE = (
+    "arn:{partition}:emr-containers:{region}:"
+    + str(ACCOUNT_ID)
+    + ":/virtualclusters/{virtual_cluster_id}/jobruns/{job_id}"
+)
+
 # Defaults used for creating a Virtual cluster
-ACTIVE_STATUS = "ACTIVE"
+VIRTUAL_CLUSTER_STATUS = "RUNNING"
+JOB_STATUS = "RUNNING"
 
 
 class FakeCluster(BaseModel):
@@ -38,7 +45,7 @@ class FakeCluster(BaseModel):
         self.arn = VIRTUAL_CLUSTER_ARN_TEMPLATE.format(
             partition=aws_partition, region=region_name, virtual_cluster_id=self.id
         )
-        self.state = ACTIVE_STATUS
+        self.state = VIRTUAL_CLUSTER_STATUS
         self.container_provider = container_provider
         self.container_provider_id = container_provider["id"]
         self.namespace = container_provider["info"]["eksInfo"]["namespace"]
@@ -70,6 +77,65 @@ class FakeCluster(BaseModel):
         }
 
 
+class FakeJob(BaseModel):
+    def __init__(
+        self,
+        name,
+        virtual_cluster_id,
+        client_token,
+        execution_role_arn,
+        release_label,
+        job_driver,
+        configuration_overrides,
+        region_name,
+        aws_partition,
+        tags,
+    ):
+        self.id = random_job_id()
+        self.name = name
+        self.virtual_cluster_id = virtual_cluster_id
+        self.arn = JOB_ARN_TEMPLATE.format(
+            partition=aws_partition,
+            region=region_name,
+            virtual_cluster_id=self.virtual_cluster_id,
+            job_id=self.id,
+        )
+        self.state = JOB_STATUS
+        self.client_token = client_token
+        self.execution_role_arn = execution_role_arn
+        self.release_label = release_label
+        self.job_driver = job_driver
+        self.configuration_overrides = configuration_overrides
+        self.created_at = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        )
+        self.created_by = None
+        self.finished_at = None
+        self.state_details = None
+        self.failure_reason = None
+        self.tags = tags
+
+    def __iter__(self):
+        yield "id", self.id
+        yield "name", self.name
+        yield "virtualClusterId", self.virtual_cluster_id
+        yield "arn", self.arn
+        yield "state", self.state
+        yield "clientToken", self.client_token
+        yield "executionRoleArn", self.execution_role_arn
+        yield "releaseLabel", self.release_label
+        yield "configurationOverrides", self.release_label
+        yield "jobDriver", self.job_driver
+        yield "createdAt", self.created_at
+        yield "createdBy", self.created_by
+        yield "finishedAt", self.finished_at
+        yield "stateDetails", self.state_details
+        yield "failureReason", self.failure_reason
+        yield "tags", self.tags
+
+
+
+
 class EMRContainersBackend(BaseBackend):
     """Implementation of EMRContainers APIs."""
 
@@ -77,6 +143,8 @@ class EMRContainersBackend(BaseBackend):
         super(EMRContainersBackend, self).__init__()
         self.virtual_clusters = dict()
         self.virtual_cluster_count = 0
+        self.jobs = dict()
+        self.job_count = 0
         self.region_name = region_name
         self.partition = get_partition(region_name)
 
@@ -175,6 +243,35 @@ class EMRContainersBackend(BaseBackend):
             ]
 
         return paginated_list(virtual_clusters, max_results, next_token)
+
+    def start_job_run(
+        self,
+        name,
+        virtual_cluster_id,
+        client_token,
+        execution_role_arn,
+        release_label,
+        job_driver,
+        configuration_overrides,
+        tags,
+    ):
+
+        job = FakeJob(
+            name=name,
+            virtual_cluster_id=virtual_cluster_id,
+            client_token=client_token,
+            execution_role_arn=execution_role_arn,
+            release_label=release_label,
+            job_driver=job_driver,
+            configuration_overrides=configuration_overrides,
+            tags=tags,
+            region_name=self.region_name,
+            aws_partition=self.partition,
+        )
+
+        self.jobs[job.id] = job
+        self.job_count += 1
+        return job
 
 
 emrcontainers_backends = {}

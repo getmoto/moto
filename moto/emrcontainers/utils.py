@@ -23,8 +23,12 @@ def random_id(size=13):
     return "".join(str(random.choice(chars)) for x in range(size))
 
 
-def random_cluster_id(size=13):
+def random_cluster_id():
     return random_id(size=25)
+
+
+def random_job_id():
+    return random_id(size=19)
 
 
 def paginated_list(full_list, max_results, next_token):

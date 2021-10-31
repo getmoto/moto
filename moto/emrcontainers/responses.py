@@ -69,3 +69,25 @@ class EMRContainersResponse(BaseResponse):
 
         response = {"virtualClusters": virtual_clusters, "nextToken": next_token}
         return 200, {}, json.dumps(response)
+
+    def start_job_run(self):
+        name = self._get_param("name")
+        virtual_cluster_id = self._get_param("virtualClusterId")
+        client_token = self._get_param("clientToken")
+        execution_role_arn = self._get_param("executionRoleArn")
+        release_label = self._get_param("releaseLabel")
+        job_driver = self._get_param("jobDriver")
+        configuration_overrides = self._get_param("configurationOverrides")
+        tags = self._get_param("tags")
+
+        job = self.emrcontainers_backend.start_job_run(
+            name=name,
+            virtual_cluster_id=virtual_cluster_id,
+            client_token=client_token,
+            execution_role_arn=execution_role_arn,
+            release_label=release_label,
+            job_driver=job_driver,
+            configuration_overrides=configuration_overrides,
+            tags=tags,
+        )
+        return 200, {}, json.dumps(dict(job))

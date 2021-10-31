@@ -1930,7 +1930,7 @@
 - [ ] list_managed_endpoints
 - [ ] list_tags_for_resource
 - [X] list_virtual_clusters
-- [ ] start_job_run
+- [X] start_job_run
 - [ ] tag_resource
 - [ ] untag_resource
 </details>

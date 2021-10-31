@@ -30,7 +30,9 @@ def virtual_cluster_factory(client):
 
     cluster_list = []
     for i in range(4):
-        with patch("moto.emrcontainers.models.ACTIVE_STATUS", cluster_state[i]):
+        with patch(
+            "moto.emrcontainers.models.VIRTUAL_CLUSTER_STATUS", cluster_state[i]
+        ):
             resp = client.create_virtual_cluster(
                 name="test-emr-virtual-cluster",
                 containerProvider={
@@ -275,3 +277,55 @@ class TestListVirtualClusters:
 
         resp = self.client.list_virtual_clusters(nextToken=resp["nextToken"])
         assert len(resp["virtualClusters"]) == 2
+
+
+class TestStartJobRun:
+    default_job_driver = {
+        "sparkSubmitJobDriver": {
+            "entryPoint": "s3://code/pi.py",
+            "sparkSubmitParameters": "--conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=2G --conf spark.executor.cores=4",
+        }
+    }
+
+    default_configuration_overrides = {
+        "applicationConfiguration": [
+            {
+                "classification": "spark-defaults",
+                "properties": {"spark.dynamicAllocation.enabled": "false"},
+            }
+        ],
+        "monitoringConfiguration": {
+            "cloudWatchMonitoringConfiguration": {
+                "logGroupName": "/emr-containers/jobs",
+                "logStreamNamePrefix": "demo",
+            },
+            "s3MonitoringConfiguration": {"logUri": "s3://joblogs"},
+        },
+    }
+
+    default_execution_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/iamrole-emrcontainers"
+
+    default_release_label = "emr-6.3.0-latest"
+
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, virtual_cluster_factory):
+        self.client = client
+        self.virtual_cluster_id = virtual_cluster_factory[0]
+
+    def test_start(self):
+        resp = self.client.start_job_run(
+            name="test_job",
+            virtualClusterId=self.virtual_cluster_id,
+            executionRoleArn=self.default_execution_role_arn,
+            releaseLabel=self.default_release_label,
+            jobDriver=self.default_job_driver,
+            configurationOverrides=self.default_configuration_overrides,
+        )
+
+        assert re.match(r"[a-z,0-9]{19}", resp["id"])
+        assert resp["name"] == "test_job"
+        assert (
+            resp["arn"]
+            == f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_id}/jobruns/{resp['id']}"
+        )
+        assert resp["virtualClusterId"] == self.virtual_cluster_id
