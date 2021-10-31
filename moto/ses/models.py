@@ -426,6 +426,14 @@ class SESBackend(BaseBackend):
         rule_set.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
 
+    def describe_receipt_rule_set(self, rule_set_name):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+
+        return rule_set
+
     def describe_receipt_rule(self, rule_set_name, rule_name):
         rule_set = self.receipt_rule_set.get(rule_set_name)
 
