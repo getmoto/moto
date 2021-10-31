@@ -62,7 +62,6 @@ from .models import (
 )
 from .utils import (
     bucket_name_from_url,
-    clean_key_name,
     metadata_from_headers,
     parse_region_from_url,
 )
@@ -1396,14 +1395,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             upload_id = query["uploadId"][0]
             part_number = int(query["partNumber"][0])
             if "x-amz-copy-source" in request.headers:
-                src = unquote(request.headers.get("x-amz-copy-source")).lstrip("/")
-                src_bucket, src_key = src.split("/", 1)
-
-                src_key, src_version_id = (
-                    src_key.split("?versionId=")
-                    if "?versionId=" in src_key
-                    else (src_key, None)
-                )
+                copy_source = request.headers.get("x-amz-copy-source")
+                if isinstance(copy_source, bytes):
+                    copy_source = copy_source.decode("utf-8")
+                copy_source_parsed = urlparse(copy_source)
+                src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+                src_version_id = parse_qs(copy_source_parsed.query).get(
+                    "versionId", [None]
+                )[0]
                 src_range = request.headers.get("x-amz-copy-source-range", "").split(
                     "bytes="
                 )[-1]
@@ -1513,14 +1512,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # Copy key
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
-            src_key = request.headers.get("x-amz-copy-source")
-            if isinstance(src_key, bytes):
-                src_key = src_key.decode("utf-8")
-            src_key_parsed = urlparse(src_key)
-            src_bucket, src_key = (
-                clean_key_name(src_key_parsed.path).lstrip("/").split("/", 1)
-            )
-            src_version_id = parse_qs(src_key_parsed.query).get("versionId", [None])[0]
+            copy_source = request.headers.get("x-amz-copy-source")
+            if isinstance(copy_source, bytes):
+                copy_source = copy_source.decode("utf-8")
+            copy_source_parsed = urlparse(copy_source)
+            src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+            src_version_id = parse_qs(copy_source_parsed.query).get(
+                "versionId", [None]
+            )[0]
 
             key = self.backend.get_object(
                 src_bucket, src_key, version_id=src_version_id
