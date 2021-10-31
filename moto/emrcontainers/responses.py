@@ -100,3 +100,25 @@ class EMRContainersResponse(BaseResponse):
             id=id, virtual_cluster_id=virtual_cluster_id,
         )
         return 200, {}, json.dumps(dict(job))
+
+    def list_job_runs(self):
+        virtual_cluster_id = self._get_param("virtualClusterId")
+        created_before = self._get_param("createdBefore")
+        created_after = self._get_param("createdAfter")
+        name = self._get_param("name")
+        states = self.querystring.get("states", [])
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        job_runs, next_token = self.emrcontainers_backend.list_job_runs(
+            virtual_cluster_id=virtual_cluster_id,
+            created_before=created_before,
+            created_after=created_after,
+            name=name,
+            states=states,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        response = {"jobRuns": job_runs, "nextToken": next_token}
+        return 200, {}, json.dumps(response)

@@ -29,7 +29,7 @@ def virtual_cluster_factory(client):
     cluster_state = ["RUNNING", "TERMINATING", "TERMINATED", "ARRESTED"]
 
     cluster_list = []
-    for i in range(4):
+    for i in range(len(cluster_state)):
         with patch(
             "moto.emrcontainers.models.VIRTUAL_CLUSTER_STATUS", cluster_state[i]
         ):
@@ -45,6 +45,44 @@ def virtual_cluster_factory(client):
             cluster_list.append(resp["id"])
 
     yield cluster_list
+
+
+@pytest.fixture()
+def job_factory(client, virtual_cluster_factory):
+    virtual_cluster_id = virtual_cluster_factory[0]
+    default_job_driver = {
+        "sparkSubmitJobDriver": {
+            "entryPoint": "s3://code/pi.py",
+            "sparkSubmitParameters": "--conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=2G --conf spark.executor.cores=4",
+        }
+    }
+    default_execution_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/iamrole-emrcontainers"
+    default_release_label = "emr-6.3.0-latest"
+
+    job_state = [
+        "PENDING",
+        "SUBMITTED",
+        "RUNNING",
+        "FAILED",
+        "CANCELLED",
+        "CANCEL_PENDING",
+        "COMPLETED",
+    ]
+
+    job_list = []
+    for i in range(len(job_state)):
+        with patch("moto.emrcontainers.models.JOB_STATUS", job_state[i]):
+            resp = client.start_job_run(
+                name=f"test_job_{i}",
+                virtualClusterId=virtual_cluster_id,
+                executionRoleArn=default_execution_role_arn,
+                releaseLabel=default_release_label,
+                jobDriver=default_job_driver,
+            )
+
+            job_list.append(resp["id"])
+
+    yield job_list
 
 
 class TestCreateVirtualCluster:
@@ -159,117 +197,55 @@ class TestDescribeVirtualCluster:
 
 
 class TestListVirtualClusters:
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+
     @pytest.fixture(autouse=True)
     def _setup_environment(self, client, virtual_cluster_factory):
         self.client = client
 
-    def test_base(self):
-        resp = self.client.list_virtual_clusters()
-        assert len(resp["virtualClusters"]) == 4
-
-    def test_valid_container_provider_id(self):
-        resp = self.client.list_virtual_clusters(containerProviderId="test-eks-cluster")
-        assert len(resp["virtualClusters"]) == 4
-
-    def test_invalid_container_provider_id(self):
-        resp = self.client.list_virtual_clusters(containerProviderId="foobaa")
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_valid_container_provider_type(self):
-        resp = self.client.list_virtual_clusters(containerProviderType="EKS")
-        assert len(resp["virtualClusters"]) == 4
-
-    def test_invalid_container_provider_type(self):
-        resp = self.client.list_virtual_clusters(containerProviderType="AKS")
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_created_after_yesterday(self):
-        today = datetime.now()
-        yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdAfter=yesterday)
-        assert len(resp["virtualClusters"]) == 4
-
-    def test_created_after_tomorrow(self):
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdAfter=tomorrow)
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_created_after_yesterday_running_state(self):
-        today = datetime.now()
-        yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(
-            createdAfter=yesterday, states=["RUNNING"]
-        )
-        assert len(resp["virtualClusters"]) == 1
-
-    def test_created_after_tomorrow_running_state(self):
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(
-            createdAfter=tomorrow, states=["RUNNING"]
-        )
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_created_after_yesterday_two_state_limit(self):
-        today = datetime.now()
-        yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(
-            createdAfter=yesterday, states=["RUNNING", "TERMINATED"], maxResults=1
-        )
-        assert len(resp["virtualClusters"]) == 1
-
-    def test_created_before_yesterday(self):
-        today = datetime.now()
-        yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdBefore=yesterday)
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_created_before_tomorrow(self):
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(createdBefore=tomorrow)
-        assert len(resp["virtualClusters"]) == 4
-
-    def test_created_before_yesterday_running_state(self):
-        today = datetime.now()
-        yesterday = today - timedelta(days=1)
-        resp = self.client.list_virtual_clusters(
-            createdBefore=yesterday, states=["RUNNING"]
-        )
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_created_before_tomorrow_running_state(self):
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(
-            createdBefore=tomorrow, states=["RUNNING"]
-        )
-        assert len(resp["virtualClusters"]) == 1
-
-    def test_created_before_tomorrow_two_state_limit(self):
-        today = datetime.now()
-        tomorrow = today + timedelta(days=1)
-        resp = self.client.list_virtual_clusters(
-            createdBefore=tomorrow, states=["RUNNING", "TERMINATED"], maxResults=1
-        )
-        assert len(resp["virtualClusters"]) == 1
-
-    def test_states_one_state(self):
-        resp = self.client.list_virtual_clusters(states=["RUNNING"])
-        assert len(resp["virtualClusters"]) == 1
-
-    def test_states_two_state(self):
-        resp = self.client.list_virtual_clusters(states=["RUNNING", "TERMINATED"])
-        assert len(resp["virtualClusters"]) == 2
-
-    def test_states_invalid_state(self):
-        resp = self.client.list_virtual_clusters(states=["FOOBAA"])
-        assert len(resp["virtualClusters"]) == 0
-
-    def test_max_result(self):
-        resp = self.client.list_virtual_clusters(maxResults=1)
-        assert len(resp["virtualClusters"]) == 1
+    @pytest.mark.parametrize(
+        "list_virtual_clusters_args,job_count",
+        [
+            ({}, 4),
+            ({"containerProviderId": "test-eks-cluster"}, 4),
+            ({"containerProviderId": "foobaa"}, 0),
+            ({"containerProviderType": "EKS"}, 4),
+            ({"containerProviderType": "AKS"}, 0),
+            ({"createdAfter": yesterday}, 4),
+            ({"createdAfter": tomorrow}, 0),
+            ({"createdAfter": yesterday, "states": ["RUNNING"]}, 1),
+            ({"createdAfter": tomorrow, "states": ["RUNNING"]}, 0),
+            (
+                {
+                    "createdAfter": yesterday,
+                    "states": ["RUNNING", "TERMINATED"],
+                    "maxResults": 1,
+                },
+                1,
+            ),
+            ({"createdBefore": yesterday}, 0),
+            ({"createdBefore": tomorrow}, 4),
+            ({"createdBefore": yesterday, "states": ["RUNNING"]}, 0),
+            ({"createdBefore": tomorrow, "states": ["RUNNING"]}, 1),
+            (
+                {
+                    "createdBefore": tomorrow,
+                    "states": ["RUNNING", "TERMINATED"],
+                    "maxResults": 1,
+                },
+                1,
+            ),
+            ({"states": ["RUNNING"]}, 1),
+            ({"states": ["RUNNING", "TERMINATED"]}, 2),
+            ({"states": ["FOOBAA"]}, 0),
+            ({"maxResults": 1}, 1),
+        ],
+    )
+    def test_base(self, list_virtual_clusters_args, job_count):
+        resp = self.client.list_virtual_clusters(**list_virtual_clusters_args)
+        assert len(resp["virtualClusters"]) == job_count
 
     def test_next_token(self):
         resp = self.client.list_virtual_clusters(maxResults=2)
@@ -277,29 +253,6 @@ class TestListVirtualClusters:
 
         resp = self.client.list_virtual_clusters(nextToken=resp["nextToken"])
         assert len(resp["virtualClusters"]) == 2
-
-
-@pytest.fixture()
-def job_factory(client, virtual_cluster_factory):
-    virtual_cluster_id = virtual_cluster_factory[0]
-    default_job_driver = {
-        "sparkSubmitJobDriver": {
-            "entryPoint": "s3://code/pi.py",
-            "sparkSubmitParameters": "--conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=2G --conf spark.executor.cores=4",
-        }
-    }
-    default_execution_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/iamrole-emrcontainers"
-    default_release_label = "emr-6.3.0-latest"
-
-    resp = client.start_job_run(
-        name="test_job",
-        virtualClusterId=virtual_cluster_id,
-        executionRoleArn=default_execution_role_arn,
-        releaseLabel=default_release_label,
-        jobDriver=default_job_driver,
-    )
-
-    yield [resp["id"]]
 
 
 class TestStartJobRun:
@@ -408,10 +361,10 @@ class TestCancelJobRun:
 
     def test_valid_id_valid_cluster_id(self):
         resp = self.client.cancel_job_run(
-            id=self.job_list[0], virtualClusterId=self.virtual_cluster_id
+            id=self.job_list[2], virtualClusterId=self.virtual_cluster_id
         )
 
-        assert resp["id"] == self.job_list[0]
+        assert resp["id"] == self.job_list[2]
         assert resp["virtualClusterId"] == self.virtual_cluster_id
 
     def test_invalid_id_invalid_cluster_id(self):
@@ -453,3 +406,83 @@ class TestCancelJobRun:
 
         assert err["Code"] == "ResourceNotFoundException"
         assert err["Message"] == f"Job run 123456789abcdefghij doesn't exist."
+
+    def test_wrong_job_state(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.cancel_job_run(
+                id=self.job_list[6], virtualClusterId=self.virtual_cluster_id
+            )
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == f"Job run {self.job_list[6]} is not in a cancellable state"
+        )
+
+
+class TestListJobRuns:
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, virtual_cluster_factory, job_factory):
+        self.client = client
+        self.virtual_cluster_id = virtual_cluster_factory[0]
+
+    @pytest.mark.parametrize(
+        "list_job_runs_arg,job_count",
+        [
+            ({}, 7),
+            ({"createdAfter": yesterday}, 7),
+            ({"createdAfter": tomorrow}, 0),
+            ({"createdAfter": yesterday, "states": ["RUNNING"]}, 1),
+            ({"createdAfter": tomorrow, "states": ["RUNNING"]}, 0),
+            (
+                {
+                    "createdAfter": yesterday,
+                    "states": ["RUNNING", "TERMINATED"],
+                    "maxResults": 1,
+                },
+                1,
+            ),
+            ({"createdBefore": yesterday}, 0),
+            ({"createdBefore": tomorrow}, 7),
+            (
+                {
+                    "createdBefore": tomorrow,
+                    "states": ["RUNNING", "TERMINATED"],
+                    "maxResults": 1,
+                },
+                1,
+            ),
+            ({"name": "test_job_1"}, 1),
+            ({"name": "foobaa"}, 0),
+            ({"states": ["RUNNING"]}, 1),
+            ({"states": ["RUNNING", "COMPLETED"]}, 2),
+            ({"states": ["FOOBAA"]}, 0),
+            ({"maxResults": 1}, 1),
+        ],
+    )
+    def test_base(self, list_job_runs_arg, job_count):
+        resp = self.client.list_job_runs(
+            virtualClusterId=self.virtual_cluster_id, **list_job_runs_arg
+        )
+        assert len(resp["jobRuns"]) == job_count
+
+    def test_invalid_virtual_cluster_id(self):
+        resp = self.client.list_job_runs(virtualClusterId="foobaa")
+        assert len(resp["jobRuns"]) == 0
+
+    def test_next_token(self):
+        resp = self.client.list_job_runs(
+            virtualClusterId=self.virtual_cluster_id, maxResults=2
+        )
+        assert len(resp["jobRuns"]) == 2
+
+        resp = self.client.list_job_runs(
+            virtualClusterId=self.virtual_cluster_id, nextToken=resp["nextToken"]
+        )
+        assert len(resp["jobRuns"]) == 5

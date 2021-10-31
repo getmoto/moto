@@ -134,6 +134,28 @@ class FakeJob(BaseModel):
         yield "failureReason", self.failure_reason
         yield "tags", self.tags
 
+    def to_dict(self):
+        # Format for summary https://docs.aws.amazon.com/emr-on-eks/latest/APIReference/API_DescribeJobRun.html
+        # (response syntax section)
+        return {
+            "id": self.id,
+            "name": self.name,
+            "virtualClusterId": self.virtual_cluster_id,
+            "arn": self.arn,
+            "state": self.state,
+            "clientToken": self.client_token,
+            "executionRoleArn": self.execution_role_arn,
+            "releaseLabel": self.release_label,
+            "configurationOverrides": self.configuration_overrides,
+            "jobDriver": self.job_driver,
+            "createdAt": self.created_at,
+            "createdBy": self.created_by,
+            "finishedAt": self.finished_at,
+            "stateDetails": self.state_details,
+            "failureReason": self.failure_reason,
+            "tags": self.tags,
+        }
+
 
 class EMRContainersBackend(BaseBackend):
     """Implementation of EMRContainers APIs."""
@@ -240,8 +262,8 @@ class EMRContainersBackend(BaseBackend):
                 for virtual_cluster in virtual_clusters
                 if virtual_cluster["state"] in states
             ]
-
-        return paginated_list(virtual_clusters, max_results, next_token)
+        sort_key = "name"
+        return paginated_list(virtual_clusters, sort_key, max_results, next_token)
 
     def start_job_run(
         self,
@@ -293,6 +315,14 @@ class EMRContainersBackend(BaseBackend):
         if virtual_cluster_id != self.jobs[id].virtual_cluster_id:
             raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
 
+        if self.jobs[id].state in [
+            "FAILED",
+            "CANCELLED",
+            "CANCEL_PENDING",
+            "COMPLETED",
+        ]:
+            raise ValidationException(f"Job run {id} is not in a cancellable state")
+
         job = self.jobs[id]
         job.state = "CANCELLED"
         job.finished_at = iso_8601_datetime_without_milliseconds(
@@ -301,6 +331,35 @@ class EMRContainersBackend(BaseBackend):
         job.state_details = "JobRun CANCELLED successfully."
 
         return job
+
+    def list_job_runs(
+        self,
+        virtual_cluster_id,
+        created_before,
+        created_after,
+        name,
+        states,
+        max_results,
+        next_token,
+    ):
+        jobs = [job.to_dict() for job in self.jobs.values()]
+
+        jobs = [job for job in jobs if job["virtualClusterId"] == virtual_cluster_id]
+
+        if created_after:
+            jobs = [job for job in jobs if job["createdAt"] >= created_after]
+
+        if created_before:
+            jobs = [job for job in jobs if job["createdAt"] <= created_before]
+
+        if states:
+            jobs = [job for job in jobs if job["state"] in states]
+
+        if name:
+            jobs = [job for job in jobs if job["name"] in name]
+
+        sort_key = "id"
+        return paginated_list(jobs, sort_key, max_results, next_token)
 
 
 emrcontainers_backends = {}
