@@ -447,9 +447,9 @@ class SESBackend(BaseBackend):
         for i, receipt_rule in enumerate(rule_set):
             if receipt_rule["name"] == rule["name"]:
                 rule_set[i] = rule
-            return receipt_rule
+                break
         else:
-            raise RuleDoesNotExist("Invalid Rule Name.")
+            raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
 
 
 ses_backend = SESBackend()

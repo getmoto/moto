@@ -691,6 +691,40 @@ def test_update_receipt_rule():
         "Rule set does not exist: invalidRuleSetName"
     )
 
+    with pytest.raises(ClientError) as error:
+        conn.update_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Name": "invalidRuleName",
+                "Enabled": True,
+                "TlsPolicy": "Optional",
+                "Recipients": ["test@email.com"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "testBucketName",
+                            "ObjectKeyPrefix": "testObjectKeyPrefix",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    error.value.response["Error"]["Code"].should.equal("RuleDoesNotExist")
+    error.value.response["Error"]["Message"].should.equal(
+        "Rule does not exist: invalidRuleName"
+    )
+
     with pytest.raises(ParamValidationError) as error:
         conn.update_receipt_rule(
             RuleSetName=rule_set_name,
