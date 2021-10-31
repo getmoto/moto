@@ -5902,9 +5902,11 @@ class EgressOnlyInternetGatewayBackend(object):
 
 
 class VPCGatewayAttachment(CloudFormationModel):
-    def __init__(self, gateway_id, vpc_id):
-        self.gateway_id = gateway_id
+    # Represents both VPNGatewayAttachment and VPCGatewayAttachment
+    def __init__(self, vpc_id, gateway_id=None, state=None):
         self.vpc_id = vpc_id
+        self.gateway_id = gateway_id
+        self.state = state
 
     @staticmethod
     def cloudformation_name_type():
@@ -5945,7 +5947,7 @@ class VPCGatewayAttachmentBackend(object):
         super().__init__()
 
     def create_vpc_gateway_attachment(self, vpc_id, gateway_id):
-        attachment = VPCGatewayAttachment(vpc_id, gateway_id)
+        attachment = VPCGatewayAttachment(vpc_id, gateway_id=gateway_id)
         self.gateway_attachments[gateway_id] = attachment
         return attachment
 
@@ -7194,13 +7196,6 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         return super().get_filter_value(filter_name, "DescribeVpnGateways")
 
 
-class VpnGatewayAttachment(object):
-    def __init__(self, vpc_id, state):
-        self.vpc_id = vpc_id
-        self.state = state
-        super().__init__()
-
-
 class VpnGatewayBackend(object):
     def __init__(self):
         self.vpn_gateways = {}
@@ -7231,7 +7226,7 @@ class VpnGatewayBackend(object):
     def attach_vpn_gateway(self, vpn_gateway_id, vpc_id):
         vpn_gateway = self.get_vpn_gateway(vpn_gateway_id)
         self.get_vpc(vpc_id)
-        attachment = VpnGatewayAttachment(vpc_id, state="attached")
+        attachment = VPCGatewayAttachment(vpc_id, state="attached")
         for key in vpn_gateway.attachments.copy():
             if key.startswith("vpc-"):
                 vpn_gateway.attachments.pop(key)
