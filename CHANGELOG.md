@@ -1,6 +1,59 @@
 Moto Changelog
 ===================
 
+2.2.12
+-----
+    New Services:
+        * EMR Containers:
+            * create_virtual_cluster()
+            * delete_virtual_cluster()
+            * describe_virtual_cluster()
+            * list_virtual_clusters()
+        * DirectoryService:
+            * add_tags_to_resource()
+            * create_directory()
+            * delete_directory()
+            * describe_directories()
+            * get_directory_limits()
+            * list_tags_for_resource()
+            * remove_tags_for_resource()
+
+    New Methods:
+        * API Gateway:
+            * create_base_path_mapping()
+            * get_base_path_mappings()
+        * CognitoIDP:
+            * add_custom_attributes()
+            * admin_delete_user_attributes()
+        * Glue:
+            * start_crawler()
+            * stop_crawler()
+        * Sagemaker:
+            * add_tags()
+            * associate_trial_component()
+            * create_experiment()
+            * create_trial()
+            * create_trial_component()
+            * delete_experiment()
+            * delete_tags()
+            * delete_trial()
+            * delete_trial_component()
+            * describe_experiment()
+            * describe_trial()
+            * describe_trial_component()
+            * disassociate_trial_component()
+            * list_associations()
+            * list_experiments()
+            * list_trial_components()
+            * list_trials()
+            * search()
+        * SES:
+            * describe_receipt_rule_set()
+            * update_receipt_rule()
+
+    Miscellaneous:
+        * KMS: Now returns default AWS aliases (alias/aws/s3, etc)
+
 2.2.11
 -----
     General:

@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>49% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -69,7 +69,7 @@
 - [X] get_authorizer
 - [X] get_authorizers
 - [ ] get_base_path_mapping
-- [ ] get_base_path_mappings
+- [X] get_base_path_mappings
 - [ ] get_client_certificate
 - [ ] get_client_certificates
 - [X] get_deployment
@@ -590,14 +590,14 @@
 
 ## cognito-idp
 <details>
-<summary>52% implemented</summary>
+<summary>54% implemented</summary>
 
-- [ ] add_custom_attributes
+- [X] add_custom_attributes
 - [X] admin_add_user_to_group
 - [X] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
-- [ ] admin_delete_user_attributes
+- [X] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
 - [X] admin_disable_user
 - [X] admin_enable_user
@@ -916,7 +916,8 @@
 
 ## ds
 <details>
-<summary>10% implemented</summary>
+<summary>11% implemented</summary>
+
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
 - [ ] add_region
@@ -1087,6 +1088,7 @@
 - [ ] bundle_instance
 - [ ] cancel_bundle_task
 - [ ] cancel_capacity_reservation
+- [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
 - [ ] cancel_import_task
@@ -1098,6 +1100,7 @@
 - [X] copy_image
 - [X] copy_snapshot
 - [ ] create_capacity_reservation
+- [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
@@ -1229,6 +1232,7 @@
 - [X] describe_availability_zones
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -1396,18 +1400,22 @@
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
+- [ ] get_instance_types_from_instance_requirements
 - [ ] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
 - [ ] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
+- [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_multicast_domain_associations
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
+- [ ] get_vpn_connection_device_sample_configuration
+- [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -1417,6 +1425,7 @@
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
+- [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
 - [ ] modify_ebs_default_kms_key_id
@@ -1529,7 +1538,7 @@
 
 ## ecr
 <details>
-<summary>76% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -1540,6 +1549,7 @@
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
+- [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_registry
@@ -1660,7 +1670,7 @@
 
 ## eks
 <details>
-<summary>37% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
@@ -1672,6 +1682,7 @@
 - [X] delete_cluster
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
+- [ ] deregister_cluster
 - [ ] describe_addon
 - [ ] describe_addon_versions
 - [X] describe_cluster
@@ -1687,6 +1698,7 @@
 - [X] list_nodegroups
 - [ ] list_tags_for_resource
 - [ ] list_updates
+- [ ] register_cluster
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_addon
@@ -1907,7 +1919,7 @@
 
 ## emr-containers
 <details>
-<summary>27% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] cancel_job_run
 - [ ] create_managed_endpoint
@@ -2605,6 +2617,7 @@
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
+- [ ] put_verification_state_on_violation
 - [ ] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca
@@ -2980,6 +2993,7 @@
 - [ ] batch_stop
 - [ ] batch_update_schedule
 - [ ] cancel_input_device_transfer
+- [ ] claim_device
 - [X] create_channel
 - [X] create_input
 - [ ] create_input_security_group
@@ -3755,11 +3769,12 @@
 
 ## sagemaker
 <details>
-<summary>8% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] add_association
 - [ ] add_tags
-- [ ] associate_trial_component
+- [X] associate_trial_component
+- [ ] batch_describe_model_package
 - [ ] create_action
 - [ ] create_algorithm
 - [ ] create_app
@@ -3775,7 +3790,7 @@
 - [ ] create_edge_packaging_job
 - [X] create_endpoint
 - [X] create_endpoint_config
-- [ ] create_experiment
+- [X] create_experiment
 - [ ] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_human_task_ui
@@ -3797,10 +3812,11 @@
 - [ ] create_presigned_notebook_instance_url
 - [ ] create_processing_job
 - [ ] create_project
+- [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_transform_job
-- [ ] create_trial
-- [ ] create_trial_component
+- [X] create_trial
+- [X] create_trial_component
 - [ ] create_user_profile
 - [ ] create_workforce
 - [ ] create_workteam
@@ -3817,7 +3833,7 @@
 - [ ] delete_domain
 - [X] delete_endpoint
 - [X] delete_endpoint_config
-- [ ] delete_experiment
+- [X] delete_experiment
 - [ ] delete_feature_group
 - [ ] delete_flow_definition
 - [ ] delete_human_task_ui
@@ -3835,9 +3851,10 @@
 - [X] delete_notebook_instance_lifecycle_config
 - [ ] delete_pipeline
 - [ ] delete_project
+- [ ] delete_studio_lifecycle_config
 - [ ] delete_tags
-- [ ] delete_trial
-- [ ] delete_trial_component
+- [X] delete_trial
+- [X] delete_trial_component
 - [ ] delete_user_profile
 - [ ] delete_workforce
 - [ ] delete_workteam
@@ -3858,7 +3875,7 @@
 - [ ] describe_edge_packaging_job
 - [X] describe_endpoint
 - [X] describe_endpoint_config
-- [ ] describe_experiment
+- [X] describe_experiment
 - [ ] describe_feature_group
 - [ ] describe_flow_definition
 - [ ] describe_human_task_ui
@@ -3880,16 +3897,17 @@
 - [ ] describe_pipeline_execution
 - [ ] describe_processing_job
 - [ ] describe_project
+- [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
 - [ ] describe_transform_job
-- [ ] describe_trial
-- [ ] describe_trial_component
+- [X] describe_trial
+- [X] describe_trial_component
 - [ ] describe_user_profile
 - [ ] describe_workforce
 - [ ] describe_workteam
 - [ ] disable_sagemaker_servicecatalog_portfolio
-- [ ] disassociate_trial_component
+- [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
 - [ ] get_device_fleet_report
 - [ ] get_model_package_group_policy
@@ -3913,7 +3931,7 @@
 - [ ] list_edge_packaging_jobs
 - [ ] list_endpoint_configs
 - [ ] list_endpoints
-- [ ] list_experiments
+- [X] list_experiments
 - [ ] list_feature_groups
 - [ ] list_flow_definitions
 - [ ] list_human_task_uis
@@ -3938,20 +3956,22 @@
 - [ ] list_pipelines
 - [ ] list_processing_jobs
 - [ ] list_projects
+- [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
 - [ ] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
 - [ ] list_transform_jobs
-- [ ] list_trial_components
-- [ ] list_trials
+- [X] list_trial_components
+- [X] list_trials
 - [ ] list_user_profiles
 - [ ] list_workforces
 - [ ] list_workteams
 - [ ] put_model_package_group_policy
 - [ ] register_devices
 - [ ] render_ui_template
-- [ ] search
+- [ ] retry_pipeline_execution
+- [X] search
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_monitoring_schedule
@@ -3986,6 +4006,7 @@
 - [ ] update_notebook_instance_lifecycle_config
 - [ ] update_pipeline
 - [ ] update_pipeline_execution
+- [ ] update_project
 - [ ] update_training_job
 - [ ] update_trial
 - [ ] update_trial_component
@@ -4024,7 +4045,7 @@
 
 ## ses
 <details>
-<summary>30% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -4049,7 +4070,7 @@
 - [ ] describe_active_receipt_rule_set
 - [ ] describe_configuration_set
 - [X] describe_receipt_rule
-- [ ] describe_receipt_rule_set
+- [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
 - [ ] get_identity_dkim_attributes
@@ -4538,6 +4559,7 @@
 <details>
 
 - accessanalyzer
+- account
 - acm-pca
 - alexaforbusiness
 - amp
@@ -4564,6 +4586,7 @@
 - chime-sdk-identity
 - chime-sdk-messaging
 - cloud9
+- cloudcontrol
 - clouddirectory
 - cloudfront
 - cloudhsm
@@ -4611,6 +4634,7 @@
 - fsx
 - gamelift
 - globalaccelerator
+- grafana
 - greengrass
 - greengrassv2
 - groundstation
@@ -4636,6 +4660,7 @@
 - iotwireless
 - ivs
 - kafka
+- kafkaconnect
 - kendra
 - kinesis-video-media
 - kinesis-video-signaling
@@ -4674,8 +4699,10 @@
 - network-firewall
 - networkmanager
 - nimble
+- opensearch
 - opsworkscm
 - outposts
+- panorama
 - personalize
 - personalize-events
 - personalize-runtime
@@ -4730,9 +4757,11 @@
 - timestream-query
 - transfer
 - translate
+- voice-id
 - waf
 - waf-regional
 - wellarchitected
+- wisdom
 - workdocs
 - worklink
 - workmail
