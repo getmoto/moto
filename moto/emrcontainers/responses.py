@@ -91,3 +91,12 @@ class EMRContainersResponse(BaseResponse):
             tags=tags,
         )
         return 200, {}, json.dumps(dict(job))
+
+    def cancel_job_run(self):
+        id = self._get_param("jobRunId")
+        virtual_cluster_id = self._get_param("virtualClusterId")
+
+        job = self.emrcontainers_backend.cancel_job_run(
+            id=id, virtual_cluster_id=virtual_cluster_id,
+        )
+        return 200, {}, json.dumps(dict(job))

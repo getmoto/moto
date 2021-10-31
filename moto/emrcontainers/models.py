@@ -282,6 +282,26 @@ class EMRContainersBackend(BaseBackend):
         self.job_count += 1
         return job
 
+    def cancel_job_run(self, id, virtual_cluster_id):
+
+        if not re.match(r"[a-z,A-Z,0-9]{19}", id):
+            raise ValidationException("Invalid job run short id")
+
+        if id not in self.jobs.keys():
+            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+
+        if virtual_cluster_id != self.jobs[id].virtual_cluster_id:
+            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+
+        job = self.jobs[id]
+        job.state = "CANCELLED"
+        job.finished_at = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=1, second=0, microsecond=0)
+        )
+        job.state_details = "JobRun CANCELLED successfully."
+
+        return job
+
 
 emrcontainers_backends = {}
 for available_region in Session().get_available_regions("emr-containers"):
