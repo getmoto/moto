@@ -134,8 +134,6 @@ class FakeJob(BaseModel):
         yield "tags", self.tags
 
 
-
-
 class EMRContainersBackend(BaseBackend):
     """Implementation of EMRContainers APIs."""
 
