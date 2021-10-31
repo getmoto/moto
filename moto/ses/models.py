@@ -438,5 +438,18 @@ class SESBackend(BaseBackend):
         else:
             raise RuleDoesNotExist("Invalid Rule Name.")
 
+    def update_receipt_rule(self, rule_set_name, rule):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+
+        for i, receipt_rule in enumerate(rule_set):
+            if receipt_rule["name"] == rule["name"]:
+                rule_set[i] = rule
+                break
+        else:
+            raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
+
 
 ses_backend = SESBackend()

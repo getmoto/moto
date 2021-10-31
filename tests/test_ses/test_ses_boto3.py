@@ -2,6 +2,7 @@ import json
 
 import boto3
 from botocore.exceptions import ClientError
+from botocore.exceptions import ParamValidationError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pytest
@@ -576,6 +577,318 @@ def test_describe_receipt_rule():
         )
 
     error.value.response["Error"]["Code"].should.equal("RuleDoesNotExist")
+
+
+@mock_ses
+def test_update_receipt_rule():
+    conn = boto3.client("ses", region_name="us-east-1")
+    rule_set_name = "testRuleSet"
+    conn.create_receipt_rule_set(RuleSetName=rule_set_name)
+
+    rule_name = "testRule"
+    conn.create_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": rule_name,
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["test@email.com", "test2@email.com"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "testBucketName",
+                        "ObjectKeyPrefix": "testObjectKeyPrefix",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    update_receipt_rule_response = conn.update_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": rule_name,
+            "Enabled": True,
+            "TlsPolicy": "Optional",
+            "Recipients": ["test@email.com"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "testBucketName",
+                        "ObjectKeyPrefix": "testObjectKeyPrefix",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    update_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    updated_rule_description = conn.describe_receipt_rule(
+        RuleSetName=rule_set_name, RuleName=rule_name
+    )
+
+    updated_rule_description["Rule"]["Name"].should.equal(rule_name)
+    updated_rule_description["Rule"]["Enabled"].should.equal(True)
+    len(updated_rule_description["Rule"]["Recipients"]).should.equal(1)
+    updated_rule_description["Rule"]["Recipients"][0].should.equal("test@email.com")
+
+    len(updated_rule_description["Rule"]["Actions"]).should.equal(1)
+    updated_rule_description["Rule"]["Actions"][0].should.have.key("S3Action")
+    updated_rule_description["Rule"]["Actions"][0].should.have.key("BounceAction")
+
+    with pytest.raises(ClientError) as error:
+        conn.update_receipt_rule(
+            RuleSetName="invalidRuleSetName",
+            Rule={
+                "Name": rule_name,
+                "Enabled": True,
+                "TlsPolicy": "Optional",
+                "Recipients": ["test@email.com"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "testBucketName",
+                            "ObjectKeyPrefix": "testObjectKeyPrefix",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    error.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
+    error.value.response["Error"]["Message"].should.equal(
+        "Rule set does not exist: invalidRuleSetName"
+    )
+
+    with pytest.raises(ClientError) as error:
+        conn.update_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Name": "invalidRuleName",
+                "Enabled": True,
+                "TlsPolicy": "Optional",
+                "Recipients": ["test@email.com"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "testBucketName",
+                            "ObjectKeyPrefix": "testObjectKeyPrefix",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    error.value.response["Error"]["Code"].should.equal("RuleDoesNotExist")
+    error.value.response["Error"]["Message"].should.equal(
+        "Rule does not exist: invalidRuleName"
+    )
+
+    with pytest.raises(ParamValidationError) as error:
+        conn.update_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Enabled": True,
+                "TlsPolicy": "Optional",
+                "Recipients": ["test@email.com"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "testBucketName",
+                            "ObjectKeyPrefix": "testObjectKeyPrefix",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    str(error.value).should.contain(
+        'Parameter validation failed:\nMissing required parameter in Rule: "Name"'
+    )
+
+
+@mock_ses
+def test_update_receipt_rule_actions():
+    conn = boto3.client("ses", region_name="us-east-1")
+    rule_set_name = "testRuleSet"
+    conn.create_receipt_rule_set(RuleSetName=rule_set_name)
+
+    rule_name = "testRule"
+    conn.create_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": rule_name,
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["test@email.com", "test2@email.com"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "testBucketName",
+                        "ObjectKeyPrefix": "testObjectKeyPrefix",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    update_receipt_rule_response = conn.update_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": rule_name,
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["test@email.com", "test2@email.com"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "newString",
+                        "BucketName": "updatedTestBucketName",
+                        "ObjectKeyPrefix": "updatedTestObjectKeyPrefix",
+                        "KmsKeyArn": "newString",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "newString",
+                        "SmtpReplyCode": "newString",
+                        "StatusCode": "newString",
+                        "Message": "newString",
+                        "Sender": "newString",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    update_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    updated_rule_description = conn.describe_receipt_rule(
+        RuleSetName=rule_set_name, RuleName=rule_name
+    )
+
+    len(updated_rule_description["Rule"]["Actions"]).should.equal(1)
+    updated_rule_description["Rule"]["Actions"][0].should.have.key("S3Action")
+
+    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
+        "TopicArn"
+    ).being.equal("newString")
+    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
+        "BucketName"
+    ).being.equal("updatedTestBucketName")
+    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
+        "ObjectKeyPrefix"
+    ).being.equal("updatedTestObjectKeyPrefix")
+    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
+        "KmsKeyArn"
+    ).being.equal("newString")
+
+    updated_rule_description["Rule"]["Actions"][0].should.have.key("BounceAction")
+
+    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
+        "TopicArn"
+    ).being.equal("newString")
+    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
+        "SmtpReplyCode"
+    ).being.equal("newString")
+    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
+        "StatusCode"
+    ).being.equal("newString")
+    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
+        "Message"
+    ).being.equal("newString")
+    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
+        "Sender"
+    ).being.equal("newString")
+
+    with pytest.raises(ParamValidationError) as error:
+        conn.update_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Name": rule_name,
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["test@email.com", "test2@email.com"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "newString",
+                            "ObjectKeyPrefix": "updatedTestObjectKeyPrefix",
+                            "KmsKeyArn": "newString",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "newString",
+                            "StatusCode": "newString",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
+
+    assert (str(error.value)).should.contain(
+        'Parameter validation failed:\nMissing required parameter in Rule.Actions[0].S3Action: "BucketName"\nMissing required parameter in Rule.Actions[0].BounceAction: "SmtpReplyCode"\nMissing required parameter in Rule.Actions[0].BounceAction: "Message"\nMissing required parameter in Rule.Actions[0].BounceAction: "Sender"'
+    )
 
 
 @mock_ses
