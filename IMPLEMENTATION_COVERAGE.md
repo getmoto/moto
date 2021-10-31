@@ -1019,7 +1019,6 @@
 - [ ] bundle_instance
 - [ ] cancel_bundle_task
 - [ ] cancel_capacity_reservation
-- [ ] cancel_capacity_reservation_fleets
 - [ ] cancel_conversion_task
 - [ ] cancel_export_task
 - [ ] cancel_import_task
@@ -1031,7 +1030,6 @@
 - [X] copy_image
 - [X] copy_snapshot
 - [ ] create_capacity_reservation
-- [ ] create_capacity_reservation_fleet
 - [X] create_carrier_gateway
 - [ ] create_client_vpn_endpoint
 - [ ] create_client_vpn_route
@@ -1163,7 +1161,6 @@
 - [X] describe_availability_zones
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
-- [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -1343,8 +1340,6 @@
 - [ ] get_transit_gateway_prefix_list_references
 - [ ] get_transit_gateway_route_table_associations
 - [ ] get_transit_gateway_route_table_propagations
-- [ ] get_vpn_connection_device_sample_configuration
-- [ ] get_vpn_connection_device_types
 - [ ] import_client_vpn_client_certificate_revocation_list
 - [ ] import_image
 - [ ] import_instance
@@ -1354,7 +1349,6 @@
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
-- [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
 - [ ] modify_ebs_default_kms_key_id
@@ -1467,7 +1461,7 @@
 
 ## ecr
 <details>
-<summary>74% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -1478,7 +1472,6 @@
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
-- [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_registry
@@ -1599,7 +1592,7 @@
 
 ## eks
 <details>
-<summary>35% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
@@ -1611,7 +1604,6 @@
 - [X] delete_cluster
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
-- [ ] deregister_cluster
 - [ ] describe_addon
 - [ ] describe_addon_versions
 - [X] describe_cluster
@@ -1627,7 +1619,6 @@
 - [X] list_nodegroups
 - [ ] list_tags_for_resource
 - [ ] list_updates
-- [ ] register_cluster
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_addon
@@ -2525,7 +2516,6 @@
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
-- [ ] put_verification_state_on_violation
 - [ ] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca
@@ -2716,24 +2706,29 @@
 
 ## lambda
 <details>
-<summary>48% implemented</summary>
+<summary>41% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
 - [ ] create_alias
+- [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
 - [ ] delete_alias
+- [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
+- [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
 - [ ] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [ ] get_alias
+- [ ] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
+- [ ] get_function_code_signing_config
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
@@ -2745,9 +2740,11 @@
 - [X] invoke
 - [ ] invoke_async
 - [ ] list_aliases
+- [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
 - [X] list_functions
+- [ ] list_functions_by_code_signing_config
 - [ ] list_layer_versions
 - [X] list_layers
 - [ ] list_provisioned_concurrency_configs
@@ -2755,6 +2752,7 @@
 - [X] list_versions_by_function
 - [X] publish_layer_version
 - [ ] publish_version
+- [ ] put_function_code_signing_config
 - [X] put_function_concurrency
 - [ ] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
@@ -2763,6 +2761,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_alias
+- [ ] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
@@ -2892,7 +2891,6 @@
 - [ ] batch_stop
 - [ ] batch_update_schedule
 - [ ] cancel_input_device_transfer
-- [ ] claim_device
 - [X] create_channel
 - [X] create_input
 - [ ] create_input_security_group
@@ -3707,7 +3705,6 @@
 - [ ] create_presigned_notebook_instance_url
 - [ ] create_processing_job
 - [ ] create_project
-- [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_transform_job
 - [ ] create_trial
@@ -3746,7 +3743,6 @@
 - [X] delete_notebook_instance_lifecycle_config
 - [ ] delete_pipeline
 - [ ] delete_project
-- [ ] delete_studio_lifecycle_config
 - [ ] delete_tags
 - [ ] delete_trial
 - [ ] delete_trial_component
@@ -3792,7 +3788,6 @@
 - [ ] describe_pipeline_execution
 - [ ] describe_processing_job
 - [ ] describe_project
-- [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
 - [ ] describe_transform_job
@@ -3851,7 +3846,6 @@
 - [ ] list_pipelines
 - [ ] list_processing_jobs
 - [ ] list_projects
-- [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
 - [ ] list_tags
 - [X] list_training_jobs
@@ -3865,7 +3859,6 @@
 - [ ] put_model_package_group_policy
 - [ ] register_devices
 - [ ] render_ui_template
-- [ ] retry_pipeline_execution
 - [ ] search
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
@@ -3939,7 +3932,7 @@
 
 ## ses
 <details>
-<summary>29% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -4006,7 +3999,7 @@
 - [ ] update_configuration_set_sending_enabled
 - [ ] update_configuration_set_tracking_options
 - [ ] update_custom_verification_email_template
-- [ ] update_receipt_rule
+- [X] update_receipt_rule
 - [X] update_template
 - [ ] verify_domain_dkim
 - [ ] verify_domain_identity
@@ -4453,7 +4446,6 @@
 <details>
 
 - accessanalyzer
-- account
 - acm-pca
 - alexaforbusiness
 - amp
@@ -4480,7 +4472,6 @@
 - chime-sdk-identity
 - chime-sdk-messaging
 - cloud9
-- cloudcontrol
 - clouddirectory
 - cloudfront
 - cloudhsm
@@ -4530,7 +4521,6 @@
 - fsx
 - gamelift
 - globalaccelerator
-- grafana
 - greengrass
 - greengrassv2
 - groundstation
@@ -4556,7 +4546,6 @@
 - iotwireless
 - ivs
 - kafka
-- kafkaconnect
 - kendra
 - kinesis-video-media
 - kinesis-video-signaling
@@ -4595,10 +4584,8 @@
 - network-firewall
 - networkmanager
 - nimble
-- opensearch
 - opsworkscm
 - outposts
-- panorama
 - personalize
 - personalize-events
 - personalize-runtime
@@ -4653,11 +4640,9 @@
 - timestream-query
 - transfer
 - translate
-- voice-id
 - waf
 - waf-regional
 - wellarchitected
-- wisdom
 - workdocs
 - worklink
 - workmail
