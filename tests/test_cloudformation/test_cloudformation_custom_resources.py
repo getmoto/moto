@@ -1,11 +1,7 @@
 import boto3
-import io
 import json
-import mock
-import os
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import time
-import zipfile
 
 from moto import mock_lambda, mock_cloudformation, mock_logs, mock_s3, settings
 from pprint import pprint
@@ -49,8 +45,6 @@ def test_create_custom_lambda_resource():
         raise SkipTest(
             "Needs a standalone MotoServer, as cfnresponse needs to connect to something"
         )
-    # Create Lambda-source code
-    lambda_content = get_lambda_code()
     # Create cloudformation stack
     stack_name = f"stack{str(uuid4())[0:6]}"
     template_body = get_template(get_lambda_code())
