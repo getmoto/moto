@@ -346,6 +346,7 @@ class SageMakerResponse(BaseResponse):
     def list_trials(self):
         response = self.sagemaker_backend.list_trials(
             experiment_name=self._get_param("ExperimentName"),
+            trial_component_name=self._get_param("TrialComponentName"),
         )
         return 200, {}, json.dumps(response)
 
@@ -404,14 +405,14 @@ class SageMakerResponse(BaseResponse):
 
     @amzn_request_id
     def associate_trial_component(self, *args, **kwargs):
-        self.sagemaker_backend.associate_trial_component(self.request_params)
-        response = {}
+        response = self.sagemaker_backend.associate_trial_component(self.request_params)
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def disassociate_trial_component(self, *args, **kwargs):
-        self.sagemaker_backend.disassociate_trial_component(self.request_params)
-        response = {}
+        response = self.sagemaker_backend.disassociate_trial_component(
+            self.request_params
+        )
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
