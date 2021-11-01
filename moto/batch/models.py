@@ -233,6 +233,41 @@ class JobDefinition(CloudFormationModel):
             DEFAULT_ACCOUNT_ID, self.name, self.revision, self._region
         )
 
+    def _get_resource_requirement(self, req_type, default=None):
+        """
+        Get resource requirement from container properties.
+
+        Resource requirements like "memory" and "vcpus" are now specified in
+        "resourceRequirements". This function retrieves a resource requirement
+        from either container_properties.resourceRequirements (preferred) or
+        directly from container_properties (deprecated).
+
+        :param req_type: The type of resource requirement to retrieve.
+        :type req_type: ["gpu", "memory", "vcpus"]
+
+        :param default: The default value to return if the resource requirement is not found.
+        :type default: any, default=None
+
+        :return: The value of the resource requirement, or None.
+        :rtype: any
+        """
+        resource_reqs = self.container_properties.get("resourceRequirements", [])
+
+        # Filter the resource requirements by the specified type.
+        # Note that VCPUS are specified in resourceRequirements without the
+        # trailing "s", so we strip that off in the comparison below.
+        required_resource = list(
+            filter(
+                lambda req: req["type"].lower() == req_type.lower().rstrip("s"),
+                resource_reqs,
+            )
+        )
+
+        if required_resource:
+            return required_resource[0]["value"]
+        else:
+            return self.container_properties.get(req_type, default)
+
     def _validate(self):
         if self.type not in ("container",):
             raise ClientException('type must be one of "container"')
@@ -247,14 +282,16 @@ class JobDefinition(CloudFormationModel):
         if "image" not in self.container_properties:
             raise ClientException("containerProperties must contain image")
 
-        if "memory" not in self.container_properties:
+        memory = self._get_resource_requirement("memory")
+        if memory is None:
             raise ClientException("containerProperties must contain memory")
-        if self.container_properties["memory"] < 4:
+        if memory < 4:
             raise ClientException("container memory limit must be greater than 4")
 
-        if "vcpus" not in self.container_properties:
+        vcpus = self._get_resource_requirement("vcpus")
+        if vcpus is None:
             raise ClientException("containerProperties must contain vcpus")
-        if self.container_properties["vcpus"] < 1:
+        if vcpus < 1:
             raise ClientException("container vcpus limit must be greater than 0")
 
     def update(self, parameters, _type, container_properties, retry_strategy):
@@ -425,6 +462,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
             job_env.append({"name": "AWS_BATCH_JOB_ID", "value": self.job_id})
 
             return job_env
+
+        if p in ["vcpus", "memory"]:
+            return self.container_overrides.get(
+                p, self.job_definition._get_resource_requirement(p, default)
+            )
 
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
