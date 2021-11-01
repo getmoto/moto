@@ -234,27 +234,22 @@ class JobDefinition(CloudFormationModel):
         )
 
     def _get_resource_requirement(self, req_type, default=None):
-        """Get resource requirement from container properties.
+        """
+        Get resource requirement from container properties.
 
         Resource requirements like "memory" and "vcpus" are now specified in
         "resourceRequirements". This function retrieves a resource requirement
         from either container_properties.resourceRequirements (preferred) or
         directly from container_properties (deprecated).
 
-        Parameters
-        ----------
-        req_type : ["gpu", "memory", "vcpus"]
-            The type of resource requirement to retrieve.
+        :param req_type: The type of resource requirement to retrieve.
+        :type req_type: ["gpu", "memory", "vcpus"]
 
-        default : optional
-            The default value to return if the resource requirement is not
-            found.
+        :param default: The default value to return if the resource requirement is not found.
+        :type default: any, default=None
 
-        Returns
-        -------
-        int or None
-            The value of the resource requirement, or None if the resource could
-            not be found.
+        :return: The value of the resource requirement, or None.
+        :rtype: any
         """
         resource_reqs = self.container_properties.get("resourceRequirements", [])
 
