@@ -1546,39 +1546,29 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)
-        streaming_request = hasattr(request, "streaming") and request.streaming
-        closing_connection = headers.get("connection") == "close"
-        if closing_connection and streaming_request:
-            # Closing the connection of a streaming request. No more data
-            new_key = self.backend.get_object(bucket_name, key_name)
-        elif streaming_request:
-            # Streaming request, more data
-            new_key = self.backend.append_to_key(bucket_name, key_name, body)
-        else:
 
-            # Initial data
-            new_key = self.backend.put_object(
-                bucket_name,
-                key_name,
-                body,
-                storage=storage_class,
-                encryption=encryption,
-                kms_key_id=kms_key_id,
-                bucket_key_enabled=bucket_key_enabled,
-                lock_mode=lock_mode,
-                lock_legal_status=legal_hold,
-                lock_until=lock_until,
-            )
+        # Initial data
+        new_key = self.backend.put_object(
+            bucket_name,
+            key_name,
+            body,
+            storage=storage_class,
+            encryption=encryption,
+            kms_key_id=kms_key_id,
+            bucket_key_enabled=bucket_key_enabled,
+            lock_mode=lock_mode,
+            lock_legal_status=legal_hold,
+            lock_until=lock_until,
+        )
 
-            request.streaming = True
-            metadata = metadata_from_headers(request.headers)
-            metadata.update(metadata_from_headers(query))
-            new_key.set_metadata(metadata)
-            new_key.set_acl(acl)
-            new_key.website_redirect_location = request.headers.get(
-                "x-amz-website-redirect-location"
-            )
-            self.backend.set_key_tags(new_key, tagging)
+        metadata = metadata_from_headers(request.headers)
+        metadata.update(metadata_from_headers(query))
+        new_key.set_metadata(metadata)
+        new_key.set_acl(acl)
+        new_key.website_redirect_location = request.headers.get(
+            "x-amz-website-redirect-location"
+        )
+        self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
         return 200, response_headers, ""

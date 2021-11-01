@@ -198,18 +198,6 @@ class FakeKey(BaseModel):
     def set_acl(self, acl):
         self.acl = acl
 
-    def append_to_value(self, value):
-        self.contentsize += len(value)
-        self._value_buffer.seek(0, os.SEEK_END)
-        self._value_buffer.write(value)
-
-        self.last_modified = datetime.datetime.utcnow()
-        self._etag = None  # must recalculate etag
-        if self._is_versioned:
-            self._version_id = str(uuid.uuid4())
-        else:
-            self._version_id = None
-
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
 
@@ -1636,11 +1624,6 @@ class S3Backend(BaseBackend):
         key = self.get_object(bucket_name, key_name, version_id=version_id)
         key.lock_mode = retention[0]
         key.lock_until = retention[1]
-
-    def append_to_key(self, bucket_name, key_name, value):
-        key = self.get_object(bucket_name, key_name)
-        key.append_to_value(value)
-        return key
 
     def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
         key_name = clean_key_name(key_name)
