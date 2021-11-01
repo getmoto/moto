@@ -5,7 +5,12 @@ from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
-from .exceptions import MissingModel, ValidationError, AWSValidationException
+from .exceptions import (
+    MissingModel,
+    ValidationError,
+    AWSValidationException,
+    ResourceNotFound,
+)
 
 
 class BaseObject(BaseModel):
@@ -1102,8 +1107,13 @@ class SageMakerModelBackend(BaseBackend):
                         if f["Name"] == "ExperimentName":
                             experiment_name = f["Value"]
 
-                            if getattr(item, "experiment_name") != experiment_name:
-                                return False
+                            if hasattr(item, "experiment_name"):
+                                if getattr(item, "experiment_name") != experiment_name:
+                                    return False
+                            else:
+                                raise ValidationError(
+                                    message="Unknown property name: ExperimentName"
+                                )
 
                         if f["Name"] == "TrialName":
                             raise AWSValidationException(
@@ -1209,6 +1219,7 @@ class SageMakerModelBackend(BaseBackend):
             trial_name=trial_name,
             experiment_name=experiment_name,
             tags=[],
+            trial_components=[],
         )
         self.trials[trial_name] = trial
         return trial.response_create
@@ -1245,10 +1256,21 @@ class SageMakerModelBackend(BaseBackend):
         except RESTError:
             return []
 
-    def list_trials(self, experiment_name=None):
+    def list_trials(self, experiment_name=None, trial_component_name=None):
         next_index = None
 
         trials_fetched = list(self.trials.values())
+
+        def evaluate_filter_expression(trial_data):
+            if experiment_name is not None:
+                if trial_data.experiment_name != experiment_name:
+                    return False
+
+            if trial_component_name is not None:
+                if trial_component_name not in trial_data.trial_components:
+                    return False
+
+            return True
 
         trial_summaries = [
             {
@@ -1258,7 +1280,7 @@ class SageMakerModelBackend(BaseBackend):
                 "LastModifiedTime": trial_data.last_modified_time,
             }
             for trial_data in trials_fetched
-            if experiment_name is None or trial_data.experiment_name == experiment_name
+            if evaluate_filter_expression(trial_data)
         ]
 
         return {
@@ -1342,12 +1364,42 @@ class SageMakerModelBackend(BaseBackend):
         trial_name = params["TrialName"]
         trial_component_name = params["TrialComponentName"]
 
-        self.trial_components[trial_component_name].trial_name = trial_name
+        if trial_name in self.trials.keys():
+            self.trials[trial_name].trial_components.extend([trial_component_name])
+        else:
+            raise ResourceNotFound(
+                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}' does not exist."
+            )
+
+        if trial_component_name in self.trial_components.keys():
+            self.trial_components[trial_component_name].trial_name = trial_name
+
+        return {
+            "TrialComponentArn": self.trial_components[
+                trial_component_name
+            ].trial_component_arn,
+            "TrialArn": self.trials[trial_name].trial_arn,
+        }
 
     def disassociate_trial_component(self, params):
         trial_component_name = params["TrialComponentName"]
+        trial_name = params["TrialName"]
 
-        self.trial_components[trial_component_name].trial_name = None
+        if trial_component_name in self.trial_components.keys():
+            self.trial_components[trial_component_name].trial_name = None
+
+        if trial_name in self.trials.keys():
+            self.trials[trial_name].trial_components = list(
+                filter(
+                    lambda x: x != trial_component_name,
+                    self.trials[trial_name].trial_components,
+                )
+            )
+
+        return {
+            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}",
+            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}",
+        }
 
     def create_notebook_instance(
         self,
@@ -1804,11 +1856,12 @@ class FakeExperiment(BaseObject):
 
 class FakeTrial(BaseObject):
     def __init__(
-        self, region_name, trial_name, experiment_name, tags,
+        self, region_name, trial_name, experiment_name, tags, trial_components,
     ):
         self.trial_name = trial_name
         self.trial_arn = FakeTrial.arn_formatter(trial_name, region_name)
         self.tags = tags
+        self.trial_components = trial_components
         self.experiment_name = experiment_name
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"

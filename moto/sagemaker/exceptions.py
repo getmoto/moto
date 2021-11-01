@@ -35,3 +35,8 @@ class ValidationError(JsonRESTError):
 
 class AWSValidationException(AWSError):
     TYPE = "ValidationException"
+
+
+class ResourceNotFound(JsonRESTError):
+    def __init__(self, message, **kwargs):
+        super(ResourceNotFound, self).__init__(__class__.__name__, message, **kwargs)
