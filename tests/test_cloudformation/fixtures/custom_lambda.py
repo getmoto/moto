@@ -4,7 +4,7 @@
 def get_template(lambda_code):
     return {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "AWS CloudFormation AMI Look Up Sample Template: Demonstrates how to dynamically specify an AMI ID. This template provisions an EC2 instance with an AMI ID that is based on the instance's type and region.",
+        "Description": "Sample template using Custom Resource",
         "Resources": {
             "CustomInfo": {
                 "Type": "Custom::Info",

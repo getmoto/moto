@@ -402,6 +402,8 @@ def parse_condition(condition, resources_map, condition_map):
 
 def parse_output(output_logical_id, output_json, resources_map):
     output_json = clean_json(output_json, resources_map)
+    if "Value" not in output_json:
+        return None
     output = Output()
     output.key = output_logical_id
     output.value = clean_json(output_json["Value"], resources_map)
@@ -803,7 +805,8 @@ class OutputMap(collections_abc.Mapping):
             new_output = parse_output(
                 output_logical_id, output_json, self._resource_map
             )
-            self._parsed_outputs[output_logical_id] = new_output
+            if new_output:
+                self._parsed_outputs[output_logical_id] = new_output
             return new_output
 
     def __iter__(self):

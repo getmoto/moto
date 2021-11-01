@@ -35,7 +35,6 @@ class CustomModel(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        print("create_from_cloudformation")
         logical_id = kwargs["LogicalId"]
         stack_id = kwargs["StackId"]
         resource_type = kwargs["ResourceType"]
@@ -72,22 +71,11 @@ class CustomModel(CloudFormationModel):
             "ResourceType": resource_type,
             "ResourceProperties": properties,
         }
-        print(event)
 
-        def invoke_function():
-            try:
-                fn.invoke(json.dumps(event), {}, {})
-            except Exception as e:
-                print(e)
-
-        print("Invoking function")
-        # p = multiprocessing.Process(target=invoke_function)
-        # p.start()
-        invoke_thread = threading.Thread(target=invoke_function, args=())
+        invoke_thread = threading.Thread(
+            target=fn.invoke, args=(json.dumps(event), {}, {})
+        )
         invoke_thread.start()
-
-        # invoke_function()
-        print("started")
 
         return custom_resource
 
@@ -97,13 +85,9 @@ class CustomModel(CloudFormationModel):
         return True
 
     def get_cfn_attribute(self, attribute_name):
-        print(f"get_cfn_attribute({attribute_name})")
-        print(self.data)
-
         if attribute_name in self.data:
             return self.data[attribute_name]
-        print("WARNING")
-        return "NONE"
+        return None
 
     @classmethod
     def update_from_cloudformation_json(

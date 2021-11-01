@@ -104,7 +104,7 @@ class CloudFormationResponse(BaseResponse):
             custom_resource.set_data(outputs)
             stack.verify_readiness()
 
-        return 200, {"status": 200}, {}
+        return 200, {"status": 200}, json.dumps("{}")
 
     def create_stack(self):
         stack_name = self._get_param("StackName")

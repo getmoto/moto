@@ -321,7 +321,7 @@ class FakeStack(BaseModel):
 
     @property
     def stack_outputs(self):
-        return self.output_map.values()
+        return [v for v in self.output_map.values() if v]
 
     @property
     def exports(self):
