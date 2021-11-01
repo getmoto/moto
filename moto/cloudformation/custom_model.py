@@ -88,9 +88,3 @@ class CustomModel(CloudFormationModel):
         if attribute_name in self.data:
             return self.data[attribute_name]
         return None
-
-    @classmethod
-    def update_from_cloudformation_json(
-        cls, new_resource_name, cloudformation_json, original_resource, region_name
-    ):
-        return original_resource
