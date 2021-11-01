@@ -36,19 +36,23 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self,
         name,
         password,
-        size,
-        vpc_settings,
         directory_type,
+        size=None,
+        vpc_settings=None,
+        connect_settings=None,
         short_name=None,
         description=None,
+        edition=None,
     ):  # pylint: disable=too-many-arguments
         self.name = name
         self.password = password
+        self.directory_type = directory_type
         self.size = size
         self.vpc_settings = vpc_settings
-        self.directory_type = directory_type
+        self.connect_settings = connect_settings
         self.short_name = short_name
         self.description = description
+        self.edition = edition
 
         # Calculated or default values for the directory attributes.
         self.directory_id = f"d-{get_random_hex(10)}"
@@ -111,7 +115,7 @@ class DirectoryServiceBackend(BaseBackend):
 
     @staticmethod
     def _validate_create_directory_args(
-        name, passwd, size, vpc_settings, description, short_name,
+        name, passwd, vpc_settings, description, short_name, size=None, edition=None,
     ):  # pylint: disable=too-many-arguments
         """Raise exception if create_directory() args don't meet constraints.
 
@@ -135,7 +139,7 @@ class DirectoryServiceBackend(BaseBackend):
                 )
             )
 
-        if size.lower() not in ["small", "large"]:
+        if size and size.lower() not in ["small", "large"]:
             error_tuples.append(
                 ("size", size, "satisfy enum value set: [Small, Large]")
             )
@@ -171,6 +175,11 @@ class DirectoryServiceBackend(BaseBackend):
                     short_name,
                     fr"satisfy regular expression pattern: {json_pattern}",
                 )
+            )
+
+        if edition and edition not in ["Enterprise", "Standard"]:
+            error_tuples.append(
+                ("edition", edition, "satisfy enum value set: [Enterprise, Standard]")
             )
 
         if error_tuples:
@@ -230,7 +239,7 @@ class DirectoryServiceBackend(BaseBackend):
             raise InvalidParameterException("VpcSettings must be specified.")
 
         self._validate_create_directory_args(
-            name, password, size, vpc_settings, description, short_name,
+            name, password, vpc_settings, description, short_name, size=size,
         )
         self._validate_vpc_setting_values(region, vpc_settings)
 
@@ -244,9 +253,9 @@ class DirectoryServiceBackend(BaseBackend):
         directory = Directory(
             name,
             password,
-            size,
-            vpc_settings,
             directory_type="SimpleAD",
+            size=size,
+            vpc_settings=vpc_settings,
             short_name=short_name,
             description=description,
         )
@@ -305,6 +314,51 @@ class DirectoryServiceBackend(BaseBackend):
 
         directory.update_alias(alias)
         return {"DirectoryId": directory_id, "Alias": alias}
+
+    def create_microsoft_ad(
+        self,
+        region,
+        name,
+        short_name,
+        password,
+        description,
+        vpc_settings,
+        edition,
+        tags,
+    ):  # pylint: disable=too-many-arguments
+        """Create a fake Microsoft Ad Directory."""
+        if len(self.directories) > Directory.CLOUDONLY_MICROSOFT_AD_LIMIT:
+            raise DirectoryLimitExceededException(
+                f"Directory limit exceeded. A maximum of "
+                f"{Directory.CLOUDONLY_MICROSOFT_AD_LIMIT} directories may be created"
+            )
+
+        # boto3 does look for missing vpc_settings for create_microsoft_ad().
+
+        self._validate_create_directory_args(
+            name, password, vpc_settings, description, short_name, edition=edition,
+        )
+        self._validate_vpc_setting_values(region, vpc_settings)
+
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationException(errmsg)
+
+        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+            raise DirectoryLimitExceededException("Tag Limit is exceeding")
+
+        directory = Directory(
+            name,
+            password,
+            directory_type="MicrosoftAD",
+            vpc_settings=vpc_settings,
+            short_name=short_name,
+            description=description,
+            edition=edition,
+        )
+        self.directories[directory.directory_id] = directory
+        self.tagger.tag_resource(directory.directory_id, tags or [])
+        return directory.directory_id
 
     def delete_directory(self, directory_id):
         """Delete directory with the matching ID."""

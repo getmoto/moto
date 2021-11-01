@@ -43,6 +43,27 @@ class DirectoryServiceResponse(BaseResponse):
         response = self.ds_backend.create_alias(directory_id, alias)
         return json.dumps(response)
 
+    def create_microsoft_ad(self):
+        """Create a Microsoft AD directory."""
+        name = self._get_param("Name")
+        short_name = self._get_param("ShortName")
+        password = self._get_param("Password")
+        description = self._get_param("Description")
+        vpc_settings = self._get_param("VpcSettings")
+        edition = self._get_param("Edition")
+        tags = self._get_param("Tags")
+        directory_id = self.ds_backend.create_microsoft_ad(
+            region=self.region,
+            name=name,
+            short_name=short_name,
+            password=password,
+            description=description,
+            vpc_settings=vpc_settings,
+            edition=edition,
+            tags=tags,
+        )
+        return json.dumps({"DirectoryId": directory_id})
+
     def delete_directory(self):
         """Delete a Directory Service directory."""
         directory_id_arg = self._get_param("DirectoryId")
