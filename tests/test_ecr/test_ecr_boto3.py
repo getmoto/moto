@@ -361,7 +361,7 @@ def test_put_image_with_push_date():
     _ = client.create_repository(repositoryName="test_repository")
 
     with freeze_time("2018-08-28 00:00:00"):
-        image1_date = datetime.now()
+        image1_date = datetime.now(tzlocal())
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -369,7 +369,7 @@ def test_put_image_with_push_date():
         )
 
     with freeze_time("2019-05-31 00:00:00"):
-        image2_date = datetime.now()
+        image2_date = datetime.now(tzlocal())
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),

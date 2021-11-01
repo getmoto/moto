@@ -800,6 +800,31 @@ def test_ami_attribute_user_and_group_permissions_boto3():
 
 
 @mock_ec2
+def test_filter_description():
+    # https://github.com/spulec/moto/issues/4460
+    client = boto3.client("ec2", region_name="us-west-2")
+
+    # Search for partial description
+    resp = client.describe_images(
+        Owners=["amazon"],
+        Filters=[{"Name": "description", "Values": ["Amazon Linux AMI*"]}],
+    )["Images"]
+    resp.should.have.length_of(4)
+
+    # Search for full description
+    resp = client.describe_images(
+        Owners=["amazon"],
+        Filters=[
+            {
+                "Name": "description",
+                "Values": ["Amazon Linux AMI 2018.03.0.20210721.0 x86_64 VPC HVM ebs"],
+            }
+        ],
+    )["Images"]
+    resp.should.have.length_of(1)
+
+
+@mock_ec2
 def test_ami_attribute_error_cases_boto3():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)

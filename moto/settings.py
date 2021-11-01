@@ -32,3 +32,7 @@ def get_s3_default_key_buffer_size():
             "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", S3_UPLOAD_PART_MIN_SIZE - 1024
         )
     )
+
+
+def ecs_new_arn_format():
+    return os.environ.get("MOTO_ECS_NEW_ARN", "false").lower() == "true"

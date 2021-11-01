@@ -41,6 +41,19 @@ def test_create_key_without_description():
 
 
 @mock_kms
+def test_create_key_with_empty_content():
+    client_kms = boto3.client("kms", region_name="ap-northeast-1")
+    metadata = client_kms.create_key(Policy="my policy")["KeyMetadata"]
+    with pytest.raises(ClientError) as exc:
+        client_kms.encrypt(KeyId=metadata["KeyId"], Plaintext="")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    )
+
+
+@mock_kms
 def test_create_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -195,15 +208,16 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
 
 @mock_kms
 def test_list_aliases():
-    client = boto3.client("kms", region_name="us-east-1")
+    region = "us-west-1"
+    client = boto3.client("kms", region_name=region)
     client.create_key(Description="my key")
 
     aliases = client.list_aliases()["Aliases"]
-    aliases.should.have.length_of(4)
+    aliases.should.have.length_of(14)
     default_alias_names = ["aws/ebs", "aws/s3", "aws/redshift", "aws/rds"]
     for name in default_alias_names:
         full_name = "alias/{}".format(name)
-        arn = "arn:aws:kms:us-east-1:{}:{}".format(ACCOUNT_ID, full_name)
+        arn = "arn:aws:kms:{}:{}:{}".format(region, ACCOUNT_ID, full_name)
         aliases.should.contain({"AliasName": full_name, "AliasArn": arn})
 
 
@@ -1029,3 +1043,70 @@ def test__delete_alias__raises_if_alias_is_not_found():
     err["Message"].should.equal(
         f"Alias arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/unknown-alias is not found."
     )
+
+
+sort = lambda l: sorted(l, key=lambda d: d.keys())
+
+
+def _check_tags(key_id, created_tags, client):
+    result = client.list_resource_tags(KeyId=key_id)
+    actual = result.get("Tags", [])
+    assert sort(created_tags) == sort(actual)
+
+    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+
+    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
+    expected = [{"TagKey": "key2", "TagValue": "value2"}]
+    assert sort(expected) == sort(actual)
+
+
+@mock_kms
+def test_key_tag_on_create_key_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    key = client.create_key(Description="test-key-tagging", Tags=tags)
+    _check_tags(key["KeyMetadata"]["KeyId"], tags, client)
+
+
+@mock_kms
+def test_key_tag_on_create_key_on_arn_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    key = client.create_key(Description="test-key-tagging", Tags=tags)
+    _check_tags(key["KeyMetadata"]["Arn"], tags, client)
+
+
+@mock_kms
+def test_key_tag_added_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key(Description="test-key-tagging")
+    key_id = key["KeyMetadata"]["KeyId"]
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    client.tag_resource(KeyId=key_id, Tags=tags)
+    _check_tags(key_id, tags, client)
+
+
+@mock_kms
+def test_key_tag_added_arn_based_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key(Description="test-key-tagging")
+    key_id = key["KeyMetadata"]["Arn"]
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    client.tag_resource(KeyId=key_id, Tags=tags)
+    _check_tags(key_id, tags, client)

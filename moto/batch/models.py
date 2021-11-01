@@ -35,6 +35,15 @@ COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
 )
 
 
+def datetime2int_milliseconds(date):
+    """
+    AWS returns timestamps in milliseconds
+    We don't use milliseconds timestamps internally,
+    this method should be used only in describe() method
+    """
+    return int(date.timestamp() * 1000)
+
+
 def datetime2int(date):
     return int(time.mktime(date.timetuple()))
 
@@ -224,6 +233,41 @@ class JobDefinition(CloudFormationModel):
             DEFAULT_ACCOUNT_ID, self.name, self.revision, self._region
         )
 
+    def _get_resource_requirement(self, req_type, default=None):
+        """
+        Get resource requirement from container properties.
+
+        Resource requirements like "memory" and "vcpus" are now specified in
+        "resourceRequirements". This function retrieves a resource requirement
+        from either container_properties.resourceRequirements (preferred) or
+        directly from container_properties (deprecated).
+
+        :param req_type: The type of resource requirement to retrieve.
+        :type req_type: ["gpu", "memory", "vcpus"]
+
+        :param default: The default value to return if the resource requirement is not found.
+        :type default: any, default=None
+
+        :return: The value of the resource requirement, or None.
+        :rtype: any
+        """
+        resource_reqs = self.container_properties.get("resourceRequirements", [])
+
+        # Filter the resource requirements by the specified type.
+        # Note that VCPUS are specified in resourceRequirements without the
+        # trailing "s", so we strip that off in the comparison below.
+        required_resource = list(
+            filter(
+                lambda req: req["type"].lower() == req_type.lower().rstrip("s"),
+                resource_reqs,
+            )
+        )
+
+        if required_resource:
+            return required_resource[0]["value"]
+        else:
+            return self.container_properties.get(req_type, default)
+
     def _validate(self):
         if self.type not in ("container",):
             raise ClientException('type must be one of "container"')
@@ -238,14 +282,16 @@ class JobDefinition(CloudFormationModel):
         if "image" not in self.container_properties:
             raise ClientException("containerProperties must contain image")
 
-        if "memory" not in self.container_properties:
+        memory = self._get_resource_requirement("memory")
+        if memory is None:
             raise ClientException("containerProperties must contain memory")
-        if self.container_properties["memory"] < 4:
+        if memory < 4:
             raise ClientException("container memory limit must be greater than 4")
 
-        if "vcpus" not in self.container_properties:
+        vcpus = self._get_resource_requirement("vcpus")
+        if vcpus is None:
             raise ClientException("containerProperties must contain vcpus")
-        if self.container_properties["vcpus"] < 1:
+        if vcpus < 1:
             raise ClientException("container vcpus limit must be greater than 0")
 
     def update(self, parameters, _type, container_properties, retry_strategy):
@@ -351,6 +397,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_queue = job_queue
         self.job_state = "SUBMITTED"  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
         self.job_queue.jobs.append(self)
+        self.job_created_at = datetime.datetime.now()
         self.job_started_at = datetime.datetime(1970, 1, 1)
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
@@ -374,11 +421,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
             "jobQueue": self.job_queue.arn,
             "status": self.job_state,
             "dependsOn": self.depends_on if self.depends_on else [],
+            "createdAt": datetime2int_milliseconds(self.job_created_at),
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
-            result["startedAt"] = datetime2int(self.job_started_at)
+            result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
         if self.job_stopped:
-            result["stoppedAt"] = datetime2int(self.job_stopped_at)
+            result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
             result["container"] = {}
             result["container"]["command"] = self._get_container_property("command", [])
             result["container"]["privileged"] = self._get_container_property(
@@ -414,6 +462,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
             job_env.append({"name": "AWS_BATCH_JOB_ID", "value": self.job_id})
 
             return job_env
+
+        if p in ["vcpus", "memory"]:
+            return self.container_overrides.get(
+                p, self.job_definition._get_resource_requirement(p, default)
+            )
 
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
@@ -859,7 +912,7 @@ class BatchBackend(BaseBackend):
         self._compute_environments[new_comp_env.arn] = new_comp_env
 
         # Ok by this point, everything is legit, so if its Managed then start some instances
-        if _type == "MANAGED":
+        if _type == "MANAGED" and "FARGATE" not in compute_resources["type"]:
             cpus = int(
                 compute_resources.get("desiredvCpus", compute_resources["minvCpus"])
             )
@@ -902,48 +955,37 @@ class BatchBackend(BaseBackend):
         :param cr: computeResources
         :type cr: dict
         """
-        for param in (
-            "instanceRole",
-            "maxvCpus",
-            "minvCpus",
-            "instanceTypes",
-            "securityGroupIds",
-            "subnets",
-            "type",
-        ):
-            if param not in cr:
-                pass  # commenting out invalid check below - values may be missing (tf-compat)
-                # raise InvalidParameterValueException(
-                #     "computeResources must contain {0}".format(param)
-                # )
-        for profile in self.iam_backend.get_instance_profiles():
-            if profile.arn == cr["instanceRole"]:
-                break
-        else:
-            raise InvalidParameterValueException(
-                "could not find instanceRole {0}".format(cr["instanceRole"])
-            )
-
         if int(cr["maxvCpus"]) < 0:
             raise InvalidParameterValueException("maxVCpus must be positive")
-        if int(cr["minvCpus"]) < 0:
-            raise InvalidParameterValueException("minVCpus must be positive")
-        if int(cr["maxvCpus"]) < int(cr["minvCpus"]):
-            raise InvalidParameterValueException(
-                "maxVCpus must be greater than minvCpus"
-            )
-
-        if len(cr["instanceTypes"]) == 0:
-            raise InvalidParameterValueException(
-                "At least 1 instance type must be provided"
-            )
-        for instance_type in cr["instanceTypes"]:
-            if instance_type == "optimal":
-                pass  # Optimal should pick from latest of current gen
-            elif instance_type not in EC2_INSTANCE_TYPES:
+        if "FARGATE" not in cr["type"]:
+            # Most parameters are not applicable to jobs that are running on Fargate resources:
+            # non exhaustive list: minvCpus, instanceTypes, imageId, ec2KeyPair, instanceRole, tags
+            for profile in self.iam_backend.get_instance_profiles():
+                if profile.arn == cr["instanceRole"]:
+                    break
+            else:
                 raise InvalidParameterValueException(
-                    "Instance type {0} does not exist".format(instance_type)
+                    "could not find instanceRole {0}".format(cr["instanceRole"])
                 )
+
+            if int(cr["minvCpus"]) < 0:
+                raise InvalidParameterValueException("minvCpus must be positive")
+            if int(cr["maxvCpus"]) < int(cr["minvCpus"]):
+                raise InvalidParameterValueException(
+                    "maxVCpus must be greater than minvCpus"
+                )
+
+            if len(cr["instanceTypes"]) == 0:
+                raise InvalidParameterValueException(
+                    "At least 1 instance type must be provided"
+                )
+            for instance_type in cr["instanceTypes"]:
+                if instance_type == "optimal":
+                    pass  # Optimal should pick from latest of current gen
+                elif instance_type not in EC2_INSTANCE_TYPES:
+                    raise InvalidParameterValueException(
+                        "Instance type {0} does not exist".format(instance_type)
+                    )
 
         for sec_id in cr["securityGroupIds"]:
             if self.ec2_backend.get_security_group_from_id(sec_id) is None:
@@ -965,9 +1007,9 @@ class BatchBackend(BaseBackend):
         if len(cr["subnets"]) == 0:
             raise InvalidParameterValueException("At least 1 subnet must be provided")
 
-        if cr["type"] not in ("EC2", "SPOT"):
+        if cr["type"] not in {"EC2", "SPOT", "FARGATE", "FARGATE_SPOT"}:
             raise InvalidParameterValueException(
-                "computeResources.type must be either EC2 | SPOT"
+                "computeResources.type must be either EC2 | SPOT | FARGATE | FARGATE_SPOT"
             )
 
     @staticmethod

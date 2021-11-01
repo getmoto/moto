@@ -252,7 +252,7 @@ def randor_ipv4_cidr():
 
 
 def random_ipv6_cidr():
-    return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
+    return "2400:6500:{}:{}00::/56".format(random_resource_id(4), random_resource_id(2))
 
 
 def generate_route_id(

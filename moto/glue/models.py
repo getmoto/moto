@@ -1,8 +1,10 @@
 import time
+from collections import OrderedDict
 from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
-from collections import OrderedDict
+from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
+
 from .exceptions import (
     JsonRESTError,
     CrawlerAlreadyExistsException,
@@ -121,6 +123,14 @@ class GlueBackend(BaseBackend):
 
     def get_crawlers(self):
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
+
+    def start_crawler(self, name):
+        crawler = self.get_crawler(name)
+        crawler.start_crawler()
+
+    def stop_crawler(self, name):
+        crawler = self.get_crawler(name)
+        crawler.stop_crawler()
 
     def delete_crawler(self, name):
         try:
@@ -310,6 +320,20 @@ class FakeCrawler(BaseModel):
             data["LastCrawl"] = self.last_crawl_info.as_dict()
 
         return data
+
+    def start_crawler(self):
+        if self.state == "RUNNING":
+            raise CrawlerRunningException(
+                f"Crawler with name {self.name} has already started"
+            )
+        self.state = "RUNNING"
+
+    def stop_crawler(self):
+        if self.state != "RUNNING":
+            raise CrawlerNotRunningException(
+                f"Crawler with name {self.name} isn't running"
+            )
+        self.state = "STOPPING"
 
 
 class LastCrawlInfo(BaseModel):

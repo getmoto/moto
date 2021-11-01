@@ -4,6 +4,9 @@ import string
 import pkgutil
 
 
+from collections.abc import MutableMapping
+
+
 def str2bool(v):
     if v in ("yes", True, "true", "True", "TRUE", "t", "1"):
         return True
@@ -52,3 +55,32 @@ def filter_resources(resources, filters, attr_pairs):
                     result.remove(resource)
                     break
     return result
+
+
+class LowercaseDict(MutableMapping):
+    """A dictionary that lowercases all keys"""
+
+    def __init__(self, *args, **kwargs):
+        self.store = dict()
+        self.update(dict(*args, **kwargs))  # use the free update to set keys
+
+    def __getitem__(self, key):
+        return self.store[self._keytransform(key)]
+
+    def __setitem__(self, key, value):
+        self.store[self._keytransform(key)] = value
+
+    def __delitem__(self, key):
+        del self.store[self._keytransform(key)]
+
+    def __iter__(self):
+        return iter(self.store)
+
+    def __len__(self):
+        return len(self.store)
+
+    def __repr__(self):
+        return str(self.store)
+
+    def _keytransform(self, key):
+        return key.lower()

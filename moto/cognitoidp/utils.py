@@ -3,6 +3,12 @@ import string
 import hashlib
 import hmac
 import base64
+import re
+
+FORMATS = {
+    "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+    "phone_number": r"\+\d{,15}",
+}
 
 
 PAGINATION_MODEL = {
@@ -45,3 +51,18 @@ def check_secret_hash(app_client_secret, app_client_id, username, secret_hash):
     new_digest = hmac.new(key, msg, hashlib.sha256).digest()
     SECRET_HASH = base64.b64encode(new_digest).decode()
     return SECRET_HASH == secret_hash
+
+
+def validate_username_format(username, _format="email"):
+    # if the value of the `_format` param other than `email` or `phone_number`,
+    # the default value for the regex will match nothing and the
+    # method will return None
+    return re.fullmatch(FORMATS.get(_format, r"a^"), username)
+
+
+def flatten_attrs(attrs):
+    return {attr["Name"]: attr["Value"] for attr in attrs}
+
+
+def expand_attrs(attrs):
+    return [{"Name": k, "Value": v} for k, v in attrs.items()]

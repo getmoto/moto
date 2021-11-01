@@ -303,6 +303,16 @@ class GlueResponse(BaseResponse):
         crawlers = self.glue_backend.get_crawlers()
         return json.dumps({"Crawlers": [crawler.as_dict() for crawler in crawlers]})
 
+    def start_crawler(self):
+        name = self.parameters.get("Name")
+        self.glue_backend.start_crawler(name)
+        return ""
+
+    def stop_crawler(self):
+        name = self.parameters.get("Name")
+        self.glue_backend.stop_crawler(name)
+        return ""
+
     def delete_crawler(self):
         name = self.parameters.get("Name")
         self.glue_backend.delete_crawler(name)

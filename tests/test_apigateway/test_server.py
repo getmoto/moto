@@ -122,3 +122,33 @@ def test_create_usage_plans_key_non_existent_api_key():
         data=json.dumps({"keyId": "non-existent", "keyType": "API_KEY"}),
     )
     res.status_code.should.equal(404)
+
+
+def test_put_integration_response_without_body():
+    # Method under test: put_integration_response
+    #
+    # Moto/Boto3 requires the responseTemplates-parameter to have a value - even if it's an empty dict
+    # Botocore <= 1.21.65 does not automatically pass this parameter, so Moto will successfully throw an error if it's not supplied
+    # However: As of botocore >= 1.22.0, the responseTemplates is automatically supplied - which means we can no longer test this using boto3
+    #
+    # This was the equivalent boto3-test:
+    # with pytest.raises(ClientError) as ex:
+    #     client.put_integration_response(
+    #         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    #     )
+    # ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    # ex.value.response["Error"]["Message"].should.equal("Invalid request input")
+    #
+    # As a workaround, we can create a PUT-request without body, which will force the error
+    # Related: # https://github.com/aws/aws-sdk-js/issues/2588
+    #
+    backend = server.create_backend_app("apigateway")
+    test_client = backend.test_client()
+
+    res = test_client.put(
+        "/restapis/f_id/resources/r_id/methods/m_id/integration/responses/200/"
+    )
+    res.status_code.should.equal(400)
+    json.loads(res.data).should.equal(
+        {"__type": "BadRequestException", "message": "Invalid request input"}
+    )

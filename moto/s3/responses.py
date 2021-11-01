@@ -1,6 +1,7 @@
 import io
 import os
 import re
+from typing import List, Union
 
 from botocore.awsrequest import AWSPreparedRequest
 
@@ -59,7 +60,6 @@ from .models import (
 )
 from .utils import (
     bucket_name_from_url,
-    clean_key_name,
     metadata_from_headers,
     parse_region_from_url,
 )
@@ -256,9 +256,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def bucket_response(self, request, full_url, headers):
         self.method = request.method
         self.path = self._get_path(request)
-        self.headers = request.headers
-        if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+        # Make a copy of request.headers because it's immutable
+        self.headers = dict(request.headers)
+        if "Host" not in self.headers:
+            self.headers["Host"] = urlparse(full_url).netloc
         try:
             response = self._bucket_response(request, full_url, headers)
         except S3ClientError as s3error:
@@ -313,6 +314,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._bucket_response_delete(body, bucket_name, querystring)
         elif method == "POST":
             return self._bucket_response_post(request, body, bucket_name)
+        elif method == "OPTIONS":
+            return self._bucket_response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
@@ -339,6 +342,64 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # error response between real and mocked responses.
             return 404, {}, ""
         return 200, {}, ""
+
+    def _set_cors_headers(self, bucket):
+        """
+        TODO: smarter way of matching the right CORS rule:
+        See https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
+
+        "When Amazon S3 receives a preflight request from a browser, it evaluates
+        the CORS configuration for the bucket and uses the first CORSRule rule
+        that matches the incoming browser request to enable a cross-origin request."
+        This here just uses all rules and the last rule will override the previous ones
+        if they are re-defining the same headers.
+        """
+
+        def _to_string(header: Union[List[str], str]) -> str:
+            # We allow list and strs in header values. Transform lists in comma-separated strings
+            if isinstance(header, list):
+                return ", ".join(header)
+            return header
+
+        for cors_rule in bucket.cors:
+            if cors_rule.allowed_methods is not None:
+                self.headers["Access-Control-Allow-Methods"] = _to_string(
+                    cors_rule.allowed_methods
+                )
+            if cors_rule.allowed_origins is not None:
+                self.headers["Access-Control-Allow-Origin"] = _to_string(
+                    cors_rule.allowed_origins
+                )
+            if cors_rule.allowed_headers is not None:
+                self.headers["Access-Control-Allow-Headers"] = _to_string(
+                    cors_rule.allowed_headers
+                )
+            if cors_rule.exposed_headers is not None:
+                self.headers["Access-Control-Expose-Headers"] = _to_string(
+                    cors_rule.exposed_headers
+                )
+            if cors_rule.max_age_seconds is not None:
+                self.headers["Access-Control-Max-Age"] = _to_string(
+                    cors_rule.max_age_seconds
+                )
+
+        return self.headers
+
+    def _bucket_response_options(self, bucket_name):
+        # Return 200 with the headers from the bucket CORS configuration
+        self._authenticate_and_authorize_s3_action()
+        try:
+            bucket = self.backend.head_bucket(bucket_name)
+        except MissingBucket:
+            return (
+                403,
+                {},
+                "",
+            )  # AWS S3 seems to return 403 on OPTIONS and 404 on GET/HEAD
+
+        self._set_cors_headers(bucket)
+
+        return 200, self.headers, ""
 
     def _bucket_response_get(self, bucket_name, querystring):
         self._set_action("BUCKET", "GET", querystring)
@@ -972,8 +1033,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template.render(deleted=deleted_objects, delete_errors=error_names),
         )
 
-    def _handle_range_header(self, request, headers, response_content):
-        response_headers = {}
+    def _handle_range_header(self, request, response_headers, response_content):
         length = len(response_content)
         last = length - 1
         _, rspec = request.headers.get("range").split("=")
@@ -1022,9 +1082,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
-        self.headers = request.headers
-        if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+        # Make a copy of request.headers because it's immutable
+        self.headers = dict(request.headers)
+        if "Host" not in self.headers:
+            self.headers["Host"] = urlparse(full_url).netloc
         response_headers = {}
 
         try:
@@ -1322,14 +1383,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             upload_id = query["uploadId"][0]
             part_number = int(query["partNumber"][0])
             if "x-amz-copy-source" in request.headers:
-                src = unquote(request.headers.get("x-amz-copy-source")).lstrip("/")
-                src_bucket, src_key = src.split("/", 1)
-
-                src_key, src_version_id = (
-                    src_key.split("?versionId=")
-                    if "?versionId=" in src_key
-                    else (src_key, None)
-                )
+                copy_source = request.headers.get("x-amz-copy-source")
+                if isinstance(copy_source, bytes):
+                    copy_source = copy_source.decode("utf-8")
+                copy_source_parsed = urlparse(copy_source)
+                src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+                src_version_id = parse_qs(copy_source_parsed.query).get(
+                    "versionId", [None]
+                )[0]
                 src_range = request.headers.get("x-amz-copy-source-range", "").split(
                     "bytes="
                 )[-1]
@@ -1382,7 +1443,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         lock_mode = request.headers.get("x-amz-object-lock-mode", None)
         lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
-        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", "OFF")
+        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", None)
 
         if lock_mode or lock_until or legal_hold == "ON":
             if not request.headers.get("Content-Md5"):
@@ -1439,14 +1500,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # Copy key
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
-            src_key = request.headers.get("x-amz-copy-source")
-            if isinstance(src_key, bytes):
-                src_key = src_key.decode("utf-8")
-            src_key_parsed = urlparse(src_key)
-            src_bucket, src_key = (
-                clean_key_name(src_key_parsed.path).lstrip("/").split("/", 1)
-            )
-            src_version_id = parse_qs(src_key_parsed.query).get("versionId", [None])[0]
+            copy_source = request.headers.get("x-amz-copy-source")
+            if isinstance(copy_source, bytes):
+                copy_source = copy_source.decode("utf-8")
+            copy_source_parsed = urlparse(copy_source)
+            src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+            src_version_id = parse_qs(copy_source_parsed.query).get(
+                "versionId", [None]
+            )[0]
 
             key = self.backend.get_object(
                 src_bucket, src_key, version_id=src_version_id
@@ -1735,8 +1796,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _mode_until_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
         return (
-            parsed_xml["Retention"]["Mode"],
-            parsed_xml["Retention"]["RetainUntilDate"],
+            parsed_xml.get("Retention", None).get("Mode", None),
+            parsed_xml.get("Retention", None).get("RetainUntilDate", None),
         )
 
     def _legal_hold_status_from_xml(self, xml):
@@ -1757,7 +1818,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         ):
             raise MalformedXML()
 
-        return [parsed_xml["ServerSideEncryptionConfiguration"]]
+        return parsed_xml["ServerSideEncryptionConfiguration"]
 
     def _logging_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
@@ -2555,17 +2616,17 @@ S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 <ServerSideEncryptionConfiguration xmlns="http://doc.s3.amazonaws.com/2006-03-01">
-    {% for entry in encryption %}
+    {% if encryption %}
         <Rule>
             <ApplyServerSideEncryptionByDefault>
-                <SSEAlgorithm>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
-                {% if entry["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
-                <KMSMasterKeyID>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
+                <SSEAlgorithm>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
+                {% if encryption["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
+                <KMSMasterKeyID>{{ encryption["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
                 {% endif %}
             </ApplyServerSideEncryptionByDefault>
-            <BucketKeyEnabled>{{ 'true' if entry["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
+            <BucketKeyEnabled>{{ 'true' if encryption["Rule"].get("BucketKeyEnabled") == 'true' else 'false' }}</BucketKeyEnabled>
         </Rule>
-    {% endfor %}
+    {% endif %}
 </ServerSideEncryptionConfiguration>
 """
 

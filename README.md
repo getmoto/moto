@@ -95,6 +95,7 @@ Here's the partial list of the AWS services that currently have support:
 | ELB                       | @mock_elb             |                              |
 | ELBv2                     | @mock_elbv2           |                              |
 | EMR                       | @mock_emr             |                              |
+| EMRContainer              | @mock_emrcontainers   |                              |
 | Forecast                  | @mock_forecast        |                              |                  
 | Glacier                   | @mock_glacier         |                              |
 | Glue                      | @mock_glue            |                              |
@@ -209,7 +210,7 @@ def test_my_model_save():
 
 ## IAM-like Access Control
 
-Moto also has the ability to authenticate and authorize actions, just like it's done by IAM in AWS. This functionality can be enabled by either setting the `INITIAL_NO_AUTH_ACTION_COUNT` environment variable or using the `set_initial_no_auth_action_count` decorator. Note that the current implementation is very basic, see [this file](https://github.com/spulec/moto/blob/master/moto/core/access_control.py) for more information.
+Moto also has the ability to authenticate and authorize actions, just like it's done by IAM in AWS. This functionality can be enabled by either setting the `INITIAL_NO_AUTH_ACTION_COUNT` environment variable or using the `set_initial_no_auth_action_count` decorator. Note that the current implementation is very basic, see [this file](https://github.com/spulec/moto/blob/master/moto/iam/access_control.py) for more information.
 
 ### `INITIAL_NO_AUTH_ACTION_COUNT`
 

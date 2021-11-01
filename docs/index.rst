@@ -40,6 +40,8 @@ Currently implemented Services:
 +---------------------------+-----------------------+------------------------------------+
 | Data Pipeline             | @mock_datapipeline    | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
+| Directory Service         | @mock_ds              | basic endpoints done               |
++---------------------------+-----------------------+------------------------------------+
 | DMS                       | @mock_dms             | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
 | DynamoDB                  | - @mock_dynamodb      | - core endpoints done              |
@@ -61,6 +63,8 @@ Currently implemented Services:
 | ELBv2                     | @mock_elbv2           | all endpoints done                 |
 +---------------------------+-----------------------+------------------------------------+
 | EMR                       | @mock_emr             | core endpoints done                |
++---------------------------+-----------------------+------------------------------------+
+| EMRContainers             | @mock_emrcontainers   | core endpoints done                |
 +---------------------------+-----------------------+------------------------------------+
 | Firehose                  | @mock_firehose        | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+

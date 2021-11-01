@@ -111,3 +111,4 @@ TestAccAWSNatGateway
 TestAccAWSRouteTable_
 TestAccAWSRouteTableAssociation_
 TestAccAWSS3Bucket_forceDestroyWithObjectLockEnabled
+TestAccAWSS3BucketObject_

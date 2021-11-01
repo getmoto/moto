@@ -84,6 +84,27 @@ dummy_template4 = {
     },
 }
 
+dummy_template_with_parameters = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "A simple CloudFormation template",
+    "Resources": {
+        "Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {"BucketName": {"Ref": "Name"}},
+        }
+    },
+    "Parameters": {
+        "Name": {"Type": "String", "Default": "SomeValue"},
+        "Another": {
+            "Type": "String",
+            "Default": "A",
+            "AllowedValues": ["A", "B"],
+            "Description": "Chose A or B",
+        },
+    },
+}
+
+
 dummy_template_yaml = """---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack1 with yaml template
@@ -99,6 +120,7 @@ Resources:
           Value: Test tag
         - Key: Name
           Value: Name tag for tests
+    Parameters:
 """
 
 dummy_template_yaml_with_short_form_func = """---
@@ -898,6 +920,7 @@ def test_get_template_summary():
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
+    result["Parameters"].should.equal([])
 
     # existing stack
     conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template3))
@@ -905,6 +928,7 @@ def test_get_template_summary():
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
+    result["Parameters"].should.equal([])
 
     # json template from s3
     s3_conn.create_bucket(Bucket="foobar")
@@ -927,7 +951,7 @@ def test_get_template_summary():
 
 
 @mock_cloudformation
-def test_get_template_summary_for_stack_createed_by_changeset_execution():
+def test_get_template_summary_for_stack_created_by_changeset_execution():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     conn.create_change_set(
         StackName="stack_from_changeset",
@@ -945,6 +969,49 @@ def test_get_template_summary_for_stack_createed_by_changeset_execution():
     result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
     result["Version"].should.equal("2010-09-09")
     result["Description"].should.equal("Stack 3")
+
+
+@mock_s3
+@mock_cloudformation
+def test_get_template_summary_for_template_containing_parameters():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(dummy_template_with_parameters)
+    )
+    result = conn.get_template_summary(StackName="test_stack")
+    result.should.match_dict(
+        {
+            "Parameters": [
+                {
+                    "ParameterKey": "Name",
+                    "DefaultValue": "SomeValue",
+                    "ParameterType": "String",
+                    "NoEcho": False,
+                    "Description": "",
+                    "ParameterConstraints": {},
+                },
+                {
+                    "ParameterKey": "Another",
+                    "DefaultValue": "A",
+                    "ParameterType": "String",
+                    "NoEcho": False,
+                    "Description": "Chose A or B",
+                    "ParameterConstraints": {"AllowedValues": ["A", "B"]},
+                },
+            ],
+            "Description": "A simple CloudFormation template",
+            "ResourceTypes": ["AWS::S3::Bucket"],
+            "Version": "2010-09-09",
+            # TODO: get_template_summary should support ResourceIdentifierSummaries
+            # "ResourceIdentifierSummaries": [
+            #     {
+            #         "ResourceType": "AWS::S3::Bucket",
+            #         "LogicalResourceIds": ["Bucket"],
+            #         "ResourceIdentifiers": ["BucketName"],
+            #     }
+            # ],
+        }
+    )
 
 
 @mock_cloudformation
@@ -1010,6 +1077,7 @@ def test_create_stack_with_notification_arn():
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
     msg = json.loads(messages[0].body)
+    msg["Subject"].should.equal("AWS CloudFormation Notification")
     msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
     msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")
     msg["Message"].should.contain("ResourceStatus='CREATE_IN_PROGRESS'\n")

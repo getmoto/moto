@@ -2,15 +2,16 @@ from datetime import datetime
 
 from botocore.exceptions import ClientError
 import boto3
+import mock
 import sure  # noqa # pylint: disable=unused-import
 import json
+import os
 
 from moto.core import ACCOUNT_ID
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 
-from moto import mock_ecs
-from moto import mock_ec2
+from moto import mock_ecs, mock_ec2, settings
 from moto.ecs.exceptions import (
     ClusterNotFoundException,
     ServiceNotFoundException,
@@ -20,6 +21,7 @@ from moto.ecs.exceptions import (
 )
 import pytest
 from tests import EXAMPLE_AMI_ID
+from unittest import SkipTest
 
 
 @mock_ecs
@@ -725,6 +727,36 @@ def test_describe_services():
 
 
 @mock_ecs
+@mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
+def test_describe_services_new_arn():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant set environment variables in server mode")
+    client = boto3.client("ecs", region_name="us-east-1")
+    _ = client.create_cluster(clusterName="test_ecs_cluster")
+    _ = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {"name": "hello_world", "image": "docker/hello-world:latest",}
+        ],
+    )
+    _ = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service1",
+        taskDefinition="test_ecs_task",
+        desiredCount=2,
+        tags=[{"key": "Name", "value": "test_ecs_service1"}],
+    )
+    response = client.describe_services(
+        cluster="test_ecs_cluster", services=["test_ecs_service1"]
+    )
+    response["services"][0]["serviceArn"].should.equal(
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
+            ACCOUNT_ID
+        )
+    )
+
+
+@mock_ecs
 def test_describe_services_scheduling_strategy():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName="test_ecs_cluster")
@@ -1122,6 +1154,37 @@ def test_register_container_instance():
     response["containerInstance"]["versionInfo"]["agentHash"].should.equal("4023248")
     response["containerInstance"]["versionInfo"]["dockerVersion"].should.equal(
         "DockerVersion: 1.5.0"
+    )
+
+
+@mock_ec2
+@mock_ecs
+@mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
+def test_register_container_instance_new_arn_format():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant set environment variables in server mode")
+    ecs_client = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    test_cluster_name = "test_ecs_cluster"
+
+    ecs_client.create_cluster(clusterName=test_cluster_name)
+
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+
+    full_arn = response["containerInstance"]["containerInstanceArn"]
+    full_arn.should.match(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/{test_cluster_name}/[a-z0-9-]+$"
     )
 
 
@@ -1545,8 +1608,8 @@ def test_run_task_default_cluster():
         startedBy="moto",
     )
     len(response["tasks"]).should.equal(2)
-    response["tasks"][0]["taskArn"].should.contain(
-        "arn:aws:ecs:us-east-1:{}:task/".format(ACCOUNT_ID)
+    response["tasks"][0]["taskArn"].should.match(
+        "arn:aws:ecs:us-east-1:{}:task/[a-z0-9-]+$".format(ACCOUNT_ID)
     )
     response["tasks"][0]["clusterArn"].should.equal(
         "arn:aws:ecs:us-east-1:{}:cluster/default".format(ACCOUNT_ID)
@@ -1562,6 +1625,54 @@ def test_run_task_default_cluster():
     response["tasks"][0]["desiredStatus"].should.equal("RUNNING")
     response["tasks"][0]["startedBy"].should.equal("moto")
     response["tasks"][0]["stoppedReason"].should.equal("")
+
+
+@mock_ec2
+@mock_ecs
+@mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
+def test_run_task_default_cluster_new_arn_format():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant set environment variables in server mode")
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    test_cluster_name = "default"
+
+    client.create_cluster(clusterName=test_cluster_name)
+
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+            }
+        ],
+    )
+    response = client.run_task(
+        launchType="FARGATE",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        count=1,
+        startedBy="moto",
+    )
+    response["tasks"][0]["taskArn"].should.match(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/{test_cluster_name}/[a-z0-9-]+$"
+    )
 
 
 @mock_ecs
@@ -1849,7 +1960,7 @@ def test_describe_task_definition_by_family():
     task["containerDefinitions"][0].should.equal(
         dict(
             container_definition,
-            **{"mountPoints": [], "portMappings": [], "volumesFrom": []}
+            **{"mountPoints": [], "portMappings": [], "volumesFrom": []},
         )
     )
     task["taskDefinitionArn"].should.equal(

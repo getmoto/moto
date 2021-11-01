@@ -309,12 +309,21 @@ def test_multipart_upload_with_headers_boto3():
     response["Metadata"].should.equal({"meta": "data"})
 
 
+@pytest.mark.parametrize(
+    "original_key_name",
+    [
+        "original-key",
+        "the-unicode-💩-key",
+        "key-with?question-mark",
+        "key-with%2Fembedded%2Furl%2Fencoding",
+    ],
+)
 @mock_s3
 @reduced_min_part_size
-def test_multipart_upload_with_copy_key_boto3():
+def test_multipart_upload_with_copy_key_boto3(original_key_name):
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
-    s3.put_object(Bucket="foobar", Key="original-key", Body="key_value")
+    s3.put_object(Bucket="foobar", Key=original_key_name, Body="key_value")
 
     mpu = s3.create_multipart_upload(Bucket="foobar", Key="the-key")
     part1 = b"0" * REDUCED_PART_SIZE
@@ -328,7 +337,7 @@ def test_multipart_upload_with_copy_key_boto3():
     up2 = s3.upload_part_copy(
         Bucket="foobar",
         Key="the-key",
-        CopySource={"Bucket": "foobar", "Key": "original-key"},
+        CopySource={"Bucket": "foobar", "Key": original_key_name},
         CopySourceRange="0-3",
         PartNumber=2,
         UploadId=mpu["UploadId"],
@@ -562,7 +571,13 @@ def test_large_key_save_boto3():
 
 
 @pytest.mark.parametrize(
-    "key_name", ["the-key", "the-unicode-💩-key", "key-with?question-mark"]
+    "key_name",
+    [
+        "the-key",
+        "the-unicode-💩-key",
+        "key-with?question-mark",
+        "key-with%2Fembedded%2Furl%2Fencoding",
+    ],
 )
 @mock_s3
 def test_copy_key_boto3(key_name):
@@ -5496,3 +5511,42 @@ def test_delete_objects_with_empty_keyname():
 
     client.delete_object(Bucket=bucket_name, Key=key_name)
     client.list_objects(Bucket=bucket_name).shouldnt.have.key("Contents")
+
+
+@mock_s3
+def test_head_object_should_return_default_content_type():
+    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="testbucket")
+    s3.Bucket("testbucket").upload_fileobj(BytesIO(b"foobar"), Key="testobject")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    resp = s3_client.head_object(Bucket="testbucket", Key="testobject")
+
+    resp["ContentType"].should.equal("binary/octet-stream")
+    resp["ResponseMetadata"]["HTTPHeaders"]["content-type"].should.equal(
+        "binary/octet-stream"
+    )
+
+    s3.Object("testbucket", "testobject").content_type.should.equal(
+        "binary/octet-stream"
+    )
+
+
+@mock_s3
+def test_request_partial_content_should_contain_all_metadata():
+    # github.com/spulec/moto/issues/4203
+    bucket = "bucket"
+    object_key = "key"
+    body = "some text"
+    query_range = "0-3"
+
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket=bucket)
+    obj = boto3.resource("s3").Object(bucket, object_key)
+    obj.put(Body=body)
+
+    response = obj.get(Range="bytes={}".format(query_range))
+
+    assert response["ETag"] == obj.e_tag
+    assert response["LastModified"] == obj.last_modified
+    assert response["ContentLength"] == 4
+    assert response["ContentRange"] == "bytes {}/{}".format(query_range, len(body))

@@ -53,6 +53,8 @@ class Topic(CloudFormationModel):
             sns_backend.region_name, self.account_id, name
         )
         self._tags = {}
+        self.fifo_topic = "false"
+        self.content_based_deduplication = "false"
 
     def publish(self, message, subject=None, message_attributes=None):
         message_id = str(uuid.uuid4())
@@ -306,7 +308,7 @@ class Subscription(BaseModel):
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
-            "Subject": subject or "my subject",
+            "Subject": subject,
             "Message": message,
             "Timestamp": iso_8601_datetime_with_milliseconds(
                 datetime.datetime.utcnow()

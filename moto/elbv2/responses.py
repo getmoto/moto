@@ -839,9 +839,15 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
@@ -1077,9 +1083,15 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>

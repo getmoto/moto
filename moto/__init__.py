@@ -47,6 +47,7 @@ mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
 mock_datasync = lazy_load(".datasync", "mock_datasync")
 mock_dms = lazy_load(".dms", "mock_dms")
 mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
+mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
 mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2", backend="dynamodb_backends2")
 mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(
@@ -60,6 +61,9 @@ mock_elastictranscoder = lazy_load(".elastictranscoder", "mock_elastictranscoder
 mock_elb = lazy_load(".elb", "mock_elb")
 mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
 mock_emr = lazy_load(".emr", "mock_emr")
+mock_emrcontainers = lazy_load(
+    ".emrcontainers", "mock_emrcontainers", boto3_name="emr-containers"
+)
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")
@@ -98,6 +102,9 @@ mock_stepfunctions = lazy_load(
 )
 mock_sts = lazy_load(".sts", "mock_sts")
 mock_swf = lazy_load(".swf", "mock_swf")
+mock_timestreamwrite = lazy_load(
+    ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
+)
 mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
 XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
@@ -124,7 +131,7 @@ mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.11.dev"
+__version__ = "2.2.13.dev"
 
 
 try:
