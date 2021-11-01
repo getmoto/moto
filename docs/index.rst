@@ -64,6 +64,8 @@ Currently implemented Services:
 +---------------------------+-----------------------+------------------------------------+
 | EMR                       | @mock_emr             | core endpoints done                |
 +---------------------------+-----------------------+------------------------------------+
+| EMRContainers             | @mock_emrcontainers   | core endpoints done                |
++---------------------------+-----------------------+------------------------------------+
 | Firehose                  | @mock_firehose        | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
 | Forecast                  | @mock_forecast        | basic endpoints done               |
