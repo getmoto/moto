@@ -196,6 +196,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             not host
             or host.startswith("localhost")
             or host.startswith("localstack")
+            or host.startswith("host.docker.internal")
             or re.match(r"^[^.]+$", host)
             or re.match(r"^.*\.svc\.cluster\.local:?\d*$", host)
         ):
