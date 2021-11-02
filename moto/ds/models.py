@@ -89,6 +89,14 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
             else:
                 new_tag = "".join(x.title() for x in item.split("_"))
                 json_result[new_tag] = value
+
+        # One more exception:  The fields in vpc_settings and connect_settings
+        # retain their input field names.  However, connect_setting's
+        # "CustomerDnsIps" must be "output" or "described" as "ConnectIps".
+        if json_result["ConnectSettings"]:
+            json_result["ConnectSettings"]["ConnectIps"] = json_result[
+                "ConnectSettings"
+            ].pop("CustomerDnsIps")
         return json_result
 
 
@@ -115,7 +123,7 @@ class DirectoryServiceBackend(BaseBackend):
 
     @staticmethod
     def _validate_create_directory_args(
-        name, passwd, vpc_settings, description, short_name, size=None, edition=None,
+        name, passwd, subnets, description, short_name, size=None, edition=None,
     ):  # pylint: disable=too-many-arguments
         """Raise exception if create_directory() args don't meet constraints.
 
@@ -123,10 +131,10 @@ class DirectoryServiceBackend(BaseBackend):
         """
         error_tuples = []
         passwd_pattern = (
-            r"(?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|"
+            r"^(?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|"
             r"(?=.*\d)(?=.*[^A-Za-z0-9\s])(?=.*[a-z])|"
             r"(?=.*[^A-Za-z0-9\s])(?=.*[A-Z])(?=.*[a-z])|"
-            r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*"
+            r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*$"
         )
         if not re.match(passwd_pattern, passwd):
             # Can't have an odd number of backslashes in a literal.
@@ -151,7 +159,7 @@ class DirectoryServiceBackend(BaseBackend):
             )
 
         subnet_id_pattern = r"^(subnet-[0-9a-f]{8}|subnet-[0-9a-f]{17})$"
-        for subnet in vpc_settings["SubnetIds"]:
+        for subnet in subnets:
             if not re.match(subnet_id_pattern, subnet):
                 error_tuples.append(
                     (
@@ -224,6 +232,90 @@ class DirectoryServiceBackend(BaseBackend):
 
         vpc_settings["AvailabilityZones"] = regions
 
+    @staticmethod
+    def _validate_connect_setting_values(connect_settings):
+        """Raise exception if CustomerDnsIps, CustomerUserName are invalid."""
+        error_tuples = []
+
+        username = connect_settings["CustomerUserName"]
+        username_pattern = r"^[a-zA-Z0-9._-]+$"
+        if not re.match(username_pattern, username):
+            error_tuples.append(
+                (
+                    "connectSettings.customerUserName",
+                    username,
+                    fr"satisfy regular expression pattern: {username_pattern}",
+                )
+            )
+
+        dnsip_pattern = (
+            r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
+            r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+        )
+        for dnsip in connect_settings["CustomerDnsIps"]:
+            if not re.match(dnsip_pattern, dnsip):
+                json_pattern = dnsip_pattern.replace("\\", r"\\")
+                error_tuples.append(
+                    (
+                        "connectSettings.customerDnsIps",
+                        [dnsip],
+                        fr"satisfy regular expression pattern: {json_pattern}",
+                    )
+                )
+
+        if error_tuples:
+            raise DsValidationException(error_tuples)
+
+    def connect_directory(
+        self,
+        region,
+        name,
+        short_name,
+        password,
+        description,
+        size,
+        connect_settings,
+        tags,
+    ):  # pylint: disable=too-many-arguments
+        """Create a fake AD Connector."""
+        if len(self.directories) > Directory.CONNECTED_DIRECTORIES_LIMIT:
+            raise DirectoryLimitExceededException(
+                f"Directory limit exceeded. A maximum of "
+                f"{Directory.CONNECTED_DIRECTORIES_LIMIT} directories may be created"
+            )
+
+        self._validate_create_directory_args(
+            name,
+            password,
+            connect_settings["SubnetIds"],
+            description,
+            short_name,
+            size=size,
+        )
+        # ConnectSettings and VpcSettings both have a VpcId and Subnets.
+        self._validate_vpc_setting_values(region, connect_settings)
+        self._validate_connect_setting_values(connect_settings)
+
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationException(errmsg)
+
+        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+            raise DirectoryLimitExceededException("Tag Limit is exceeding")
+
+        directory = Directory(
+            name,
+            password,
+            directory_type="ADConnector",
+            size=size,
+            connect_settings=connect_settings,
+            short_name=short_name,
+            description=description,
+        )
+        self.directories[directory.directory_id] = directory
+        self.tagger.tag_resource(directory.directory_id, tags or [])
+        return directory.directory_id
+
     def create_directory(
         self, region, name, short_name, password, description, size, vpc_settings, tags
     ):  # pylint: disable=too-many-arguments
@@ -239,7 +331,12 @@ class DirectoryServiceBackend(BaseBackend):
             raise InvalidParameterException("VpcSettings must be specified.")
 
         self._validate_create_directory_args(
-            name, password, vpc_settings, description, short_name, size=size,
+            name,
+            password,
+            vpc_settings["SubnetIds"],
+            description,
+            short_name,
+            size=size,
         )
         self._validate_vpc_setting_values(region, vpc_settings)
 
@@ -306,7 +403,7 @@ class DirectoryServiceBackend(BaseBackend):
                 [("alias", alias, "have length less than or equal to 62")]
             )
 
-        alias_pattern = r"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*"
+        alias_pattern = r"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
         if not re.match(alias_pattern, alias):
             json_pattern = alias_pattern.replace("\\", r"\\")
             msg = fr"satisfy regular expression pattern: {json_pattern}"
@@ -333,10 +430,14 @@ class DirectoryServiceBackend(BaseBackend):
                 f"{Directory.CLOUDONLY_MICROSOFT_AD_LIMIT} directories may be created"
             )
 
-        # boto3 does look for missing vpc_settings for create_microsoft_ad().
-
+        # boto3 looks for missing vpc_settings for create_microsoft_ad().
         self._validate_create_directory_args(
-            name, password, vpc_settings, description, short_name, edition=edition,
+            name,
+            password,
+            vpc_settings["SubnetIds"],
+            description,
+            short_name,
+            edition=edition,
         )
         self._validate_vpc_setting_values(region, vpc_settings)
 
@@ -375,7 +476,7 @@ class DirectoryServiceBackend(BaseBackend):
             msg = "have length less than or equal to 128"
             raise DsValidationException([("password", password, msg)])
 
-        username_pattern = r"[a-zA-Z0-9._-]+"
+        username_pattern = r"^[a-zA-Z0-9._-]+$"
         if username and not re.match(username_pattern, username):
             msg = fr"satisfy regular expression pattern: {username_pattern}"
             raise DsValidationException([("userName", username, msg)])

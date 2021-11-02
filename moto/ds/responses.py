@@ -15,6 +15,27 @@ class DirectoryServiceResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return ds_backends[self.region]
 
+    def connect_directory(self):
+        """Create an AD Connector to connect to a self-managed directory."""
+        name = self._get_param("Name")
+        short_name = self._get_param("ShortName")
+        password = self._get_param("Password")
+        description = self._get_param("Description")
+        size = self._get_param("Size")
+        connect_settings = self._get_param("ConnectSettings")
+        tags = self._get_param("Tags")
+        directory_id = self.ds_backend.connect_directory(
+            region=self.region,
+            name=name,
+            short_name=short_name,
+            password=password,
+            description=description,
+            size=size,
+            connect_settings=connect_settings,
+            tags=tags,
+        )
+        return json.dumps({"DirectoryId": directory_id})
+
     def create_directory(self):
         """Create a Simple AD directory."""
         name = self._get_param("Name")

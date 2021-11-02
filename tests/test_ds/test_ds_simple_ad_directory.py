@@ -77,10 +77,10 @@ def test_ds_create_directory_validations():
     assert (
         r"Value at 'password' failed to satisfy constraint: "
         r"Member must satisfy regular expression pattern: "
-        r"(?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|"
+        r"^(?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|"
         r"(?=.*\d)(?=.*[^A-Za-z0-9\s])(?=.*[a-z])|"
         r"(?=.*[^A-Za-z0-9\s])(?=.*[A-Z])(?=.*[a-z])|"
-        r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*;" in err["Message"]
+        r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*$" in err["Message"]
     )
     assert (
         f"Value '{bad_size}' at 'size' failed to satisfy constraint: "
