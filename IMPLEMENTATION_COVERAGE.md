@@ -2364,7 +2364,7 @@
 - [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
-- [ ] list_policy_tags
+- [X] list_policy_tags
 - [X] list_policy_versions
 - [X] list_role_policies
 - [X] list_role_tags
