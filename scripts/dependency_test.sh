@@ -33,7 +33,7 @@ valid_service() {
   # Verify whether this is a valid service
   # We'll ignore metadata folders, and folders that test generic Moto behaviour
   # We'll also ignore CloudFormation, as it will always depend on other services
-  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation utilities"
+  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation packages utilities s3bucket_path"
   if echo $ignore_moto_folders | grep -q "$1"; then
     return 1
   else

@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import argparse
 import io
 import json
 import os
-import re
 import signal
 import sys
 from threading import Lock
@@ -18,10 +15,10 @@ from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
 import moto.backends as backends
+import moto.backend_index as backend_index
 from moto.core.utils import convert_flask_to_httpretty_response
 
-
-HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
+HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
 
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")
@@ -32,7 +29,10 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
-UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+UNSIGNED_ACTIONS = {
+    "AssumeRoleWithSAML": ("sts", "us-east-1"),
+    "AssumeRoleWithWebIdentity": ("sts", "us-east-1"),
+}
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
@@ -53,8 +53,10 @@ class DomainDispatcherApplication(object):
         self.lock = Lock()
         self.app_instances = {}
         self.service = service
+        self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host):
+
         if host == "moto_api":
             return host
 
@@ -64,12 +66,17 @@ class DomainDispatcherApplication(object):
         if host in backends.BACKENDS:
             return host
 
-        return backends.search_backend(
-            lambda backend: any(
-                re.match(url_base, "http://%s" % host)
-                for url_base in list(backend.values())[0].url_bases
+        for backend, pattern in self.backend_url_patterns:
+            if pattern.match("http://%s" % host):
+                return backend
+
+        if "amazonaws.com" in host:
+            print(
+                "Unable to find appropriate backend for {}."
+                "Remember to add the URL to urls.py, and run script/update_backend_index.py to index it.".format(
+                    host
+                )
             )
-        )
 
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
@@ -120,6 +127,10 @@ class DomainDispatcherApplication(object):
                     host = "dynamodb2"
         elif service == "sagemaker":
             host = "api.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
+        elif service == "timestream":
+            host = "ingest.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
         else:
@@ -241,13 +252,17 @@ def create_backend_app(service):
             endpoint = original_endpoint + str(index)
             index += 1
 
-        backend_app.add_url_rule(
-            url_path,
-            endpoint=endpoint,
-            methods=HTTP_METHODS,
-            view_func=view_func,
-            strict_slashes=False,
-        )
+        # Some services do not provide a URL path
+        # I.e., boto3 sends a request to 'https://ingest.timestream.amazonaws.com'
+        # Which means we have a empty url_path to catch this request - but Flask can't handle that
+        if url_path:
+            backend_app.add_url_rule(
+                url_path,
+                endpoint=endpoint,
+                methods=HTTP_METHODS,
+                view_func=view_func,
+                strict_slashes=False,
+            )
 
     backend_app.test_client_class = AWSTestHelper
     return backend_app

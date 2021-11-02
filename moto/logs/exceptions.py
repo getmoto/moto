@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
@@ -15,8 +14,12 @@ class ResourceNotFoundException(LogsClientError):
 
 
 class InvalidParameterException(LogsClientError):
-    def __init__(self, msg=None):
+    def __init__(self, msg=None, constraint=None, parameter=None, value=None):
         self.code = 400
+        if constraint:
+            msg = "1 validation error detected: Value '{}' at '{}' failed to satisfy constraint: {}".format(
+                value, parameter, constraint
+            )
         super().__init__(
             "InvalidParameterException", msg or "A parameter is specified incorrectly."
         )

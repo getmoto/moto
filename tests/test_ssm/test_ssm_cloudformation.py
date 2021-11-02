@@ -40,7 +40,7 @@ def test_get_command_invocations_from_stack():
 
     stack_template_str = json.dumps(stack_template)
 
-    response = cloudformation_client.create_stack(
+    cloudformation_client.create_stack(
         StackName="test_stack",
         TemplateBody=stack_template_str,
         Capabilities=("CAPABILITY_IAM",),
@@ -66,6 +66,6 @@ def test_get_command_invocations_from_stack():
     cmd_id = cmd["CommandId"]
     instance_ids = cmd["InstanceIds"]
 
-    invocation_response = client.get_command_invocation(
+    client.get_command_invocation(
         CommandId=cmd_id, InstanceId=instance_ids[0], PluginName="aws:runShellScript"
     )

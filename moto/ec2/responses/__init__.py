@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .account_attributes import AccountAttributes
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
@@ -39,6 +37,7 @@ from .transit_gateways import TransitGateways
 from .transit_gateway_route_tables import TransitGatewayRouteTable
 from .transit_gateway_attachments import TransitGatewayAttachment
 from .iam_instance_profiles import IamInstanceProfiles
+from .carrier_gateways import CarrierGateway
 
 
 class EC2Response(
@@ -81,6 +80,7 @@ class EC2Response(
     TransitGatewayRouteTable,
     TransitGatewayAttachment,
     IamInstanceProfiles,
+    CarrierGateway,
 ):
     @property
     def ec2_backend(self):

@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import json
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 from botocore.exceptions import ClientError
 from moto import mock_iotdata, mock_iot

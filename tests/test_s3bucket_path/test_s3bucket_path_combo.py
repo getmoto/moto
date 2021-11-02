@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import boto
 from boto.s3.connection import OrdinaryCallingFormat
 

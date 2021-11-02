@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 def match_task_arn(task, arns):
     return task["ReplicationTaskArn"] in arns
 

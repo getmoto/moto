@@ -145,6 +145,22 @@
       ],
       "Trigger type": "Configuration changes"
     },
+    "AURORA_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Periodic"
+    },
     "AUTOSCALING_GROUP_ELB_HEALTHCHECK_REQUIRED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -153,6 +169,58 @@
     "AUTOSCALING_LAUNCH_CONFIG_PUBLIC_IP_DISABLED": {
       "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka) Region",
       "Parameters": [],
+      "Trigger type": "Configuration changes"
+    },
+    "BACKUP_PLAN_MIN_FREQUENCY_AND_MIN_RETENTION_CHECK": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Default": "1",
+          "Name": "requiredFrequencyValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "35",
+          "Name": "requiredRetentionDays",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "requiredFrequencyUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Configuration changes"
+    },
+    "BACKUP_RECOVERY_POINT_ENCRYPTED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [],
+      "Trigger type": "Configuration changes"
+    },
+    "BACKUP_RECOVERY_POINT_MANUAL_DELETION_DISABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "principalArnList",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Trigger type": "Configuration changes"
+    },
+    "BACKUP_RECOVERY_POINT_MINIMUM_RETENTION_CHECK": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Default": "35",
+          "Name": "requiredRetentionDays",
+          "Optional": true,
+          "Type": "int"
+        }
+      ],
       "Trigger type": "Configuration changes"
     },
     "BEANSTALK_ENHANCED_HEALTH_REPORTING_ENABLED": {
@@ -593,6 +661,22 @@
       "Parameters": [],
       "Trigger type": "Configuration changes"
     },
+    "DYNAMODB_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Periodic"
+    },
     "DYNAMODB_TABLE_ENCRYPTED_KMS": {
       "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
       "Parameters": [
@@ -636,6 +720,22 @@
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Trigger type": "Configuration changes"
+    },
+    "EBS_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Periodic"
     },
     "EBS_SNAPSHOT_PUBLIC_RESTORABLE_CHECK": {
       "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
@@ -773,6 +873,22 @@
       ],
       "Trigger type": "Configuration changes"
     },
+    "EC2_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Periodic"
+    },
     "EC2_SECURITY_GROUP_ATTACHED_TO_ENI": {
       "AWS Region": "All supported AWS regions except Asia Pacific (Osaka) Region",
       "Parameters": [],
@@ -826,6 +942,22 @@
     "EFS_IN_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West), Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
       "Parameters": [],
+      "Trigger type": "Periodic"
+    },
+    "EFS_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
       "Trigger type": "Periodic"
     },
     "EIP_ATTACHED": {
@@ -1046,7 +1178,7 @@
       "Trigger type": "Configuration changes"
     },
     "FMS_WEBACL_RESOURCE_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "webACLId",
@@ -1077,7 +1209,7 @@
       "Trigger type": "Configuration changes"
     },
     "FMS_WEBACL_RULEGROUP_ASSOCIATION_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "ruleGroups",
@@ -1096,6 +1228,22 @@
         }
       ],
       "Trigger type": "Configuration changes"
+    },
+    "FSX_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Periodic"
     },
     "GUARDDUTY_ENABLED_CENTRALIZED": {
       "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), Asia Pacific (Osaka), Europe (Milan), Middle East (Bahrain), Africa (Cape Town) Region",
@@ -1532,6 +1680,22 @@
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Trigger type": "Configuration changes"
+    },
+    "RDS_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), US West (Oregon), and China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Trigger type": "Periodic"
     },
     "RDS_SNAPSHOTS_PUBLIC_PROHIBITED": {
       "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Milan), Africa (Cape Town) Region",
@@ -2064,7 +2228,7 @@
       "Trigger type": "Configuration changes"
     },
     "SSM_DOCUMENT_NOT_PUBLIC": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Trigger type": "Periodic"
     },

@@ -1,4 +1,5 @@
 import boto
+import boto3
 
 from moto.swf.models import ActivityType, Domain, WorkflowType, WorkflowExecution
 
@@ -47,6 +48,17 @@ def _generic_workflow_type_attributes():
     )
 
 
+def _generic_workflow_type_attributes_boto3():
+    return {
+        "name": "test-workflow",
+        "version": "v1.0",
+        "defaultTaskList": {"name": "queue"},
+        "defaultChildPolicy": "ABANDON",
+        "defaultExecutionStartToCloseTimeout": "7200",
+        "defaultTaskStartToCloseTimeout": "300",
+    }
+
+
 def get_basic_workflow_type():
     args, kwargs = _generic_workflow_type_attributes()
     return WorkflowType(*args, **kwargs)
@@ -56,6 +68,12 @@ def mock_basic_workflow_type(domain_name, conn):
     args, kwargs = _generic_workflow_type_attributes()
     conn.register_workflow_type(domain_name, *args, **kwargs)
     return conn
+
+
+def mock_basic_workflow_type_boto3(domain_name, client):
+    kwargs = _generic_workflow_type_attributes_boto3()
+    client.register_workflow_type(domain=domain_name, **kwargs)
+    return client
 
 
 # A test WorkflowExecution
@@ -91,6 +109,33 @@ def setup_workflow():
     )
     conn.run_id = wfe["runId"]
     return conn
+
+
+# Setup a complete example workflow and return the connection object
+def setup_workflow_boto3():
+    client = boto3.client("swf", region_name="us-west-1")
+    client.register_domain(
+        name="test-domain",
+        workflowExecutionRetentionPeriodInDays="60",
+        description="A test domain",
+    )
+    mock_basic_workflow_type_boto3("test-domain", client)
+    client.register_activity_type(
+        domain="test-domain",
+        name="test-activity",
+        version="v1.1",
+        defaultTaskHeartbeatTimeout="600",
+        defaultTaskScheduleToCloseTimeout="600",
+        defaultTaskScheduleToStartTimeout="600",
+        defaultTaskStartToCloseTimeout="600",
+    )
+    wfe = client.start_workflow_execution(
+        domain="test-domain",
+        workflowId="uid-abcd1234",
+        workflowType={"name": "test-workflow", "version": "v1.0"},
+    )
+    client.run_id = wfe["runId"]
+    return client
 
 
 # A helper for processing the first timeout on a given object

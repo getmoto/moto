@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring, add_tag_specification
 
@@ -70,6 +69,7 @@ class ElasticIPAddresses(BaseResponse):
             return template.render(address=eip)
 
     def describe_addresses(self):
+        self.error_on_dryrun()
         allocation_ids = self._get_multi_param("AllocationId")
         public_ips = self._get_multi_param("PublicIp")
         filters = filters_from_querystring(self.querystring)

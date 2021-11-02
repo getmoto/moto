@@ -1,13 +1,11 @@
 import time
-import boto
 import boto3
 import datetime
 import botocore
 from moto import mock_s3
-import os
 from botocore.config import Config
 from moto.s3.responses import DEFAULT_REGION_NAME
-import sure
+import sure  # pylint: disable=unused-import
 
 
 @mock_s3

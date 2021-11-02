@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import random
 import re
@@ -504,6 +502,20 @@ class IoTBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "iot"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "data.iot",
+            private_dns_names=False,
+            special_service_name="iot.data",
+            policy_supported=False,
+        )
 
     def create_thing(self, thing_name, thing_type_name, attribute_payload):
         thing_types = self.list_thing_types()
@@ -1306,7 +1318,7 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
@@ -1338,7 +1350,7 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )

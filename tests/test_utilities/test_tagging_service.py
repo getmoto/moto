@@ -1,5 +1,4 @@
-import sure
-
+"""Unit tests for the TaggingService class."""
 from moto.utilities.tagging_service import TaggingService
 
 
@@ -108,3 +107,99 @@ def test_copy_existing_arn():
     actual.should.equal(
         [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
     )
+
+
+def test_validate_tags():
+    """Unit tests for validate_tags()."""
+    svc = TaggingService()
+    # Key with invalid characters.
+    errors = svc.validate_tags([{"Key": "foo!", "Value": "bar"}])
+    assert (
+        "Value 'foo!' at 'tags.1.member.key' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern"
+    ) in errors
+
+    # Value with invalid characters.
+    errors = svc.validate_tags([{"Key": "foo", "Value": "bar!"}])
+    assert (
+        "Value 'bar!' at 'tags.1.member.value' failed to satisfy "
+        "constraint: Member must satisfy regular expression pattern"
+    ) in errors
+
+    # Key too long.
+    errors = svc.validate_tags(
+        [
+            {
+                "Key": (
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "123456789012345678901234567890"
+                ),
+                "Value": "foo",
+            }
+        ]
+    )
+    assert (
+        "at 'tags.1.member.key' failed to satisfy constraint: Member must "
+        "have length less than or equal to 128"
+    ) in errors
+
+    # Value too long.
+    errors = svc.validate_tags(
+        [
+            {
+                "Key": "foo",
+                "Value": (
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "1234567890"
+                ),
+            },
+        ]
+    )
+    assert (
+        "at 'tags.1.member.value' failed to satisfy constraint: Member "
+        "must have length less than or equal to 256"
+    ) in errors
+
+    # Compound errors.
+    errors = svc.validate_tags(
+        [
+            {
+                "Key": (
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "123456789012345678901234567890"
+                ),
+                "Value": (
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "12345678901234567890123456789012345678901234567890"
+                    "1234567890"
+                ),
+            },
+            {"Key": "foo!", "Value": "bar!"},
+        ]
+    )
+    assert "4 validation errors detected" in errors
+    assert (
+        "at 'tags.1.member.key' failed to satisfy constraint: Member must "
+        "have length less than or equal to 128"
+    ) in errors
+    assert (
+        "at 'tags.1.member.value' failed to satisfy constraint: Member "
+        "must have length less than or equal to 256"
+    ) in errors
+    assert (
+        "Value 'foo!' at 'tags.2.member.key' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern"
+    ) in errors
+    assert (
+        "Value 'bar!' at 'tags.2.member.value' failed to satisfy "
+        "constraint: Member must satisfy regular expression pattern"
+    ) in errors

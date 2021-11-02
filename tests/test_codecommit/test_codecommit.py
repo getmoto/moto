@@ -1,6 +1,6 @@
 import boto3
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_codecommit
 from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError

@@ -1,8 +1,328 @@
 Moto Changelog
 ===================
 
-Unreleased
+2.2.12
 -----
+    New Services:
+        * EMR Containers:
+            * create_virtual_cluster()
+            * delete_virtual_cluster()
+            * describe_virtual_cluster()
+            * list_virtual_clusters()
+        * DirectoryService:
+            * add_tags_to_resource()
+            * create_directory()
+            * delete_directory()
+            * describe_directories()
+            * get_directory_limits()
+            * list_tags_for_resource()
+            * remove_tags_for_resource()
+
+    New Methods:
+        * API Gateway:
+            * create_base_path_mapping()
+            * get_base_path_mappings()
+        * CognitoIDP:
+            * add_custom_attributes()
+            * admin_delete_user_attributes()
+        * Glue:
+            * start_crawler()
+            * stop_crawler()
+        * Sagemaker:
+            * add_tags()
+            * associate_trial_component()
+            * create_experiment()
+            * create_trial()
+            * create_trial_component()
+            * delete_experiment()
+            * delete_tags()
+            * delete_trial()
+            * delete_trial_component()
+            * describe_experiment()
+            * describe_trial()
+            * describe_trial_component()
+            * disassociate_trial_component()
+            * list_associations()
+            * list_experiments()
+            * list_trial_components()
+            * list_trials()
+            * search()
+        * SES:
+            * describe_receipt_rule_set()
+            * update_receipt_rule()
+
+    Miscellaneous:
+        * KMS: Now returns default AWS aliases (alias/aws/s3, etc)
+
+2.2.11
+-----
+    General:
+        * Support for AWS China regions
+        * ECS now has an option to enable long-format ARNs, by setting the environment variable MOTO_ECS_NEW_ARN=true
+          Alternatively, use the `put_account_setting` to enable long-format for the current user.
+
+    New Services:
+        * Timestream:
+            * create_database()
+            * create_table()
+            * delete_database()
+            * delete_table()
+            * describe_database()
+            * describe_endpoints()
+            * describe_table()
+            * list_databases()
+            * list_tables()
+            * update_database()
+            * update_table()
+            * write_records()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_confirm_sign_up()
+            * update_user_pool()
+        * ECS:
+            * delete_account_setting()
+            * list_account_settings()
+            * put_account_setting()
+        * Route53:
+            * create_query_logging_config()
+            * delete_query_logging_config()
+            * get_query_logging_config()
+            * list_query_logging_config()
+        * SES
+            * describe_receipt_rule()
+            * get_identity_notification_attributes()
+            * set_identity_feedback_forwarding_enabled()
+
+    Miscellaneous:
+        * CloudFormation: Support create/update/delete of resource AWS::Logs::ResourcePolicy
+        * CloudFormation:get_template_summary() now returns the Parameters-attribute
+        * CognitoIDP: Allow the UserAttributes email or phone_number to be used as username
+        * CognitoIDP: Improved behaviour for the ForgotPassword()-feature 
+
+
+2.2.10
+------
+    New Services:
+        * CloudTrail:
+            * create_trail()
+            * delete_trail()
+            * describe_trails()
+            * get_trail()
+            * get_trail_status()
+            * list_trails()
+            * start_logging()
+            * stop_logging()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_reset_user_password()
+        * S3:
+            * delete_bucket_replication()
+            * get_bucket_replication()
+            * put_bucket_replication()
+
+    Miscellaneous:
+        * ACM: describe_certificate(): the InUseBy-attribute will now show the appropriate Elastic Load Balancers 
+        * AWSLambda: If you're running Linux, 'host.docker.internal' is now added as an extra host in the Docker container used to invoke the function.
+                     This makes it easier for Lambda-functions to communicate with other servers running on the host-system.
+        * CloudFormation: Now supports update/deletion of type AWS::SNS::Topic
+        * CognitoIdentityProvider: list_users() now has improved support for the Filter-parameter
+        * Kinesis: describe_stream() now supports the Filter-parameter
+        * S3: list_object_versions() now supports the Delimiter and KeyMarker-parameter
+
+2.2.9
+-----
+    General:
+        * Moto is now compatible with Sure 2.x
+
+    New Methods:
+        * Kinesis:
+            * list_shards()
+        * RDS:
+            * create_db_cluster()
+            * delete_db_cluster()
+            * describe_db_clusters()
+            * restore_db_instance_from_db_snapshot()
+            * start_db_cluster()
+            * stop_db_cluster()
+        * S3:
+            * get_object_legal_hold()
+
+    Miscellaneous:
+        * CF: Now supports creation of AWS::EC2::VPNGateway
+        * CF: Now supports deletion of AWS::Events::Rule
+        * EC2: create_volume() now supports the VolumeType-parameter
+        * EC2: describe_customer_gateways() now supports the CustomerGatewayIds-parameter
+        * EC2: describe_security_groups() now has improved support for the Filters-parameter
+        * EC2: describe_spot_instance_requests() now supports the SpotInstanceRequestIds-parameter
+        * EC2: describe_transit_gateways() now supports the TransitGatewayIds-parameter
+
+2.2.8
+-----
+    New Services:
+        * ACM:
+            * export_certificate()
+        * APIGateway:
+            * create_request_validator()
+            * delete_request_validator()
+            * get_request_validators()
+            * update_request_validator()
+
+    Miscellaneous:
+        * APIGateway: update_rest_api() now has improved support for the patchOperations-parameter
+        * Batch: register_job_definition() now supports the tags-parameter
+        * CloudFormation: Stack Events are now propagated to SNS when the NotificationARNs-parameter is supplied.
+        * EC2: describe_vpc_endpoint_services() now returns the default endpoints for implemented services 
+        * IOT: list_job_executions_for_job() now supports the status-parameter
+        * IOT: list_job_executions_for_thing() now supports the status-parameter
+        * KMS: list_resource_tags() now supports an ARN as the KeyId-parameter
+        * KMS: tag_resource() now supports an ARN as the KeyId-parameter
+        * KMS: untag_resource() now supports an ARN as the KeyId-parameter
+        * SecretsManager: update_secret() now supports the ClientRequestToken-parameter
+
+2.2.7
+-----
+    General:
+        * Performance improvements when using Moto in Server Mode.
+          Only services that are actually used will now be loaded into memory, greatly reducing the waiting times when starting the server, making an initial request and calling the reset-api.
+
+    New Services:
+        * Firehose
+            * create_delivery_stream()
+            * delete_delivery_stream()
+            * describe_delivery_stream()
+            * list_delivery_streams()
+            * list_tags_for_delivery_stream()
+            * put_record()
+            * put_record_batch()
+            * tag_delivery_stream()
+            * untag_delivery_stream()
+            * update_destination()
+
+    New Methods:
+        * Autoscaling:
+            * delete_lifecycle_hook()
+            * describe_lifecycle_hooks()
+            * put_lifecycle_hook()
+        * EC2:
+            * associate_subnet_cidr_block()
+            * create_carrier_gateway()
+            * delete_carrier_gateway()
+            * describe_carrier_gateways()
+            * describe_spot_price_history()
+            * disassociate_subnet_cidr_block()
+            * update_security_group_rule_descriptions_egress()
+            * update_security_group_rule_descriptions_ingress()
+        * Logs:
+            * delete_metric_filter()
+            * describe_metric_filters()
+            * put_metric_filter()
+        * SageMaker:
+            * list_training_jobs()
+        * Transcribe
+            * create_vocabulary()
+            * delete_transcription_job()
+            * delete_vocabulary()
+            * get_transcription_job()
+            * get_vocabulary()
+            * list_transcription_jobs()
+            * start_transcription_job()
+
+    Miscellaneous:
+        * DynamoDB: Improved support for the ReturnConsumedCapacity-parameter across all methods
+        * EC2:create_route() now supports the parameters CarrierGatewayId, DestinationPrefixListId
+        * EC2:create_subnet() now supports the Ipv6CidrBlock-parameter
+        * EC2:describe_nat_gateways() now supports the NatGatewayIds-parameter
+        * EC2:describe_vpn_gateways() now supports the VpnGatewayIds-parameter
+        * EC2:modify_network_interface_attribute() now supports the SourceDestCheck-parameter
+        * EC2:replace_route() now supports the parameters DestinationIpv6CidrBlock, DestinationPrefixListId, NatGatewayId, EgressOnlyInternetGatewayId, TransitGatewayId
+        * EC2:run_instances() now supports the InstanceMarketOptions.MarketType-parameter
+        * Logs:put_log_events() now supports Firehose as a destination
+        * Logs:put_subscription_filter() now supports Firehose as a destination
+        * S3:create_bucket(): Improved error handling for duplicate buckets
+        * S3:head_object() now validates incoming calls when using the `set_initial_no_auth_action_count`-decorator
+        * SSM:put_parameter() now supports the DataType-parameter
+
+2.2.6
+-----
+    General:
+        * `pip install` will no longer log a warning when installing a service that does not have any dependencies
+          Example: `pip install moto[acm]`
+
+    New Services:
+        ElasticTranscoder:
+            * create_pipeline
+            * delete_pipeline
+            * list_pipelines
+            * read_pipeline
+            * update_pipeline
+
+    New Methods:
+        * DynamoDB:
+            * describe_endpoints()
+
+    Miscellaneous:
+        * AWSLambda now sends logs to CloudWatch when Docker encounters an error, to make debugging easier
+        * AWSLambda: For all methods, the FunctionName-parameter can be either the Lambda name or the Lambda ARN
+        * AWSLambda:list_functions() now returns only the latest version by default
+        * AWSLambda:invoke() now returns the correct Payload for invocations that resulted in an error
+        * CloudFormation now supports the creation of type AWS::IAM::ManagedPolicy
+        * CloudFormation now supports the deletion of type AWS::IAM::InstanceProfile
+        * CloudFormation now supports the deletion of type AWS::IAM::Role
+        * CloudWatch:create_log_group() now has proper validation for the length of the logGroupName-parameter
+        * CloudWatch:describe_log_groups() now has proper validation for the limit-parameter
+        * CloudWatch:describe_log_streams() now has proper validation for the limit-parameter
+        * CloudWatch:get_log_events() now has proper validation for the limit-parameter
+        * CloudWatch:filter_log_events() now has proper validation for the limit-parameter
+        * DynamoDB:update_item(): fixed a bug where an item was created, despite throwing an error
+        * DynamoDB:update_item() now throws an error when both UpdateExpression and AttributeUpdates are supplied
+        * EC2:modify_instance_attribute() now supports Attribute="disableApiTermination"
+        * S3 now supports direct uploads using the requests-library without having to specify the 'Content-Type' header
+        * S3 now supports creating S3 buckets that start with a service name, i.e. `iot-bucket`
+        * S3 now returns the RequestID in every response
+        * S3:list_parts() now supports the MaxPart-parameter
+        * SQS:get_queue_attributes() now behaves correctly when the AttributeNames-parameter is not provided
+        * SQS:receive_message() no longer accepts queue-names for the QueueUrl-parameter, as per AWS' spec
+        * SQS: The sqs.Queue-class no longer accepts queue-names, only queue-URLs, as per AWS' spec
+
+2.2.5
+-----
+    General:
+        * Python 3.9 is now officially supported
+
+    Known bugs:
+        * SQS:get_queue_attributes() throws an error when the AttributeNames-parameter is not provided
+
+    New Methods:
+        * DynamoDB (API v20111205, now deprecated)
+            * UpdateItem
+        * EC2:
+            * modify_vpc_peering_connection_options()
+        * Glue:
+            * create_crawler()
+            * delete_crawler()
+            * get_crawler()
+            * get_crawlers()
+        * SSM:
+            * describe_document_permission()
+            * modify_document_permission()
+
+    Miscellaneous:
+        * CloudFormation:create_stack() now has validation for an empty Outputs-parameter
+        * EC2 now returns errors in the correct format, fixing various bugs with `terraform destroy`
+        * EC2:authorize_security_group_egress() now returns the securityGroupRuleSet-attribute
+        * EC2:authorize_security_group_ingress() now returns the securityGroupRuleSet-attribute
+        * EC2:create_route() now supports the EgressOnlyInternetGatewayId-parameter
+        * EC2:create_route_table() now adds an IPv6-route when enabled
+        * EC2:describe_security_groups() now returns the ipv6Ranges-attribute
+        * EC2:describe_vpc_peering_connection() now supports the VpcPeeringConnectionIds-parameter
+        * Organisations:detach_policy() now actually detaches a policy - before it was essentially a no-op
+        * Route53:create_health_check() now supports the CallerReference-parameter
+        * Route53:create_health_check() now support default values for integer-parameters such as Port/RequestInterval/FailureThreshold
+        * Route53:create_health_check() now supports several additional parameters such as MeasureLatency/Inverted/Disabled/EnableSNI/ChildHealthChecks
+        * SQS:create_queue() now supports the queue-attributes FifoThroughputLimit and DeduplicationScope
+
 
 2.2.4
 -----

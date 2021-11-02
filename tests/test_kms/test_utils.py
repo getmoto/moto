@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto.kms.exceptions import (

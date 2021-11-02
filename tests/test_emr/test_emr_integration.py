@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import settings
 from moto.ec2 import mock_ec2, ec2_backend

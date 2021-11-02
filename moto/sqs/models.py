@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 import json
@@ -9,6 +7,7 @@ import string
 
 import struct
 from copy import deepcopy
+from typing import Dict
 from xml.sax.saxutils import escape
 
 from boto3 import Session
@@ -221,7 +220,12 @@ class Queue(CloudFormationModel):
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
     ]
-    FIFO_ATTRIBUTES = ["FifoQueue", "ContentBasedDeduplication"]
+    FIFO_ATTRIBUTES = [
+        "ContentBasedDeduplication",
+        "DeduplicationScope",
+        "FifoQueue",
+        "FifoThroughputLimit",
+    ]
     KMS_ATTRIBUTES = ["KmsDataKeyReusePeriodSeconds", "KmsMasterKeyId"]
     ALLOWED_PERMISSIONS = (
         "*",
@@ -256,8 +260,10 @@ class Queue(CloudFormationModel):
         # default settings for a non fifo queue
         defaults = {
             "ContentBasedDeduplication": "false",
+            "DeduplicationScope": "queue",
             "DelaySeconds": 0,
             "FifoQueue": "false",
+            "FifoThroughputLimit": "perQueue",
             "KmsDataKeyReusePeriodSeconds": 300,  # five minutes
             "KmsMasterKeyId": None,
             "MaximumMessageSize": MAXIMUM_MESSAGE_LENGTH,
@@ -393,6 +399,9 @@ class Queue(CloudFormationModel):
         # remove Tags from properties and convert tags list to dict
         tags = properties.pop("Tags", [])
         tags_dict = tags_from_cloudformation_tags_list(tags)
+
+        # Could be passed as an integer - just treat it as a string
+        resource_name = str(resource_name)
 
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
@@ -567,7 +576,7 @@ def _filter_message_attributes(message, input_message_attributes):
 class SQSBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
-        self.queues = {}
+        self.queues: Dict[str, Queue] = {}
         super(SQSBackend, self).__init__()
 
     def reset(self):
@@ -575,6 +584,13 @@ class SQSBackend(BaseBackend):
         self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sqs"
+        )
 
     def create_queue(self, name, tags=None, **kwargs):
         queue = self.queues.get(name)
@@ -628,15 +644,14 @@ class SQSBackend(BaseBackend):
         return queue
 
     def delete_queue(self, queue_name):
-        if queue_name in self.queues:
-            return self.queues.pop(queue_name)
-        return False
+        self.get_queue(queue_name)
+
+        del self.queues[queue_name]
 
     def get_queue_attributes(self, queue_name, attribute_names):
         queue = self.get_queue(queue_name)
-
-        if not len(attribute_names):
-            attribute_names.append("All")
+        if not attribute_names:
+            return {}
 
         valid_names = (
             ["All"]
@@ -879,12 +894,11 @@ class SQSBackend(BaseBackend):
         ):
             raise ReceiptHandleIsInvalid()
 
+        # Delete message from queue regardless of pending state
         new_messages = []
         for message in queue._messages:
-            # Only delete message if it is not visible and the receipt_handle
-            # matches.
             if message.receipt_handle == receipt_handle:
-                queue.pending_messages.remove(message)
+                queue.pending_messages.discard(message)
                 continue
             new_messages.append(message)
         queue._messages = new_messages
@@ -1034,7 +1048,9 @@ class SQSBackend(BaseBackend):
         return self.get_queue(queue_name)
 
     def is_message_valid_based_on_retention_period(self, queue_name, message):
-        message_attributes = self.get_queue_attributes(queue_name, [])
+        message_attributes = self.get_queue_attributes(
+            queue_name, ["MessageRetentionPeriod"]
+        )
         retain_until = (
             message_attributes.get("MessageRetentionPeriod")
             + message.sent_timestamp / 1000

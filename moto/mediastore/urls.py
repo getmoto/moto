@@ -1,10 +1,6 @@
-from __future__ import unicode_literals
-
 from .responses import MediaStoreResponse
 
-url_bases = [
-    "https?://mediastore.(.+).amazonaws.com",
-]
+url_bases = [r"https?://mediastore\.(.+)\.amazonaws\.com"]
 
 response = MediaStoreResponse()
 

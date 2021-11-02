@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import hashlib
 import json
 import re
 import uuid
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timezone
 from random import random
 from typing import Dict, List
 
@@ -237,7 +235,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id
         self.image_digest = digest
-        self.image_pushed_at = str(datetime.utcnow().isoformat())
+        self.image_pushed_at = str(datetime.now(timezone.utc).isoformat())
         self.last_scan = None
 
     def _create_digest(self):
@@ -328,12 +326,36 @@ class ECRBackend(BaseBackend):
         self.registry_policy = None
         self.replication_config = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
-        self.tagger = TaggingService(tagName="tags")
+        self.tagger = TaggingService(tag_name="tags")
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        docker_endpoint = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": [f"dkr.ecr.{service_region}.vpce.amazonaws.com"],
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "PrivateDnsName": f"*.dkr.ecr.{service_region}.amazonaws.com",
+            "PrivateDnsNameVerificationState": "verified",
+            "PrivateDnsNames": [
+                {"PrivateDnsName": f"*.dkr.ecr.{service_region}.amazonaws.com"}
+            ],
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": f"com.amazonaws.{service_region}.ecr.dkr",
+            "ServiceType": [{"ServiceType": "Interface"}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": True,
+        }
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "api.ecr", special_service_name="ecr.api",
+        ) + [docker_endpoint]
 
     def _get_repository(self, name, registry_id=None) -> Repository:
         repo = self.repositories.get(name)

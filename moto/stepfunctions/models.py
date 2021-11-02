@@ -17,8 +17,9 @@ from .exceptions import (
     ResourceNotFound,
     StateMachineDoesNotExist,
 )
-from .utils import paginate, api_to_cfn_tags, cfn_to_api_tags
+from .utils import api_to_cfn_tags, cfn_to_api_tags, PAGINATION_MODEL
 from moto import settings
+from moto.utilities.paginator import paginate
 
 
 class StateMachine(CloudFormationModel):
@@ -457,7 +458,7 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
-    @paginate
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_state_machines(self):
         state_machines = sorted(self.state_machines, key=lambda x: x.creation_date)
         return state_machines
@@ -501,7 +502,7 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self._get_state_machine_for_execution(execution_arn)
         return state_machine.stop_execution(execution_arn)
 
-    @paginate
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_executions(self, state_machine_arn, status_filter=None):
         executions = self.describe_state_machine(state_machine_arn).executions
 

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import re
 from datetime import datetime
@@ -129,7 +128,7 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("DescribeCluster")
     def describe_cluster(self):
         cluster_id = self._get_param("ClusterId")
-        cluster = self.backend.get_cluster(cluster_id)
+        cluster = self.backend.describe_cluster(cluster_id)
         template = self.response_template(DESCRIBE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
@@ -529,7 +528,7 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("PutAutoScalingPolicy")
     def put_auto_scaling_policy(self):
         cluster_id = self._get_param("ClusterId")
-        cluster = self.backend.get_cluster(cluster_id)
+        cluster = self.backend.describe_cluster(cluster_id)
         instance_group_id = self._get_param("InstanceGroupId")
         auto_scaling_policy = self._get_param("AutoScalingPolicy")
         instance_group = self.backend.put_auto_scaling_policy(

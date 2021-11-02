@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ecs import ecs_backends
 from .exceptions import AWSValidationException
@@ -71,6 +70,13 @@ class ApplicationAutoscalingBackend(BaseBackend):
         ecs = self.ecs_backend
         self.__dict__ = {}
         self.__init__(region, ecs)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "application-autoscaling"
+        )
 
     @property
     def applicationautoscaling_backend(self):

@@ -1,8 +1,5 @@
-import random
-import string
 import uuid
 
-from moto.wafv2 import utils
 from moto.wafv2.utils import make_arn_for_wacl
 from moto.core import ACCOUNT_ID
 

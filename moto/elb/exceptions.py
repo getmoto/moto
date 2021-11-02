@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
@@ -10,6 +9,13 @@ class DuplicateTagKeysError(ELBClientError):
     def __init__(self, cidr):
         super(DuplicateTagKeysError, self).__init__(
             "DuplicateTagKeys", "Tag key was specified more than once: {0}".format(cidr)
+        )
+
+
+class CertificateNotFoundException(ELBClientError):
+    def __init__(self):
+        super(CertificateNotFoundException, self).__init__(
+            "CertificateNotFoundException", "Supplied certificate was not found"
         )
 
 

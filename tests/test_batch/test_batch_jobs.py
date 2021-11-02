@@ -1,10 +1,11 @@
 from . import _get_clients, _setup
 
 import datetime
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
 import pytest
 import time
+from uuid import uuid4
 
 
 @mock_logs
@@ -13,10 +14,10 @@ import time
 @mock_iam
 @mock_batch
 def test_submit_job_by_name():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
+    compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
         type="UNMANAGED",
@@ -26,14 +27,14 @@ def test_submit_job_by_name():
     arn = resp["computeEnvironmentArn"]
 
     resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
+        jobQueueName=str(uuid4()),
         state="ENABLED",
         priority=123,
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
     )
     queue_arn = resp["jobQueueArn"]
 
-    job_definition_name = "sleep10"
+    job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
 
     batch_client.register_job_definition(
         jobDefinitionName=job_definition_name,
@@ -92,17 +93,24 @@ def test_submit_job_by_name():
 @mock_batch
 @pytest.mark.network
 def test_submit_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+    start_time_milliseconds = time.time() * 1000
 
-    job_def_name = "sayhellotomylittlefriend"
+    job_def_name = str(uuid4())[0:6]
     commands = ["echo", "hello"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
-        jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
+        jobName=str(uuid4())[0:6], jobQueue=queue_arn, jobDefinition=job_def_arn
     )
     job_id = resp["jobId"]
+
+    # Test that describe_jobs() returns 'createdAt'
+    # github.com/spulec/moto/issues/4364
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    created_at = resp["jobs"][0]["createdAt"]
+    created_at.should.be.greater_than(start_time_milliseconds)
 
     _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
@@ -117,6 +125,17 @@ def test_submit_job():
     )
     [event["message"] for event in resp["events"]].should.equal(["hello"])
 
+    # Test that describe_jobs() returns timestamps in milliseconds
+    # github.com/spulec/moto/issues/4364
+    resp = batch_client.describe_jobs(jobs=[job_id])
+    created_at = resp["jobs"][0]["createdAt"]
+    started_at = resp["jobs"][0]["startedAt"]
+    stopped_at = resp["jobs"][0]["stoppedAt"]
+
+    created_at.should.be.greater_than(start_time_milliseconds)
+    started_at.should.be.greater_than(start_time_milliseconds)
+    stopped_at.should.be.greater_than(start_time_milliseconds)
+
 
 @mock_logs
 @mock_ec2
@@ -125,8 +144,8 @@ def test_submit_job():
 @mock_batch
 @pytest.mark.network
 def test_list_jobs():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "sleep5"
     commands = ["sleep", "5"]
@@ -160,10 +179,10 @@ def test_list_jobs():
 @mock_iam
 @mock_batch
 def test_terminate_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
-    job_def_name = "echo-sleep-echo"
+    job_def_name = f"echo-sleep-echo-{str(uuid4())[0:6]}"
     commands = ["sh", "-c", "echo start && sleep 30 && echo stop"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
@@ -183,11 +202,7 @@ def test_terminate_job():
     resp["jobs"][0]["status"].should.equal("FAILED")
     resp["jobs"][0]["statusReason"].should.equal("test_terminate")
 
-    resp = logs_client.describe_log_streams(
-        logGroupName="/aws/batch/job", logStreamNamePrefix=job_def_name
-    )
-    resp["logStreams"].should.have.length_of(1)
-    ls_name = resp["logStreams"][0]["logStreamName"]
+    ls_name = f"{job_def_name}/default/{job_id}"
 
     resp = logs_client.get_log_events(
         logGroupName="/aws/batch/job", logStreamName=ls_name
@@ -204,8 +219,8 @@ def test_terminate_job():
 @mock_iam
 @mock_batch
 def test_cancel_pending_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     # We need to be able to cancel a job that has not been started yet
     # Locally, our jobs start so fast that we can't cancel them in time
@@ -228,7 +243,7 @@ def test_cancel_pending_job():
     job_id = resp["jobId"]
 
     batch_client.cancel_job(jobId=job_id, reason="test_cancel")
-    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=10)
+    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=30)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
@@ -244,8 +259,8 @@ def test_cancel_running_job():
     """
     Test verifies that the moment the job has started, we can't cancel anymore
     """
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "echo-o-o"
     commands = ["echo", "start"]
@@ -288,8 +303,8 @@ def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
 @mock_iam
 @mock_batch
 def test_failed_job():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = "exit-1"
     commands = ["exit", "1"]
@@ -320,8 +335,8 @@ def test_failed_job():
 @mock_iam
 @mock_batch
 def test_dependencies():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_arn, queue_arn = prepare_job(
         batch_client,
@@ -365,15 +380,39 @@ def test_dependencies():
     else:
         raise RuntimeError("Batch job timed out")
 
-    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
-    len(resp["logStreams"]).should.equal(3)
-    for log_stream in resp["logStreams"]:
+    log_stream_name = "/aws/batch/job"
+    all_streams = retrieve_all_streams(log_stream_name, logs_client)
+
+    nr_logstreams_found = 0
+    expected_logstream_names = [
+        f"dependencytest/default/{_id}" for _id in [job_id1, job_id2, job_id3]
+    ]
+    for log_stream in all_streams:
         ls_name = log_stream["logStreamName"]
 
+        if ls_name not in expected_logstream_names:
+            continue
+
         resp = logs_client.get_log_events(
-            logGroupName="/aws/batch/job", logStreamName=ls_name
+            logGroupName=log_stream_name, logStreamName=ls_name
         )
         [event["message"] for event in resp["events"]].should.equal(["hello"])
+
+        nr_logstreams_found = nr_logstreams_found + 1
+    nr_logstreams_found.should.equal(3)
+
+
+def retrieve_all_streams(log_stream_name, logs_client):
+    resp = logs_client.describe_log_streams(logGroupName=log_stream_name)
+    all_streams = resp["logStreams"]
+    token = resp.get("nextToken")
+    while token:
+        resp = logs_client.describe_log_streams(
+            logGroupName=log_stream_name, nextToken=token
+        )
+        all_streams.extend(resp["logStreams"])
+        token = resp.get("nextToken")
+    return all_streams
 
 
 @mock_logs
@@ -382,10 +421,10 @@ def test_dependencies():
 @mock_iam
 @mock_batch
 def test_failed_dependencies():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
+    compute_name = str(uuid4())[0:6]
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
         type="UNMANAGED",
@@ -395,7 +434,7 @@ def test_failed_dependencies():
     arn = resp["computeEnvironmentArn"]
 
     resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
+        jobQueueName=str(uuid4())[0:6],
         state="ENABLED",
         priority=123,
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
@@ -482,10 +521,10 @@ def test_container_overrides():
 
     # Set up environment
 
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
-    compute_name = "test_compute_env"
+    compute_name = str(uuid4())[0:6]
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
         type="UNMANAGED",
@@ -495,14 +534,14 @@ def test_container_overrides():
     arn = resp["computeEnvironmentArn"]
 
     resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
+        jobQueueName=str(uuid4())[0:6],
         state="ENABLED",
         priority=123,
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
     )
     queue_arn = resp["jobQueueArn"]
 
-    job_definition_name = "sleep10"
+    job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
 
     # Set up Job Definition
     # We will then override the container properties in the actual job
@@ -600,7 +639,7 @@ def test_container_overrides():
 
 
 def prepare_job(batch_client, commands, iam_arn, job_def_name):
-    compute_name = "test_compute_env"
+    compute_name = str(uuid4())[0:6]
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
         type="UNMANAGED",
@@ -610,7 +649,7 @@ def prepare_job(batch_client, commands, iam_arn, job_def_name):
     arn = resp["computeEnvironmentArn"]
 
     resp = batch_client.create_job_queue(
-        jobQueueName="test_job_queue",
+        jobQueueName=str(uuid4())[0:6],
         state="ENABLED",
         priority=123,
         computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],

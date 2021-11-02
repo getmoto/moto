@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
@@ -21,6 +20,24 @@ class InvalidFilterValue(JsonRESTError):
 
     def __init__(self, message):
         super(InvalidFilterValue, self).__init__("InvalidFilterValue", message)
+
+
+class InvalidResourceId(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidResourceId, self).__init__(
+            "InvalidResourceId", "Invalid Resource Id"
+        )
+
+
+class InvalidResourceType(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidResourceType, self).__init__(
+            "InvalidResourceType", "Invalid Resource Type"
+        )
 
 
 class ParameterNotFound(JsonRESTError):
@@ -60,6 +77,22 @@ class DocumentAlreadyExists(JsonRESTError):
 
     def __init__(self, message):
         super(DocumentAlreadyExists, self).__init__("DocumentAlreadyExists", message)
+
+
+class DocumentPermissionLimit(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(DocumentPermissionLimit, self).__init__(
+            "DocumentPermissionLimit", message
+        )
+
+
+class InvalidPermissionType(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidPermissionType, self).__init__("InvalidPermissionType", message)
 
 
 class InvalidDocument(JsonRESTError):

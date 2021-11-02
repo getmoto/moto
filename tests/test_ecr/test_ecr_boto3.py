@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import json
 from datetime import datetime
@@ -10,7 +8,7 @@ import os
 from random import random
 
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import boto3
 from botocore.exceptions import ClientError
@@ -363,7 +361,7 @@ def test_put_image_with_push_date():
     _ = client.create_repository(repositoryName="test_repository")
 
     with freeze_time("2018-08-28 00:00:00"):
-        image1_date = datetime.now()
+        image1_date = datetime.now(tzlocal())
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -371,7 +369,7 @@ def test_put_image_with_push_date():
         )
 
     with freeze_time("2019-05-31 00:00:00"):
-        image2_date = datetime.now()
+        image2_date = datetime.now(tzlocal())
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -2263,11 +2261,11 @@ def test_start_image_scan_error_daily_limit():
     repo_name = "test-repo"
     client.create_repository(repositoryName=repo_name)
     image_tag = "latest"
-    image_digest = client.put_image(
+    client.put_image(
         repositoryName=repo_name,
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag="latest",
-    )["image"]["imageId"]["imageDigest"]
+    )
     client.start_image_scan(repositoryName=repo_name, imageId={"imageTag": image_tag})
 
     # when

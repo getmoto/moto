@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 
 from .models import iam_backend, User
@@ -18,7 +16,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         iam_backend.detach_role_policy(policy_arn, role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DetachRolePolicyResponse")
+        return template.render(name="DetachRolePolicy")
 
     def attach_group_policy(self):
         policy_arn = self._get_param("PolicyArn")
@@ -125,7 +123,7 @@ class IamResponse(BaseResponse):
         entity_groups = []
         entity_users = []
 
-        if entity == "User":
+        if not entity or entity == "User":
             users = iam_backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
@@ -133,7 +131,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_users.append(user.name)
 
-        elif entity == "Role":
+        if not entity or entity == "Role":
             roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
@@ -141,7 +139,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_roles.append(role.name)
 
-        elif entity == "Group":
+        if not entity or entity == "Group":
             groups = iam_backend.list_groups()
             if groups:
                 for group in groups:
@@ -149,7 +147,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_groups.append(group.name)
 
-        elif entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
+        if entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
             users = iam_backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
@@ -215,7 +213,7 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         iam_backend.delete_role(role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DeleteRoleResponse")
+        return template.render(name="DeleteRole")
 
     def list_role_policies(self):
         role_name = self._get_param("RoleName")
@@ -229,14 +227,14 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         iam_backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="PutRolePolicyResponse")
+        return template.render(name="PutRolePolicy")
 
     def delete_role_policy(self):
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
         iam_backend.delete_role_policy(role_name, policy_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DeleteRolePolicyResponse")
+        return template.render(name="DeleteRolePolicy")
 
     def get_role_policy(self):
         role_name = self._get_param("RoleName")
@@ -256,7 +254,7 @@ class IamResponse(BaseResponse):
         role = iam_backend.get_role(role_name)
         role.assume_role_policy_document = self._get_param("PolicyDocument")
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="UpdateAssumeRolePolicyResponse")
+        return template.render(name="UpdateAssumeRolePolicy")
 
     def update_role_description(self):
         role_name = self._get_param("RoleName")
@@ -324,7 +322,7 @@ class IamResponse(BaseResponse):
         tags = self._get_multi_param("Tags.member")
 
         profile = iam_backend.create_instance_profile(
-            profile_name, path, role_ids=[], tags=tags
+            profile_name, path, role_names=[], tags=tags
         )
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
@@ -444,7 +442,7 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         iam_backend.put_group_policy(group_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="PutGroupPolicyResponse")
+        return template.render(name="PutGroupPolicy")
 
     def list_group_policies(self):
         group_name = self._get_param("GroupName")
@@ -469,7 +467,8 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
         iam_backend.delete_group_policy(group_name, policy_name)
-        return ""
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteGroupPolicy")
 
     def delete_group(self):
         group_name = self._get_param("GroupName")
@@ -1865,10 +1864,10 @@ LIST_USER_TAGS_TEMPLATE = """<ListUserTagsResponse>
    <ListUserTagsResult>
       <Tags>
         {% for tag in user_tags %}
-          <item>
+          <member>
             <Key>{{ tag.Key }}</Key>
             <Value>{{ tag.Value }}</Value>
-          </item>
+          </member>
         {% endfor %}
        </Tags>
       <IsTruncated>false</IsTruncated>

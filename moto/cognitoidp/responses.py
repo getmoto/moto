@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
-
 import json
 import os
+import re
 
 from moto.core.responses import BaseResponse
 from .models import cognitoidp_backends, find_region_by_value, UserStatus
@@ -57,7 +56,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_user_pools(self):
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         user_pools, next_token = cognitoidp_backends[self.region].list_user_pools(
             max_results=max_results, next_token=next_token
         )
@@ -70,6 +69,10 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_id = self._get_param("UserPoolId")
         user_pool = cognitoidp_backends[self.region].describe_user_pool(user_pool_id)
         return json.dumps({"UserPool": user_pool.to_json(extended=True)})
+
+    def update_user_pool(self):
+        user_pool_id = self._get_param("UserPoolId")
+        cognitoidp_backends[self.region].update_user_pool(user_pool_id, self.parameters)
 
     def delete_user_pool(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -128,7 +131,7 @@ class CognitoIdpResponse(BaseResponse):
     def list_user_pool_clients(self):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         user_pool_clients, next_token = cognitoidp_backends[
             self.region
         ].list_user_pool_clients(
@@ -181,7 +184,7 @@ class CognitoIdpResponse(BaseResponse):
     def list_identity_providers(self):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken", "0")
+        next_token = self._get_param("NextToken")
         identity_providers, next_token = cognitoidp_backends[
             self.region
         ].list_identity_providers(
@@ -291,6 +294,14 @@ class CognitoIdpResponse(BaseResponse):
 
         return ""
 
+    def admin_reset_user_password(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_reset_user_password(
+            user_pool_id, username
+        )
+        return ""
+
     # User
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -306,6 +317,13 @@ class CognitoIdpResponse(BaseResponse):
         )
 
         return json.dumps({"User": user.to_json(extended=True)})
+
+    def admin_confirm_sign_up(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        return cognitoidp_backends[self.region].admin_confirm_sign_up(
+            user_pool_id, username
+        )
 
     def admin_get_user(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -332,18 +350,39 @@ class CognitoIdpResponse(BaseResponse):
                 "status": lambda u: "Enabled" if u.enabled else "Disabled",
                 "username": lambda u: u.username,
             }
-            name, value = filt.replace('"', "").replace(" ", "").split("=")
+            comparisons = {"=": lambda x, y: x == y, "^=": lambda x, y: x.startswith(y)}
+            allowed_attributes = [
+                "username",
+                "email",
+                "phone_number",
+                "name",
+                "given_name",
+                "family_name",
+                "preferred_username",
+                "cognito:user_status",
+                "status",
+                "sub",
+            ]
+
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
+            if match:
+                name, op, value = match.groups()
+            else:
+                raise InvalidParameterException("Error while parsing filter")
+            if name not in allowed_attributes:
+                raise InvalidParameterException(f"Invalid search attribute: {name}")
+            compare = comparisons[op]
             users = [
                 user
                 for user in users
                 if [
                     attr
                     for attr in user.attributes
-                    if attr["Name"] == name and attr["Value"] == value
+                    if attr["Name"] == name and compare(attr["Value"], value)
                 ]
                 or (
                     name in inherent_attributes
-                    and inherent_attributes[name](user) == value
+                    and compare(inherent_attributes[name](user), value)
                 )
             ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
@@ -393,9 +432,16 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps(auth_result)
 
     def forgot_password(self):
-        return json.dumps(
-            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "..."}}
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        region = find_region_by_value("client_id", client_id)
+        confirmation_code, response = cognitoidp_backends[region].forgot_password(
+            client_id, username
         )
+        self.response_headers[
+            "x-moto-forgot-password-confirmation-code"
+        ] = confirmation_code
+        return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening
     # on localhost (doesn't get a region in the host header), it doesn't know what
@@ -405,9 +451,10 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
+        confirmation_code = self._get_param("ConfirmationCode")
         region = find_region_by_value("client_id", client_id)
         cognitoidp_backends[region].confirm_forgot_password(
-            client_id, username, password
+            client_id, username, password, confirmation_code
         )
         return ""
 
@@ -427,6 +474,15 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         attributes = self._get_param("UserAttributes")
         cognitoidp_backends[self.region].admin_update_user_attributes(
+            user_pool_id, username, attributes
+        )
+        return ""
+
+    def admin_delete_user_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        attributes = self._get_param("UserAttributeNames")
+        cognitoidp_backends[self.region].admin_delete_user_attributes(
             user_pool_id, username, attributes
         )
         return ""
@@ -516,6 +572,14 @@ class CognitoIdpResponse(BaseResponse):
         permanent = self._get_param("Permanent")
         cognitoidp_backends[self.region].admin_set_user_password(
             user_pool_id, username, password, permanent
+        )
+        return ""
+
+    def add_custom_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        custom_attributes = self._get_param("CustomAttributes")
+        cognitoidp_backends[self.region].add_custom_attributes(
+            user_pool_id, custom_attributes
         )
         return ""
 

@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 from copy import deepcopy
 from unittest import SkipTest
 
 import boto3
 import mock
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
@@ -598,7 +596,7 @@ def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(NodegroupB
 def test_create_nodegroup_generates_valid_nodegroup_modified_timestamp(
     NodegroupBuilder,
 ):
-    client, generated_test_data = NodegroupBuilder()
+    _, generated_test_data = NodegroupBuilder()
 
     result_time = iso_8601_datetime_without_milliseconds(
         generated_test_data.nodegroup_describe_output[NodegroupAttributes.MODIFIED_AT]
