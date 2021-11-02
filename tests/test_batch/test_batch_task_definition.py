@@ -1,5 +1,6 @@
 from . import _get_clients, _setup
 import random
+import pytest
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs
 from uuid import uuid4
@@ -9,11 +10,12 @@ from uuid import uuid4
 @mock_ecs
 @mock_iam
 @mock_batch
-def test_register_task_definition():
+@pytest.mark.parametrize("use_resource_reqs", [True, False])
+def test_register_task_definition(use_resource_reqs):
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
-    resp = register_job_def(batch_client)
+    resp = register_job_def(batch_client, use_resource_reqs=use_resource_reqs)
 
     resp.should.contain("jobDefinitionArn")
     resp.should.contain("jobDefinitionName")
@@ -47,13 +49,16 @@ def test_register_task_definition_with_tags():
 @mock_ecs
 @mock_iam
 @mock_batch
-def test_reregister_task_definition():
+@pytest.mark.parametrize("use_resource_reqs", [True, False])
+def test_reregister_task_definition(use_resource_reqs):
     # Reregistering task with the same name bumps the revision number
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     job_def_name = str(uuid4())[0:6]
-    resp1 = register_job_def(batch_client, definition_name=job_def_name)
+    resp1 = register_job_def(
+        batch_client, definition_name=job_def_name, use_resource_reqs=use_resource_reqs
+    )
 
     resp1.should.contain("jobDefinitionArn")
     resp1.should.have.key("jobDefinitionName").equals(job_def_name)
@@ -64,18 +69,24 @@ def test_reregister_task_definition():
     )
     resp1["revision"].should.equal(1)
 
-    resp2 = register_job_def(batch_client, definition_name=job_def_name)
+    resp2 = register_job_def(
+        batch_client, definition_name=job_def_name, use_resource_reqs=use_resource_reqs
+    )
     resp2["revision"].should.equal(2)
 
     resp2["jobDefinitionArn"].should_not.equal(resp1["jobDefinitionArn"])
 
-    resp3 = register_job_def(batch_client, definition_name=job_def_name)
+    resp3 = register_job_def(
+        batch_client, definition_name=job_def_name, use_resource_reqs=use_resource_reqs
+    )
     resp3["revision"].should.equal(3)
 
     resp3["jobDefinitionArn"].should_not.equal(resp1["jobDefinitionArn"])
     resp3["jobDefinitionArn"].should_not.equal(resp2["jobDefinitionArn"])
 
-    resp4 = register_job_def(batch_client, definition_name=job_def_name)
+    resp4 = register_job_def(
+        batch_client, definition_name=job_def_name, use_resource_reqs=use_resource_reqs
+    )
     resp4["revision"].should.equal(4)
 
     resp4["jobDefinitionArn"].should_not.equal(resp1["jobDefinitionArn"])
@@ -87,11 +98,14 @@ def test_reregister_task_definition():
 @mock_ecs
 @mock_iam
 @mock_batch
-def test_delete_task_definition():
+@pytest.mark.parametrize("use_resource_reqs", [True, False])
+def test_delete_task_definition(use_resource_reqs):
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
-    resp = register_job_def(batch_client, definition_name=str(uuid4()))
+    resp = register_job_def(
+        batch_client, definition_name=str(uuid4()), use_resource_reqs=use_resource_reqs
+    )
     name = resp["jobDefinitionName"]
 
     batch_client.deregister_job_definition(jobDefinition=resp["jobDefinitionArn"])
@@ -104,11 +118,14 @@ def test_delete_task_definition():
 @mock_ecs
 @mock_iam
 @mock_batch
-def test_delete_task_definition_by_name():
+@pytest.mark.parametrize("use_resource_reqs", [True, False])
+def test_delete_task_definition_by_name(use_resource_reqs):
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
-    resp = register_job_def(batch_client, definition_name=str(uuid4()))
+    resp = register_job_def(
+        batch_client, definition_name=str(uuid4()), use_resource_reqs=use_resource_reqs
+    )
     name = resp["jobDefinitionName"]
 
     batch_client.deregister_job_definition(jobDefinition=f"{name}:{resp['revision']}")
@@ -121,16 +138,27 @@ def test_delete_task_definition_by_name():
 @mock_ecs
 @mock_iam
 @mock_batch
-def test_describe_task_definition():
+@pytest.mark.parametrize("use_resource_reqs", [True, False])
+def test_describe_task_definition(use_resource_reqs):
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _setup(ec2_client, iam_client)
 
     sleep_def_name = f"sleep10_{str(uuid4())[0:6]}"
     other_name = str(uuid4())[0:6]
     tagged_name = str(uuid4())[0:6]
-    register_job_def(batch_client, definition_name=sleep_def_name)
-    register_job_def(batch_client, definition_name=sleep_def_name)
-    register_job_def(batch_client, definition_name=other_name)
+    register_job_def(
+        batch_client,
+        definition_name=sleep_def_name,
+        use_resource_reqs=use_resource_reqs,
+    )
+    register_job_def(
+        batch_client,
+        definition_name=sleep_def_name,
+        use_resource_reqs=use_resource_reqs,
+    )
+    register_job_def(
+        batch_client, definition_name=other_name, use_resource_reqs=use_resource_reqs
+    )
     register_job_def_with_tags(batch_client, definition_name=tagged_name)
 
     resp = batch_client.describe_job_definitions(jobDefinitionName=sleep_def_name)
@@ -157,7 +185,26 @@ def test_describe_task_definition():
         job_definition["status"].should.equal("ACTIVE")
 
 
-def register_job_def(batch_client, definition_name="sleep10"):
+def register_job_def(batch_client, definition_name="sleep10", use_resource_reqs=True):
+    container_properties = {
+        "image": "busybox",
+        "command": ["sleep", "10"],
+    }
+
+    if use_resource_reqs:
+        container_properties.update(
+            {
+                "resourceRequirements": [
+                    {"value": "1", "type": "VCPU"},
+                    {"value": str(random.randint(4, 128)), "type": "MEMORY"},
+                ]
+            }
+        )
+    else:
+        container_properties.update(
+            {"memory": random.randint(4, 128), "vcpus": 1,}
+        )
+
     return batch_client.register_job_definition(
         jobDefinitionName=definition_name,
         type="container",
