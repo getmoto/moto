@@ -26,6 +26,10 @@ ERROR_WITH_RANGE = """{% extends 'single_error' %}
 <RangeRequested>{{ range_requested }}</RangeRequested>{% endblock %}
 """
 
+ERROR_WITH_STORAGE_CLASS = """{% extends 'single_error' %}
+{% block extra %}<StorageClass>{{ storage_class }}</StorageClass>{% endblock %}
+"""
+
 
 class S3ClientError(RESTError):
     # S3 API uses <RequestID> as the XML tag in response messages
@@ -497,6 +501,20 @@ class InvalidContinuationToken(S3ClientError):
             "InvalidArgument",
             "The continuation token provided is incorrect",
             *args,
+            **kwargs,
+        )
+
+
+class InvalidObjectState(BucketError):
+    code = 400
+
+    def __init__(self, storage_class, **kwargs):
+        kwargs.setdefault("template", "storage_error")
+        self.templates["storage_error"] = ERROR_WITH_STORAGE_CLASS
+        super(BucketError, self).__init__(
+            error_type="InvalidObjectState",
+            message="The operation is not valid for the object's storage class",
+            storage_class=storage_class,
             **kwargs,
         )
 
