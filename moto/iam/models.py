@@ -341,12 +341,14 @@ class ManagedPolicy(Policy, CloudFormationModel):
         group_names = properties.get("Groups", [])
         user_names = properties.get("Users", [])
         role_names = properties.get("Roles", [])
+        tags = properties.get("Tags", {})
 
         policy = iam_backend.create_policy(
             description=description,
             path=path,
             policy_document=policy_document,
             policy_name=name,
+            tags=tags,
         )
         for group_name in group_names:
             iam_backend.attach_group_policy(
@@ -1578,7 +1580,7 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
         policy.detach_from(self.get_user(user_name))
 
-    def create_policy(self, description, path, policy_document, policy_name, tags=None):
+    def create_policy(self, description, path, policy_document, policy_name, tags):
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()
 

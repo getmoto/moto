@@ -3839,6 +3839,7 @@ def test_role_config_dict():
             path="/",
             policy_document=json.dumps(basic_policy),
             policy_name="basic_policy",
+            tags=[]
         )
         .arn
     )
@@ -4340,6 +4341,7 @@ def test_policy_list_config_discovered_resources():
             path="",
             policy_document=json.dumps(basic_policy),
             policy_name="policy{}".format(ix),
+            tags=[]
         )
         policies.append(
             {"id": this_policy.id, "name": this_policy.name,}
@@ -4423,6 +4425,7 @@ def test_policy_config_dict():
             path="/",
             policy_document=json.dumps(basic_policy),
             policy_name="basic_policy",
+            tags=[]
         )
         .arn
     )
