@@ -144,6 +144,7 @@ class Policy(CloudFormationModel):
     def get_tags(self):
         return [self.tags[tag] for tag in self.tags]
 
+
 class SAMLProvider(BaseModel):
     def __init__(self, name, saml_metadata_document=None):
         self.name = name
@@ -1894,7 +1895,7 @@ class IAMBackend(BaseBackend):
             self._validate_tag_key(key, exception_param="tagKeys")
 
             policy.tags.pop(ref_key, None)
-            
+
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()

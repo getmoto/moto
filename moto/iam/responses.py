@@ -2525,7 +2525,6 @@ UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc
 </UntagRoleResponse>"""
 
 
-
 TAG_POLICY_TEMPLATE = """<TagPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ResponseMetadata>
     <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>

@@ -959,6 +959,7 @@ def test_delete_default_policy_version():
             VersionId="v1",
         )
 
+
 @mock_iam()
 def test_create_policy_with_tags():
     """Tests both the tag_policy and get_policy_tags capability"""
@@ -975,7 +976,9 @@ def test_create_policy_with_tags():
 
     # Get policy:
     policy = conn.get_policy(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestCreatePolicyWithTags1")
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(
+            ACCOUNT_ID, "TestCreatePolicyWithTags1"
+        )
     )["Policy"]
     assert len(policy["Tags"]) == 2
     assert policy["Tags"][0]["Key"] == "somekey"
@@ -991,7 +994,9 @@ def test_create_policy_with_tags():
         Tags=[{"Key": "somekey", "Value": ""}],
     )
     tags = conn.list_policy_tags(
-        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestCreatePolicyWithTags2")
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(
+            ACCOUNT_ID, "TestCreatePolicyWithTags2"
+        )
     )
     assert len(tags["Tags"]) == 1
     assert tags["Tags"][0]["Key"] == "somekey"
@@ -1073,14 +1078,12 @@ def test_create_policy_with_tags():
         in ce.value.response["Error"]["Message"]
     )
 
+
 @mock_iam()
 def test_tag_policy():
     """Tests both the tag_policy and get_policy_tags capability"""
     conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_policy(
-            PolicyName="TestTagPolicy",
-            PolicyDocument=MOCK_POLICY
-    )
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
 
     # Get without tags:
     policy = conn.get_policy(
@@ -1122,7 +1125,7 @@ def test_tag_policy():
     # Test pagination:
     tags = conn.list_policy_tags(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-        MaxItems=1
+        MaxItems=1,
     )
     assert len(tags["Tags"]) == 1
     assert tags["IsTruncated"]
@@ -1132,7 +1135,7 @@ def test_tag_policy():
 
     tags = conn.list_policy_tags(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-        Marker=tags["Marker"]
+        Marker=tags["Marker"],
     )
     assert len(tags["Tags"]) == 1
     assert tags["Tags"][0]["Key"] == "someotherkey"
@@ -1143,7 +1146,7 @@ def test_tag_policy():
     # Test updating an existing tag:
     conn.tag_policy(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-        Tags=[{"Key": "somekey", "Value": "somenewvalue"}]
+        Tags=[{"Key": "somekey", "Value": "somenewvalue"}],
     )
     tags = conn.list_policy_tags(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
@@ -1155,7 +1158,8 @@ def test_tag_policy():
     # Empty is good:
     conn.tag_policy(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-        Tags=[{"Key": "somekey", "Value": ""}])
+        Tags=[{"Key": "somekey", "Value": ""}],
+    )
     tags = conn.list_policy_tags(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
     )
@@ -1171,7 +1175,7 @@ def test_tag_policy():
         )
         conn.tag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-            Tags=too_many_tags
+            Tags=too_many_tags,
         )
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
@@ -1204,7 +1208,7 @@ def test_tag_policy():
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-            Tags=[{"Key": "0" * 129, "Value": ""}]
+            Tags=[{"Key": "0" * 129, "Value": ""}],
         )
     assert (
         "Member must have length less than or equal to 128."
@@ -1215,7 +1219,7 @@ def test_tag_policy():
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-            Tags=[{"Key": "0", "Value": "0" * 257}]
+            Tags=[{"Key": "0", "Value": "0" * 257}],
         )
     assert (
         "Member must have length less than or equal to 256."
@@ -1226,7 +1230,7 @@ def test_tag_policy():
     with pytest.raises(ClientError) as ce:
         conn.tag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
-            Tags=[{"Key": "NOWAY!", "Value": ""}]
+            Tags=[{"Key": "NOWAY!", "Value": ""}],
         )
     assert (
         "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
@@ -1237,16 +1241,14 @@ def test_tag_policy():
     with pytest.raises(ClientError):
         conn.tag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
-            Tags=[{"Key": "some", "Value": "value"}]
+            Tags=[{"Key": "some", "Value": "value"}],
         )
+
 
 @mock_iam
 def test_untag_policy():
     conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_policy(
-            PolicyName="TestUnTagPolicy",
-            PolicyDocument=MOCK_POLICY
-    )
+    conn.create_policy(PolicyName="TestUnTagPolicy", PolicyDocument=MOCK_POLICY)
 
     # With proper tag values:
     conn.tag_policy(
@@ -1260,7 +1262,7 @@ def test_untag_policy():
     # Remove them:
     conn.untag_policy(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
-        TagKeys=["somekey"]
+        TagKeys=["somekey"],
     )
     tags = conn.list_policy_tags(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
@@ -1272,7 +1274,7 @@ def test_untag_policy():
     # And again:
     conn.untag_policy(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
-        TagKeys=["someotherkey"]
+        TagKeys=["someotherkey"],
     )
     tags = conn.list_policy_tags(
         PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
@@ -1284,7 +1286,7 @@ def test_untag_policy():
     with pytest.raises(ClientError) as ce:
         conn.untag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
-            TagKeys=[str(x) for x in range(0, 51)]
+            TagKeys=[str(x) for x in range(0, 51)],
         )
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
@@ -1296,7 +1298,7 @@ def test_untag_policy():
     with pytest.raises(ClientError) as ce:
         conn.untag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
-            TagKeys=["0" * 129]
+            TagKeys=["0" * 129],
         )
     assert (
         "Member must have length less than or equal to 128."
@@ -1308,7 +1310,7 @@ def test_untag_policy():
     with pytest.raises(ClientError) as ce:
         conn.untag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
-            TagKeys=["NOWAY!"]
+            TagKeys=["NOWAY!"],
         )
     assert (
         "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
@@ -1320,8 +1322,9 @@ def test_untag_policy():
     with pytest.raises(ClientError):
         conn.untag_policy(
             PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
-            TagKeys=["somevalue"]
+            TagKeys=["somevalue"],
         )
+
 
 # Has boto3 equivalent
 @mock_iam_deprecated()
