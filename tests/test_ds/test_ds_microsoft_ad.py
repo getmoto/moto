@@ -13,12 +13,7 @@ from moto import mock_ds
 from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
 
-from .test_ds_simple_ad_directory import (
-    create_test_directory,
-    TEST_REGION,
-    create_vpc,
-    create_subnets,
-)
+from .test_ds_simple_ad_directory import TEST_REGION, create_vpc, create_subnets
 
 
 def create_test_microsoft_ad(ds_client, ec2_client, vpc_settings=None, tags=None):
@@ -135,25 +130,25 @@ def test_ds_create_microsoft_ad_validations():
 @mock_ec2
 @mock_ds
 def test_ds_create_microsoft_ad_good_args():
-    """Test creation of AD directory using good arguments."""
+    """Test creation of Microsoft AD directory using good arguments."""
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
     # Verify a good call to create_microsoft_ad()
-    directory_id = create_test_directory(client, ec2_client)
+    directory_id = create_test_microsoft_ad(client, ec2_client)
     assert directory_id.startswith("d-")
 
     # Verify that too many directories can't be created.
     limits = client.get_directory_limits()["DirectoryLimits"]
-    for _ in range(limits["CloudOnlyDirectoriesLimit"]):
-        create_test_directory(client, ec2_client)
+    for _ in range(limits["CloudOnlyMicrosoftADLimit"]):
+        create_test_microsoft_ad(client, ec2_client)
     with pytest.raises(ClientError) as exc:
-        create_test_directory(client, ec2_client)
+        create_test_microsoft_ad(client, ec2_client)
     err = exc.value.response["Error"]
     assert err["Code"] == "DirectoryLimitExceededException"
     assert (
         f"Directory limit exceeded. A maximum of "
-        f"{limits['CloudOnlyDirectoriesLimit']} "
+        f"{limits['CloudOnlyMicrosoftADLimit']} "
         f"directories may be created" in err["Message"]
     )
 
