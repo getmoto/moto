@@ -46,6 +46,7 @@ from .exceptions import (
     IllegalLocationConstraintException,
     InvalidNotificationARN,
     InvalidNotificationEvent,
+    InvalidObjectState,
     ObjectNotInActiveTierError,
     NoSystemTags,
     PreconditionFailed,
@@ -1356,6 +1357,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif key is None:
             raise MissingVersion()
 
+        if key.storage_class == "GLACIER":
+            raise InvalidObjectState(storage_class="GLACIER")
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
             if key.last_modified > if_unmodified_since:
