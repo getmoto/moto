@@ -1,10 +1,10 @@
-from __future__ import unicode_literals
 import json
 import time
 import jsondiff
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import merge_dicts
 from moto.iot import iot_backends
 from .exceptions import (
     ConflictException,
@@ -50,13 +50,12 @@ class FakeShadow(BaseModel):
             shadow = FakeShadow(None, None, None, version, deleted=True)
             return shadow
 
-        # we can make sure that payload has 'state' key
-        desired = payload["state"].get(
-            "desired", previous_payload.get("state", {}).get("desired", None)
-        )
-        reported = payload["state"].get(
-            "reported", previous_payload.get("state", {}).get("reported", None)
-        )
+        # Updates affect only the fields specified in the request state document.
+        # Any field with a value of None is removed from the device's shadow.
+        state_document = previous_payload.copy()
+        merge_dicts(state_document, payload, remove_nulls=True)
+        desired = state_document.get("state", {}).get("desired")
+        reported = state_document.get("state", {}).get("reported")
         shadow = FakeShadow(desired, reported, payload, version)
         return shadow
 

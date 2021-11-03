@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_cognitoidentity

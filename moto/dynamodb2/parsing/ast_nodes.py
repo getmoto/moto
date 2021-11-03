@@ -2,13 +2,11 @@ import abc
 from abc import abstractmethod
 from collections import deque
 
-import six
-
 from moto.dynamodb2.models import DynamoType
+from ..exceptions import TooManyAddClauses
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Node:
+class Node(metaclass=abc.ABCMeta):
     def __init__(self, children=None):
         self.type = self.__class__.__name__
         assert children is None or isinstance(children, list)
@@ -23,6 +21,21 @@ class Node:
     def set_parent(self, parent_node):
         self.parent = parent_node
 
+    def validate(self):
+        if self.type == "UpdateExpression":
+            nr_of_clauses = len(self.find_clauses(UpdateExpressionAddClause))
+            if nr_of_clauses > 1:
+                raise TooManyAddClauses()
+
+    def find_clauses(self, clause_type):
+        clauses = []
+        for child in self.children or []:
+            if isinstance(child, clause_type):
+                clauses.append(child)
+            elif isinstance(child, Expression):
+                clauses.extend(child.find_clauses(clause_type))
+        return clauses
+
 
 class LeafNode(Node):
     """A LeafNode is a Node where none of the children are Nodes themselves."""
@@ -31,8 +44,7 @@ class LeafNode(Node):
         super(LeafNode, self).__init__(children)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Expression(Node):
+class Expression(Node, metaclass=abc.ABCMeta):
     """
     Abstract Syntax Tree representing the expression
 
@@ -51,8 +63,7 @@ class UpdateExpression(Expression):
     """
 
 
-@six.add_metaclass(abc.ABCMeta)
-class UpdateExpressionClause(UpdateExpression):
+class UpdateExpressionClause(UpdateExpression, metaclass=abc.ABCMeta):
     """
     UpdateExpressionClause* => UpdateExpressionSetClause
     UpdateExpressionClause* => UpdateExpressionRemoveClause

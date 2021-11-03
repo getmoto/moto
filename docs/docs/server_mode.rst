@@ -80,13 +80,6 @@ Here are some more examples:
 * `Javascript`_
 
 
-Reset API
----------
-
-An internal API endpoint is provided to reset the state of all of the backends. This will remove all S3 buckets, EC2 servers, etc.::
-
-   requests.post("http://motoapi.amazonaws.com/moto-api/reset")
-
 Dashboard
 ---------
 
@@ -94,6 +87,32 @@ Moto comes with a dashboard to view the current state of the system::
 
     http://localhost:5000/moto-api/
 
+
+Reset API
+---------
+
+An internal API endpoint is provided to reset the state of all of the backends. This will remove all S3 buckets, EC2 servers, etc.::
+
+   requests.post("http://motoapi.amazonaws.com/moto-api/reset")
+
+Install with Homebrew
+---------------------
+
+Moto is also available to install using `Homebrew`_, which makes it much easier
+to manage if you're not using Python as your primary development language.
+
+Once Homebrew is installed, you can install Moto by running:
+
+.. code-block:: bash
+
+    brew install moto
+
+To make the Moto server start up automatically when you log into your computer,
+you can run:
+
+.. code-block:: bash
+
+    brew services start moto
 
 Caveats
 -------
@@ -105,7 +124,9 @@ require that you update your hosts file for your code to work properly:
 For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
 As a result, you need to add that entry to your host file for your tests to function properly.
 
+
 .. _Java: https://github.com/spulec/moto/blob/master/other_langs/sqsSample.java
 .. _Ruby: https://github.com/spulec/moto/blob/master/other_langs/test.rb
 .. _Javascript: https://github.com/spulec/moto/blob/master/other_langs/test.js
 .. _localhost: http://localhost:5000/?Action=DescribeInstances
+.. _Homebrew: https://brew.sh

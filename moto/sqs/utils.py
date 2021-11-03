@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import random
 import string
 
@@ -26,20 +25,20 @@ def extract_input_message_attributes(querystring):
     return message_attributes
 
 
-def parse_message_attributes(querystring, base="", value_namespace="Value."):
+def parse_message_attributes(
+    querystring, key="MessageAttribute", base="", value_namespace="Value."
+):
     message_attributes = {}
     index = 1
     while True:
         # Loop through looking for message attributes
-        name_key = base + "MessageAttribute.{0}.Name".format(index)
+        name_key = base + "{0}.{1}.Name".format(key, index)
         name = querystring.get(name_key)
         if not name:
             # Found all attributes
             break
 
-        data_type_key = base + "MessageAttribute.{0}.{1}DataType".format(
-            index, value_namespace
-        )
+        data_type_key = base + "{0}.{1}.{2}DataType".format(key, index, value_namespace)
         data_type = querystring.get(data_type_key)
         if not data_type:
             raise MessageAttributesInvalid(
@@ -64,8 +63,8 @@ def parse_message_attributes(querystring, base="", value_namespace="Value."):
         if data_type_parts[0] == "Binary":
             type_prefix = "Binary"
 
-        value_key = base + "MessageAttribute.{0}.{1}{2}Value".format(
-            index, value_namespace, type_prefix
+        value_key = base + "{0}.{1}.{2}{3}Value".format(
+            key, index, value_namespace, type_prefix
         )
         value = querystring.get(value_key)
         if not value:

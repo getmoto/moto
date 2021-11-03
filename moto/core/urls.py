@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import MotoAPIResponse
 
 url_bases = ["https?://motoapi.amazonaws.com"]

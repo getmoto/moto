@@ -7,7 +7,7 @@ import boto3
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-alternative_service_names = {"lambda": "awslambda", "dynamodb": "dynamodb2"}
+alternative_service_names = {"lambda": "awslambda", "dynamodb": "dynamodb2", "rds": "rds2"}
 
 
 def get_moto_implementation(service_name):
@@ -93,8 +93,12 @@ def write_implementation_coverage_to_file(coverage):
 
     print("Writing to {}".format(implementation_coverage_file))
     with open(implementation_coverage_file, "w+") as file:
+        completely_unimplemented = []
         for service_name in sorted(coverage):
             implemented = coverage.get(service_name)["implemented"]
+            if len(implemented) == 0:
+                completely_unimplemented.append(service_name)
+                continue
             not_implemented = coverage.get(service_name)["not_implemented"]
             operations = sorted(implemented + not_implemented)
 
@@ -119,6 +123,13 @@ def write_implementation_coverage_to_file(coverage):
                 else:
                     file.write("- [ ] {}\n".format(op))
             file.write("</details>\n")
+
+        file.write("\n")
+        file.write("## Unimplemented:\n")
+        file.write("<details>\n\n")
+        for service in completely_unimplemented:
+            file.write("- {}\n".format(service))
+        file.write("</details>")
 
 
 if __name__ == "__main__":

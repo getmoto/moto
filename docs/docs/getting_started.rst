@@ -17,25 +17,12 @@ If you don't care about the number of dependencies, or if you want to mock many 
 
     pip install moto[all]
 
-Not all services might be covered, in which case you might see a warning:
-`moto 1.3.16 does not provide the extra 'service'`.
-
-You can ignore the warning, or simply install moto as is::
-
-    pip install moto
-
-
 If you want to install ``moto`` from source::
 
     git clone git://github.com/spulec/moto.git
     cd moto
     python setup.py install
 
-Not all services might be covered, in which case you might see a warning::
-
-    moto {version} does not provide the extra 'service'
-
-You can ignore this warning.
 
 Moto usage
 ----------
@@ -126,6 +113,72 @@ You can also start and stop the mocking manually.
 
         mock.stop()
 
+Unittest usage
+~~~~~~~~~~~~~~
+
+If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, you can do it with `.start()` and `.stop()` like:
+
+.. sourcecode:: python
+
+    import unittest
+    from moto import mock_s3
+    import boto3
+
+    def func_to_test(bucket_name, key, content):
+        s3 = boto3.resource('s3')
+        object = s3.Object(bucket_name, key)
+        object.put(Body=content)
+
+    class MyTest(unittest.TestCase):
+        mock_s3 = mock_s3()
+        bucket_name = 'test-bucket'
+        def setUp(self):
+            self.mock_s3.start()
+
+            # you can use boto3.client('s3') if you prefer
+            s3 = boto3.resource('s3')
+            bucket = s3.Bucket(self.bucket_name)
+            bucket.create()
+
+        def tearDown(self):
+            self.mock_s3.stop()
+
+        def test(self):
+            content = b"abc"
+            key = '/path/to/obj'
+
+            # run the file which uploads to S3
+            func_to_test(self.bucket_name, key, content)
+
+            # check the file was uploaded as expected
+            s3 = boto3.resource('s3')
+            object = s3.Object(self.bucket_name, key)
+            actual = object.get()['Body'].read()
+            self.assertEqual(actual, content)
+
+
+It is possible to use Moto as a class-decorator.
+Note that this may behave differently then you might expected - it currently creates a global state on class-level, rather than on method-level.
+
+.. sourcecode:: python
+
+    @mock_s3
+    class TestMockClassLevel(unittest.TestCase):
+        def create_my_bucket(self):
+            s3 = boto3.resource('s3')
+            bucket = s3.Bucket("mybucket")
+            bucket.create()
+
+        def test_1_should_create_bucket(self):
+            self.create_my_bucket()
+
+            client = boto3.client("s3")
+            assert len(client.list_buckets()["Buckets"]) == 1
+
+        def test_2_bucket_still_exists(self):
+            client = boto3.client("s3")
+            assert len(client.list_buckets()["Buckets"]) == 1
+
 Stand-alone server mode
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -136,19 +189,16 @@ Moto also comes with a stand-alone server allowing you to mock out an AWS HTTP e
     $ moto_server -p3000
      * Running on http://127.0.0.1:3000/
 
-However, this method isn't encouraged if you're using ``boto``, the best solution would be to use a decorator method.
+However, this method isn't encouraged if you're using ``boto3``, the best solution would be to use a decorator method.
 See :ref:`Non-Python SDK's` for more information.
 
 Recommended Usage
 -----------------
 There are some important caveats to be aware of when using moto:
 
-*Failure to follow these guidelines could result in your tests mutating your __REAL__ infrastructure!*
-
 How do I avoid tests from mutating my real infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You need to ensure that the mocks are actually in place. Changes made to recent versions of `botocore`
-have altered some of the mock behavior. In short, you need to ensure that you _always_ do the following:
+You need to ensure that the mocks are actually in place.
 
 #. Ensure that your tests have dummy environment variables set up:
 
@@ -225,5 +275,6 @@ For Tox, Travis CI, and other build systems, you might need to also perform a `t
 command before running the tests. As long as that file is present (empty preferably) and the environment
 variables above are set, you should be good to go.
 
+.. _unittest: https://docs.python.org/3/library/unittest.html
 .. _pytest: https://pytest.org/en/latest/
 .. _pytest fixtures: https://pytest.org/en/latest/fixture.html#fixture

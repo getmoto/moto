@@ -1,7 +1,6 @@
 import logging
 from abc import abstractmethod
 import abc
-import six
 from collections import deque
 
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -127,8 +126,7 @@ class NestableExpressionParserMixin(object):
         return target_node
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ExpressionParser:
+class ExpressionParser(metaclass=abc.ABCMeta):
     """Abstract class"""
 
     def __init__(self, expression_token_list, token_pos=0):
@@ -968,8 +966,7 @@ class UpdateExpressionAddActionsParser(UpdateExpressionActionsParser):
         return UpdateExpressionAddActions
 
 
-@six.add_metaclass(abc.ABCMeta)
-class UpdateExpressionPathValueParser(ExpressionParser):
+class UpdateExpressionPathValueParser(ExpressionParser, metaclass=abc.ABCMeta):
     def _parse_path_and_value(self):
         """
         UpdateExpressionAddActionParser only gets called when expecting an AddAction. So we should be aggressive on

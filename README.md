@@ -19,143 +19,50 @@ $ pip install moto[ec2,s3,all]
 
 ## In a nutshell
 
+
+Moto is a library that allows your tests to easily mock out AWS Services.
+
+Imagine you have the following python code that you want to test:
+
 ```python
 import boto3
-from moto import mock_ec2
 
+class MyModel(object):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
 
-def add_servers(ami_id, count):
-    client = boto3.client('ec2', region_name='us-west-1')
-    client.run_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
-
-
-@mock_ec2
-def test_add_servers():
-    add_servers('ami-1234abcd', 2)
-
-    client = boto3.client('ec2', region_name='us-west-1')
-    instances = client.describe_instances()['Reservations'][0]['Instances']
-    assert len(instances) == 2
-    instance1 = instances[0]
-    assert instance1['ImageId'] == 'ami-1234abcd'
+    def save(self):
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
 ```
 
+Take a minute to think how you would have tested that in the past.
 
-
-## Very Important -- Recommended Usage
-There are some important caveats to be aware of when using moto:
-
-*Failure to follow these guidelines could result in your tests mutating your __REAL__ infrastructure!*
-
-### How do I avoid tests from mutating my real infrastructure?
-You need to ensure that the mocks are actually in place. Changes made to recent versions of `botocore`
-have altered some of the mock behavior. In short, you need to ensure that you _always_ do the following:
-
-1. Ensure that your tests have dummy environment variables set up:
-
-        export AWS_ACCESS_KEY_ID='testing'
-        export AWS_SECRET_ACCESS_KEY='testing'
-        export AWS_SECURITY_TOKEN='testing'
-        export AWS_SESSION_TOKEN='testing'
-
-1. __VERY IMPORTANT__: ensure that you have your mocks set up __BEFORE__ your `boto3` client is established.
-   This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
-   See the pesky imports section below on how to work around this.
-
-### Example on usage?
-If you are a user of [pytest](https://pytest.org/en/latest/), you can leverage [pytest fixtures](https://pytest.org/en/latest/fixture.html#fixture)
-to help set up your mocks and other AWS resources that you would need.
-
-Here is an example:
-```python
-@pytest.fixture(scope='function')
-def aws_credentials():
-    """Mocked AWS Credentials for moto."""
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
-
-@pytest.fixture(scope='function')
-def s3(aws_credentials):
-    with mock_s3():
-        yield boto3.client('s3', region_name='us-east-1')
-
-
-@pytest.fixture(scope='function')
-def sts(aws_credentials):
-    with mock_sts():
-        yield boto3.client('sts', region_name='us-east-1')
-
-
-@pytest.fixture(scope='function')
-def cloudwatch(aws_credentials):
-    with mock_cloudwatch():
-        yield boto3.client('cloudwatch', region_name='us-east-1')
-
-... etc.
-```
-
-In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`,
-which sets the proper fake environment variables. The fake environment variables are used so that `botocore` doesn't try to locate real
-credentials on your system.
-
-Next, once you need to do anything with the mocked AWS environment, do something like:
-```python
-def test_create_bucket(s3):
-    # s3 is a fixture defined above that yields a boto3 s3 client.
-    # Feel free to instantiate another boto3 S3 client -- Keep note of the region though.
-    s3.create_bucket(Bucket="somebucket")
-
-    result = s3.list_buckets()
-    assert len(result['Buckets']) == 1
-    assert result['Buckets'][0]['Name'] == 'somebucket'
-```
-
-### What about those pesky imports?
-Recall earlier, it was mentioned that mocks should be established __BEFORE__ the clients are set up. One way
-to avoid import issues is to make use of local Python imports -- i.e. import the module inside of the unit
-test you want to run vs. importing at the top of the file.
-
-Example:
-```python
-def test_something(s3):
-   from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
-   # ^^ Importing here ensures that the mock has been established.      
-
-   some_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
-                # a package-level S3 client will properly use the mock and not reach out to AWS.
-```
-
-### Other caveats
-For Tox, Travis CI, and other build systems, you might need to also perform a `touch ~/.aws/credentials`
-command before running the tests. As long as that file is present (empty preferably) and the environment
-variables above are set, you should be good to go.
-
-## Stand-alone Server Mode
-
-Moto also has a stand-alone server mode. This allows you to utilize
-the backend structure of Moto even if you don't use Python.
-
-It uses flask, which isn't a default dependency. You can install the
-server 'extra' package with:
+Now see how you could test it with Moto:
 
 ```python
-pip install "moto[server]"
+import boto3
+from moto import mock_s3
+from mymodule import MyModel
+
+@mock_s3
+def test_my_model_save():
+    conn = boto3.resource('s3', region_name='us-east-1')
+    # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+    conn.create_bucket(Bucket='mybucket')
+    model_instance = MyModel('steve', 'is awesome')
+    model_instance.save()
+    body = conn.Object('mybucket', 'steve').get()['Body'].read().decode("utf-8")
+    assert body == 'is awesome'
 ```
 
-You can then start it running a service:
+With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
 
-```console
-$ moto_server
- * Running on http://127.0.0.1:5000/
-```
+For a full list of which services and features are covered, please see our [implementation coverage](https://github.com/spulec/moto/blob/master/IMPLEMENTATION_COVERAGE.md).
 
 
-## Releases
+### Documentation
+The full documentation can be found here:
 
-Releases are done from Gitlab Actions. Fairly closely following this:
-https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-
-- Commits to `master` branch do a dev deploy to pypi.
-- Commits to a tag do a real deploy to pypi.
+[http://docs.getmoto.org/en/latest/](http://docs.getmoto.org/en/latest/)

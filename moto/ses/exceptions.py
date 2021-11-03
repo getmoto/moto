@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
@@ -87,3 +86,20 @@ class RuleSetDoesNotExist(RESTError):
 
     def __init__(self, message):
         super(RuleSetDoesNotExist, self).__init__("RuleSetDoesNotExist", message)
+
+
+class RuleDoesNotExist(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(RuleDoesNotExist, self).__init__("RuleDoesNotExist", message)
+
+
+class MissingRenderingAttributeException(RESTError):
+    code = 400
+
+    def __init__(self, var):
+        super(MissingRenderingAttributeException, self).__init__(
+            "MissingRenderingAttributeException",
+            "Attribute '{0}' is not present in the rendering data.".format(var),
+        )

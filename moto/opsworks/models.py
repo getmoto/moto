@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from moto.core import ACCOUNT_ID
@@ -518,11 +517,11 @@ class OpsWorksBackend(BaseBackend):
         stackid = kwargs["stack_id"]
         if stackid not in self.stacks:
             raise ResourceNotFoundException(stackid)
-        if name in [l.name for l in self.stacks[stackid].layers]:
+        if name in [layer.name for layer in self.stacks[stackid].layers]:
             raise ValidationException(
                 'There is already a layer named "{0}" ' "for this stack".format(name)
             )
-        if shortname in [l.shortname for l in self.stacks[stackid].layers]:
+        if shortname in [layer.shortname for layer in self.stacks[stackid].layers]:
             raise ValidationException(
                 'There is already a layer with shortname "{0}" '
                 "for this stack".format(shortname)

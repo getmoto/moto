@@ -1,18 +1,22 @@
-from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
+
+import warnings
 
 import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
-from moto.core import BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError, InvalidRequestException
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.emr.exceptions import EmrError, InvalidRequestException, ValidationException
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
     random_step_id,
     CamelToUnderscoresWalker,
+    EmrSecurityGroupManager,
 )
+
+EXAMPLE_AMI_ID = "ami-12c6146b"
 
 
 class FakeApplication(BaseModel):
@@ -28,6 +32,16 @@ class FakeBootstrapAction(BaseModel):
         self.args = args or []
         self.name = name
         self.script_path = script_path
+
+
+class FakeInstance(BaseModel):
+    def __init__(
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, id=None,
+    ):
+        self.id = id or random_instance_group_id()
+        self.ec2_instance_id = ec2_instance_id
+        self.instance_group = instance_group
+        self.instance_fleet_id = instance_fleet_id
 
 
 class FakeInstanceGroup(BaseModel):
@@ -174,6 +188,7 @@ class FakeCluster(BaseModel):
         self.set_visibility(visible_to_all_users)
 
         self.instance_group_ids = []
+        self.instances = []
         self.master_instance_group_id = None
         self.core_instance_group_id = None
         if (
@@ -257,6 +272,12 @@ class FakeCluster(BaseModel):
         self.kerberos_attributes = kerberos_attributes
 
     @property
+    def arn(self):
+        return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
+            self.emr_backend.region_name, ACCOUNT_ID, self.id
+        )
+
+    @property
     def instance_groups(self):
         return self.emr_backend.get_instance_groups(self.instance_group_ids)
 
@@ -310,11 +331,23 @@ class FakeCluster(BaseModel):
             if self.master_instance_group_id:
                 raise Exception("Cannot add another master instance group")
             self.master_instance_group_id = instance_group.id
+            num_master_nodes = instance_group.num_instances
+            if num_master_nodes > 1:
+                # Cluster is HA
+                if num_master_nodes != 3:
+                    raise ValidationException(
+                        "Master instance group must have exactly 3 instances for HA clusters."
+                    )
+                self.keep_job_flow_alive_when_no_steps = True
+                self.termination_protected = True
         if instance_group.role == "CORE":
             if self.core_instance_group_id:
                 raise Exception("Cannot add another core instance group")
             self.core_instance_group_id = instance_group.id
         self.instance_group_ids.append(instance_group.id)
+
+    def add_instance(self, instance):
+        self.instances.append(instance)
 
     def add_steps(self, steps):
         added_steps = []
@@ -323,7 +356,7 @@ class FakeCluster(BaseModel):
                 # If we already have other steps, this one is pending
                 fake = FakeStep(state="PENDING", **step)
             else:
-                fake = FakeStep(state="STARTING", **step)
+                fake = FakeStep(state="RUNNING", **step)
             self.steps.append(fake)
             added_steps.append(fake)
         self.state = "RUNNING"
@@ -363,8 +396,25 @@ class ElasticMapReduceBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticmapreduce"
+        )
+
+    @property
+    def ec2_backend(self):
+        """
+        :return: EC2 Backend
+        :rtype: moto.ec2.models.EC2Backend
+        """
+        from moto.ec2 import ec2_backends
+
+        return ec2_backends[self.region_name]
+
     def add_applications(self, cluster_id, applications):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_applications(applications)
 
     def add_instance_groups(self, cluster_id, instance_groups):
@@ -377,13 +427,24 @@ class ElasticMapReduceBackend(BaseBackend):
             result_groups.append(group)
         return result_groups
 
+    def add_instances(self, cluster_id, instances, instance_group):
+        cluster = self.clusters[cluster_id]
+        response = self.ec2_backend.add_instances(
+            EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
+        )
+        for instance in response.instances:
+            instance = FakeInstance(
+                ec2_instance_id=instance.id, instance_group=instance_group,
+            )
+            cluster.add_instance(instance)
+
     def add_job_flow_steps(self, job_flow_id, steps):
         cluster = self.clusters[job_flow_id]
         steps = cluster.add_steps(steps)
         return steps
 
     def add_tags(self, cluster_id, tags):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_tags(tags)
 
     def describe_job_flows(
@@ -418,7 +479,7 @@ class ElasticMapReduceBackend(BaseBackend):
             if step.id == step_id:
                 return step
 
-    def get_cluster(self, cluster_id):
+    def describe_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
         raise EmrError("ResourceNotFoundException", "", "error_json")
@@ -472,6 +533,25 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         return groups[start_idx : start_idx + max_items], marker
 
+    def list_instances(
+        self, cluster_id, marker=None, instance_group_id=None, instance_group_types=None
+    ):
+        max_items = 50
+        groups = sorted(self.clusters[cluster_id].instances, key=lambda x: x.id)
+        start_idx = 0 if marker is None else int(marker)
+        marker = (
+            None if len(groups) <= start_idx + max_items else str(start_idx + max_items)
+        )
+        if instance_group_id:
+            groups = [g for g in groups if g.instance_group.id == instance_group_id]
+        if instance_group_types:
+            groups = [
+                g for g in groups if g.instance_group.role in instance_group_types
+            ]
+        for g in groups:
+            g.details = self.ec2_backend.get_instance(g.ec2_instance_id)
+        return groups[start_idx : start_idx + max_items], marker
+
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
         max_items = 50
         steps = self.clusters[cluster_id].steps
@@ -498,10 +578,54 @@ class ElasticMapReduceBackend(BaseBackend):
         return result_groups
 
     def remove_tags(self, cluster_id, tag_keys):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.remove_tags(tag_keys)
 
+    def _manage_security_groups(
+        self,
+        ec2_subnet_id,
+        emr_managed_master_security_group,
+        emr_managed_slave_security_group,
+        service_access_security_group,
+        **_
+    ):
+        default_return_value = (
+            emr_managed_master_security_group,
+            emr_managed_slave_security_group,
+            service_access_security_group,
+        )
+        if not ec2_subnet_id:
+            # TODO: Set up Security Groups in Default VPC.
+            return default_return_value
+
+        from moto.ec2.exceptions import InvalidSubnetIdError
+
+        try:
+            subnet = self.ec2_backend.get_subnet(ec2_subnet_id)
+        except InvalidSubnetIdError:
+            warnings.warn(
+                "Could not find Subnet with id: {0}\n"
+                "In the near future, this will raise an error.\n"
+                "Use ec2.describe_subnets() to find a suitable id "
+                "for your test.".format(ec2_subnet_id),
+                PendingDeprecationWarning,
+            )
+            return default_return_value
+
+        manager = EmrSecurityGroupManager(self.ec2_backend, subnet.vpc_id)
+        master, slave, service = manager.manage_security_groups(
+            emr_managed_master_security_group,
+            emr_managed_slave_security_group,
+            service_access_security_group,
+        )
+        return master.id, slave.id, service.id
+
     def run_job_flow(self, **kwargs):
+        (
+            kwargs["instance_attrs"]["emr_managed_master_security_group"],
+            kwargs["instance_attrs"]["emr_managed_slave_security_group"],
+            kwargs["instance_attrs"]["service_access_security_group"],
+        ) = self._manage_security_groups(**kwargs["instance_attrs"])
         return FakeCluster(self, **kwargs)
 
     def set_visible_to_all_users(self, job_flow_ids, visible_to_all_users):
@@ -515,12 +639,20 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.set_termination_protection(value)
 
     def terminate_job_flows(self, job_flow_ids):
-        clusters = []
+        clusters_terminated = []
+        clusters_protected = []
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
+            if cluster.termination_protected:
+                clusters_protected.append(cluster)
+                continue
             cluster.terminate()
-            clusters.append(cluster)
-        return clusters
+            clusters_terminated.append(cluster)
+        if clusters_protected:
+            raise ValidationException(
+                "Could not shut down one or more job flows since they are termination protected."
+            )
+        return clusters_terminated
 
     def put_auto_scaling_policy(self, instance_group_id, auto_scaling_policy):
         instance_groups = self.get_instance_groups(
