@@ -726,7 +726,7 @@ class CognitoIdpBackend(BaseBackend):
                 "AccessToken": access_token,
                 "RefreshToken": refresh_token,
                 "ExpiresIn": expires_in,
-                "TokenType": "Bearer", 
+                "TokenType": "Bearer",
             }
         }
 
