@@ -131,7 +131,7 @@ class Key(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        self, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         kms_backend = kms_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -148,6 +148,10 @@ class Key(CloudFormationModel):
         key.enabled = properties["Enabled"]
 
         return key
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

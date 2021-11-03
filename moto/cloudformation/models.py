@@ -237,8 +237,12 @@ class FakeStack(BaseModel):
 
         self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
+
+        self.custom_resources = dict()
+
         self.output_map = self._create_output_map()
         self.creation_time = datetime.utcnow()
+        self.status = "CREATE_PENDING"
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
@@ -254,9 +258,7 @@ class FakeStack(BaseModel):
         return resource_map
 
     def _create_output_map(self):
-        output_map = OutputMap(self.resource_map, self.template_dict, self.stack_id)
-        output_map.create()
-        return output_map
+        return OutputMap(self.resource_map, self.template_dict, self.stack_id)
 
     @property
     def creation_time_iso_8601(self):
@@ -319,17 +321,33 @@ class FakeStack(BaseModel):
 
     @property
     def stack_outputs(self):
-        return self.output_map.values()
+        return [v for v in self.output_map.values() if v]
 
     @property
     def exports(self):
         return self.output_map.exports
 
+    def add_custom_resource(self, custom_resource):
+        self.custom_resources[custom_resource.logical_id] = custom_resource
+
+    def get_custom_resource(self, custom_resource):
+        return self.custom_resources[custom_resource]
+
     def create_resources(self):
-        self.resource_map.create(self.template_dict)
+        self.status = "CREATE_IN_PROGRESS"
+        all_resources_ready = self.resource_map.create(self.template_dict)
         # Set the description of the stack
         self.description = self.template_dict.get("Description")
+        if all_resources_ready:
+            self.mark_creation_complete()
+
+    def verify_readiness(self):
+        if self.resource_map.creation_complete():
+            self.mark_creation_complete()
+
+    def mark_creation_complete(self):
         self.status = "CREATE_COMPLETE"
+        self._add_stack_event("CREATE_COMPLETE")
 
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event(
@@ -651,7 +669,6 @@ class CloudFormationBackend(BaseBackend):
             "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
         )
         new_stack.create_resources()
-        new_stack._add_stack_event("CREATE_COMPLETE")
         return new_stack
 
     def create_change_set(

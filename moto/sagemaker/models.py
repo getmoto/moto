@@ -196,6 +196,10 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
     def physical_resource_id(self):
         return self.endpoint_arn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["EndpointName"]
+
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html#aws-resource-sagemaker-endpoint-return-values
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -215,7 +219,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sagemaker_backend = sagemaker_backends[region_name]
 
@@ -382,6 +386,10 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
     def physical_resource_id(self):
         return self.endpoint_config_arn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["EndpointConfigName"]
+
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html#aws-resource-sagemaker-endpointconfig-return-values
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -401,7 +409,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sagemaker_backend = sagemaker_backends[region_name]
 
@@ -490,6 +498,10 @@ class Model(BaseObject, CloudFormationModel):
     def physical_resource_id(self):
         return self.model_arn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["ModelName"]
+
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-return-values
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -509,7 +521,7 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sagemaker_backend = sagemaker_backends[region_name]
 
@@ -706,6 +718,10 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
     def physical_resource_id(self):
         return self.arn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["NotebookInstanceName"]
+
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html#aws-resource-sagemaker-notebookinstance-return-values
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -725,7 +741,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -809,6 +825,10 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
     def physical_resource_id(self):
         return self.notebook_instance_lifecycle_config_arn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["NotebookInstanceLifecycleConfigName"]
+
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstancelifecycleconfig.html#aws-resource-sagemaker-notebookinstancelifecycleconfig-return-values
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -828,7 +848,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 

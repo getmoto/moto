@@ -158,7 +158,7 @@ class FakeTargetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -253,7 +253,7 @@ class FakeListener(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -317,7 +317,7 @@ class FakeListenerRule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         elbv2_backend = elbv2_backends[region_name]
@@ -496,7 +496,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -510,6 +510,16 @@ class FakeLoadBalancer(CloudFormationModel):
             resource_name, security_groups, subnet_ids, scheme=scheme
         )
         return load_balancer
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "DNSName",
+            "LoadBalancerName",
+            "CanonicalHostedZoneID",
+            "LoadBalancerFullName",
+            "SecurityGroups",
+        ]
 
     def get_cfn_attribute(self, attribute_name):
         """

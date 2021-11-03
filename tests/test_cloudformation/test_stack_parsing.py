@@ -2,7 +2,9 @@ import boto3
 import json
 import yaml
 
+import pytest
 import sure  # noqa # pylint: disable=unused-import
+from botocore.exceptions import ClientError
 from unittest.mock import patch
 
 from moto.cloudformation.exceptions import ValidationError
@@ -11,7 +13,7 @@ from moto.cloudformation.parsing import (
     resource_class_from_type,
     parse_condition,
 )
-from moto import mock_ssm, settings
+from moto import mock_cloudformation, mock_sqs, mock_ssm, settings
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
@@ -20,7 +22,7 @@ from moto.packages.boto.cloudformation.stack import Output
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Create a multi-az, load balanced, Auto Scaled sample web site. The Auto Scaling trigger is based on the CPU utilization of the web servers. The AMI is chosen based on the region in which the stack is run. This example creates a web service running across all availability zones in a region. The instances are load balanced with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+    "Description": "sample template",
     "Resources": {
         "Queue": {
             "Type": "AWS::SQS::Queue",
@@ -32,7 +34,7 @@ dummy_template = {
 
 name_type_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Create a multi-az, load balanced, Auto Scaled sample web site. The Auto Scaling trigger is based on the CPU utilization of the web servers. The AMI is chosen based on the region in which the stack is run. This example creates a web service running across all availability zones in a region. The instances are load balanced with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+    "Description": "sample template",
     "Resources": {
         "Queue": {"Type": "AWS::SQS::Queue", "Properties": {"VisibilityTimeout": 60}}
     },
@@ -41,7 +43,7 @@ name_type_template = {
 name_type_template_with_tabs_json = """
 \t{
 \t\t"AWSTemplateFormatVersion": "2010-09-09",
-\t\t"Description": "Create a multi-az, load balanced, Auto Scaled sample web site. The Auto Scaling trigger is based on the CPU utilization of the web servers. The AMI is chosen based on the region in which the stack is run. This example creates a web service running across all availability zones in a region. The instances are load balanced with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+\t\t"Description": "sample template",
 \t\t"Resources": {
 \t\t\t"Queue": {"Type": "AWS::SQS::Queue", "Properties": {"VisibilityTimeout": 60}}
 \t\t}
@@ -312,10 +314,17 @@ def test_parse_stack_with_get_availability_zones():
     output.value.should.equal(["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"])
 
 
-def test_parse_stack_with_bad_get_attribute_outputs():
-    FakeStack.when.called_with(
-        "test_id", "test_stack", bad_output_template_json, {}, "us-west-1"
-    ).should.throw(ValidationError)
+@mock_sqs
+@mock_cloudformation
+def test_parse_stack_with_bad_get_attribute_outputs_using_boto3():
+    conn = boto3.client("cloudformation", region_name="us-west-1")
+    with pytest.raises(ClientError) as exc:
+        conn.create_stack(StackName="teststack", TemplateBody=bad_output_template_json)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "Template error: resource Queue does not support attribute type InvalidAttribute in Fn::GetAtt"
+    )
 
 
 def test_parse_stack_with_null_outputs_section():

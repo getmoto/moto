@@ -450,6 +450,10 @@ class Database(CloudFormationModel):
             if value is not None:
                 setattr(self, key, value)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
+
     def get_cfn_attribute(self, attribute_name):
         # Local import to avoid circular dependency with cloudformation.parsing
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -511,7 +515,7 @@ class Database(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -801,7 +805,7 @@ class SecurityGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         group_name = resource_name.lower()
@@ -909,7 +913,7 @@ class SubnetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1774,7 +1778,7 @@ class DBParameterGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 

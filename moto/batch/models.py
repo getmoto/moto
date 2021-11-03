@@ -93,7 +93,7 @@ class ComputeEnvironment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -165,7 +165,7 @@ class JobQueue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -349,7 +349,7 @@ class JobDefinition(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]

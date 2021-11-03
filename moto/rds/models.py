@@ -8,6 +8,10 @@ from moto.rds2.models import rds2_backends
 
 
 class Database(CloudFormationModel):
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
+
     def get_cfn_attribute(self, attribute_name):
         if attribute_name == "Endpoint.Address":
             return self.address
@@ -26,7 +30,7 @@ class Database(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -220,7 +224,7 @@ class SecurityGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         group_name = resource_name.lower()
@@ -294,7 +298,7 @@ class SubnetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         subnet_name = resource_name.lower()

@@ -331,7 +331,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = json.dumps(properties.get("PolicyDocument"))
@@ -440,7 +440,7 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = properties.get("PolicyDocument")
@@ -582,7 +582,7 @@ class Role(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         role_name = (
@@ -704,6 +704,10 @@ class Role(CloudFormationModel):
     def physical_resource_id(self):
         return self.name
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -745,7 +749,7 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -774,6 +778,10 @@ class InstanceProfile(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -869,6 +877,10 @@ class AccessKey(CloudFormationModel):
     def last_used_iso_8601(self):
         return iso_8601_datetime_without_milliseconds(self.last_used)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["SecretAccessKey"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -886,7 +898,7 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         user_name = properties.get("UserName")
@@ -965,6 +977,10 @@ class Group(BaseModel):
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -1126,6 +1142,10 @@ class User(CloudFormationModel):
         key = self.get_ssh_public_key(ssh_public_key_id)
         self.ssh_public_keys.remove(key)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -1215,7 +1235,7 @@ class User(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")

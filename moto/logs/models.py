@@ -276,7 +276,7 @@ class LogStream(BaseModel):
         return events
 
 
-class LogGroup(BaseModel):
+class LogGroup(CloudFormationModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
@@ -293,6 +293,25 @@ class LogGroup(BaseModel):
         # Docs:
         # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
         self.kms_key_id = kwargs.get("kmsKeyId")
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LogGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
+        return "AWS::Logs::LogGroup"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name, **kwargs
+    ):
+        properties = cloudformation_json["Properties"]
+        tags = properties.get("Tags", {})
+        return logs_backends[region_name].create_log_group(
+            resource_name, tags, **properties
+        )
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -573,7 +592,7 @@ class LogResourcePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]

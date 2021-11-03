@@ -91,7 +91,7 @@ class Cluster(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_cluster(
@@ -115,6 +115,10 @@ class Cluster(BaseObject, CloudFormationModel):
         else:
             # no-op when nothing changed between old and new resources
             return original_resource
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -226,7 +230,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -420,7 +424,7 @@ class Service(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         if isinstance(properties["Cluster"], Cluster):
@@ -471,6 +475,10 @@ class Service(BaseObject, CloudFormationModel):
             return ecs_backend.update_service(
                 cluster_name, service_name, task_definition, desired_count
             )
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Name"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
