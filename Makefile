@@ -3,9 +3,12 @@ SHELL := /bin/bash
 ifeq ($(TEST_SERVER_MODE), true)
 	# exclude test_kinesisvideoarchivedmedia
 	# because testing with moto_server is difficult with data-endpoint
-	TEST_EXCLUDE := -k 'not test_kinesisvideoarchivedmedia'
+	TEST_EXCLUDE := -k 'not (test_kinesisvideoarchivedmedia or test_awslambda or test_batch or test_ec2 or test_sqs)'
+	# Parallel tests will be run separate
+	PARALLEL_TESTS := ./tests/test_awslambda ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
 else
 	TEST_EXCLUDE :=
+	PARALLEL_TESTS := ./tests/test_core
 endif
 
 init:
@@ -23,12 +26,8 @@ format:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	pytest -sv ./tests/ $(TEST_EXCLUDE)
-
-test-coverage:
-	rm -f .coverage
-	rm -rf cover
 	pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
+	MOTO_CALL_RESET_API=false pytest -n 4 $(PARALLEL_TESTS)
 
 test: lint test-only
 
@@ -37,22 +36,6 @@ test_server:
 
 aws_managed_policies:
 	scripts/update_managed_policies.py
-
-upload_pypi_artifact:
-	python setup.py sdist bdist_wheel
-	twine upload dist/*
-
-push_dockerhub_image:
-	docker build -t motoserver/moto . --tag moto:`python setup.py --version`
-	docker push motoserver/moto
-
-tag_github_release:
-	git tag `python setup.py --version`
-	git push origin `python setup.py --version`
-
-publish: upload_pypi_artifact \
-	tag_github_release \
-	push_dockerhub_image
 
 implementation_coverage:
 	./scripts/implementation_coverage.py

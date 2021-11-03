@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 from .responses import EKSResponse
 
 url_bases = [
-    "https?://eks.(.+).amazonaws.com",
+    r"https?://eks\.(.+)\.amazonaws.com",
 ]
 
 

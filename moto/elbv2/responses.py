@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
@@ -125,6 +124,16 @@ SSL_POLICIES = [
             {"name": "DES-CBC3-SHA", "priority": 19},
         ],
     },
+    {
+        "name": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+        "ssl_protocols": ["TLSv1.2"],
+        "ciphers": [
+            {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
+            {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
+            {"name": "ECDHE-ECDSA-AES256-GCM-SHA384", "priority": 3},
+            {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 4},
+        ],
+    },
 ]
 
 
@@ -155,12 +164,11 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def create_rule(self):
         params = self._get_params()
-        actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
             listener_arn=params["ListenerArn"],
             conditions=params["Conditions"],
             priority=params["Priority"],
-            actions=actions,
+            actions=params["Actions"],
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
@@ -204,6 +212,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_listener(self):
+        params = self._get_params()
         load_balancer_arn = self._get_param("LoadBalancerArn")
         protocol = self._get_param("Protocol")
         port = self._get_param("Port")
@@ -213,7 +222,7 @@ class ELBV2Response(BaseResponse):
             certificate = certificates[0].get("certificate_arn")
         else:
             certificate = None
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = params.get("DefaultActions", [])
 
         listener = self.elbv2_backend.create_listener(
             load_balancer_arn=load_balancer_arn,
@@ -347,7 +356,7 @@ class ELBV2Response(BaseResponse):
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
         conditions = params["Conditions"]
-        actions = self._get_list_prefix("Actions.member")
+        actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
         )
@@ -830,9 +839,15 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
@@ -872,7 +887,9 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
           {% endfor %}
         </Certificates>
         {% endif %}
+        {% if listener.port %}
         <Port>{{ listener.port }}</Port>
+        {% endif %}
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
         <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
@@ -1066,9 +1083,15 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
@@ -1115,7 +1138,7 @@ DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesRes
   </ResponseMetadata>
 </DescribeTargetGroupAttributesResponse>"""
 
-DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+DESCRIBE_LISTENERS_TEMPLATE = """<DescribeListenersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeListenersResult>
     <Listeners>
       {% for listener in listeners %}
@@ -1146,7 +1169,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
   <ResponseMetadata>
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
-</DescribeLoadBalancersResponse>"""
+</DescribeListenersResponse>"""
 
 CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ConfigureHealthCheckResult>

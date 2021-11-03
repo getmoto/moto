@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_events, mock_sqs, mock_logs
 from moto.core import ACCOUNT_ID

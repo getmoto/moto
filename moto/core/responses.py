@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import functools
 from collections import defaultdict
 import datetime
@@ -723,7 +721,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     elif key.endswith(value_end):
                         v = value[0]
 
-            if not (k and v):
+            if not (k and v is not None):
                 break
 
             results[k] = v
@@ -802,7 +800,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def request_json(self):
         return "JSON" in self.querystring.get("ContentType", [])
 
-    def is_not_dryrun(self, action):
+    def error_on_dryrun(self):
+        self.is_not_dryrun()
+
+    def is_not_dryrun(self, action=None):
+        action = action or self._get_param("Action")
         if "true" in self.querystring.get("DryRun", ["false"]):
             message = (
                 "An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set"

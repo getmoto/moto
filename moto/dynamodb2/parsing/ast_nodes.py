@@ -3,6 +3,7 @@ from abc import abstractmethod
 from collections import deque
 
 from moto.dynamodb2.models import DynamoType
+from ..exceptions import TooManyAddClauses
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -19,6 +20,21 @@ class Node(metaclass=abc.ABCMeta):
 
     def set_parent(self, parent_node):
         self.parent = parent_node
+
+    def validate(self):
+        if self.type == "UpdateExpression":
+            nr_of_clauses = len(self.find_clauses(UpdateExpressionAddClause))
+            if nr_of_clauses > 1:
+                raise TooManyAddClauses()
+
+    def find_clauses(self, clause_type):
+        clauses = []
+        for child in self.children or []:
+            if isinstance(child, clause_type):
+                clauses.append(child)
+            elif isinstance(child, Expression):
+                clauses.extend(child.find_clauses(clause_type))
+        return clauses
 
 
 class LeafNode(Node):

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import time
 from datetime import datetime
 
@@ -8,7 +7,7 @@ from boto.emr.bootstrap_action import BootstrapAction
 from boto.emr.instance_group import InstanceGroup
 from boto.emr.step import StreamingStep
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
@@ -34,6 +33,7 @@ input_instance_groups = [
 ]
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_describe_cluster():
     conn = boto.connect_emr()
@@ -107,6 +107,7 @@ def test_describe_cluster():
     cluster.visibletoallusers.should.equal("true")
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_describe_jobflows():
     conn = boto.connect_emr()
@@ -142,7 +143,7 @@ def test_describe_jobflows():
     jobs = conn.describe_jobflows()
     jobs.should.have.length_of(6)
 
-    for cluster_id, y in expected.items():
+    for cluster_id in expected:
         resp = conn.describe_jobflows(jobflow_ids=[cluster_id])
         resp.should.have.length_of(1)
         resp[0].jobflowid.should.equal(cluster_id)
@@ -159,6 +160,7 @@ def test_describe_jobflows():
     resp.should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_describe_jobflow():
     conn = boto.connect_emr()
@@ -241,6 +243,7 @@ def test_describe_jobflow():
     jf.visibletoallusers.should.equal("true")
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_list_clusters():
     conn = boto.connect_emr()
@@ -309,6 +312,7 @@ def test_list_clusters():
     resp.clusters.should.have.length_of(30)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_run_jobflow():
     conn = boto.connect_emr()
@@ -326,6 +330,7 @@ def test_run_jobflow():
     job_flow.steps.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_run_jobflow_in_multiple_regions():
     regions = {}
@@ -342,6 +347,7 @@ def test_run_jobflow_in_multiple_regions():
         jf.name.should.equal(region)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_run_jobflow_with_new_params():
@@ -350,6 +356,7 @@ def test_run_jobflow_with_new_params():
     conn.run_jobflow(**run_jobflow_args)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_run_jobflow_with_visible_to_all_users():
@@ -360,6 +367,7 @@ def test_run_jobflow_with_visible_to_all_users():
         job_flow.visibletoallusers.should.equal(str(expected).lower())
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_run_jobflow_with_instance_groups():
@@ -381,6 +389,7 @@ def test_run_jobflow_with_instance_groups():
             instance_group.bidprice.should.equal(expected.bidprice)
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_set_termination_protection():
@@ -398,6 +407,7 @@ def test_set_termination_protection():
     job_flow.terminationprotected.should.equal("false")
 
 
+# Has boto3 equivalent
 @requires_boto_gte("2.8")
 @mock_emr_deprecated
 def test_set_visible_to_all_users():
@@ -417,6 +427,7 @@ def test_set_visible_to_all_users():
     job_flow.visibletoallusers.should.equal("false")
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_terminate_jobflow():
     conn = boto.connect_emr()
@@ -432,6 +443,7 @@ def test_terminate_jobflow():
 # testing multiple end points for each feature
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_bootstrap_actions():
     bootstrap_actions = [
@@ -464,6 +476,7 @@ def test_bootstrap_actions():
         list(arg.value for arg in x.args).should.equal(y.args())
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_instance_groups():
     input_groups = dict((g.name, g) for g in input_instance_groups)
@@ -536,6 +549,7 @@ def test_instance_groups():
     int(igs["task-2"].instancerunningcount).should.equal(3)
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_steps():
     input_steps = [
@@ -578,7 +592,7 @@ def test_steps():
         step.name.should.be.a(str)
         # step.readydatetime.should.be.a(str)
         # step.startdatetime.should.be.a(str)
-        step.state.should.be.within(["STARTING", "PENDING"])
+        step.state.should.be.within(["RUNNING", "PENDING"])
 
     expected = dict((s.name, s) for s in input_steps)
 
@@ -603,7 +617,7 @@ def test_steps():
         # properties
         x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
-        x.status.state.should.be.within(["STARTING", "PENDING"])
+        x.status.state.should.be.within(["RUNNING", "PENDING"])
         # x.status.statechangereason
         x.status.timeline.creationdatetime.should.be.a(str)
         # x.status.timeline.enddatetime.should.be.a(str)
@@ -627,7 +641,7 @@ def test_steps():
         # properties
         x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
-        x.status.state.should.be.within(["STARTING", "PENDING"])
+        x.status.state.should.be.within(["RUNNING", "PENDING"])
         # x.status.statechangereason
         x.status.timeline.creationdatetime.should.be.a(str)
         # x.status.timeline.enddatetime.should.be.a(str)
@@ -639,13 +653,14 @@ def test_steps():
         # step_states argument.
         steps = conn.list_steps(cluster_id).steps
         step_id = steps[0].id
-        steps = conn.list_steps(cluster_id, step_states=["STARTING"]).steps
+        steps = conn.list_steps(cluster_id, step_states=["RUNNING"]).steps
         steps.should.have.length_of(1)
         steps[0].id.should.equal(step_id)
 
     test_list_steps_with_states()
 
 
+# Has boto3 equivalent
 @mock_emr_deprecated
 def test_tags():
     input_tags = {"tag1": "val1", "tag2": "val2"}

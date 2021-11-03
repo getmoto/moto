@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 import os
 from collections import defaultdict
@@ -12,7 +10,13 @@ from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
-from .utils import decrypt, encrypt, generate_key_id, generate_master_key
+from .utils import (
+    RESERVED_ALIASES,
+    decrypt,
+    encrypt,
+    generate_key_id,
+    generate_master_key,
+)
 
 
 class Key(CloudFormationModel):
@@ -24,7 +28,7 @@ class Key(CloudFormationModel):
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
-        self.description = description
+        self.description = description or ""
         self.enabled = True
         self.region = region
         self.account_id = ACCOUNT_ID
@@ -154,10 +158,38 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region):
+        self.region = region
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
-        self.tagger = TaggingService(keyName="TagKey", valueName="TagValue")
+        self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
+
+    def reset(self):
+        region = self.region
+        self._reset_model_refs()
+        self.__dict__ = {}
+        self.__init__(region)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "kms"
+        )
+
+    def _generate_default_keys(self, alias_name):
+        """Creates default kms keys """
+        if alias_name in RESERVED_ALIASES:
+            key = self.create_key(
+                None,
+                "ENCRYPT_DECRYPT",
+                "SYMMETRIC_DEFAULT",
+                "Default key",
+                None,
+                self.region,
+            )
+            self.add_alias(key.id, alias_name)
+            return key.id
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region
@@ -185,7 +217,7 @@ class KmsBackend(BaseBackend):
         # describe key not just KeyId
         key_id = self.get_key_id(key_id)
         if r"alias/" in str(key_id).lower():
-            key_id = self.get_key_id_from_alias(key_id.split("alias/")[1])
+            key_id = self.get_key_id_from_alias(key_id)
         return self.keys[self.get_key_id(key_id)]
 
     def list_keys(self):
@@ -245,6 +277,9 @@ class KmsBackend(BaseBackend):
         for key_id, aliases in dict(self.key_to_aliases).items():
             if alias_name in ",".join(aliases):
                 return key_id
+        if alias_name in RESERVED_ALIASES:
+            key_id = self._generate_default_keys(alias_name)
+            return key_id
         return None
 
     def enable_key_rotation(self, key_id):
@@ -346,7 +381,8 @@ class KmsBackend(BaseBackend):
 
         return plaintext, ciphertext_blob, arn
 
-    def list_resource_tags(self, key_id):
+    def list_resource_tags(self, key_id_or_arn):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             return self.tagger.list_tags_for_resource(key_id)
         raise JsonRESTError(
@@ -354,7 +390,8 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def tag_resource(self, key_id, tags):
+    def tag_resource(self, key_id_or_arn, tags):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.tag_resource(key_id, tags)
             return {}
@@ -363,7 +400,8 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-    def untag_resource(self, key_id, tag_names):
+    def untag_resource(self, key_id_or_arn, tag_names):
+        key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
             self.tagger.untag_resource_using_names(key_id, tag_names)
             return {}
@@ -375,8 +413,8 @@ class KmsBackend(BaseBackend):
 
 kms_backends = {}
 for region in Session().get_available_regions("kms"):
-    kms_backends[region] = KmsBackend()
+    kms_backends[region] = KmsBackend(region)
 for region in Session().get_available_regions("kms", partition_name="aws-us-gov"):
-    kms_backends[region] = KmsBackend()
+    kms_backends[region] = KmsBackend(region)
 for region in Session().get_available_regions("kms", partition_name="aws-cn"):
-    kms_backends[region] = KmsBackend()
+    kms_backends[region] = KmsBackend(region)

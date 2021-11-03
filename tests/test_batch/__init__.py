@@ -1,4 +1,5 @@
 import boto3
+from uuid import uuid4
 
 
 DEFAULT_REGION = "eu-central-1"
@@ -27,17 +28,18 @@ def _setup(ec2_client, iam_client):
     )
     subnet_id = resp["Subnet"]["SubnetId"]
     resp = ec2_client.create_security_group(
-        Description="test_sg_desc", GroupName="test_sg", VpcId=vpc_id
+        Description="test_sg_desc", GroupName=str(uuid4())[0:6], VpcId=vpc_id
     )
     sg_id = resp["GroupId"]
 
+    role_name = f"{str(uuid4())[0:6]}"
     resp = iam_client.create_role(
-        RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
+        RoleName=role_name, AssumeRolePolicyDocument="some_policy"
     )
     iam_arn = resp["Role"]["Arn"]
-    iam_client.create_instance_profile(InstanceProfileName="TestRole")
+    iam_client.create_instance_profile(InstanceProfileName=role_name)
     iam_client.add_role_to_instance_profile(
-        InstanceProfileName="TestRole", RoleName="TestRole"
+        InstanceProfileName=role_name, RoleName=role_name
     )
 
     return vpc_id, subnet_id, sg_id, iam_arn

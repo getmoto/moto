@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 XMLNS_IAM = "https://iam.amazonaws.com/doc/2010-05-08/"

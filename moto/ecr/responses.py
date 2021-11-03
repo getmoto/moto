@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 from base64 import b64encode
 from datetime import datetime

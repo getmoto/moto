@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 

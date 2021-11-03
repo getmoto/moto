@@ -2,7 +2,7 @@ from botocore.exceptions import ClientError
 from moto import mock_s3
 import boto3
 import pytest
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from .test_s3 import DEFAULT_REGION_NAME
 

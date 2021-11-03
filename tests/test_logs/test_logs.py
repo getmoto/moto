@@ -1,11 +1,14 @@
 import json
 import os
 import time
+import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
+from datetime import timedelta
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_logs, settings
 from moto.core.utils import unix_time_millis
@@ -34,6 +37,297 @@ def json_policy_doc():
             ],
         }
     )
+
+
+@mock_logs
+def test_describe_metric_filters_happy_prefix():
+    conn = boto3.client("logs", "us-west-2")
+
+    response1 = put_metric_filter(conn, count=1)
+    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response2 = put_metric_filter(conn, count=2)
+    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(filterNamePrefix="filter")
+
+    assert len(response["metricFilters"]) == 2
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+    assert response["metricFilters"][1]["filterName"] == "filterName2"
+
+
+@mock_logs
+def test_describe_metric_filters_happy_log_group_name():
+    conn = boto3.client("logs", "us-west-2")
+
+    response1 = put_metric_filter(conn, count=1)
+    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response2 = put_metric_filter(conn, count=2)
+    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(logGroupName="logGroupName2")
+
+    assert len(response["metricFilters"]) == 1
+    assert response["metricFilters"][0]["logGroupName"] == "logGroupName2"
+
+
+@mock_logs
+def test_describe_metric_filters_happy_metric_name():
+    conn = boto3.client("logs", "us-west-2")
+
+    response1 = put_metric_filter(conn, count=1)
+    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response2 = put_metric_filter(conn, count=2)
+    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(
+        metricName="metricName1", metricNamespace="metricNamespace1",
+    )
+
+    assert len(response["metricFilters"]) == 1
+    metrics = response["metricFilters"][0]["metricTransformations"]
+    assert metrics[0]["metricName"] == "metricName1"
+    assert metrics[0]["metricNamespace"] == "metricNamespace1"
+
+
+@mock_logs
+def test_put_metric_filters_validation():
+    conn = boto3.client("logs", "us-west-2")
+
+    invalid_filter_name = "X" * 513
+    invalid_filter_pattern = "X" * 1025
+    invalid_metric_transformations = [
+        {
+            "defaultValue": 1,
+            "metricName": "metricName",
+            "metricNamespace": "metricNamespace",
+            "metricValue": "metricValue",
+        },
+        {
+            "defaultValue": 1,
+            "metricName": "metricName",
+            "metricNamespace": "metricNamespace",
+            "metricValue": "metricValue",
+        },
+    ]
+
+    test_cases = [
+        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name,),
+        build_put_case(
+            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern,
+        ),
+        build_put_case(
+            name="Invalid filter metric transformations",
+            metric_transformations=invalid_metric_transformations,
+        ),
+    ]
+
+    for test_case in test_cases:
+        with pytest.raises(ClientError) as exc:
+            conn.put_metric_filter(**test_case["input"])
+        response = exc.value.response
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        response["Error"]["Code"].should.equal("InvalidParameterException")
+
+
+@mock_logs
+def test_describe_metric_filters_validation():
+    conn = boto3.client("logs", "us-west-2")
+
+    length_over_512 = "X" * 513
+    length_over_255 = "X" * 256
+
+    test_cases = [
+        build_describe_case(
+            name="Invalid filter name prefix", filter_name_prefix=length_over_512,
+        ),
+        build_describe_case(
+            name="Invalid log group name", log_group_name=length_over_512,
+        ),
+        build_describe_case(name="Invalid metric name", metric_name=length_over_255,),
+        build_describe_case(
+            name="Invalid metric namespace", metric_namespace=length_over_255,
+        ),
+    ]
+
+    for test_case in test_cases:
+        with pytest.raises(ClientError) as exc:
+            conn.describe_metric_filters(**test_case["input"])
+        response = exc.value.response
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        response["Error"]["Code"].should.equal("InvalidParameterException")
+
+
+@mock_logs
+def test_describe_metric_filters_multiple_happy():
+    conn = boto3.client("logs", "us-west-2")
+
+    response = put_metric_filter(conn, 1)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = put_metric_filter(conn, 2)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response = conn.describe_metric_filters(
+        filterNamePrefix="filter", logGroupName="logGroupName1"
+    )
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+    response = conn.describe_metric_filters(filterNamePrefix="filter")
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+    response = conn.describe_metric_filters(logGroupName="logGroupName1")
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+
+@mock_logs
+def test_delete_metric_filter():
+    conn = boto3.client("logs", "us-west-2")
+
+    response = put_metric_filter(conn, 1)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = put_metric_filter(conn, 2)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.delete_metric_filter(
+        filterName="filterName", logGroupName="logGroupName1"
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(
+        filterNamePrefix="filter", logGroupName="logGroupName2"
+    )
+    assert response["metricFilters"][0]["filterName"] == "filterName2"
+
+    response = conn.describe_metric_filters(logGroupName="logGroupName2")
+    assert response["metricFilters"][0]["filterName"] == "filterName2"
+
+
+@mock_logs
+@pytest.mark.parametrize(
+    "filter_name, failing_constraint",
+    [
+        (
+            "X" * 513,
+            "Minimum length of 1. Maximum length of 512.",
+        ),  # filterName too long
+        ("x:x", "Must match pattern"),  # invalid filterName pattern
+    ],
+)
+def test_delete_metric_filter_invalid_filter_name(filter_name, failing_constraint):
+    conn = boto3.client("logs", "us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.delete_metric_filter(filterName=filter_name, logGroupName="valid")
+    response = exc.value.response
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    response["Error"]["Code"].should.equal("InvalidParameterException")
+    response["Error"]["Message"].should.contain(
+        f"Value '{filter_name}' at 'filterName' failed to satisfy constraint"
+    )
+    response["Error"]["Message"].should.contain(failing_constraint)
+
+
+@mock_logs
+@pytest.mark.parametrize(
+    "log_group_name, failing_constraint",
+    [
+        (
+            "X" * 513,
+            "Minimum length of 1. Maximum length of 512.",
+        ),  # logGroupName too long
+        ("x!x", "Must match pattern"),  # invalid logGroupName pattern
+    ],
+)
+def test_delete_metric_filter_invalid_log_group_name(
+    log_group_name, failing_constraint
+):
+    conn = boto3.client("logs", "us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.delete_metric_filter(filterName="valid", logGroupName=log_group_name)
+    response = exc.value.response
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    response["Error"]["Code"].should.equal("InvalidParameterException")
+    response["Error"]["Message"].should.contain(
+        f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
+    )
+    response["Error"]["Message"].should.contain(failing_constraint)
+
+
+def put_metric_filter(conn, count=1):
+    count = str(count)
+    return conn.put_metric_filter(
+        filterName="filterName" + count,
+        filterPattern="filterPattern" + count,
+        logGroupName="logGroupName" + count,
+        metricTransformations=[
+            {
+                "defaultValue": int(count),
+                "metricName": "metricName" + count,
+                "metricNamespace": "metricNamespace" + count,
+                "metricValue": "metricValue" + count,
+            },
+        ],
+    )
+
+
+def build_put_case(
+    name,
+    filter_name="filterName",
+    filter_pattern="filterPattern",
+    log_group_name="logGroupName",
+    metric_transformations=None,
+):
+    return {
+        "name": name,
+        "input": build_put_input(
+            filter_name, filter_pattern, log_group_name, metric_transformations
+        ),
+    }
+
+
+def build_put_input(
+    filter_name, filter_pattern, log_group_name, metric_transformations
+):
+    if metric_transformations is None:
+        metric_transformations = [
+            {
+                "defaultValue": 1,
+                "metricName": "metricName",
+                "metricNamespace": "metricNamespace",
+                "metricValue": "metricValue",
+            },
+        ]
+    return {
+        "filterName": filter_name,
+        "filterPattern": filter_pattern,
+        "logGroupName": log_group_name,
+        "metricTransformations": metric_transformations,
+    }
+
+
+def build_describe_input(
+    filter_name_prefix, log_group_name, metric_name, metric_namespace
+):
+    return {
+        "filterNamePrefix": filter_name_prefix,
+        "logGroupName": log_group_name,
+        "metricName": metric_name,
+        "metricNamespace": metric_namespace,
+    }
+
+
+def build_describe_case(
+    name,
+    filter_name_prefix="filterNamePrefix",
+    log_group_name="logGroupName",
+    metric_name="metricName",
+    metric_namespace="metricNamespace",
+):
+    return {
+        "name": name,
+        "input": build_describe_input(
+            filter_name_prefix, log_group_name, metric_name, metric_namespace
+        ),
+    }
 
 
 @mock_logs
@@ -75,8 +369,6 @@ def test_exceptions():
     conn.create_log_group(logGroupName=log_group_name)
     with pytest.raises(ClientError):
         conn.create_log_group(logGroupName=log_group_name)
-
-    # descrine_log_groups is not implemented yet
 
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
     with pytest.raises(ClientError):
@@ -302,6 +594,17 @@ def test_put_resource_policy():
 
     client.delete_log_group(logGroupName=log_group_name)
 
+    # put_resource_policy with same policy name should update the resouce
+    created_time = response["resourcePolicy"]["lastUpdatedTime"]
+    with freeze_time(timedelta(minutes=1)):
+        new_document = '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}'
+        policy_info = client.put_resource_policy(
+            policyName=policy_name, policyDocument=new_document,
+        )["resourcePolicy"]
+        assert policy_info["policyName"] == policy_name
+        assert policy_info["policyDocument"] == new_document
+        assert created_time < policy_info["lastUpdatedTime"] <= int(unix_time_millis())
+
 
 @mock_logs
 def test_put_resource_policy_too_many(json_policy_doc):
@@ -324,6 +627,11 @@ def test_put_resource_policy_too_many(json_policy_doc):
     exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     exc_value.response["Error"]["Code"].should.equal("LimitExceededException")
     exc_value.response["Error"]["Message"].should.contain("Resource limit exceeded.")
+
+    # put_resource_policy on already created policy, shouldnt throw any error
+    client.put_resource_policy(
+        policyName="test_policy_1", policyDocument=json.dumps(json_policy_doc)
+    )
 
 
 @mock_logs
@@ -703,11 +1011,11 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(limit=2)
     resp["logGroups"].should.have.length_of(2)
-    resp["nextToken"].should.equal("/aws/lambda/FileMonitoring")
+    resp.should.have.key("nextToken")
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"], limit=1)
     resp["logGroups"].should.have.length_of(1)
-    resp["nextToken"].should.equal("/aws/lambda/fileAvailable")
+    resp.should.have.key("nextToken")
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"])
     resp["logGroups"].should.have.length_of(1)
@@ -716,6 +1024,51 @@ def test_describe_log_groups_paging():
 
     resp = client.describe_log_groups(nextToken="invalid-token")
     resp["logGroups"].should.have.length_of(0)
+    resp.should_not.have.key("nextToken")
+
+
+@mock_logs
+def test_describe_log_streams_simple_paging():
+    client = boto3.client("logs", "us-east-1")
+
+    group_name = "/aws/lambda/lowercase-dev"
+
+    client.create_log_group(logGroupName=group_name)
+    stream_names = ["stream" + str(i) for i in range(0, 10)]
+    for name in stream_names:
+        client.create_log_stream(logGroupName=group_name, logStreamName=name)
+
+    # Get stream 1-10
+    resp = client.describe_log_streams(logGroupName=group_name)
+    resp["logStreams"].should.have.length_of(10)
+    resp.should_not.have.key("nextToken")
+
+    # Get stream 1-4
+    resp = client.describe_log_streams(logGroupName=group_name, limit=4)
+    resp["logStreams"].should.have.length_of(4)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream0", "stream1", "stream2", "stream3"]
+    )
+    resp.should.have.key("nextToken")
+
+    # Get stream 4-8
+    resp = client.describe_log_streams(
+        logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
+    )
+    resp["logStreams"].should.have.length_of(4)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream4", "stream5", "stream6", "stream7"]
+    )
+    resp.should.have.key("nextToken")
+
+    # Get stream 8-10
+    resp = client.describe_log_streams(
+        logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
+    )
+    resp["logStreams"].should.have.length_of(2)
+    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+        ["stream8", "stream9"]
+    )
     resp.should_not.have.key("nextToken")
 
 
@@ -805,4 +1158,144 @@ def test_start_query():
     exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
     exc_value.response["Error"]["Message"].should.equal(
         "The specified log group does not exist"
+    )
+
+
+@pytest.mark.parametrize("nr_of_events", [10001, 1000000])
+@mock_logs
+def test_get_too_many_log_events(nr_of_events):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    log_stream_name = "stream"
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.get_log_events(
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            limit=nr_of_events,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_events)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 10000")
+
+
+@pytest.mark.parametrize("nr_of_events", [10001, 1000000])
+@mock_logs
+def test_filter_too_many_log_events(nr_of_events):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    log_stream_name = "stream"
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.filter_log_events(
+            logGroupName=log_group_name,
+            logStreamNames=[log_stream_name],
+            limit=nr_of_events,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_events)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 10000")
+
+
+@pytest.mark.parametrize("nr_of_groups", [51, 100])
+@mock_logs
+def test_describe_too_many_log_groups(nr_of_groups):
+    client = boto3.client("logs", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_groups(limit=nr_of_groups)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_groups)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 50")
+
+
+@pytest.mark.parametrize("nr_of_streams", [51, 100])
+@mock_logs
+def test_describe_too_many_log_streams(nr_of_streams):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    client.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_streams(logGroupName=log_group_name, limit=nr_of_streams)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'limit' failed to satisfy constraint".format(nr_of_streams)
+    )
+    err["Message"].should.contain("Member must have value less than or equal to 50")
+
+
+@pytest.mark.parametrize("length", [513, 1000])
+@mock_logs
+def test_create_log_group_invalid_name_length(length):
+    log_group_name = "a" * length
+    client = boto3.client("logs", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.create_log_group(logGroupName=log_group_name)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'logGroupName' failed to satisfy constraint".format(
+            log_group_name
+        )
+    )
+    err["Message"].should.contain("Member must have length less than or equal to 512")
+
+
+@pytest.mark.parametrize("invalid_orderby", ["", "sth", "LogStreamname"])
+@mock_logs
+def test_describe_log_streams_invalid_order_by(invalid_orderby):
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    client.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_streams(
+            logGroupName=log_group_name, orderBy=invalid_orderby
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.contain("1 validation error detected")
+    err["Message"].should.contain(
+        "Value '{}' at 'orderBy' failed to satisfy constraint".format(invalid_orderby)
+    )
+    err["Message"].should.contain(
+        "Member must satisfy enum value set: [LogStreamName, LastEventTime]"
+    )
+
+
+@mock_logs
+def test_describe_log_streams_no_prefix():
+    """
+    From the docs: If orderBy is LastEventTime , you cannot specify [logStreamNamePrefix]
+    """
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "dummy"
+    client.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError) as ex:
+        client.describe_log_streams(
+            logGroupName=log_group_name,
+            orderBy="LastEventTime",
+            logStreamNamePrefix="sth",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Cannot order by LastEventTime with a logStreamNamePrefix."
     )

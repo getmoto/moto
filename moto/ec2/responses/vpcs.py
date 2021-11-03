@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -40,9 +39,10 @@ class VPCs(BaseResponse):
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
+        self.error_on_dryrun()
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = (
             "2013-10-15"
             if "Boto/" in self.headers.get("user-agent", "")
@@ -69,7 +69,7 @@ class VPCs(BaseResponse):
     def describe_vpc_classic_link_dns_support(self):
         vpc_ids = self._get_multi_param("VpcIds")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(
             DESCRIBE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE
@@ -101,7 +101,7 @@ class VPCs(BaseResponse):
     def describe_vpc_classic_link(self):
         vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
-        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
         template = self.response_template(DESCRIBE_VPC_CLASSIC_LINK_RESPONSE)
         return template.render(vpcs=vpcs, doc_date=doc_date)
@@ -133,6 +133,7 @@ class VPCs(BaseResponse):
                 attr_value = self.querystring.get("%s.Value" % attribute)[0]
                 self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
                 return MODIFY_VPC_ATTRIBUTE_RESPONSE
+        return None
 
     def associate_vpc_cidr_block(self):
         vpc_id = self._get_param("VpcId")
@@ -181,7 +182,7 @@ class VPCs(BaseResponse):
         service_name = self._get_param("ServiceName")
         route_table_ids = self._get_multi_param("RouteTableId")
         subnet_ids = self._get_multi_param("SubnetId")
-        type = self._get_param("VpcEndpointType")
+        endpoint_type = self._get_param("VpcEndpointType")
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         tags = self._get_multi_param("TagSpecification")
@@ -192,7 +193,7 @@ class VPCs(BaseResponse):
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
-            type=type,
+            type=endpoint_type,
             policy_document=policy_document,
             route_table_ids=route_table_ids,
             subnet_ids=subnet_ids,
@@ -205,14 +206,21 @@ class VPCs(BaseResponse):
         return template.render(vpc_end_point=vpc_end_point)
 
     def describe_vpc_endpoint_services(self):
-        vpc_end_point_services = self.ec2_backend.get_vpc_end_point_services()
+        vpc_end_point_services = self.ec2_backend.describe_vpc_endpoint_services(
+            dry_run=self._get_bool_param("DryRun"),
+            service_names=self._get_multi_param("ServiceName"),
+            filters=self._get_multi_param("Filter"),
+            max_results=self._get_int_param("MaxResults"),
+            next_token=self._get_param("NextToken"),
+            region=self.region,
+        )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE)
         return template.render(vpc_end_points=vpc_end_point_services)
 
     def describe_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
         filters = filters_from_querystring(self.querystring)
-        vpc_end_points = self.ec2_backend.get_vpc_end_point(
+        vpc_end_points = self.ec2_backend.describe_vpc_endpoints(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
@@ -589,33 +597,63 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
 DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
     <serviceNameSet>
-        {% for serviceName in vpc_end_points.services %}
+        {% for serviceName in vpc_end_points.serviceNames %}
             <item>{{ serviceName }}</item>
         {% endfor %}
     </serviceNameSet>
     <serviceDetailSet>
         {% for service in vpc_end_points.servicesDetails %}
-        <item>
-                <owner>amazon</owner>
-                <serviceType>
-                    <item>
-                        <serviceType>{{ service.type }}</serviceType>
-                    </item>
-                </serviceType>
-                <baseEndpointDnsNameSet>
-                    <item>{{ ".".join((service.service_name.split(".")[::-1])) }}</item>
-                </baseEndpointDnsNameSet>
-                <acceptanceRequired>false</acceptanceRequired>
+            <item>
+                <acceptanceRequired>{{ 'true' if service.AcceptanceRequired else 'false' }}</acceptanceRequired>
                 <availabilityZoneSet>
-                    {% for zone in vpc_end_points.availability_zones %}
-                        <item>{{ zone.name }}</item>
+                    {% for zone in service.AvailabilityZones %}
+                        <item>{{ zone }}</item>
                     {% endfor %}
                 </availabilityZoneSet>
-                <serviceName>{{ service.service_name }}</serviceName>
-                <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-        </item>
+                <baseEndpointDnsNameSet>
+                    {% for endpoint in service.BaseEndpointDnsNames %}
+                        <item>{{ endpoint }}</item>
+                    {% endfor %}
+                </baseEndpointDnsNameSet>
+                <managesVpcEndpoints>{{ 'true' if service.ManagesVpcEndpoints else 'false' }}</managesVpcEndpoints>
+                <owner>{{ service.Owner }}</owner>
+                {% if service.PrivateDnsName is defined %}
+                    <privateDnsName>{{ service.PrivateDnsName }}</privateDnsName>
+                    <privateDnsNameSet>
+                        {% for dns_name in service.PrivateDnsNames %}
+                            <item>
+                                <privateDnsName>{{ dns_name.PrivateDnsName }}</privateDnsName>
+                            </item>
+                        {% endfor %}
+                    </privateDnsNameSet>
+                    <privateDnsNameVerificationState>{{ service.PrivateDnsNameVerificationState }}</privateDnsNameVerificationState>
+                {% endif %}
+                <serviceId>{{ service.ServiceId }}</serviceId>
+                <serviceName>{{ service.ServiceName }}</serviceName>
+                <serviceType>
+                    {% for service_type in service.ServiceType %}
+                        <item>
+                            <serviceType>{{ service_type.ServiceType }}</serviceType>
+                        </item>
+                    {% endfor %}
+                </serviceType>
+                <tagSet>
+                    {% for tag in service.Tags %}
+                        {% for key, value in tag.items() %}
+                            <item>
+                                <key>{{ key }}</key>
+                                <value>{{ value }}</value>
+                            </item>
+                        {% endfor %}
+                    {% endfor %}
+                </tagSet>
+                <vpcEndpointPolicySupported>{{ 'true' if service.VpcEndpointPolicySupported else 'false' }}</vpcEndpointPolicySupported>
+            </item>
         {% endfor %}
     </serviceDetailSet>
+    {% if vpc_end_points.nextToken|length %}
+        <nextToken>{{ vpc_end_points.nextToken }}</nextToken>
+    {% endif %}
 </DescribeVpcEndpointServicesResponse>"""
 
 DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
@@ -788,7 +826,7 @@ DESCRIBE_PREFIX_LIST = """<DescribePrefixListsResponse xmlns="http://ec2.amazona
     <requestId>8a2ec0e2-6918-4270-ae45-58e61971e97d</requestId>
     <prefixListSet>
     {% for pl in managed_pls %}
-    {% if pl.prefix_list_name.startswith("com.amazonaws.") %}
+    {% if pl.prefix_list_name and pl.prefix_list_name.startswith("com.amazonaws.") %}
         <item>
             <cidrSet>
                 {% for entry in pl.entries.1 %}
