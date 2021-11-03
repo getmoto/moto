@@ -3171,6 +3171,7 @@ def test_initiate_auth_USER_SRP_AUTH():
     result["ChallengeName"].should.equal("PASSWORD_VERIFIER")
     result["ChallengeParameters"]["USERNAME"].should.equal(username)
 
+
 @mock_cognitoidp
 def test_initiate_auth_USER_SRP_AUTH_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
