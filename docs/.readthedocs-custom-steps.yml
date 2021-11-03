@@ -1,0 +1,4 @@
+# https://github.com/readthedocs/readthedocs.org/issues/6662#issuecomment-653675848
+steps:
+- echo "test"
+- python -m "$@"
