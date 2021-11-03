@@ -108,7 +108,7 @@ class Policy(CloudFormationModel):
         self.description = description or ""
         self.id = random_policy_id()
         self.path = path or "/"
-        self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
+        self.tags = tags
 
         if default_version_id:
             self.default_version_id = default_version_id
@@ -140,6 +140,9 @@ class Policy(CloudFormationModel):
     @property
     def updated_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.update_date)
+
+    def get_tags(self):
+        return [self.tags[tag] for tag in self.tags]
 
 
 class SAMLProvider(BaseModel):
@@ -284,6 +287,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "awsRegion": "global",
             "availabilityZone": "Not Applicable",
             "resourceCreationTime": str(self.create_date),
+            "tags": self.tags,
             "configuration": {
                 "policyName": self.name,
                 "policyId": self.id,
@@ -296,6 +300,12 @@ class ManagedPolicy(Policy, CloudFormationModel):
                 "description": self.description,
                 "createDate": str(self.create_date.isoformat()),
                 "updateDate": str(self.create_date.isoformat()),
+                "tags": list(
+                    map(
+                        lambda key: {"key": key, "value": self.tags[key]["Value"]},
+                        self.tags,
+                    )
+                ),
                 "policyVersionList": list(
                     map(
                         lambda version: {
@@ -331,12 +341,14 @@ class ManagedPolicy(Policy, CloudFormationModel):
         group_names = properties.get("Groups", [])
         user_names = properties.get("Users", [])
         role_names = properties.get("Roles", [])
+        tags = properties.get("Tags", {})
 
         policy = iam_backend.create_policy(
             description=description,
             path=path,
             policy_document=policy_document,
             policy_name=name,
+            tags=tags,
         )
         for group_name in group_names:
             iam_backend.attach_group_policy(
@@ -1568,16 +1580,17 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy {0} was not found.".format(policy_arn))
         policy.detach_from(self.get_user(user_name))
 
-    def create_policy(self, description, path, policy_document, policy_name, tags=None):
+    def create_policy(self, description, path, policy_document, policy_name, tags):
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()
 
+        clean_tags = self._tag_verification(tags)
         policy = ManagedPolicy(
             policy_name,
             description=description,
             document=policy_document,
             path=path,
-            tags=tags,
+            tags=clean_tags,
         )
         if policy.arn in self.managed_policies:
             raise EntityAlreadyExists(
@@ -1848,6 +1861,42 @@ class IAMBackend(BaseBackend):
             self._validate_tag_key(key, exception_param="tagKeys")
 
             role.tags.pop(ref_key, None)
+
+    def list_policy_tags(self, policy_arn, marker, max_items=100):
+        policy = self.get_policy(policy_arn)
+
+        max_items = int(max_items)
+        tag_index = sorted(policy.tags)
+        start_idx = int(marker) if marker else 0
+
+        tag_index = tag_index[start_idx : start_idx + max_items]
+
+        if len(policy.tags) <= (start_idx + max_items):
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        # Make the tag list of dict's:
+        tags = [policy.tags[tag] for tag in tag_index]
+
+        return tags, marker
+
+    def tag_policy(self, policy_arn, tags):
+        clean_tags = self._tag_verification(tags)
+        policy = self.get_policy(policy_arn)
+        policy.tags.update(clean_tags)
+
+    def untag_policy(self, policy_arn, tag_keys):
+        if len(tag_keys) > 50:
+            raise TooManyTags(tag_keys, param="tagKeys")
+
+        policy = self.get_policy(policy_arn)
+
+        for key in tag_keys:
+            ref_key = key.lower()
+            self._validate_tag_key(key, exception_param="tagKeys")
+
+            policy.tags.pop(ref_key, None)
 
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)

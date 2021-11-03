@@ -2364,7 +2364,7 @@
 - [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
-- [ ] list_policy_tags
+- [X] list_policy_tags
 - [X] list_policy_versions
 - [X] list_role_policies
 - [X] list_role_tags
@@ -2397,7 +2397,7 @@
 - [ ] tag_instance_profile
 - [ ] tag_mfa_device
 - [ ] tag_open_id_connect_provider
-- [ ] tag_policy
+- [X] tag_policy
 - [X] tag_role
 - [ ] tag_saml_provider
 - [ ] tag_server_certificate
@@ -2405,7 +2405,7 @@
 - [ ] untag_instance_profile
 - [ ] untag_mfa_device
 - [ ] untag_open_id_connect_provider
-- [ ] untag_policy
+- [X] untag_policy
 - [X] untag_role
 - [ ] untag_saml_provider
 - [ ] untag_server_certificate

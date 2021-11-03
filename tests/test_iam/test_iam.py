@@ -960,6 +960,543 @@ def test_delete_default_policy_version():
         )
 
 
+@mock_iam()
+def test_create_policy_with_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(
+        PolicyName="TestCreatePolicyWithTags1",
+        PolicyDocument=MOCK_POLICY,
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+        Description="testing",
+    )
+
+    # Get policy:
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(
+            ACCOUNT_ID, "TestCreatePolicyWithTags1"
+        )
+    )["Policy"]
+    assert len(policy["Tags"]) == 2
+    assert policy["Tags"][0]["Key"] == "somekey"
+    assert policy["Tags"][0]["Value"] == "somevalue"
+    assert policy["Tags"][1]["Key"] == "someotherkey"
+    assert policy["Tags"][1]["Value"] == "someothervalue"
+    assert policy["Description"] == "testing"
+
+
+@mock_iam()
+def test_create_policy_with_empty_tag_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # Empty is good:
+    conn.create_policy(
+        PolicyName="TestCreatePolicyWithTags2",
+        PolicyDocument=MOCK_POLICY,
+        Tags=[{"Key": "somekey", "Value": ""}],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(
+            ACCOUNT_ID, "TestCreatePolicyWithTags2"
+        )
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == ""
+
+
+@mock_iam()
+def test_create_policy_with_too_many_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With more than 50 tags:
+    with pytest.raises(ClientError) as ce:
+        too_many_tags = list(
+            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
+        )
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=too_many_tags,
+        )
+    assert (
+        "failed to satisfy constraint: Member must have length less than or equal to 50."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_duplicate_tag():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a duplicate tag:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "0", "Value": ""}, {"Key": "0", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_duplicate_tag_different_casing():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # Duplicate tag with different casing:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_tag_containing_large_key():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a really big key:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "0" * 129, "Value": ""}],
+        )
+    assert (
+        "Member must have length less than or equal to 128."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_tag_containing_large_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a really big value:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "0", "Value": "0" * 257}],
+        )
+    assert (
+        "Member must have length less than or equal to 256."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_tag_containing_invalid_character():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With an invalid character:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "NOWAY!", "Value": ""}],
+        )
+    assert (
+        "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_no_tags():
+    """Tests both the tag_policy and get_policy_tags capability"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+
+    # Get without tags:
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )["Policy"]
+    assert not policy.get("Tags")
+
+
+@mock_iam()
+def test_get_policy_with_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Get policy:
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )["Policy"]
+    assert len(policy["Tags"]) == 2
+    assert policy["Tags"][0]["Key"] == "somekey"
+    assert policy["Tags"][0]["Value"] == "somevalue"
+    assert policy["Tags"][1]["Key"] == "someotherkey"
+    assert policy["Tags"][1]["Value"] == "someothervalue"
+
+
+@mock_iam()
+def test_list_policy_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # List_policy_tags:
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )
+    assert len(tags["Tags"]) == 2
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == "somevalue"
+    assert tags["Tags"][1]["Key"] == "someotherkey"
+    assert tags["Tags"][1]["Value"] == "someothervalue"
+    assert not tags["IsTruncated"]
+    assert not tags.get("Marker")
+
+
+@mock_iam()
+def test_list_policy_tags_pagination():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Test pagination:
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        MaxItems=1,
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["IsTruncated"]
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == "somevalue"
+    assert tags["Marker"] == "1"
+
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Marker=tags["Marker"],
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["Tags"][0]["Key"] == "someotherkey"
+    assert tags["Tags"][0]["Value"] == "someothervalue"
+    assert not tags["IsTruncated"]
+    assert not tags.get("Marker")
+
+
+@mock_iam()
+def test_updating_existing_tag():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Test updating an existing tag:
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[{"Key": "somekey", "Value": "somenewvalue"}],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )
+    assert len(tags["Tags"]) == 2
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == "somenewvalue"
+
+
+@mock_iam()
+def test_updating_existing_tag_with_empty_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Empty is good:
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[{"Key": "somekey", "Value": ""}],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )
+    assert len(tags["Tags"]) == 2
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == ""
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_too_many_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With more than 50 tags:
+    with pytest.raises(ClientError) as ce:
+        too_many_tags = list(
+            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
+        )
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=too_many_tags,
+        )
+    assert (
+        "failed to satisfy constraint: Member must have length less than or equal to 50."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_duplicate_tag():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With a duplicate tag:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "0", "Value": ""}, {"Key": "0", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Duplicate tag with different casing:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_large_key():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With a really big key:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "0" * 129, "Value": ""}],
+        )
+    assert (
+        "Member must have length less than or equal to 128."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_large_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With a really big value:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "0", "Value": "0" * 257}],
+        )
+    assert (
+        "Member must have length less than or equal to 256."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_invalid_character():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With an invalid character:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "NOWAY!", "Value": ""}],
+        )
+    assert (
+        "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_tag_non_existant_policy():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a policy that doesn't exist:
+    with pytest.raises(ClientError):
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
+            Tags=[{"Key": "some", "Value": "value"}],
+        )
+
+
+@mock_iam
+def test_untag_policy():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestUnTagPolicy", PolicyDocument=MOCK_POLICY)
+
+    # With proper tag values:
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Remove them:
+    conn.untag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        TagKeys=["somekey"],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["Tags"][0]["Key"] == "someotherkey"
+    assert tags["Tags"][0]["Value"] == "someothervalue"
+
+    # And again:
+    conn.untag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        TagKeys=["someotherkey"],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
+    )
+    assert not tags["Tags"]
+
+    # Test removing tags with invalid values:
+    # With more than 50 tags:
+    with pytest.raises(ClientError) as ce:
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            TagKeys=[str(x) for x in range(0, 51)],
+        )
+    assert (
+        "failed to satisfy constraint: Member must have length less than or equal to 50."
+        in ce.value.response["Error"]["Message"]
+    )
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
+
+    # With a really big key:
+    with pytest.raises(ClientError) as ce:
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            TagKeys=["0" * 129],
+        )
+    assert (
+        "Member must have length less than or equal to 128."
+        in ce.value.response["Error"]["Message"]
+    )
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
+
+    # With an invalid character:
+    with pytest.raises(ClientError) as ce:
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            TagKeys=["NOWAY!"],
+        )
+    assert (
+        "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
+        in ce.value.response["Error"]["Message"]
+    )
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
+
+    # With a policy that doesn't exist:
+    with pytest.raises(ClientError):
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
+            TagKeys=["somevalue"],
+        )
+
+
 # Has boto3 equivalent
 @mock_iam_deprecated()
 def test_create_user():
@@ -3473,6 +4010,7 @@ def test_role_config_dict():
             path="/",
             policy_document=json.dumps(basic_policy),
             policy_name="basic_policy",
+            tags=[],
         )
         .arn
     )
@@ -3974,6 +4512,7 @@ def test_policy_list_config_discovered_resources():
             path="",
             policy_document=json.dumps(basic_policy),
             policy_name="policy{}".format(ix),
+            tags=[],
         )
         policies.append(
             {"id": this_policy.id, "name": this_policy.name,}
@@ -4057,6 +4596,7 @@ def test_policy_config_dict():
             path="/",
             policy_document=json.dumps(basic_policy),
             policy_name="basic_policy",
+            tags=[],
         )
         .arn
     )
