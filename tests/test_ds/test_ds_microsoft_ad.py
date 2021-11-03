@@ -120,7 +120,7 @@ def test_ds_create_microsoft_ad_validations():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_vpc_settings['SubnetIds'][0]}' at "
+        fr"Value '['{bad_vpc_settings['SubnetIds'][0]}']' at "
         fr"'vpcSettings.subnetIds' failed to satisfy constraint: "
         fr"Member must satisfy regular expression pattern: "
         fr"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
@@ -192,6 +192,7 @@ def test_ds_create_microsoft_ad_describe():
     assert directory["VpcSettings"]["VpcId"].startswith("vpc-")
     assert len(directory["VpcSettings"]["SubnetIds"]) == 2
     assert directory["Edition"] == "Standard"
+    assert set(directory["DnsIpAddrs"]) == set(["10.0.1.1", "10.0.0.1"])
     assert "NextToken" not in result
 
 
@@ -229,3 +230,5 @@ def test_ds_get_microsoft_ad_directory_limits():
         == limits["CloudOnlyMicrosoftADCurrentCount"]
     )
     assert limits["CloudOnlyMicrosoftADLimitReached"]
+    assert not limits["ConnectedDirectoriesLimitReached"]
+    assert not limits["CloudOnlyDirectoriesCurrentCount"]

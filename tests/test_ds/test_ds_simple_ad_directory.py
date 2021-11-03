@@ -132,7 +132,7 @@ def test_ds_create_directory_validations():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_vpc_settings['SubnetIds'][0]}' at "
+        fr"Value '['{bad_vpc_settings['SubnetIds'][0]}']' at "
         fr"'vpcSettings.subnetIds' failed to satisfy constraint: "
         fr"Member must satisfy regular expression pattern: "
         fr"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]

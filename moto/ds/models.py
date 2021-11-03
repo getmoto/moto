@@ -1,6 +1,6 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
-import re
+import ipaddress
 
 from boto3 import Session
 
@@ -11,19 +11,47 @@ from moto.ds.exceptions import (
     DirectoryLimitExceededException,
     EntityAlreadyExistsException,
     EntityDoesNotExistException,
-    DsValidationException,
     InvalidParameterException,
     TagLimitExceededException,
     ValidationException,
 )
+from moto.ds.utils import PAGINATION_MODEL
+from moto.ds.validations import (
+    validate_args,
+    validate_alias,
+    validate_description,
+    validate_directory_id,
+    validate_dns_ips,
+    validate_edition,
+    validate_name,
+    validate_password,
+    validate_short_name,
+    validate_size,
+    validate_sso_password,
+    validate_subnet_ids,
+    validate_user_name,
+)
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
-from .utils import PAGINATION_MODEL
 
 
 class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
-    """Representation of a Simple AD Directory."""
+    """Representation of a Simple AD Directory.
+
+    When the "create" API for a Simple AD or a Microsoft AD directory is
+    invoked, two domain controllers and a DNS server are supposed to be
+    created.  That is NOT done for the fake directories.
+
+    However, the DnsIpAddrs attribute is supposed to contain the IP addresses
+    of the DNS servers.  For a AD Connecter, the DnsIpAddrs are provided when
+    the directory is created, but the ConnectSettings.ConnectIps values should
+    contain the IP addresses of the DNS servers or domain controllers in the
+    directory to which the AD connector is connected.
+
+    Instead, the dns_ip_addrs attribute or ConnectIPs attribute for the fake
+    directories will contain IPs picked from the subnets' CIDR blocks.
+    """
 
     # The assumption here is that the limits are the same for all regions.
     CLOUDONLY_DIRECTORIES_LIMIT = 10
@@ -37,6 +65,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         name,
         password,
         directory_type,
+        subnets,
         size=None,
         vpc_settings=None,
         connect_settings=None,
@@ -64,6 +93,27 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.launch_time = datetime.now(timezone.utc).isoformat()
         self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
 
+        if directory_type != "ADConnector":
+            self.dns_ip_addrs = self.subnet_ips(subnets)
+        else:
+            self.dns_ip_addrs = self.connect_settings["CustomerDnsIps"]
+            self.connect_settings["ConnectIps"] = self.subnet_ips(subnets)
+
+    @staticmethod
+    def subnet_ips(subnets):
+        """Return an IP from each of the given subnets.
+
+        This is a bit dodgey and may need to be reworked at a later time.
+        """
+        ip_addrs = []
+        for subnet in subnets:
+            ips = ipaddress.IPv4Network(subnet.cidr_block)
+            # Not sure if the following could occur, but if it does,
+            # the situation will be ignored.
+            if ips:
+                ip_addrs.append(str(ips[1]) if ips.num_addresses > 1 else str(ips[0]))
+        return ip_addrs
+
     def update_alias(self, alias):
         """Change default alias to given alias."""
         self.alias = alias
@@ -90,13 +140,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 new_tag = "".join(x.title() for x in item.split("_"))
                 json_result[new_tag] = value
 
-        # One more exception:  The fields in vpc_settings and connect_settings
-        # retain their input field names.  However, connect_setting's
-        # "CustomerDnsIps" must be "output" or "described" as "ConnectIps".
         if json_result["ConnectSettings"]:
-            json_result["ConnectSettings"]["ConnectIps"] = json_result[
-                "ConnectSettings"
-            ].pop("CustomerDnsIps")
+            json_result["ConnectSettings"]["CustomerDnsIps"] = None
         return json_result
 
 
@@ -122,80 +167,8 @@ class DirectoryServiceBackend(BaseBackend):
         )
 
     @staticmethod
-    def _validate_create_directory_args(
-        name, passwd, subnets, description, short_name, size=None, edition=None,
-    ):  # pylint: disable=too-many-arguments
-        """Raise exception if create_directory() args don't meet constraints.
-
-        The error messages are accumulated before the exception is raised.
-        """
-        error_tuples = []
-        passwd_pattern = (
-            r"^(?=^.{8,64}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|"
-            r"(?=.*\d)(?=.*[^A-Za-z0-9\s])(?=.*[a-z])|"
-            r"(?=.*[^A-Za-z0-9\s])(?=.*[A-Z])(?=.*[a-z])|"
-            r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*$"
-        )
-        if not re.match(passwd_pattern, passwd):
-            # Can't have an odd number of backslashes in a literal.
-            json_pattern = passwd_pattern.replace("\\", r"\\")
-            error_tuples.append(
-                (
-                    "password",
-                    passwd,
-                    fr"satisfy regular expression pattern: {json_pattern}",
-                )
-            )
-
-        if size and size.lower() not in ["small", "large"]:
-            error_tuples.append(
-                ("size", size, "satisfy enum value set: [Small, Large]")
-            )
-
-        name_pattern = r"^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+$"
-        if not re.match(name_pattern, name):
-            error_tuples.append(
-                ("name", name, fr"satisfy regular expression pattern: {name_pattern}")
-            )
-
-        subnet_id_pattern = r"^(subnet-[0-9a-f]{8}|subnet-[0-9a-f]{17})$"
-        for subnet in subnets:
-            if not re.match(subnet_id_pattern, subnet):
-                error_tuples.append(
-                    (
-                        "vpcSettings.subnetIds",
-                        subnet,
-                        fr"satisfy regular expression pattern: {subnet_id_pattern}",
-                    )
-                )
-
-        if description and len(description) > 128:
-            error_tuples.append(
-                ("description", description, "have length less than or equal to 128")
-            )
-
-        short_name_pattern = r'^[^\/:*?"<>|.]+[^\/:*?"<>|]*$'
-        if short_name and not re.match(short_name_pattern, short_name):
-            json_pattern = short_name_pattern.replace("\\", r"\\").replace('"', r"\"")
-            error_tuples.append(
-                (
-                    "shortName",
-                    short_name,
-                    fr"satisfy regular expression pattern: {json_pattern}",
-                )
-            )
-
-        if edition and edition not in ["Enterprise", "Standard"]:
-            error_tuples.append(
-                ("edition", edition, "satisfy enum value set: [Enterprise, Standard]")
-            )
-
-        if error_tuples:
-            raise DsValidationException(error_tuples)
-
-    @staticmethod
-    def _validate_vpc_setting_values(region, vpc_settings):
-        """Raise exception if vpc_settings are invalid.
+    def _get_subnets(region, vpc_settings):
+        """Return subnets if vpc_settings are invalid, else raise an exception.
 
         If settings are valid, add AvailabilityZones to vpc_settings.
         """
@@ -231,40 +204,7 @@ class DirectoryServiceBackend(BaseBackend):
             raise ClientException("Invalid VPC ID.")
 
         vpc_settings["AvailabilityZones"] = regions
-
-    @staticmethod
-    def _validate_connect_setting_values(connect_settings):
-        """Raise exception if CustomerDnsIps, CustomerUserName are invalid."""
-        error_tuples = []
-
-        username = connect_settings["CustomerUserName"]
-        username_pattern = r"^[a-zA-Z0-9._-]+$"
-        if not re.match(username_pattern, username):
-            error_tuples.append(
-                (
-                    "connectSettings.customerUserName",
-                    username,
-                    fr"satisfy regular expression pattern: {username_pattern}",
-                )
-            )
-
-        dnsip_pattern = (
-            r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}"
-            r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-        )
-        for dnsip in connect_settings["CustomerDnsIps"]:
-            if not re.match(dnsip_pattern, dnsip):
-                json_pattern = dnsip_pattern.replace("\\", r"\\")
-                error_tuples.append(
-                    (
-                        "connectSettings.customerDnsIps",
-                        [dnsip],
-                        fr"satisfy regular expression pattern: {json_pattern}",
-                    )
-                )
-
-        if error_tuples:
-            raise DsValidationException(error_tuples)
+        return subnets
 
     def connect_directory(
         self,
@@ -284,29 +224,44 @@ class DirectoryServiceBackend(BaseBackend):
                 f"{Directory.CONNECTED_DIRECTORIES_LIMIT} directories may be created"
             )
 
-        self._validate_create_directory_args(
-            name,
-            password,
-            connect_settings["SubnetIds"],
-            description,
-            short_name,
-            size=size,
+        validate_args(
+            [
+                (validate_password, "password", password),
+                (validate_size, "size", size),
+                (validate_name, "name", name),
+                (validate_description, "description", description),
+                (validate_short_name, "shortName", short_name),
+                (
+                    validate_subnet_ids,
+                    "connectSettings.vpcSettings.subnetIds",
+                    connect_settings["SubnetIds"],
+                ),
+                (
+                    validate_user_name,
+                    "connectSettings.customerUserName",
+                    connect_settings["CustomerUserName"],
+                ),
+                (
+                    validate_dns_ips,
+                    "connectSettings.customerDnsIps",
+                    connect_settings["CustomerDnsIps"],
+                ),
+            ]
         )
         # ConnectSettings and VpcSettings both have a VpcId and Subnets.
-        self._validate_vpc_setting_values(region, connect_settings)
-        self._validate_connect_setting_values(connect_settings)
+        subnets = self._get_subnets(region, connect_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
-
         if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
             name,
             password,
-            directory_type="ADConnector",
+            "ADConnector",
+            subnets,
             size=size,
             connect_settings=connect_settings,
             short_name=short_name,
@@ -329,28 +284,33 @@ class DirectoryServiceBackend(BaseBackend):
         # botocore doesn't look for missing vpc_settings, but boto3 does.
         if not vpc_settings:
             raise InvalidParameterException("VpcSettings must be specified.")
-
-        self._validate_create_directory_args(
-            name,
-            password,
-            vpc_settings["SubnetIds"],
-            description,
-            short_name,
-            size=size,
+        validate_args(
+            [
+                (validate_password, "password", password),
+                (validate_size, "size", size),
+                (validate_name, "name", name),
+                (validate_description, "description", description),
+                (validate_short_name, "shortName", short_name),
+                (
+                    validate_subnet_ids,
+                    "vpcSettings.subnetIds",
+                    vpc_settings["SubnetIds"],
+                ),
+            ]
         )
-        self._validate_vpc_setting_values(region, vpc_settings)
+        subnets = self._get_subnets(region, vpc_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
-
         if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
             name,
             password,
-            directory_type="SimpleAD",
+            "SimpleAD",
+            subnets,
             size=size,
             vpc_settings=vpc_settings,
             short_name=short_name,
@@ -363,18 +323,7 @@ class DirectoryServiceBackend(BaseBackend):
     def _validate_directory_id(self, directory_id):
         """Raise an exception if the directory id is invalid or unknown."""
         # Validation of ID takes precedence over a check for its existence.
-        id_pattern = r"^d-[0-9a-f]{10}$"
-        if not re.match(id_pattern, directory_id):
-            raise DsValidationException(
-                [
-                    (
-                        "directoryId",
-                        directory_id,
-                        fr"satisfy regular expression pattern: {id_pattern}",
-                    )
-                ]
-            )
-
+        validate_args([(validate_directory_id, "directoryId", directory_id)])
         if directory_id not in self.directories:
             raise EntityDoesNotExistException(
                 f"Directory {directory_id} does not exist"
@@ -397,17 +346,7 @@ class DirectoryServiceBackend(BaseBackend):
         if alias in [x.alias for x in self.directories.values()]:
             raise EntityAlreadyExistsException(f"Alias '{alias}' already exists.")
 
-        # Validate the alias conforms to the length and other constraints.
-        if len(alias) > 62:
-            raise DsValidationException(
-                [("alias", alias, "have length less than or equal to 62")]
-            )
-
-        alias_pattern = r"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
-        if not re.match(alias_pattern, alias):
-            json_pattern = alias_pattern.replace("\\", r"\\")
-            msg = fr"satisfy regular expression pattern: {json_pattern}"
-            raise DsValidationException([("alias", alias, msg)])
+        validate_args([(validate_alias, "alias", alias)])
 
         directory.update_alias(alias)
         return {"DirectoryId": directory_id, "Alias": alias}
@@ -431,27 +370,33 @@ class DirectoryServiceBackend(BaseBackend):
             )
 
         # boto3 looks for missing vpc_settings for create_microsoft_ad().
-        self._validate_create_directory_args(
-            name,
-            password,
-            vpc_settings["SubnetIds"],
-            description,
-            short_name,
-            edition=edition,
+        validate_args(
+            [
+                (validate_password, "password", password),
+                (validate_edition, "edition", edition),
+                (validate_name, "name", name),
+                (validate_description, "description", description),
+                (validate_short_name, "shortName", short_name),
+                (
+                    validate_subnet_ids,
+                    "vpcSettings.subnetIds",
+                    vpc_settings["SubnetIds"],
+                ),
+            ]
         )
-        self._validate_vpc_setting_values(region, vpc_settings)
+        subnets = self._get_subnets(region, vpc_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
-
         if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
             name,
             password,
-            directory_type="MicrosoftAD",
+            "MicrosoftAD",
+            subnets,
             vpc_settings=vpc_settings,
             short_name=short_name,
             description=description,
@@ -468,42 +413,33 @@ class DirectoryServiceBackend(BaseBackend):
         self.directories.pop(directory_id)
         return directory_id
 
-    def _validate_change_to_sso(self, directory_id, username=None, password=None):
-        """Raise exception if the SSO-related arguments are invalid."""
-        self._validate_directory_id(directory_id)
-
-        if password and len(password) > 128:
-            msg = "have length less than or equal to 128"
-            raise DsValidationException([("password", password, msg)])
-
-        username_pattern = r"^[a-zA-Z0-9._-]+$"
-        if username and not re.match(username_pattern, username):
-            msg = fr"satisfy regular expression pattern: {username_pattern}"
-            raise DsValidationException([("userName", username, msg)])
-
     def disable_sso(self, directory_id, username=None, password=None):
         """Disable single-sign on for a directory."""
-        self._validate_change_to_sso(directory_id, username, password)
+        self._validate_directory_id(directory_id)
+        validate_args(
+            [
+                (validate_sso_password, "password", password),
+                (validate_user_name, "userName", username),
+            ]
+        )
         directory = self.directories[directory_id]
         directory.enable_sso(False)
 
     def enable_sso(self, directory_id, username=None, password=None):
         """Enable single-sign on for a directory."""
-        self._validate_change_to_sso(directory_id, username, password)
+        self._validate_directory_id(directory_id)
+        validate_args(
+            [
+                (validate_sso_password, "password", password),
+                (validate_user_name, "userName", username),
+            ]
+        )
 
         directory = self.directories[directory_id]
         if directory.alias == directory_id:
             raise ClientException(
                 f"An alias is required before enabling SSO. DomainId={directory_id}"
             )
-
-        # TODO - need more testing with a AD Connector directory
-        # An error occurred (EntityDoesNotExistException) when calling the
-        # EnableSso operation: AuthenticateServiceAccount failed. Request id:
-        # 8e420726-67f2-4b0d-9945-f00929327ac0 : Authentication failed for
-        # user: klb : message: enact: realm:userName:klb Kerberos
-        # exception:getKerberosTicket: Krb exception:Client not found in
-        # Kerberos database (6)
 
         directory = self.directories[directory_id]
         directory.enable_sso(True)

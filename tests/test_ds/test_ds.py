@@ -79,6 +79,8 @@ def test_ds_get_directory_limits():
         == limits["CloudOnlyDirectoriesCurrentCount"]
     )
     assert limits["CloudOnlyDirectoriesLimitReached"]
+    assert not limits["CloudOnlyMicrosoftADCurrentCount"]
+    assert not limits["ConnectedDirectoriesCurrentCount"]
 
 
 @mock_ec2
@@ -114,6 +116,7 @@ def test_ds_describe_directories():
         assert dir_info["Type"] == "SimpleAD"
         assert dir_info["VpcSettings"]["VpcId"].startswith("vpc-")
         assert len(dir_info["VpcSettings"]["SubnetIds"]) == 2
+        assert set(dir_info["DnsIpAddrs"]) == set(["10.0.1.1", "10.0.0.1"])
     assert "NextToken" not in result
 
     # Test with a specific directory ID.

@@ -144,9 +144,9 @@ def test_ds_connect_directory_validations():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_connect_settings['SubnetIds'][0]}' at "
-        fr"'vpcSettings.subnetIds' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
+        fr"Value '['{bad_connect_settings['SubnetIds'][0]}']' at "
+        fr"'connectSettings.vpcSettings.subnetIds' failed to satisfy "
+        fr"constraint: Member must satisfy regular expression pattern: "
         fr"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
     )
 
@@ -252,9 +252,10 @@ def test_ds_connect_directory_describe():
     assert len(directory["ConnectSettings"]["SubnetIds"]) == 2
     assert directory["ConnectSettings"]["CustomerUserName"] == "Admin"
     assert set(directory["ConnectSettings"]["ConnectIps"]) == set(
-        ["1.2.3.4", "5.6.7.8"]
+        ["10.0.0.1", "10.0.1.1"]
     )
     assert directory["Size"] == "Small"
+    assert set(directory["DnsIpAddrs"]) == set(["1.2.3.4", "5.6.7.8"])
     assert "NextToken" not in result
 
 
@@ -292,3 +293,5 @@ def test_ds_get_connect_directory_limits():
         == limits["ConnectedDirectoriesCurrentCount"]
     )
     assert limits["ConnectedDirectoriesLimitReached"]
+    assert not limits["CloudOnlyDirectoriesCurrentCount"]
+    assert not limits["CloudOnlyMicrosoftADCurrentCount"]
