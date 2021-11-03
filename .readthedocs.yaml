@@ -15,3 +15,8 @@ sphinx:
 
 formats:
    - pdf
+
+python:
+  install:
+    - method: pip
+      path: .
