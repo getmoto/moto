@@ -148,7 +148,7 @@ class CognitoIdentityBackend(BaseBackend):
         response = pool.to_json()
         return response
 
-    def get_id(self, identity_pool_id: str, server_mode: bool=False):
+    def get_id(self, identity_pool_id: str):
         identity_id = {"IdentityId": get_random_identity_id(self.region)}
         self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)

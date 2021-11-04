@@ -55,7 +55,6 @@ class CognitoIdentityResponse(BaseResponse):
     def get_id(self):
         return cognitoidentity_backends[self.region].get_id(
             identity_pool_id=self._get_param("IdentityPoolId"),
-            server_mode=True
         )
 
     def describe_identity_pool(self):
