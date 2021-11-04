@@ -106,12 +106,14 @@ class CognitoIdentityBackend(BaseBackend):
             tags=tags,
         )
         self.identity_pools[new_identity.identity_pool_id] = new_identity
-        self.pools_identities.update({
-            new_identity.identity_pool_id: {
-                'IdentityPoolId': new_identity.identity_pool_id,
-                'Identities': [],
+        self.pools_identities.update(
+            {
+                new_identity.identity_pool_id: {
+                    "IdentityPoolId": new_identity.identity_pool_id,
+                    "Identities": [],
+                }
             }
-        })
+        )
         response = new_identity.to_json()
         return response
 
@@ -184,9 +186,7 @@ class CognitoIdentityBackend(BaseBackend):
         return response
 
     def list_identities(self, identity_pool_id, max_results=123):
-        response = json.dumps(
-            self.pools_identities[identity_pool_id]
-        )
+        response = json.dumps(self.pools_identities[identity_pool_id])
         return response
 
 
