@@ -3,8 +3,17 @@ import boto.rds
 import boto.vpc
 from boto.exception import BotoServerError
 import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_ec2_deprecated, mock_rds_deprecated, mock_rds
+
+
+def test_deprecation_warning():
+    with pytest.warns(None) as record:
+        mock_rds()
+    str(record[0].message).should.contain(
+        "Module mock_rds has been deprecated, and will be repurposed in a later release"
+    )
 
 
 @mock_rds_deprecated
