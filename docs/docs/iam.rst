@@ -1,4 +1,4 @@
-.. _iam:
+.. _iam access control:
 
 =======================
 IAM-like Access Control

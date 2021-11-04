@@ -38,8 +38,6 @@ interfaces with 0.0.0.0:
 Please be aware this might allow other network users to access your
 server.
 
-Then go to localhost_ to see a list of running instances (it will be empty since you haven't added any yet).
-
 To use Moto in your tests, you can pass an `endpoint_url` to the SDK of your choice.
 
 In Python:
@@ -69,6 +67,23 @@ In Scala:
     val config = new AwsClientBuilder.EndpointConfiguration(serviceEndpoint, region)
     val amazonSqs =  AmazonSQSClientBuilder.standard().withEndpointConfiguration(config).build
 
+In Terraform:
+
+.. code-block::
+
+    provider "aws" {
+        region                      = "us-east-1"
+        skip_credentials_validation = true
+        skip_metadata_api_check     = true
+        skip_requesting_account_id  = true
+        s3_force_path_style         = true
+
+        endpoints {
+            lambda           = "http://localhost:5000"
+        }
+    }
+
+See the `Terraform Docs`_ for more information.
 
 Examples
 --------
@@ -128,5 +143,5 @@ As a result, you need to add that entry to your host file for your tests to func
 .. _Java: https://github.com/spulec/moto/blob/master/other_langs/sqsSample.java
 .. _Ruby: https://github.com/spulec/moto/blob/master/other_langs/test.rb
 .. _Javascript: https://github.com/spulec/moto/blob/master/other_langs/test.js
-.. _localhost: http://localhost:5000/?Action=DescribeInstances
 .. _Homebrew: https://brew.sh
+.. _Terraform Docs: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/custom-service-endpoints

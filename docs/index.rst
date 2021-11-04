@@ -32,7 +32,7 @@ Additional Resources
 
    docs/getting_started
    docs/server_mode
-   docs/implemented_services
    docs/boto
    docs/iam
    docs/aws_config
+   docs/services/index
