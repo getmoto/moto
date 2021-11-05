@@ -54,6 +54,7 @@ class CognitoIdentityBackend(BaseBackend):
         super(CognitoIdentityBackend, self).__init__()
         self.region = region
         self.identity_pools = OrderedDict()
+        self.pools_identities = {}
 
     def reset(self):
         region = self.region
@@ -105,7 +106,14 @@ class CognitoIdentityBackend(BaseBackend):
             tags=tags,
         )
         self.identity_pools[new_identity.identity_pool_id] = new_identity
-
+        self.pools_identities.update(
+            {
+                new_identity.identity_pool_id: {
+                    "IdentityPoolId": new_identity.identity_pool_id,
+                    "Identities": [],
+                }
+            }
+        )
         response = new_identity.to_json()
         return response
 
@@ -142,8 +150,9 @@ class CognitoIdentityBackend(BaseBackend):
         response = pool.to_json()
         return response
 
-    def get_id(self):
+    def get_id(self, identity_pool_id: str):
         identity_id = {"IdentityId": get_random_identity_id(self.region)}
+        self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)
 
     def get_credentials_for_identity(self, identity_id):
@@ -174,6 +183,10 @@ class CognitoIdentityBackend(BaseBackend):
         response = json.dumps(
             {"IdentityId": identity_id, "Token": get_random_identity_id(self.region)}
         )
+        return response
+
+    def list_identities(self, identity_pool_id, max_results=123):
+        response = json.dumps(self.pools_identities[identity_pool_id])
         return response
 
 
