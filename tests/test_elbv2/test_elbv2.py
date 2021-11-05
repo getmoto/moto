@@ -1145,6 +1145,47 @@ def test_modify_load_balancer_attributes_idle_timeout():
     )[0]
     idle_timeout["Value"].should.equal("600")
 
+@mock_elbv2
+@mock_ec2
+def test_modify_load_balancer_attributes_routing_http2_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "routing.http2.enabled", "Value": "false"}],
+    )
+
+    # Check its 600 not 60
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    routing_http2_enabled = list(
+        filter(
+            lambda item: item["Key"] == "routing.http2.enabled",
+            response["Attributes"],
+        )
+    )[0]
+    routing_http2_enabled["Value"].should.equal("false")
+
+@mock_elbv2
+@mock_ec2
+def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "false"}],
+    )
+
+    # Check its 600 not 60
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    routing_http_drop_invalid_header_fields_enabled = list(
+        filter(
+            lambda item: item["Key"] == "routing.http.drop_invalid_header_fields.enabled",
+            response["Attributes"],
+        )
+    )[0]
+    routing_http_drop_invalid_header_fields_enabled["Value"].should.equal("false")
 
 @mock_elbv2
 @mock_ec2
