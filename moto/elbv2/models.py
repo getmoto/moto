@@ -298,7 +298,12 @@ class FakeListener(CloudFormationModel):
 
 class FakeListenerRule(CloudFormationModel):
     def __init__(
-        self, listener_arn, arn, conditions, priority, actions,
+        self,
+        listener_arn,
+        arn,
+        conditions,
+        priority,
+        actions,
     ):
         self.listener_arn = listener_arn
         self.arn = arn
@@ -426,7 +431,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "deletion_protection.enabled",
         "idle_timeout.timeout_seconds",
         "routing.http2.enabled",
-        "routing.http.drop_invalid_header_fields.enabled"
+        "routing.http.drop_invalid_header_fields.enabled",
     }
 
     def __init__(
@@ -683,7 +688,13 @@ class ELBv2Backend(BaseBackend):
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        rule = FakeListenerRule(listener.arn, arn, conditions, priority, actions,)
+        rule = FakeListenerRule(
+            listener.arn,
+            arn,
+            conditions,
+            priority,
+            actions,
+        )
         listener.register(arn, rule)
         return rule
 
