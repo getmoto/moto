@@ -298,12 +298,7 @@ class FakeListener(CloudFormationModel):
 
 class FakeListenerRule(CloudFormationModel):
     def __init__(
-        self,
-        listener_arn,
-        arn,
-        conditions,
-        priority,
-        actions,
+        self, listener_arn, arn, conditions, priority, actions,
     ):
         self.listener_arn = listener_arn
         self.arn = arn
@@ -688,13 +683,7 @@ class ELBv2Backend(BaseBackend):
         # TODO: check for error 'TooManyRules'
 
         # create rule
-        rule = FakeListenerRule(
-            listener.arn,
-            arn,
-            conditions,
-            priority,
-            actions,
-        )
+        rule = FakeListenerRule(listener.arn, arn, conditions, priority, actions,)
         listener.register(arn, rule)
         return rule
 
