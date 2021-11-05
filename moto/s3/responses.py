@@ -319,7 +319,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif method == "POST":
             return self._bucket_response_post(request, body, bucket_name)
         elif method == "OPTIONS":
-            return self._bucket_response_options(bucket_name)
+            return self._response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
@@ -389,7 +389,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return self.headers
 
-    def _bucket_response_options(self, bucket_name):
+    def _response_options(self, bucket_name):
         # Return 200 with the headers from the bucket CORS configuration
         self._authenticate_and_authorize_s3_action()
         try:
@@ -1294,6 +1294,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._key_response_delete(headers, bucket_name, query, key_name)
         elif method == "POST":
             return self._key_response_post(request, body, bucket_name, query, key_name)
+        elif method == "OPTIONS":
+            # OPTIONS response doesn't depend on the key_name: always return 200 with CORS headers
+            return self._response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
