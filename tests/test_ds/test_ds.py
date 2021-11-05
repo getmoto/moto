@@ -79,6 +79,8 @@ def test_ds_get_directory_limits():
         == limits["CloudOnlyDirectoriesCurrentCount"]
     )
     assert limits["CloudOnlyDirectoriesLimitReached"]
+    assert not limits["CloudOnlyMicrosoftADCurrentCount"]
+    assert not limits["ConnectedDirectoriesCurrentCount"]
 
 
 @mock_ec2
@@ -114,6 +116,7 @@ def test_ds_describe_directories():
         assert dir_info["Type"] == "SimpleAD"
         assert dir_info["VpcSettings"]["VpcId"].startswith("vpc-")
         assert len(dir_info["VpcSettings"]["SubnetIds"]) == 2
+        assert set(dir_info["DnsIpAddrs"]) == set(["10.0.1.1", "10.0.0.1"])
     assert "NextToken" not in result
 
     # Test with a specific directory ID.
@@ -150,3 +153,170 @@ def test_ds_describe_directories():
     result = client.describe_directories(Limit=1, NextToken=result["NextToken"])
     assert len(result["DirectoryDescriptions"]) == 1
     assert result["DirectoryDescriptions"][0]["DirectoryId"] == directory_ids[5]
+
+
+@mock_ec2
+@mock_ds
+def test_ds_create_alias():
+    """Test good and bad invocations of create_alias()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Create a directory we can test against.
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Bad format.
+    bad_alias = f"d-{get_random_hex(10)}"
+    with pytest.raises(ClientError) as exc:
+        client.create_alias(DirectoryId=directory_id, Alias=bad_alias)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        fr"Value '{bad_alias}' at 'alias' failed to satisfy constraint: "
+        fr"Member must satisfy regular expression pattern: "
+        fr"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
+    ) in err["Message"]
+
+    # Too long.
+    bad_alias = f"d-{get_random_hex(62)}"
+    with pytest.raises(ClientError) as exc:
+        client.create_alias(DirectoryId=directory_id, Alias=bad_alias)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        f"Value '{bad_alias}' at 'alias' failed to satisfy constraint: "
+        f"Member must have length less than or equal to 62"
+    ) in err["Message"]
+
+    # Just right.
+    good_alias = f"{get_random_hex(10)}"
+    result = client.create_alias(DirectoryId=directory_id, Alias=good_alias)
+    assert result["DirectoryId"] == directory_id
+    assert result["Alias"] == good_alias
+    result = client.describe_directories()
+    directory = result["DirectoryDescriptions"][0]
+    assert directory["Alias"] == good_alias
+    assert directory["AccessUrl"] == f"{good_alias}.awsapps.com"
+
+    # Attempt to create another alias for the same directory.
+    another_good_alias = f"{get_random_hex(10)}"
+    with pytest.raises(ClientError) as exc:
+        client.create_alias(DirectoryId=directory_id, Alias=another_good_alias)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "The directory in the request already has an alias. That alias must "
+        "be deleted before a new alias can be created."
+    ) in err["Message"]
+
+    # Create a second directory we can test against.
+    directory_id2 = create_test_directory(client, ec2_client)
+    with pytest.raises(ClientError) as exc:
+        client.create_alias(DirectoryId=directory_id2, Alias=good_alias)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityAlreadyExistsException"
+    assert f"Alias '{good_alias}' already exists." in err["Message"]
+
+
+@mock_ec2
+@mock_ds
+def test_ds_enable_sso():
+    """Test good and bad invocations of enable_sso()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Create a directory we can test against.
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Need an alias before setting SSO.
+    with pytest.raises(ClientError) as exc:
+        client.enable_sso(DirectoryId=directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClientException"
+    assert (
+        f"An alias is required before enabling SSO. DomainId={directory_id}"
+    ) in err["Message"]
+
+    # Add the alias to continue testing.
+    client.create_alias(DirectoryId=directory_id, Alias="anything-goes")
+
+    # Password must be less than 128 chars in length.
+    good_username = "test"
+    bad_password = f"bad_password{get_random_hex(128)}"
+    with pytest.raises(ClientError) as exc:
+        client.enable_sso(
+            DirectoryId=directory_id, UserName=good_username, Password=bad_password
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        "Value at 'password' failed to satisfy constraint: Member must "
+        "have length less than or equal to 128"
+    ) in err["Message"]
+
+    # Username has constraints.
+    bad_username = "@test"
+    good_password = "password"
+    with pytest.raises(ClientError) as exc:
+        client.enable_sso(
+            DirectoryId=directory_id, UserName=bad_username, Password=good_password
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        fr"Value '{bad_username}' at 'userName' failed to satisfy constraint: "
+        fr"Member must satisfy regular expression pattern: ^[a-zA-Z0-9._-]+$"
+    ) in err["Message"]
+
+    # Valid execution.
+    client.enable_sso(DirectoryId=directory_id)
+    result = client.describe_directories()
+    directory = result["DirectoryDescriptions"][0]
+    assert directory["SsoEnabled"]
+
+
+@mock_ec2
+@mock_ds
+def test_ds_disable_sso():
+    """Test good and bad invocations of disable_sso()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Create a directory we can test against.
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Password must be less than 128 chars in length.
+    good_username = "test"
+    bad_password = f"bad_password{get_random_hex(128)}"
+    with pytest.raises(ClientError) as exc:
+        client.disable_sso(
+            DirectoryId=directory_id, UserName=good_username, Password=bad_password
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        "Value at 'password' failed to satisfy constraint: Member must "
+        "have length less than or equal to 128"
+    ) in err["Message"]
+
+    # Username has constraints.
+    bad_username = "@test"
+    good_password = "password"
+    with pytest.raises(ClientError) as exc:
+        client.disable_sso(
+            DirectoryId=directory_id, UserName=bad_username, Password=good_password
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        fr"Value '{bad_username}' at 'userName' failed to satisfy constraint: "
+        fr"Member must satisfy regular expression pattern: ^[a-zA-Z0-9._-]+$"
+    ) in err["Message"]
+
+    # Valid execution.  First enable SSO, as the default is disabled SSO.
+    client.create_alias(DirectoryId=directory_id, Alias="anything-goes")
+    client.enable_sso(DirectoryId=directory_id)
+    client.disable_sso(DirectoryId=directory_id)
+    result = client.describe_directories()
+    directory = result["DirectoryDescriptions"][0]
+    assert not directory["SsoEnabled"]

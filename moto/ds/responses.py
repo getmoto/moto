@@ -15,6 +15,27 @@ class DirectoryServiceResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return ds_backends[self.region]
 
+    def connect_directory(self):
+        """Create an AD Connector to connect to a self-managed directory."""
+        name = self._get_param("Name")
+        short_name = self._get_param("ShortName")
+        password = self._get_param("Password")
+        description = self._get_param("Description")
+        size = self._get_param("Size")
+        connect_settings = self._get_param("ConnectSettings")
+        tags = self._get_param("Tags")
+        directory_id = self.ds_backend.connect_directory(
+            region=self.region,
+            name=name,
+            short_name=short_name,
+            password=password,
+            description=description,
+            size=size,
+            connect_settings=connect_settings,
+            tags=tags,
+        )
+        return json.dumps({"DirectoryId": directory_id})
+
     def create_directory(self):
         """Create a Simple AD directory."""
         name = self._get_param("Name")
@@ -32,6 +53,34 @@ class DirectoryServiceResponse(BaseResponse):
             description=description,
             size=size,
             vpc_settings=vpc_settings,
+            tags=tags,
+        )
+        return json.dumps({"DirectoryId": directory_id})
+
+    def create_alias(self):
+        """Create an alias and assign the alias to the directory."""
+        directory_id = self._get_param("DirectoryId")
+        alias = self._get_param("Alias")
+        response = self.ds_backend.create_alias(directory_id, alias)
+        return json.dumps(response)
+
+    def create_microsoft_ad(self):
+        """Create a Microsoft AD directory."""
+        name = self._get_param("Name")
+        short_name = self._get_param("ShortName")
+        password = self._get_param("Password")
+        description = self._get_param("Description")
+        vpc_settings = self._get_param("VpcSettings")
+        edition = self._get_param("Edition")
+        tags = self._get_param("Tags")
+        directory_id = self.ds_backend.create_microsoft_ad(
+            region=self.region,
+            name=name,
+            short_name=short_name,
+            password=password,
+            description=description,
+            vpc_settings=vpc_settings,
+            edition=edition,
             tags=tags,
         )
         return json.dumps({"DirectoryId": directory_id})
@@ -58,6 +107,22 @@ class DirectoryServiceResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
+
+    def disable_sso(self):
+        """Disable single-sign on for a directory."""
+        directory_id = self._get_param("DirectoryId")
+        username = self._get_param("UserName")
+        password = self._get_param("Password")
+        self.ds_backend.disable_sso(directory_id, username, password)
+        return ""
+
+    def enable_sso(self):
+        """Enable single-sign on for a directory."""
+        directory_id = self._get_param("DirectoryId")
+        username = self._get_param("UserName")
+        password = self._get_param("Password")
+        self.ds_backend.enable_sso(directory_id, username, password)
+        return ""
 
     def get_directory_limits(self):
         """Return directory limit information for the current region."""

@@ -916,20 +916,20 @@
 
 ## ds
 <details>
-<summary>11% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
 - [ ] add_region
 - [X] add_tags_to_resource
 - [ ] cancel_schema_extension
-- [ ] connect_directory
-- [ ] create_alias
+- [X] connect_directory
+- [X] create_alias
 - [ ] create_computer
 - [ ] create_conditional_forwarder
 - [X] create_directory
 - [ ] create_log_subscription
-- [ ] create_microsoft_ad
+- [X] create_microsoft_ad
 - [ ] create_snapshot
 - [ ] create_trust
 - [ ] delete_conditional_forwarder
@@ -953,11 +953,11 @@
 - [ ] disable_client_authentication
 - [ ] disable_ldaps
 - [ ] disable_radius
-- [ ] disable_sso
+- [X] disable_sso
 - [ ] enable_client_authentication
 - [ ] enable_ldaps
 - [ ] enable_radius
-- [ ] enable_sso
+- [X] enable_sso
 - [X] get_directory_limits
 - [ ] get_snapshot_limits
 - [ ] list_certificates
