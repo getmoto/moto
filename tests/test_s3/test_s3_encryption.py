@@ -3,6 +3,7 @@ import pytest
 
 from botocore.exceptions import ClientError
 from moto import mock_s3
+from uuid import uuid4
 
 
 @mock_s3
@@ -75,3 +76,54 @@ def test_delete_and_get_encryption():
         conn.get_bucket_encryption(Bucket="mybucket")
     err = exc.value.response["Error"]
     err["Code"].should.equal("ServerSideEncryptionConfigurationNotFoundError")
+
+
+@mock_s3
+def test_encryption_status_on_new_objects():
+    bucket_name = str(uuid4())
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    # verify encryption status on object itself
+    res = s3.get_object(Bucket=bucket_name, Key="file.txt")
+    res.shouldnt.have.key("ServerSideEncryption")
+    # enable encryption
+    sse_config = {
+        "Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]
+    }
+    s3.put_bucket_encryption(
+        Bucket=bucket_name, ServerSideEncryptionConfiguration=sse_config
+    )
+    # verify encryption status on existing object hasn't changed
+    res = s3.get_object(Bucket=bucket_name, Key="file.txt")
+    res.shouldnt.have.key("ServerSideEncryption")
+    # create object2
+    s3.put_object(Bucket=bucket_name, Body=b"test", Key="file2.txt")
+    # verify encryption status on object2
+    res = s3.get_object(Bucket=bucket_name, Key="file2.txt")
+    res.should.have.key("ServerSideEncryption").equals("AES256")
+
+
+@mock_s3
+def test_encryption_status_on_copied_objects():
+    bucket_name = str(uuid4())
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    # enable encryption
+    sse_config = {
+        "Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]
+    }
+    s3.put_bucket_encryption(
+        Bucket=bucket_name, ServerSideEncryptionConfiguration=sse_config
+    )
+    # copy object
+    s3.copy_object(
+        CopySource=f"{bucket_name}/file.txt", Bucket=bucket_name, Key="file2.txt"
+    )
+    # verify encryption status on object1 hasn't changed
+    res = s3.get_object(Bucket=bucket_name, Key="file.txt")
+    res.shouldnt.have.key("ServerSideEncryption")
+    # verify encryption status on object2 does have encryption
+    res = s3.get_object(Bucket=bucket_name, Key="file2.txt")
+    res.should.have.key("ServerSideEncryption").equals("AES256")
