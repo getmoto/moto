@@ -98,6 +98,8 @@ Currently implemented Services:
 +---------------------------+-----------------------+------------------------------------+
 | Route53                   | @mock_route53         | core endpoints done                |
 +---------------------------+-----------------------+------------------------------------+
+| Route53Resolver           | @mock_route53resolver | core endpoints done                |
++---------------------------+-----------------------+------------------------------------+
 | S3                        | @mock_s3              | core endpoints done                |
 +---------------------------+-----------------------+------------------------------------+
 | SecretsManager            | @mock_secretsmanager  | basic endpoints done               |
