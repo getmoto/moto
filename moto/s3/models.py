@@ -173,15 +173,6 @@ class FakeKey(BaseModel):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
-    def copy(self, new_name=None, new_is_versioned=None):
-        r = copy.deepcopy(self)
-        if new_name is not None:
-            r.name = new_name
-        if new_is_versioned is not None:
-            r._is_versioned = new_is_versioned
-            r.refresh_version()
-        return r
-
     def set_metadata(self, metadata, replace=False):
         if replace:
             self._metadata = {}
@@ -212,10 +203,6 @@ class FakeKey(BaseModel):
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
-
-    def refresh_version(self):
-        self._version_id = str(uuid.uuid4())
-        self.last_modified = datetime.datetime.utcnow()
 
     @property
     def etag(self):
