@@ -3,7 +3,8 @@ import sure  # noqa # pylint: disable=unused-import
 import os
 import pytest
 
-from moto import mock_s3
+from moto import mock_s3, settings
+from unittest import SkipTest
 from unittest.mock import patch
 
 
@@ -14,6 +15,8 @@ CUSTOM_ENDPOINT_2 = "https://caf-o.s3-ext.jc.rl.ac.uk"
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_create_and_list_buckets(url):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
         # Mock needs to be started after the environment variable is patched in
@@ -29,6 +32,8 @@ def test_create_and_list_buckets(url):
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(
         os.environ, {"CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"}
@@ -47,6 +52,8 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 @mock_s3
 def test_put_and_get_object(url):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
         with mock_s3():
             bucket = "mybucket"
@@ -66,6 +73,8 @@ def test_put_and_get_object(url):
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 @mock_s3
 def test_put_and_list_objects(url):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
         with mock_s3():
             bucket = "mybucket"
