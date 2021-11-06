@@ -16,6 +16,8 @@ def test_event_pattern_with_nested_event_filter():
     pattern = EventPattern.load(json.dumps({"detail": {"foo": ["bar"]}}))
     assert pattern.matches_event({"detail": {"foo": "bar"}})
     assert not pattern.matches_event({"detail": {"foo": "baz"}})
+    # The full list should match as well
+    assert pattern.matches_event({"detail": {"foo": ["bar"]}})
 
 
 def test_event_pattern_with_exists_event_filter():
