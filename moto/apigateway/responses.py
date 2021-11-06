@@ -1,4 +1,5 @@
 import json
+from urllib.parse import unquote
 
 from moto.utilities.utils import merge_multiple_dicts
 from moto.core.responses import BaseResponse
@@ -876,3 +877,23 @@ class APIGatewayResponse(BaseResponse):
             return self.error("NotFoundException", e.message, 404)
         except ConflictException as e:
             return self.error("ConflictException", e.message, 409)
+
+    def base_path_mapping_individual(self, request, full_url, headers):
+
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        domain_name = url_path_parts[2]
+        base_path = unquote(url_path_parts[4])
+
+        try:
+            if self.method == "GET":
+                base_path_mapping = self.backend.get_base_path_mapping(
+                    domain_name, base_path
+                )
+                return 200, {}, json.dumps(base_path_mapping)
+            elif self.method == "DELETE":
+                # TODO Implements
+                pass
+        except NotFoundException as e:
+            return self.error("NotFoundException", e.message, 404)

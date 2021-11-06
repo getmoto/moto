@@ -47,6 +47,7 @@ from .exceptions import (
     InvalidRestApiIdForBasePathMappingException,
     InvalidStageException,
     BasePathConflictException,
+    BasePathNotFoundException,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -1768,6 +1769,16 @@ class APIGatewayBackend(BaseBackend):
             raise DomainNameNotFound()
 
         return list(self.base_path_mappings[domain_name].values())
+
+    def get_base_path_mapping(self, domain_name, base_path):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path not in self.base_path_mappings[domain_name]:
+            raise BasePathNotFoundException()
+
+        return self.base_path_mappings[domain_name][base_path]
 
 
 apigateway_backends = {}
