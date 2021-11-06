@@ -1157,7 +1157,6 @@ def test_modify_load_balancer_attributes_routing_http2_enabled():
         Attributes=[{"Key": "routing.http2.enabled", "Value": "false"}],
     )
 
-    # Check its 600 not 60
     response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
     routing_http2_enabled = list(
         filter(
@@ -1180,7 +1179,6 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
         ],
     )
 
-    # Check its 600 not 60
     response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
     routing_http_drop_invalid_header_fields_enabled = list(
         filter(
