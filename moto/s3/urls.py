@@ -1,11 +1,16 @@
 from __future__ import unicode_literals
 
+from moto import settings
+
 from .responses import S3ResponseInstance
 
 url_bases = [
     "https?://s3(.*).amazonaws.com",
     r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(.*).amazonaws.com",
 ]
+
+if settings.get_custom_endpoints():
+    url_bases.extend(settings.get_custom_endpoints())
 
 url_paths = {
     # subdomain bucket

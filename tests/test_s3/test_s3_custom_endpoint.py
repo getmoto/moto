@@ -1,65 +1,81 @@
 import boto3
-from botocore.config import Config
-
-from moto import mock_s3
 import sure  # noqa
 import os
-import unittest
+import pytest
+
+from moto import mock_s3
+from unittest.mock import patch
 
 
 DEFAULT_REGION_NAME = "us-east-1"
 CUSTOM_ENDPOINT = "https://s3.local.some-test-domain.de"
-
-config = Config(connect_timeout=2, retries={"max_attempts": 1, "mode": "standard"})
-s3_kwargs = {
-    "region_name": DEFAULT_REGION_NAME,
-    "endpoint_url": CUSTOM_ENDPOINT,
-    "config": config,
-}
+CUSTOM_ENDPOINT_2 = "https://caf-o.s3-ext.jc.rl.ac.uk"
 
 
-class S3CustomEndpointTestCase(unittest.TestCase):
-    def setUp(self):
-        os.environ["CUSTOM_ENDPOINTS"] = CUSTOM_ENDPOINT
+@pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
+def test_create_and_list_buckets(url):
+    # Have to inline this, as the URL-param is not available as a context decorator
+    with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
+        # Mock needs to be started after the environment variable is patched in
+        with mock_s3():
+            bucket = "mybucket"
+            conn = boto3.resource("s3", endpoint_url=url)
+            conn.create_bucket(Bucket=bucket)
 
-    def tearDown(self):
-        del os.environ["CUSTOM_ENDPOINTS"]
+            s3 = boto3.client("s3", endpoint_url=url)
+            all_buckets = s3.list_buckets()["Buckets"]
+            [b["Name"] for b in all_buckets].should.contain(bucket)
 
-    @mock_s3
-    def test_create_and_list_buckets(self):
-        bucket = "mybucket"
-        conn = boto3.resource("s3", **s3_kwargs)
-        conn.create_bucket(Bucket=bucket)
 
-        s3 = boto3.client("s3", **s3_kwargs)
-        all_buckets = s3.list_buckets()["Buckets"]
-        [b["Name"] for b in all_buckets].should.contain(bucket)
+@pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
+def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
+    # Have to inline this, as the URL-param is not available as a context decorator
+    with patch.dict(
+        os.environ, {"CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"}
+    ):
+        # Mock needs to be started after the environment variable is patched in
+        with mock_s3():
+            bucket = "mybucket"
+            conn = boto3.resource("s3", endpoint_url=url)
+            conn.create_bucket(Bucket=bucket)
 
-    @mock_s3
-    def test_put_and_get_object(self):
-        bucket = "mybucket"
-        key = "file.txt"
-        contents = "file contents"
-        conn = boto3.resource("s3", **s3_kwargs)
-        conn.create_bucket(Bucket=bucket)
+            s3 = boto3.client("s3", endpoint_url=url)
+            all_buckets = s3.list_buckets()["Buckets"]
+            [b["Name"] for b in all_buckets].should.contain(bucket)
 
-        s3 = boto3.client("s3", **s3_kwargs)
-        s3.put_object(Bucket=bucket, Key=key, Body=contents)
 
-        body = conn.Object(bucket, key).get()["Body"].read().decode()
+@pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
+@mock_s3
+def test_put_and_get_object(url):
+    with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
+        with mock_s3():
+            bucket = "mybucket"
+            key = "file.txt"
+            contents = "file contents"
+            conn = boto3.resource("s3", endpoint_url=url)
+            conn.create_bucket(Bucket=bucket)
 
-        body.should.equal(contents)
+            s3 = boto3.client("s3", endpoint_url=url)
+            s3.put_object(Bucket=bucket, Key=key, Body=contents)
 
-    @mock_s3
-    def test_put_and_list_objects(self):
-        bucket = "mybucket"
+            body = conn.Object(bucket, key).get()["Body"].read().decode()
 
-        s3 = boto3.client("s3", **s3_kwargs)
-        s3.create_bucket(Bucket=bucket)
-        s3.put_object(Bucket=bucket, Key="one", Body=b"1")
-        s3.put_object(Bucket=bucket, Key="two", Body=b"22")
-        s3.put_object(Bucket=bucket, Key="three", Body=b"333")
+            body.should.equal(contents)
 
-        contents = s3.list_objects(Bucket=bucket)["Contents"]
-        contents.should.have.length_of(3)
-        [c["Key"] for c in contents].should.contain("two")
+
+@pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
+@mock_s3
+def test_put_and_list_objects(url):
+    with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
+        with mock_s3():
+            bucket = "mybucket"
+
+            s3 = boto3.client("s3", endpoint_url=url)
+            s3.create_bucket(Bucket=bucket)
+            s3.put_object(Bucket=bucket, Key="one", Body=b"1")
+            s3.put_object(Bucket=bucket, Key="two", Body=b"22")
+            s3.put_object(Bucket=bucket, Key="three", Body=b"333")
+
+            contents = s3.list_objects(Bucket=bucket)["Contents"]
+            contents.should.have.length_of(3)
+            [c["Key"] for c in contents].should.contain("two")

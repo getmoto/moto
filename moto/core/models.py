@@ -692,19 +692,7 @@ class BaseBackend(object):
         """
         A list containing the url_bases extracted from urls.py
         """
-        provided_endpoints = self._url_module.url_bases
-        custom_endpoints = settings.get_custom_endpoints()
-        endpoints = []
-        for p in provided_endpoints:
-            if "amazonaws.com" in p:
-                for c in custom_endpoints:
-                    # c = https://s3.endpoint.com
-                    # p = https://regexstuff.amazonaws.com
-                    # x = https://regexstuff.endpoint.com
-                    x = p.replace("amazonaws.com", c.replace("https://s3.", ""))
-                    endpoints.append(x)
-            endpoints.append(p)
-        return endpoints
+        return self._url_module.url_bases
 
     @property
     def flask_paths(self):
