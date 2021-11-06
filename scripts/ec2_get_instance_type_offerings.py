@@ -1,5 +1,7 @@
-"""
-Get InstanceTypeOfferings from AWS
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Get InstanceTypeOfferings from AWS
 Stores result in moto/ec2/resources/instance_type_offerings/{location_type}/{region}.json
 Where {location_type} is one of region/availability-zone/availability-zone-id
 
@@ -7,6 +9,7 @@ Note that you will get the following error if a region is not available to you:
   An error occurred (AuthFailure) when calling the DescribeInstanceTypeOfferings operation:
   AWS was not able to validate the provided access credentials
 """
+
 import boto3
 import json
 import os
@@ -34,7 +37,9 @@ def main():
     for region in regions:
         for location_type in TYPES:
             ec2 = boto3.client("ec2", region_name=region)
-            dest = os.path.join(root_dir, "{0}/{1}/{2}.json".format(PATH, location_type, region))
+            dest = os.path.join(
+                root_dir, "{0}/{1}/{2}.json".format(PATH, location_type, region)
+            )
             try:
                 instances = []
                 offerings = ec2.describe_instance_type_offerings(
@@ -44,8 +49,7 @@ def main():
                 next_token = offerings.get("NextToken", "")
                 while next_token:
                     offerings = ec2.describe_instance_type_offerings(
-                        LocationType=location_type,
-                        NextToken=next_token
+                        LocationType=location_type, NextToken=next_token
                     )
                     instances.extend(offerings["InstanceTypeOfferings"])
                     next_token = offerings.get("NextToken", None)

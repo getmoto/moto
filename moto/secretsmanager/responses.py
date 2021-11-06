@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from moto.secretsmanager.exceptions import (
     InvalidRequestException,
@@ -46,22 +44,28 @@ class SecretsManagerResponse(BaseResponse):
         secret_binary = self._get_param("SecretBinary")
         description = self._get_param("Description", if_none="")
         tags = self._get_param("Tags", if_none=[])
+        kms_key_id = self._get_param("KmsKeyId", if_none=None)
         return secretsmanager_backends[self.region].create_secret(
             name=name,
             secret_string=secret_string,
             secret_binary=secret_binary,
             description=description,
             tags=tags,
+            kms_key_id=kms_key_id,
         )
 
     def update_secret(self):
         secret_id = self._get_param("SecretId")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
+        client_request_token = self._get_param("ClientRequestToken")
+        kms_key_id = self._get_param("KmsKeyId", if_none=None)
         return secretsmanager_backends[self.region].update_secret(
             secret_id=secret_id,
             secret_string=secret_string,
             secret_binary=secret_binary,
+            client_request_token=client_request_token,
+            kms_key_id=kms_key_id,
         )
 
     def get_random_password(self):
@@ -106,16 +110,21 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId", if_none="")
         secret_string = self._get_param("SecretString")
         secret_binary = self._get_param("SecretBinary")
+        client_request_token = self._get_param("ClientRequestToken")
         if not secret_binary and not secret_string:
             raise InvalidRequestException(
                 "You must provide either SecretString or SecretBinary."
             )
         version_stages = self._get_param("VersionStages", if_none=["AWSCURRENT"])
+        if not isinstance(version_stages, list):
+            version_stages = [version_stages]
+
         return secretsmanager_backends[self.region].put_secret_value(
             secret_id=secret_id,
             secret_binary=secret_binary,
             secret_string=secret_string,
             version_stages=version_stages,
+            client_request_token=client_request_token,
         )
 
     def list_secret_version_ids(self):
@@ -162,3 +171,22 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         tags = self._get_param("Tags", if_none=[])
         return secretsmanager_backends[self.region].tag_resource(secret_id, tags)
+
+    def untag_resource(self):
+        secret_id = self._get_param("SecretId")
+        tag_keys = self._get_param("TagKeys", if_none=[])
+        return secretsmanager_backends[self.region].untag_resource(
+            secret_id=secret_id, tag_keys=tag_keys
+        )
+
+    def update_secret_version_stage(self):
+        secret_id = self._get_param("SecretId")
+        version_stage = self._get_param("VersionStage")
+        remove_from_version_id = self._get_param("RemoveFromVersionId")
+        move_to_version_id = self._get_param("MoveToVersionId")
+        return secretsmanager_backends[self.region].update_secret_version_stage(
+            secret_id=secret_id,
+            version_stage=version_stage,
+            remove_from_version_id=remove_from_version_id,
+            move_to_version_id=move_to_version_id,
+        )

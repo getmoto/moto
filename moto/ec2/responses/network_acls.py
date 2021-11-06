@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -132,6 +131,7 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
    <item>
      <networkAclId>{{ network_acl.id }}</networkAclId>
      <vpcId>{{ network_acl.vpc_id }}</vpcId>
+     <ownerId>{{ network_acl.owner_id }}</ownerId>
      <default>{{ network_acl.default }}</default>
      <entrySet>
        {% for entry in network_acl.network_acl_entries %}

@@ -7,7 +7,6 @@ from moto.dynamodb2.exceptions import (
     ExpressionAttributeNameNotDefined,
     IncorrectOperandType,
     InvalidUpdateExpressionInvalidDocumentPath,
-    EmptyKeyAttributeException,
 )
 from moto.dynamodb2.models import Item, DynamoType
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -19,25 +18,27 @@ from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
 
 
-def test_validation_of_empty_string_key_val(table):
-    with pytest.raises(EmptyKeyAttributeException):
-        update_expression = "set forum_name=:NewName"
-        update_expression_values = {":NewName": {"S": ""}}
-        update_expression_ast = UpdateExpressionParser.make(update_expression)
-        item = Item(
-            hash_key=DynamoType({"S": "forum_name"}),
-            hash_key_type="TYPE",
-            range_key=None,
-            range_key_type=None,
-            attrs={"forum_name": {"S": "hello"}},
-        )
-        UpdateExpressionValidator(
-            update_expression_ast,
-            expression_attribute_names=None,
-            expression_attribute_values=update_expression_values,
-            item=item,
-            table=table,
-        ).validate()
+def test_valid_update_expression(table):
+    update_expression = "set forum_desc=:Desc, forum_type=:NewType"
+    update_expression_values = {
+        ":Desc": {"S": "AmazingForum"},
+        ":NewType": {"S": "BASIC"},
+    }
+    update_expression_ast = UpdateExpressionParser.make(update_expression)
+    item = Item(
+        hash_key=DynamoType({"S": "forum_name"}),
+        hash_key_type="TYPE",
+        range_key=DynamoType({"S": "forum_type"}),
+        range_key_type="TYPE",
+        attrs={"forum_name": {"S": "hello"}},
+    )
+    UpdateExpressionValidator(
+        update_expression_ast,
+        expression_attribute_names=None,
+        expression_attribute_values=update_expression_values,
+        item=item,
+        table=table,
+    ).validate()
 
 
 def test_validation_of_update_expression_with_keyword(table):
@@ -65,7 +66,7 @@ def test_validation_of_update_expression_with_keyword(table):
 
 
 @pytest.mark.parametrize(
-    "update_expression", ["SET a = #b + :val2", "SET a = :val2 + #b",]
+    "update_expression", ["SET a = #b + :val2", "SET a = :val2 + #b",],
 )
 def test_validation_of_a_set_statement_with_incorrect_passed_value(
     update_expression, table
@@ -127,7 +128,9 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
         assert True
 
 
-@pytest.mark.parametrize("update_expression", ["SET a = #c", "SET a = #c + #d",])
+@pytest.mark.parametrize(
+    "update_expression", ["SET a = #c", "SET a = #c + #d",],
+)
 def test_validation_of_update_expression_with_attribute_name_that_is_not_defined(
     update_expression, table,
 ):

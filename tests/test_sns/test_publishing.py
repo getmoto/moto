@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import boto
-import json
 import re
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sns_deprecated, mock_sqs_deprecated
 from moto.core import ACCOUNT_ID
@@ -18,6 +15,7 @@ MESSAGE_FROM_SQS_TEMPLATE = (
 )
 
 
+# Has boto3 equivalent
 @mock_sqs_deprecated
 @mock_sns_deprecated
 def test_publish_to_sqs():
@@ -46,7 +44,8 @@ def test_publish_to_sqs():
     ]
 
     queue = sqs_conn.get_queue("test-queue")
-    message = queue.read(1)
+    with freeze_time("2015-01-01 12:00:01"):
+        message = queue.read(1)
     expected = MESSAGE_FROM_SQS_TEMPLATE % (
         message_to_publish,
         published_message_id,
@@ -61,6 +60,7 @@ def test_publish_to_sqs():
     acquired_message.should.equal(expected)
 
 
+# Has boto3 equivalent
 @mock_sqs_deprecated
 @mock_sns_deprecated
 def test_publish_to_sqs_in_different_region():
@@ -89,7 +89,8 @@ def test_publish_to_sqs_in_different_region():
     ]
 
     queue = sqs_conn.get_queue("test-queue")
-    message = queue.read(1)
+    with freeze_time("2015-01-01 12:00:01"):
+        message = queue.read(1)
     expected = MESSAGE_FROM_SQS_TEMPLATE % (
         message_to_publish,
         published_message_id,

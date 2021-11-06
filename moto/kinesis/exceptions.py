@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from werkzeug.exceptions import BadRequest
 from moto.core import ACCOUNT_ID

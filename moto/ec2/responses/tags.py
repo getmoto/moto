@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
 from moto.ec2.utils import filters_from_querystring

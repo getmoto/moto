@@ -4,17 +4,23 @@ import unittest
 from datetime import datetime
 
 import boto3
-import sure  # noqa
-
-from botocore.exceptions import ClientError
 import pytest
+import pytz
+import sure  # noqa # pylint: disable=unused-import
+from botocore.exceptions import ClientError
 
+from moto import mock_logs
 from moto.core import ACCOUNT_ID
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.events import mock_events
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
-    {"Name": "test2", "ScheduleExpression": "rate(1 minute)"},
+    {
+        "Name": "test2",
+        "ScheduleExpression": "rate(1 minute)",
+        "Tags": [{"Key": "tagk1", "Value": "tagv1"}],
+    },
     {"Name": "test3", "EventPattern": '{"source": ["test-source"]}'},
 ]
 
@@ -64,6 +70,7 @@ def generate_environment():
             Name=rule["Name"],
             ScheduleExpression=rule.get("ScheduleExpression", ""),
             EventPattern=rule.get("EventPattern", ""),
+            Tags=rule.get("Tags", []),
         )
 
         targets = []
@@ -85,7 +92,6 @@ def test_put_rule():
         "Name": "my-event",
         "ScheduleExpression": "rate(5 minutes)",
         "EventPattern": '{"source": ["test-source"]}',
-        "EventBusName": "test-bus",
     }
 
     client.put_rule(**rule_data)
@@ -96,17 +102,78 @@ def test_put_rule():
     rules[0]["Name"].should.equal(rule_data["Name"])
     rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
     rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
-    rules[0]["EventBusName"].should.equal(rule_data["EventBusName"])
     rules[0]["State"].should.equal("ENABLED")
+
+
+@mock_events
+def test_put_rule_error_schedule_expression_custom_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "test-bus"
+    client.create_event_bus(Name=event_bus_name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_rule(
+            Name="test-rule",
+            ScheduleExpression="rate(5 minutes)",
+            EventBusName=event_bus_name,
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutRule")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "ScheduleExpression is supported only on the default event bus."
+    )
 
 
 @mock_events
 def test_list_rules():
     client = generate_environment()
     response = client.list_rules()
+    rules = response["Rules"]
+    rules.should.have.length_of(len(RULES))
 
-    assert response is not None
-    assert len(response["Rules"]) > 0
+
+@mock_events
+def test_list_rules_with_token():
+    client = generate_environment()
+    response = client.list_rules()
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(len(RULES))
+    #
+    response = client.list_rules(Limit=1)
+    response.should.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(1)
+    #
+    response = client.list_rules(NextToken=response["NextToken"])
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(2)
+
+
+@mock_events
+def test_list_rules_with_prefix_and_token():
+    client = generate_environment()
+    response = client.list_rules(NamePrefix="test")
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(len(RULES))
+    #
+    response = client.list_rules(NamePrefix="test", Limit=1)
+    response.should.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(1)
+    #
+    response = client.list_rules(NamePrefix="test", NextToken=response["NextToken"])
+    response.shouldnt.have.key("NextToken")
+    rules = response["Rules"]
+    rules.should.have.length_of(2)
 
 
 @mock_events
@@ -115,11 +182,49 @@ def test_describe_rule():
     client = generate_environment()
     response = client.describe_rule(Name=rule_name)
 
-    assert response is not None
-    assert response.get("Name") == rule_name
-    assert response.get(
-        "Arn"
-    ) == "arn:aws:events:us-west-2:111111111111:rule/{0}".format(rule_name)
+    response["Name"].should.equal(rule_name)
+    response["Arn"].should.equal(
+        "arn:aws:events:us-west-2:{0}:rule/{1}".format(ACCOUNT_ID, rule_name)
+    )
+
+
+@mock_events
+def test_describe_rule_with_event_bus_name():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "test-bus"
+    rule_name = "test-rule"
+    client.create_event_bus(Name=event_bus_name)
+    client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="DISABLED",
+        Description="test rule",
+        RoleArn="arn:aws:iam::{}:role/test-role".format(ACCOUNT_ID),
+        EventBusName=event_bus_name,
+    )
+
+    # when
+    response = client.describe_rule(Name=rule_name, EventBusName=event_bus_name)
+
+    # then
+    response["Arn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:rule/{1}/{2}".format(
+            ACCOUNT_ID, event_bus_name, rule_name
+        )
+    )
+    response["CreatedBy"].should.equal(ACCOUNT_ID)
+    response["Description"].should.equal("test rule")
+    response["EventBusName"].should.equal(event_bus_name)
+    json.loads(response["EventPattern"]).should.equal({"account": [ACCOUNT_ID]})
+    response["Name"].should.equal(rule_name)
+    response["RoleArn"].should.equal(
+        "arn:aws:iam::{}:role/test-role".format(ACCOUNT_ID)
+    )
+    response["State"].should.equal("DISABLED")
+
+    response.should_not.have.key("ManagedBy")
+    response.should_not.have.key("ScheduleExpression")
 
 
 @mock_events
@@ -140,11 +245,21 @@ def test_enable_disable_rule():
     assert rule["State"] == "ENABLED"
 
     # Test invalid name
-    try:
+    with pytest.raises(ClientError) as ex:
         client.enable_rule(Name="junk")
 
-    except ClientError as ce:
-        assert ce.response["Error"]["Code"] == "ResourceNotFoundException"
+    err = ex.value.response["Error"]
+    err["Code"] == "ResourceNotFoundException"
+
+
+@mock_events
+def test_disable_unknown_rule():
+    client = generate_environment()
+
+    with pytest.raises(ClientError) as ex:
+        client.disable_rule(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Rule unknown does not exist.")
 
 
 @mock_events
@@ -162,6 +277,23 @@ def test_list_rule_names_by_target():
     assert len(rules["RuleNames"]) == len(test_2_target["Rules"])
     for rule in rules["RuleNames"]:
         assert rule in test_2_target["Rules"]
+
+
+@mock_events
+def test_list_rule_names_by_target_using_limit():
+    test_1_target = TARGETS["test-target-1"]
+    client = generate_environment()
+
+    response = client.list_rule_names_by_target(TargetArn=test_1_target["Arn"], Limit=1)
+    print(response)
+    response.should.have.key("NextToken")
+    response["RuleNames"].should.have.length_of(1)
+    #
+    response = client.list_rule_names_by_target(
+        TargetArn=test_1_target["Arn"], NextToken=response["NextToken"]
+    )
+    response.shouldnt.have.key("NextToken")
+    response["RuleNames"].should.have.length_of(1)
 
 
 @mock_events
@@ -206,14 +338,52 @@ def test_remove_targets():
 
 
 @mock_events
-def test_remove_targets_errors():
-    client = boto3.client("events", "us-east-1")
+def test_update_rule_with_targets():
+    client = boto3.client("events", "us-west-2")
+    client.put_rule(
+        Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="",
+    )
 
-    client.remove_targets.when.called_with(
-        Rule="non-existent", Ids=["Id12345678"]
-    ).should.throw(
-        client.exceptions.ResourceNotFoundException,
-        "An entity that you specified does not exist",
+    client.put_targets(
+        Rule="test1",
+        Targets=[
+            {
+                "Id": "test-target-1",
+                "Arn": "arn:aws:lambda:us-west-2:111111111111:function:test-function-1",
+            }
+        ],
+    )
+
+    targets = client.list_targets_by_rule(Rule="test1")["Targets"]
+    targets_before = len(targets)
+    assert targets_before == 1
+
+    client.put_rule(
+        Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="",
+    )
+
+    targets = client.list_targets_by_rule(Rule="test1")["Targets"]
+
+    assert len(targets) == 1
+    assert targets[0].get("Id") == "test-target-1"
+
+
+@mock_events
+def test_remove_targets_error_unknown_rule():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.remove_targets(Rule="unknown", Ids=["something"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("RemoveTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
     )
 
 
@@ -233,7 +403,7 @@ def test_put_targets():
     targets_before = len(targets)
     assert targets_before == 0
 
-    targets_data = [{"Arn": "test_arn", "Id": "test_id"}]
+    targets_data = [{"Arn": "arn:aws:s3:::test-arn", "Id": "test_id"}]
     resp = client.put_targets(Rule=rule_name, Targets=targets_data)
     assert resp["FailedEntryCount"] == 0
     assert len(resp["FailedEntries"]) == 0
@@ -242,8 +412,90 @@ def test_put_targets():
     targets_after = len(targets)
     assert targets_before + 1 == targets_after
 
-    assert targets[0]["Arn"] == "test_arn"
+    assert targets[0]["Arn"] == "arn:aws:s3:::test-arn"
     assert targets[0]["Id"] == "test_id"
+
+
+@mock_events
+def test_put_targets_error_invalid_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    rule_name = "test-rule"
+    client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+        State="ENABLED",
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule=rule_name,
+            Targets=[
+                {"Id": "s3", "Arn": "arn:aws:s3:::test-bucket"},
+                {"Id": "s3", "Arn": "test-bucket"},
+            ],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter test-bucket is not valid. "
+        "Reason: Provided Arn is not in correct format."
+    )
+
+
+@mock_events
+def test_put_targets_error_unknown_rule():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule="unknown", Targets=[{"Id": "s3", "Arn": "arn:aws:s3:::test-bucket"}]
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule unknown does not exist on EventBus default."
+    )
+
+
+@mock_events
+def test_put_targets_error_missing_parameter_sqs_fifo():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_targets(
+            Rule="unknown",
+            Targets=[
+                {
+                    "Id": "sqs-fifo",
+                    "Arn": "arn:aws:sqs:eu-central-1:{}:test-queue.fifo".format(
+                        ACCOUNT_ID
+                    ),
+                }
+            ],
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutTargets")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter(s) SqsParameters must be specified for target: sqs-fifo."
+    )
 
 
 @mock_events
@@ -267,6 +519,30 @@ def test_permissions():
     resp_policy = json.loads(resp["Policy"])
     assert len(resp_policy["Statement"]) == 1
     assert resp_policy["Statement"][0]["Sid"] == "Account1"
+
+
+@mock_events
+def test_permission_policy():
+    client = boto3.client("events", "eu-central-1")
+
+    policy = {
+        "Statement": [
+            {
+                "Sid": "asdf",
+                "Action": "events:PutEvents",
+                "Principal": "111111111111",
+                "StatementId": "Account1",
+                "Effect": "n/a",
+                "Resource": "n/a",
+            }
+        ]
+    }
+    client.put_permission(Policy=json.dumps(policy))
+
+    resp = client.describe_event_bus()
+    resp_policy = json.loads(resp["Policy"])
+    resp_policy["Statement"].should.have.length_of(1)
+    resp_policy["Statement"][0]["Sid"].should.equal("asdf")
 
 
 @mock_events
@@ -657,9 +933,37 @@ def test_delete_event_bus_errors():
 
 
 @mock_events
+def test_create_rule_with_tags():
+    client = generate_environment()
+    rule_name = "test2"
+    rule_arn = client.describe_rule(Name=rule_name).get("Arn")
+
+    actual = client.list_tags_for_resource(ResourceARN=rule_arn)["Tags"]
+    actual.should.equal([{"Key": "tagk1", "Value": "tagv1"}])
+
+
+@mock_events
+def test_delete_rule_with_tags():
+    client = generate_environment()
+    rule_name = "test2"
+    rule_arn = client.describe_rule(Name=rule_name).get("Arn")
+    client.delete_rule(Name=rule_name)
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceARN=rule_arn)
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Rule test2 does not exist on EventBus default.")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_rule(Name=rule_name)
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Rule test2 does not exist.")
+
+
+@mock_events
 def test_rule_tagging_happy():
     client = generate_environment()
-    rule_name = get_random_rule()["Name"]
+    rule_name = "test1"
     rule_arn = client.describe_rule(Name=rule_name).get("Arn")
 
     tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
@@ -755,10 +1059,11 @@ def test_list_tags_for_resource_error_unknown_arn():
 def test_create_archive():
     # given
     client = boto3.client("events", "eu-central-1")
+    archive_name = "test-archive"
 
     # when
     response = client.create_archive(
-        ArchiveName="test-archive",
+        ArchiveName=archive_name,
         EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
             ACCOUNT_ID
         ),
@@ -766,10 +1071,30 @@ def test_create_archive():
 
     # then
     response["ArchiveArn"].should.equal(
-        "arn:aws:events:eu-central-1:{}:archive/test-archive".format(ACCOUNT_ID)
+        "arn:aws:events:eu-central-1:{0}:archive/{1}".format(ACCOUNT_ID, archive_name)
     )
     response["CreationTime"].should.be.a(datetime)
     response["State"].should.equal("ENABLED")
+
+    # check for archive rule existence
+    rule_name = "Events-Archive-{}".format(archive_name)
+    response = client.describe_rule(Name=rule_name)
+
+    response["Arn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:rule/{1}".format(ACCOUNT_ID, rule_name)
+    )
+    response["CreatedBy"].should.equal(ACCOUNT_ID)
+    response["EventBusName"].should.equal("default")
+    json.loads(response["EventPattern"]).should.equal(
+        {"replay-name": [{"exists": False}]}
+    )
+    response["ManagedBy"].should.equal("prod.vhs.events.aws.internal")
+    response["Name"].should.equal(rule_name)
+    response["State"].should.equal("ENABLED")
+
+    response.should_not.have.key("Description")
+    response.should_not.have.key("RoleArn")
+    response.should_not.have.key("ScheduleExpression")
 
 
 @mock_events
@@ -846,7 +1171,9 @@ def test_create_archive_error_invalid_event_pattern():
     ex.operation_name.should.equal("CreateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: Invalid JSON"
+    )
 
 
 @mock_events
@@ -876,7 +1203,9 @@ def test_create_archive_error_invalid_event_pattern_not_an_array():
     ex.operation_name.should.equal("CreateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: 'key_6' must be an object or an array"
+    )
 
 
 @mock_events
@@ -1106,7 +1435,8 @@ def test_list_archives_error_invalid_state():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
     ex.response["Error"]["Message"].should.equal(
-        "1 validation error detected: Value 'invalid' at 'state' failed to satisfy constraint: "
+        "1 validation error detected: "
+        "Value 'invalid' at 'state' failed to satisfy constraint: "
         "Member must satisfy enum value set: "
         "[ENABLED, DISABLED, CREATING, UPDATING, CREATE_FAILED, UPDATE_FAILED]"
     )
@@ -1173,7 +1503,9 @@ def test_update_archive_error_invalid_event_pattern():
     ex.operation_name.should.equal("UpdateArchive")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidEventPatternException")
-    ex.response["Error"]["Message"].should.equal("Event pattern is not valid.")
+    ex.response["Error"]["Message"].should.equal(
+        "Event pattern is not valid. Reason: Invalid JSON"
+    )
 
 
 @mock_events
@@ -1255,12 +1587,12 @@ def test_archive_actual_events():
     client.create_archive(
         ArchiveName=name_2,
         EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["test"]}),
+        EventPattern=json.dumps({"detail-type": ["type"], "source": ["test"]}),
     )
     client.create_archive(
         ArchiveName=name_3,
         EventSourceArn=event_bus_arn,
-        EventPattern=json.dumps({"DetailType": ["type"], "Source": ["source"]}),
+        EventPattern=json.dumps({"detail-type": ["type"], "source": ["source"]}),
     )
 
     # when
@@ -1281,3 +1613,987 @@ def test_archive_actual_events():
     response = client.describe_archive(ArchiveName=name_3)
     response["EventCount"].should.equal(1)
     response["SizeBytes"].should.be.greater_than(0)
+
+
+@mock_events
+def test_archive_event_with_bus_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_name = "mock_archive"
+    event_with_bus_arn = {
+        "Source": "source",
+        "DetailType": "type",
+        "Detail": '{ "key1": "value1" }',
+        "EventBusName": event_bus_arn,
+    }
+    client.create_archive(ArchiveName=archive_name, EventSourceArn=event_bus_arn)
+
+    # when
+    response = client.put_events(Entries=[event_with_bus_arn])
+
+    # then
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
+
+    response = client.describe_archive(ArchiveName=archive_name)
+    response["EventCount"].should.equal(1)
+    response["SizeBytes"].should.be.greater_than(0)
+
+
+@mock_events
+def test_start_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+
+    # when
+    response = client.start_replay(
+        ReplayName=name,
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1),
+        EventEndTime=datetime(2021, 2, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # then
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["ReplayStartTime"].should.be.a(datetime)
+    response["State"].should.equal("STARTING")
+
+
+@mock_events
+def test_start_replay_error_unknown_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn="arn:aws:events:eu-central-1:{}:archive/test".format(
+                ACCOUNT_ID
+            ),
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={
+                "Arn": "arn:aws:events:eu-central-1:{0}:event-bus/{1}".format(
+                    ACCOUNT_ID, event_bus_name
+                ),
+            },
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Event bus {} does not exist.".format(event_bus_name)
+    )
+
+
+@mock_events
+def test_start_replay_error_invalid_event_bus_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn="arn:aws:events:eu-central-1:{}:archive/test".format(
+                ACCOUNT_ID
+            ),
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={"Arn": "invalid",},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter Destination.Arn is not valid. Reason: Must contain an event bus ARN."
+    )
+
+
+@mock_events
+def test_start_replay_error_unknown_archive():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    archive_name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn="arn:aws:events:eu-central-1:{0}:archive/{1}".format(
+                ACCOUNT_ID, archive_name
+            ),
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={
+                "Arn": "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+                    ACCOUNT_ID
+                ),
+            },
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter EventSourceArn is not valid. "
+        "Reason: Archive {} does not exist.".format(archive_name)
+    )
+
+
+@mock_events
+def test_start_replay_error_cross_event_bus():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive",
+        EventSourceArn="arn:aws:events:eu-central-1:{}:event-bus/default".format(
+            ACCOUNT_ID
+        ),
+    )["ArchiveArn"]
+    event_bus_arn = client.create_event_bus(Name="test-bus")["EventBusArn"]
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn=archive_arn,
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={"Arn": event_bus_arn},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter Destination.Arn is not valid. "
+        "Reason: Cross event bus replay is not permitted."
+    )
+
+
+@mock_events
+def test_start_replay_error_invalid_end_time():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName="test",
+            EventSourceArn=archive_arn,
+            EventStartTime=datetime(2021, 2, 2),
+            EventEndTime=datetime(2021, 2, 1),
+            Destination={"Arn": event_bus_arn},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Parameter EventEndTime is not valid. "
+        "Reason: EventStartTime must be before EventEndTime."
+    )
+
+
+@mock_events
+def test_start_replay_error_duplicate():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1),
+        EventEndTime=datetime(2021, 2, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.start_replay(
+            ReplayName=name,
+            EventSourceArn=archive_arn,
+            EventStartTime=datetime(2021, 2, 1),
+            EventEndTime=datetime(2021, 2, 2),
+            Destination={"Arn": event_bus_arn},
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("StartReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceAlreadyExistsException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} already exists.".format(name)
+    )
+
+
+@mock_events
+def test_describe_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    response = client.describe_replay(ReplayName=name)
+
+    # then
+    response["Description"].should.equal("test replay")
+    response["Destination"].should.equal({"Arn": event_bus_arn})
+    response["EventSourceArn"].should.equal(archive_arn)
+    response["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
+    response["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["ReplayName"].should.equal(name)
+    response["ReplayStartTime"].should.be.a(datetime)
+    response["ReplayEndTime"].should.be.a(datetime)
+    response["State"].should.equal("COMPLETED")
+
+
+@mock_events
+def test_describe_replay_error_unknown_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.describe_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DescribeReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_list_replays():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays()["Replays"]
+
+    # then
+    replays.should.have.length_of(1)
+    replay = replays[0]
+    replay["EventSourceArn"].should.equal(archive_arn)
+    replay["EventStartTime"].should.equal(datetime(2021, 2, 1, tzinfo=pytz.utc))
+    replay["EventEndTime"].should.equal(datetime(2021, 2, 2, tzinfo=pytz.utc))
+    replay["ReplayName"].should.equal(name)
+    replay["ReplayStartTime"].should.be.a(datetime)
+    replay["ReplayEndTime"].should.be.a(datetime)
+    replay["State"].should.equal("COMPLETED")
+
+
+@mock_events
+def test_list_replays_with_name_prefix():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName="test",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays(NamePrefix="test-")["Replays"]
+
+    # then
+    replays.should.have.length_of(1)
+    replays[0]["ReplayName"].should.equal("test-replay")
+
+
+@mock_events
+def test_list_replays_with_source_arn():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName="test",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays(EventSourceArn=archive_arn)["Replays"]
+
+    # then
+    replays.should.have.length_of(2)
+
+
+@mock_events
+def test_list_replays_with_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName="test",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 1, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    replays = client.list_replays(State="FAILED")["Replays"]
+
+    # then
+    replays.should.have.length_of(0)
+
+
+@mock_events
+def test_list_replays_error_multiple_filters():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_replays(NamePrefix="test", State="COMPLETED")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListReplays")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "At most one filter is allowed for ListReplays. "
+        "Use either : State, EventSourceArn, or NamePrefix."
+    )
+
+
+@mock_events
+def test_list_replays_error_invalid_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.list_replays(State="invalid")
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("ListReplays")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value 'invalid' at 'state' failed to satisfy constraint: "
+        "Member must satisfy enum value set: "
+        "[CANCELLED, CANCELLING, COMPLETED, FAILED, RUNNING, STARTING]"
+    )
+
+
+@mock_events
+def test_cancel_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # when
+    response = client.cancel_replay(ReplayName=name)
+
+    # then
+    response["ReplayArn"].should.equal(
+        "arn:aws:events:eu-central-1:{0}:replay/{1}".format(ACCOUNT_ID, name)
+    )
+    response["State"].should.equal("CANCELLING")
+
+    response = client.describe_replay(ReplayName=name)
+    response["State"].should.equal("CANCELLED")
+
+
+@mock_events
+def test_cancel_replay_error_unknown_replay():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "unknown"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.cancel_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CancelReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} does not exist.".format(name)
+    )
+
+
+@mock_events
+def test_cancel_replay_error_illegal_state():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    name = "test-replay"
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    client.start_replay(
+        ReplayName=name,
+        Description="test replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 2, 1, tzinfo=pytz.utc),
+        EventEndTime=datetime(2021, 2, 2, tzinfo=pytz.utc),
+        Destination={"Arn": event_bus_arn},
+    )
+    client.cancel_replay(ReplayName=name)
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.cancel_replay(ReplayName=name)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("CancelReplay")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("IllegalStatusException")
+    ex.response["Error"]["Message"].should.equal(
+        "Replay {} is not in a valid state for this operation.".format(name)
+    )
+
+
+@mock_events
+@mock_logs
+def test_start_replay_send_to_log_group():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    logs_client = boto3.client("logs", "eu-central-1")
+    log_group_name = "/test-group"
+    rule_name = "test-rule"
+    logs_client.create_log_group(logGroupName=log_group_name)
+    event_bus_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(
+        ACCOUNT_ID
+    )
+    client.put_rule(Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]}))
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": "arn:aws:logs:eu-central-1:{0}:log-group:{1}".format(
+                    ACCOUNT_ID, log_group_name
+                ),
+            }
+        ],
+    )
+    archive_arn = client.create_archive(
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+    )["ArchiveArn"]
+    event_time = datetime(2021, 1, 1, 12, 23, 34)
+    client.put_events(
+        Entries=[
+            {
+                "Time": event_time,
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+            }
+        ]
+    )
+
+    # when
+    client.start_replay(
+        ReplayName="test-replay",
+        EventSourceArn=archive_arn,
+        EventStartTime=datetime(2021, 1, 1),
+        EventEndTime=datetime(2021, 1, 2),
+        Destination={"Arn": event_bus_arn},
+    )
+
+    # then
+    events = sorted(
+        logs_client.filter_log_events(logGroupName=log_group_name)["events"],
+        key=lambda item: item["eventId"],
+    )
+    event_original = json.loads(events[0]["message"])
+    event_original["version"].should.equal("0")
+    event_original["id"].should_not.be.empty
+    event_original["detail-type"].should.equal("type")
+    event_original["source"].should.equal("source")
+    event_original["time"].should.equal(
+        iso_8601_datetime_without_milliseconds(event_time)
+    )
+    event_original["region"].should.equal("eu-central-1")
+    event_original["resources"].should.be.empty
+    event_original["detail"].should.equal({"key": "value"})
+    event_original.should_not.have.key("replay-name")
+
+    event_replay = json.loads(events[1]["message"])
+    event_replay["version"].should.equal("0")
+    event_replay["id"].should_not.equal(event_original["id"])
+    event_replay["detail-type"].should.equal("type")
+    event_replay["source"].should.equal("source")
+    event_replay["time"].should.equal(event_original["time"])
+    event_replay["region"].should.equal("eu-central-1")
+    event_replay["resources"].should.be.empty
+    event_replay["detail"].should.equal({"key": "value"})
+    event_replay["replay-name"].should.equal("test-replay")
+
+
+@mock_events
+def test_create_and_list_connections():
+    client = boto3.client("events", "eu-central-1")
+
+    response = client.list_connections()
+
+    assert len(response.get("Connections")) == 0
+
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    response.get("ConnectionArn").should.contain(
+        "arn:aws:events:eu-central-1:{0}:connection/test/".format(ACCOUNT_ID)
+    )
+
+    response = client.list_connections()
+
+    response.get("Connections")[0].get("ConnectionArn").should.contain(
+        "arn:aws:events:eu-central-1:{0}:connection/test/".format(ACCOUNT_ID)
+    )
+
+
+@mock_events
+def test_create_and_describe_connection():
+    client = boto3.client("events", "eu-central-1")
+
+    client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    description = client.describe_connection(Name="test")
+
+    description["Name"].should.equal("test")
+    description["Description"].should.equal("test description")
+    description["AuthorizationType"].should.equal("API_KEY")
+    description["ConnectionState"].should.equal("AUTHORIZED")
+    description.should.have.key("CreationTime")
+
+
+@mock_events
+def test_create_and_update_connection():
+    client = boto3.client("events", "eu-central-1")
+
+    client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    client.update_connection(Name="test", Description="updated desc")
+
+    description = client.describe_connection(Name="test")
+
+    description["Name"].should.equal("test")
+    description["Description"].should.equal("updated desc")
+    description["AuthorizationType"].should.equal("API_KEY")
+    description["ConnectionState"].should.equal("AUTHORIZED")
+    description.should.have.key("CreationTime")
+
+
+@mock_events
+def test_update_unknown_connection():
+    client = boto3.client("events", "eu-north-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_connection(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("Connection 'unknown' does not exist.")
+
+
+@mock_events
+def test_delete_connection():
+    client = boto3.client("events", "eu-central-1")
+
+    conns = client.list_connections()["Connections"]
+    conns.should.have.length_of(0)
+
+    client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    conns = client.list_connections()["Connections"]
+    conns.should.have.length_of(1)
+
+    client.delete_connection(Name="test")
+
+    conns = client.list_connections()["Connections"]
+    conns.should.have.length_of(0)
+
+
+@mock_events
+def test_create_and_list_api_destinations():
+    client = boto3.client("events", "eu-central-1")
+
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    destination_response = client.create_api_destination(
+        Name="test",
+        Description="test-description",
+        ConnectionArn=response.get("ConnectionArn"),
+        InvocationEndpoint="www.google.com",
+        HttpMethod="GET",
+    )
+
+    arn_without_uuid = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:api-destination/test/"
+    assert destination_response.get("ApiDestinationArn").startswith(arn_without_uuid)
+    assert destination_response.get("ApiDestinationState") == "ACTIVE"
+
+    destination_response = client.describe_api_destination(Name="test")
+
+    assert destination_response.get("ApiDestinationArn").startswith(arn_without_uuid)
+
+    assert destination_response.get("Name") == "test"
+    assert destination_response.get("ApiDestinationState") == "ACTIVE"
+
+    destination_response = client.list_api_destinations()
+    assert (
+        destination_response.get("ApiDestinations")[0]
+        .get("ApiDestinationArn")
+        .startswith(arn_without_uuid)
+    )
+
+    assert destination_response.get("ApiDestinations")[0].get("Name") == "test"
+    assert (
+        destination_response.get("ApiDestinations")[0].get("ApiDestinationState")
+        == "ACTIVE"
+    )
+
+
+@pytest.mark.parametrize(
+    "key,initial_value,updated_value",
+    [
+        ("Description", "my aspi dest", "my actual api dest"),
+        ("InvocationEndpoint", "www.google.com", "www.google.cz"),
+        ("InvocationRateLimitPerSecond", 1, 32),
+        ("HttpMethod", "GET", "PATCH"),
+    ],
+)
+@mock_events
+def test_create_and_update_api_destination(key, initial_value, updated_value):
+    client = boto3.client("events", "eu-central-1")
+
+    response = client.create_connection(
+        Name="test",
+        Description="test description",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    default_params = {
+        "Name": "test",
+        "Description": "test-description",
+        "ConnectionArn": response.get("ConnectionArn"),
+        "InvocationEndpoint": "www.google.com",
+        "HttpMethod": "GET",
+    }
+    default_params.update({key: initial_value})
+
+    client.create_api_destination(**default_params)
+    destination = client.describe_api_destination(Name="test")
+    destination[key].should.equal(initial_value)
+
+    client.update_api_destination(Name="test", **dict({key: updated_value}))
+
+    destination = client.describe_api_destination(Name="test")
+    destination[key].should.equal(updated_value)
+
+
+@mock_events
+def test_delete_api_destination():
+    client = boto3.client("events", "eu-central-1")
+
+    client.list_api_destinations()["ApiDestinations"].should.have.length_of(0)
+
+    response = client.create_connection(
+        Name="test",
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )
+
+    client.create_api_destination(
+        Name="testdest",
+        ConnectionArn=response.get("ConnectionArn"),
+        InvocationEndpoint="www.google.com",
+        HttpMethod="GET",
+    )
+
+    client.list_api_destinations()["ApiDestinations"].should.have.length_of(1)
+
+    client.delete_api_destination(Name="testdest")
+
+    client.list_api_destinations()["ApiDestinations"].should.have.length_of(0)
+
+
+@mock_events
+def test_describe_unknown_api_destination():
+    client = boto3.client("events", "eu-central-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_api_destination(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("An api-destination 'unknown' does not exist.")
+
+
+@mock_events
+def test_delete_unknown_api_destination():
+    client = boto3.client("events", "eu-central-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_api_destination(Name="unknown")
+    err = ex.value.response["Error"]
+    err["Message"].should.equal("An api-destination 'unknown' does not exist.")
+
+
+# Scenarios for describe_connection
+# Scenario 01: Success
+# Scenario 02: Failure - Connection not present
+@mock_events
+def test_describe_connection_success():
+    # Given
+    conn_name = "test_conn_name"
+    conn_description = "test_conn_description"
+    auth_type = "API_KEY"
+    auth_params = {
+        "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+    }
+
+    client = boto3.client("events", "eu-central-1")
+    _ = client.create_connection(
+        Name=conn_name,
+        Description=conn_description,
+        AuthorizationType=auth_type,
+        AuthParameters=auth_params,
+    )
+
+    # When
+    response = client.describe_connection(Name=conn_name)
+
+    # Then
+    assert response["Name"] == conn_name
+    assert response["Description"] == conn_description
+    assert response["AuthorizationType"] == auth_type
+    expected_auth_param = {"ApiKeyAuthParameters": {"ApiKeyName": "test"}}
+    assert response["AuthParameters"] == expected_auth_param
+
+
+@mock_events
+def test_describe_connection_not_present():
+    conn_name = "test_conn_name"
+
+    client = boto3.client("events", "eu-central-1")
+
+    # When/Then
+    with pytest.raises(ClientError):
+        _ = client.describe_connection(Name=conn_name)
+
+
+# Scenarios for delete_connection
+# Scenario 01: Success
+# Scenario 02: Failure - Connection not present
+
+
+@mock_events
+def test_delete_connection_success():
+    # Given
+    conn_name = "test_conn_name"
+    conn_description = "test_conn_description"
+    auth_type = "API_KEY"
+    auth_params = {
+        "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+    }
+
+    client = boto3.client("events", "eu-central-1")
+    created_connection = client.create_connection(
+        Name=conn_name,
+        Description=conn_description,
+        AuthorizationType=auth_type,
+        AuthParameters=auth_params,
+    )
+
+    # When
+    response = client.delete_connection(Name=conn_name)
+
+    # Then
+    assert response["ConnectionArn"] == created_connection["ConnectionArn"]
+    assert response["ConnectionState"] == created_connection["ConnectionState"]
+    assert response["CreationTime"] == created_connection["CreationTime"]
+
+    with pytest.raises(ClientError):
+        _ = client.describe_connection(Name=conn_name)
+
+
+@mock_events
+def test_delete_connection_not_present():
+    conn_name = "test_conn_name"
+
+    client = boto3.client("events", "eu-central-1")
+
+    # When/Then
+    with pytest.raises(ClientError):
+        _ = client.delete_connection(Name=conn_name)

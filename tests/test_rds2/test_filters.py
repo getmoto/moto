@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_rds2
@@ -28,7 +26,10 @@ class TestDBInstanceFilters(object):
 
     @classmethod
     def teardown_class(cls):
-        cls.mock_rds.stop()
+        try:
+            cls.mock_rds.stop()
+        except RuntimeError:
+            pass
 
     def test_invalid_filter_name_raises_error(self):
         with pytest.raises(ClientError) as ex:
@@ -203,7 +204,10 @@ class TestDBSnapshotFilters(object):
 
     @classmethod
     def teardown_class(cls):
-        cls.mock_rds.stop()
+        try:
+            cls.mock_rds.stop()
+        except RuntimeError:
+            pass
 
     def test_invalid_filter_name_raises_error(self):
         with pytest.raises(ClientError) as ex:
