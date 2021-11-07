@@ -1,3 +1,4 @@
+import copy
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -239,6 +240,14 @@ dummy_template_special_chars_in_description = {
     },
 }
 
+dummy_unknown_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 1",
+    "Resources": {
+        "UnknownResource": {"Type": "AWS::Cloud9::EnvironmentEC2", "Properties": {}},
+    },
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_template_special_chars_in_description_json = json.dumps(
     dummy_template_special_chars_in_description
@@ -249,6 +258,7 @@ dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
 dummy_redrive_template_json = json.dumps(dummy_redrive_template)
+dummy_unknown_template_json = json.dumps(dummy_unknown_template)
 
 
 @mock_cloudformation
@@ -2110,6 +2120,42 @@ def test_create_stack_lambda_and_dynamodb():
     resource_types.should.contain("AWS::Lambda::Version")
     resource_types.should.contain("AWS::DynamoDB::Table")
     resource_types.should.contain("AWS::Lambda::EventSourceMapping")
+
+
+@mock_cloudformation
+@mock_ec2
+def test_create_and_update_stack_with_unknown_resource():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    # Creating a stack with an unknown resource should throw a warning
+    expected_err = "Tried to parse AWS::Cloud9::EnvironmentEC2 but it's not supported by moto's CloudFormation implementation"
+    if settings.TEST_SERVER_MODE:
+        # Can't verify warnings in ServerMode though
+        cf_conn.create_stack(
+            StackName="test_stack", TemplateBody=dummy_unknown_template_json
+        )
+    else:
+        with pytest.warns(UserWarning, match=expected_err):
+            cf_conn.create_stack(
+                StackName="test_stack", TemplateBody=dummy_unknown_template_json
+            )
+
+    # The stack should exist though
+    stacks = cf_conn.describe_stacks()["Stacks"]
+    stacks.should.have.length_of(1)
+    stacks[0].should.have.key("StackName").equal("test_stack")
+
+    # Updating an unknown resource should throw a warning, but not fail
+    new_template = copy.deepcopy(dummy_unknown_template)
+    new_template["Resources"]["UnknownResource"]["Properties"]["Sth"] = "other"
+    if settings.TEST_SERVER_MODE:
+        cf_conn.update_stack(
+            StackName="test_stack", TemplateBody=json.dumps(new_template)
+        )
+    else:
+        with pytest.warns(UserWarning, match=expected_err):
+            cf_conn.update_stack(
+                StackName="test_stack", TemplateBody=json.dumps(new_template)
+            )
 
 
 def get_role_name():
