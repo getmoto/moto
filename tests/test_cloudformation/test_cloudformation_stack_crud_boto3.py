@@ -2128,10 +2128,16 @@ def test_create_and_update_stack_with_unknown_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     # Creating a stack with an unknown resource should throw a warning
     expected_err = "Tried to parse AWS::Cloud9::EnvironmentEC2 but it's not supported by moto's CloudFormation implementation"
-    with pytest.warns(UserWarning, match=expected_err):
+    if settings.TEST_SERVER_MODE:
+        # Can't verify warnings in ServerMode though
         cf_conn.create_stack(
             StackName="test_stack", TemplateBody=dummy_unknown_template_json
         )
+    else:
+        with pytest.warns(UserWarning, match=expected_err):
+            cf_conn.create_stack(
+                StackName="test_stack", TemplateBody=dummy_unknown_template_json
+            )
 
     # The stack should exist though
     stacks = cf_conn.describe_stacks()["Stacks"]
@@ -2141,10 +2147,15 @@ def test_create_and_update_stack_with_unknown_resource():
     # Updating an unknown resource should throw a warning, but not fail
     new_template = copy.deepcopy(dummy_unknown_template)
     new_template["Resources"]["UnknownResource"]["Properties"]["Sth"] = "other"
-    with pytest.warns(UserWarning, match=expected_err):
+    if settings.TEST_SERVER_MODE:
         cf_conn.update_stack(
             StackName="test_stack", TemplateBody=json.dumps(new_template)
         )
+    else:
+        with pytest.warns(UserWarning, match=expected_err):
+            cf_conn.update_stack(
+                StackName="test_stack", TemplateBody=json.dumps(new_template)
+            )
 
 
 def get_role_name():
