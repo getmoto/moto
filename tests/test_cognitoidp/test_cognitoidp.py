@@ -2211,6 +2211,33 @@ def test_list_users_when_limit_more_than_total_items():
 
 
 @mock_cognitoidp
+def test_list_users_with_attributes_to_get():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    for _ in range(5):
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=str(uuid.uuid4()),
+            UserAttributes=[
+                {"Name": "family_name", "Value": "Doe"},
+                {"Name": "given_name", "Value": "Jane"},
+                {"Name": "custom:foo", "Value": "bar"},
+            ],
+        )
+
+    result = conn.list_users(
+        UserPoolId=user_pool_id, AttributesToGet=["given_name", "custom:foo", "unknown"]
+    )
+    users = result["Users"]
+    users.should.have.length_of(5)
+    for user in users:
+        user["Attributes"].should.have.length_of(2)
+        user["Attributes"].should.contain({"Name": "given_name", "Value": "Jane"})
+        user["Attributes"].should.contain({"Name": "custom:foo", "Value": "bar"})
+
+
+@mock_cognitoidp
 def test_admin_disable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
