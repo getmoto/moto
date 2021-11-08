@@ -107,7 +107,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         """
         ip_addrs = []
         for subnet in subnets:
-            ips = ipaddress.IPv4Network(subnet.cidr_block)
+            ips = ipaddress.ip_network(subnet.cidr_block)
             # Not sure if the following could occur, but if it does,
             # the situation will be ignored.
             if ips:
