@@ -1,10 +1,31 @@
 .. _implementedservice_datasync:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ========
 datasync
 ========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_datasync
+            def test_datasync_behaviour:
+                boto3.client("datasync")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] cancel_task_execution
 - [ ] create_agent

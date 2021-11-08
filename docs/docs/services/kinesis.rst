@@ -1,10 +1,31 @@
 .. _implementedservice_kinesis:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 =======
 kinesis
 =======
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_kinesis
+            def test_kinesis_behaviour:
+                boto3.client("kinesis")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] add_tags_to_stream
 - [X] create_stream

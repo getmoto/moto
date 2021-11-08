@@ -1,10 +1,31 @@
 .. _implementedservice_stepfunctions:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 =============
 stepfunctions
 =============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_stepfunctions
+            def test_stepfunctions_behaviour:
+                boto3.client("stepfunctions")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_activity
 - [X] create_state_machine

@@ -1,10 +1,31 @@
 .. _implementedservice_opsworks:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ========
 opsworks
 ========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_opsworks
+            def test_opsworks_behaviour:
+                boto3.client("opsworks")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] assign_instance
 - [ ] assign_volume

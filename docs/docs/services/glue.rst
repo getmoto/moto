@@ -1,10 +1,31 @@
 .. _implementedservice_glue:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ====
 glue
 ====
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_glue
+            def test_glue_behaviour:
+                boto3.client("glue")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection

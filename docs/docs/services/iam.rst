@@ -1,10 +1,31 @@
 .. _implementedservice_iam:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 iam
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_iam
+            def test_iam_behaviour:
+                boto3.client("iam")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile

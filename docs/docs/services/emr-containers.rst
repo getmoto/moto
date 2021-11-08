@@ -1,10 +1,31 @@
 .. _implementedservice_emr-containers:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==============
 emr-containers
 ==============
 
 Implementation of EMRContainers APIs.
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_emrcontainers
+            def test_emr-containers_behaviour:
+                boto3.client("emr-containers")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] cancel_job_run
 - [ ] create_managed_endpoint

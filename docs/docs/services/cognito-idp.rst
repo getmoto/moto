@@ -1,10 +1,31 @@
 .. _implementedservice_cognito-idp:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===========
 cognito-idp
 ===========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_cognitoidp
+            def test_cognito-idp_behaviour:
+                boto3.client("cognito-idp")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group

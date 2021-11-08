@@ -1,10 +1,31 @@
 .. _implementedservice_firehose:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ========
 firehose
 ========
 
 Implementation of Firehose APIs.
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_firehose
+            def test_firehose_behaviour:
+                boto3.client("firehose")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] create_delivery_stream
   Create a Kinesis Data Firehose delivery stream.

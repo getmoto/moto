@@ -28,11 +28,31 @@ Additional Resources
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :glob:
+   :caption: Getting Started
 
    docs/getting_started
    docs/server_mode
    docs/boto
    docs/iam
    docs/aws_config
-   docs/services/index
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+  :caption: Implemented Services
+
+  docs/services/index
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+  :glob:
+  :caption: Contributing to Moto
+
+  docs/contributing/index
+  docs/contributing/installation
+  docs/contributing/architecture
+  docs/contributing/new_feature
+  docs/contributing/development_tips
+  docs/contributing/checklist
+  docs/contributing/faq

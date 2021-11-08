@@ -1,10 +1,31 @@
 .. _implementedservice_autoscaling:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===========
 autoscaling
 ===========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_autoscaling
+            def test_autoscaling_behaviour:
+                boto3.client("autoscaling")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups

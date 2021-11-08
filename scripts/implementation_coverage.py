@@ -19,24 +19,26 @@ def get_moto_implementation(service_name):
         if service_name in alternative_service_names
         else service_name
     )
+    mock = None
+    mock_name = None
     if hasattr(moto, "mock_{}".format(alt_service_name)):
-        mock = getattr(moto, "mock_{}".format(alt_service_name))
+        mock_name = "mock_{}".format(alt_service_name)
+        mock = getattr(moto, mock_name)
     elif hasattr(moto, "mock_{}".format(service_name)):
-        mock = getattr(moto, "mock_{}".format(service_name))
-    else:
-        mock = None
+        mock_name = "mock_{}".format(service_name)
+        mock = getattr(moto, mock_name)
     if mock is None:
-        return None
+        return None, None
     backends = list(mock().backends.values())
     if backends:
-        return backends[0]
+        return backends[0], mock_name
 
 
 def calculate_extended_implementation_coverage():
     service_names = Session().get_available_services()
     coverage = {}
     for service_name in service_names:
-        moto_client = get_moto_implementation(service_name)
+        moto_client, mock_name = get_moto_implementation(service_name)
         real_client = boto3.client(service_name, region_name="us-east-1")
         implemented = dict()
         not_implemented = []
@@ -52,6 +54,7 @@ def calculate_extended_implementation_coverage():
 
         coverage[service_name] = {
             "docs": moto_client.__doc__,
+            "name": mock_name,
             "implemented": implemented,
             "not_implemented": not_implemented,
         }
@@ -62,7 +65,7 @@ def calculate_implementation_coverage():
     service_names = Session().get_available_services()
     coverage = {}
     for service_name in service_names:
-        moto_client = get_moto_implementation(service_name)
+        moto_client, _ = get_moto_implementation(service_name)
         real_client = boto3.client(service_name, region_name="us-east-1")
         implemented = []
         not_implemented = []
@@ -184,6 +187,14 @@ def write_implementation_coverage_to_docs(coverage):
             file.write(f".. _implementedservice_{shorthand}:\n")
             file.write("\n")
 
+            file.write(".. |start-h3| raw:: html\n\n")
+            file.write("    <h3>")
+            file.write("\n\n")
+
+            file.write(".. |end-h3| raw:: html\n\n")
+            file.write("    </h3>")
+            file.write("\n\n")
+
             title = f"{service_name}"
             file.write("=" * len(title) + "\n")
             file.write(title + "\n")
@@ -192,6 +203,19 @@ def write_implementation_coverage_to_docs(coverage):
 
             file.write(coverage[service_name].get("docs") or "")
             file.write("\n\n")
+
+            file.write("|start-h3| Example usage |end-h3|\n\n")
+            file.write(f""".. sourcecode:: python
+
+            @{coverage[service_name]['name']}
+            def test_{service_name}_behaviour:
+                boto3.client("{service_name}")
+                ...
+
+""")
+            file.write("\n\n")
+
+            file.write("|start-h3| Implemented features for this service |end-h3|\n\n")
 
             for op in operations:
                 if op in implemented:
@@ -203,6 +227,7 @@ def write_implementation_coverage_to_docs(coverage):
                     file.write("- [ ] {}\n".format(op))
             file.write("\n")
 
+
     with open(implementation_coverage_file, "w+") as file:
         file.write(".. _implemented_services:\n")
         file.write("\n")
@@ -212,20 +237,16 @@ def write_implementation_coverage_to_docs(coverage):
         file.write("Implemented Services\n")
         file.write("====================\n")
         file.write("\n")
+        file.write("Please see a list of all currently supported services. Each service will have a list of the endpoints that are implemented.\n")
         file.write("\n")
-
-        for service_name in sorted(coverage):
-            implemented = coverage.get(service_name)["implemented"]
-            if len(implemented) == 0:
-                continue
-            file.write(f" - :doc:`{service_name }`\n")
 
         file.write("\n")
         file.write(".. toctree::\n")
-        file.write("   :hidden:\n")
-        file.write("   :glob:\n")
+        file.write("    :titlesonly:\n")
+        file.write("    :maxdepth: 1\n")
+        file.write("    :glob:\n")
         file.write("\n")
-        file.write("   *\n")
+        file.write("    *\n")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,31 @@
 .. _implementedservice_sns:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 sns
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_sns
+            def test_sns_behaviour:
+                boto3.client("sns")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out

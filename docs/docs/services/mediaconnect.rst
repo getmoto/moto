@@ -1,10 +1,31 @@
 .. _implementedservice_mediaconnect:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ============
 mediaconnect
 ============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_mediaconnect
+            def test_mediaconnect_behaviour:
+                boto3.client("mediaconnect")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_flow_media_streams
 - [X] add_flow_outputs

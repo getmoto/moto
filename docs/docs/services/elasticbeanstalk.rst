@@ -1,10 +1,31 @@
 .. _implementedservice_elasticbeanstalk:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ================
 elasticbeanstalk
 ================
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_elasticbeanstalk
+            def test_elasticbeanstalk_behaviour:
+                boto3.client("elasticbeanstalk")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] abort_environment_update
 - [ ] apply_environment_managed_action

@@ -1,10 +1,31 @@
 .. _implementedservice_apigateway:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==========
 apigateway
 ==========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_apigateway
+            def test_apigateway_behaviour:
+                boto3.client("apigateway")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] create_api_key
 - [X] create_authorizer

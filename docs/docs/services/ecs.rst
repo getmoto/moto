@@ -1,10 +1,31 @@
 .. _implementedservice_ecs:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 ecs
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_ecs
+            def test_ecs_behaviour:
+                boto3.client("ecs")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_capacity_provider
 - [X] create_cluster

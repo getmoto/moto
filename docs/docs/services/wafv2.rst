@@ -1,5 +1,13 @@
 .. _implementedservice_wafv2:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 =====
 wafv2
 =====
@@ -7,6 +15,19 @@ wafv2
 
     https://docs.aws.amazon.com/waf/latest/APIReference/API_Operations_AWS_WAFV2.html
     
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_wafv2
+            def test_wafv2_behaviour:
+                boto3.client("wafv2")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_web_acl
 - [ ] check_capacity

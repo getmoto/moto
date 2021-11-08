@@ -1,10 +1,31 @@
 .. _implementedservice_mediapackage:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ============
 mediapackage
 ============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_mediapackage
+            def test_mediapackage_behaviour:
+                boto3.client("mediapackage")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] configure_logs
 - [X] create_channel

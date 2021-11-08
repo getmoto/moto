@@ -1,10 +1,31 @@
 .. _implementedservice_codepipeline:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ============
 codepipeline
 ============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_codepipeline
+            def test_codepipeline_behaviour:
+                boto3.client("codepipeline")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] acknowledge_job
 - [ ] acknowledge_third_party_job

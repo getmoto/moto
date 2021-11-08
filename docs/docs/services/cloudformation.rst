@@ -1,10 +1,31 @@
 .. _implementedservice_cloudformation:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==============
 cloudformation
 ==============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_cloudformation
+            def test_cloudformation_behaviour:
+                boto3.client("cloudformation")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_type
 - [ ] batch_describe_type_configurations

@@ -1,10 +1,31 @@
 .. _implementedservice_elb:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 elb
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_elb
+            def test_elb_behaviour:
+                boto3.client("elb")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
