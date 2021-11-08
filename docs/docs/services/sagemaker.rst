@@ -45,7 +45,7 @@ sagemaker
 - [ ] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_notebook_instance_url
-- [ ] create_processing_job
+- [X] create_processing_job
 - [ ] create_project
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
@@ -130,7 +130,7 @@ sagemaker
 - [ ] describe_pipeline
 - [ ] describe_pipeline_definition_for_execution
 - [ ] describe_pipeline_execution
-- [ ] describe_processing_job
+- [X] describe_processing_job
 - [ ] describe_project
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
@@ -189,7 +189,7 @@ sagemaker
 - [ ] list_pipeline_executions
 - [ ] list_pipeline_parameters_for_execution
 - [ ] list_pipelines
-- [ ] list_processing_jobs
+- [X] list_processing_jobs
 - [ ] list_projects
 - [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams

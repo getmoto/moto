@@ -50,7 +50,7 @@ apigateway
 - [X] get_api_keys
 - [X] get_authorizer
 - [X] get_authorizers
-- [ ] get_base_path_mapping
+- [X] get_base_path_mapping
 - [X] get_base_path_mappings
 - [ ] get_client_certificate
 - [ ] get_client_certificates

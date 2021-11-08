@@ -13,15 +13,21 @@ Implementation of DirectoryService APIs.
   Add or overwrite one or more tags for specified directory.
 
 - [ ] cancel_schema_extension
-- [ ] connect_directory
-- [ ] create_alias
+- [X] connect_directory
+  Create a fake AD Connector.
+
+- [X] create_alias
+  Create and assign an alias to a directory.
+
 - [ ] create_computer
 - [ ] create_conditional_forwarder
 - [X] create_directory
   Create a fake Simple Ad Directory.
 
 - [ ] create_log_subscription
-- [ ] create_microsoft_ad
+- [X] create_microsoft_ad
+  Create a fake Microsoft Ad Directory.
+
 - [ ] create_snapshot
 - [ ] create_trust
 - [ ] delete_conditional_forwarder
@@ -49,11 +55,15 @@ Implementation of DirectoryService APIs.
 - [ ] disable_client_authentication
 - [ ] disable_ldaps
 - [ ] disable_radius
-- [ ] disable_sso
+- [X] disable_sso
+  Disable single-sign on for a directory.
+
 - [ ] enable_client_authentication
 - [ ] enable_ldaps
 - [ ] enable_radius
-- [ ] enable_sso
+- [X] enable_sso
+  Enable single-sign on for a directory.
+
 - [X] get_directory_limits
   Return hard-coded limits for the directories.
 

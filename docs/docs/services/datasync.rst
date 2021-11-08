@@ -10,6 +10,7 @@ datasync
 - [ ] create_agent
 - [ ] create_location_efs
 - [ ] create_location_fsx_windows
+- [ ] create_location_hdfs
 - [ ] create_location_nfs
 - [ ] create_location_object_storage
 - [ ] create_location_s3
@@ -21,6 +22,7 @@ datasync
 - [ ] describe_agent
 - [ ] describe_location_efs
 - [ ] describe_location_fsx_windows
+- [ ] describe_location_hdfs
 - [ ] describe_location_nfs
 - [ ] describe_location_object_storage
 - [ ] describe_location_s3
@@ -36,6 +38,7 @@ datasync
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_agent
+- [ ] update_location_hdfs
 - [ ] update_location_nfs
 - [ ] update_location_object_storage
 - [ ] update_location_smb

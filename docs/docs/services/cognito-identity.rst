@@ -17,7 +17,7 @@ cognito-identity
 - [X] get_open_id_token
 - [X] get_open_id_token_for_developer_identity
 - [ ] get_principal_tag_attribute_map
-- [ ] list_identities
+- [X] list_identities
 - [ ] list_identity_pools
 - [ ] list_tags_for_resource
 - [ ] lookup_developer_identity
