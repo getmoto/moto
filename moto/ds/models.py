@@ -254,7 +254,7 @@ class DirectoryServiceBackend(BaseBackend):
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
-        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+        if tags and len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
@@ -303,7 +303,7 @@ class DirectoryServiceBackend(BaseBackend):
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
-        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+        if tags and len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
@@ -389,7 +389,7 @@ class DirectoryServiceBackend(BaseBackend):
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
-        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+        if tags and len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
@@ -489,7 +489,7 @@ class DirectoryServiceBackend(BaseBackend):
         errmsg = self.tagger.validate_tags(tags)
         if errmsg:
             raise ValidationException(errmsg)
-        if len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
+        if tags and len(tags) > Directory.MAX_TAGS_PER_DIRECTORY:
             raise TagLimitExceededException("Tag limit exceeded")
         self.tagger.tag_resource(resource_id, tags)
 
