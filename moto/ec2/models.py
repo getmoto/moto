@@ -297,6 +297,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             private_ip_address = private_ip_address[0]
         self.private_ip_address = private_ip_address or None
         self.private_ip_addresses = private_ip_addresses or []
+        self.ipv6_addresses = kwargs.get("ipv6_addresses") or []
 
         self.subnet = subnet
         if isinstance(subnet, str):
@@ -317,6 +318,17 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         # Local set to the ENI. When attached to an instance, @property group_set
         #   returns groups for both self and the attached instance.
         self._group_set = []
+
+        if self.subnet.ipv6_cidr_block_associations:
+            association = list(self.subnet.ipv6_cidr_block_associations.values())[0]
+            subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
+            if kwargs.get("ipv6_address_count"):
+                while True:
+                    if len(self.ipv6_addresses) == kwargs.get("ipv6_address_count"):
+                        break
+                    ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
+                    if ip not in self.ipv6_addresses:
+                        self.ipv6_addresses.append(ip)
 
         if self.private_ip_addresses:
             primary_selected = True if private_ip_address else False
@@ -623,6 +635,30 @@ class NetworkInterfaceBackend(object):
                 )
                 secondary_ips_count -= 1
         return eni
+
+    def assign_ipv6_addresses(self, eni_id=None, ipv6_addresses=None, ipv6_count=None):
+        eni = self.get_network_interface(eni_id)
+        if ipv6_addresses:
+            eni.ipv6_addresses.extend(ipv6_addresses)
+        if ipv6_count:
+            while True:
+                if not ipv6_count:
+                    break
+                association = list(eni.subnet.ipv6_cidr_block_associations.values())[0]
+                subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
+                ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
+                if ip not in eni.ipv6_addresses:
+                    eni.ipv6_addresses.append(ip)
+                    ipv6_count -= 1
+        return eni
+
+    def unassign_ipv6_addresses(self, eni_id=None, ips=None):
+        eni = self.get_network_interface(eni_id)
+        if ips:
+            for ip in eni.ipv6_addresses.copy():
+                if ip in ips:
+                    eni.ipv6_addresses.remove(ip)
+        return eni, ips
 
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):

@@ -228,11 +228,18 @@ def random_public_ip():
     return "54.214.{0}.{1}".format(random.choice(range(255)), random.choice(range(255)))
 
 
-def random_private_ip(cidr=None):
+def random_private_ip(cidr=None, ipv6=False):
+    # prefix - ula.prefixlen : get number of remaing length for the IP.
+    #                          prefix will be 32 for IPv4 and 128 for IPv6.
+    #  random.getrandbits() will generate remaining bits for IPv6 or Ipv4 in decimal format
     if cidr:
-        ips = ipaddress.ip_network(cidr)
-        ip_list = [str(ip) for ip in ips]
-        return ip_list[random.choice(range(0, len(ip_list)))]
+        if ipv6:
+            ula = ipaddress.IPv6Network(cidr)
+            return str(ula.network_address + (random.getrandbits(128 - ula.prefixlen)))
+        ula = ipaddress.IPv4Network(cidr)
+        return str(ula.network_address + (random.getrandbits(32 - ula.prefixlen)))
+    if ipv6:
+        return "2001::cafe:%x/64" % random.getrandbits(16)
     return "10.{0}.{1}.{2}".format(
         random.choice(range(255)), random.choice(range(255)), random.choice(range(255))
     )

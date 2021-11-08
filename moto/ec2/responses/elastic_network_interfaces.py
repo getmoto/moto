@@ -11,6 +11,12 @@ class ElasticNetworkInterfaces(BaseResponse):
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
         private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
+        ipv6_addresses = self._get_multi_param("Ipv6Addresses")
+        ipv6_address_count = (
+            int(self._get_param("Ipv6AddressCount"))
+            if self._get_param("Ipv6AddressCount")
+            else 0
+        )
         secondary_ips_count = self._get_param("SecondaryPrivateIpAddressCount")
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
@@ -27,6 +33,8 @@ class ElasticNetworkInterfaces(BaseResponse):
                 description,
                 tags,
                 secondary_ips_count=secondary_ips_count,
+                ipv6_addresses=ipv6_addresses,
+                ipv6_address_count=ipv6_address_count,
             )
             template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
             return template.render(eni=eni)
@@ -101,6 +109,25 @@ class ElasticNetworkInterfaces(BaseResponse):
         template = self.response_template(UNASSIGN_PRIVATE_IP_ADDRESSES)
         return template.render(eni=eni)
 
+    def assign_ipv6_addresses(self):
+        eni_id = self._get_param("NetworkInterfaceId")
+        ipv6_count = self._get_param("Ipv6AddressCount")
+        ipv6_addresses = self._get_multi_param("Ipv6Addresses")
+        if ipv6_count:
+            ipv6_count = int(ipv6_count)
+        eni = self.ec2_backend.assign_ipv6_addresses(
+            eni_id, ipv6_addresses, ipv6_count,
+        )
+        template = self.response_template(ASSIGN_IPV6_ADDRESSES)
+        return template.render(eni=eni)
+
+    def unassign_ipv6_addresses(self):
+        eni_id = self._get_param("NetworkInterfaceId")
+        ips = self._get_multi_param("Ipv6Addresses")
+        eni, unassigned_ips = self.ec2_backend.unassign_ipv6_addresses(eni_id, ips)
+        template = self.response_template(UNASSIGN_IPV6_ADDRESSES)
+        return template.render(eni=eni, unassigned_ips=unassigned_ips)
+
 
 ASSIGN_PRIVATE_IP_ADDRESSES = """<AssignPrivateIpAddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>3fb591ba-558c-48f8-ae6b-c2f9d6d06425</requestId>
@@ -128,6 +155,28 @@ UNASSIGN_PRIVATE_IP_ADDRESSES = """<UnAssignPrivateIpAddressesResponse xmlns="ht
   </assignedPrivateIpAddressesSet>
   <return>true</return>
 </UnAssignPrivateIpAddressesResponse>"""
+
+
+ASSIGN_IPV6_ADDRESSES = """<AssignIpv6AddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>c36d17eb-a0ba-4d38-8727-example</requestId>
+    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
+    <assignedIpv6Addresses>
+        {% for address in eni.ipv6_addresses %}
+        <item>{{address}}</item>
+        {% endfor %}
+    </assignedIpv6Addresses>
+</AssignIpv6AddressesResponse>
+"""
+
+UNASSIGN_IPV6_ADDRESSES = """<UnassignIpv6AddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>94d446d7-fc8e-4918-94f9-example</requestId>
+    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
+    <unassignedIpv6Addresses>
+        {% for address in unassigned_ips %}
+        <item>{{address}}</item>
+        {% endfor %}
+    </unassignedIpv6Addresses>
+</UnassignIpv6AddressesResponse>"""
 
 
 CREATE_NETWORK_INTERFACE_RESPONSE = """
@@ -189,7 +238,13 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
           </item>
           {% endfor %}
         </privateIpAddressesSet>
-        <ipv6AddressesSet/>
+        <ipv6AddressesSet>
+        {% for address in eni.ipv6_addresses %}
+            <item>
+                <ipv6Address>{{address}}</ipv6Address>
+            </item>
+        {% endfor %}
+        </ipv6AddressesSet>
         <interfaceType>{{ eni.interface_type }}</interfaceType>
     </networkInterface>
 </CreateNetworkInterfaceResponse>
@@ -255,7 +310,13 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
             </item>
             {% endfor %}
             </privateIpAddressesSet>
-            <ipv6AddressesSet/>
+            <ipv6AddressesSet>
+                {% for address in eni.ipv6_addresses %}
+                <item>
+                    <ipv6Address>{{address}}</ipv6Address>
+                </item>
+                {% endfor %}
+            </ipv6AddressesSet>
             <interfaceType>{{ eni.interface_type }}</interfaceType>
         </item>
     {% endfor %}
