@@ -1,10 +1,31 @@
 .. _implementedservice_rds:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 rds
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_rds2
+            def test_rds_behaviour:
+                boto3.client("rds")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance

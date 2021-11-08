@@ -1,10 +1,31 @@
 .. _implementedservice_ecr:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 ecr
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_ecr
+            def test_ecr_behaviour:
+                boto3.client("ecr")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image

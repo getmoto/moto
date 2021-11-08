@@ -1,10 +1,31 @@
 .. _implementedservice_iot:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 iot
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_iot
+            def test_iot_behaviour:
+                boto3.client("iot")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group

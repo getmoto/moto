@@ -1,10 +1,31 @@
 .. _implementedservice_ec2:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 ec2
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_ec2
+            def test_ec2_behaviour:
+                boto3.client("ec2")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations

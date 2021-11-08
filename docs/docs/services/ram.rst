@@ -1,10 +1,31 @@
 .. _implementedservice_ram:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 ram
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_ram
+            def test_ram_behaviour:
+                boto3.client("ram")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_resource_share_invitation
 - [ ] associate_resource_share

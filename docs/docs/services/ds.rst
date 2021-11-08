@@ -1,10 +1,31 @@
 .. _implementedservice_ds:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==
 ds
 ==
 
 Implementation of DirectoryService APIs.
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_ds
+            def test_ds_behaviour:
+                boto3.client("ds")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes

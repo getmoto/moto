@@ -1,10 +1,31 @@
 .. _implementedservice_dynamodb:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ========
 dynamodb
 ========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_dynamodb2
+            def test_dynamodb_behaviour:
+                boto3.client("dynamodb")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_execute_statement
 - [X] batch_get_item

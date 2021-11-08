@@ -1,10 +1,31 @@
 .. _implementedservice_resource-groups:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===============
 resource-groups
 ===============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_resourcegroups
+            def test_resource-groups_behaviour:
+                boto3.client("resource-groups")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] create_group
 - [X] delete_group

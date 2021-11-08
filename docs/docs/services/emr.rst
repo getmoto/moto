@@ -1,10 +1,31 @@
 .. _implementedservice_emr:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 emr
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_emr
+            def test_emr_behaviour:
+                boto3.client("emr")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups

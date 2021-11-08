@@ -1,10 +1,31 @@
 .. _implementedservice_config:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ======
 config
 ======
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_config
+            def test_config_behaviour:
+                boto3.client("config")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_get_aggregate_resource_config
   Returns configuration of resource for current regional backend.

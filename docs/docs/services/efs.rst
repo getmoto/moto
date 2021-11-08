@@ -1,5 +1,13 @@
 .. _implementedservice_efs:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 efs
 ===
@@ -10,6 +18,19 @@ The backend manager of EFS resources.
     and eventually access points that are deployed. Creating, updating, and destroying
     such resources should always go through this class.
     
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_efs
+            def test_efs_behaviour:
+                boto3.client("efs")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_access_point
 - [X] create_file_system

@@ -1,10 +1,31 @@
 .. _implementedservice_dms:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ===
 dms
 ===
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_dms
+            def test_dms_behaviour:
+                boto3.client("dms")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action

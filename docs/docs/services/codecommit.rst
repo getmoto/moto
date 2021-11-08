@@ -1,10 +1,31 @@
 .. _implementedservice_codecommit:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==========
 codecommit
 ==========
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_codecommit
+            def test_codecommit_behaviour:
+                boto3.client("codecommit")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_approval_rule_template_with_repository
 - [ ] batch_associate_approval_rule_template_with_repositories

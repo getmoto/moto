@@ -1,10 +1,31 @@
 .. _implementedservice_application-autoscaling:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 =======================
 application-autoscaling
 =======================
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_applicationautoscaling
+            def test_application-autoscaling_behaviour:
+                boto3.client("application-autoscaling")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] delete_scaling_policy
 - [ ] delete_scheduled_action

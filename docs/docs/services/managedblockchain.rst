@@ -1,10 +1,31 @@
 .. _implementedservice_managedblockchain:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 =================
 managedblockchain
 =================
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_managedblockchain
+            def test_managedblockchain_behaviour:
+                boto3.client("managedblockchain")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [X] create_member
 - [X] create_network

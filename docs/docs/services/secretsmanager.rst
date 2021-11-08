@@ -1,10 +1,31 @@
 .. _implementedservice_secretsmanager:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==============
 secretsmanager
 ==============
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_secretsmanager
+            def test_secretsmanager_behaviour:
+                boto3.client("secretsmanager")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] cancel_rotate_secret
 - [X] create_secret

@@ -1,10 +1,31 @@
 .. _implementedservice_events:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ======
 events
 ======
 
 
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_events
+            def test_events_behaviour:
+                boto3.client("events")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_event_source
 - [X] cancel_replay

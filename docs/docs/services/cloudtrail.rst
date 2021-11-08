@@ -1,10 +1,31 @@
 .. _implementedservice_cloudtrail:
 
+.. |start-h3| raw:: html
+
+    <h3>
+
+.. |end-h3| raw:: html
+
+    </h3>
+
 ==========
 cloudtrail
 ==========
 
 Implementation of CloudTrail APIs.
+
+|start-h3| Example usage |end-h3|
+
+.. sourcecode:: python
+
+            @mock_cloudtrail
+            def test_cloudtrail_behaviour:
+                boto3.client("cloudtrail")
+                ...
+
+
+
+|start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_tags
 - [X] create_trail
