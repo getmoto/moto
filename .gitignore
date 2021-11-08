@@ -26,3 +26,4 @@ tests/file.tmp
 htmlcov/
 .~c9_*
 .coverage*
+docs/_build

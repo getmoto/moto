@@ -32,6 +32,32 @@ def get_moto_implementation(service_name):
         return backends[0]
 
 
+def calculate_extended_implementation_coverage():
+    service_names = Session().get_available_services()
+    coverage = {}
+    for service_name in service_names:
+        moto_client = get_moto_implementation(service_name)
+        real_client = boto3.client(service_name, region_name="us-east-1")
+        implemented = dict()
+        not_implemented = []
+
+        operation_names = [
+            xform_name(op) for op in real_client.meta.service_model.operation_names
+        ]
+        for op in operation_names:
+            if moto_client and op in dir(moto_client):
+                implemented[op] = getattr(moto_client, op)
+            else:
+                not_implemented.append(op)
+
+        coverage[service_name] = {
+            "docs": moto_client.__doc__,
+            "implemented": implemented,
+            "not_implemented": not_implemented,
+        }
+    return coverage
+
+
 def calculate_implementation_coverage():
     service_names = Session().get_available_services()
     coverage = {}
@@ -132,7 +158,78 @@ def write_implementation_coverage_to_file(coverage):
         file.write("</details>")
 
 
+def write_implementation_coverage_to_docs(coverage):
+    implementation_coverage_file = "{}/../docs/docs/services/index.rst".format(script_dir)
+    # rewrite the implementation coverage file with updated values
+    # try deleting the implementation coverage file
+    try:
+        os.remove(implementation_coverage_file)
+    except OSError:
+        pass
+
+    print("Writing to {}".format(implementation_coverage_file))
+    completely_unimplemented = []
+    for service_name in sorted(coverage):
+        implemented = coverage.get(service_name)["implemented"]
+        if len(implemented) == 0:
+            completely_unimplemented.append(service_name)
+            continue
+        not_implemented = coverage.get(service_name)["not_implemented"]
+        operations = sorted(list(implemented.keys()) + not_implemented)
+
+        service_coverage_file = "{}/../docs/docs/services/{}.rst".format(script_dir, service_name)
+        shorthand = service_name.replace(" ", "_")
+
+        with open(service_coverage_file, "w+") as file:
+            file.write(f".. _implementedservice_{shorthand}:\n")
+            file.write("\n")
+
+            title = f"{service_name}"
+            file.write("=" * len(title) + "\n")
+            file.write(title + "\n")
+            file.write(("=" * len(title)) + "\n")
+            file.write("\n")
+
+            file.write(coverage[service_name].get("docs") or "")
+            file.write("\n\n")
+
+            for op in operations:
+                if op in implemented:
+                    file.write("- [X] {}\n".format(op))
+                    docs = getattr(implemented[op], "__doc__")
+                    if docs:
+                        file.write(f"  {docs}\n\n")
+                else:
+                    file.write("- [ ] {}\n".format(op))
+            file.write("\n")
+
+    with open(implementation_coverage_file, "w+") as file:
+        file.write(".. _implemented_services:\n")
+        file.write("\n")
+        file.write("\n")
+
+        file.write("====================\n")
+        file.write("Implemented Services\n")
+        file.write("====================\n")
+        file.write("\n")
+        file.write("\n")
+
+        for service_name in sorted(coverage):
+            implemented = coverage.get(service_name)["implemented"]
+            if len(implemented) == 0:
+                continue
+            file.write(f" - :doc:`{service_name }`\n")
+
+        file.write("\n")
+        file.write(".. toctree::\n")
+        file.write("   :hidden:\n")
+        file.write("   :glob:\n")
+        file.write("\n")
+        file.write("   *\n")
+
+
 if __name__ == "__main__":
     cov = calculate_implementation_coverage()
     write_implementation_coverage_to_file(cov)
-    print_implementation_coverage(cov)
+    xcov = calculate_extended_implementation_coverage()
+    write_implementation_coverage_to_docs(xcov)

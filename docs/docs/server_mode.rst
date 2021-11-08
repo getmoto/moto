@@ -1,31 +1,29 @@
 .. _server_mode:
 
-===========
-Server mode
-===========
+================
+Non-Python SDK's
+================
 
-Moto has a stand-alone server mode. This allows you to utilize
-the backend structure of Moto even if you don't use Python.
+Moto has a stand-alone server mode. This allows you to use Moto with any of the official AWS SDK's.
 
-It uses flask, which isn't a default dependency. You can install the
-server 'extra' package with:
+Install the required dependencies using:
 
 .. code:: bash
 
     pip install moto[server]
 
 
-You can then start it running a service:
+You can then start it like this:
 
 .. code:: bash
 
-    $ moto_server ec2
+    $ moto_server
 
 You can also pass the port:
 
 .. code-block:: bash
 
-    $ moto_server ec2 -p3000
+    $ moto_server -p3000
      * Running on http://127.0.0.1:3000/
 
 If you want to be able to use the server externally you can pass an IP
@@ -34,32 +32,83 @@ interfaces with 0.0.0.0:
 
 .. code-block:: bash
 
-    $ moto_server ec2 -H 0.0.0.0
+    $ moto_server -H 0.0.0.0
      * Running on http://0.0.0.0:5000/
 
 Please be aware this might allow other network users to access your
 server.
 
-Then go to localhost_ to see a list of running instances (it will be empty since you haven't added any yet).
+To use Moto in your tests, you can pass an `endpoint_url` to the SDK of your choice.
 
-If you want to use boto3 with this, you can pass an `endpoint_url` to the resource
+In Python:
 
 .. code-block:: python
 
     boto3.resource(
         service_name='s3',
         region_name='us-west-1',
-        endpoint_url='http://localhost:5000',
+        endpoint_url='http://localhost:5000'
     )
 
-Other languages
----------------
+In Java:
 
-You don't need to use Python to use Moto; it can be used with any language. Here are some examples to run it with other languages:
+.. code-block:: java
+
+    AmazonSQS sqs = new AmazonSQSClient();
+    sqs.setRegion(Region.getRegion(Regions.US_WEST_2));
+    sqs.setEndpoint("http://localhost:5000");
+
+In Scala:
+
+.. code-block:: scala
+
+    val region = Region.getRegion(Regions.US_WEST_2).getName
+    val serviceEndpoint = "http://localhost:5000"
+    val config = new AwsClientBuilder.EndpointConfiguration(serviceEndpoint, region)
+    val amazonSqs =  AmazonSQSClientBuilder.standard().withEndpointConfiguration(config).build
+
+In Terraform:
+
+.. code-block::
+
+    provider "aws" {
+        region                      = "us-east-1"
+        skip_credentials_validation = true
+        skip_metadata_api_check     = true
+        skip_requesting_account_id  = true
+        s3_force_path_style         = true
+
+        endpoints {
+            lambda           = "http://localhost:5000"
+        }
+    }
+
+See the `Terraform Docs`_ for more information.
+
+Examples
+--------
+
+Here are some more examples:
 
 * `Java`_
 * `Ruby`_
 * `Javascript`_
+
+
+Dashboard
+---------
+
+Moto comes with a dashboard to view the current state of the system::
+
+    http://localhost:5000/moto-api/
+
+
+Reset API
+---------
+
+An internal API endpoint is provided to reset the state of all of the backends. This will remove all S3 buckets, EC2 servers, etc.::
+
+   requests.post("http://motoapi.amazonaws.com/moto-api/reset")
 
 Install with Homebrew
 ---------------------
@@ -80,8 +129,19 @@ you can run:
 
     brew services start moto
 
+Caveats
+-------
+The standalone server has some caveats with some services. The following services
+require that you update your hosts file for your code to work properly:
+
+#. `s3-control`
+
+For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
+As a result, you need to add that entry to your host file for your tests to function properly.
+
+
 .. _Java: https://github.com/spulec/moto/blob/master/other_langs/sqsSample.java
 .. _Ruby: https://github.com/spulec/moto/blob/master/other_langs/test.rb
 .. _Javascript: https://github.com/spulec/moto/blob/master/other_langs/test.js
-.. _localhost: http://localhost:5000/?Action=DescribeInstances
 .. _Homebrew: https://brew.sh
+.. _Terraform Docs: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/custom-service-endpoints

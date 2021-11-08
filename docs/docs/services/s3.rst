@@ -1,0 +1,105 @@
+.. _implementedservice_s3:
+
+==
+s3
+==
+
+
+
+- [X] abort_multipart_upload
+- [X] complete_multipart_upload
+- [X] copy_object
+- [X] create_bucket
+- [X] create_multipart_upload
+- [X] delete_bucket
+- [ ] delete_bucket_analytics_configuration
+- [X] delete_bucket_cors
+- [X] delete_bucket_encryption
+- [ ] delete_bucket_intelligent_tiering_configuration
+- [ ] delete_bucket_inventory_configuration
+- [X] delete_bucket_lifecycle
+- [ ] delete_bucket_metrics_configuration
+- [ ] delete_bucket_ownership_controls
+- [X] delete_bucket_policy
+- [X] delete_bucket_replication
+- [X] delete_bucket_tagging
+- [X] delete_bucket_website
+- [X] delete_object
+- [X] delete_object_tagging
+- [X] delete_objects
+- [X] delete_public_access_block
+- [ ] get_bucket_accelerate_configuration
+- [X] get_bucket_acl
+- [ ] get_bucket_analytics_configuration
+- [X] get_bucket_cors
+- [X] get_bucket_encryption
+- [ ] get_bucket_intelligent_tiering_configuration
+- [ ] get_bucket_inventory_configuration
+- [X] get_bucket_lifecycle
+- [ ] get_bucket_lifecycle_configuration
+- [X] get_bucket_location
+- [X] get_bucket_logging
+- [ ] get_bucket_metrics_configuration
+- [ ] get_bucket_notification
+- [X] get_bucket_notification_configuration
+- [ ] get_bucket_ownership_controls
+- [X] get_bucket_policy
+- [ ] get_bucket_policy_status
+- [X] get_bucket_replication
+- [ ] get_bucket_request_payment
+- [X] get_bucket_tagging
+- [X] get_bucket_versioning
+- [ ] get_bucket_website
+- [X] get_object
+- [X] get_object_acl
+- [X] get_object_legal_hold
+- [X] get_object_lock_configuration
+- [ ] get_object_retention
+- [X] get_object_tagging
+- [ ] get_object_torrent
+- [X] get_public_access_block
+- [X] head_bucket
+- [X] head_object
+- [ ] list_bucket_analytics_configurations
+- [ ] list_bucket_intelligent_tiering_configurations
+- [ ] list_bucket_inventory_configurations
+- [ ] list_bucket_metrics_configurations
+- [X] list_buckets
+- [ ] list_multipart_uploads
+- [X] list_object_versions
+- [X] list_objects
+- [X] list_objects_v2
+- [X] list_parts
+- [X] put_bucket_accelerate_configuration
+- [X] put_bucket_acl
+- [ ] put_bucket_analytics_configuration
+- [X] put_bucket_cors
+- [X] put_bucket_encryption
+- [ ] put_bucket_intelligent_tiering_configuration
+- [ ] put_bucket_inventory_configuration
+- [X] put_bucket_lifecycle
+- [ ] put_bucket_lifecycle_configuration
+- [X] put_bucket_logging
+- [ ] put_bucket_metrics_configuration
+- [ ] put_bucket_notification
+- [X] put_bucket_notification_configuration
+- [ ] put_bucket_ownership_controls
+- [X] put_bucket_policy
+- [X] put_bucket_replication
+- [ ] put_bucket_request_payment
+- [X] put_bucket_tagging
+- [ ] put_bucket_versioning
+- [ ] put_bucket_website
+- [X] put_object
+- [X] put_object_acl
+- [X] put_object_legal_hold
+- [X] put_object_lock_configuration
+- [X] put_object_retention
+- [ ] put_object_tagging
+- [ ] put_public_access_block
+- [ ] restore_object
+- [ ] select_object_content
+- [X] upload_part
+- [ ] upload_part_copy
+- [ ] write_get_object_response
+
