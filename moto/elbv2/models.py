@@ -425,6 +425,8 @@ class FakeLoadBalancer(CloudFormationModel):
         "access_logs.s3.prefix",
         "deletion_protection.enabled",
         "idle_timeout.timeout_seconds",
+        "routing.http2.enabled",
+        "routing.http.drop_invalid_header_fields.enabled",
     }
 
     def __init__(

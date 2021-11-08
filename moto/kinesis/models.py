@@ -18,6 +18,7 @@ from .exceptions import (
     ResourceInUseError,
     ResourceNotFoundError,
     InvalidArgumentError,
+    ValidationException,
 )
 from .utils import (
     compose_shard_iterator,
@@ -46,12 +47,13 @@ class Record(BaseModel):
 
 
 class Shard(BaseModel):
-    def __init__(self, shard_id, starting_hash, ending_hash):
+    def __init__(self, shard_id, starting_hash, ending_hash, parent=None):
         self._shard_id = shard_id
         self.starting_hash = starting_hash
         self.ending_hash = ending_hash
         self.records = OrderedDict()
         self.is_open = True
+        self.parent = parent
 
     @property
     def shard_id(self):
@@ -125,6 +127,8 @@ class Shard(BaseModel):
             },
             "ShardId": self.shard_id,
         }
+        if self.parent:
+            response["ParentShardId"] = self.parent
         if not self.is_open:
             response["SequenceNumberRange"][
                 "EndingSequenceNumber"
@@ -146,6 +150,8 @@ class Stream(CloudFormationModel):
         self.retention_period_hours = (
             retention_period_hours if retention_period_hours else 24
         )
+        self.enhanced_monitoring = [{"ShardLevelMetrics": []}]
+        self.encryption_type = "NONE"
 
     def update_shard_count(self, shard_count):
         # ToDo: This was extracted from init.  It's only accurate for new streams.
@@ -165,7 +171,7 @@ class Stream(CloudFormationModel):
 
     @property
     def arn(self):
-        return "arn:aws:kinesis:{region}:{account_number}:{stream_name}".format(
+        return "arn:aws:kinesis:{region}:{account_number}:stream/{stream_name}".format(
             region=self.region,
             account_number=self.account_number,
             stream_name=self.stream_name,
@@ -175,7 +181,7 @@ class Stream(CloudFormationModel):
         if shard_id in self.shards:
             return self.shards[shard_id]
         else:
-            raise ShardNotFoundError(shard_id)
+            raise ShardNotFoundError(shard_id, stream="")
 
     def get_shard_for_key(self, partition_key, explicit_hash_key):
         if not isinstance(partition_key, str):
@@ -214,9 +220,12 @@ class Stream(CloudFormationModel):
             "StreamDescription": {
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
+                "StreamCreationTimestamp": str(self.creation_datetime),
                 "StreamStatus": self.status,
                 "HasMoreShards": len(requested_shards) != len(all_shards),
                 "RetentionPeriodHours": self.retention_period_hours,
+                "EnhancedMonitoring": self.enhanced_monitoring,
+                "EncryptionType": self.encryption_type,
                 "Shards": [shard.to_json() for shard in requested_shards],
             }
         }
@@ -374,7 +383,12 @@ class KinesisBackend(BaseBackend):
     ):
         # Validate params
         stream = self.describe_stream(stream_name)
-        shard = stream.get_shard(shard_id)
+        try:
+            shard = stream.get_shard(shard_id)
+        except ShardNotFoundError:
+            raise ResourceNotFoundError(
+                message=f"Shard {shard_id} in stream {stream_name} under account {ACCOUNT_ID} does not exist"
+            )
 
         shard_iterator = compose_new_shard_iterator(
             stream_name,
@@ -440,25 +454,58 @@ class KinesisBackend(BaseBackend):
     def split_shard(self, stream_name, shard_to_split, new_starting_hash_key):
         stream = self.describe_stream(stream_name)
 
+        if not re.match("[a-zA-Z0-9_.-]+", shard_to_split):
+            raise ValidationException(
+                value=shard_to_split,
+                position="shardToSplit",
+                regex_to_match="[a-zA-Z0-9_.-]+",
+            )
+
         if shard_to_split not in stream.shards:
-            raise ResourceNotFoundError(shard_to_split)
+            raise ShardNotFoundError(shard_id=shard_to_split, stream=stream_name)
 
         if not re.match(r"0|([1-9]\d{0,38})", new_starting_hash_key):
-            raise InvalidArgumentError(new_starting_hash_key)
+            raise ValidationException(
+                value=new_starting_hash_key,
+                position="newStartingHashKey",
+                regex_to_match=r"0|([1-9]\d{0,38})",
+            )
         new_starting_hash_key = int(new_starting_hash_key)
 
         shard = stream.shards[shard_to_split]
+
+        if shard.starting_hash < new_starting_hash_key < shard.ending_hash:
+            pass
+        else:
+            raise InvalidArgumentError(
+                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {stream_name} under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash-1)}."
+            )
+
+        if not shard.is_open:
+            raise InvalidArgumentError(
+                message=f"Shard {shard.shard_id} in stream {stream_name} under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
+            )
 
         last_id = sorted(stream.shards.values(), key=attrgetter("_shard_id"))[
             -1
         ]._shard_id
 
-        if shard.starting_hash < new_starting_hash_key < shard.ending_hash:
-            new_shard = Shard(last_id + 1, new_starting_hash_key, shard.ending_hash)
-            shard.ending_hash = new_starting_hash_key
-            stream.shards[new_shard.shard_id] = new_shard
-        else:
-            raise InvalidArgumentError(new_starting_hash_key)
+        # Create two new shards
+        new_shard_1 = Shard(
+            last_id + 1,
+            starting_hash=shard.starting_hash,
+            ending_hash=new_starting_hash_key - 1,
+            parent=shard.shard_id,
+        )
+        new_shard_2 = Shard(
+            last_id + 2,
+            starting_hash=new_starting_hash_key,
+            ending_hash=shard.ending_hash,
+            parent=shard.shard_id,
+        )
+        stream.shards[new_shard_1.shard_id] = new_shard_1
+        stream.shards[new_shard_2.shard_id] = new_shard_2
+        shard.is_open = False
 
         records = shard.records
         shard.records = OrderedDict()
@@ -473,10 +520,10 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
 
         if shard_to_merge not in stream.shards:
-            raise ResourceNotFoundError(shard_to_merge)
+            raise ShardNotFoundError(shard_to_merge, stream=stream_name)
 
         if adjacent_shard_to_merge not in stream.shards:
-            raise ResourceNotFoundError(adjacent_shard_to_merge)
+            raise ShardNotFoundError(adjacent_shard_to_merge, stream=stream_name)
 
         shard1 = stream.shards[shard_to_merge]
         shard2 = stream.shards[adjacent_shard_to_merge]

@@ -28,6 +28,7 @@ url_paths = {
     "{0}/restapis/(?P<function_id>[^/]+)/models/(?P<model_name>[^/]+)/?$": response.model_induvidual,
     "{0}/domainnames/(?P<domain_name>[^/]+)/?$": response.domain_name_induvidual,
     "{0}/domainnames/(?P<domain_name>[^/]+)/basepathmappings$": response.base_path_mappings,
+    "{0}/domainnames/(?P<domain_name>[^/]+)/basepathmappings/(?P<base_path_mapping>[^/]+)$": response.base_path_mapping_individual,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/?$": response.usage_plan_individual,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys$": response.usage_plan_keys,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys/(?P<api_key_id>[^/]+)/?$": response.usage_plan_key_individual,

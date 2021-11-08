@@ -335,9 +335,12 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, new_resource_name = parse_resource_and_generate_name(
+    resource_tuple = parse_resource_and_generate_name(
         logical_id, resource_json, resources_map
     )
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, new_resource_name = resource_tuple
     original_resource = resources_map[logical_id]
     if not hasattr(
         resource_class.update_from_cloudformation_json, "__isabstractmethod__"

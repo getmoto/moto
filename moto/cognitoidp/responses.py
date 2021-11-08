@@ -341,6 +341,7 @@ class CognitoIdpResponse(BaseResponse):
         limit = self._get_param("Limit")
         token = self._get_param("PaginationToken")
         filt = self._get_param("Filter")
+        attributes_to_get = self._get_param("AttributesToGet")
         users, token = cognitoidp_backends[self.region].list_users(
             user_pool_id, limit=limit, pagination_token=token
         )
@@ -385,7 +386,12 @@ class CognitoIdpResponse(BaseResponse):
                     and compare(inherent_attributes[name](user), value)
                 )
             ]
-        response = {"Users": [user.to_json(extended=True) for user in users]}
+        response = {
+            "Users": [
+                user.to_json(extended=True, attributes_to_get=attributes_to_get)
+                for user in users
+            ]
+        }
         if token:
             response["PaginationToken"] = str(token)
         return json.dumps(response)

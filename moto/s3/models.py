@@ -173,15 +173,6 @@ class FakeKey(BaseModel):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
-    def copy(self, new_name=None, new_is_versioned=None):
-        r = copy.deepcopy(self)
-        if new_name is not None:
-            r.name = new_name
-        if new_is_versioned is not None:
-            r._is_versioned = new_is_versioned
-            r.refresh_version()
-        return r
-
     def set_metadata(self, metadata, replace=False):
         if replace:
             self._metadata = {}
@@ -212,10 +203,6 @@ class FakeKey(BaseModel):
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
-
-    def refresh_version(self):
-        self._version_id = str(uuid.uuid4())
-        self.last_modified = datetime.datetime.utcnow()
 
     @property
     def etag(self):
@@ -1587,15 +1574,12 @@ class S3Backend(BaseBackend):
 
         # getting default config from bucket if not included in put request
         if bucket.encryption:
-            bucket_key_enabled = (
-                bucket_key_enabled or bucket.encryption["Rule"]["BucketKeyEnabled"]
+            bucket_key_enabled = bucket_key_enabled or bucket.encryption["Rule"].get(
+                "BucketKeyEnabled", False
             )
-            kms_key_id = (
-                kms_key_id
-                or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
-                    "KMSMasterKeyID"
-                ]
-            )
+            kms_key_id = kms_key_id or bucket.encryption["Rule"][
+                "ApplyServerSideEncryptionByDefault"
+            ].get("KMSMasterKeyID")
             encryption = (
                 encryption
                 or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
@@ -2022,22 +2006,29 @@ class S3Backend(BaseBackend):
         acl=None,
         src_version_id=None,
     ):
-        dest_key_name = clean_key_name(dest_key_name)
-        dest_bucket = self.get_bucket(dest_bucket_name)
         key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
-        new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
+        new_key = self.put_object(
+            bucket_name=dest_bucket_name,
+            key_name=dest_key_name,
+            value=key.value,
+            storage=storage or key.storage_class,
+            etag=key.etag,
+            multipart=key.multipart,
+            encryption=key.encryption,
+            kms_key_id=key.kms_key_id,
+            bucket_key_enabled=key.bucket_key_enabled,
+            lock_mode=key.lock_mode,
+            lock_legal_status=key.lock_legal_status,
+            lock_until=key.lock_until,
+        )
         self.tagger.copy_tags(key.arn, new_key.arn)
 
-        if storage is not None:
-            new_key.set_storage_class(storage)
         if acl is not None:
             new_key.set_acl(acl)
         if key.storage_class in "GLACIER":
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
-
-        dest_bucket.keys[dest_key_name] = new_key
 
     def put_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)
