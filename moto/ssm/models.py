@@ -1388,6 +1388,13 @@ class SimpleSystemManagerBackend(BaseBackend):
                 values = ["/" + value.strip("/") for value in values]
             elif key == "Type":
                 what = parameter.type
+            elif key == "Label":
+                what = parameter.labels
+                # Label filter can only have option="Equals" (also valid implicitly)
+                if len(what) == 0 or not all(label in values for label in what):
+                    return False
+                else:
+                    continue
             elif key.startswith("tag:"):
                 what = key[4:] or None
                 for tag in parameter.tags:
