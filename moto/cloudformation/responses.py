@@ -40,6 +40,12 @@ class CloudFormationResponse(BaseResponse):
     def cloudformation_backend(self):
         return cloudformation_backends[self.region]
 
+    @classmethod
+    def cfnresponse(cls, *args, **kwargs):
+        request, full_url, headers = args
+        full_url += "&Action=ProcessCfnResponse"
+        return cls.dispatch(request=request, full_url=full_url, headers=headers)
+
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
         if "localhost" in template_url:
@@ -86,6 +92,19 @@ class CloudFormationResponse(BaseResponse):
             else:
                 raise MissingParameterError(parameter["parameter_key"])
         return result
+
+    def process_cfn_response(self):
+        status = self._get_param("Status")
+        if status == "SUCCESS":
+            stack_id = self._get_param("StackId")
+            logical_resource_id = self._get_param("LogicalResourceId")
+            outputs = self._get_param("Data")
+            stack = self.cloudformation_backend.get_stack(stack_id)
+            custom_resource = stack.get_custom_resource(logical_resource_id)
+            custom_resource.set_data(outputs)
+            stack.verify_readiness()
+
+        return 200, {"status": 200}, json.dumps("{}")
 
     def create_stack(self):
         stack_name = self._get_param("StackName")
@@ -1186,14 +1205,38 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
 """
 )
 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_GetTemplateSummary.html
+# TODO:implement fields: ResourceIdentifierSummaries, Capabilities, CapabilitiesReason
 GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <GetTemplateSummaryResult>
     <Description>{{ template_summary.Description }}</Description>
     {% for resource in template_summary.resourceTypes %}
       <ResourceTypes>
-        <ResourceType>{{ resource }}</ResourceType>
+        <member>{{ resource }}</member>
       </ResourceTypes>
     {% endfor %}
+    <Parameters>
+        {% for k,p in template_summary.get('Parameters',{}).items() %}
+        <member>
+            <ParameterKey>{{ k }}</ParameterKey> ,
+            <Description>{{ p.get('Description', '') }}</Description>,
+            {% if p.Default %}
+            <DefaultValue>{{ p.Default }}</DefaultValue>
+            {% endif %}
+            <NoEcho>{{ p.get('NoEcho', False) }}</NoEcho>
+            <ParameterType>{{ p.get('Type', 'String') }}</ParameterType>
+            <ParameterConstraints>
+              {% if p.AllowedValues %}
+              <AllowedValues>
+                {% for v in p.AllowedValues %}
+                <member>{{ v }}</member>
+                {% endfor %}
+              </AllowedValues>
+              {% endif %}
+            </ParameterConstraints>
+        </member>
+        {% endfor %}
+    </Parameters>
     <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
   </GetTemplateSummaryResult>
   <ResponseMetadata>

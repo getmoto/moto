@@ -2349,3 +2349,281 @@ def test_delete_domain_name_unknown_domainname():
         "Invalid domain name identifier specified"
     )
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_create_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    response = client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response.should_not.have.key("stage")
+
+    response = client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+    response = client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name, basePath="v1"
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["basePath"].should.equal("v1")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_unknown_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId="none-exists-api"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid REST API identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_invalid_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, basePath="/v1"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
+        "To create a multi-level base path mapping, use API Gateway V2."
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_unknown_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, stage="unknown-stage"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid stage identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_duplicate_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, basePath=base_path
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Base path already exists for this domain name"
+    )
+    ex.value.response["Error"]["Code"].should.equal("ConflictException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+
+
+@mock_apigateway
+def test_get_base_path_mappings():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v2", stage=stage_name
+    )
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    items = response["items"]
+
+    items[0]["basePath"].should.equal("(none)")
+    items[0]["restApiId"].should.equal(api_id)
+    items[0].should_not.have.key("stage")
+
+    items[1]["basePath"].should.equal("v1")
+    items[1]["restApiId"].should.equal(api_id)
+    items[1].should_not.have.key("stage")
+
+    items[2]["basePath"].should.equal("v2")
+    items[2]["restApiId"].should.equal(api_id)
+    items[2]["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_get_base_path_mappings_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mappings(domainName="unknown-domain")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_get_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name
+    )
+
+    response = client.get_base_path_mapping(domainName=domain_name, basePath="(none)")
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_get_base_path_mapping_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName="unknown-domain", basePath="v1")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_get_base_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName=domain_name, basePath="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)

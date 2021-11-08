@@ -6,8 +6,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.logs import logs_backends
+from moto.core import BaseBackend, BaseModel
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
@@ -675,33 +674,6 @@ class CloudWatchBackend(BaseBackend):
             return next_token, metrics[0:500]
         else:
             return None, metrics
-
-
-class LogGroup(CloudFormationModel):
-    def __init__(self, spec):
-        # required
-        self.name = spec["LogGroupName"]
-        # optional
-        self.tags = spec.get("Tags", [])
-
-    @staticmethod
-    def cloudformation_name_type():
-        return "LogGroupName"
-
-    @staticmethod
-    def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
-        return "AWS::Logs::LogGroup"
-
-    @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        properties = cloudformation_json["Properties"]
-        tags = properties.get("Tags", {})
-        return logs_backends[region_name].create_log_group(
-            resource_name, tags, **properties
-        )
 
 
 cloudwatch_backends = {}

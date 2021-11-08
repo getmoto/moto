@@ -687,7 +687,7 @@ def test__list_aliases():
         ]
     ).should.equal(3)
 
-    len(aliases).should.equal(7)
+    len(aliases).should.equal(17)
 
 
 @mock_kms_deprecated
@@ -772,7 +772,7 @@ def test_key_tag_added_arn_based_happy():
 # Has boto3 equivalent
 @mock_kms_deprecated
 def test_key_tagging_sad():
-    b = KmsBackend()
+    b = KmsBackend(region="eu-north-1")
 
     try:
         b.tag_resource("unknown", [])

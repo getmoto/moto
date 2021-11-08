@@ -239,6 +239,13 @@ class FirehoseBackend(BaseBackend):
         if errmsg:
             raise ValidationException(errmsg)
 
+        if tags and len(tags) > MAX_TAGS_PER_DELIVERY_STREAM:
+            raise ValidationException(
+                f"1 validation error detected: Value '{tags}' at 'tags' "
+                f"failed to satisify contstraint: Member must have length "
+                f"less than or equal to {MAX_TAGS_PER_DELIVERY_STREAM}"
+            )
+
         # Create a DeliveryStream instance that will be stored and indexed
         # by delivery stream name.  This instance will update the state and
         # create the ARN.
@@ -510,7 +517,7 @@ class FirehoseBackend(BaseBackend):
                 f"not found."
             )
 
-        if len(tags) >= MAX_TAGS_PER_DELIVERY_STREAM:
+        if len(tags) > MAX_TAGS_PER_DELIVERY_STREAM:
             raise ValidationException(
                 f"1 validation error detected: Value '{tags}' at 'tags' "
                 f"failed to satisify contstraint: Member must have length "

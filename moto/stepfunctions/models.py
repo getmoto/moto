@@ -125,6 +125,16 @@ class StateMachine(CloudFormationModel):
         properties["Tags"] = original_tags_to_include + prop_overrides.get("Tags", [])
         return properties
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "Name",
+            "DefinitionString",
+            "RoleArn",
+            "StateMachineName",
+            "Tags",
+        ]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -151,7 +161,7 @@ class StateMachine(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties.get("StateMachineName", resource_name)

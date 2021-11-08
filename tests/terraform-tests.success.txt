@@ -116,3 +116,4 @@ TestAccAWSENI_SourceDestCheck
 TestAccAWSENI_Tags
 TestAccAWSENI_basic
 TestAccAWSENI_disappears
+TestAccAWSS3BucketObject_

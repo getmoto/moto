@@ -45,6 +45,7 @@ from moto.s3.exceptions import (
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
+    ObjectLockConfigurationNotFoundError,
     InvalidTagError,
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
@@ -106,7 +107,7 @@ class FakeKey(BaseModel):
         kms_key_id=None,
         bucket_key_enabled=None,
         lock_mode=None,
-        lock_legal_status="OFF",
+        lock_legal_status=None,
         lock_until=None,
     ):
         self.name = name
@@ -172,15 +173,6 @@ class FakeKey(BaseModel):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
-    def copy(self, new_name=None, new_is_versioned=None):
-        r = copy.deepcopy(self)
-        if new_name is not None:
-            r.name = new_name
-        if new_is_versioned is not None:
-            r._is_versioned = new_is_versioned
-            r.refresh_version()
-        return r
-
     def set_metadata(self, metadata, replace=False):
         if replace:
             self._metadata = {}
@@ -211,10 +203,6 @@ class FakeKey(BaseModel):
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
-
-    def refresh_version(self):
-        self._version_id = str(uuid.uuid4())
-        self.last_modified = datetime.datetime.utcnow()
 
     @property
     def etag(self):
@@ -270,6 +258,19 @@ class FakeKey(BaseModel):
 
         if self.website_redirect_location:
             res["x-amz-website-redirect-location"] = self.website_redirect_location
+        if self.lock_legal_status:
+            res["x-amz-object-lock-legal-hold"] = self.lock_legal_status
+        if self.lock_until:
+            res["x-amz-object-lock-retain-until-date"] = self.lock_until
+        if self.lock_mode:
+            res["x-amz-object-lock-mode"] = self.lock_mode
+
+        if self.lock_legal_status:
+            res["x-amz-object-lock-legal-hold"] = self.lock_legal_status
+        if self.lock_until:
+            res["x-amz-object-lock-retain-until-date"] = self.lock_until
+        if self.lock_mode:
+            res["x-amz-object-lock-mode"] = self.lock_mode
 
         return res
 
@@ -1001,8 +1002,8 @@ class FakeBucket(CloudFormationModel):
             assert isinstance(rule.get("AllowedHeader", []), list) or isinstance(
                 rule.get("AllowedHeader", ""), str
             )
-            assert isinstance(rule.get("ExposedHeader", []), list) or isinstance(
-                rule.get("ExposedHeader", ""), str
+            assert isinstance(rule.get("ExposeHeader", []), list) or isinstance(
+                rule.get("ExposeHeader", ""), str
             )
             assert isinstance(rule.get("MaxAgeSeconds", "0"), str)
 
@@ -1020,8 +1021,8 @@ class FakeBucket(CloudFormationModel):
                     rule["AllowedMethod"],
                     rule["AllowedOrigin"],
                     rule.get("AllowedHeader"),
-                    rule.get("ExposedHeader"),
-                    rule.get("MaxAgeSecond"),
+                    rule.get("ExposeHeader"),
+                    rule.get("MaxAgeSeconds"),
                 )
             )
 
@@ -1100,6 +1101,16 @@ class FakeBucket(CloudFormationModel):
 
         self.accelerate_configuration = accelerate_config
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "Arn",
+            "DomainName",
+            "DualStackDomainName",
+            "RegionalDomainName",
+            "WebsiteURL",
+        ]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -1155,7 +1166,7 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         bucket = s3_backend.create_bucket(resource_name, region_name)
 
@@ -1164,7 +1175,7 @@ class FakeBucket(CloudFormationModel):
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
             s3_backend.put_bucket_encryption(
-                bucket_name=resource_name, encryption=[bucket_encryption]
+                bucket_name=resource_name, encryption=bucket_encryption
             )
 
         return bucket
@@ -1194,7 +1205,7 @@ class FakeBucket(CloudFormationModel):
                     properties["BucketEncryption"]
                 )
                 s3_backend.put_bucket_encryption(
-                    bucket_name=original_resource.name, encryption=[bucket_encryption]
+                    bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
 
@@ -1552,7 +1563,7 @@ class S3Backend(BaseBackend):
         kms_key_id=None,
         bucket_key_enabled=None,
         lock_mode=None,
-        lock_legal_status="OFF",
+        lock_legal_status=None,
         lock_until=None,
     ):
         key_name = clean_key_name(key_name)
@@ -1560,6 +1571,21 @@ class S3Backend(BaseBackend):
             raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
+
+        # getting default config from bucket if not included in put request
+        if bucket.encryption:
+            bucket_key_enabled = bucket_key_enabled or bucket.encryption["Rule"].get(
+                "BucketKeyEnabled", False
+            )
+            kms_key_id = kms_key_id or bucket.encryption["Rule"][
+                "ApplyServerSideEncryptionByDefault"
+            ].get("KMSMasterKeyID")
+            encryption = (
+                encryption
+                or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
+                    "SSEAlgorithm"
+                ]
+            )
 
         new_key = FakeKey(
             name=key_name,
@@ -1606,8 +1632,6 @@ class S3Backend(BaseBackend):
         key.lock_until = retention[1]
 
     def append_to_key(self, bucket_name, key_name, value):
-        key_name = clean_key_name(key_name)
-
         key = self.get_object(bucket_name, key_name)
         key.append_to_value(value)
         return key
@@ -1646,6 +1670,8 @@ class S3Backend(BaseBackend):
 
     def get_object_lock_configuration(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
+        if not bucket.object_lock_enabled:
+            raise ObjectLockConfigurationNotFoundError
         return (
             bucket.object_lock_enabled,
             bucket.default_lock_mode,
@@ -1980,23 +2006,29 @@ class S3Backend(BaseBackend):
         acl=None,
         src_version_id=None,
     ):
-        src_key_name = clean_key_name(src_key_name)
-        dest_key_name = clean_key_name(dest_key_name)
-        dest_bucket = self.get_bucket(dest_bucket_name)
         key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
-        new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
+        new_key = self.put_object(
+            bucket_name=dest_bucket_name,
+            key_name=dest_key_name,
+            value=key.value,
+            storage=storage or key.storage_class,
+            etag=key.etag,
+            multipart=key.multipart,
+            encryption=key.encryption,
+            kms_key_id=key.kms_key_id,
+            bucket_key_enabled=key.bucket_key_enabled,
+            lock_mode=key.lock_mode,
+            lock_legal_status=key.lock_legal_status,
+            lock_until=key.lock_until,
+        )
         self.tagger.copy_tags(key.arn, new_key.arn)
 
-        if storage is not None:
-            new_key.set_storage_class(storage)
         if acl is not None:
             new_key.set_acl(acl)
         if key.storage_class in "GLACIER":
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
-
-        dest_bucket.keys[dest_key_name] = new_key
 
     def put_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)

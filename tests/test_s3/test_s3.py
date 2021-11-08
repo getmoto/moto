@@ -380,29 +380,47 @@ def test_multipart_upload_with_headers_boto3():
 
 
 # Has boto3 equivalent
+@pytest.mark.parametrize(
+    "original_key_name",
+    [
+        "original-key",
+        "the-unicode-💩-key",
+        "key-with?question-mark",
+        "key-with%2Fembedded%2Furl%2Fencoding",
+    ],
+)
 @mock_s3_deprecated
 @reduced_min_part_size
-def test_multipart_upload_with_copy_key():
+def test_multipart_upload_with_copy_key(original_key_name):
     conn = boto.connect_s3("the_key", "the_secret")
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
-    key.key = "original-key"
+    key.key = original_key_name
     key.set_contents_from_string("key_value")
 
     multipart = bucket.initiate_multipart_upload("the-key")
     part1 = b"0" * REDUCED_PART_SIZE
     multipart.upload_part_from_file(BytesIO(part1), 1)
-    multipart.copy_part_from_key("foobar", "original-key", 2, 0, 3)
+    multipart.copy_part_from_key("foobar", original_key_name, 2, 0, 3)
     multipart.complete_upload()
     bucket.get_key("the-key").get_contents_as_string().should.equal(part1 + b"key_")
 
 
+@pytest.mark.parametrize(
+    "original_key_name",
+    [
+        "original-key",
+        "the-unicode-💩-key",
+        "key-with?question-mark",
+        "key-with%2Fembedded%2Furl%2Fencoding",
+    ],
+)
 @mock_s3
 @reduced_min_part_size
-def test_multipart_upload_with_copy_key_boto3():
+def test_multipart_upload_with_copy_key_boto3(original_key_name):
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
-    s3.put_object(Bucket="foobar", Key="original-key", Body="key_value")
+    s3.put_object(Bucket="foobar", Key=original_key_name, Body="key_value")
 
     mpu = s3.create_multipart_upload(Bucket="foobar", Key="the-key")
     part1 = b"0" * REDUCED_PART_SIZE
@@ -416,7 +434,7 @@ def test_multipart_upload_with_copy_key_boto3():
     up2 = s3.upload_part_copy(
         Bucket="foobar",
         Key="the-key",
-        CopySource={"Bucket": "foobar", "Key": "original-key"},
+        CopySource={"Bucket": "foobar", "Key": original_key_name},
         CopySourceRange="0-3",
         PartNumber=2,
         UploadId=mpu["UploadId"],
@@ -884,7 +902,14 @@ def test_copy_key():
 
 
 # Has boto3 equivalent
-@pytest.mark.parametrize("key_name", ["the-unicode-💩-key", "key-with?question-mark"])
+@pytest.mark.parametrize(
+    "key_name",
+    [
+        "the-unicode-💩-key",
+        "key-with?question-mark",
+        "key-with%2Fembedded%2Furl%2Fencoding",
+    ],
+)
 @mock_s3_deprecated
 def test_copy_key_with_special_chars(key_name):
     conn = boto.connect_s3("the_key", "the_secret")
@@ -900,7 +925,13 @@ def test_copy_key_with_special_chars(key_name):
 
 
 @pytest.mark.parametrize(
-    "key_name", ["the-key", "the-unicode-💩-key", "key-with?question-mark"]
+    "key_name",
+    [
+        "the-key",
+        "the-unicode-💩-key",
+        "key-with?question-mark",
+        "key-with%2Fembedded%2Furl%2Fencoding",
+    ],
 )
 @mock_s3
 def test_copy_key_boto3(key_name):
@@ -6134,47 +6165,6 @@ def test_creating_presigned_post():
 
 
 @mock_s3
-def test_encryption():
-    # Create Bucket so that test can run
-    conn = boto3.client("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket="mybucket")
-
-    with pytest.raises(ClientError):
-        conn.get_bucket_encryption(Bucket="mybucket")
-
-    sse_config = {
-        "Rules": [
-            {
-                "ApplyServerSideEncryptionByDefault": {
-                    "SSEAlgorithm": "aws:kms",
-                    "KMSMasterKeyID": "12345678",
-                }
-            }
-        ]
-    }
-
-    conn.put_bucket_encryption(
-        Bucket="mybucket", ServerSideEncryptionConfiguration=sse_config
-    )
-
-    resp = conn.get_bucket_encryption(Bucket="mybucket")
-    assert "ServerSideEncryptionConfiguration" in resp
-    return_config = sse_config.copy()
-    return_config["Rules"][0]["BucketKeyEnabled"] = False
-    assert resp["ServerSideEncryptionConfiguration"].should.equal(return_config)
-
-    conn.delete_bucket_encryption(Bucket="mybucket")
-    with pytest.raises(ClientError) as exc:
-        conn.get_bucket_encryption(Bucket="mybucket")
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("ServerSideEncryptionConfigurationNotFoundError")
-    err["Message"].should.equal(
-        "The server side encryption configuration was not found"
-    )
-    err["BucketName"].should.equal("mybucket")
-
-
-@mock_s3
 def test_presigned_put_url_with_approved_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"
@@ -6486,3 +6476,24 @@ def test_head_object_should_return_default_content_type():
     s3.Object("testbucket", "testobject").content_type.should.equal(
         "binary/octet-stream"
     )
+
+
+@mock_s3
+def test_request_partial_content_should_contain_all_metadata():
+    # github.com/spulec/moto/issues/4203
+    bucket = "bucket"
+    object_key = "key"
+    body = "some text"
+    query_range = "0-3"
+
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket=bucket)
+    obj = boto3.resource("s3").Object(bucket, object_key)
+    obj.put(Body=body)
+
+    response = obj.get(Range="bytes={}".format(query_range))
+
+    assert response["ETag"] == obj.e_tag
+    assert response["LastModified"] == obj.last_modified
+    assert response["ContentLength"] == 4
+    assert response["ContentRange"] == "bytes {}/{}".format(query_range, len(body))

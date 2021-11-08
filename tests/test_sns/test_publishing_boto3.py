@@ -40,7 +40,9 @@ def test_publish_to_sqs():
     )
     message = "my message"
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(TopicArn=topic_arn, Message=message)
+        published_message = conn.publish(
+            TopicArn=topic_arn, Message=message, Subject="my subject"
+        )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
@@ -275,7 +277,9 @@ def test_publish_to_sqs_dump_json():
         sort_keys=True,
     )
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(TopicArn=topic_arn, Message=message)
+        published_message = conn.publish(
+            TopicArn=topic_arn, Message=message, Subject="my subject"
+        )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
@@ -311,7 +315,9 @@ def test_publish_to_sqs_in_different_region():
 
     message = "my message"
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(TopicArn=topic_arn, Message=message)
+        published_message = conn.publish(
+            TopicArn=topic_arn, Message=message, Subject="my subject"
+        )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
@@ -382,6 +388,35 @@ def test_publish_subject():
         err.response["Error"]["Code"].should.equal("InvalidParameter")
     else:
         raise RuntimeError("Should have raised an InvalidParameter exception")
+
+
+@mock_sqs
+@mock_sns
+def test_publish_null_subject():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]["TopicArn"]
+
+    sqs_conn = boto3.resource("sqs", region_name="us-east-1")
+    sqs_conn.create_queue(QueueName="test-queue")
+
+    conn.subscribe(
+        TopicArn=topic_arn,
+        Protocol="sqs",
+        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+    )
+    message = "my message"
+    with freeze_time("2015-01-01 12:00:00"):
+        conn.publish(TopicArn=topic_arn, Message=message)
+
+    queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
+    with freeze_time("2015-01-01 12:00:01"):
+        messages = queue.receive_messages(MaxNumberOfMessages=1)
+
+    acquired_message = json.loads(messages[0].body)
+    acquired_message["Message"].should.equal(message)
+    acquired_message["Subject"].should.equal(None)
 
 
 @mock_sns

@@ -151,7 +151,7 @@ class Table(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         key_attr = [
@@ -299,6 +299,10 @@ class Table(CloudFormationModel):
             if update["Action"] == "ADD":
                 item.attrs[attr].add(DynamoType(update["Value"]))
         return item
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["StreamArn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

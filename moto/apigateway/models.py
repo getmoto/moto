@@ -43,6 +43,11 @@ from .exceptions import (
     RequestValidatorNotFound,
     ModelNotFound,
     ApiKeyValueMinLength,
+    InvalidBasePathException,
+    InvalidRestApiIdForBasePathMappingException,
+    InvalidStageException,
+    BasePathConflictException,
+    BasePathNotFoundException,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -68,7 +73,7 @@ class Deployment(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -185,7 +190,7 @@ class Method(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -264,7 +269,7 @@ class Resource(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         api_id = properties["RestApiId"]
@@ -806,6 +811,10 @@ class RestAPI(CloudFormationModel):
                 if to_path(self.PROP_DESCRIPTON) in path:
                     self.description = ""
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["RootResourceId"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -830,7 +839,7 @@ class RestAPI(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties["Name"]
@@ -1081,6 +1090,20 @@ class Model(BaseModel, dict):
             self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
 
 
+class BasePathMapping(BaseModel, dict):
+    def __init__(self, domain_name, rest_api_id, **kwargs):
+        super(BasePathMapping, self).__init__()
+        self["domain_name"] = domain_name
+        self["restApiId"] = rest_api_id
+        if kwargs.get("basePath"):
+            self["basePath"] = kwargs.get("basePath")
+        else:
+            self["basePath"] = "(none)"
+
+        if kwargs.get("stage"):
+            self["stage"] = kwargs.get("stage")
+
+
 class APIGatewayBackend(BaseBackend):
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
@@ -1091,6 +1114,7 @@ class APIGatewayBackend(BaseBackend):
         self.domain_names = {}
         self.models = {}
         self.region_name = region_name
+        self.base_path_mappings = {}
 
     def reset(self):
         region_name = self.region_name
@@ -1704,6 +1728,57 @@ class APIGatewayBackend(BaseBackend):
     def update_request_validator(self, restapi_id, validator_id, patch_operations):
         restApi = self.get_rest_api(restapi_id)
         return restApi.update_request_validator(validator_id, patch_operations)
+
+    def create_base_path_mapping(
+        self, domain_name, rest_api_id, base_path=None, stage=None
+    ):
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path and "/" in base_path:
+            raise InvalidBasePathException()
+
+        if rest_api_id not in self.apis:
+            raise InvalidRestApiIdForBasePathMappingException()
+
+        if stage and self.apis[rest_api_id].stages.get(stage) is None:
+            raise InvalidStageException()
+
+        new_base_path_mapping = BasePathMapping(
+            domain_name=domain_name,
+            rest_api_id=rest_api_id,
+            basePath=base_path,
+            stage=stage,
+        )
+
+        new_base_path = new_base_path_mapping.get("basePath")
+        if self.base_path_mappings.get(domain_name) is None:
+            self.base_path_mappings[domain_name] = {}
+        else:
+            if (
+                self.base_path_mappings[domain_name].get(new_base_path)
+                and new_base_path != "(none)"
+            ):
+                raise BasePathConflictException()
+        self.base_path_mappings[domain_name][new_base_path] = new_base_path_mapping
+        return new_base_path_mapping
+
+    def get_base_path_mappings(self, domain_name):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        return list(self.base_path_mappings[domain_name].values())
+
+    def get_base_path_mapping(self, domain_name, base_path):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path not in self.base_path_mappings[domain_name]:
+            raise BasePathNotFoundException()
+
+        return self.base_path_mappings[domain_name][base_path]
 
 
 apigateway_backends = {}

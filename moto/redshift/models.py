@@ -172,7 +172,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -211,6 +211,10 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             kms_key_id=properties.get("KmsKeyId"),
         )
         return cluster
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -369,7 +373,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -466,7 +470,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]

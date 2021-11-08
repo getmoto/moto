@@ -318,6 +318,13 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps({"User": user.to_json(extended=True)})
 
+    def admin_confirm_sign_up(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        return cognitoidp_backends[self.region].admin_confirm_sign_up(
+            user_pool_id, username
+        )
+
     def admin_get_user(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
@@ -334,6 +341,7 @@ class CognitoIdpResponse(BaseResponse):
         limit = self._get_param("Limit")
         token = self._get_param("PaginationToken")
         filt = self._get_param("Filter")
+        attributes_to_get = self._get_param("AttributesToGet")
         users, token = cognitoidp_backends[self.region].list_users(
             user_pool_id, limit=limit, pagination_token=token
         )
@@ -378,7 +386,12 @@ class CognitoIdpResponse(BaseResponse):
                     and compare(inherent_attributes[name](user), value)
                 )
             ]
-        response = {"Users": [user.to_json(extended=True) for user in users]}
+        response = {
+            "Users": [
+                user.to_json(extended=True, attributes_to_get=attributes_to_get)
+                for user in users
+            ]
+        }
         if token:
             response["PaginationToken"] = str(token)
         return json.dumps(response)
@@ -425,9 +438,16 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps(auth_result)
 
     def forgot_password(self):
-        return json.dumps(
-            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "..."}}
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        region = find_region_by_value("client_id", client_id)
+        confirmation_code, response = cognitoidp_backends[region].forgot_password(
+            client_id, username
         )
+        self.response_headers[
+            "x-moto-forgot-password-confirmation-code"
+        ] = confirmation_code
+        return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening
     # on localhost (doesn't get a region in the host header), it doesn't know what
@@ -437,9 +457,10 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
+        confirmation_code = self._get_param("ConfirmationCode")
         region = find_region_by_value("client_id", client_id)
         cognitoidp_backends[region].confirm_forgot_password(
-            client_id, username, password
+            client_id, username, password, confirmation_code
         )
         return ""
 
@@ -459,6 +480,15 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         attributes = self._get_param("UserAttributes")
         cognitoidp_backends[self.region].admin_update_user_attributes(
+            user_pool_id, username, attributes
+        )
+        return ""
+
+    def admin_delete_user_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        attributes = self._get_param("UserAttributeNames")
+        cognitoidp_backends[self.region].admin_delete_user_attributes(
             user_pool_id, username, attributes
         )
         return ""
@@ -548,6 +578,14 @@ class CognitoIdpResponse(BaseResponse):
         permanent = self._get_param("Permanent")
         cognitoidp_backends[self.region].admin_set_user_password(
             user_pool_id, username, password, permanent
+        )
+        return ""
+
+    def add_custom_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        custom_attributes = self._get_param("CustomAttributes")
+        cognitoidp_backends[self.region].add_custom_attributes(
+            user_pool_id, custom_attributes
         )
         return ""
 

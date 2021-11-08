@@ -442,7 +442,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             method=method,
                             url=re.compile(key),
                             callback=convert_flask_to_responses_response(value),
-                            stream=True,
                             match_querystring=False,
                         )
                     )
@@ -451,7 +450,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
                     match_querystring=False,
                 )
             )
@@ -460,7 +458,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
                     match_querystring=False,
                 )
             )
@@ -595,8 +592,15 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
+    def has_cfn_attr(cls, attr):
+        # Used for validation
+        # If a template creates an Output for an attribute that does not exist, an error should be thrown
+        return True
+
+    @classmethod
+    @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
@@ -626,6 +630,13 @@ class CloudFormationModel(BaseModel):
         # Extract the resource parameters from the cloudformation json
         # and delete the resource. Do not include a return statement.
         pass
+
+    @abstractmethod
+    def is_created(self):
+        # Verify whether the resource was created successfully
+        # Assume True after initialization
+        # Custom resources may need time after init before they are created successfully
+        return True
 
 
 class BaseBackend:

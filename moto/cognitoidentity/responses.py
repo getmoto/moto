@@ -53,7 +53,9 @@ class CognitoIdentityResponse(BaseResponse):
         )
 
     def get_id(self):
-        return cognitoidentity_backends[self.region].get_id()
+        return cognitoidentity_backends[self.region].get_id(
+            identity_pool_id=self._get_param("IdentityPoolId"),
+        )
 
     def describe_identity_pool(self):
         return cognitoidentity_backends[self.region].describe_identity_pool(
@@ -75,4 +77,9 @@ class CognitoIdentityResponse(BaseResponse):
     def get_open_id_token(self):
         return cognitoidentity_backends[self.region].get_open_id_token(
             self._get_param("IdentityId") or get_random_identity_id(self.region)
+        )
+
+    def list_identities(self):
+        return cognitoidentity_backends[self.region].list_identities(
+            self._get_param("IdentityPoolId") or get_random_identity_id(self.region)
         )

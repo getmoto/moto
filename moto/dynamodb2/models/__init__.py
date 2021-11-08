@@ -450,6 +450,10 @@ class Table(CloudFormationModel):
             },
         }
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "StreamArn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -487,7 +491,7 @@ class Table(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         params = {}
@@ -825,7 +829,7 @@ class Table(CloudFormationModel):
                 result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key
+            results, limit, exclusive_start_key, scanned_index=index_name
         )
         return results, scanned_count, last_evaluated_key
 
@@ -917,7 +921,7 @@ class Table(CloudFormationModel):
                 result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key, index_name
+            results, limit, exclusive_start_key, scanned_index=index_name
         )
         return results, scanned_count, last_evaluated_key
 

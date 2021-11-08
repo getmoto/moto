@@ -1,6 +1,140 @@
 Moto Changelog
 ===================
 
+2.2.13
+-----
+    General:
+        * The mock_dynamodb and mock_rds-decorators have been deprecated, and will be repurposed in a later release.
+          Please see https://github.com/spulec/moto/issues/4526 for more information.
+
+    New Methods:
+        * API Gateway:
+            * get_base_path_mappings()
+        * Cognito Identity:
+            * list_identities()
+        * DirectoryService:
+            * disable_sso()
+            * enable_sso()
+            * connect_directory()
+            * create_alias()
+            * create_microsoft_ad()
+        * EMR Containers:
+            * cancel_job_run()
+            * describe_job_run()
+            * list_job_runs()
+            * start_job_run()
+        * IAM:
+            * list_policy_tags()
+            * tag_policy()
+            * untag_policy()
+        * Sagemaker:
+            * create_processing_job()
+            * describe_processing_job()
+            * list_processing_jobs()
+
+    Miscellaneous:
+        * CloudFormation: Now supports creation of Custom:: resources. Note that this only works in ServerMode.
+
+2.2.12
+-----
+    New Services:
+        * EMR Containers:
+            * create_virtual_cluster()
+            * delete_virtual_cluster()
+            * describe_virtual_cluster()
+            * list_virtual_clusters()
+        * DirectoryService:
+            * add_tags_to_resource()
+            * create_directory()
+            * delete_directory()
+            * describe_directories()
+            * get_directory_limits()
+            * list_tags_for_resource()
+            * remove_tags_for_resource()
+
+    New Methods:
+        * API Gateway:
+            * create_base_path_mapping()
+            * get_base_path_mappings()
+        * CognitoIDP:
+            * add_custom_attributes()
+            * admin_delete_user_attributes()
+        * Glue:
+            * start_crawler()
+            * stop_crawler()
+        * Sagemaker:
+            * add_tags()
+            * associate_trial_component()
+            * create_experiment()
+            * create_trial()
+            * create_trial_component()
+            * delete_experiment()
+            * delete_tags()
+            * delete_trial()
+            * delete_trial_component()
+            * describe_experiment()
+            * describe_trial()
+            * describe_trial_component()
+            * disassociate_trial_component()
+            * list_associations()
+            * list_experiments()
+            * list_trial_components()
+            * list_trials()
+            * search()
+        * SES:
+            * describe_receipt_rule_set()
+            * update_receipt_rule()
+
+    Miscellaneous:
+        * KMS: Now returns default AWS aliases (alias/aws/s3, etc)
+
+2.2.11
+-----
+    General:
+        * Support for AWS China regions
+        * ECS now has an option to enable long-format ARNs, by setting the environment variable MOTO_ECS_NEW_ARN=true
+          Alternatively, use the `put_account_setting` to enable long-format for the current user.
+
+    New Services:
+        * Timestream:
+            * create_database()
+            * create_table()
+            * delete_database()
+            * delete_table()
+            * describe_database()
+            * describe_endpoints()
+            * describe_table()
+            * list_databases()
+            * list_tables()
+            * update_database()
+            * update_table()
+            * write_records()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_confirm_sign_up()
+            * update_user_pool()
+        * ECS:
+            * delete_account_setting()
+            * list_account_settings()
+            * put_account_setting()
+        * Route53:
+            * create_query_logging_config()
+            * delete_query_logging_config()
+            * get_query_logging_config()
+            * list_query_logging_config()
+        * SES
+            * describe_receipt_rule()
+            * get_identity_notification_attributes()
+            * set_identity_feedback_forwarding_enabled()
+
+    Miscellaneous:
+        * CloudFormation: Support create/update/delete of resource AWS::Logs::ResourcePolicy
+        * CloudFormation:get_template_summary() now returns the Parameters-attribute
+        * CognitoIDP: Allow the UserAttributes email or phone_number to be used as username
+        * CognitoIDP: Improved behaviour for the ForgotPassword()-feature 
+
+
 2.2.10
 ------
     New Services:

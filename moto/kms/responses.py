@@ -5,6 +5,7 @@ import re
 
 from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
+from moto.kms.utils import RESERVED_ALIASES
 from .models import kms_backends
 from .exceptions import (
     NotFoundException,
@@ -12,13 +13,6 @@ from .exceptions import (
     AlreadyExistsException,
     NotAuthorizedException,
 )
-
-reserved_aliases = [
-    "alias/aws/ebs",
-    "alias/aws/s3",
-    "alias/aws/redshift",
-    "alias/aws/rds",
-]
 
 
 class KmsResponse(BaseResponse):
@@ -199,7 +193,7 @@ class KmsResponse(BaseResponse):
         if not alias_name.startswith("alias/"):
             raise ValidationException("Invalid identifier")
 
-        if alias_name in reserved_aliases:
+        if alias_name in RESERVED_ALIASES:
             raise NotAuthorizedException()
 
         if ":" in alias_name:
@@ -253,22 +247,12 @@ class KmsResponse(BaseResponse):
     def list_aliases(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html"""
         region = self.region
-
-        # TODO: The actual API can filter on KeyId.
-
-        response_aliases = [
-            {
-                "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
-                    region=region, account_id=ACCOUNT_ID, reserved_alias=reserved_alias
-                ),
-                "AliasName": reserved_alias,
-            }
-            for reserved_alias in reserved_aliases
-        ]
+        response_aliases = []
 
         backend_aliases = self.kms_backend.get_all_aliases()
         for target_key_id, aliases in backend_aliases.items():
             for alias_name in aliases:
+                # TODO: add creation date and last updated in response_aliases
                 response_aliases.append(
                     {
                         "AliasArn": "arn:aws:kms:{region}:{account_id}:{alias_name}".format(
@@ -276,6 +260,21 @@ class KmsResponse(BaseResponse):
                         ),
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
+                    }
+                )
+        for reserved_alias in RESERVED_ALIASES:
+            exsisting = [
+                a for a in response_aliases if a["AliasName"] == reserved_alias
+            ]
+            if not exsisting:
+                response_aliases.append(
+                    {
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
+                            region=region,
+                            account_id=ACCOUNT_ID,
+                            reserved_alias=reserved_alias,
+                        ),
+                        "AliasName": reserved_alias,
                     }
                 )
 

@@ -25,3 +25,4 @@ tests/file.tmp
 .venv/
 htmlcov/
 .~c9_*
+.coverage*
