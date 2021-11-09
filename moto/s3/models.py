@@ -330,9 +330,11 @@ class FakeKey(BaseModel):
 
 
 class FakeMultipart(BaseModel):
-    def __init__(self, key_name, metadata):
+    def __init__(self, key_name, metadata, storage=None, tags=None):
         self.key_name = key_name
         self.metadata = metadata
+        self.storage = storage
+        self.tags = tags
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
@@ -1834,9 +1836,10 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         return len(bucket.multiparts[multipart_id].parts) >= next_part_number_marker
 
-    def create_multipart_upload(self, bucket_name, key_name, metadata, storage_type):
-        multipart = FakeMultipart(key_name, metadata)
-        multipart.storage = storage_type
+    def create_multipart_upload(
+        self, bucket_name, key_name, metadata, storage_type, tags
+    ):
+        multipart = FakeMultipart(key_name, metadata, storage=storage_type, tags=tags)
 
         bucket = self.get_bucket(bucket_name)
         bucket.multiparts[multipart.id] = multipart

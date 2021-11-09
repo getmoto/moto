@@ -2009,9 +2009,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if body == b"" and "uploads" in query:
             metadata = metadata_from_headers(request.headers)
+            tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
             multipart_id = self.backend.create_multipart_upload(
-                bucket_name, key_name, metadata, storage_type
+                bucket_name, key_name, metadata, storage_type, tagging
             )
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
@@ -2039,6 +2040,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 multipart=multipart,
             )
             key.set_metadata(multipart.metadata)
+            self.backend.set_key_tags(key, multipart.tags)
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             headers = {}

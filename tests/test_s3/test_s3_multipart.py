@@ -1,6 +1,7 @@
 from botocore.exceptions import ClientError
 from moto import mock_s3
 import boto3
+import os
 import pytest
 import sure  # pylint: disable=unused-import
 
@@ -52,3 +53,30 @@ def test_boto3_multipart_part_size():
     err["Message"].should.equal(
         "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed."
     )
+
+
+@mock_s3
+def test_multipart_upload_with_tags():
+    bucket = "mybucket"
+    key = "test/multipartuploadtag/file.txt"
+    tags = "a=b"
+
+    client = boto3.client("s3", region_name="us-east-1")
+    client.create_bucket(Bucket=bucket)
+
+    response = client.create_multipart_upload(Bucket=bucket, Key=key, Tagging=tags)
+    u = boto3.resource("s3").MultipartUpload(bucket, key, response["UploadId"])
+    parts = [
+        {
+            "ETag": u.Part(i).upload(Body=os.urandom(5 * (2 ** 20)))["ETag"],
+            "PartNumber": i,
+        }
+        for i in range(1, 3)
+    ]
+
+    u.complete(MultipartUpload={"Parts": parts})
+
+    # check tags
+    response = client.get_object_tagging(Bucket=bucket, Key=key)
+    actual = {t["Key"]: t["Value"] for t in response.get("TagSet", [])}
+    actual.should.equal({"a": "b"})
