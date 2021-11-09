@@ -190,7 +190,7 @@ Moto also comes with a stand-alone server allowing you to mock out an AWS HTTP e
      * Running on http://127.0.0.1:3000/
 
 However, this method isn't encouraged if you're using ``boto3``, the best solution would be to use a decorator method.
-See :ref:`Non-Python SDK's` for more information.
+See :doc:`server_mode` for more information.
 
 Recommended Usage
 -----------------

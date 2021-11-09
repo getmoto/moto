@@ -46,13 +46,23 @@ Additional Resources
 .. toctree::
   :maxdepth: 1
   :hidden:
-  :glob:
   :caption: Contributing to Moto
 
   docs/contributing/index
   docs/contributing/installation
   docs/contributing/architecture
   docs/contributing/new_feature
-  docs/contributing/development_tips
   docs/contributing/checklist
   docs/contributing/faq
+
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+  :titlesonly:
+  :caption: Development Tips
+
+  docs/contributing/development_tips/index
+  docs/contributing/development_tips/urls
+  docs/contributing/development_tips/tests
+  docs/contributing/development_tips/utilities
