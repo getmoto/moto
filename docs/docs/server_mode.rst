@@ -1,8 +1,11 @@
 .. _server_mode:
 
-================
-Non-Python SDK's
-================
+.. role:: bash(code)
+   :language: bash
+
+================================
+Non-Python SDK's / Server Mode
+================================
 
 Moto has a stand-alone server mode. This allows you to use Moto with any of the official AWS SDK's.
 
@@ -38,7 +41,10 @@ interfaces with 0.0.0.0:
 Please be aware this might allow other network users to access your
 server.
 
-To use Moto in your tests, you can pass an `endpoint_url` to the SDK of your choice.
+To use Moto in your tests, you can pass the `endpoint_url`-parameter to the SDK of your choice.
+
+Examples
+--------
 
 In Python:
 
@@ -85,14 +91,35 @@ In Terraform:
 
 See the `Terraform Docs`_ for more information.
 
-Examples
---------
 
-Here are some more examples:
+Other languages:
 
 * `Java`_
 * `Ruby`_
 * `Javascript`_
+
+
+Use ServerMode using the decorators
+-------------------------------------
+
+It is possible to call the MotoServer for tests that were written using decorators.
+The following environment variables can be set to achieve this:
+
+.. code-block:: bash
+
+    TEST_SERVER_MODE=true
+
+Whenever a mock-decorator starts, Moto will:
+
+ #. Send a reset-request to :bash:`http://localhost:5000`, removing all state that was kept
+ #. Add the :bash:`endpoint_url` parameter to boto3, so that all requests will be made to :bash:`http://localhost:5000`.
+
+Calling the reset-API ensures the same behaviour as normal decorators, where the complete state is removed.
+It is possible to keep the state in between tests, using this environment variable:
+
+.. code-block:: bash
+
+    MOTO_CALL_RESET_API=true
 
 
 Dashboard
