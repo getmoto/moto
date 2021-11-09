@@ -1,5 +1,5 @@
 from moto.swf.models import GenericType
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
 # Tests for GenericType (ActivityType, WorkflowType)

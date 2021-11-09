@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds_backends

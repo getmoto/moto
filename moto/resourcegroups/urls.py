@@ -1,11 +1,12 @@
-from __future__ import unicode_literals
 from .responses import ResourceGroupsResponse
 
-url_bases = ["https?://resource-groups(-fips)?.(.+).amazonaws.com"]
+url_bases = [r"https?://resource-groups(-fips)?\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/delete-group$": ResourceGroupsResponse.dispatch,
     "{0}/get-group$": ResourceGroupsResponse.dispatch,
+    "{0}/get-group-configuration$": ResourceGroupsResponse.dispatch,
+    "{0}/put-group-configuration$": ResourceGroupsResponse.dispatch,
     "{0}/get-group-query$": ResourceGroupsResponse.dispatch,
     "{0}/groups$": ResourceGroupsResponse.dispatch,
     "{0}/groups/(?P<resource_group_name>[^/]+)$": ResourceGroupsResponse.dispatch,

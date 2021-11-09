@@ -1,4 +1,4 @@
-from __future__ import unicode_literals, print_function
+from __future__ import print_function
 
 import pytest
 
@@ -36,7 +36,10 @@ class TestCore:
         self.stream_arn = None
 
         for m in self.mocks:
-            m.stop()
+            try:
+                m.stop()
+            except RuntimeError:
+                pass
 
     def test_verify_stream(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")
@@ -200,7 +203,10 @@ class TestEdges:
 
     def teardown(self):
         for m in self.mocks:
-            m.stop()
+            try:
+                m.stop()
+            except RuntimeError:
+                pass
 
     def test_enable_stream_on_table(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")

@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_kinesisvideoarchivedmedia
 from moto import mock_kinesisvideo
 from datetime import datetime, timedelta
@@ -25,7 +23,7 @@ def test_get_hls_streaming_session_url():
         endpoint_url=data_endpoint,
     )
     res = client.get_hls_streaming_session_url(StreamName=stream_name,)
-    reg_exp = "^{}/hls/v1/getHLSMasterPlaylist.m3u8\?SessionToken\=.+$".format(
+    reg_exp = r"^{}/hls/v1/getHLSMasterPlaylist.m3u8\?SessionToken\=.+$".format(
         data_endpoint
     )
     res.should.have.key("HLSStreamingSessionURL").which.should.match(reg_exp)
@@ -49,7 +47,9 @@ def test_get_dash_streaming_session_url():
         endpoint_url=data_endpoint,
     )
     res = client.get_dash_streaming_session_url(StreamName=stream_name,)
-    reg_exp = "^{}/dash/v1/getDASHManifest.mpd\?SessionToken\=.+$".format(data_endpoint)
+    reg_exp = r"^{}/dash/v1/getDASHManifest.mpd\?SessionToken\=.+$".format(
+        data_endpoint
+    )
     res.should.have.key("DASHStreamingSessionURL").which.should.match(reg_exp)
 
 

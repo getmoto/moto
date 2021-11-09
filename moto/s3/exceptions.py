@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.exceptions import RESTError
 
 ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
@@ -15,6 +13,10 @@ ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
 <ArgumentValue>{{ value }}</ArgumentValue>{% endblock %}
 """
 
+ERROR_WITH_UPLOADID = """{% extends 'single_error' %}
+{% block extra %}<UploadId>{{ upload_id }}</UploadId>{% endblock %}
+"""
+
 ERROR_WITH_CONDITION_NAME = """{% extends 'single_error' %}
 {% block extra %}<Condition>{{ condition }}</Condition>{% endblock %}
 """
@@ -24,12 +26,32 @@ ERROR_WITH_RANGE = """{% extends 'single_error' %}
 <RangeRequested>{{ range_requested }}</RangeRequested>{% endblock %}
 """
 
+ERROR_WITH_STORAGE_CLASS = """{% extends 'single_error' %}
+{% block extra %}<StorageClass>{{ storage_class }}</StorageClass>{% endblock %}
+"""
+
 
 class S3ClientError(RESTError):
+    # S3 API uses <RequestID> as the XML tag in response messages
+    request_id_tag_name = "RequestID"
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("template", "single_error")
         self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super(S3ClientError, self).__init__(*args, **kwargs)
+
+
+class InvalidArgumentError(S3ClientError):
+    code = 400
+
+    def __init__(self, message, name, value, *args, **kwargs):
+        kwargs.setdefault("template", "argument_error")
+        kwargs["name"] = name
+        kwargs["value"] = value
+        self.templates["argument_error"] = ERROR_WITH_ARGUMENT
+        super(InvalidArgumentError, self).__init__(
+            "InvalidArgument", message, *args, **kwargs
+        )
 
 
 class BucketError(S3ClientError):
@@ -43,6 +65,8 @@ class BucketAlreadyExists(BucketError):
     code = 409
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault("template", "bucket_error")
+        self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super(BucketAlreadyExists, self).__init__(
             "BucketAlreadyExists",
             (
@@ -51,7 +75,7 @@ class BucketAlreadyExists(BucketError):
                 "select a different name and try again"
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -76,12 +100,21 @@ class MissingKey(S3ClientError):
 class MissingVersion(S3ClientError):
     code = 404
 
+    def __init__(self, *args, **kwargs):
+        super(MissingVersion, self).__init__(
+            "NoSuchVersion", "The specified version does not exist.", *args, **kwargs
+        )
+
+
+class InvalidVersion(S3ClientError):
+    code = 400
+
     def __init__(self, version_id, *args, **kwargs):
         kwargs.setdefault("template", "argument_error")
         kwargs["name"] = "versionId"
         kwargs["value"] = version_id
         self.templates["argument_error"] = ERROR_WITH_ARGUMENT
-        super(MissingVersion, self).__init__(
+        super(InvalidVersion, self).__init__(
             "InvalidArgument", "Invalid version id specified", *args, **kwargs
         )
 
@@ -108,7 +141,7 @@ class InvalidPartOrder(S3ClientError):
                 "list must be specified in order by part number."
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -124,7 +157,7 @@ class InvalidPart(S3ClientError):
                 "entity tag might not have matched the part's entity tag."
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -136,7 +169,7 @@ class EntityTooSmall(S3ClientError):
             "EntityTooSmall",
             "Your proposed upload is smaller than the minimum allowed object size.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -150,7 +183,7 @@ class InvalidRequest(S3ClientError):
                 method
             ),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -162,7 +195,7 @@ class IllegalLocationConstraintException(S3ClientError):
             "IllegalLocationConstraintException",
             "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -174,7 +207,7 @@ class MalformedXML(S3ClientError):
             "MalformedXML",
             "The XML you provided was not well-formed or did not validate against our published schema",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -186,7 +219,7 @@ class MalformedACLError(S3ClientError):
             "MalformedACLError",
             "The XML you provided was not well-formed or did not validate against our published schema",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -208,6 +241,16 @@ class CrossLocationLoggingProhibitted(S3ClientError):
         )
 
 
+class InvalidMaxPartArgument(S3ClientError):
+    code = 400
+
+    def __init__(self, arg, min_val, max_val):
+        error = "Argument {} must be an integer between {} and {}".format(
+            arg, min_val, max_val
+        )
+        super(InvalidMaxPartArgument, self).__init__("InvalidArgument", error)
+
+
 class InvalidNotificationARN(S3ClientError):
     code = 400
 
@@ -225,7 +268,7 @@ class InvalidNotificationDestination(S3ClientError):
             "InvalidArgument",
             "The notification destination service region is not valid for the bucket location constraint",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -237,7 +280,7 @@ class InvalidNotificationEvent(S3ClientError):
             "InvalidArgument",
             "The event is not supported for notifications",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -249,7 +292,7 @@ class InvalidStorageClass(S3ClientError):
             "InvalidStorageClass",
             "The storage class you specified is not valid",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -270,7 +313,7 @@ class DuplicateTagKeys(S3ClientError):
             "InvalidTag",
             "Cannot provide multiple Tags with the same key",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -300,7 +343,7 @@ class S3InvalidTokenError(S3ClientError):
             "InvalidToken",
             "The provided token is malformed or otherwise invalid.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -312,7 +355,7 @@ class BucketInvalidTokenError(BucketError):
             "InvalidToken",
             "The provided token is malformed or otherwise invalid.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -324,7 +367,7 @@ class S3InvalidAccessKeyIdError(S3ClientError):
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -336,7 +379,7 @@ class BucketInvalidAccessKeyIdError(S3ClientError):
             "InvalidAccessKeyId",
             "The AWS Access Key Id you provided does not exist in our records.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -348,7 +391,7 @@ class S3SignatureDoesNotMatchError(S3ClientError):
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -360,7 +403,7 @@ class BucketSignatureDoesNotMatchError(S3ClientError):
             "SignatureDoesNotMatch",
             "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -372,7 +415,7 @@ class NoSuchPublicAccessBlockConfiguration(S3ClientError):
             "NoSuchPublicAccessBlockConfiguration",
             "The public access block configuration was not found",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -384,7 +427,7 @@ class InvalidPublicAccessBlockConfiguration(S3ClientError):
             "InvalidRequest",
             "Must specify at least one configuration.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -409,9 +452,15 @@ class NoSystemTags(S3ClientError):
 class NoSuchUpload(S3ClientError):
     code = 404
 
-    def __init__(self):
+    def __init__(self, upload_id, *args, **kwargs):
+        kwargs.setdefault("template", "error_uploadid")
+        kwargs["upload_id"] = upload_id
+        self.templates["error_uploadid"] = ERROR_WITH_UPLOADID
         super(NoSuchUpload, self).__init__(
-            "NoSuchUpload", "The specified multipart upload does not exist."
+            "NoSuchUpload",
+            "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed.",
+            *args,
+            **kwargs,
         )
 
 
@@ -425,7 +474,7 @@ class PreconditionFailed(S3ClientError):
             "PreconditionFailed",
             "At least one of the pre-conditions you specified did not hold",
             condition=failed_condition,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -440,7 +489,7 @@ class InvalidRange(S3ClientError):
             "The requested range is not satisfiable",
             range_requested=range_requested,
             actual_size=actual_size,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -452,5 +501,95 @@ class InvalidContinuationToken(S3ClientError):
             "InvalidArgument",
             "The continuation token provided is incorrect",
             *args,
-            **kwargs
+            **kwargs,
+        )
+
+
+class InvalidObjectState(BucketError):
+    code = 400
+
+    def __init__(self, storage_class, **kwargs):
+        kwargs.setdefault("template", "storage_error")
+        self.templates["storage_error"] = ERROR_WITH_STORAGE_CLASS
+        super(BucketError, self).__init__(
+            error_type="InvalidObjectState",
+            message="The operation is not valid for the object's storage class",
+            storage_class=storage_class,
+            **kwargs,
+        )
+
+
+class LockNotEnabled(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(LockNotEnabled, self).__init__(
+            "InvalidRequest", "Bucket is missing ObjectLockConfiguration"
+        )
+
+
+class AccessDeniedByLock(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(AccessDeniedByLock, self).__init__("AccessDenied", "Access Denied")
+
+
+class InvalidContentMD5(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidContentMD5, self).__init__(
+            "InvalidContentMD5", "Content MD5 header is invalid"
+        )
+
+
+class BucketNeedsToBeNew(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(BucketNeedsToBeNew, self).__init__(
+            "InvalidBucket", "Bucket needs to be empty"
+        )
+
+
+class BucketMustHaveLockeEnabled(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(BucketMustHaveLockeEnabled, self).__init__(
+            "InvalidBucketState",
+            "Object Lock configuration cannot be enabled on existing buckets",
+        )
+
+
+class InvalidFilterRuleName(InvalidArgumentError):
+    code = 400
+
+    def __init__(self, value, *args, **kwargs):
+        super(InvalidFilterRuleName, self).__init__(
+            "filter rule name must be either prefix or suffix",
+            "FilterRule.Name",
+            value,
+            *args,
+            **kwargs,
+        )
+
+
+class InvalidTagError(S3ClientError):
+    code = 400
+
+    def __init__(self, value, *args, **kwargs):
+        super(InvalidTagError, self).__init__(
+            "InvalidTag", value, *args, **kwargs,
+        )
+
+
+class ObjectLockConfigurationNotFoundError(S3ClientError):
+    code = 404
+
+    def __init__(self):
+        super(ObjectLockConfigurationNotFoundError, self).__init__(
+            "ObjectLockConfigurationNotFoundError",
+            "Object Lock configuration does not exist for this bucket",
         )

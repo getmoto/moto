@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from collections import namedtuple
 import io
 import os
@@ -13,6 +11,7 @@ from .exceptions import (
     InvalidCiphertextException,
     AccessDeniedException,
     NotFoundException,
+    ValidationException,
 )
 
 
@@ -26,6 +25,23 @@ CIPHERTEXT_HEADER_FORMAT = ">{key_id_len}s{iv_len}s{tag_len}s".format(
     key_id_len=KEY_ID_LEN, iv_len=IV_LEN, tag_len=TAG_LEN
 )
 Ciphertext = namedtuple("Ciphertext", ("key_id", "iv", "ciphertext", "tag"))
+
+RESERVED_ALIASES = [
+    "alias/aws/acm",
+    "alias/aws/dynamodb",
+    "alias/aws/ebs",
+    "alias/aws/elasticfilesystem",
+    "alias/aws/es",
+    "alias/aws/glue",
+    "alias/aws/kinesisvideo",
+    "alias/aws/lambda",
+    "alias/aws/rds",
+    "alias/aws/redshift",
+    "alias/aws/s3",
+    "alias/aws/secretsmanager",
+    "alias/aws/ssm",
+    "alias/aws/xray",
+]
 
 
 def generate_key_id():
@@ -102,6 +118,11 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
             "{id_type} {key_id} is not found.".format(
                 id_type="Alias" if is_alias else "keyId", key_id=key_id
             )
+        )
+
+    if plaintext == b"":
+        raise ValidationException(
+            "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
         )
 
     iv = os.urandom(IV_LEN)

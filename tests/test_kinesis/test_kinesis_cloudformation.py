@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_kinesis, mock_cloudformation
 

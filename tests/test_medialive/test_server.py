@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_medialive
@@ -16,7 +14,6 @@ def test_medialive_list_channels():
     test_client = backend.test_client()
 
     res = test_client.get("/prod/channels")
-
     result = res.data.decode("utf-8")
     result.should.contain('"channels": []')
 
