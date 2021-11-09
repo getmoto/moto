@@ -49,6 +49,10 @@ terraformtests:
 	@echo ""
 	cd tests/terraformtests && bin/run_go_test $(SERVICE_NAME) "$(TEST_NAMES)"
 
+publish:
+	python -m build
+	twine upload dist/*
+
 test_server:
 	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report xml ./tests/
 
