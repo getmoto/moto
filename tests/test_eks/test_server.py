@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import json
 from copy import deepcopy
 
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_eks
@@ -26,7 +24,7 @@ from tests.test_eks.test_eks_constants import (
     DEFAULT_HTTP_HEADERS,
     DEFAULT_REGION,
     Endpoints,
-    FargateAttributes,
+    FargateProfileAttributes,
     HttpHeaders,
     NodegroupAttributes,
     NODEROLE_ARN_KEY,
@@ -169,7 +167,7 @@ def test_eks_create_nodegroup_without_cluster(test_client):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: None,
         NodegroupAttributes.NODEGROUP_NAME: None,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }
@@ -290,7 +288,7 @@ def test_eks_describe_nonexisting_cluster(test_client):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: None,
         NodegroupAttributes.NODEGROUP_NAME: None,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }
@@ -340,7 +338,7 @@ def test_eks_describe_nonexisting_nodegroup(test_client, create_cluster):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: TestNodegroup.cluster_name,
         NodegroupAttributes.NODEGROUP_NAME: TestNodegroup.nodegroup_name,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }
@@ -362,7 +360,7 @@ def test_eks_describe_nodegroup_nonexisting_cluster(test_client):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: TestNodegroup.cluster_name,
         NodegroupAttributes.NODEGROUP_NAME: TestNodegroup.nodegroup_name,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }
@@ -404,7 +402,7 @@ def test_eks_delete_nonexisting_cluster(test_client):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: None,
         NodegroupAttributes.NODEGROUP_NAME: None,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }
@@ -476,7 +474,7 @@ def test_eks_delete_nonexisting_nodegroup(test_client, create_cluster):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: TestNodegroup.cluster_name,
         NodegroupAttributes.NODEGROUP_NAME: TestNodegroup.nodegroup_name,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }
@@ -501,7 +499,7 @@ def test_eks_delete_nodegroup_nonexisting_cluster(test_client):
     expected_data = {
         ClusterAttributes.CLUSTER_NAME: None,
         NodegroupAttributes.NODEGROUP_NAME: None,
-        FargateAttributes.PROFILE_NAME: None,
+        FargateProfileAttributes.FARGATE_PROFILE_NAME: None,
         AddonAttributes.ADDON_NAME: None,
         ResponseAttributes.MESSAGE: expected_msg,
     }

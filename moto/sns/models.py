@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import uuid
 import json
@@ -9,14 +7,13 @@ import re
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
 )
 from moto.sqs import sqs_backends
-from moto.awslambda import lambda_backends
 
 from .exceptions import (
     SNSNotFoundError,
@@ -56,6 +53,8 @@ class Topic(CloudFormationModel):
             sns_backend.region_name, self.account_id, name
         )
         self._tags = {}
+        self.fifo_topic = "false"
+        self.content_based_deduplication = "false"
 
     def publish(self, message, subject=None, message_attributes=None):
         message_id = str(uuid.uuid4())
@@ -68,6 +67,10 @@ class Topic(CloudFormationModel):
                 message_attributes=message_attributes,
             )
         return message_id
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["TopicName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -99,7 +102,7 @@ class Topic(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -110,6 +113,33 @@ class Topic(CloudFormationModel):
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]
             )
         return topic
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sns_backend = sns_backends[region_name]
+        properties = cloudformation_json["Properties"]
+
+        topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
+        topic_arn = make_arn_for_topic(
+            DEFAULT_ACCOUNT_ID, topic_name, sns_backend.region_name
+        )
+        subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
+        for subscription in subscriptions:
+            sns_backend.unsubscribe(subscription.arn)
+        sns_backend.delete_topic(topic_arn)
 
     def _create_default_topic_policy(self, region_name, account_id, name):
         return {
@@ -211,6 +241,8 @@ class Subscription(BaseModel):
             else:
                 assert False
 
+            from moto.awslambda import lambda_backends
+
             lambda_backends[region].send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
@@ -280,7 +312,7 @@ class Subscription(BaseModel):
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
-            "Subject": subject or "my subject",
+            "Subject": subject,
             "Message": message,
             "Timestamp": iso_8601_datetime_with_milliseconds(
                 datetime.datetime.utcnow()
@@ -364,7 +396,7 @@ class SNSBackend(BaseBackend):
     def __init__(self, region_name):
         super(SNSBackend, self).__init__()
         self.topics = OrderedDict()
-        self.subscriptions = OrderedDict()
+        self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
         self.platform_endpoints = {}
         self.region_name = region_name
@@ -385,6 +417,13 @@ class SNSBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """List of dicts representing default VPC endpoints for this service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sns"
+        )
 
     def update_sms_attributes(self, attrs):
         self.sms_attributes.update(attrs)
@@ -626,10 +665,12 @@ class SNSBackend(BaseBackend):
             raise SNSNotFoundError("Endpoint with arn {0} not found".format(arn))
 
     def get_subscription_attributes(self, arn):
-        _subscription = [_ for _ in self.subscriptions.values() if _.arn == arn]
-        if not _subscription:
-            raise SNSNotFoundError("Subscription with arn {0} not found".format(arn))
-        subscription = _subscription[0]
+        subscription = self.subscriptions.get(arn)
+
+        if not subscription:
+            raise SNSNotFoundError(
+                "Subscription does not exist", template="wrapped_single_error"
+            )
 
         return subscription.attributes
 

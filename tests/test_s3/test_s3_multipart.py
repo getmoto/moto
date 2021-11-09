@@ -2,14 +2,16 @@ from botocore.exceptions import ClientError
 from moto import mock_s3
 import boto3
 import pytest
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from .test_s3 import DEFAULT_REGION_NAME
 
 
 @mock_s3
 def test_multipart_should_throw_nosuchupload_if_there_are_no_parts():
-    bucket = boto3.resource("s3").Bucket("randombucketname")
+    bucket = boto3.resource("s3", region_name=DEFAULT_REGION_NAME).Bucket(
+        "randombucketname"
+    )
     bucket.create()
     s3_object = bucket.Object("my/test2")
 

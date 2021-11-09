@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from werkzeug.exceptions import BadRequest
 from moto.core.exceptions import JsonRESTError
@@ -50,6 +48,14 @@ class UserNotConfirmedException(BadRequest):
         super(UserNotConfirmedException, self).__init__()
         self.description = json.dumps(
             {"message": message, "__type": "UserNotConfirmedException"}
+        )
+
+
+class ExpiredCodeException(BadRequest):
+    def __init__(self, message):
+        super(ExpiredCodeException, self).__init__()
+        self.description = json.dumps(
+            {"message": message, "__type": "ExpiredCodeException"}
         )
 
 

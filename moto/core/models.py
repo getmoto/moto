@@ -1,16 +1,19 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
 import functools
 import inspect
 import os
-import pkg_resources
+import random
 import re
+import string
 import types
 from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
+
+try:
+    from importlib.metadata import version
+except ImportError:
+    from importlib_metadata import version
+
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
@@ -22,7 +25,7 @@ from werkzeug.wrappers import Request
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
-from moto.compat import patch
+from unittest.mock import patch
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
@@ -30,7 +33,6 @@ from .utils import (
 )
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
-RESPONSES_VERSION = pkg_resources.get_distribution("responses").version
 
 
 class BaseMockAWS:
@@ -124,6 +126,8 @@ class BaseMockAWS:
 
             attr_value = getattr(klass, attr)
             if not hasattr(attr_value, "__call__"):
+                continue
+            if not hasattr(attr_value, "__name__"):
                 continue
 
             # Check if this is a classmethod. If so, skip patching
@@ -282,21 +286,46 @@ responses_mock.add_passthru("http")
 
 
 def _find_first_match_legacy(self, request):
+    matches = []
     for i, match in enumerate(self._matches):
         if match.matches(request):
-            return match
+            matches.append(match)
 
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0]
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0]
     return None
 
 
 def _find_first_match(self, request):
+    matches = []
     match_failed_reasons = []
     for i, match in enumerate(self._matches):
         match_result, reason = match.matches(request)
         if match_result:
-            return match, match_failed_reasons
+            matches.append(match)
         else:
             match_failed_reasons.append(reason)
+
+    # Look for implemented callbacks first
+    implemented_matches = [
+        m
+        for m in matches
+        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
+    ]
+    if implemented_matches:
+        return implemented_matches[0], []
+    elif matches:
+        # We had matches, but all were of type not_implemented_callback
+        return matches[0], match_failed_reasons
 
     return None, match_failed_reasons
 
@@ -306,6 +335,7 @@ def _find_first_match(self, request):
 #  - First request matches on the appropriate S3 URL
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
+RESPONSES_VERSION = version("responses")
 if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
     responses_mock._find_match = types.MethodType(
         _find_first_match_legacy, responses_mock
@@ -345,7 +375,6 @@ class BotocoreStubber:
     def __call__(self, event_name, request, **kwargs):
         if not self.enabled:
             return None
-
         response = None
         response_callback = None
         found_index = None
@@ -432,25 +461,22 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             method=method,
                             url=re.compile(key),
                             callback=convert_flask_to_responses_response(value),
-                            stream=True,
                             match_querystring=False,
                         )
                     )
             responses_mock.add(
                 CallbackResponse(
                     method=method,
-                    url=re.compile(r"https?://.+.amazonaws.com/.*"),
+                    url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
                     match_querystring=False,
                 )
             )
             botocore_mock.add(
                 CallbackResponse(
                     method=method,
-                    url=re.compile(r"https?://.+.amazonaws.com/.*"),
+                    url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
                     match_querystring=False,
                 )
             )
@@ -470,9 +496,11 @@ MockAWS = BotocoreEventMockAWS
 
 class ServerModeMockAWS(BaseMockAWS):
     def reset(self):
-        import requests
+        call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
+        if not call_reset_api or call_reset_api.lower() != "false":
+            import requests
 
-        requests.post("http://localhost:5000/moto-api/reset")
+            requests.post("http://localhost:5000/moto-api/reset")
 
     def enable_patching(self):
         if self.__class__.nested_count == 1:
@@ -583,8 +611,15 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
+    def has_cfn_attr(cls, attr):
+        # Used for validation
+        # If a template creates an Output for an attribute that does not exist, an error should be thrown
+        return True
+
+    @classmethod
+    @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
@@ -614,6 +649,13 @@ class CloudFormationModel(BaseModel):
         # Extract the resource parameters from the cloudformation json
         # and delete the resource. Do not include a return statement.
         pass
+
+    @abstractmethod
+    def is_created(self):
+        # Verify whether the resource was created successfully
+        # Assume True after initialization
+        # Custom resources may need time after init before they are created successfully
+        return True
 
 
 class BaseBackend:
@@ -648,9 +690,14 @@ class BaseBackend:
 
         urls = {}
         for url_base in url_bases:
+            # The default URL_base will look like: http://service.[..].amazonaws.com/...
+            # This extension ensures support for the China regions
+            cn_url_base = re.sub(r"amazonaws\\?.com$", "amazonaws.com.cn", url_base)
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
+                cn_url = url_path.format(cn_url_base)
+                urls[cn_url] = handler
 
         return urls
 
@@ -687,6 +734,63 @@ class BaseBackend:
             paths[url_path] = handler
 
         return paths
+
+    @staticmethod
+    def default_vpc_endpoint_service(
+        service_region, zones,
+    ):  # pylint: disable=unused-argument
+        """Invoke the factory method for any VPC endpoint(s) services."""
+        return None
+
+    @staticmethod
+    def vpce_random_number():
+        """Return random number for a VPC endpoint service ID."""
+        return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])
+
+    @staticmethod
+    def default_vpc_endpoint_service_factory(
+        service_region,
+        zones,
+        service="",
+        service_type="Interface",
+        private_dns_names=True,
+        special_service_name="",
+        policy_supported=True,
+        base_endpoint_dns_names=None,
+    ):  # pylint: disable=too-many-arguments
+        """List of dicts representing default VPC endpoints for this service."""
+        if special_service_name:
+            service_name = f"com.amazonaws.{service_region}.{special_service_name}"
+        else:
+            service_name = f"com.amazonaws.{service_region}.{service}"
+
+        if not base_endpoint_dns_names:
+            base_endpoint_dns_names = [f"{service}.{service_region}.vpce.amazonaws.com"]
+
+        endpoint_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": base_endpoint_dns_names,
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": service_name,
+            "ServiceType": [{"ServiceType": service_type}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": policy_supported,
+        }
+
+        # Don't know how private DNS names are different, so for now just
+        # one will be added.
+        if private_dns_names:
+            endpoint_service[
+                "PrivateDnsName"
+            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsNameVerificationState"] = "verified"
+            endpoint_service["PrivateDnsNames"] = [
+                {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}
+            ]
+        return [endpoint_service]
 
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:
@@ -829,7 +933,7 @@ class MotoAPIBackend(BaseBackend):
     def reset(self):
         import moto.backends as backends
 
-        for name, backends_ in backends.named_backends():
+        for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
             for region_name, backend in backends_.items():

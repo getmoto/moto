@@ -79,6 +79,15 @@ class EBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk-health"
+        )
+
     def create_application(self, application_name):
         if application_name in self.applications:
             raise InvalidParameterValueError(

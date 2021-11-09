@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from werkzeug.exceptions import BadRequest
 from jinja2 import Template
 
@@ -11,7 +10,7 @@ class UnformattedGetAttTemplateException(Exception):
 
 
 class ValidationError(BadRequest):
-    def __init__(self, name_or_id, message=None):
+    def __init__(self, name_or_id=None, message=None):
         if message is None:
             message = "Stack with id {0} does not exist".format(name_or_id)
 
@@ -39,6 +38,16 @@ class ExportNotFound(BadRequest):
         self.description = template.render(
             code="ExportNotFound",
             message="No export named {0} found.".format(export_name),
+        )
+
+
+class UnsupportedAttribute(ValidationError):
+    def __init__(self, resource, attr):
+        template = Template(ERROR_RESPONSE)
+        super(UnsupportedAttribute, self).__init__()
+        self.description = template.render(
+            code="ValidationError",
+            message=f"Template error: resource {resource} does not support attribute type {attr} in Fn::GetAtt",
         )
 
 

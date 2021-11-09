@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 from moto.utilities.utils import str2bool
@@ -20,11 +19,11 @@ class TransitGatewayRouteTable(BaseResponse):
 
     def describe_transit_gateway_route_tables(self):
         filters = filters_from_querystring(self.querystring)
-        transit_gateway_ids = (
+        transit_gateway_route_table_ids = (
             self._get_multi_param("TransitGatewayRouteTableIds") or None
         )
         transit_gateway_route_tables = self.ec2_backend.get_all_transit_gateway_route_tables(
-            transit_gateway_ids, filters
+            transit_gateway_route_table_ids, filters
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE)
         return template.render(
@@ -83,6 +82,32 @@ class TransitGatewayRouteTable(BaseResponse):
         template = self.response_template(SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE)
         return template.render(transit_gateway_routes=transit_gateway_routes)
 
+    def get_transit_gateway_route_table_associations(self):
+        transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
+        filters = filters_from_querystring(self.querystring)
+        transit_gateway_route_table_associations = self.ec2_backend.get_all_transit_gateway_route_table_associations(
+            transit_gateway_route_table_id, filters
+        )
+        template = self.response_template(
+            GET_TRANSIT_GATEWAY_ROUTE_TABLE_ASSOCIATIONS_RESPONSE
+        )
+        return template.render(
+            transit_gateway_route_table_associations=transit_gateway_route_table_associations
+        )
+
+    def get_transit_gateway_route_table_propagations(self):
+        transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
+        filters = filters_from_querystring(self.querystring)
+        transit_gateway_route_table_propagations = self.ec2_backend.get_all_transit_gateway_route_table_propagations(
+            transit_gateway_route_table_id, filters
+        )
+        template = self.response_template(
+            GET_TRANSIT_GATEWAY_ROUTE_TABLE_PROPAGATIONS_RESPONSE
+        )
+        return template.render(
+            transit_gateway_route_table_propagations=transit_gateway_route_table_propagations
+        )
+
 
 CREATE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE = """<CreateTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>3a495d25-08d4-466d-822e-477c9b1fc606</requestId>
@@ -133,16 +158,12 @@ DESCRIBE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE = """<DescribeTransitGatewayRouteT
 DELETE_TRANSIT_GATEWAY_ROUTE_TABLE_RESPONSE = """<DeleteTransitGatewayRouteTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>a9a07226-c7b1-4305-9934-0bcfc3ef1c5e</requestId>
     <transitGatewayRouteTable>
-        {% for transit_gateway_route_table in transit_gateway_route_tables %}
-        <item>
-            <creationTime>{{ transit_gateway_route_table.create_time }}</creationTime>
-            <defaultAssociationRouteTable>{{ transit_gateway_route_table.default_association_route_table }}</defaultAssociationRouteTable>
-            <defaultPropagationRouteTable>{{ transit_gateway_route_table.default_propagation_route_table }}</defaultPropagationRouteTable>
-            <state>{{ transit_gateway_route_table.state }}</state>
-            <transitGatewayId>{{ transit_gateway_route_table.transit_gateway_id }}</transitGatewayId>
-            <transitGatewayRouteTableId>{{ transit_gateway_route_table.id }}</transitGatewayRouteTableId>
-        </item>
-        {% endfor %}
+        <creationTime>{{ transit_gateway_route_table.create_time }}</creationTime>
+        <defaultAssociationRouteTable>{{ transit_gateway_route_table.default_association_route_table }}</defaultAssociationRouteTable>
+        <defaultPropagationRouteTable>{{ transit_gateway_route_table.default_propagation_route_table }}</defaultPropagationRouteTable>
+        <state>{{ transit_gateway_route_table.state }}</state>
+        <transitGatewayId>{{ transit_gateway_route_table.transit_gateway_id }}</transitGatewayId>
+        <transitGatewayRouteTableId>{{ transit_gateway_route_table.id }}</transitGatewayRouteTableId>
     </transitGatewayRouteTable>
 </DeleteTransitGatewayRouteTableResponse>
 """
@@ -152,9 +173,18 @@ CREATE_TRANSIT_GATEWAY_ROUTE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?
 <CreateTransitGatewayRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>072b02ce-df3a-4de6-a20b-6653ae4b91a4</requestId>
     <route>
-        <destinationCidrBlock>{{ transit_gateway_route_table.routes[destination_cidr_block]['destinationCidrBlock'] }}</destinationCidrBlock>
-        <state>{{ transit_gateway_route_table.routes[destination_cidr_block]['state'] }}</state>
-        <type>{{ transit_gateway_route_table.routes[destination_cidr_block]['type'] }}</type>
+        <destinationCidrBlock>{{ transit_gateway_route_table.destinationCidrBlock }}</destinationCidrBlock>
+        <state>{{ transit_gateway_route_table.state }}</state>
+        <type>{{ transit_gateway_route_table.type }}</type>
+        <transitGatewayAttachments>
+        {% if transit_gateway_route_table.state != 'blackhole' and transit_gateway_route_table.transitGatewayAttachments %}
+            <item>
+                <resourceId>{{ transit_gateway_route_table.transitGatewayAttachments.resourceId }}</resourceId>
+                <resourceType>{{ transit_gateway_route_table.transitGatewayAttachments.resourceType }}</resourceType>
+                <transitGatewayAttachmentId>{{ transit_gateway_route_table.transitGatewayAttachments.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+            </item>
+        {% endif %}
+        </transitGatewayAttachments>
     </route>
 </CreateTransitGatewayRouteResponse>
 """
@@ -163,9 +193,9 @@ DELETE_TRANSIT_GATEWAY_ROUTE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?
 <DeleteTransitGatewayRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>2109d5bb-f874-4f35-b419-4723792a638f</requestId>
     <route>
-        <destinationCidrBlock>{{ transit_gateway_route_table.routes[destination_cidr_block]['destinationCidrBlock'] }}</destinationCidrBlock>
-        <state>{{ transit_gateway_route_table.routes[destination_cidr_block]['state'] }}</state>
-        <type>{{ transit_gateway_route_table.routes[destination_cidr_block]['type'] }}</type>
+        <destinationCidrBlock>{{ transit_gateway_route_table.routes[destination_cidr_block].destinationCidrBlock }}</destinationCidrBlock>
+        <state>{{ transit_gateway_route_table.routes[destination_cidr_block].state }}</state>
+        <type>{{ transit_gateway_route_table.routes[destination_cidr_block].type }}</type>
     </route>
 </DeleteTransitGatewayRouteResponse>
 """
@@ -176,12 +206,49 @@ SEARCH_TRANSIT_GATEWAY_ROUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"
     <routeSet>
         {% for route in transit_gateway_routes %}
         <item>
-            <destinationCidrBlock>{{ route['destinationCidrBlock'] }}</destinationCidrBlock>
-            <state>{{ route['state'] }}</state>
-            <type>{{ route['type'] }}</type>
+            <destinationCidrBlock>{{ transit_gateway_routes[route].destinationCidrBlock }}</destinationCidrBlock>
+            <state>{{ transit_gateway_routes[route].state }}</state>
+            <type>{{ transit_gateway_routes[route].type }}</type>
+            {% if transit_gateway_routes[route].get('transitGatewayAttachments') %}
+            <transitGatewayAttachments>
+                <item>
+                    <resourceId>{{ transit_gateway_routes[route].transitGatewayAttachments.resourceId }}</resourceId>
+                    <resourceType>{{ transit_gateway_routes[route].transitGatewayAttachments.resourceType }}</resourceType>
+                    <transitGatewayAttachmentId>{{ transit_gateway_routes[route].transitGatewayAttachments.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+                </item>
+            </transitGatewayAttachments>
+            {% endif %}
         </item>
         {% endfor %}
     </routeSet>
     <additionalRoutesAvailable>false</additionalRoutesAvailable>
 </SearchTransitGatewayRoutesResponse>
 """
+
+GET_TRANSIT_GATEWAY_ROUTE_TABLE_ASSOCIATIONS_RESPONSE = """<GetTransitGatewayRouteTableAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>92fdc91d-c374-4217-b2b4-33f2fb0a2be7</requestId>
+    <associations>
+        {% for route_table in transit_gateway_route_table_associations %}
+        <item>
+            <resourceId>{{ route_table.route_table_association.resourceId }}</resourceId>
+            <resourceType>{{ route_table.route_table_association.resourceType }}</resourceType>
+            <state>{{ route_table.route_table_association.state }}</state>
+            <transitGatewayAttachmentId>{{ route_table.route_table_association.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+        </item>
+        {% endfor %}
+    </associations>
+</GetTransitGatewayRouteTableAssociationsResponse>"""
+
+GET_TRANSIT_GATEWAY_ROUTE_TABLE_PROPAGATIONS_RESPONSE = """<GetTransitGatewayRouteTablePropagationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>541bc42d-9ed9-4aef-a5f7-2ea32fbdec16</requestId>
+    <transitGatewayRouteTablePropagations>
+        {% for route_table in transit_gateway_route_table_propagations %}
+        <item>
+            <resourceId>{{ route_table.route_table_propagation.resourceId }}</resourceId>
+            <resourceType>{{ route_table.route_table_propagation.resourceType }}</resourceType>
+            <state>{{ route_table.route_table_propagation.state }}</state>
+            <transitGatewayAttachmentId>{{ route_table.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+        </item>
+        {% endfor %}
+    </transitGatewayRouteTablePropagations>
+</GetTransitGatewayRouteTablePropagationsResponse>"""

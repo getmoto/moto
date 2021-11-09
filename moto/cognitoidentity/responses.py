@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from .models import cognitoidentity_backends
 from .utils import get_random_identity_id
@@ -16,6 +14,7 @@ class CognitoIdentityResponse(BaseResponse):
         open_id_connect_provider_arns = self._get_param("OpenIdConnectProviderARNs")
         cognito_identity_providers = self._get_param("CognitoIdentityProviders")
         saml_provider_arns = self._get_param("SamlProviderARNs")
+        pool_tags = self._get_param("IdentityPoolTags")
 
         return cognitoidentity_backends[self.region].create_identity_pool(
             identity_pool_name=identity_pool_name,
@@ -25,6 +24,7 @@ class CognitoIdentityResponse(BaseResponse):
             open_id_connect_provider_arns=open_id_connect_provider_arns,
             cognito_identity_providers=cognito_identity_providers,
             saml_provider_arns=saml_provider_arns,
+            tags=pool_tags,
         )
 
     def update_identity_pool(self):
@@ -34,10 +34,10 @@ class CognitoIdentityResponse(BaseResponse):
         allow_classic = self._get_bool_param("AllowClassicFlow")
         login_providers = self._get_param("SupportedLoginProviders")
         provider_name = self._get_param("DeveloperProviderName")
-        provider_arns = self._get_multi_param("OpenIdConnectProviderARNs")
-        identity_providers = self._get_multi_param_dict("CognitoIdentityProviders")
-        saml_providers = self._get_multi_param("SamlProviderARNs")
-        pool_tags = self._get_multi_param_dict("IdentityPoolTags")
+        provider_arns = self._get_param("OpenIdConnectProviderARNs")
+        identity_providers = self._get_param("CognitoIdentityProviders")
+        saml_providers = self._get_param("SamlProviderARNs")
+        pool_tags = self._get_param("IdentityPoolTags")
 
         return cognitoidentity_backends[self.region].update_identity_pool(
             identity_pool_id=pool_id,
@@ -49,11 +49,13 @@ class CognitoIdentityResponse(BaseResponse):
             provider_arns=provider_arns,
             identity_providers=identity_providers,
             saml_providers=saml_providers,
-            pool_tags=pool_tags,
+            tags=pool_tags,
         )
 
     def get_id(self):
-        return cognitoidentity_backends[self.region].get_id()
+        return cognitoidentity_backends[self.region].get_id(
+            identity_pool_id=self._get_param("IdentityPoolId"),
+        )
 
     def describe_identity_pool(self):
         return cognitoidentity_backends[self.region].describe_identity_pool(
@@ -75,4 +77,9 @@ class CognitoIdentityResponse(BaseResponse):
     def get_open_id_token(self):
         return cognitoidentity_backends[self.region].get_open_id_token(
             self._get_param("IdentityId") or get_random_identity_id(self.region)
+        )
+
+    def list_identities(self):
+        return cognitoidentity_backends[self.region].list_identities(
+            self._get_param("IdentityPoolId") or get_random_identity_id(self.region)
         )

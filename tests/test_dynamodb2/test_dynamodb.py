@@ -1,4 +1,4 @@
-from __future__ import unicode_literals, print_function
+from __future__ import print_function
 
 import uuid
 from datetime import datetime
@@ -8,7 +8,7 @@ import boto
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
@@ -28,6 +28,7 @@ except ImportError:
 
 
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_list_tables():
     name = "TestTable"
@@ -45,7 +46,26 @@ def test_list_tables():
     assert conn.list_tables()["TableNames"] == [name]
 
 
+@mock_dynamodb2
+@pytest.mark.parametrize(
+    "names",
+    [[], ["TestTable"], ["TestTable1", "TestTable2"]],
+    ids=["no-table", "one-table", "multiple-tables"],
+)
+def test_list_tables_boto3(names):
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    for name in names:
+        conn.create_table(
+            TableName=name,
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+    conn.list_tables()["TableNames"].should.equal(names)
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_list_tables_layer_1():
     # Should make tables properly with boto
@@ -68,7 +88,32 @@ def test_list_tables_layer_1():
     res.should.equal(expected)
 
 
+@mock_dynamodb2
+def test_list_tables_paginated():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    for name in ["name1", "name2", "name3"]:
+        conn.create_table(
+            TableName=name,
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+
+    res = conn.list_tables(Limit=2)
+    res.should.have.key("TableNames").equal(["name1", "name2"])
+    res.should.have.key("LastEvaluatedTableName").equal("name2")
+
+    res = conn.list_tables(Limit=1, ExclusiveStartTableName="name1")
+    res.should.have.key("TableNames").equal(["name2"])
+    res.should.have.key("LastEvaluatedTableName").equal("name2")
+
+    res = conn.list_tables(ExclusiveStartTableName="name1")
+    res.should.have.key("TableNames").equal(["name2", "name3"])
+    res.shouldnt.have.key("LastEvaluatedTableName")
+
+
 @requires_boto_gte("2.9")
+# Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_describe_missing_table():
     conn = boto.dynamodb2.connect_to_region(
@@ -76,6 +121,16 @@ def test_describe_missing_table():
     )
     with pytest.raises(JSONResponseError):
         conn.describe_table("messages")
+
+
+@mock_dynamodb2
+def test_describe_missing_table_boto3():
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.describe_table(TableName="messages")
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
 @requires_boto_gte("2.9")
@@ -134,9 +189,6 @@ def test_list_table_tags_empty():
     )
     table_description = conn.describe_table(TableName=name)
     arn = table_description["Table"]["TableArn"]
-    tags = [{"Key": "TestTag", "Value": "TestValue"}]
-    # conn.tag_resource(ResourceArn=arn,
-    #                   Tags=tags)
     resp = conn.list_tags_of_resource(ResourceArn=arn)
     assert resp["Tags"] == []
 
@@ -476,58 +528,6 @@ def test_item_add_long_string_range_key_exception():
 
 
 @mock_dynamodb2
-def test_item_add_long_string_range_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "someone@somewhere.edu"},
-            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
-        },
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.put_item(
-            TableName=name,
-            Item={
-                "forum_name": {"S": "LOLCat Forum"},
-                "subject": {"S": "Check this out!"},
-                "Body": {"S": "http://url_to_lolcat.gif"},
-                "SentBy": {"S": "someone@somewhere.edu"},
-                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
-            },
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
-    )
-
-
-@mock_dynamodb2
 def test_update_item_with_long_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client(
@@ -643,42 +643,6 @@ def test_query_invalid_table():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
-def test_scan_returns_consumed_capacity():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
-    )
-
-    response = conn.scan(TableName=name)
-
-    assert "ConsumedCapacity" in response
-    assert "CapacityUnits" in response["ConsumedCapacity"]
-    assert response["ConsumedCapacity"]["TableName"] == name
-
-
-@requires_boto_gte("2.9")
-@mock_dynamodb2
 def test_put_item_with_special_chars():
     name = "TestTable"
     conn = boto3.client(
@@ -762,37 +726,6 @@ def test_put_item_with_streams():
     stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
 
-@requires_boto_gte("2.9")
-@mock_dynamodb2
-def test_query_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
-
-    assert "ConsumedCapacity" in results
-    assert "CapacityUnits" in results["ConsumedCapacity"]
-    assert results["ConsumedCapacity"]["CapacityUnits"] == 1
-
-
 @mock_dynamodb2
 def test_basic_projection_expression_using_get_item():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -839,78 +772,11 @@ def test_basic_projection_expression_using_get_item():
 
 
 @mock_dynamodb2
-def test_basic_projection_expressions_using_query():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    table.put_item(
-        Item={
-            "forum_name": "not-the-key",
-            "subject": "123",
-            "body": "some other test message",
-        }
-    )
-    # Test a query returning all items
-    results = table.query(
-        KeyConditionExpression=Key("forum_name").eq("the-key"),
-        ProjectionExpression="body, subject",
-    )
-
-    assert "body" in results["Items"][0]
-    assert results["Items"][0]["body"] == "some test message"
-    assert "subject" in results["Items"][0]
-
-    table.put_item(
-        Item={
-            "forum_name": "the-key",
-            "subject": "1234",
-            "body": "yet another test message",
-        }
-    )
-
-    results = table.query(
-        KeyConditionExpression=Key("forum_name").eq("the-key"),
-        ProjectionExpression="body",
-    )
-
-    assert "body" in results["Items"][0]
-    assert "subject" not in results["Items"][0]
-    assert results["Items"][0]["body"] == "some test message"
-    assert "body" in results["Items"][1]
-    assert "subject" not in results["Items"][1]
-    assert results["Items"][1]["body"] == "yet another test message"
-
-    # The projection expression should not remove data from storage
-    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
-    assert "subject" in results["Items"][0]
-    assert "body" in results["Items"][1]
-    assert "forum_name" in results["Items"][1]
-
-
-@mock_dynamodb2
 def test_basic_projection_expressions_using_scan():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -957,10 +823,11 @@ def test_basic_projection_expressions_using_scan():
         FilterExpression=Key("forum_name").eq("the-key"), ProjectionExpression="body"
     )
 
-    assert "body" in results["Items"][0]
+    bodies = [item["body"] for item in results["Items"]]
+    bodies.should.contain("some test message")
+    bodies.should.contain("yet another test message")
     assert "subject" not in results["Items"][0]
     assert "forum_name" not in results["Items"][0]
-    assert "body" in results["Items"][1]
     assert "subject" not in results["Items"][1]
     assert "forum_name" not in results["Items"][1]
 
@@ -1149,65 +1016,6 @@ def test_nested_projection_expression_using_query():
             },
         }
     )
-
-
-@mock_dynamodb2
-def test_basic_projection_expressions_using_scan():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-    table.put_item(
-        Item={
-            "forum_name": "not-the-key",
-            "subject": "123",
-            "body": "some other test message",
-        }
-    )
-    # Test a scan returning all items
-    results = table.scan(
-        FilterExpression=Key("forum_name").eq("the-key"),
-        ProjectionExpression="body, subject",
-    )["Items"]
-
-    results.should.equal([{"body": "some test message", "subject": "123"}])
-
-    table.put_item(
-        Item={
-            "forum_name": "the-key",
-            "subject": "1234",
-            "body": "yet another test message",
-        }
-    )
-
-    results = table.scan(
-        FilterExpression=Key("forum_name").eq("the-key"), ProjectionExpression="body"
-    )["Items"]
-
-    assert {"body": "some test message"} in results
-    assert {"body": "yet another test message"} in results
-
-    # The projection expression should not remove data from storage
-    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
-    assert "subject" in results["Items"][0]
-    assert "body" in results["Items"][1]
-    assert "forum_name" in results["Items"][1]
 
 
 @mock_dynamodb2
@@ -1610,96 +1418,6 @@ def test_nested_projection_expression_using_scan_with_attr_expression_names():
             }
         ]
     )
-
-
-@mock_dynamodb2
-def test_put_item_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    response = table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    assert "ConsumedCapacity" in response
-
-
-@mock_dynamodb2
-def test_update_item_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    response = table.update_item(
-        Key={"forum_name": "the-key", "subject": "123"},
-        UpdateExpression="set body=:tb",
-        ExpressionAttributeValues={":tb": "a new message"},
-    )
-
-    assert "ConsumedCapacity" in response
-    assert "CapacityUnits" in response["ConsumedCapacity"]
-    assert "TableName" in response["ConsumedCapacity"]
-
-
-@mock_dynamodb2
-def test_get_item_returns_consumed_capacity():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
-
-    response = table.get_item(Key={"forum_name": "the-key", "subject": "123"})
-
-    assert "ConsumedCapacity" in response
-    assert "CapacityUnits" in response["ConsumedCapacity"]
-    assert "TableName" in response["ConsumedCapacity"]
 
 
 @mock_dynamodb2
@@ -2343,6 +2061,9 @@ def test_delete_item():
         table.delete_item(
             Key={"client": "client1", "app": "app1"}, ReturnValues="ALL_NEW"
         )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Return values set to invalid value")
 
     # Test deletion and returning old value
     response = table.delete_item(
@@ -2793,7 +2514,10 @@ def test_update_return_attributes():
     assert r["Attributes"] == {}
 
     with pytest.raises(ClientError) as ex:
-        r = update("col1", "val6", "WRONG")
+        update("col1", "val6", "WRONG")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Return values set to invalid value")
 
 
 # https://github.com/spulec/moto/issues/3448
@@ -2831,7 +2555,10 @@ def test_update_return_updated_new_attributes_when_same():
     assert r["Attributes"] == {"listValuedAttribute1": {1, 2}}
 
     with pytest.raises(ClientError) as ex:
-        r = update("a", ["a", "c"], "WRONG")
+        update("a", ["a", "c"], "WRONG")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Return values set to invalid value")
 
 
 @mock_dynamodb2
@@ -2997,309 +2724,6 @@ def test_dynamodb_streams_2():
     }
     assert "LatestStreamLabel" in resp["TableDescription"]
     assert "LatestStreamArn" in resp["TableDescription"]
-
-
-@mock_dynamodb2
-def test_condition_expressions():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    client.create_table(
-        TableName="test1",
-        AttributeDefinitions=[
-            {"AttributeName": "client", "AttributeType": "S"},
-            {"AttributeName": "app", "AttributeType": "S"},
-        ],
-        KeySchema=[
-            {"AttributeName": "client", "KeyType": "HASH"},
-            {"AttributeName": "app", "KeyType": "RANGE"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
-    )
-    client.put_item(
-        TableName="test1",
-        Item={
-            "client": {"S": "client1"},
-            "app": {"S": "app1"},
-            "match": {"S": "match"},
-            "existing": {"S": "existing"},
-        },
-    )
-
-    client.put_item(
-        TableName="test1",
-        Item={
-            "client": {"S": "client1"},
-            "app": {"S": "app1"},
-            "match": {"S": "match"},
-            "existing": {"S": "existing"},
-        },
-        ConditionExpression="attribute_exists(#existing) AND attribute_not_exists(#nonexistent) AND #match = :match",
-        ExpressionAttributeNames={
-            "#existing": "existing",
-            "#nonexistent": "nope",
-            "#match": "match",
-        },
-        ExpressionAttributeValues={":match": {"S": "match"}},
-    )
-
-    client.put_item(
-        TableName="test1",
-        Item={
-            "client": {"S": "client1"},
-            "app": {"S": "app1"},
-            "match": {"S": "match"},
-            "existing": {"S": "existing"},
-        },
-        ConditionExpression="NOT(attribute_exists(#nonexistent1) AND attribute_exists(#nonexistent2))",
-        ExpressionAttributeNames={"#nonexistent1": "nope", "#nonexistent2": "nope2"},
-    )
-
-    client.put_item(
-        TableName="test1",
-        Item={
-            "client": {"S": "client1"},
-            "app": {"S": "app1"},
-            "match": {"S": "match"},
-            "existing": {"S": "existing"},
-        },
-        ConditionExpression="attribute_exists(#nonexistent) OR attribute_exists(#existing)",
-        ExpressionAttributeNames={"#nonexistent": "nope", "#existing": "existing"},
-    )
-
-    client.put_item(
-        TableName="test1",
-        Item={
-            "client": {"S": "client1"},
-            "app": {"S": "app1"},
-            "match": {"S": "match"},
-            "existing": {"S": "existing"},
-        },
-        ConditionExpression="#client BETWEEN :a AND :z",
-        ExpressionAttributeNames={"#client": "client"},
-        ExpressionAttributeValues={":a": {"S": "a"}, ":z": {"S": "z"}},
-    )
-
-    client.put_item(
-        TableName="test1",
-        Item={
-            "client": {"S": "client1"},
-            "app": {"S": "app1"},
-            "match": {"S": "match"},
-            "existing": {"S": "existing"},
-        },
-        ConditionExpression="#client IN (:client1, :client2)",
-        ExpressionAttributeNames={"#client": "client"},
-        ExpressionAttributeValues={
-            ":client1": {"S": "client1"},
-            ":client2": {"S": "client2"},
-        },
-    )
-
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        client.put_item(
-            TableName="test1",
-            Item={
-                "client": {"S": "client1"},
-                "app": {"S": "app1"},
-                "match": {"S": "match"},
-                "existing": {"S": "existing"},
-            },
-            ConditionExpression="attribute_exists(#nonexistent1) AND attribute_exists(#nonexistent2)",
-            ExpressionAttributeNames={
-                "#nonexistent1": "nope",
-                "#nonexistent2": "nope2",
-            },
-        )
-
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        client.put_item(
-            TableName="test1",
-            Item={
-                "client": {"S": "client1"},
-                "app": {"S": "app1"},
-                "match": {"S": "match"},
-                "existing": {"S": "existing"},
-            },
-            ConditionExpression="NOT(attribute_not_exists(#nonexistent1) AND attribute_not_exists(#nonexistent2))",
-            ExpressionAttributeNames={
-                "#nonexistent1": "nope",
-                "#nonexistent2": "nope2",
-            },
-        )
-
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        client.put_item(
-            TableName="test1",
-            Item={
-                "client": {"S": "client1"},
-                "app": {"S": "app1"},
-                "match": {"S": "match"},
-                "existing": {"S": "existing"},
-            },
-            ConditionExpression="attribute_exists(#existing) AND attribute_not_exists(#nonexistent) AND #match = :match",
-            ExpressionAttributeNames={
-                "#existing": "existing",
-                "#nonexistent": "nope",
-                "#match": "match",
-            },
-            ExpressionAttributeValues={":match": {"S": "match2"}},
-        )
-
-    # Make sure update_item honors ConditionExpression as well
-    client.update_item(
-        TableName="test1",
-        Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
-        UpdateExpression="set #match=:match",
-        ConditionExpression="attribute_exists(#existing)",
-        ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
-        ExpressionAttributeValues={":match": {"S": "match"}},
-    )
-
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        client.update_item(
-            TableName="test1",
-            Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
-            UpdateExpression="set #match=:match",
-            ConditionExpression="attribute_not_exists(#existing)",
-            ExpressionAttributeValues={":match": {"S": "match"}},
-            ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
-        )
-
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        client.delete_item(
-            TableName="test1",
-            Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
-            ConditionExpression="attribute_not_exists(#existing)",
-            ExpressionAttributeValues={":match": {"S": "match"}},
-            ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
-        )
-
-
-@mock_dynamodb2
-def test_condition_expression_numerical_attribute():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="my-table",
-        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
-    )
-    table = dynamodb.Table("my-table")
-    table.put_item(Item={"partitionKey": "pk-pos", "myAttr": 5})
-    table.put_item(Item={"partitionKey": "pk-neg", "myAttr": -5})
-
-    # try to update the item we put in the table using numerical condition expression
-    # Specifically, verify that we can compare with a zero-value
-    # First verify that > and >= work on positive numbers
-    update_numerical_con_expr(
-        key="pk-pos", con_expr="myAttr > :zero", res="6", table=table
-    )
-    update_numerical_con_expr(
-        key="pk-pos", con_expr="myAttr >= :zero", res="7", table=table
-    )
-    # Second verify that < and <= work on negative numbers
-    update_numerical_con_expr(
-        key="pk-neg", con_expr="myAttr < :zero", res="-4", table=table
-    )
-    update_numerical_con_expr(
-        key="pk-neg", con_expr="myAttr <= :zero", res="-3", table=table
-    )
-
-
-def update_numerical_con_expr(key, con_expr, res, table):
-    table.update_item(
-        Key={"partitionKey": key},
-        UpdateExpression="ADD myAttr :one",
-        ExpressionAttributeValues={":zero": 0, ":one": 1},
-        ConditionExpression=con_expr,
-    )
-    table.get_item(Key={"partitionKey": key})["Item"]["myAttr"].should.equal(
-        Decimal(res)
-    )
-
-
-@mock_dynamodb2
-def test_condition_expression__attr_doesnt_exist():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    client.create_table(
-        TableName="test",
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-    )
-
-    client.put_item(
-        TableName="test", Item={"forum_name": {"S": "foo"}, "ttl": {"N": "bar"}}
-    )
-
-    def update_if_attr_doesnt_exist():
-        # Test nonexistent top-level attribute.
-        client.update_item(
-            TableName="test",
-            Key={"forum_name": {"S": "the-key"}, "subject": {"S": "the-subject"}},
-            UpdateExpression="set #new_state=:new_state, #ttl=:ttl",
-            ConditionExpression="attribute_not_exists(#new_state)",
-            ExpressionAttributeNames={"#new_state": "foobar", "#ttl": "ttl"},
-            ExpressionAttributeValues={
-                ":new_state": {"S": "some-value"},
-                ":ttl": {"N": "12345.67"},
-            },
-            ReturnValues="ALL_NEW",
-        )
-
-    update_if_attr_doesnt_exist()
-
-    # Second time should fail
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        update_if_attr_doesnt_exist()
-
-
-@mock_dynamodb2
-def test_condition_expression__or_order():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    client.create_table(
-        TableName="test",
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-    )
-
-    # ensure that the RHS of the OR expression is not evaluated if the LHS
-    # returns true (as it would result an error)
-    client.update_item(
-        TableName="test",
-        Key={"forum_name": {"S": "the-key"}},
-        UpdateExpression="set #ttl=:ttl",
-        ConditionExpression="attribute_not_exists(#ttl) OR #ttl <= :old_ttl",
-        ExpressionAttributeNames={"#ttl": "ttl"},
-        ExpressionAttributeValues={":ttl": {"N": "6"}, ":old_ttl": {"N": "5"}},
-    )
-
-
-@mock_dynamodb2
-def test_condition_expression__and_order():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-
-    client.create_table(
-        TableName="test",
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-    )
-
-    # ensure that the RHS of the AND expression is not evaluated if the LHS
-    # returns true (as it would result an error)
-    with pytest.raises(client.exceptions.ConditionalCheckFailedException):
-        client.update_item(
-            TableName="test",
-            Key={"forum_name": {"S": "the-key"}},
-            UpdateExpression="set #ttl=:ttl",
-            ConditionExpression="attribute_exists(#ttl) AND #ttl <= :old_ttl",
-            ExpressionAttributeNames={"#ttl": "ttl"},
-            ExpressionAttributeValues={":ttl": {"N": "6"}, ":old_ttl": {"N": "5"}},
-        )
 
 
 @mock_dynamodb2
@@ -3794,9 +3218,7 @@ def test_update_list_index__set_index_of_a_string():
             UpdateExpression="set itemstr[1]=:Item",
             ExpressionAttributeValues={":Item": {"S": "string_update"}},
         )
-        result = client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})[
-            "Item"
-        ]
+        client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
 
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["Error"]["Message"].should.equal(
@@ -6012,6 +5434,34 @@ def test_get_item_for_non_existent_table_raises_error():
 
 
 @mock_dynamodb2
+def test_error_when_providing_expression_and_nonexpression_params():
+    client = boto3.client("dynamodb", "eu-central-1")
+    table_name = "testtable"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pkey", "KeyType": "HASH"},],
+        AttributeDefinitions=[{"AttributeName": "pkey", "AttributeType": "S"},],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_item(
+            TableName=table_name,
+            Key={"pkey": {"S": "testrecord"}},
+            AttributeUpdates={
+                "test_field": {"Value": {"SS": ["test1", "test2"],}, "Action": "PUT"}
+            },
+            UpdateExpression="DELETE orders :order",
+            ExpressionAttributeValues={":order": {"SS": ["item"]}},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
+    )
+
+
+@mock_dynamodb2
 def test_attribute_item_delete():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="eu-west-1")
@@ -6082,6 +5532,54 @@ def test_gsi_key_can_be_updated():
 
 
 @mock_dynamodb2
+def test_gsi_key_cannot_be_empty():
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="eu-west-2")
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "main_key", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "main_key", "AttributeType": "S"},
+            {"AttributeName": "index_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_index",
+                "KeySchema": [{"AttributeName": "index_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL",},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "main_key": {"S": "testkey1"},
+            "extra_data": {"S": "testdata"},
+            "index_key": {"S": "indexkey1"},
+        },
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.update_item(
+            TableName=name,
+            Key={"main_key": {"S": "testkey1"}},
+            UpdateExpression="set index_key=:new_index_key",
+            ExpressionAttributeValues={":new_index_key": {"S": ""}},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values are not valid. The update expression attempted to update a secondary index key to a value that is not supported. The AttributeValue for a key attribute cannot contain an empty string value."
+    )
+
+
+@mock_dynamodb2
 def test_create_backup_for_non_existent_table_raises_error():
     client = boto3.client("dynamodb", "us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -6124,7 +5622,7 @@ def test_create_multiple_backups_with_same_name():
     )
     backup_name = "backup-test-table"
     backup_arns = []
-    for i in range(4):
+    for _ in range(4):
         backup = client.create_backup(TableName=table_name, BackupName=backup_name).get(
             "BackupDetails"
         )
@@ -6338,7 +5836,7 @@ def test_source_and_restored_table_items_are_not_linked():
 
     def add_guids_to_table(table, num_items):
         guids = []
-        for i in range(num_items):
+        for _ in range(num_items):
             guid = str(uuid.uuid4())
             client.put_item(TableName=table, Item={"id": {"S": guid}})
             guids.append(guid)
@@ -6379,3 +5877,151 @@ def test_source_and_restored_table_items_are_not_linked():
     set(restored_table_guids).should.equal(
         set(guids_original) | set(guids_added_after_restore)
     )
+
+
+@mock_dynamodb2
+@pytest.mark.parametrize("region", ["eu-central-1", "ap-south-1"])
+def test_describe_endpoints(region):
+    client = boto3.client("dynamodb", region)
+    res = client.describe_endpoints()["Endpoints"]
+    res.should.equal(
+        [
+            {
+                "Address": "dynamodb.{}.amazonaws.com".format(region),
+                "CachePeriodInMinutes": 1440,
+            },
+        ]
+    )
+
+
+@mock_dynamodb2
+def test_update_non_existing_item_raises_error_and_does_not_contain_item_afterwards():
+    """
+    https://github.com/spulec/moto/issues/3729
+    Exception is raised, but item was persisted anyway
+    Happened because we would create a placeholder, before validating/executing the UpdateExpression
+    :return:
+    """
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    hkey = "primary_partition_key"
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": hkey, "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": hkey, "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    update_expression = {
+        "Key": {hkey: "some_identification_string"},
+        "UpdateExpression": "set #AA.#AB = :aa",
+        "ExpressionAttributeValues": {":aa": "abc"},
+        "ExpressionAttributeNames": {"#AA": "some_dict", "#AB": "key1"},
+        "ConditionExpression": "attribute_not_exists(#AA.#AB)",
+    }
+    table = boto3.resource("dynamodb", region_name="us-west-2").Table(name)
+    with pytest.raises(ClientError) as err:
+        table.update_item(**update_expression)
+    err.value.response["Error"]["Code"].should.equal("ValidationException")
+
+    conn.scan(TableName=name)["Items"].should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_batch_write_item():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    tables = [f"table-{i}" for i in range(3)]
+    for name in tables:
+        conn.create_table(
+            TableName=name,
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+
+    conn.batch_write_item(
+        RequestItems={
+            tables[0]: [{"PutRequest": {"Item": {"id": "0"}}}],
+            tables[1]: [{"PutRequest": {"Item": {"id": "1"}}}],
+            tables[2]: [{"PutRequest": {"Item": {"id": "2"}}}],
+        }
+    )
+
+    for idx, name in enumerate(tables):
+        table = conn.Table(f"table-{idx}")
+        res = table.get_item(Key={"id": str(idx)})
+        assert res["Item"].should.equal({"id": str(idx)})
+        scan = table.scan()
+        assert scan["Count"].should.equal(1)
+
+    conn.batch_write_item(
+        RequestItems={
+            tables[0]: [{"DeleteRequest": {"Key": {"id": "0"}}}],
+            tables[1]: [{"DeleteRequest": {"Key": {"id": "1"}}}],
+            tables[2]: [{"DeleteRequest": {"Key": {"id": "2"}}}],
+        }
+    )
+
+    for idx, name in enumerate(tables):
+        table = conn.Table(f"table-{idx}")
+        scan = table.scan()
+        assert scan["Count"].should.equal(0)
+
+
+@mock_dynamodb2
+def test_gsi_lastevaluatedkey():
+    # github.com/spulec/moto/issues/3968
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    name = "test-table"
+    table = conn.Table(name)
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "main_key", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "main_key", "AttributeType": "S"},
+            {"AttributeName": "index_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_index",
+                "KeySchema": [{"AttributeName": "index_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL",},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    table.put_item(
+        Item={
+            "main_key": "testkey1",
+            "extra_data": "testdata",
+            "index_key": "indexkey",
+        },
+    )
+    table.put_item(
+        Item={
+            "main_key": "testkey2",
+            "extra_data": "testdata",
+            "index_key": "indexkey",
+        },
+    )
+
+    response = table.query(
+        Limit=1,
+        KeyConditionExpression=Key("index_key").eq("indexkey"),
+        IndexName="test_index",
+    )
+
+    items = response["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal(
+        {"main_key": "testkey1", "extra_data": "testdata", "index_key": "indexkey"}
+    )
+
+    last_evaluated_key = response["LastEvaluatedKey"]
+    last_evaluated_key.should.have.length_of(2)
+    last_evaluated_key.should.equal({"main_key": "testkey1", "index_key": "indexkey"})

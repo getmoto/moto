@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 import yaml
 from urllib.parse import urlparse
@@ -9,7 +7,7 @@ from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
 from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
-from .exceptions import ValidationError
+from .exceptions import ValidationError, MissingParameterError
 from .utils import yaml_tag_constructor
 
 
@@ -42,6 +40,12 @@ class CloudFormationResponse(BaseResponse):
     def cloudformation_backend(self):
         return cloudformation_backends[self.region]
 
+    @classmethod
+    def cfnresponse(cls, *args, **kwargs):
+        request, full_url, headers = args
+        full_url += "&Action=ProcessCfnResponse"
+        return cls.dispatch(request=request, full_url=full_url, headers=headers)
+
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
         if "localhost" in template_url:
@@ -64,6 +68,44 @@ class CloudFormationResponse(BaseResponse):
         key = s3_backend.get_object(bucket_name, key_name)
         return key.value.decode("utf-8")
 
+    def _get_params_from_list(self, parameters_list):
+        # Hack dict-comprehension
+        return dict(
+            [
+                (parameter["parameter_key"], parameter["parameter_value"])
+                for parameter in parameters_list
+            ]
+        )
+
+    def _get_param_values(self, parameters_list, existing_params):
+        result = {}
+        for parameter in parameters_list:
+            if parameter.keys() >= {"parameter_key", "parameter_value"}:
+                result[parameter["parameter_key"]] = parameter["parameter_value"]
+            elif (
+                parameter.keys() >= {"parameter_key", "use_previous_value"}
+                and parameter["parameter_key"] in existing_params
+            ):
+                result[parameter["parameter_key"]] = existing_params[
+                    parameter["parameter_key"]
+                ]
+            else:
+                raise MissingParameterError(parameter["parameter_key"])
+        return result
+
+    def process_cfn_response(self):
+        status = self._get_param("Status")
+        if status == "SUCCESS":
+            stack_id = self._get_param("StackId")
+            logical_resource_id = self._get_param("LogicalResourceId")
+            outputs = self._get_param("Data")
+            stack = self.cloudformation_backend.get_stack(stack_id)
+            custom_resource = stack.get_custom_resource(logical_resource_id)
+            custom_resource.set_data(outputs)
+            stack.verify_readiness()
+
+        return 200, {"status": 200}, json.dumps("{}")
+
     def create_stack(self):
         stack_name = self._get_param("StackName")
         stack_body = self._get_param("TemplateBody")
@@ -81,13 +123,8 @@ class CloudFormationResponse(BaseResponse):
             )
             return 400, {"status": 400}, template.render(name=stack_name)
 
-        # Hack dict-comprehension
-        parameters = dict(
-            [
-                (parameter["parameter_key"], parameter["parameter_value"])
-                for parameter in parameters_list
-            ]
-        )
+        parameters = self._get_params_from_list(parameters_list)
+
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param("NotificationARNs.member")
@@ -125,6 +162,7 @@ class CloudFormationResponse(BaseResponse):
         change_set_name = self._get_param("ChangeSetName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
+        description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
         update_or_create = self._get_param("ChangeSetType", "CREATE")
         parameters_list = self._get_list_prefix("Parameters.member")
@@ -144,6 +182,7 @@ class CloudFormationResponse(BaseResponse):
             change_set_name=change_set_name,
             template=stack_body,
             parameters=parameters,
+            description=description,
             region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
@@ -228,10 +267,17 @@ class CloudFormationResponse(BaseResponse):
         stack = self.cloudformation_backend.get_stack(stack_name)
         logical_resource_id = self._get_param("LogicalResourceId")
 
+        resource = None
         for stack_resource in stack.stack_resources:
             if stack_resource.logical_resource_id == logical_resource_id:
                 resource = stack_resource
                 break
+
+        if not resource:
+            message = "Resource {0} does not exist for stack {1}".format(
+                logical_resource_id, stack_name
+            )
+            raise ValidationError(stack_name, message)
 
         template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
         return template.render(stack=stack, resource=resource)
@@ -295,13 +341,34 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param("TemplateBody")
 
         if stack_name:
-            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+            stack = self.cloudformation_backend.get_stack(stack_name)
+            if stack.status == "REVIEW_IN_PROGRESS":
+                raise ValidationError(
+                    message="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks.",
+                )
+            stack_body = stack.template
         elif template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
 
         template_summary = get_template_summary_response_from_template(stack_body)
         template = self.response_template(GET_TEMPLATE_SUMMARY_TEMPLATE)
         return template.render(template_summary=template_summary)
+
+    def _validate_different_update(self, incoming_params, stack_body, old_stack):
+        if incoming_params and stack_body:
+            new_params = self._get_param_values(incoming_params, old_stack.parameters)
+            if old_stack.template == stack_body and old_stack.parameters == new_params:
+                raise ValidationError(
+                    old_stack.name, message=f"Stack [{old_stack.name}] already exists",
+                )
+
+    def _validate_status(self, stack):
+        if stack.status == "ROLLBACK_COMPLETE":
+            raise ValidationError(
+                stack.stack_id,
+                message="Stack:{0} is in ROLLBACK_COMPLETE state and can not "
+                "be updated.".format(stack.stack_id),
+            )
 
     def update_stack(self):
         stack_name = self._get_param("StackName")
@@ -327,13 +394,8 @@ class CloudFormationResponse(BaseResponse):
             tags = None
 
         stack = self.cloudformation_backend.get_stack(stack_name)
-        if stack.status == "ROLLBACK_COMPLETE":
-            raise ValidationError(
-                stack.stack_id,
-                message="Stack:{0} is in ROLLBACK_COMPLETE state and can not be updated.".format(
-                    stack.stack_id
-                ),
-            )
+        self._validate_different_update(incoming_params, stack_body, stack)
+        self._validate_status(stack)
 
         stack = self.cloudformation_backend.update_stack(
             name=stack_name,
@@ -638,7 +700,7 @@ DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
     <StackName>{{ change_set.stack_name }}</StackName>
     <Description>{{ change_set.description }}</Description>
     <Parameters>
-      {% for param_name, param_value in change_set.stack_parameters.items() %}
+      {% for param_name, param_value in change_set.parameters.items() %}
        <member>
           <ParameterKey>{{ param_name }}</ParameterKey>
           <ParameterValue>{{ param_value }}</ParameterValue>
@@ -1143,14 +1205,38 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
 """
 )
 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_GetTemplateSummary.html
+# TODO:implement fields: ResourceIdentifierSummaries, Capabilities, CapabilitiesReason
 GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <GetTemplateSummaryResult>
     <Description>{{ template_summary.Description }}</Description>
     {% for resource in template_summary.resourceTypes %}
       <ResourceTypes>
-        <ResourceType>{{ resource }}</ResourceType>
+        <member>{{ resource }}</member>
       </ResourceTypes>
     {% endfor %}
+    <Parameters>
+        {% for k,p in template_summary.get('Parameters',{}).items() %}
+        <member>
+            <ParameterKey>{{ k }}</ParameterKey> ,
+            <Description>{{ p.get('Description', '') }}</Description>,
+            {% if p.Default %}
+            <DefaultValue>{{ p.Default }}</DefaultValue>
+            {% endif %}
+            <NoEcho>{{ p.get('NoEcho', False) }}</NoEcho>
+            <ParameterType>{{ p.get('Type', 'String') }}</ParameterType>
+            <ParameterConstraints>
+              {% if p.AllowedValues %}
+              <AllowedValues>
+                {% for v in p.AllowedValues %}
+                <member>{{ v }}</member>
+                {% endfor %}
+              </AllowedValues>
+              {% endif %}
+            </ParameterConstraints>
+        </member>
+        {% endfor %}
+    </Parameters>
     <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
   </GetTemplateSummaryResult>
   <ResponseMetadata>

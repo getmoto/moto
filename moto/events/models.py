@@ -7,10 +7,12 @@ import warnings
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum, unique
+from json import JSONDecodeError
 from operator import lt, le, eq, ge, gt
 
 from boto3 import Session
 
+from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import unix_time, iso_8601_datetime_without_milliseconds
@@ -21,26 +23,41 @@ from moto.events.exceptions import (
     InvalidEventPatternException,
     IllegalStatusException,
 )
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 from uuid import uuid4
+
+from .utils import PAGINATION_MODEL
 
 
 class Rule(CloudFormationModel):
     Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
 
-    def __init__(self, name, region_name, **kwargs):
+    def __init__(
+        self,
+        name,
+        region_name,
+        description,
+        event_pattern,
+        schedule_exp,
+        role_arn,
+        event_bus_name,
+        state,
+        managed_by=None,
+        targets=None,
+    ):
         self.name = name
         self.region_name = region_name
-        self.event_pattern = EventPattern(kwargs.get("EventPattern"))
-        self.schedule_exp = kwargs.get("ScheduleExpression")
-        self.state = kwargs.get("State") or "ENABLED"
-        self.description = kwargs.get("Description")
-        self.role_arn = kwargs.get("RoleArn")
-        self.managed_by = kwargs.get("ManagedBy")  # can only be set by AWS services
-        self.event_bus_name = kwargs.get("EventBusName")
+        self.description = description
+        self.event_pattern = EventPattern.load(event_pattern)
+        self.scheduled_expression = schedule_exp
+        self.role_arn = role_arn
+        self.event_bus_name = event_bus_name
+        self.state = state or "ENABLED"
+        self.managed_by = managed_by  # can only be set by AWS services
         self.created_by = ACCOUNT_ID
-        self.targets = []
+        self.targets = targets or []
 
     @property
     def arn(self):
@@ -96,7 +113,7 @@ class Rule(CloudFormationModel):
 
     def send_to_targets(self, event_bus_name, event):
         event_bus_name = event_bus_name.split("/")[-1]
-        if event_bus_name != self.event_bus_name:
+        if event_bus_name != self.event_bus_name.split("/")[-1]:
             return
 
         if not self.event_pattern.matches_event(event):
@@ -189,7 +206,8 @@ class Rule(CloudFormationModel):
             )
             if queue_attr["ContentBasedDeduplication"] == "false":
                 warnings.warn(
-                    "To let EventBridge send messages to your SQS FIFO queue, you must enable content-based deduplication."
+                    "To let EventBridge send messages to your SQS FIFO queue, "
+                    "you must enable content-based deduplication."
                 )
                 return
 
@@ -198,6 +216,10 @@ class Rule(CloudFormationModel):
             message_body=json.dumps(event_copy),
             group_id=group_id,
         )
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -218,14 +240,35 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
 
-        event_backend = events_backends[region_name]
+        if "EventPattern" in properties:
+            properties["EventPattern"] = json.dumps(properties["EventPattern"])
+
         event_name = resource_name
-        return event_backend.put_rule(name=event_name, **properties)
+
+        event_pattern = properties.get("EventPattern")
+        scheduled_expression = properties.get("ScheduleExpression")
+        state = properties.get("State")
+        desc = properties.get("Description")
+        role_arn = properties.get("RoleArn")
+        event_bus_name = properties.get("EventBusName")
+        tags = properties.get("Tags")
+
+        backend = events_backends[region_name]
+        return backend.put_rule(
+            event_name,
+            scheduled_expression=scheduled_expression,
+            event_pattern=event_pattern,
+            state=state,
+            description=desc,
+            role_arn=role_arn,
+            event_bus_name=event_bus_name,
+            tags=tags,
+        )
 
     @classmethod
     def update_from_cloudformation_json(
@@ -241,8 +284,25 @@ class Rule(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         event_backend = events_backends[region_name]
-        event_name = resource_name
-        event_backend.delete_rule(name=event_name)
+        event_backend.delete_rule(resource_name)
+
+    def describe(self):
+        attributes = {
+            "Arn": self.arn,
+            "CreatedBy": self.created_by,
+            "Description": self.description,
+            "EventBusName": self.event_bus_name,
+            "EventPattern": self.event_pattern.dump(),
+            "ManagedBy": self.managed_by,
+            "Name": self.name,
+            "RoleArn": self.role_arn,
+            "ScheduleExpression": self.scheduled_expression,
+            "State": self.state,
+        }
+        attributes = {
+            attr: value for attr, value in attributes.items() if value is not None
+        }
+        return attributes
 
 
 class EventBus(CloudFormationModel):
@@ -251,7 +311,7 @@ class EventBus(CloudFormationModel):
         self.name = name
         self.tags = tags or []
 
-        self._permissions = {}
+        self._statements = {}
 
     @property
     def arn(self):
@@ -261,29 +321,24 @@ class EventBus(CloudFormationModel):
 
     @property
     def policy(self):
-        if not len(self._permissions):
-            return None
+        if self._statements:
+            policy = {
+                "Version": "2012-10-17",
+                "Statement": [stmt.describe() for stmt in self._statements.values()],
+            }
+            return json.dumps(policy)
+        return None
 
-        policy = {"Version": "2012-10-17", "Statement": []}
-
-        for sid, permission in self._permissions.items():
-            policy["Statement"].append(
-                {
-                    "Sid": sid,
-                    "Effect": "Allow",
-                    "Principal": {
-                        "AWS": "arn:aws:iam::{}:root".format(permission["Principal"])
-                    },
-                    "Action": permission["Action"],
-                    "Resource": self.arn,
-                }
-            )
-
-        return json.dumps(policy)
+    def has_permissions(self):
+        return len(self._statements) > 0
 
     def delete(self, region_name):
         event_backend = events_backends[region_name]
         event_backend.delete_event_bus(name=self.name)
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "Name", "Policy"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -308,7 +363,7 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
@@ -335,6 +390,86 @@ class EventBus(CloudFormationModel):
         event_bus_name = resource_name
         event_backend.delete_event_bus(event_bus_name)
 
+    def _remove_principals_statements(self, *principals):
+        statements_to_delete = set()
+
+        for principal in principals:
+            for sid, statement in self._statements.items():
+                if statement.principal == principal:
+                    statements_to_delete.add(sid)
+
+        # This is done separately to avoid:
+        # RuntimeError: dictionary changed size during iteration
+        for sid in statements_to_delete:
+            del self._statements[sid]
+
+    def add_permission(self, statement_id, action, principal, condition):
+        self._remove_principals_statements(principal)
+        statement = EventBusPolicyStatement(
+            sid=statement_id,
+            action=action,
+            principal=principal,
+            condition=condition,
+            resource=self.arn,
+        )
+        self._statements[statement_id] = statement
+
+    def add_policy(self, policy):
+        policy_statements = policy["Statement"]
+
+        principals = [stmt["Principal"] for stmt in policy_statements]
+        self._remove_principals_statements(*principals)
+
+        for new_statement in policy_statements:
+            sid = new_statement["Sid"]
+            self._statements[sid] = EventBusPolicyStatement.from_dict(new_statement)
+
+    def remove_statement(self, sid):
+        return self._statements.pop(sid, None)
+
+    def remove_statements(self):
+        self._statements.clear()
+
+
+class EventBusPolicyStatement:
+    def __init__(
+        self, sid, principal, action, resource, effect="Allow", condition=None
+    ):
+        self.sid = sid
+        self.principal = principal
+        self.action = action
+        self.resource = resource
+        self.effect = effect
+        self.condition = condition
+
+    def describe(self):
+        statement = dict(
+            Sid=self.sid,
+            Effect=self.effect,
+            Principal=self.principal,
+            Action=self.action,
+            Resource=self.resource,
+        )
+
+        if self.condition:
+            statement["Condition"] = self.condition
+        return statement
+
+    @classmethod
+    def from_dict(cls, statement_dict):
+        params = dict(
+            sid=statement_dict["Sid"],
+            effect=statement_dict["Effect"],
+            principal=statement_dict["Principal"],
+            action=statement_dict["Action"],
+            resource=statement_dict["Resource"],
+        )
+        condition = statement_dict.get("Condition")
+        if condition:
+            params["condition"] = condition
+
+        return cls(**params)
+
 
 class Archive(CloudFormationModel):
     # https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_ListArchives.html#API_ListArchives_RequestParameters
@@ -354,7 +489,7 @@ class Archive(CloudFormationModel):
         self.name = name
         self.source_arn = source_arn
         self.description = description
-        self.event_pattern = EventPattern(event_pattern)
+        self.event_pattern = EventPattern.load(event_pattern)
         self.retention = retention if retention else 0
 
         self.creation_time = unix_time(datetime.utcnow())
@@ -385,7 +520,7 @@ class Archive(CloudFormationModel):
         result = {
             "ArchiveArn": self.arn,
             "Description": self.description,
-            "EventPattern": str(self.event_pattern),
+            "EventPattern": self.event_pattern.dump(),
         }
         result.update(self.describe_short())
 
@@ -395,13 +530,17 @@ class Archive(CloudFormationModel):
         if description:
             self.description = description
         if event_pattern:
-            self.event_pattern = EventPattern(event_pattern)
+            self.event_pattern = EventPattern.load(event_pattern)
         if retention:
             self.retention = retention
 
     def delete(self, region_name):
         event_backend = events_backends[region_name]
         event_backend.archives.pop(self.name)
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "ArchiveName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -424,7 +563,7 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
@@ -457,13 +596,6 @@ class Archive(CloudFormationModel):
             return cls.create_from_cloudformation_json(
                 new_resource_name, cloudformation_json, region_name
             )
-
-    @classmethod
-    def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        event_backend = events_backends[region_name]
-        event_backend.delete_archive(resource_name)
 
 
 @unique
@@ -572,7 +704,7 @@ class Connection(BaseModel):
             - The original response also has
                 - LastAuthorizedTime (number)
                 - LastModifiedTime (number)
-            - At the time of implemeting this, there was no place where to set/get
+            - At the time of implementing this, there was no place where to set/get
             those attributes. That is why they are not in the response.
 
         Returns:
@@ -597,7 +729,7 @@ class Connection(BaseModel):
                 - LastModifiedTime (number)
                 - SecretArn (string)
                 - StateReason (string)
-            - At the time of implemeting this, there was no place where to set/get
+            - At the time of implementing this, there was no place where to set/get
             those attributes. That is why they are not in the response.
 
         Returns:
@@ -679,46 +811,18 @@ class Destination(BaseModel):
 
 
 class EventPattern:
-    def __init__(self, filter):
-        self._filter = self._load_event_pattern(filter)
-        self._filter_raw = filter
-        if not self._validate_event_pattern(self._filter):
-            raise InvalidEventPatternException
-
-    def __str__(self):
-        return self._filter_raw or str()
-
-    def _load_event_pattern(self, pattern):
-        try:
-            return json.loads(pattern) if pattern else None
-        except ValueError:
-            raise InvalidEventPatternException
-
-    def _validate_event_pattern(self, pattern):
-        # values in the event pattern have to be either a dict or an array
-        if pattern is None:
-            return True
-
-        dicts_valid = [
-            self._validate_event_pattern(value)
-            for value in pattern.values()
-            if isinstance(value, dict)
-        ]
-        non_dicts_valid = [
-            isinstance(value, list)
-            for value in pattern.values()
-            if not isinstance(value, dict)
-        ]
-        return all(dicts_valid) and all(non_dicts_valid)
+    def __init__(self, raw_pattern, pattern):
+        self._raw_pattern = raw_pattern
+        self._pattern = pattern
 
     def matches_event(self, event):
-        if not self._filter:
+        if not self._pattern:
             return True
         event = json.loads(json.dumps(event))
-        return self._does_event_match(event, self._filter)
+        return self._does_event_match(event, self._pattern)
 
-    def _does_event_match(self, event, filter):
-        items_and_filters = [(event.get(k), v) for k, v in filter.items()]
+    def _does_event_match(self, event, pattern):
+        items_and_filters = [(event.get(k), v) for k, v in pattern.items()]
         nested_filter_matches = [
             self._does_event_match(item, nested_filter)
             for item, nested_filter in items_and_filters
@@ -734,15 +838,17 @@ class EventPattern:
     def _does_item_match_filters(self, item, filters):
         allowed_values = [value for value in filters if isinstance(value, str)]
         allowed_values_match = item in allowed_values if allowed_values else True
+        full_match = isinstance(item, list) and item == allowed_values
         named_filter_matches = [
-            self._does_item_match_named_filter(item, filter)
-            for filter in filters
-            if isinstance(filter, dict)
+            self._does_item_match_named_filter(item, pattern)
+            for pattern in filters
+            if isinstance(pattern, dict)
         ]
-        return allowed_values_match and all(named_filter_matches)
+        return (full_match or allowed_values_match) and all(named_filter_matches)
 
-    def _does_item_match_named_filter(self, item, filter):
-        filter_name, filter_value = list(filter.items())[0]
+    @staticmethod
+    def _does_item_match_named_filter(item, pattern):
+        filter_name, filter_value = list(pattern.items())[0]
         if filter_name == "exists":
             is_leaf_node = not isinstance(item, dict)
             leaf_exists = is_leaf_node and item is not None
@@ -767,16 +873,52 @@ class EventPattern:
             )
             return True
 
+    @classmethod
+    def load(cls, raw_pattern):
+        parser = EventPatternParser(raw_pattern)
+        pattern = parser.parse()
+        return cls(raw_pattern, pattern)
+
+    def dump(self):
+        return self._raw_pattern
+
+
+class EventPatternParser:
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def _validate_event_pattern(self, pattern):
+        # values in the event pattern have to be either a dict or an array
+        for attr, value in pattern.items():
+            if isinstance(value, dict):
+                self._validate_event_pattern(value)
+            elif isinstance(value, list):
+                if len(value) == 0:
+                    raise InvalidEventPatternException(
+                        reason="Empty arrays are not allowed"
+                    )
+            else:
+                raise InvalidEventPatternException(
+                    reason=f"'{attr}' must be an object or an array"
+                )
+
+    def parse(self):
+        try:
+            parsed_pattern = json.loads(self.pattern) if self.pattern else dict()
+            self._validate_event_pattern(parsed_pattern)
+            return parsed_pattern
+        except JSONDecodeError:
+            raise InvalidEventPatternException(reason="Invalid JSON")
+
 
 class EventsBackend(BaseBackend):
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
+    _CRON_REGEX = re.compile(r"^cron\(.*\)")
+    _RATE_REGEX = re.compile(r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)")
 
     def __init__(self, region_name):
-        self.rules = {}
-        # This array tracks the order in which the rules have been added, since
-        # 2.6 doesn't have OrderedDicts.
-        self.rules_order = []
+        self.rules = OrderedDict()
         self.next_tokens = {}
         self.region_name = region_name
         self.event_buses = {}
@@ -794,11 +936,15 @@ class EventsBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "events"
+        )
+
     def _add_default_event_bus(self):
         self.event_buses["default"] = EventBus(self.region_name, "default")
-
-    def _get_rule_by_index(self, i):
-        return self.rules.get(self.rules_order[i])
 
     def _gen_next_token(self, index):
         token = os.urandom(128).encode("base64")
@@ -839,15 +985,71 @@ class EventsBackend(BaseBackend):
 
         return replay
 
+    def put_rule(
+        self,
+        name,
+        *,
+        description=None,
+        event_bus_name=None,
+        event_pattern=None,
+        role_arn=None,
+        scheduled_expression=None,
+        state=None,
+        managed_by=None,
+        tags=None,
+    ):
+        event_bus_name = event_bus_name or "default"
+
+        if not event_pattern and not scheduled_expression:
+            raise JsonRESTError(
+                "ValidationException",
+                "Parameter(s) EventPattern or ScheduleExpression must be specified.",
+            )
+
+        if scheduled_expression:
+            if event_bus_name != "default":
+                raise ValidationException(
+                    "ScheduleExpression is supported only on the default event bus."
+                )
+
+            if not (
+                self._CRON_REGEX.match(scheduled_expression)
+                or self._RATE_REGEX.match(scheduled_expression)
+            ):
+                raise ValidationException("Parameter ScheduleExpression is not valid.")
+
+        existing_rule = self.rules.get(name)
+        targets = existing_rule.targets if existing_rule else list()
+        rule = Rule(
+            name,
+            self.region_name,
+            description,
+            event_pattern,
+            scheduled_expression,
+            role_arn,
+            event_bus_name,
+            state,
+            managed_by,
+            targets=targets,
+        )
+        self.rules[name] = rule
+
+        if tags:
+            self.tagger.tag_resource(rule.arn, tags)
+
+        return rule
+
     def delete_rule(self, name):
-        self.rules_order.pop(self.rules_order.index(name))
         arn = self.rules.get(name).arn
         if self.tagger.has_tags(arn):
             self.tagger.delete_all_tags_for_resource(arn)
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):
-        return self.rules.get(name)
+        rule = self.rules.get(name)
+        if not rule:
+            raise ResourceNotFoundException("Rule {} does not exist.".format(name))
+        return rule
 
     def disable_rule(self, name):
         if name in self.rules:
@@ -863,26 +1065,18 @@ class EventsBackend(BaseBackend):
 
         return False
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(self, target_arn, next_token=None, limit=None):
         matching_rules = []
-        return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(self.rules), next_token, limit
-        )
-
-        for i in range(start_index, end_index):
-            rule = self._get_rule_by_index(i)
+        for _, rule in self.rules.items():
             for target in rule.targets:
                 if target["Arn"] == target_arn:
-                    matching_rules.append(rule.name)
+                    matching_rules.append(rule)
 
-        return_obj["RuleNames"] = matching_rules
-        if new_next_token is not None:
-            return_obj["NextToken"] = new_next_token
+        return matching_rules
 
-        return return_obj
-
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(self, prefix=None, next_token=None, limit=None):
         match_string = ".*"
         if prefix is not None:
@@ -891,22 +1085,12 @@ class EventsBackend(BaseBackend):
         match_regex = re.compile(match_string)
 
         matching_rules = []
-        return_obj = {}
 
-        start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(self.rules), next_token, limit
-        )
-
-        for i in range(start_index, end_index):
-            rule = self._get_rule_by_index(i)
-            if match_regex.match(rule.name):
+        for name, rule in self.rules.items():
+            if match_regex.match(name):
                 matching_rules.append(rule)
 
-        return_obj["Rules"] = matching_rules
-        if new_next_token is not None:
-            return_obj["NextToken"] = new_next_token
-
-        return return_obj
+        return matching_rules
 
     def list_targets_by_rule(self, rule, next_token=None, limit=None):
         # We'll let a KeyError exception be thrown for response to handle if
@@ -928,28 +1112,6 @@ class EventsBackend(BaseBackend):
             return_obj["NextToken"] = new_next_token
 
         return return_obj
-
-    def update_rule(self, rule, **kwargs):
-        rule.event_pattern = kwargs.get("EventPattern") or rule.event_pattern
-        rule.schedule_exp = kwargs.get("ScheduleExpression") or rule.schedule_exp
-        rule.state = kwargs.get("State") or rule.state
-        rule.description = kwargs.get("Description") or rule.description
-        rule.role_arn = kwargs.get("RoleArn") or rule.role_arn
-        rule.event_bus_name = kwargs.get("EventBusName") or rule.event_bus_name
-
-    def put_rule(self, name, **kwargs):
-        if kwargs.get("ScheduleExpression") and kwargs.get("EventBusName") != "default":
-            raise ValidationException(
-                "ScheduleExpression is supported only on the default event bus."
-            )
-        if name in self.rules:
-            self.update_rule(self.rules[name], **kwargs)
-            new_rule = self.rules[name]
-        else:
-            new_rule = Rule(name, self.region_name, **kwargs)
-            self.rules[new_rule.name] = new_rule
-            self.rules_order.append(new_rule.name)
-        return new_rule
 
     def put_targets(self, name, event_bus_name, targets):
         # super simple ARN check
@@ -1073,11 +1235,45 @@ class EventsBackend(BaseBackend):
     def test_event_pattern(self):
         raise NotImplementedError()
 
-    def put_permission(self, event_bus_name, action, principal, statement_id):
-        if not event_bus_name:
-            event_bus_name = "default"
+    @staticmethod
+    def _put_permission_from_policy(event_bus, policy):
+        try:
+            policy_doc = json.loads(policy)
+            event_bus.add_policy(policy_doc)
+        except JSONDecodeError:
+            raise JsonRESTError(
+                "ValidationException", "This policy contains invalid Json"
+            )
 
-        event_bus = self.describe_event_bus(event_bus_name)
+    @staticmethod
+    def _condition_param_to_stmt_condition(condition):
+        if condition:
+            key = condition["Key"]
+            value = condition["Value"]
+            condition_type = condition["Type"]
+            return {condition_type: {key: value}}
+        return None
+
+    def _put_permission_from_params(
+        self, event_bus, action, principal, statement_id, condition
+    ):
+        if principal is None:
+            raise JsonRESTError(
+                "ValidationException", "Parameter Principal must be specified."
+            )
+
+        if condition and principal != "*":
+            raise JsonRESTError(
+                "InvalidParameterValue",
+                "Value of the parameter 'principal' must be '*' when the parameter 'condition' is set.",
+            )
+
+        if not condition and self.ACCOUNT_ID.match(principal) is None:
+            raise JsonRESTError(
+                "InvalidParameterValue",
+                f"Value {principal} at 'principal' failed to satisfy constraint: "
+                r"Member must satisfy regular expression pattern: (\d{12}|\*)",
+            )
 
         if action is None or action != "events:PutEvents":
             raise JsonRESTError(
@@ -1085,37 +1281,50 @@ class EventsBackend(BaseBackend):
                 "Provided value in parameter 'action' is not supported.",
             )
 
-        if principal is None or self.ACCOUNT_ID.match(principal) is None:
-            raise JsonRESTError(
-                "InvalidParameterValue", r"Principal must match ^(\d{1,12}|\*)$"
-            )
-
         if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
             raise JsonRESTError(
                 "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
-        event_bus._permissions[statement_id] = {
-            "Action": action,
-            "Principal": principal,
-        }
+        principal = {"AWS": f"arn:aws:iam::{principal}:root"}
+        stmt_condition = self._condition_param_to_stmt_condition(condition)
+        event_bus.add_permission(statement_id, action, principal, stmt_condition)
 
-    def remove_permission(self, event_bus_name, statement_id):
+    def put_permission(
+        self, event_bus_name, action, principal, statement_id, condition, policy
+    ):
         if not event_bus_name:
             event_bus_name = "default"
 
         event_bus = self.describe_event_bus(event_bus_name)
 
-        if not len(event_bus._permissions):
-            raise JsonRESTError(
-                "ResourceNotFoundException", "EventBus does not have a policy."
+        if policy:
+            self._put_permission_from_policy(event_bus, policy)
+        else:
+            self._put_permission_from_params(
+                event_bus, action, principal, statement_id, condition
             )
 
-        if not event_bus._permissions.pop(statement_id, None):
-            raise JsonRESTError(
-                "ResourceNotFoundException",
-                "Statement with the provided id does not exist.",
-            )
+    def remove_permission(self, event_bus_name, statement_id, remove_all_permissions):
+        if not event_bus_name:
+            event_bus_name = "default"
+
+        event_bus = self.describe_event_bus(event_bus_name)
+
+        if remove_all_permissions:
+            event_bus.remove_statements()
+        else:
+            if not event_bus.has_permissions():
+                raise JsonRESTError(
+                    "ResourceNotFoundException", "EventBus does not have a policy."
+                )
+
+            statement = event_bus.remove_statement(statement_id)
+            if not statement:
+                raise JsonRESTError(
+                    "ResourceNotFoundException",
+                    "Statement with the provided id does not exist.",
+                )
 
     def describe_event_bus(self, name):
         if not name:
@@ -1223,13 +1432,12 @@ class EventsBackend(BaseBackend):
         rule_event_pattern = json.loads(event_pattern or "{}")
         rule_event_pattern["replay-name"] = [{"exists": False}]
 
+        rule_name = "Events-Archive-{}".format(name)
         rule = self.put_rule(
-            "Events-Archive-{}".format(name),
-            **{
-                "EventPattern": json.dumps(rule_event_pattern),
-                "EventBusName": event_bus.name,
-                "ManagedBy": "prod.vhs.events.aws.internal",
-            }
+            rule_name,
+            event_pattern=json.dumps(rule_event_pattern),
+            event_bus_name=event_bus.name,
+            managed_by="prod.vhs.events.aws.internal",
         )
         self.put_targets(
             rule.name,

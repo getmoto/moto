@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from functools import wraps
 
 import binascii
@@ -188,14 +187,17 @@ def iso_8601_datetime_with_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+# Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
+def iso_8601_datetime_with_nanoseconds(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+
+
 def iso_8601_datetime_without_milliseconds(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def iso_8601_datetime_without_milliseconds_s3(datetime):
-    return (
-        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000") + "Z"
-    )
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
@@ -314,30 +316,6 @@ def path_url(url):
     return path
 
 
-def py2_strip_unicode_keys(blob):
-    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
-    if type(blob) == unicode:  # noqa
-        return str(blob)
-
-    elif type(blob) == dict:
-        for key in list(blob.keys()):
-            value = blob.pop(key)
-            blob[str(key)] = py2_strip_unicode_keys(value)
-
-    elif type(blob) == list:
-        for i in range(0, len(blob)):
-            blob[i] = py2_strip_unicode_keys(blob[i])
-
-    elif type(blob) == set:
-        new_set = set()
-        for value in blob:
-            new_set.add(py2_strip_unicode_keys(value))
-
-        blob = new_set
-
-    return blob
-
-
 def tags_from_query_string(
     querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
 ):
@@ -419,3 +397,15 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
             dict1[key] = dict2[key]
             if dict1[key] is None and remove_nulls:
                 dict1.pop(key)
+
+
+def glob_matches(pattern, string):
+    """AWS API-style globbing regexes"""
+    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
+    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+
+    pattern = ".*" + pattern + ".*"
+
+    if re.match(pattern, str(string)):
+        return True
+    return False

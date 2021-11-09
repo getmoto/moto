@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import random
 import re
@@ -9,10 +7,12 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime
 
-from boto3 import Session
+from .utils import PAGINATION_MODEL
 
+from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.utilities.utils import random_string
+from moto.utilities.paginator import paginate
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
@@ -21,6 +21,7 @@ from .exceptions import (
     InvalidStateTransitionException,
     VersionConflictException,
     ResourceAlreadyExistsException,
+    VersionsLimitExceededException,
 )
 
 
@@ -504,6 +505,20 @@ class IoTBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "iot"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "data.iot",
+            private_dns_names=False,
+            special_service_name="iot.data",
+            policy_supported=False,
+        )
+
     def create_thing(self, thing_name, thing_type_name, attribute_payload):
         thing_types = self.list_thing_types()
         thing_type = None
@@ -514,6 +529,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                # note - typo (depreated) exists also in the original exception.
+                raise InvalidRequestException(
+                    msg=f"Can not create new thing with depreated thing type:{thing_type_name}"
+                )
         if attribute_payload is None:
             attributes = {}
         elif "attributes" not in attribute_payload:
@@ -628,6 +649,15 @@ class IoTBackend(BaseBackend):
         thing_type = self.describe_thing_type(thing_type_name)
         del self.thing_types[thing_type.arn]
 
+    def deprecate_thing_type(self, thing_type_name, undo_deprecate):
+        thing_types = [
+            _ for _ in self.thing_types.values() if _.thing_type_name == thing_type_name
+        ]
+        if len(thing_types) == 0:
+            raise ResourceNotFoundException()
+        thing_types[0].metadata["deprecated"] = not undo_deprecate
+        return thing_types[0]
+
     def update_thing(
         self,
         thing_name,
@@ -652,6 +682,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                raise InvalidRequestException(
+                    msg=f"Can not update a thing to use deprecated thing type: {thing_type_name}"
+                )
+
             thing.thing_type = thing_type
 
         if remove_thing_type:
@@ -815,6 +851,8 @@ class IoTBackend(BaseBackend):
         policy = self.get_policy(policy_name)
         if not policy:
             raise ResourceNotFoundException()
+        if len(policy.versions) >= 5:
+            raise VersionsLimitExceededException(policy_name)
         version = FakePolicyVersion(
             policy_name, policy_document, set_as_default, self.region_name
         )
@@ -1282,7 +1320,7 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
@@ -1302,9 +1340,8 @@ class IoTBackend(BaseBackend):
 
         return job_executions, next_token
 
-    def list_job_executions_for_thing(
-        self, thing_name, status, max_results, next_token
-    ):
+    @paginate(PAGINATION_MODEL)
+    def list_job_executions_for_thing(self, thing_name, status):
         job_executions = [
             self.job_executions[je].to_dict()
             for je in self.job_executions
@@ -1314,25 +1351,12 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
 
-        token = next_token
-        if token is None:
-            job_executions = job_executions[0:max_results]
-            next_token = str(max_results) if len(job_executions) > max_results else None
-        else:
-            token = int(token)
-            job_executions = job_executions[token : token + max_results]
-            next_token = (
-                str(token + max_results)
-                if len(job_executions) > token + max_results
-                else None
-            )
-
-        return job_executions, next_token
+        return job_executions
 
     def list_topic_rules(self):
         return [r.to_dict() for r in self.rules.values()]
@@ -1353,7 +1377,7 @@ class IoTBackend(BaseBackend):
             topic_pattern=topic,
             sql=sql,
             region_name=self.region_name,
-            **kwargs
+            **kwargs,
         )
 
     def replace_topic_rule(self, rule_name, **kwargs):

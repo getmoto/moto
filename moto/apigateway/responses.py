@@ -1,7 +1,7 @@
-from __future__ import unicode_literals
-
 import json
+from urllib.parse import unquote
 
+from moto.utilities.utils import merge_multiple_dicts
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
 from .exceptions import (
@@ -23,6 +23,7 @@ from .exceptions import (
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
     NotFoundException,
+    ConflictException,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -110,8 +111,8 @@ class APIGatewayResponse(BaseResponse):
     def __validte_rest_patch_operations(self, patch_operations):
         for op in patch_operations:
             path = op["path"]
-            value = op["value"]
             if "apiKeySource" in path:
+                value = op["value"]
                 return self.__validate_api_key_source(value)
 
     def restapis_individual(self, request, full_url, headers):
@@ -179,8 +180,11 @@ class APIGatewayResponse(BaseResponse):
         method_type = url_path_parts[6]
 
         if self.method == "GET":
-            method = self.backend.get_method(function_id, resource_id, method_type)
-            return 200, {}, json.dumps(method)
+            try:
+                method = self.backend.get_method(function_id, resource_id, method_type)
+                return 200, {}, json.dumps(method)
+            except NotFoundException as nfe:
+                return self.error("NotFoundException", nfe.message)
         elif self.method == "PUT":
             authorization_type = self._get_param("authorizationType")
             api_key_required = self._get_param("apiKeyRequired")
@@ -302,6 +306,54 @@ class APIGatewayResponse(BaseResponse):
 
         return 200, {}, json.dumps(authorizer_response)
 
+    def request_validators(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        try:
+
+            if self.method == "GET":
+                validators = self.backend.get_request_validators(restapi_id)
+                res = json.dumps(
+                    {"item": [validator.to_dict() for validator in validators]}
+                )
+                return 200, {}, res
+            if self.method == "POST":
+                name = self._get_param("name")
+                body = self._get_bool_param("validateRequestBody")
+                params = self._get_bool_param("validateRequestParameters")
+                validator = self.backend.create_request_validator(
+                    restapi_id, name, body, params
+                )
+                return 200, {}, json.dumps(validator)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except CrossAccountNotAllowed as e:
+            return self.error("AccessDeniedException", e.message)
+
+    def request_validator_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        validator_id = url_path_parts[4]
+        try:
+            if self.method == "GET":
+                validator = self.backend.get_request_validator(restapi_id, validator_id)
+                return 200, {}, json.dumps(validator)
+            if self.method == "DELETE":
+                self.backend.delete_request_validator(restapi_id, validator_id)
+                return 202, {}, ""
+            if self.method == "PATCH":
+                patch_operations = self._get_param("patchOperations")
+                validator = self.backend.update_request_validator(
+                    restapi_id, validator_id, patch_operations
+                )
+                return 200, {}, json.dumps(validator)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except CrossAccountNotAllowed as e:
+            return self.error("AccessDeniedException", e.message)
+
     def authorizers(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
@@ -362,6 +414,24 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps({"item": stages})
 
         return 200, {}, json.dumps(stage_response)
+
+    def restapis_stages_tags(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[4]
+        stage_name = url_path_parts[6]
+        if self.method == "PUT":
+            tags = self._get_param("tags")
+            if tags:
+                stage = self.backend.get_stage(function_id, stage_name)
+                stage["tags"] = merge_multiple_dicts(stage.get("tags"), tags)
+            return 200, {}, json.dumps({"item": tags})
+        if self.method == "DELETE":
+            stage = self.backend.get_stage(function_id, stage_name)
+            for tag in stage.get("tags").copy():
+                if tag in self.querystring.get("tagKeys"):
+                    stage["tags"].pop(tag, None)
+            return 200, {}, json.dumps({"item": ""})
 
     def stages(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -781,3 +851,49 @@ class APIGatewayResponse(BaseResponse):
                     error.message, error.error_type
                 ),
             )
+
+    def base_path_mappings(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        domain_name = url_path_parts[2]
+
+        try:
+            if self.method == "GET":
+                base_path_mappings = self.backend.get_base_path_mappings(domain_name)
+                return 200, {}, json.dumps({"item": base_path_mappings})
+            elif self.method == "POST":
+                base_path = self._get_param("basePath")
+                rest_api_id = self._get_param("restApiId")
+                stage = self._get_param("stage")
+
+                base_path_mapping_resp = self.backend.create_base_path_mapping(
+                    domain_name, rest_api_id, base_path, stage,
+                )
+                return 201, {}, json.dumps(base_path_mapping_resp)
+        except BadRequestException as e:
+            return self.error("BadRequestException", e.message)
+        except NotFoundException as e:
+            return self.error("NotFoundException", e.message, 404)
+        except ConflictException as e:
+            return self.error("ConflictException", e.message, 409)
+
+    def base_path_mapping_individual(self, request, full_url, headers):
+
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        domain_name = url_path_parts[2]
+        base_path = unquote(url_path_parts[4])
+
+        try:
+            if self.method == "GET":
+                base_path_mapping = self.backend.get_base_path_mapping(
+                    domain_name, base_path
+                )
+                return 200, {}, json.dumps(base_path_mapping)
+            elif self.method == "DELETE":
+                # TODO Implements
+                pass
+        except NotFoundException as e:
+            return self.error("NotFoundException", e.message, 404)

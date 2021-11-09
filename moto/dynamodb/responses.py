@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -271,6 +270,25 @@ class DynamoHandler(BaseResponse):
             else:
                 item_dict = {"Attributes": []}
             item_dict["ConsumedCapacityUnits"] = 0.5
+            return dynamo_json_dump(item_dict)
+        else:
+            er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+            return self.error(er)
+
+    def update_item(self):
+        name = self.body["TableName"]
+        key = self.body["Key"]
+        hash_key = key["HashKeyElement"]
+        range_key = key.get("RangeKeyElement")
+        updates = self.body["AttributeUpdates"]
+        return_values = self.body.get("ReturnValues", "")  # noqa
+
+        item = dynamodb_backend.update_item(name, hash_key, range_key, updates)
+
+        if item:
+            item_dict = item.to_json()
+            item_dict["ConsumedCapacityUnits"] = 0.5
+
             return dynamo_json_dump(item_dict)
         else:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"

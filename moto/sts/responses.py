@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from moto.core import ACCOUNT_ID
 from moto.iam import iam_backend

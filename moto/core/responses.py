@@ -1,12 +1,9 @@
-from __future__ import unicode_literals
-
 import functools
 from collections import defaultdict
 import datetime
 import json
 import logging
 import re
-import io
 import requests
 
 import pytz
@@ -21,8 +18,9 @@ import xmltodict
 from werkzeug.exceptions import HTTPException
 
 import boto3
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
+from moto.utilities.utils import load_resource
 from moto import settings
 
 log = logging.getLogger(__name__)
@@ -192,7 +190,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    param_list_regex = re.compile(r"^(\.?[^.]*(\.member)?)\.(\d+)\.")
+    # Note: technically, we could remove "member" from the regex below... (leaving it for clarity)
+    param_list_regex = re.compile(r"^(\.?[^.]*(\.member|\.[^.]+)?)\.(\d+)\.?")
     param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
@@ -421,6 +420,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _send_response(headers, response):
+        if response is None:
+            response = "", {}
         if len(response) == 2:
             body, new_headers = response
         else:
@@ -720,7 +721,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     elif key.endswith(value_end):
                         v = value[0]
 
-            if not (k and v):
+            if not (k and v is not None):
                 break
 
             results[k] = v
@@ -799,7 +800,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def request_json(self):
         return "JSON" in self.querystring.get("ContentType", [])
 
-    def is_not_dryrun(self, action):
+    def error_on_dryrun(self):
+        self.is_not_dryrun()
+
+    def is_not_dryrun(self, action=None):
+        action = action or self._get_param("Action")
         if "true" in self.querystring.get("DryRun", ["false"]):
             message = (
                 "An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set"
@@ -900,12 +905,8 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
-        # Importing pkg_resources takes ~60ms; keep it local
-        from pkg_resources import resource_filename  # noqa
+        spec = load_resource("botocore", path)
 
-        self.path = resource_filename("botocore", path)
-        with io.open(self.path, "r", encoding="utf-8") as f:
-            spec = json.load(f)
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]
         self.shapes = spec["shapes"]

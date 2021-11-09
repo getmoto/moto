@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring, add_tag_specification
 from xml.sax.saxutils import escape
@@ -201,17 +200,20 @@ CREATE_VPN_CONNECTION_ROUTE_RESPONSE = """
     <return>true</return>
 </CreateVpnConnectionRouteResponse>"""
 
+
 DELETE_VPN_CONNECTION_RESPONSE = """
 <DeleteVpnConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
    <return>true</return>
 </DeleteVpnConnectionResponse>"""
 
+
 DELETE_VPN_CONNECTION_ROUTE_RESPONSE = """
 <DeleteVpnConnectionRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10- 15/">
     <requestId>4f35a1b2-c2c3-4093-b51f-abb9d7311990</requestId>
     <return>true</return>
 </DeleteVpnConnectionRouteResponse>"""
+
 
 DESCRIBE_VPN_CONNECTION_RESPONSE = (
     """

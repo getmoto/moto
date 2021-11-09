@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_mediastoredata
@@ -57,19 +55,6 @@ def test_delete_object_succeeds():
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     items = client.list_items()["Items"]
     len(items).should.equal(0)
-
-
-@mock_mediastoredata
-def test_list_items():
-    client = boto3.client("mediastore-data", region_name=region)
-    items = client.list_items()["Items"]
-    len(items).should.equal(0)
-    object_path = "foo"
-    client.put_object(Body="011001", Path=object_path)
-    items = client.list_items()["Items"]
-    len(items).should.equal(1)
-    object_exists = any(d["Name"] == object_path for d in items)
-    object_exists.should.equal(True)
 
 
 @mock_mediastoredata

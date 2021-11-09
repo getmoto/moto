@@ -15,6 +15,8 @@ VALID_STATEMENT_ELEMENTS = [
     "Resource",
     "NotResource",
     "Effect",
+    "Principal",
+    "NotPrincipal",
     "Condition",
 ]
 

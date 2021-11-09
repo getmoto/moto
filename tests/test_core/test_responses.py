@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
+import sure  # noqa # pylint: disable=unused-import
 
-import sure  # noqa
-
-from moto.compat import OrderedDict
+from collections import OrderedDict
 
 from botocore.awsrequest import AWSPreparedRequest
 
@@ -147,3 +145,21 @@ def test_get_params():
             ],
         }
     )
+
+
+def test_get_dict_list_params():
+    subject = BaseResponse()
+    subject.querystring = OrderedDict(
+        [
+            ("Action", ["CreateDBCluster"]),
+            ("Version", ["2014-10-31"]),
+            ("VpcSecurityGroupIds.VpcSecurityGroupId.1", ["sg-123"]),
+            ("VpcSecurityGroupIds.VpcSecurityGroupId.2", ["sg-456"]),
+            ("VpcSecurityGroupIds.VpcSecurityGroupId.3", ["sg-789"]),
+        ]
+    )
+
+    # TODO: extend test and logic such that we can call subject._get_params() directly here
+    result = subject._get_multi_param_dict("VpcSecurityGroupIds")
+
+    result.should.equal({"VpcSecurityGroupId": ["sg-123", "sg-456", "sg-789"]})

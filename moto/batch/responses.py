@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import batch_backends
 from urllib.parse import urlsplit
@@ -177,14 +176,15 @@ class BatchResponse(BaseResponse):
         container_properties = self._get_param("containerProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
+        tags = self._get_param("tags")
         retry_strategy = self._get_param("retryStrategy")
         _type = self._get_param("type")
-
         try:
             name, arn, revision = self.batch_backend.register_job_definition(
                 def_name=def_name,
                 parameters=parameters,
                 _type=_type,
+                tags=tags,
                 retry_strategy=retry_strategy,
                 container_properties=container_properties,
             )
@@ -292,7 +292,9 @@ class BatchResponse(BaseResponse):
         return ""
 
     # CancelJob
-    def canceljob(
-        self,
-    ):  # Theres some AWS semantics on the differences but for us they're identical ;-)
-        return self.terminatejob()
+    def canceljob(self,):
+        job_id = self._get_param("jobId")
+        reason = self._get_param("reason")
+        self.batch_backend.cancel_job(job_id, reason)
+
+        return ""

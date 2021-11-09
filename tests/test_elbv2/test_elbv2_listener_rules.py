@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 import boto3
-import botocore
 from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2
 
@@ -285,7 +282,7 @@ def test_create_rule_validate_condition(condition, expected_message):
     http_listener_arn = setup_listener(conn)
 
     with pytest.raises(ClientError) as ex:
-        response = conn.create_rule(
+        conn.create_rule(
             ListenerArn=http_listener_arn,
             Priority=100,
             Conditions=[condition],

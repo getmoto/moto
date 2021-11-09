@@ -1,283 +1,18 @@
-# from __future__ import unicode_literals
-
 import boto3
+import pytest
+import pytz
+import sure  # noqa # pylint: disable=unused-import
+
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
+from dateutil.tz import tzutc
+from decimal import Decimal
 from freezegun import freeze_time
-import pytest
+from operator import itemgetter
 from uuid import uuid4
-import pytz
-import sure  # noqa
 
 from moto import mock_cloudwatch
-from moto.cloudwatch.utils import make_arn_for_alarm
 from moto.core import ACCOUNT_ID
-
-
-@mock_cloudwatch
-def test_put_list_dashboard():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-    widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
-
-    client.put_dashboard(DashboardName="test1", DashboardBody=widget)
-    resp = client.list_dashboards()
-
-    len(resp["DashboardEntries"]).should.equal(1)
-
-
-@mock_cloudwatch
-def test_put_list_prefix_nomatch_dashboard():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-    widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
-
-    client.put_dashboard(DashboardName="test1", DashboardBody=widget)
-    resp = client.list_dashboards(DashboardNamePrefix="nomatch")
-
-    len(resp["DashboardEntries"]).should.equal(0)
-
-
-@mock_cloudwatch
-def test_delete_dashboard():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-    widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
-
-    client.put_dashboard(DashboardName="test1", DashboardBody=widget)
-    client.put_dashboard(DashboardName="test2", DashboardBody=widget)
-    client.put_dashboard(DashboardName="test3", DashboardBody=widget)
-    client.delete_dashboards(DashboardNames=["test2", "test1"])
-
-    resp = client.list_dashboards(DashboardNamePrefix="test3")
-    len(resp["DashboardEntries"]).should.equal(1)
-
-
-@mock_cloudwatch
-def test_delete_dashboard_fail():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-    widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
-
-    client.put_dashboard(DashboardName="test1", DashboardBody=widget)
-    client.put_dashboard(DashboardName="test2", DashboardBody=widget)
-    client.put_dashboard(DashboardName="test3", DashboardBody=widget)
-    # Doesnt delete anything if all dashboards to be deleted do not exist
-    try:
-        client.delete_dashboards(DashboardNames=["test2", "test1", "test_no_match"])
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFound")
-    else:
-        raise RuntimeError("Should of raised error")
-
-    resp = client.list_dashboards()
-    len(resp["DashboardEntries"]).should.equal(3)
-
-
-@mock_cloudwatch
-def test_get_dashboard():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-    widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
-    client.put_dashboard(DashboardName="test1", DashboardBody=widget)
-
-    resp = client.get_dashboard(DashboardName="test1")
-    resp.should.contain("DashboardArn")
-    resp.should.contain("DashboardBody")
-    resp["DashboardName"].should.equal("test1")
-
-
-@mock_cloudwatch
-def test_get_dashboard_fail():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-
-    try:
-        client.get_dashboard(DashboardName="test1")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFound")
-    else:
-        raise RuntimeError("Should of raised error")
-
-
-@mock_cloudwatch
-def test_delete_invalid_alarm():
-    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
-
-    cloudwatch.put_metric_alarm(
-        AlarmName="testalarm1",
-        MetricName="cpu",
-        Namespace="blah",
-        Period=10,
-        EvaluationPeriods=5,
-        Statistic="Average",
-        Threshold=2,
-        ComparisonOperator="GreaterThanThreshold",
-        ActionsEnabled=True,
-    )
-
-    # trying to delete an alarm which is not created along with valid alarm.
-    with pytest.raises(ClientError) as e:
-        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName", "testalarm1"])
-    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
-
-    resp = cloudwatch.describe_alarms(AlarmNames=["testalarm1"])
-    # making sure other alarms are not deleted in case of an error.
-    len(resp["MetricAlarms"]).should.equal(1)
-
-    # test to check if the error raises if only one invalid alarm is tried to delete.
-    with pytest.raises(ClientError) as e:
-        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
-    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
-
-
-@mock_cloudwatch
-def test_describe_alarms_for_metric():
-    conn = boto3.client("cloudwatch", region_name="eu-central-1")
-    conn.put_metric_alarm(
-        AlarmName="testalarm1",
-        MetricName="cpu",
-        Namespace="blah",
-        Period=10,
-        EvaluationPeriods=5,
-        Statistic="Average",
-        Threshold=2,
-        ComparisonOperator="GreaterThanThreshold",
-        ActionsEnabled=True,
-    )
-    alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
-    alarms.get("MetricAlarms").should.have.length_of(1)
-
-    assert "testalarm1" in alarms.get("MetricAlarms")[0].get("AlarmArn")
-
-
-@mock_cloudwatch
-def test_describe_alarms():
-    conn = boto3.client("cloudwatch", region_name="eu-central-1")
-    conn.put_metric_alarm(
-        AlarmName="testalarm1",
-        MetricName="cpu",
-        Namespace="blah",
-        Period=10,
-        EvaluationPeriods=5,
-        Statistic="Average",
-        Threshold=2,
-        ComparisonOperator="GreaterThanThreshold",
-        ActionsEnabled=True,
-    )
-    metric_data_queries = [
-        {
-            "Id": "metricA",
-            "Expression": "metricB + metricC",
-            "Label": "metricA",
-            "ReturnData": True,
-        },
-        {
-            "Id": "metricB",
-            "MetricStat": {
-                "Metric": {
-                    "Namespace": "ns",
-                    "MetricName": "metricB",
-                    "Dimensions": [{"Name": "Name", "Value": "B"}],
-                },
-                "Period": 60,
-                "Stat": "Sum",
-            },
-            "ReturnData": False,
-        },
-        {
-            "Id": "metricC",
-            "MetricStat": {
-                "Metric": {
-                    "Namespace": "AWS/Lambda",
-                    "MetricName": "metricC",
-                    "Dimensions": [{"Name": "Name", "Value": "C"}],
-                },
-                "Period": 60,
-                "Stat": "Sum",
-                "Unit": "Seconds",
-            },
-            "ReturnData": False,
-        },
-    ]
-    conn.put_metric_alarm(
-        AlarmName="testalarm2",
-        EvaluationPeriods=1,
-        DatapointsToAlarm=1,
-        Metrics=metric_data_queries,
-        ComparisonOperator="GreaterThanThreshold",
-        Threshold=1.0,
-    )
-    alarms = conn.describe_alarms()
-    metric_alarms = alarms.get("MetricAlarms")
-    metric_alarms.should.have.length_of(2)
-    single_metric_alarm = [
-        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm1"
-    ][0]
-    multiple_metric_alarm = [
-        alarm for alarm in metric_alarms if alarm["AlarmName"] == "testalarm2"
-    ][0]
-
-    single_metric_alarm["MetricName"].should.equal("cpu")
-    single_metric_alarm.shouldnt.have.property("Metrics")
-    single_metric_alarm["Namespace"].should.equal("blah")
-    single_metric_alarm["Period"].should.equal(10)
-    single_metric_alarm["EvaluationPeriods"].should.equal(5)
-    single_metric_alarm["Statistic"].should.equal("Average")
-    single_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
-    single_metric_alarm["Threshold"].should.equal(2)
-
-    multiple_metric_alarm.shouldnt.have.property("MetricName")
-    multiple_metric_alarm["EvaluationPeriods"].should.equal(1)
-    multiple_metric_alarm["DatapointsToAlarm"].should.equal(1)
-    multiple_metric_alarm["Metrics"].should.equal(metric_data_queries)
-    multiple_metric_alarm["ComparisonOperator"].should.equal("GreaterThanThreshold")
-    multiple_metric_alarm["Threshold"].should.equal(1.0)
-
-
-@mock_cloudwatch
-def test_alarm_state():
-    client = boto3.client("cloudwatch", region_name="eu-central-1")
-
-    client.put_metric_alarm(
-        AlarmName="testalarm1",
-        MetricName="cpu",
-        Namespace="blah",
-        Period=10,
-        EvaluationPeriods=5,
-        Statistic="Average",
-        Threshold=2,
-        ComparisonOperator="GreaterThanThreshold",
-        ActionsEnabled=True,
-    )
-    client.put_metric_alarm(
-        AlarmName="testalarm2",
-        MetricName="cpu",
-        Namespace="blah",
-        Period=10,
-        EvaluationPeriods=5,
-        Statistic="Average",
-        Threshold=2,
-        ComparisonOperator="GreaterThanThreshold",
-    )
-
-    # This is tested implicitly as if it doesnt work the rest will die
-    client.set_alarm_state(
-        AlarmName="testalarm1",
-        StateValue="ALARM",
-        StateReason="testreason",
-        StateReasonData='{"some": "json_data"}',
-    )
-
-    resp = client.describe_alarms(StateValue="ALARM")
-    len(resp["MetricAlarms"]).should.equal(1)
-    resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm1")
-    resp["MetricAlarms"][0]["StateValue"].should.equal("ALARM")
-    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal(True)
-
-    resp = client.describe_alarms(StateValue="OK")
-    len(resp["MetricAlarms"]).should.equal(1)
-    resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm2")
-    resp["MetricAlarms"][0]["StateValue"].should.equal("OK")
-    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal(False)
-
-    # Just for sanity
-    resp = client.describe_alarms()
-    len(resp["MetricAlarms"]).should.equal(2)
 
 
 @mock_cloudwatch
@@ -293,6 +28,29 @@ def test_put_metric_data_no_dimensions():
     metric = metrics[0]
     metric["Namespace"].should.equal("tester")
     metric["MetricName"].should.equal("metric")
+
+
+@mock_cloudwatch
+def test_put_metric_data_can_not_have_nan():
+    client = boto3.client("cloudwatch", region_name="us-west-2")
+    utc_now = datetime.now(tz=pytz.utc)
+    with pytest.raises(ClientError) as exc:
+        client.put_metric_data(
+            Namespace="mynamespace",
+            MetricData=[
+                {
+                    "MetricName": "mymetric",
+                    "Timestamp": utc_now,
+                    "Value": Decimal("NaN"),
+                    "Unit": "Count",
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "The value NaN for parameter MetricData.member.1.Value is invalid."
+    )
 
 
 @mock_cloudwatch
@@ -538,7 +296,7 @@ def test_custom_timestamp():
         ],
     )
 
-    stats = cw.get_metric_statistics(
+    cw.get_metric_statistics(
         Namespace="tester",
         MetricName="metric",
         StartTime=utc_now - timedelta(seconds=60),
@@ -546,6 +304,7 @@ def test_custom_timestamp():
         Period=60,
         Statistics=["SampleCount", "Sum"],
     )
+    # TODO: What are we actually testing here?
 
 
 @mock_cloudwatch
@@ -621,6 +380,25 @@ def test_list_metrics_paginated():
     )
 
 
+@mock_cloudwatch
+def test_list_metrics_without_value():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    # Create some metrics to filter on
+    create_metrics_with_dimensions(cloudwatch, namespace="MyNamespace", data_points=3)
+    # Verify we can filter by namespace/metric name
+    res = cloudwatch.list_metrics(Namespace="MyNamespace")["Metrics"]
+    res.should.have.length_of(3)
+    # Verify we can filter by Dimension without value
+    results = cloudwatch.list_metrics(
+        Namespace="MyNamespace", MetricName="MyMetric", Dimensions=[{"Name": "D1"}]
+    )["Metrics"]
+
+    results.should.have.length_of(1)
+    results[0]["Namespace"].should.equals("MyNamespace")
+    results[0]["MetricName"].should.equal("MyMetric")
+    results[0]["Dimensions"].should.equal([{"Name": "D1", "Value": "V1"}])
+
+
 def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
     for i in range(0, metrics):
         metric_name = "metric" + str(i)
@@ -629,6 +407,20 @@ def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
                 Namespace=namespace,
                 MetricData=[{"MetricName": metric_name, "Value": j, "Unit": "Seconds"}],
             )
+
+
+def create_metrics_with_dimensions(cloudwatch, namespace, data_points=5):
+    for j in range(0, data_points):
+        cloudwatch.put_metric_data(
+            Namespace=namespace,
+            MetricData=[
+                {
+                    "MetricName": "MyMetric",
+                    "Dimensions": [{"Name": f"D{j}", "Value": f"V{j}"}],
+                    "Unit": "Seconds",
+                }
+            ],
+        )
 
 
 @mock_cloudwatch
@@ -700,7 +492,6 @@ def test_get_metric_data_partially_within_timeframe():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     namespace1 = "my_namespace/"
     # put metric data
-    values = [0, 2, 4, 3.5, 7, 100]
     cloudwatch.put_metric_data(
         Namespace=namespace1,
         MetricData=[
@@ -917,3 +708,283 @@ def test_get_metric_data_for_multiple_metrics():
 
     res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
     res2["Values"].should.equal([25.0])
+
+
+@mock_cloudwatch
+def test_put_metric_alarm():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+    sns_topic_arn = f"arn:aws:sns:${region_name}:${ACCOUNT_ID}:test-topic"
+
+    # when
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        AlarmDescription="test alarm",
+        ActionsEnabled=True,
+        OKActions=[sns_topic_arn],
+        AlarmActions=[sns_topic_arn],
+        InsufficientDataActions=[sns_topic_arn],
+        MetricName="5XXError",
+        Namespace="AWS/ApiGateway",
+        Statistic="Sum",
+        Dimensions=[
+            {"Name": "ApiName", "Value": "test-api"},
+            {"Name": "Stage", "Value": "default"},
+        ],
+        Period=60,
+        Unit="Seconds",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Threshold=1.0,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        TreatMissingData="notBreaching",
+        Tags=[{"Key": "key-1", "Value": "value-1"}],
+    )
+
+    # then
+    alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    alarm = alarms[0]
+    alarm["AlarmName"].should.equal(alarm_name)
+    alarm["AlarmArn"].should.equal(
+        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    )
+    alarm["AlarmDescription"].should.equal("test alarm")
+    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
+    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["ActionsEnabled"].should.be.ok
+    alarm["OKActions"].should.equal([sns_topic_arn])
+    alarm["AlarmActions"].should.equal([sns_topic_arn])
+    alarm["InsufficientDataActions"].should.equal([sns_topic_arn])
+    alarm["StateValue"].should.equal("OK")
+    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
+    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
+    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["MetricName"].should.equal("5XXError")
+    alarm["Namespace"].should.equal("AWS/ApiGateway")
+    alarm["Statistic"].should.equal("Sum")
+    sorted(alarm["Dimensions"], key=itemgetter("Name")).should.equal(
+        sorted(
+            [
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            key=itemgetter("Name"),
+        )
+    )
+    alarm["Period"].should.equal(60)
+    alarm["Unit"].should.equal("Seconds")
+    alarm["EvaluationPeriods"].should.equal(1)
+    alarm["DatapointsToAlarm"].should.equal(1)
+    alarm["Threshold"].should.equal(1.0)
+    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
+    alarm["TreatMissingData"].should.equal("notBreaching")
+
+
+@mock_cloudwatch
+def test_put_metric_alarm_with_percentile():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+
+    # when
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        AlarmDescription="test alarm",
+        ActionsEnabled=True,
+        MetricName="5XXError",
+        Namespace="AWS/ApiGateway",
+        ExtendedStatistic="p90",
+        Dimensions=[
+            {"Name": "ApiName", "Value": "test-api"},
+            {"Name": "Stage", "Value": "default"},
+        ],
+        Period=60,
+        Unit="Seconds",
+        EvaluationPeriods=1,
+        DatapointsToAlarm=1,
+        Threshold=1.0,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        TreatMissingData="notBreaching",
+        EvaluateLowSampleCountPercentile="ignore",
+    )
+
+    # then
+    alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    alarm = alarms[0]
+    alarm["AlarmName"].should.equal(alarm_name)
+    alarm["AlarmArn"].should.equal(
+        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    )
+    alarm["AlarmDescription"].should.equal("test alarm")
+    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
+    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["ActionsEnabled"].should.be.ok
+    alarm["StateValue"].should.equal("OK")
+    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
+    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
+    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["MetricName"].should.equal("5XXError")
+    alarm["Namespace"].should.equal("AWS/ApiGateway")
+    alarm["ExtendedStatistic"].should.equal("p90")
+    sorted(alarm["Dimensions"], key=itemgetter("Name")).should.equal(
+        sorted(
+            [
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            key=itemgetter("Name"),
+        )
+    )
+    alarm["Period"].should.equal(60)
+    alarm["Unit"].should.equal("Seconds")
+    alarm["EvaluationPeriods"].should.equal(1)
+    alarm["DatapointsToAlarm"].should.equal(1)
+    alarm["Threshold"].should.equal(1.0)
+    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
+    alarm["TreatMissingData"].should.equal("notBreaching")
+    alarm["EvaluateLowSampleCountPercentile"].should.equal("ignore")
+
+
+@mock_cloudwatch
+def test_put_metric_alarm_with_anomaly_detection():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+    metrics = [
+        {
+            "Id": "m1",
+            "ReturnData": True,
+            "MetricStat": {
+                "Metric": {
+                    "MetricName": "CPUUtilization",
+                    "Namespace": "AWS/EC2",
+                    "Dimensions": [
+                        {"Name": "instanceId", "Value": "i-1234567890abcdef0"}
+                    ],
+                },
+                "Stat": "Average",
+                "Period": 60,
+            },
+        },
+        {
+            "Id": "t1",
+            "ReturnData": False,
+            "Expression": "ANOMALY_DETECTION_BAND(m1, 3)",
+        },
+    ]
+
+    # when
+    client.put_metric_alarm(
+        AlarmName=alarm_name,
+        ActionsEnabled=True,
+        Metrics=metrics,
+        EvaluationPeriods=2,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        ThresholdMetricId="t1",
+    )
+
+    # then
+    alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
+    alarms.should.have.length_of(1)
+
+    alarm = alarms[0]
+    alarm["AlarmName"].should.equal(alarm_name)
+    alarm["AlarmArn"].should.equal(
+        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    )
+    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
+    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["StateValue"].should.equal("OK")
+    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
+    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
+    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
+    alarm["EvaluationPeriods"].should.equal(2)
+    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
+    alarm["Metrics"].should.equal(metrics)
+    alarm["ThresholdMetricId"].should.equal("t1")
+
+
+@mock_cloudwatch
+def test_put_metric_alarm_error_extended_statistic():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_metric_alarm(
+            AlarmName=alarm_name,
+            ActionsEnabled=True,
+            MetricName="5XXError",
+            Namespace="AWS/ApiGateway",
+            ExtendedStatistic="90",
+            Dimensions=[
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            Period=60,
+            Unit="Seconds",
+            EvaluationPeriods=1,
+            DatapointsToAlarm=1,
+            Threshold=1.0,
+            ComparisonOperator="GreaterThanOrEqualToThreshold",
+            TreatMissingData="notBreaching",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutMetricAlarm")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "The value 90 for parameter ExtendedStatistic is not supported."
+    )
+
+
+@mock_cloudwatch
+def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
+    # given
+    region_name = "eu-central-1"
+    client = boto3.client("cloudwatch", region_name=region_name)
+    alarm_name = "test-alarm"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_metric_alarm(
+            AlarmName=alarm_name,
+            ActionsEnabled=True,
+            MetricName="5XXError",
+            Namespace="AWS/ApiGateway",
+            ExtendedStatistic="p90",
+            Dimensions=[
+                {"Name": "ApiName", "Value": "test-api"},
+                {"Name": "Stage", "Value": "default"},
+            ],
+            Period=60,
+            Unit="Seconds",
+            EvaluationPeriods=1,
+            DatapointsToAlarm=1,
+            Threshold=1.0,
+            ComparisonOperator="GreaterThanOrEqualToThreshold",
+            TreatMissingData="notBreaching",
+            EvaluateLowSampleCountPercentile="unknown",
+        )
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("PutMetricAlarm")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationError")
+    ex.response["Error"]["Message"].should.equal(
+        "Option unknown is not supported. "
+        "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
+    )

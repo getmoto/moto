@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import io
 import zipfile
@@ -20,7 +19,9 @@ import boto.sns
 import boto.sqs
 import boto.vpc
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
+import pytest
+from copy import deepcopy
 from string import Template
 
 from moto import (
@@ -39,11 +40,11 @@ from moto import (
     mock_lambda,
     mock_logs,
     mock_rds_deprecated,
-    mock_rds2,
     mock_redshift_deprecated,
     mock_route53_deprecated,
     mock_s3,
     mock_sns_deprecated,
+    mock_sqs,
     mock_sqs_deprecated,
     mock_elbv2,
 )
@@ -53,7 +54,6 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
-    rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
     redshift,
     route53_ec2_instance_with_public_ip,
@@ -65,6 +65,7 @@ from tests.test_cloudformation.fixtures import (
 )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 def test_stack_sqs_integration():
     sqs_template = {
@@ -88,6 +89,7 @@ def test_stack_sqs_integration():
     queue.physical_resource_id.should.equal("my-queue")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 def test_stack_list_resources():
     sqs_template = {
@@ -112,6 +114,7 @@ def test_stack_list_resources():
     queue.physical_resource_id.should.equal("my-queue")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_sqs_deprecated()
 def test_update_stack():
@@ -147,6 +150,7 @@ def test_update_stack():
     )
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_sqs_deprecated()
 def test_update_stack_and_remove_resource():
@@ -176,6 +180,7 @@ def test_update_stack_and_remove_resource():
     queues.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_sqs_deprecated()
 def test_update_stack_and_add_resource():
@@ -205,6 +210,7 @@ def test_update_stack_and_add_resource():
     queues.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_stack_ec2_integration():
@@ -233,6 +239,7 @@ def test_stack_ec2_integration():
     instance.physical_resource_id.should.equal(ec2_instance.id)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_elb_deprecated()
 @mock_cloudformation_deprecated()
@@ -277,6 +284,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     list(load_balancer.availability_zones).should.equal(["us-east-1"])
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated()
 @mock_cloudformation_deprecated()
 def test_stack_elb_integration_with_health_check():
@@ -322,6 +330,7 @@ def test_stack_elb_integration_with_health_check():
     health_check.unhealthy_threshold.should.equal(2)
 
 
+# Has boto3 equivalent
 @mock_elb_deprecated()
 @mock_cloudformation_deprecated()
 def test_stack_elb_integration_with_update():
@@ -363,6 +372,7 @@ def test_stack_elb_integration_with_update():
     load_balancer.availability_zones[0].should.equal("us-west-1b")
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_redshift_deprecated()
 @mock_cloudformation_deprecated()
@@ -409,6 +419,7 @@ def test_redshift_stack():
     group.rules[0].grants[0].cidr_ip.should.equal("10.0.0.1/16")
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_stack_security_groups():
@@ -485,6 +496,7 @@ def test_stack_security_groups():
     rule2.grants[0].group_id.should.equal(other_group.id)
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated()
 @mock_elb_deprecated()
 @mock_cloudformation_deprecated()
@@ -599,6 +611,7 @@ def test_autoscaling_group_with_elb():
         instance.tags.keys().should_not.contain("not-propagated-test-tag")
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated()
 @mock_cloudformation_deprecated()
 @mock_ec2_deprecated()
@@ -672,6 +685,7 @@ def test_autoscaling_group_update():
     running_instance_count.should.equal(2)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_vpc_single_instance_in_subnet():
@@ -727,56 +741,7 @@ def test_vpc_single_instance_in_subnet():
     eip_resource.physical_resource_id.should.equal(eip.public_ip)
 
 
-@mock_cloudformation()
-@mock_ec2()
-@mock_rds2()
-def test_rds_db_parameter_groups():
-    ec2_conn = boto3.client("ec2", region_name="us-west-1")
-    ec2_conn.create_security_group(
-        GroupName="application", Description="Our Application Group"
-    )
-
-    template_json = json.dumps(rds_mysql_with_db_parameter_group.template)
-    cf_conn = boto3.client("cloudformation", "us-west-1")
-    cf_conn.create_stack(
-        StackName="test_stack",
-        TemplateBody=template_json,
-        Parameters=[
-            {"ParameterKey": key, "ParameterValue": value}
-            for key, value in [
-                ("DBInstanceIdentifier", "master_db"),
-                ("DBName", "my_db"),
-                ("DBUser", "my_user"),
-                ("DBPassword", "my_password"),
-                ("DBAllocatedStorage", "20"),
-                ("DBInstanceClass", "db.m1.medium"),
-                ("EC2SecurityGroup", "application"),
-                ("MultiAZ", "true"),
-            ]
-        ],
-    )
-
-    rds_conn = boto3.client("rds", region_name="us-west-1")
-
-    db_parameter_groups = rds_conn.describe_db_parameter_groups()
-    len(db_parameter_groups["DBParameterGroups"]).should.equal(1)
-    db_parameter_group_name = db_parameter_groups["DBParameterGroups"][0][
-        "DBParameterGroupName"
-    ]
-
-    found_cloudformation_set_parameter = False
-    for db_parameter in rds_conn.describe_db_parameters(
-        DBParameterGroupName=db_parameter_group_name
-    )["Parameters"]:
-        if (
-            db_parameter["ParameterName"] == "BACKLOG_QUEUE_LIMIT"
-            and db_parameter["ParameterValue"] == "2048"
-        ):
-            found_cloudformation_set_parameter = True
-
-    found_cloudformation_set_parameter.should.equal(True)
-
-
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_ec2_deprecated()
 @mock_rds_deprecated()
@@ -819,6 +784,7 @@ def test_rds_mysql_with_read_replica():
     security_group.ec2_groups[0].name.should.equal("application")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_ec2_deprecated()
 @mock_rds_deprecated()
@@ -847,6 +813,7 @@ def test_rds_mysql_with_read_replica_in_vpc():
     subnet_group.description.should.equal("my db subnet group")
 
 
+# Has boto3 equivalent
 @mock_autoscaling_deprecated()
 @mock_iam_deprecated()
 @mock_cloudformation_deprecated()
@@ -948,6 +915,7 @@ def test_iam_roles():
         "roles"
     ]
     role_name_to_id = {}
+    role_names = []
     for role_result in role_results:
         role = iam_conn.get_role(role_result.role_name)
         # Role name is not specified, so randomly generated - can't check exact name
@@ -958,6 +926,7 @@ def test_iam_roles():
             role_name_to_id["no-path"] = role.role_id
             role.role_name.should.equal("my-role-no-path-name")
             role.path.should.equal("/")
+        role_names.append(role.role_name)
 
     instance_profile_responses = iam_conn.list_instance_profiles()[
         "list_instance_profiles_response"
@@ -997,11 +966,10 @@ def test_iam_roles():
     role_resources = [
         resource for resource in resources if resource.resource_type == "AWS::IAM::Role"
     ]
-    {r.physical_resource_id for r in role_resources}.should.equal(
-        set(role_name_to_id.values())
-    )
+    {r.physical_resource_id for r in role_resources}.should.equal(set(role_names))
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_single_instance_with_ebs_volume():
@@ -1033,6 +1001,7 @@ def test_single_instance_with_ebs_volume():
     ebs_volumes[0].physical_resource_id.should.equal(volume.id)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 def test_create_template_without_required_param():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
@@ -1042,6 +1011,18 @@ def test_create_template_without_required_param():
     ).should.throw(BotoServerError)
 
 
+@mock_cloudformation
+def test_create_template_without_required_param_boto3():
+    template_json = json.dumps(single_instance_with_ebs_volume.template)
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    with pytest.raises(ClientError) as ex:
+        cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+    err = ex.value.response["Error"]
+    err.should.have.key("Code").equal("Missing Parameter")
+    err.should.have.key("Message").equal("Missing parameter KeyName")
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_classic_eip():
@@ -1059,6 +1040,7 @@ def test_classic_eip():
     cfn_eip.physical_resource_id.should.equal(eip.public_ip)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_vpc_eip():
@@ -1076,6 +1058,7 @@ def test_vpc_eip():
     cfn_eip.physical_resource_id.should.equal(eip.public_ip)
 
 
+# Has boto3 equivalent
 @mock_ec2_deprecated()
 @mock_cloudformation_deprecated()
 def test_fn_join():
@@ -1090,6 +1073,21 @@ def test_fn_join():
     fn_join_output.value.should.equal("test eip:{0}".format(eip.public_ip))
 
 
+@mock_ec2
+@mock_cloudformation
+def test_fn_join_boto3():
+    template_json = json.dumps(fn_join.template)
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    eip = ec2.describe_addresses()["Addresses"][0]
+
+    stack = cf.describe_stacks()["Stacks"][0]
+    fn_join_output = stack["Outputs"][0]
+    fn_join_output["OutputValue"].should.equal("test eip:{0}".format(eip["PublicIp"]))
+
+
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_sqs_deprecated()
 def test_conditional_resources():
@@ -1128,6 +1126,43 @@ def test_conditional_resources():
     list(sqs_conn.get_all_queues()).should.have.length_of(1)
 
 
+@mock_cloudformation
+@mock_sqs
+def test_conditional_resources_boto3():
+    sqs_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Parameters": {
+            "EnvType": {"Description": "Environment type.", "Type": "String"}
+        },
+        "Conditions": {"CreateQueue": {"Fn::Equals": [{"Ref": "EnvType"}, "prod"]}},
+        "Resources": {
+            "QueueGroup": {
+                "Condition": "CreateQueue",
+                "Type": "AWS::SQS::Queue",
+                "Properties": {"QueueName": "my-queue", "VisibilityTimeout": 60},
+            }
+        },
+    }
+    sqs_template_json = json.dumps(sqs_template)
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(
+        StackName="test_stack_without_queue",
+        TemplateBody=sqs_template_json,
+        Parameters=[{"ParameterKey": "EnvType", "ParameterValue": "staging"}],
+    )
+    sqs = boto3.client("sqs", region_name="us-west-1")
+    sqs.list_queues().shouldnt.have.key("QueueUrls")
+
+    cf.create_stack(
+        StackName="test_stack_with_queue",
+        TemplateBody=sqs_template_json,
+        Parameters=[{"ParameterKey": "EnvType", "ParameterValue": "prod"}],
+    )
+    sqs.list_queues()["QueueUrls"].should.have.length_of(1)
+
+
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_ec2_deprecated()
 def test_conditional_if_handling():
@@ -1173,6 +1208,51 @@ def test_conditional_if_handling():
     ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
 
+@mock_cloudformation
+@mock_ec2
+def test_conditional_if_handling_boto3():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Conditions": {"EnvEqualsPrd": {"Fn::Equals": [{"Ref": "ENV"}, "prd"]}},
+        "Parameters": {
+            "ENV": {
+                "Default": "dev",
+                "Description": "Deployment environment for the stack (dev/prd)",
+                "Type": "String",
+            }
+        },
+        "Description": "Stack 1",
+        "Resources": {
+            "App1": {
+                "Properties": {
+                    "ImageId": {
+                        "Fn::If": ["EnvEqualsPrd", EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2]
+                    }
+                },
+                "Type": "AWS::EC2::Instance",
+            }
+        },
+    }
+    dummy_template_json = json.dumps(dummy_template)
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
+    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+
+    cf = boto3.client("cloudformation", region_name="us-west-2")
+    cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+        Parameters=[{"ParameterKey": "ENV", "ParameterValue": "prd"}],
+    )
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
+    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+
+
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_ec2_deprecated()
 def test_cloudformation_mapping():
@@ -1217,6 +1297,49 @@ def test_cloudformation_mapping():
     ec2_instance.image_id.should.equal(EXAMPLE_AMI_ID)
 
 
+@mock_cloudformation
+@mock_ec2
+def test_cloudformation_mapping_boto3():
+    dummy_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Mappings": {
+            "RegionMap": {
+                "us-east-1": {"32": EXAMPLE_AMI_ID, "64": "n/a"},
+                "us-west-1": {"32": EXAMPLE_AMI_ID2, "64": "n/a"},
+                "eu-west-1": {"32": "n/a", "64": "n/a"},
+                "ap-southeast-1": {"32": "n/a", "64": "n/a"},
+                "ap-northeast-1": {"32": "n/a", "64": "n/a"},
+            }
+        },
+        "Resources": {
+            "WebServer": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": {
+                        "Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "32"]
+                    },
+                    "InstanceType": "m1.small",
+                },
+            }
+        },
+    }
+
+    dummy_template_json = json.dumps(dummy_template)
+
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    cf.create_stack(StackName="test_stack1", TemplateBody=dummy_template_json)
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
+    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+
+    cf = boto3.client("cloudformation", region_name="us-west-1")
+    cf.create_stack(StackName="test_stack1", TemplateBody=dummy_template_json)
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
+    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+
+
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_route53_deprecated()
 def test_route53_roundrobin():
@@ -1259,6 +1382,7 @@ def test_route53_roundrobin():
     output.value.should.equal("arn:aws:route53:::hostedzone/{0}".format(zone_id))
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_ec2_deprecated()
 @mock_route53_deprecated()
@@ -1292,6 +1416,7 @@ def test_route53_ec2_instance_with_public_ip():
     record_set1.resource_records[0].should.equal("10.0.0.25")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_route53_deprecated()
 def test_route53_associate_health_check():
@@ -1330,6 +1455,7 @@ def test_route53_associate_health_check():
     record_set.health_check.should.equal(health_check_id)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_route53_deprecated()
 def test_route53_with_update():
@@ -1353,10 +1479,11 @@ def test_route53_with_update():
     record_set = rrsets[0]
     record_set.resource_records.should.equal(["my.example.com"])
 
-    route53_health_check.template["Resources"]["myDNSRecord"]["Properties"][
-        "ResourceRecords"
-    ] = ["my_other.example.com"]
-    template_json = json.dumps(route53_health_check.template)
+    template = deepcopy(route53_health_check.template)
+    template["Resources"]["myDNSRecord"]["Properties"]["ResourceRecords"] = [
+        "my_other.example.com"
+    ]
+    template_json = json.dumps(template)
     cf_conn.update_stack("test_stack", template_body=template_json)
 
     zones = route53_conn.get_all_hosted_zones()["ListHostedZonesResponse"][
@@ -1374,6 +1501,7 @@ def test_route53_with_update():
     record_set.resource_records.should.equal(["my_other.example.com"])
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated()
 @mock_sns_deprecated()
 def test_sns_topic():
@@ -1424,6 +1552,7 @@ def test_sns_topic():
     topic_arn_output.value.should.equal(topic_arn)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
@@ -1461,6 +1590,7 @@ def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     igws.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_vpc_peering_creation():
@@ -1485,6 +1615,7 @@ def test_vpc_peering_creation():
     peering_connections.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_multiple_security_group_ingress_separate_from_security_group_by_id():
@@ -1538,6 +1669,7 @@ def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     security_group1.rules[0].to_port.should.equal("8080")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_security_group_ingress_separate_from_security_group_by_id():
@@ -1585,6 +1717,7 @@ def test_security_group_ingress_separate_from_security_group_by_id():
     security_group1.rules[0].to_port.should.equal("8080")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
@@ -1642,6 +1775,7 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     security_group1.rules[0].to_port.should.equal("8080")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_security_group_with_update():
@@ -1676,6 +1810,7 @@ def test_security_group_with_update():
     security_group.vpc_id.should.equal(vpc2.id)
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_ec2_deprecated
 def test_subnets_should_be_created_with_availability_zone():
@@ -1702,6 +1837,7 @@ def test_subnets_should_be_created_with_availability_zone():
     subnet.availability_zone.should.equal("us-west-1b")
 
 
+# Has boto3 equivalent
 @mock_cloudformation_deprecated
 @mock_datapipeline_deprecated
 def test_datapipeline():
@@ -1772,7 +1908,7 @@ def test_lambda_function():
     # switch this to python as backend lambda only supports python execution.
     lambda_code = """
 def lambda_handler(event, context):
-    return (event, context)
+    return {"event": event}
 """
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1784,7 +1920,7 @@ def lambda_handler(event, context):
                         # CloudFormation expects a string as ZipFile, not a ZIP file base64-encoded
                         "ZipFile": {"Fn::Join": ["\n", lambda_code.splitlines()]}
                     },
-                    "Handler": "lambda_function.handler",
+                    "Handler": "index.lambda_handler",
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
@@ -1818,7 +1954,7 @@ def lambda_handler(event, context):
     result = conn.list_functions()
     result["Functions"].should.have.length_of(1)
     result["Functions"][0]["Description"].should.equal("Test function")
-    result["Functions"][0]["Handler"].should.equal("lambda_function.handler")
+    result["Functions"][0]["Handler"].should.equal("index.lambda_handler")
     result["Functions"][0]["MemorySize"].should.equal(128)
     result["Functions"][0]["Runtime"].should.equal("python2.7")
     result["Functions"][0]["Environment"].should.equal(
@@ -1829,6 +1965,10 @@ def lambda_handler(event, context):
     result = conn.get_function(FunctionName=function_name)
 
     result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(10)
+
+    response = conn.invoke(FunctionName=function_name)
+    result = json.loads(response["Payload"].read())
+    result.should.equal({"event": "{}"})
 
 
 def _make_zipfile(func_str):
@@ -2712,12 +2852,116 @@ def test_create_log_group_using_fntransform():
     }
 
     cf_conn = boto3.client("cloudformation", "us-west-2")
-    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(template),
+    )
 
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
     log_group["logGroupName"].should.equal("some-log-group")
-    log_group["retentionInDays"].should.be.equal(90)
+
+
+@mock_cloudformation
+@mock_logs
+def test_create_cloudwatch_logs_resource_policy():
+    policy_document = json.dumps(
+        {
+            "Statement": [
+                {
+                    "Action": ["logs:CreateLogStream", "logs:PutLogEvents",],
+                    "Effect": "Allow",
+                    "Principal": {"Service": "es.amazonaws.com"},
+                    "Resource": "*",
+                }
+            ]
+        }
+    )
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": policy_document,
+                    "PolicyName": "TestPolicyA",
+                },
+            }
+        },
+    }
+    template2 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": policy_document,
+                    "PolicyName": "TestPolicyB",
+                },
+            },
+            "LogGroupPolicy2": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": policy_document,
+                    "PolicyName": "TestPolicyC",
+                },
+            },
+        },
+    }
+
+    cf_conn = boto3.client("cloudformation", "us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyA", policyDocument=policy_document
+    )
+
+    cf_conn.update_stack(StackName="test_stack", TemplateBody=json.dumps(template2))
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(2)
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyB", policyDocument=policy_document
+    )
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyC", policyDocument=policy_document
+    )
+
+    cf_conn.update_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+    policies.should.be.containing_item_with_attributes(
+        policyName="TestPolicyA", policyDocument=policy_document
+    )
+
+
+@mock_cloudformation
+@mock_logs
+def test_delete_stack_containing_cloudwatch_logs_resource_policy():
+    template1 = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "LogGroupPolicy1": {
+                "Type": "AWS::Logs::ResourcePolicy",
+                "Properties": {
+                    "PolicyDocument": '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}',
+                    "PolicyName": "TestPolicyA",
+                },
+            }
+        },
+    }
+
+    cf_conn = boto3.client("cloudformation", "us-east-1")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
+
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(1)
+
+    cf_conn.delete_stack(StackName="test_stack")
+    policies = logs_conn.describe_resource_policies()["resourcePolicies"]
+    policies.should.have.length_of(0)
 
 
 @mock_cloudformation
