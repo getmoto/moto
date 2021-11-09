@@ -1,5 +1,8 @@
 .. _contributing urls:
 
+.. role:: raw-html(raw)
+    :format: html
+
 ***********************
 Intercepting URL's
 ***********************
@@ -8,8 +11,7 @@ Intercepting URL's
 Determining which URLs to intercept
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In order for Moto to know which requests to intercept, Moto needs to know which URLs to intercept.
-| But how do we know which URL's should be intercepted? There are a few ways of doing it:
+In order for Moto to know which requests to intercept, Moto needs to know which URLs to intercept. :raw-html:`<br />` But how do we know which URL's should be intercepted? There are a few ways of doing it:
 
  - For an existing service, copy/paste the url-path for an existing feature and cross your fingers and toes
  - Use the service model that is used by botocore: https://github.com/boto/botocore/tree/develop/botocore/data
