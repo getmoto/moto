@@ -1,3 +1,5 @@
+import botocore
+import boto3
 import functools
 import inspect
 import os
@@ -423,7 +425,22 @@ def patch_client(client):
     :param client:
     :return:
     """
-    client.meta.events.register("before-send", botocore_stubber)
+    if isinstance(client, botocore.client.BaseClient):
+        client.meta.events.register("before-send", botocore_stubber)
+    else:
+        raise Exception(f"Argument {client} should be of type boto3.client")
+
+
+def patch_resource(resource):
+    """
+    Explicitly patch a boto3-resource
+    """
+    if hasattr(resource, "meta") and isinstance(
+        resource.meta, boto3.resources.factory.ResourceMeta
+    ):
+        patch_client(resource.meta.client)
+    else:
+        raise Exception(f"Argument {resource} should be of type boto3.resource")
 
 
 def not_implemented_callback(request):

@@ -1,6 +1,6 @@
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_s3
 from moto import settings
 from os import environ
@@ -44,6 +44,40 @@ def test_mock_works_with_client_created_outside(aws_credentials):
     b = outside_client.list_buckets()
     b["Buckets"].should.be.empty
     m.stop()
+
+
+def test_mock_works_with_resource_created_outside(aws_credentials):
+    # Create the boto3 client first
+    outside_resource = boto3.resource("s3", region_name="us-east-1")
+
+    # Start the mock afterwards - which does not mock an already created resource
+    m = mock_s3()
+    m.start()
+
+    # So remind us to mock this client
+    from moto.core import patch_resource
+
+    patch_resource(outside_resource)
+
+    b = list(outside_resource.buckets.all())
+    b.should.be.empty
+    m.stop()
+
+
+def test_patch_client_does_not_work_for_random_parameters():
+    from moto.core import patch_client
+
+    with pytest.raises(Exception, match="Argument sth should be of type boto3.client"):
+        patch_client("sth")
+
+
+def test_patch_resource_does_not_work_for_random_parameters():
+    from moto.core import patch_resource
+
+    with pytest.raises(
+        Exception, match="Argument sth should be of type boto3.resource"
+    ):
+        patch_resource("sth")
 
 
 class ImportantBusinessLogic:

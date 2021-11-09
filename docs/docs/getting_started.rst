@@ -200,18 +200,18 @@ How do I avoid tests from mutating my real infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You need to ensure that the mocks are actually in place.
 
-#. Ensure that your tests have dummy environment variables set up:
+ #. Ensure that your tests have dummy environment variables set up:
 
-.. sourcecode:: bash
+    .. sourcecode:: bash
 
-    export AWS_ACCESS_KEY_ID='testing'
-    export AWS_SECRET_ACCESS_KEY='testing'
-    export AWS_SECURITY_TOKEN='testing'
-    export AWS_SESSION_TOKEN='testing'
+        export AWS_ACCESS_KEY_ID='testing'
+        export AWS_SECRET_ACCESS_KEY='testing'
+        export AWS_SECURITY_TOKEN='testing'
+        export AWS_SESSION_TOKEN='testing'
 
-#. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
-   This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
-   See the pesky imports section below on how to work around this.
+ #. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
+    This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
+    See the pesky imports section below on how to work around this.
 
 Example on usage
 ~~~~~~~~~~~~~~~~
@@ -268,6 +268,29 @@ Example:
 
         some_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
                      # a package-level S3 client will properly use the mock and not reach out to AWS.
+
+Patching the client or resource
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If it is not possible to rearrange imports, we can patch the boto3-client or resource after the mock has started. See the following code sample:
+
+.. sourcecode:: python
+
+    # The client can come from an import, an __init__-file, wherever..
+    client = boto3.client("s3")
+    s3 = boto3.resource("s3")
+
+    @mock_s3
+    def test_mock_works_with_client_or_resource_created_outside():
+        from moto.core import patch_client, patch_resource
+        patch_client(outside_client)
+        patch_resource(s3)
+
+        assert client.list_buckets()["Buckets"] == []
+
+        assert list(s3.buckets.all()) == []
+
+This will ensure that the boto3 requests are still mocked.
 
 Other caveats
 ~~~~~~~~~~~~~
