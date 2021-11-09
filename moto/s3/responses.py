@@ -46,6 +46,7 @@ from .exceptions import (
     IllegalLocationConstraintException,
     InvalidNotificationARN,
     InvalidNotificationEvent,
+    S3AclAndGrantError,
     InvalidObjectState,
     ObjectNotInActiveTierError,
     NoSystemTags,
@@ -1730,8 +1731,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _acl_from_headers(self, headers):
         canned_acl = headers.get("x-amz-acl", "")
-        if canned_acl:
-            return get_canned_acl(canned_acl)
 
         grants = []
         for header, value in headers.items():
@@ -1758,6 +1757,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     grantees.append(FakeGrantee(uri=value))
             grants.append(FakeGrant(grantees, [permission]))
 
+        if canned_acl and grants:
+            raise S3AclAndGrantError()
+        if canned_acl:
+            return get_canned_acl(canned_acl)
         if grants:
             return FakeAcl(grants)
         else:
