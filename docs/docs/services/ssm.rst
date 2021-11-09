@@ -35,7 +35,11 @@ ssm
 - [ ] create_association
 - [ ] create_association_batch
 - [X] create_document
-- [ ] create_maintenance_window
+- [X] create_maintenance_window
+  
+        Creates a maintenance window. No error handling or input validation has been implemented yet.
+        
+
 - [ ] create_ops_item
 - [ ] create_ops_metadata
 - [ ] create_patch_baseline
@@ -44,7 +48,11 @@ ssm
 - [ ] delete_association
 - [X] delete_document
 - [ ] delete_inventory
-- [ ] delete_maintenance_window
+- [X] delete_maintenance_window
+  
+        Assumes the provided WindowId exists. No error handling has been implemented yet.
+        
+
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
@@ -77,7 +85,13 @@ ssm
 - [ ] describe_maintenance_window_schedule
 - [ ] describe_maintenance_window_targets
 - [ ] describe_maintenance_window_tasks
-- [ ] describe_maintenance_windows
+- [X] describe_maintenance_windows
+  
+        Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
+        The NextExecutionTime-field is not returned.
+
+        
+
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
 - [X] describe_parameters
@@ -100,7 +114,12 @@ ssm
 - [X] get_document
 - [ ] get_inventory
 - [ ] get_inventory_schema
-- [ ] get_maintenance_window
+- [X] get_maintenance_window
+  
+        The window is assumed to exist - no error handling has been implemented yet.
+        The NextExecutionTime-field is not returned.
+        
+
 - [ ] get_maintenance_window_execution
 - [ ] get_maintenance_window_execution_task
 - [ ] get_maintenance_window_execution_task_invocation
