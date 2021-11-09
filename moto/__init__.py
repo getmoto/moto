@@ -1,4 +1,5 @@
 import importlib
+import sys
 
 
 def lazy_load(
@@ -164,6 +165,25 @@ mock_mediastoredata = lazy_load(
 )
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
+
+
+def mock_all():
+    dec_names = [
+        d
+        for d in dir(sys.modules["moto"])
+        if d.startswith("mock_")
+        and not d.endswith("_deprecated")
+        and not d == "mock_all"
+    ]
+
+    def deco(f):
+        for dec_name in reversed(dec_names):
+            dec = globals()[dec_name]
+            f = dec(f)
+        return f
+
+    return deco
+
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
