@@ -15,6 +15,7 @@ import uuid
 import json
 import yaml
 import hashlib
+import random
 
 from .utils import parameter_arn
 from .exceptions import (
@@ -669,6 +670,53 @@ def _valid_parameter_data_type(data_type):
     return data_type in ("text", "aws:ec2:image")
 
 
+class FakeMaintenanceWindow:
+    def __init__(
+        self,
+        name,
+        description,
+        enabled,
+        duration,
+        cutoff,
+        schedule,
+        schedule_timezone,
+        schedule_offset,
+        start_date,
+        end_date,
+    ):
+        self.id = FakeMaintenanceWindow.generate_id()
+        self.name = name
+        self.description = description
+        self.enabled = enabled
+        self.duration = duration
+        self.cutoff = cutoff
+        self.schedule = schedule
+        self.schedule_timezone = schedule_timezone
+        self.schedule_offset = schedule_offset
+        self.start_date = start_date
+        self.end_date = end_date
+
+    def to_json(self):
+        return {
+            "WindowId": self.id,
+            "Name": self.name,
+            "Description": self.description,
+            "Enabled": self.enabled,
+            "Duration": self.duration,
+            "Cutoff": self.cutoff,
+            "Schedule": self.schedule,
+            "ScheduleTimezone": self.schedule_timezone,
+            "ScheduleOffset": self.schedule_offset,
+            "StartDate": self.start_date,
+            "EndDate": self.end_date,
+        }
+
+    @staticmethod
+    def generate_id():
+        chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
+        return "mw-" + "".join(str(random.choice(chars)) for _ in range(17))
+
+
 class SimpleSystemManagerBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(SimpleSystemManagerBackend, self).__init__()
@@ -680,6 +728,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._commands = []
         self._errors = []
         self._documents: Dict[str, Documents] = {}
+
+        self.windows: Dict[str, FakeMaintenanceWindow] = dict()
 
         self._region = region_name
 
@@ -1734,6 +1784,63 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         command = self.get_command_by_id(command_id)
         return command.get_invocation(instance_id, plugin_name)
+
+    def create_maintenance_window(
+        self,
+        name,
+        description,
+        enabled,
+        duration,
+        cutoff,
+        schedule,
+        schedule_timezone,
+        schedule_offset,
+        start_date,
+        end_date,
+    ):
+        """
+        Creates a maintenance window. No error handling or input validation has been implemented yet.
+        """
+        window = FakeMaintenanceWindow(
+            name,
+            description,
+            enabled,
+            duration,
+            cutoff,
+            schedule,
+            schedule_timezone,
+            schedule_offset,
+            start_date,
+            end_date,
+        )
+        self.windows[window.id] = window
+        return window.id
+
+    def get_maintenance_window(self, window_id):
+        """
+        The window is assumed to exist - no error handling has been implemented yet.
+        The NextExecutionTime-field is not returned.
+        """
+        return self.windows[window_id]
+
+    def describe_maintenance_windows(self, filters):
+        """
+        Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
+        The NextExecutionTime-field is not returned.
+
+        """
+        res = [window for window in self.windows.values()]
+        if filters:
+            for f in filters:
+                if f["Key"] == "Name":
+                    res = [w for w in res if w.name in f["Values"]]
+        return res
+
+    def delete_maintenance_window(self, window_id):
+        """
+        Assumes the provided WindowId exists. No error handling has been implemented yet.
+        """
+        del self.windows[window_id]
 
 
 ssm_backends = {}

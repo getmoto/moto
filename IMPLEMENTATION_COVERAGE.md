@@ -4196,7 +4196,7 @@
 
 ## ssm
 <details>
-<summary>17% implemented</summary>
+<summary>20% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -4206,7 +4206,7 @@
 - [ ] create_association
 - [ ] create_association_batch
 - [X] create_document
-- [ ] create_maintenance_window
+- [X] create_maintenance_window
 - [ ] create_ops_item
 - [ ] create_ops_metadata
 - [ ] create_patch_baseline
@@ -4215,7 +4215,7 @@
 - [ ] delete_association
 - [X] delete_document
 - [ ] delete_inventory
-- [ ] delete_maintenance_window
+- [X] delete_maintenance_window
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
@@ -4248,7 +4248,7 @@
 - [ ] describe_maintenance_window_schedule
 - [ ] describe_maintenance_window_targets
 - [ ] describe_maintenance_window_tasks
-- [ ] describe_maintenance_windows
+- [X] describe_maintenance_windows
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
 - [X] describe_parameters
@@ -4267,7 +4267,7 @@
 - [X] get_document
 - [ ] get_inventory
 - [ ] get_inventory_schema
-- [ ] get_maintenance_window
+- [X] get_maintenance_window
 - [ ] get_maintenance_window_execution
 - [ ] get_maintenance_window_execution_task
 - [ ] get_maintenance_window_execution_task_invocation
