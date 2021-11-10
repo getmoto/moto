@@ -63,8 +63,7 @@ def test_attach_policy_to_identity():
     cognito_identity_client = boto3.client("cognito-identity", region_name=region)
     identity_pool_name = "test_identity_pool"
     identity_pool = cognito_identity_client.create_identity_pool(
-        IdentityPoolName=identity_pool_name,
-        AllowUnauthenticatedIdentities=True
+        IdentityPoolName=identity_pool_name, AllowUnauthenticatedIdentities=True
     )
     identity = cognito_identity_client.get_id(
         AccountId="test", IdentityPoolId=identity_pool["IdentityPoolId"]
