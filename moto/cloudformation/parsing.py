@@ -378,12 +378,14 @@ def parse_condition(condition, resources_map, condition_map):
     condition_values = []
     for value in list(condition.values())[0]:
         # Check if we are referencing another Condition
-        if "Condition" in value:
+        if isinstance(value, dict) and "Condition" in value:
             condition_values.append(condition_map[value["Condition"]])
         else:
             condition_values.append(clean_json(value, resources_map))
 
     if condition_operator == "Fn::Equals":
+        if condition_values[1] in [True, False]:
+            return str(condition_values[0]).lower() == str(condition_values[1]).lower()
         return condition_values[0] == condition_values[1]
     elif condition_operator == "Fn::Not":
         return not parse_condition(condition_values[0], resources_map, condition_map)

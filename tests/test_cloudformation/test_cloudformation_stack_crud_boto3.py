@@ -113,6 +113,26 @@ Resources:
           Value: Name tag for tests
 """
 
+dummy_yaml_template_with_equals = """---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack with yaml template
+Conditions:
+  maybe:
+    Fn::Equals: [!Ref enabled, true]
+Parameters:
+  enabled:
+    Type: String
+    AllowedValues:
+     - true
+     - false
+Resources:
+  VPC1:
+    Type: AWS::EC2::VPC
+    Condition: maybe
+    Properties:
+      CidrBlock: 192.168.0.0/16
+"""
+
 dummy_template_yaml_with_ref = """---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack1 with yaml template
@@ -1848,6 +1868,42 @@ def test_cloudformation_params_conditions_and_resources_are_distinct():
     ]
     assert not [
         resource for resource in resources if resource["LogicalResourceId"] == "Bar"
+    ]
+
+
+@mock_cloudformation
+@mock_ec2
+def test_cloudformation_conditions_yaml_equals():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    cf.create_stack(
+        StackName="teststack2",
+        TemplateBody=dummy_yaml_template_with_equals,
+        Parameters=[{"ParameterKey": "enabled", "ParameterValue": "true"}],
+    )
+    resources = cf.list_stack_resources(StackName="teststack2")[
+        "StackResourceSummaries"
+    ]
+    assert [
+        resource for resource in resources if resource["LogicalResourceId"] == "VPC1"
+    ]
+
+
+@mock_cloudformation
+@mock_ec2
+def test_cloudformation_conditions_yaml_equals_shortform():
+    _template = dummy_yaml_template_with_equals
+    _template = _template.replace("Fn::Equals:", "!Equals")
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    cf.create_stack(
+        StackName="teststack2",
+        TemplateBody=_template,
+        Parameters=[{"ParameterKey": "enabled", "ParameterValue": "true"}],
+    )
+    resources = cf.list_stack_resources(StackName="teststack2")[
+        "StackResourceSummaries"
+    ]
+    assert [
+        resource for resource in resources if resource["LogicalResourceId"] == "VPC1"
     ]
 
 
