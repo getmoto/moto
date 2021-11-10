@@ -10,4 +10,8 @@ def table():
             {"KeyType": "HASH", "AttributeName": "forum_name"},
             {"KeyType": "RANGE", "AttributeName": "subject"},
         ],
+        attr=[
+            {"AttributeType": "S", "AttributeName": "forum_name"},
+            {"AttributeType": "S", "AttributeName": "subject"},
+        ],
     )
