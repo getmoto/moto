@@ -12,11 +12,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         private_ip_address = self._get_param("PrivateIpAddress")
         private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
         ipv6_addresses = self._get_multi_param("Ipv6Addresses")
-        ipv6_address_count = (
-            int(self._get_param("Ipv6AddressCount"))
-            if self._get_param("Ipv6AddressCount")
-            else 0
-        )
+        ipv6_address_count = self._get_int_param("Ipv6AddressCount", 0)
         secondary_ips_count = self._get_param("SecondaryPrivateIpAddressCount")
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
@@ -95,9 +91,7 @@ class ElasticNetworkInterfaces(BaseResponse):
 
     def assign_private_ip_addresses(self):
         eni_id = self._get_param("NetworkInterfaceId")
-        secondary_ips_count = self._get_param("SecondaryPrivateIpAddressCount")
-        if secondary_ips_count:
-            secondary_ips_count = int(secondary_ips_count)
+        secondary_ips_count = self._get_int_param("SecondaryPrivateIpAddressCount", 0)
         eni = self.ec2_backend.assign_private_ip_addresses(eni_id, secondary_ips_count)
         template = self.response_template(ASSIGN_PRIVATE_IP_ADDRESSES)
         return template.render(eni=eni)
@@ -111,10 +105,8 @@ class ElasticNetworkInterfaces(BaseResponse):
 
     def assign_ipv6_addresses(self):
         eni_id = self._get_param("NetworkInterfaceId")
-        ipv6_count = self._get_param("Ipv6AddressCount")
+        ipv6_count = self._get_int_param("Ipv6AddressCount", 0)
         ipv6_addresses = self._get_multi_param("Ipv6Addresses")
-        if ipv6_count:
-            ipv6_count = int(ipv6_count)
         eni = self.ec2_backend.assign_ipv6_addresses(
             eni_id, ipv6_addresses, ipv6_count,
         )

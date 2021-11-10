@@ -323,9 +323,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             association = list(self.subnet.ipv6_cidr_block_associations.values())[0]
             subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
             if kwargs.get("ipv6_address_count"):
-                while True:
-                    if len(self.ipv6_addresses) == kwargs.get("ipv6_address_count"):
-                        break
+                while len(self.ipv6_addresses) < kwargs.get("ipv6_address_count"):
                     ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
                     if ip not in self.ipv6_addresses:
                         self.ipv6_addresses.append(ip)
@@ -625,9 +623,7 @@ class NetworkInterfaceBackend(object):
         eni_assigned_ips = [
             item.get("PrivateIpAddress") for item in eni.private_ip_addresses
         ]
-        while True:
-            if not secondary_ips_count:
-                break
+        while secondary_ips_count:
             ip = random_private_ip(eni.subnet.cidr_block)
             if ip not in eni_assigned_ips:
                 eni.private_ip_addresses.append(
@@ -640,16 +636,14 @@ class NetworkInterfaceBackend(object):
         eni = self.get_network_interface(eni_id)
         if ipv6_addresses:
             eni.ipv6_addresses.extend(ipv6_addresses)
-        if ipv6_count:
-            while True:
-                if not ipv6_count:
-                    break
-                association = list(eni.subnet.ipv6_cidr_block_associations.values())[0]
-                subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
-                ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
-                if ip not in eni.ipv6_addresses:
-                    eni.ipv6_addresses.append(ip)
-                    ipv6_count -= 1
+
+        while ipv6_count:
+            association = list(eni.subnet.ipv6_cidr_block_associations.values())[0]
+            subnet_ipv6_cidr_block = association.get("ipv6CidrBlock")
+            ip = random_private_ip(subnet_ipv6_cidr_block, ipv6=True)
+            if ip not in eni.ipv6_addresses:
+                eni.ipv6_addresses.append(ip)
+                ipv6_count -= 1
         return eni
 
     def unassign_ipv6_addresses(self, eni_id=None, ips=None):
