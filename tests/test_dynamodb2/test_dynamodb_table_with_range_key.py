@@ -400,8 +400,8 @@ def test_get_item_without_range_key():
         throughput={"read": 10, "write": 10},
     )
 
-    hash_key = 3241526475
-    range_key = 1234567890987
+    hash_key = "3241526475"
+    range_key = "1234567890987"
     table.put_item(data={"test_hash": hash_key, "test_range": range_key})
     table.get_item.when.called_with(test_hash=hash_key).should.throw(
         ValidationException
@@ -424,8 +424,8 @@ def test_get_item_without_range_key_boto3():
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
     )
 
-    hash_key = 3241526475
-    range_key = 1234567890987
+    hash_key = "3241526475"
+    range_key = "1234567890987"
     table.put_item(Item={"id": hash_key, "subject": range_key})
 
     with pytest.raises(ClientError) as ex:
@@ -1077,7 +1077,10 @@ def test_reverse_query():
 def test_lookup():
     table = Table.create(
         "messages",
-        schema=[HashKey("test_hash"), RangeKey("test_range")],
+        schema=[
+            HashKey("test_hash", data_type=NUMBER),
+            RangeKey("test_range", data_type=NUMBER),
+        ],
         throughput={"read": 10, "write": 10},
     )
 
