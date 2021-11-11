@@ -920,8 +920,9 @@ class IoTBackend(BaseBackend):
             identities.extend(
                 [pi["IdentityId"] for pi in pool_identities.get("Identities", [])]
             )
-        if principal_arn in identities:
-            return {"IdentityId": principal_arn}
+            if principal_arn in identities:
+                return {"IdentityId": principal_arn}
+
         raise ResourceNotFoundException()
 
     def attach_principal_policy(self, policy_name, principal_arn):
