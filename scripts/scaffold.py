@@ -518,6 +518,13 @@ def insert_codes(service, operation, api_protocol):
 
 @click.command()
 def main():
+
+    click.echo("This script uses the click-module.\n")
+    click.echo(" - Start typing the name of the service you want to extend\n"
+               " - Use Tab to auto-complete the first suggest service\n"
+               " - Use the up and down-arrows on the keyboard to select something from the dropdown\n"
+               " - Press enter to continue\n")
+
     """Create basic files needed for the user's choice of service and op."""
     service, operation = select_service_and_operation()
 
@@ -535,9 +542,9 @@ def main():
         )
 
     click.echo(
-        "Remaining setup:\n"
-        '- Add the mock into "docs/index.rst",\n'
-        '- Add the mock into "IMPLEMENTATION_COVERAGE.md",\n'
+        "\n"
+        "Remaining steps after development is complete:\n"
+        '- Run scripts/implementation_coverage.py,\n'
         "- Run scripts/update_backend_index.py."
     )
 

@@ -2061,6 +2061,39 @@ def test_list_job_executions_for_thing():
     )
 
 
+@mock_iot
+def test_list_job_executions_for_thing_paginated():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    thing = client.create_thing(thingName=name)
+
+    for idx in range(0, 10):
+        client.create_job(
+            jobId=f"TestJob_{idx}",
+            targets=[thing["thingArn"]],
+            document=json.dumps({"field": "value"}),
+        )
+
+    res = client.list_job_executions_for_thing(thingName=name, maxResults=2)
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(2)
+    res.should.have.key("nextToken")
+
+    res = client.list_job_executions_for_thing(
+        thingName=name, maxResults=1, nextToken=res["nextToken"]
+    )
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(1)
+    res.should.have.key("nextToken")
+
+    res = client.list_job_executions_for_thing(
+        thingName=name, nextToken=res["nextToken"]
+    )
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(7)
+    res.shouldnt.have.key("nextToken")
+
+
 class TestTopicRules:
     name = "my-rule"
     payload = {

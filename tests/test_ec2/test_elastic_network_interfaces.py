@@ -32,7 +32,7 @@ def test_elastic_network_interfaces_boto3():
     ]
     my_enis.should.have.length_of(1)
     eni = my_enis[0]
-    eni["Groups"].should.have.length_of(0)
+    eni["Groups"].should.have.length_of(1)
     eni["PrivateIpAddresses"].should.have.length_of(1)
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.").should.be.true
 
@@ -96,7 +96,7 @@ def test_elastic_network_interfaces_with_private_ip_boto3():
     ]
 
     eni = my_enis[0]
-    eni["Groups"].should.have.length_of(0)
+    eni["Groups"].should.have.length_of(1)
 
     eni["PrivateIpAddresses"].should.have.length_of(1)
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should.equal(private_ip)

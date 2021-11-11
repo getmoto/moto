@@ -47,6 +47,7 @@ from .exceptions import (
     InvalidRestApiIdForBasePathMappingException,
     InvalidStageException,
     BasePathConflictException,
+    BasePathNotFoundException,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -72,7 +73,7 @@ class Deployment(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -189,7 +190,7 @@ class Method(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -268,7 +269,7 @@ class Resource(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         api_id = properties["RestApiId"]
@@ -810,6 +811,10 @@ class RestAPI(CloudFormationModel):
                 if to_path(self.PROP_DESCRIPTON) in path:
                     self.description = ""
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["RootResourceId"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -834,7 +839,7 @@ class RestAPI(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties["Name"]
@@ -1764,6 +1769,16 @@ class APIGatewayBackend(BaseBackend):
             raise DomainNameNotFound()
 
         return list(self.base_path_mappings[domain_name].values())
+
+    def get_base_path_mapping(self, domain_name, base_path):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path not in self.base_path_mappings[domain_name]:
+            raise BasePathNotFoundException()
+
+        return self.base_path_mappings[domain_name][base_path]
 
 
 apigateway_backends = {}

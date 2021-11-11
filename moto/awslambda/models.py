@@ -201,7 +201,7 @@ class Permission(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         backend = lambda_backends[region_name]
@@ -270,7 +270,7 @@ class LayerVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -649,6 +649,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         if body:
             body = json.loads(body)
+        else:
+            body = "{}"
 
         # Get the invocation type:
         res, errored, logs = self._invoke_lambda(code=self.code, event=body)
@@ -675,7 +677,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -715,6 +717,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         fn = backend.create_function(spec)
         return fn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -735,7 +741,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
         zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
-        zip_file.writestr("lambda_function.zip", code)
+        zip_file.writestr("index.py", code)
+        # This should really be part of the 'lambci' docker image
+        from moto.packages.cfnresponse import cfnresponse
+
+        with open(cfnresponse.__file__) as cfn:
+            zip_file.writestr("cfnresponse.py", cfn.read())
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
@@ -832,7 +843,7 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         lambda_backend = lambda_backends[region_name]
@@ -885,7 +896,7 @@ class LambdaVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]

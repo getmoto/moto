@@ -226,6 +226,33 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps("{}")
 
     @amzn_request_id
+    def create_processing_job(self):
+        try:
+            processing_job = self.sagemaker_backend.create_processing_job(
+                app_specification=self._get_param("AppSpecification"),
+                experiment_config=self._get_param("ExperimentConfig"),
+                network_config=self._get_param("NetworkConfig"),
+                processing_inputs=self._get_param("ProcessingInputs"),
+                processing_job_name=self._get_param("ProcessingJobName"),
+                processing_output_config=self._get_param("ProcessingOutputConfig"),
+                processing_resources=self._get_param("ProcessingResources"),
+                role_arn=self._get_param("RoleArn"),
+                stopping_condition=self._get_param("StoppingCondition"),
+            )
+            response = {
+                "ProcessingJobArn": processing_job.processing_job_arn,
+            }
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def describe_processing_job(self):
+        processing_job_name = self._get_param("ProcessingJobName")
+        response = self.sagemaker_backend.describe_processing_job(processing_job_name)
+        return json.dumps(response)
+
+    @amzn_request_id
     def create_training_job(self):
         try:
             training_job = self.sagemaker_backend.create_training_job(
@@ -419,6 +446,68 @@ class SageMakerResponse(BaseResponse):
     def list_associations(self, *args, **kwargs):
         response = self.sagemaker_backend.list_associations(self.request_params)
         return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_processing_jobs(self):
+        max_results_range = range(1, 101)
+        allowed_sort_by = ["Name", "CreationTime", "Status"]
+        allowed_sort_order = ["Ascending", "Descending"]
+        allowed_status_equals = [
+            "Completed",
+            "Stopped",
+            "InProgress",
+            "Stopping",
+            "Failed",
+        ]
+
+        try:
+            max_results = self._get_int_param("MaxResults")
+            sort_by = self._get_param("SortBy", "CreationTime")
+            sort_order = self._get_param("SortOrder", "Ascending")
+            status_equals = self._get_param("StatusEquals")
+            next_token = self._get_param("NextToken")
+            errors = []
+            if max_results and max_results not in max_results_range:
+                errors.append(
+                    "Value '{0}' at 'maxResults' failed to satisfy constraint: Member must have value less than or equal to {1}".format(
+                        max_results, max_results_range[-1]
+                    )
+                )
+
+            if sort_by not in allowed_sort_by:
+                errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
+            if sort_order not in allowed_sort_order:
+                errors.append(
+                    format_enum_error(sort_order, "sortOrder", allowed_sort_order)
+                )
+
+            if status_equals and status_equals not in allowed_status_equals:
+                errors.append(
+                    format_enum_error(
+                        status_equals, "statusEquals", allowed_status_equals
+                    )
+                )
+
+            if errors != []:
+                raise AWSValidationException(
+                    f"{len(errors)} validation errors detected: {';'.join(errors)}"
+                )
+
+            response = self.sagemaker_backend.list_processing_jobs(
+                next_token=next_token,
+                max_results=max_results,
+                creation_time_after=self._get_param("CreationTimeAfter"),
+                creation_time_before=self._get_param("CreationTimeBefore"),
+                last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
+                last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
+                name_contains=self._get_param("NameContains"),
+                status_equals=status_equals,
+                sort_by=sort_by,
+                sort_order=sort_order,
+            )
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
 
     @amzn_request_id
     def list_training_jobs(self):

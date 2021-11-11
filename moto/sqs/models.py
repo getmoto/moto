@@ -393,7 +393,7 @@ class Queue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = deepcopy(cloudformation_json["Properties"])
         # remove Tags from properties and convert tags list to dict
@@ -535,6 +535,10 @@ class Queue(CloudFormationModel):
             else:
                 # Make messages visible again
                 [m.change_visibility(visibility_timeout=0) for m in messages]
+
+    @classmethod
+    def has_cfn_attr(cls, attribute_name):
+        return attribute_name in ["Arn", "QueueName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

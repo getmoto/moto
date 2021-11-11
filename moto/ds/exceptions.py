@@ -57,6 +57,15 @@ class EntityDoesNotExistException(JsonRESTError):
         super().__init__("EntityDoesNotExistException", message)
 
 
+class EntityAlreadyExistsException(JsonRESTError):
+    """The specified entity already exists."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("EntityAlreadyExistsException", message)
+
+
 class InvalidNextTokenException(JsonRESTError):
     """Invalid next token parameter used to return a list of entities."""
 

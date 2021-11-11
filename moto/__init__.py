@@ -1,4 +1,5 @@
 import importlib
+import sys
 
 
 def lazy_load(
@@ -9,8 +10,8 @@ def lazy_load(
             import warnings
 
             warnings.warn(
-                "Module {} has been deprecated, and will be repurposed in a later release."
-                "Please see //ISSUE// for more information.".format(element)
+                f"Module {element} has been deprecated, and will be repurposed in a later release. "
+                "Please see https://github.com/spulec/moto/issues/4526 for more information."
             )
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
@@ -46,8 +47,8 @@ mock_config = lazy_load(".config", "mock_config")
 mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
 mock_datasync = lazy_load(".datasync", "mock_datasync")
 mock_dms = lazy_load(".dms", "mock_dms")
-mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
 mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
+mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
 mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2", backend="dynamodb_backends2")
 mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(
@@ -127,11 +128,30 @@ mock_mediastoredata = lazy_load(
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 
+
+def mock_all():
+    dec_names = [
+        d
+        for d in dir(sys.modules["moto"])
+        if d.startswith("mock_")
+        and not d.endswith("_deprecated")
+        and not d == "mock_all"
+    ]
+
+    def deco(f):
+        for dec_name in reversed(dec_names):
+            dec = globals()[dec_name]
+            f = dec(f)
+        return f
+
+    return deco
+
+
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.13.dev"
+__version__ = "2.2.14.dev"
 
 
 try:

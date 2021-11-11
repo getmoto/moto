@@ -308,6 +308,34 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_POLICY_VERSIONS_TEMPLATE)
         return template.render(policy_versions=policy_versions)
 
+    def list_policy_tags(self):
+        policy_arn = self._get_param("PolicyArn")
+        marker = self._get_param("Marker")
+        max_items = self._get_param("MaxItems", 100)
+
+        tags, marker = iam_backend.list_policy_tags(policy_arn, marker, max_items)
+
+        template = self.response_template(LIST_POLICY_TAG_TEMPLATE)
+        return template.render(tags=tags, marker=marker)
+
+    def tag_policy(self):
+        policy_arn = self._get_param("PolicyArn")
+        tags = self._get_multi_param("Tags.member")
+
+        iam_backend.tag_policy(policy_arn, tags)
+
+        template = self.response_template(TAG_POLICY_TEMPLATE)
+        return template.render()
+
+    def untag_policy(self):
+        policy_arn = self._get_param("PolicyArn")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        iam_backend.untag_policy(policy_arn, tag_keys)
+
+        template = self.response_template(UNTAG_POLICY_TEMPLATE)
+        return template.render()
+
     def delete_policy_version(self):
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
@@ -1129,14 +1157,16 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
       <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      {% if policy.tags %}
       <Tags>
-        {% for tag_key, tag_value in policy.tags.items() %}
+        {% for tag in policy.get_tags() %}
         <member>
-          <Key>{{ tag_key }}</Key>
-          <Value>{{ tag_value }}</Value>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
         </member>
         {% endfor %}
       </Tags>
+      {% endif %}
     </Policy>
   </GetPolicyResult>
   <ResponseMetadata>
@@ -2493,6 +2523,41 @@ UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc
     <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
   </ResponseMetadata>
 </UntagRoleResponse>"""
+
+
+TAG_POLICY_TEMPLATE = """<TagPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagPolicyResponse>"""
+
+
+LIST_POLICY_TAG_TEMPLATE = """<ListPolicyTagsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListPolicyTagsResult>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Tags>
+      {% for tag in tags %}
+      <member>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListPolicyTagsResult>
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListPolicyTagsResponse>"""
+
+
+UNTAG_POLICY_TEMPLATE = """<UntagPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagPolicyResponse>"""
 
 
 CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

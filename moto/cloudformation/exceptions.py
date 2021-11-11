@@ -41,6 +41,16 @@ class ExportNotFound(BadRequest):
         )
 
 
+class UnsupportedAttribute(ValidationError):
+    def __init__(self, resource, attr):
+        template = Template(ERROR_RESPONSE)
+        super(UnsupportedAttribute, self).__init__()
+        self.description = template.render(
+            code="ValidationError",
+            message=f"Template error: resource {resource} does not support attribute type {attr} in Fn::GetAtt",
+        )
+
+
 ERROR_RESPONSE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <Error>
     <Type>Sender</Type>

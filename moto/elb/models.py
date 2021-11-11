@@ -134,7 +134,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -204,6 +204,16 @@ class FakeLoadBalancer(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "CanonicalHostedZoneName",
+            "CanonicalHostedZoneNameID",
+            "DNSName",
+            "SourceSecurityGroup.GroupName",
+            "SourceSecurityGroup.OwnerAlias",
+        ]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

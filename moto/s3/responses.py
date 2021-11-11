@@ -44,6 +44,8 @@ from .exceptions import (
     IllegalLocationConstraintException,
     InvalidNotificationARN,
     InvalidNotificationEvent,
+    S3AclAndGrantError,
+    InvalidObjectState,
     ObjectNotInActiveTierError,
     NoSystemTags,
     PreconditionFailed,
@@ -194,6 +196,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             not host
             or host.startswith("localhost")
             or host.startswith("localstack")
+            or host.startswith("host.docker.internal")
             or re.match(r"^[^.]+$", host)
             or re.match(r"^.*\.svc\.cluster\.local:?\d*$", host)
         ):
@@ -315,7 +318,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif method == "POST":
             return self._bucket_response_post(request, body, bucket_name)
         elif method == "OPTIONS":
-            return self._bucket_response_options(bucket_name)
+            return self._response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
@@ -385,7 +388,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return self.headers
 
-    def _bucket_response_options(self, bucket_name):
+    def _response_options(self, bucket_name):
         # Return 200 with the headers from the bucket CORS configuration
         self._authenticate_and_authorize_s3_action()
         try:
@@ -1280,6 +1283,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._key_response_delete(headers, bucket_name, query, key_name)
         elif method == "POST":
             return self._key_response_post(request, body, bucket_name, query, key_name)
+        elif method == "OPTIONS":
+            # OPTIONS response doesn't depend on the key_name: always return 200 with CORS headers
+            return self._response_options(bucket_name)
         else:
             raise NotImplementedError(
                 "Method {0} has not been implemented in the S3 backend yet".format(
@@ -1343,6 +1349,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif key is None:
             raise MissingVersion()
 
+        if key.storage_class == "GLACIER":
+            raise InvalidObjectState(storage_class="GLACIER")
         if if_unmodified_since:
             if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
             if key.last_modified > if_unmodified_since:
@@ -1701,8 +1709,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _acl_from_headers(self, headers):
         canned_acl = headers.get("x-amz-acl", "")
-        if canned_acl:
-            return get_canned_acl(canned_acl)
 
         grants = []
         for header, value in headers.items():
@@ -1729,6 +1735,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     grantees.append(FakeGrantee(uri=value))
             grants.append(FakeGrant(grantees, [permission]))
 
+        if canned_acl and grants:
+            raise S3AclAndGrantError()
+        if canned_acl:
+            return get_canned_acl(canned_acl)
         if grants:
             return FakeAcl(grants)
         else:
@@ -1980,9 +1990,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if body == b"" and "uploads" in query:
             metadata = metadata_from_headers(request.headers)
+            tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
             multipart_id = self.backend.create_multipart_upload(
-                bucket_name, key_name, metadata, storage_type
+                bucket_name, key_name, metadata, storage_type, tagging
             )
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
@@ -2010,6 +2021,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 multipart=multipart,
             )
             key.set_metadata(multipart.metadata)
+            self.backend.set_key_tags(key, multipart.tags)
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             headers = {}

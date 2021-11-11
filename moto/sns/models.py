@@ -68,6 +68,10 @@ class Topic(CloudFormationModel):
             )
         return message_id
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["TopicName"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -98,7 +102,7 @@ class Topic(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]

@@ -223,17 +223,19 @@ def test_s3_server_post_cors_exposed_header():
     cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
     assert b"<ExposedHeader>ETag</ExposedHeader>" in cors_res.data
 
-    preflight_response = test_client.options(
-        "/", "http://testcors.localhost:5000/", headers=preflight_headers
-    )
-    assert preflight_response.status_code == 200
-    expected_cors_headers = {
-        "Access-Control-Allow-Methods": "HEAD, GET, PUT, POST, DELETE",
-        "Access-Control-Allow-Origin": "https://example.org",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Expose-Headers": "ETag",
-        "Access-Control-Max-Age": "3000",
-    }
-    for header_name, header_value in expected_cors_headers.items():
-        assert header_name in preflight_response.headers
-        assert preflight_response.headers[header_name] == header_value
+    # Test OPTIONS bucket response and key response
+    for key_name in ("/", "/test"):
+        preflight_response = test_client.options(
+            key_name, "http://testcors.localhost:5000/", headers=preflight_headers
+        )
+        assert preflight_response.status_code == 200
+        expected_cors_headers = {
+            "Access-Control-Allow-Methods": "HEAD, GET, PUT, POST, DELETE",
+            "Access-Control-Allow-Origin": "https://example.org",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Expose-Headers": "ETag",
+            "Access-Control-Max-Age": "3000",
+        }
+        for header_name, header_value in expected_cors_headers.items():
+            assert header_name in preflight_response.headers
+            assert preflight_response.headers[header_name] == header_value

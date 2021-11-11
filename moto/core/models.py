@@ -1,3 +1,5 @@
+import botocore
+import boto3
 import functools
 import inspect
 import os
@@ -383,6 +385,40 @@ botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
 
 
+def patch_client(client):
+    """
+    Explicitly patch a boto3-client
+    """
+    """
+    Adding the botocore_stubber to the BUILTIN_HANDLERS, as above, will mock everything as long as the import ordering is correct
+     - user:   start mock_service decorator
+     - system: imports core.model
+     - system: adds the stubber to the BUILTIN_HANDLERS
+     - user:   create a boto3 client - which will use the BUILTIN_HANDLERS
+
+    But, if for whatever reason the imports are wrong and the client is created first, it doesn't know about our stub yet
+    This method can be used to tell a client that it needs to be mocked, and append the botocore_stubber after creation
+    :param client:
+    :return:
+    """
+    if isinstance(client, botocore.client.BaseClient):
+        client.meta.events.register("before-send", botocore_stubber)
+    else:
+        raise Exception(f"Argument {client} should be of type boto3.client")
+
+
+def patch_resource(resource):
+    """
+    Explicitly patch a boto3-resource
+    """
+    if hasattr(resource, "meta") and isinstance(
+        resource.meta, boto3.resources.factory.ResourceMeta
+    ):
+        patch_client(resource.meta.client)
+    else:
+        raise Exception(f"Argument {resource} should be of type boto3.resource")
+
+
 def not_implemented_callback(request):
     status = 400
     headers = {}
@@ -568,8 +604,15 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
+    def has_cfn_attr(cls, attr):
+        # Used for validation
+        # If a template creates an Output for an attribute that does not exist, an error should be thrown
+        return True
+
+    @classmethod
+    @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
@@ -599,6 +642,13 @@ class CloudFormationModel(BaseModel):
         # Extract the resource parameters from the cloudformation json
         # and delete the resource. Do not include a return statement.
         pass
+
+    @abstractmethod
+    def is_created(self):
+        # Verify whether the resource was created successfully
+        # Assume True after initialization
+        # Custom resources may need time after init before they are created successfully
+        return True
 
 
 class BaseBackend:

@@ -152,6 +152,10 @@ class Repository(BaseObject, CloudFormationModel):
         ecr_backend = ecr_backends[region_name]
         ecr_backend.delete_repository(self.name)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "RepositoryUri"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -173,7 +177,7 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ecr_backend = ecr_backends[region_name]
         properties = cloudformation_json["Properties"]

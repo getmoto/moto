@@ -1,6 +1,9 @@
 import boto3
+import pytest
 
+from botocore.exceptions import ClientError
 from moto import mock_kinesis
+from moto.core import ACCOUNT_ID
 
 import sure  # noqa # pylint: disable=unused-import
 
@@ -33,58 +36,6 @@ def test_describe_stream_limit_parameter():
     ]
     with_filter["Shards"].should.have.length_of(5)
     with_filter["HasMoreShards"].should.equal(False)
-
-
-@mock_kinesis
-def test_split_shard():
-    conn = boto3.client("kinesis", region_name="us-west-2")
-    stream_name = "my_stream"
-
-    conn.create_stream(StreamName=stream_name, ShardCount=2)
-
-    # Create some data
-    for index in range(1, 100):
-        conn.put_record(
-            StreamName=stream_name, Data="data:" + str(index), PartitionKey=str(index)
-        )
-
-    stream_response = conn.describe_stream(StreamName=stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(2)
-
-    shard_range = shards[0]["HashKeyRange"]
-    new_starting_hash = (
-        int(shard_range["EndingHashKey"]) + int(shard_range["StartingHashKey"])
-    ) // 2
-    conn.split_shard(
-        StreamName=stream_name,
-        ShardToSplit=shards[0]["ShardId"],
-        NewStartingHashKey=str(new_starting_hash),
-    )
-
-    stream_response = conn.describe_stream(StreamName=stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(3)
-
-    shard_range = shards[2]["HashKeyRange"]
-    new_starting_hash = (
-        int(shard_range["EndingHashKey"]) + int(shard_range["StartingHashKey"])
-    ) // 2
-    conn.split_shard(
-        StreamName=stream_name,
-        ShardToSplit=shards[2]["ShardId"],
-        NewStartingHashKey=str(new_starting_hash),
-    )
-
-    stream_response = conn.describe_stream(StreamName=stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(4)
 
 
 @mock_kinesis
@@ -168,3 +119,181 @@ def test_list_shards_paging():
         ["shardId-000000000008", "shardId-000000000009"]
     )
     resp.should_not.have.key("NextToken")
+
+
+@mock_kinesis
+def test_create_shard():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    resp = client.describe_stream(StreamName="my-stream")
+    desc = resp["StreamDescription"]
+    desc.should.have.key("StreamName").equal("my-stream")
+    desc.should.have.key("StreamARN").equal(
+        f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/my-stream"
+    )
+    desc.should.have.key("Shards").length_of(2)
+    desc.should.have.key("StreamStatus").equals("ACTIVE")
+    desc.should.have.key("HasMoreShards").equals(False)
+    desc.should.have.key("RetentionPeriodHours").equals(24)
+    desc.should.have.key("StreamCreationTimestamp")
+    desc.should.have.key("EnhancedMonitoring").should.equal([{"ShardLevelMetrics": []}])
+    desc.should.have.key("EncryptionType").should.equal("NONE")
+
+    shards = desc["Shards"]
+    shards[0].should.have.key("ShardId").equal("shardId-000000000000")
+    shards[0].should.have.key("HashKeyRange")
+    shards[0]["HashKeyRange"].should.have.key("StartingHashKey").equals("0")
+    shards[0]["HashKeyRange"].should.have.key("EndingHashKey")
+    shards[0].should.have.key("SequenceNumberRange")
+    shards[0]["SequenceNumberRange"].should.have.key("StartingSequenceNumber")
+    shards[0]["SequenceNumberRange"].shouldnt.have.key("EndingSequenceNumber")
+
+
+@mock_kinesis
+def test_split_shard_with_invalid_name():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    with pytest.raises(ClientError) as exc:
+        client.split_shard(
+            StreamName="my-stream",
+            ShardToSplit="?",
+            NewStartingHashKey="170141183460469231731687303715884105728",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value '?' at 'shardToSplit' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-zA-Z0-9_.-]+"
+    )
+
+
+@mock_kinesis
+def test_split_shard_with_unknown_name():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    with pytest.raises(ClientError) as exc:
+        client.split_shard(
+            StreamName="my-stream",
+            ShardToSplit="unknown",
+            NewStartingHashKey="170141183460469231731687303715884105728",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal(
+        "Could not find shard unknown in stream my-stream under account 123456789012."
+    )
+
+
+@mock_kinesis
+def test_split_shard_invalid_hashkey():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    with pytest.raises(ClientError) as exc:
+        client.split_shard(
+            StreamName="my-stream",
+            ShardToSplit="shardId-000000000001",
+            NewStartingHashKey="sth",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'sth' at 'newStartingHashKey' failed to satisfy constraint: Member must satisfy regular expression pattern: 0|([1-9]\\d{0,38})"
+    )
+
+
+@mock_kinesis
+def test_split_shard_hashkey_out_of_bounds():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    with pytest.raises(ClientError) as exc:
+        client.split_shard(
+            StreamName="my-stream",
+            ShardToSplit="shardId-000000000001",
+            NewStartingHashKey="170141183460469231731687303715884000000",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal(
+        f"NewStartingHashKey 170141183460469231731687303715884000000 used in SplitShard() on shard shardId-000000000001 in stream my-stream under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey 170141183460469231731687303715884105728 and less than the shard's EndingHashKey 340282366920938463463374607431768211455."
+    )
+
+
+@mock_kinesis
+def test_split_shard():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my-stream"
+    client.create_stream(StreamName=stream_name, ShardCount=2)
+
+    for index in range(1, 100):
+        client.put_record(
+            StreamName=stream_name,
+            Data=f"data_{index}".encode("utf-8"),
+            PartitionKey=str(index),
+        )
+
+    original_shards = client.describe_stream(StreamName=stream_name)[
+        "StreamDescription"
+    ]["Shards"]
+
+    client.split_shard(
+        StreamName=stream_name,
+        ShardToSplit="shardId-000000000001",
+        NewStartingHashKey="170141183460469231731687303715884105829",
+    )
+
+    resp = client.describe_stream(StreamName=stream_name)["StreamDescription"]
+    shards = resp["Shards"]
+    shards.should.have.length_of(4)
+    shards[0].should.have.key("ShardId").equals("shardId-000000000000")
+    shards[0].should.have.key("HashKeyRange")
+    shards[0].shouldnt.have.key("ParentShardId")
+
+    shards[1].should.have.key("ShardId").equals("shardId-000000000001")
+    shards[1].shouldnt.have.key("ParentShardId")
+    shards[1].should.have.key("HashKeyRange")
+    shards[1]["HashKeyRange"].should.have.key("StartingHashKey").equals(
+        original_shards[1]["HashKeyRange"]["StartingHashKey"]
+    )
+    shards[1]["HashKeyRange"].should.have.key("EndingHashKey").equals(
+        original_shards[1]["HashKeyRange"]["EndingHashKey"]
+    )
+    shards[1]["SequenceNumberRange"].should.have.key("StartingSequenceNumber")
+    shards[1]["SequenceNumberRange"].should.have.key("EndingSequenceNumber")
+
+    shards[2].should.have.key("ShardId").equals("shardId-000000000002")
+    shards[2].should.have.key("ParentShardId").equals(shards[1]["ShardId"])
+    shards[2]["SequenceNumberRange"].should.have.key("StartingSequenceNumber")
+    shards[2]["SequenceNumberRange"].shouldnt.have.key("EndingSequenceNumber")
+
+    shards[3].should.have.key("ShardId").equals("shardId-000000000003")
+    shards[3].should.have.key("ParentShardId").equals(shards[1]["ShardId"])
+    shards[3]["SequenceNumberRange"].should.have.key("StartingSequenceNumber")
+    shards[3]["SequenceNumberRange"].shouldnt.have.key("EndingSequenceNumber")
+
+
+@mock_kinesis
+def test_split_shard_that_was_split_before():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    client.split_shard(
+        StreamName="my-stream",
+        ShardToSplit="shardId-000000000001",
+        NewStartingHashKey="170141183460469231731687303715884105829",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.split_shard(
+            StreamName="my-stream",
+            ShardToSplit="shardId-000000000001",
+            NewStartingHashKey="170141183460469231731687303715884105829",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal(
+        f"Shard shardId-000000000001 in stream my-stream under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
+    )

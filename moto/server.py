@@ -4,6 +4,7 @@ import json
 import os
 import signal
 import sys
+from functools import partial
 from threading import Lock
 
 from flask import Flask
@@ -106,8 +107,10 @@ class DomainDispatcherApplication(object):
                 # See if we can match the Action to a known service
                 service, region = UNSIGNED_ACTIONS.get(action)
             else:
-                # S3 is the last resort when the target is also unknown
-                service, region = DEFAULT_SERVICE_REGION
+                service, region = self.get_service_from_path(environ)
+                if not service:
+                    # S3 is the last resort when the target is also unknown
+                    service, region = DEFAULT_SERVICE_REGION
 
         if service == "mediastore" and not target:
             # All MediaStore API calls have a target header
@@ -186,6 +189,16 @@ class DomainDispatcherApplication(object):
                 # We've consumed the body = need to reset it
                 environ["wsgi.input"] = io.StringIO(body)
         return None
+
+    def get_service_from_path(self, environ):
+        # Moto sometimes needs to send a HTTP request to itself
+        # In which case it will send a request to 'http://localhost/service_region/whatever'
+        try:
+            path_info = environ.get("PATH_INFO", "/")
+            service, region = path_info[1 : path_info.index("/", 1)].split("_")
+            return service, region
+        except (KeyError, ValueError):
+            return None, None
 
     def __call__(self, environ, start_response):
         backend_app = self.get_application(environ)
@@ -268,8 +281,9 @@ def create_backend_app(service):
     return backend_app
 
 
-def signal_handler(signum, frame):
-    print("Received signal %d" % signum)
+def signal_handler(reset_server_port, signum, frame):
+    if reset_server_port:
+        del os.environ["MOTO_SERVER_PORT"]
     sys.exit(0)
 
 
@@ -312,9 +326,14 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args(argv)
 
+    reset_server_port = False
+    if "MOTO_SERVER_PORT" not in os.environ:
+        reset_server_port = True
+        os.environ["MOTO_SERVER_PORT"] = f"{args.port}"
+
     try:
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, partial(signal_handler, reset_server_port))
+        signal.signal(signal.SIGTERM, partial(signal_handler, reset_server_port))
     except Exception:
         pass  # ignore "ValueError: signal only works in main thread"
 

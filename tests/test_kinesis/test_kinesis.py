@@ -82,7 +82,7 @@ def test_describe_stream_summary():
     stream["StreamName"].should.equal(stream_name)
     stream["OpenShardCount"].should.equal(shard_count)
     stream["StreamARN"].should.equal(
-        "arn:aws:kinesis:us-west-2:{}:{}".format(ACCOUNT_ID, stream_name)
+        "arn:aws:kinesis:us-west-2:{}:stream/{}".format(ACCOUNT_ID, stream_name)
     )
     stream["StreamStatus"].should.equal("ACTIVE")
 
@@ -119,7 +119,11 @@ def test_get_invalid_shard_iterator_boto3():
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Shard 123 under account 123456789012 not found.")
+    # There is some magic in AWS, that '123' is automatically converted into 'shardId-000000000123'
+    # AWS itself returns this normalized ID in the error message, not the given id
+    err["Message"].should.equal(
+        f"Shard 123 in stream {stream_name} under account {ACCOUNT_ID} does not exist"
+    )
 
 
 @mock_kinesis
@@ -598,52 +602,6 @@ def test_add_list_remove_tags_boto3():
     tags.should.contain({"Key": "tag1", "Value": "val1"})
     tags.should.contain({"Key": "tag4", "Value": "val4"})
     tags.should.contain({"Key": "tag5", "Value": "val5"})
-
-
-@mock_kinesis
-def test_split_shard_boto3():
-    client = boto3.client("kinesis", region_name="eu-west-2")
-    stream_name = "my_stream_summary"
-    client.create_stream(StreamName=stream_name, ShardCount=2)
-
-    for index in range(1, 100):
-        client.put_record(
-            StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
-            PartitionKey=str(index),
-        )
-
-    stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(2)
-
-    shard_range = shards[0]["HashKeyRange"]
-    new_starting_hash = (
-        int(shard_range["EndingHashKey"]) + int(shard_range["StartingHashKey"])
-    ) // 2
-    client.split_shard(
-        StreamName=stream_name,
-        ShardToSplit=shards[0]["ShardId"],
-        NewStartingHashKey=str(new_starting_hash),
-    )
-
-    stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(3)
-
-    shard_range = shards[2]["HashKeyRange"]
-    new_starting_hash = (
-        int(shard_range["EndingHashKey"]) + int(shard_range["StartingHashKey"])
-    ) // 2
-    client.split_shard(
-        StreamName=stream_name,
-        ShardToSplit=shards[2]["ShardId"],
-        NewStartingHashKey=str(new_starting_hash),
-    )
-
-    stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(4)
 
 
 @mock_kinesis

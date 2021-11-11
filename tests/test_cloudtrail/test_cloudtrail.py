@@ -253,6 +253,22 @@ def test_get_trail_status_inactive():
 
 @mock_cloudtrail
 @mock_s3
+def test_get_trail_status_arn_inactive():
+    client = boto3.client("cloudtrail", region_name="us-east-1")
+    _, resp, _ = create_trail_simple()
+    status = client.get_trail_status(Name=resp["TrailARN"])
+    status.should.have.key("IsLogging").equal(False)
+    status.should.have.key("LatestDeliveryAttemptTime").equal("")
+    status.should.have.key("LatestNotificationAttemptTime").equal("")
+    status.should.have.key("LatestNotificationAttemptSucceeded").equal("")
+    status.should.have.key("LatestDeliveryAttemptSucceeded").equal("")
+    status.should.have.key("TimeLoggingStarted").equal("")
+    status.should.have.key("TimeLoggingStopped").equal("")
+    status.shouldnt.have.key("StartLoggingTime")
+
+
+@mock_cloudtrail
+@mock_s3
 def test_get_trail_status_after_starting():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
     _, _, trail_name = create_trail_simple(region_name="eu-west-3")
