@@ -44,7 +44,8 @@ class DBSnapshotNotFound(ResourceNotFound):
 
 
 class DBClusterSnapshotNotFound(ResourceNotFound):
-    pass
+
+    code = "DBClusterSnapshotNotFoundFault"
 
 
 class DBSecurityGroupNotFound(ResourceNotFound):
