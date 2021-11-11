@@ -2016,7 +2016,6 @@ class S3Backend(BaseBackend):
             key_name=dest_key_name,
             value=key.value,
             storage=storage or key.storage_class,
-            etag=key.etag,
             multipart=key.multipart,
             encryption=key.encryption,
             kms_key_id=key.kms_key_id,
