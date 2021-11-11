@@ -562,7 +562,9 @@ def test_volume_attach_and_detach_boto3():
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = reservation["Instances"][0]
 
-    volumes = client.describe_volumes()["Volumes"]
+    volumes = client.describe_volumes(
+        Filters=[{"Name": "attachment.instance-id", "Values": [instance["InstanceId"]]}]
+    )["Volumes"]
     volumes.should.have.length_of(1)
     volumes[0]["AvailabilityZone"].should.equal("us-east-1a")
 
