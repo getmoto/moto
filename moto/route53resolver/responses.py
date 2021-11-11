@@ -14,13 +14,15 @@ class Route53ResolverResponse(BaseResponse):
         return route53resolver_backends[self.region]
 
     def create_resolver_endpoint(self):
+        """Create an inbound or outbound Resolver endpoint."""
         creator_request_id = self._get_param("CreatorRequestId")
         name = self._get_param("Name")
-        security_group_ids = self._get_list_prefix("SecurityGroupIds.member")
+        security_group_ids = self._get_param("SecurityGroupIds")
         direction = self._get_param("Direction")
-        ip_addresses = self._get_list_prefix("IpAddresses.member")
-        tags = self._get_list_prefix("Tags.member")
+        ip_addresses = self._get_param("IpAddresses")
+        tags = self._get_param("Tags", [])
         resolver_endpoint = self.route53resolver_backend.create_resolver_endpoint(
+            region=self.region,
             creator_request_id=creator_request_id,
             name=name,
             security_group_ids=security_group_ids,
@@ -28,10 +30,10 @@ class Route53ResolverResponse(BaseResponse):
             ip_addresses=ip_addresses,
             tags=tags,
         )
-        # TODO: adjust response
-        return json.dumps(dict(resolverEndpoint=resolver_endpoint))
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
     def get_resolver_endpoint(self):
+        """Return info about a specific Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         resolver_endpoint = self.route53resolver_backend.get_resolver_endpoint(
             resolver_endpoint_id=resolver_endpoint_id,
@@ -40,6 +42,7 @@ class Route53ResolverResponse(BaseResponse):
         return json.dumps(dict(resolverEndpoint=resolver_endpoint))
 
     def delete_resolver_endpoint(self):
+        """Delete a Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         resolver_endpoint = self.route53resolver_backend.delete_resolver_endpoint(
             resolver_endpoint_id=resolver_endpoint_id,

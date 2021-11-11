@@ -1,0 +1,291 @@
+"""Unit tests for route53resolver endpoint-related APIs."""
+from datetime import datetime, timezone
+
+import boto3
+from botocore.exceptions import ClientError
+
+import pytest
+
+from moto import mock_route53resolver
+from moto import settings
+from moto.core import ACCOUNT_ID
+from moto.core.utils import get_random_hex
+from moto.ec2 import mock_ec2
+
+TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
+
+
+def create_security_group(ec2_client):
+    """Return a security group ID."""
+    return ec2_client.create_security_group(
+        Description="Security group used by unit tests", GroupName="RRUnitTests",
+    )["GroupId"]
+
+
+def create_vpc(ec2_client):
+    """Return the ID for a valid VPC."""
+    return ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+
+def create_subnets(ec2_client, vpc_id):
+    """Returns the IDs for two valid subnets."""
+    subnet_ids = []
+    for cidr_block in ["10.0.1.0/24", "10.0.0.0/24"]:
+        subnet_ids.append(
+            ec2_client.create_subnet(
+                VpcId=vpc_id, CidrBlock=cidr_block, AvailabilityZone=f"{TEST_REGION}a",
+            )["Subnet"]["SubnetId"]
+        )
+    return subnet_ids
+
+
+@mock_route53resolver
+def test_route53resolver_invalid_create_endpoint_args():
+    """Test invalid arguments to the create_resolver_endpoint API."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Verify ValidationException error messages are accumulated properly:
+    #  - creator requestor ID that exceeds the allowed length of 255.
+    #  - name that exceeds the allowed length of 64.
+    #  - direction that's neither INBOUND or OUTBOUND.
+    #  - more than 10 IP Address sets.
+    #  - too many security group IDs.
+    long_id = random_num * 25 + "123456"
+    long_name = random_num * 6 + "12345"
+    too_many_security_groups = ["sg-" + get_random_hex(63)]
+    bad_direction = "foo"
+    too_many_ip_addresses = [{"SubnetId": f"{x}", "Ip": f"{x}" * 7} for x in range(11)]
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=long_id,
+            Name=long_name,
+            SecurityGroupIds=too_many_security_groups,
+            Direction=bad_direction,
+            IpAddresses=too_many_ip_addresses,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "5 validation errors detected" in err["Message"]
+    assert (
+        f"Value '{long_id}' at 'creatorRequestId' failed to satisfy constraint: "
+        f"Member must have length less than or equal to 255"
+    ) in err["Message"]
+    assert (
+        f"Value '{too_many_security_groups}' at 'securityGroupIds' failed to "
+        f"satisfy constraint: Member must have length less than or equal to 64"
+    ) in err["Message"]
+    assert (
+        f"Value '{long_name}' at 'name' failed to satisfy constraint: "
+        f"Member must have length less than or equal to 64"
+    ) in err["Message"]
+    assert (
+        f"Value '{bad_direction}' at 'direction' failed to satisfy constraint: "
+        f"Member must satisfy enum value set: [INBOUND, OUTBOUND]"
+    ) in err["Message"]
+    assert (
+        f"Value '{too_many_ip_addresses}' at 'ipAddresses' failed to satisfy "
+        f"constraint: Member must have length less than or equal to 10"
+    ) in err["Message"]
+
+    # Some single ValidationException errors ...
+    bad_chars_in_name = "0@*3"
+    ok_group_ids = ["sg-" + random_num]
+    ok_ip_addrs = [{"SubnetId": f"{x}", "Ip": f"{x}" * 7} for x in range(10)]
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=bad_chars_in_name,
+            SecurityGroupIds=ok_group_ids,
+            Direction="INBOUND",
+            IpAddresses=ok_ip_addrs,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        fr"Value '{bad_chars_in_name}' at 'name' failed to satisfy constraint: "
+        fr"Member must satisfy regular expression pattern: "
+        fr"^(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)$"
+    ) in err["Message"]
+
+    subnet_too_long = [{"SubnetId": "a" * 33, "Ip": "1.2.3.4"}]
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=ok_group_ids,
+            Direction="OUTBOUND",
+            IpAddresses=subnet_too_long,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        f"Value '{subnet_too_long}' at 'ipAddresses.subnetId' failed to "
+        f"satisfy constraint: Member must have length less than or equal to 32"
+    ) in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_bad_create_endpoint_subnets():
+    """Test bad subnet scenarios for create_resolver_endpoint API."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Need 2 IP addresses at the minimum.
+    subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=[f"sg-{random_num}"],
+            Direction="INBOUND",
+            IpAddresses=[{"SubnetId": subnet_ids[0], "Ip": "1.2.3.4"}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert "Resolver endpoint needs to have at least 2 IP addresses" in err["Message"]
+
+    # Need an IP that's within in the subnet.
+    bad_ip_addr = "1.2.3.4"
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=[f"sg-{random_num}"],
+            Direction="INBOUND",
+            IpAddresses=[
+                {"SubnetId": subnet_ids[0], "Ip": bad_ip_addr},
+                {"SubnetId": subnet_ids[1], "Ip": bad_ip_addr},
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert (
+        f"IP address '{bad_ip_addr}' is either not in subnet "
+        f"'{subnet_ids[0]}' CIDR range or is reserved"
+    ) in err["Message"]
+
+    # Bad subnet ID.
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=[f"sg-{random_num}"],
+            Direction="INBOUND",
+            IpAddresses=[
+                {"SubnetId": "foo", "Ip": "1.2.3.4"},
+                {"SubnetId": subnet_ids[1], "Ip": "1.2.3.4"},
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "The subnet ID 'foo' does not exist" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_bad_create_endpoint_security_groups():
+    """Test bad security group scenarios for create_resolver_endpoint API."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
+    ip_addrs = [
+        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
+        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+    ]
+
+    # Subnet must begin with "sg-".
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=["foo"],
+            Direction="INBOUND",
+            IpAddresses=ip_addrs,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "Malformed security group ID: Invalid id: 'foo' (expecting 'sg-...')"
+    ) in err["Message"]
+
+    # Non-existent security group id.
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=["sg-abc"],
+            Direction="INBOUND",
+            IpAddresses=ip_addrs,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "The security group 'sg-abc' does not exist" in err["Message"]
+
+    # Too many security group ids.
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=random_num,
+            Name=random_num,
+            SecurityGroupIds=["sg-abc"] * 11,
+            Direction="INBOUND",
+            IpAddresses=ip_addrs,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "Maximum of 10 security groups are allowed" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_create_resolver_endpoint():
+    """Test good create_resolver_endpoint API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    vpc_id = create_vpc(ec2_client)
+    subnet_ids = create_subnets(ec2_client, vpc_id)
+    ip_addrs = [
+        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
+        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+    ]
+    security_group_id = create_security_group(ec2_client)
+
+    creator_request_id = random_num
+    name = random_num
+    response = client.create_resolver_endpoint(
+        CreatorRequestId=creator_request_id,
+        Name=name,
+        SecurityGroupIds=[security_group_id],
+        Direction="INBOUND",
+        IpAddresses=ip_addrs,
+    )
+    endpoint = response["ResolverEndpoint"]
+    id_value = endpoint["Id"]
+    assert id_value.startswith("rslvr-in-")
+    assert endpoint["CreatorRequestId"] == creator_request_id
+    assert (
+        endpoint["Arn"]
+        == f"arn:aws:route53resolver:{TEST_REGION}:{ACCOUNT_ID}:resolver-endpoint/{id_value}"
+    )
+    assert endpoint["Name"] == name
+    assert endpoint["SecurityGroupIds"] == [security_group_id]
+    assert endpoint["Direction"] == "INBOUND"
+    assert endpoint["IpAddressCount"] == 0  # TODO
+    assert endpoint["HostVPCId"] == vpc_id
+    assert endpoint["Status"] == "OPERATIONAL"
+    assert "Creating the Resolver Endpoint" in endpoint["StatusMessage"]
+
+    now = datetime.now(timezone.utc)
+    time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+    assert datetime.strptime(endpoint["CreationTime"], time_format) <= now
+    assert datetime.strptime(endpoint["ModificationTime"], time_format) <= now
+
+    # TODO: try an ipv6 block  /64
