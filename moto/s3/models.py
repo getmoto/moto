@@ -1319,13 +1319,16 @@ class S3Backend(BaseBackend):
     Moto implementation for S3.
 
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
-    ```
-    os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint"
-    def test_my_custom_endpoint():
-        boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
-        ...
-    ```
+
+    .. sourcecode:: python
+
+        os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
+        def test_my_custom_endpoint():
+            boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
+            ...
+
     """
+
     def __init__(self):
         self.buckets = {}
         self.account_public_access_block = None

@@ -36,7 +36,8 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(
-        os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"}
+        os.environ,
+        {"MOTO_S3_CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"},
     ):
         # Mock needs to be started after the environment variable is patched in
         with mock_s3():
