@@ -1049,7 +1049,7 @@ def test_copy_key_replace_metadata_boto3():
     s3.create_bucket(Bucket="foobar")
 
     key = s3.Object("foobar", "the-key")
-    key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
+    initial = key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
 
     client.copy_object(
         Bucket="foobar",
@@ -1061,6 +1061,7 @@ def test_copy_key_replace_metadata_boto3():
 
     resp = client.get_object(Bucket="foobar", Key="new-key")
     resp["Metadata"].should.equal({"momd": "Mometadatastring"})
+    resp["ETag"].should.equal(initial["ETag"])
 
 
 # Has boto3 equivalent
