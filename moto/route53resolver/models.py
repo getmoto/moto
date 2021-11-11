@@ -21,6 +21,7 @@ from moto.route53resolver.validations import (
     validate_args,
     validate_creator_request_id,
     validate_direction,
+    validate_endpoint_id,
     validate_ip_addresses,
     validate_name,
     validate_security_group_ids,
@@ -37,6 +38,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
     def __init__(
         self,
         region,
+        endpoint_id,
         creator_request_id,
         security_group_ids,
         direction,
@@ -52,11 +54,9 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
         # TODO Validate fields here or before?
         # Constructed members.
+        self.id = endpoint_id  # pylint: disable=invalid-name
         self.ip_address_count = 0  # TODO
         self.host_vpc_id = self._vpc_id_from_subnet()
-        self.id = (  # pylint: disable=invalid-name
-            f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"
-        )
         self.status = "OPERATIONAL"
         # TODO - what is the trace id?  1-6185df07-570edfdd77b6f5d7617c9a29
         self.status_message = "[Trace id: x] Creating the Resolver Endpoint"
@@ -208,16 +208,31 @@ class Route53ResolverBackend(BaseBackend):
         self._verify_subnet_ips(region, ip_addresses)
         self._verify_security_group_ids(region, security_group_ids)
 
+        endpoint_id = (
+            f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"
+        )
         resolver_endpoint = ResolverEndpoint(
             region,
+            endpoint_id,
             creator_request_id,
             security_group_ids,
             direction,
             ip_addresses,
             name,
         )
-        self.resolver_endpoints[creator_request_id] = resolver_endpoint
+        self.resolver_endpoints[endpoint_id] = resolver_endpoint
+        self.tagger.tag_resource(endpoint_id, tags or [])
         return resolver_endpoint
+
+    def _validate_resolver_endpoint_id(self, resolver_endpoint_id):
+        """Raise an exception if the id is invalid or unknown."""
+        validate_args(
+            [(validate_endpoint_id, "resolverEndpointId", resolver_endpoint_id)]
+        )
+        if resolver_endpoint_id not in self.resolver_endpoints:
+            raise ResourceNotFoundException(
+                f"Resolver endpoint with ID '{resolver_endpoint_id}' does not exist"
+            )
 
     def get_resolver_endpoint(self, resolver_endpoint_id):
         """Return info for specified resolver endpoint."""
@@ -225,7 +240,11 @@ class Route53ResolverBackend(BaseBackend):
 
     def delete_resolver_endpoint(self, resolver_endpoint_id):
         """Delete a resolver endpoint."""
-        pass
+        self._validate_resolver_endpoint_id(resolver_endpoint_id)
+        self.tagger.delete_all_tags_for_resource(resolver_endpoint_id)
+        resolver_endpoint = self.resolver_endpoints.pop(resolver_endpoint_id)
+        resolver_endpoint.status = "DELETING"
+        return resolver_endpoint
 
 
 route53resolver_backends = {}

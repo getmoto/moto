@@ -38,6 +38,13 @@ def validate_direction(value):
     return ""
 
 
+def validate_endpoint_id(value):
+    """Raise exception if resolver endpoint id has invalid length."""
+    if len(value) > 64:
+        return "have length less than or equal to 64"
+    return ""
+
+
 def validate_ip_addresses(value):
     """Raise exception if IPs fail to match length constraint."""
     if len(value) > 10:

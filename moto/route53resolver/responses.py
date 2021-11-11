@@ -47,5 +47,4 @@ class Route53ResolverResponse(BaseResponse):
         resolver_endpoint = self.route53resolver_backend.delete_resolver_endpoint(
             resolver_endpoint_id=resolver_endpoint_id,
         )
-        # TODO: adjust response
-        return json.dumps(dict(resolverEndpoint=resolver_endpoint))
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
