@@ -34,10 +34,6 @@ from .utils import (
     convert_flask_to_responses_response,
 )
 
-try:
-    from importlib import reload
-except ImportError:
-    from imp import reload
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
@@ -699,9 +695,6 @@ class BaseBackend:
         backend_urls_module = __import__(
             backend_urls_module_name, fromlist=["url_bases", "url_paths"]
         )
-        # The urls-property can be different depending on env variables
-        # Force a reload, to retrieve the correct set of URLs
-        reload(backend_urls_module)
         return backend_urls_module
 
     @property

@@ -15,6 +15,7 @@ import time
 import uuid
 
 from bisect import insort
+from importlib import reload
 import pytz
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
@@ -1333,6 +1334,15 @@ class S3Backend(BaseBackend):
         self.buckets = {}
         self.account_public_access_block = None
         self.tagger = TaggingService()
+
+    @property
+    def _url_module(self):
+        # The urls-property can be different depending on env variables
+        # Force a reload, to retrieve the correct set of URLs
+        import moto.s3.urls as backend_urls_module
+
+        reload(backend_urls_module)
+        return backend_urls_module
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
