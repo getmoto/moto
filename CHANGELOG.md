@@ -1,6 +1,40 @@
 Moto Changelog
 ===================
 
+2.2.13
+-----
+    General:
+        * The mock_dynamodb and mock_rds-decorators have been deprecated, and will be repurposed in a later release.
+          Please see https://github.com/spulec/moto/issues/4526 for more information.
+
+    New Methods:
+        * API Gateway:
+            * get_base_path_mappings()
+        * Cognito Identity:
+            * list_identities()
+        * DirectoryService:
+            * disable_sso()
+            * enable_sso()
+            * connect_directory()
+            * create_alias()
+            * create_microsoft_ad()
+        * EMR Containers:
+            * cancel_job_run()
+            * describe_job_run()
+            * list_job_runs()
+            * start_job_run()
+        * IAM:
+            * list_policy_tags()
+            * tag_policy()
+            * untag_policy()
+        * Sagemaker:
+            * create_processing_job()
+            * describe_processing_job()
+            * list_processing_jobs()
+
+    Miscellaneous:
+        * CloudFormation: Now supports creation of Custom:: resources. Note that this only works in ServerMode.
+
 2.2.12
 -----
     New Services:

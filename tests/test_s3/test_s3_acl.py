@@ -326,3 +326,29 @@ def test_acl_setting_via_headers_boto3():
             "Permission": "READ",
         }
     )
+
+
+@mock_s3
+def test_raise_exception_for_grant_and_acl():
+    client = boto3.client("s3")
+    s3 = boto3.resource("s3")
+    bucket_name = "bucketname"
+    client.create_bucket(Bucket=bucket_name)
+    bucket = s3.Bucket(bucket_name)
+    acl = client.get_bucket_acl(Bucket=bucket_name)
+    acl_grantee_id = acl["Owner"]["ID"]
+
+    # This should raise an exception or provide some error message, but runs without exception instead.
+    with pytest.raises(ClientError) as exc:
+        bucket.put_object(
+            ACL="bucket-owner-full-control",
+            Body="example-file-path",
+            Key="example-key",
+            ContentType="text/plain",
+            GrantFullControl=f'id="{acl_grantee_id}"',
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidRequest")
+    err["Message"].should.equal(
+        "Specifying both Canned ACLs and Header Grants is not allowed"
+    )

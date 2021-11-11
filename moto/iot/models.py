@@ -7,10 +7,12 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime
 
-from boto3 import Session
+from .utils import PAGINATION_MODEL
 
+from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.utilities.utils import random_string
+from moto.utilities.paginator import paginate
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
@@ -1338,9 +1340,8 @@ class IoTBackend(BaseBackend):
 
         return job_executions, next_token
 
-    def list_job_executions_for_thing(
-        self, thing_name, status, max_results, next_token
-    ):
+    @paginate(PAGINATION_MODEL)
+    def list_job_executions_for_thing(self, thing_name, status):
         job_executions = [
             self.job_executions[je].to_dict()
             for je in self.job_executions
@@ -1355,20 +1356,7 @@ class IoTBackend(BaseBackend):
                 )
             )
 
-        token = next_token
-        if token is None:
-            job_executions = job_executions[0:max_results]
-            next_token = str(max_results) if len(job_executions) > max_results else None
-        else:
-            token = int(token)
-            job_executions = job_executions[token : token + max_results]
-            next_token = (
-                str(token + max_results)
-                if len(job_executions) > token + max_results
-                else None
-            )
-
-        return job_executions, next_token
+        return job_executions
 
     def list_topic_rules(self):
         return [r.to_dict() for r in self.rules.values()]

@@ -27,9 +27,9 @@ class StreamNotFoundError(ResourceNotFoundError):
 
 
 class ShardNotFoundError(ResourceNotFoundError):
-    def __init__(self, shard_id):
+    def __init__(self, shard_id, stream):
         super(ShardNotFoundError, self).__init__(
-            "Shard {0} under account {1} not found.".format(shard_id, ACCOUNT_ID)
+            f"Could not find shard {shard_id} in stream {stream} under account {ACCOUNT_ID}."
         )
 
 
@@ -38,4 +38,15 @@ class InvalidArgumentError(BadRequest):
         super(InvalidArgumentError, self).__init__()
         self.description = json.dumps(
             {"message": message, "__type": "InvalidArgumentException"}
+        )
+
+
+class ValidationException(BadRequest):
+    def __init__(self, value, position, regex_to_match):
+        super(ValidationException, self).__init__()
+        self.description = json.dumps(
+            {
+                "message": f"1 validation error detected: Value '{value}' at '{position}' failed to satisfy constraint: Member must satisfy regular expression pattern: {regex_to_match}",
+                "__type": "ValidationException",
+            }
         )

@@ -23,7 +23,7 @@ class DirectoryServiceResponse(BaseResponse):
         description = self._get_param("Description")
         size = self._get_param("Size")
         connect_settings = self._get_param("ConnectSettings")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags", [])
         directory_id = self.ds_backend.connect_directory(
             region=self.region,
             name=name,
@@ -44,7 +44,7 @@ class DirectoryServiceResponse(BaseResponse):
         description = self._get_param("Description")
         size = self._get_param("Size")
         vpc_settings = self._get_param("VpcSettings")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags", [])
         directory_id = self.ds_backend.create_directory(
             region=self.region,
             name=name,
@@ -72,7 +72,7 @@ class DirectoryServiceResponse(BaseResponse):
         description = self._get_param("Description")
         vpc_settings = self._get_param("VpcSettings")
         edition = self._get_param("Edition")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags", [])
         directory_id = self.ds_backend.create_microsoft_ad(
             region=self.region,
             name=name,

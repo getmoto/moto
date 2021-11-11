@@ -68,7 +68,7 @@
 - [X] get_api_keys
 - [X] get_authorizer
 - [X] get_authorizers
-- [ ] get_base_path_mapping
+- [X] get_base_path_mapping
 - [X] get_base_path_mappings
 - [ ] get_client_certificate
 - [ ] get_client_certificates
@@ -561,7 +561,7 @@
 
 ## cognito-identity
 <details>
-<summary>30% implemented</summary>
+<summary>34% implemented</summary>
 
 - [X] create_identity_pool
 - [ ] delete_identities
@@ -574,7 +574,7 @@
 - [X] get_open_id_token
 - [X] get_open_id_token_for_developer_identity
 - [ ] get_principal_tag_attribute_map
-- [ ] list_identities
+- [X] list_identities
 - [ ] list_identity_pools
 - [ ] list_tags_for_resource
 - [ ] lookup_developer_identity
@@ -814,12 +814,13 @@
 
 ## datasync
 <details>
-<summary>17% implemented</summary>
+<summary>15% implemented</summary>
 
 - [X] cancel_task_execution
 - [ ] create_agent
 - [ ] create_location_efs
 - [ ] create_location_fsx_windows
+- [ ] create_location_hdfs
 - [ ] create_location_nfs
 - [ ] create_location_object_storage
 - [ ] create_location_s3
@@ -831,6 +832,7 @@
 - [ ] describe_agent
 - [ ] describe_location_efs
 - [ ] describe_location_fsx_windows
+- [ ] describe_location_hdfs
 - [ ] describe_location_nfs
 - [ ] describe_location_object_storage
 - [ ] describe_location_s3
@@ -846,6 +848,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_agent
+- [ ] update_location_hdfs
 - [ ] update_location_nfs
 - [ ] update_location_object_storage
 - [ ] update_location_smb
@@ -1919,7 +1922,7 @@
 
 ## emr-containers
 <details>
-<summary>26% implemented</summary>
+<summary>53% implemented</summary>
 
 - [X] cancel_job_run
 - [ ] create_managed_endpoint
@@ -2267,7 +2270,7 @@
 
 ## iam
 <details>
-<summary>65% implemented</summary>
+<summary>67% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -3835,7 +3838,7 @@
 
 ## sagemaker
 <details>
-<summary>14% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] add_association
 - [ ] add_tags
@@ -3876,7 +3879,7 @@
 - [ ] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_notebook_instance_url
-- [ ] create_processing_job
+- [X] create_processing_job
 - [ ] create_project
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
@@ -3961,7 +3964,7 @@
 - [ ] describe_pipeline
 - [ ] describe_pipeline_definition_for_execution
 - [ ] describe_pipeline_execution
-- [ ] describe_processing_job
+- [X] describe_processing_job
 - [ ] describe_project
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
@@ -4020,7 +4023,7 @@
 - [ ] list_pipeline_executions
 - [ ] list_pipeline_parameters_for_execution
 - [ ] list_pipelines
-- [ ] list_processing_jobs
+- [X] list_processing_jobs
 - [ ] list_projects
 - [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
@@ -4259,7 +4262,7 @@
 
 ## ssm
 <details>
-<summary>17% implemented</summary>
+<summary>20% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -4269,7 +4272,7 @@
 - [ ] create_association
 - [ ] create_association_batch
 - [X] create_document
-- [ ] create_maintenance_window
+- [X] create_maintenance_window
 - [ ] create_ops_item
 - [ ] create_ops_metadata
 - [ ] create_patch_baseline
@@ -4278,7 +4281,7 @@
 - [ ] delete_association
 - [X] delete_document
 - [ ] delete_inventory
-- [ ] delete_maintenance_window
+- [X] delete_maintenance_window
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
@@ -4311,7 +4314,7 @@
 - [ ] describe_maintenance_window_schedule
 - [ ] describe_maintenance_window_targets
 - [ ] describe_maintenance_window_tasks
-- [ ] describe_maintenance_windows
+- [X] describe_maintenance_windows
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
 - [X] describe_parameters
@@ -4330,7 +4333,7 @@
 - [X] get_document
 - [ ] get_inventory
 - [ ] get_inventory_schema
-- [ ] get_maintenance_window
+- [X] get_maintenance_window
 - [ ] get_maintenance_window_execution
 - [ ] get_maintenance_window_execution_task
 - [ ] get_maintenance_window_execution_task_invocation
@@ -4650,6 +4653,7 @@
 - ce
 - chime
 - chime-sdk-identity
+- chime-sdk-meetings
 - chime-sdk-messaging
 - cloud9
 - cloudcontrol

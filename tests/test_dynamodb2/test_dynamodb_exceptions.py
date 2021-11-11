@@ -328,3 +328,49 @@ def test_create_table_with_redundant_and_missing_attributes():
     err["Message"].should.equal(
         "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [created_at, id]"
     )
+
+
+@mock_dynamodb2
+def test_put_item_wrong_attribute_type():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    dynamodb.create_table(
+        TableName="test-table",
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "created_at", "AttributeType": "N"},
+        ],
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "created_at", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    item = {
+        "id": {"N": "1"},  # should be a string
+        "created_at": {"N": "2"},
+        "someAttribute": {"S": "lore ipsum"},
+    }
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.put_item(TableName="test-table", Item=item)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Type mismatch for key id expected: S actual: N"
+    )
+
+    item = {
+        "id": {"S": "some id"},
+        "created_at": {"S": "should be date not string"},
+        "someAttribute": {"S": "lore ipsum"},
+    }
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.put_item(TableName="test-table", Item=item)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: Type mismatch for key created_at expected: N actual: S"
+    )

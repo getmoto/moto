@@ -335,9 +335,12 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, new_resource_name = parse_resource_and_generate_name(
+    resource_tuple = parse_resource_and_generate_name(
         logical_id, resource_json, resources_map
     )
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, new_resource_name = resource_tuple
     original_resource = resources_map[logical_id]
     if not hasattr(
         resource_class.update_from_cloudformation_json, "__isabstractmethod__"
@@ -375,12 +378,14 @@ def parse_condition(condition, resources_map, condition_map):
     condition_values = []
     for value in list(condition.values())[0]:
         # Check if we are referencing another Condition
-        if "Condition" in value:
+        if isinstance(value, dict) and "Condition" in value:
             condition_values.append(condition_map[value["Condition"]])
         else:
             condition_values.append(clean_json(value, resources_map))
 
     if condition_operator == "Fn::Equals":
+        if condition_values[1] in [True, False]:
+            return str(condition_values[0]).lower() == str(condition_values[1]).lower()
         return condition_values[0] == condition_values[1]
     elif condition_operator == "Fn::Not":
         return not parse_condition(condition_values[0], resources_map, condition_map)

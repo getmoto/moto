@@ -35,6 +35,10 @@ def test_list_tables():
     # Should make tables properly with boto
     dynamodb_backend2.create_table(
         name,
+        attr=[
+            {"AttributeType": "S", "AttributeName": "forum_name"},
+            {"AttributeType": "S", "AttributeName": "subject"},
+        ],
         schema=[
             {"KeyType": "HASH", "AttributeName": "forum_name"},
             {"KeyType": "RANGE", "AttributeName": "subject"},
@@ -70,10 +74,14 @@ def test_list_tables_boto3(names):
 def test_list_tables_layer_1():
     # Should make tables properly with boto
     dynamodb_backend2.create_table(
-        "test_1", schema=[{"KeyType": "HASH", "AttributeName": "name"}]
+        "test_1",
+        attr=[{"AttributeType": "S", "AttributeName": "name"},],
+        schema=[{"KeyType": "HASH", "AttributeName": "name"}],
     )
     dynamodb_backend2.create_table(
-        "test_2", schema=[{"KeyType": "HASH", "AttributeName": "name"}]
+        "test_2",
+        attr=[{"AttributeType": "S", "AttributeName": "name"}],
+        schema=[{"KeyType": "HASH", "AttributeName": "name"}],
     )
     conn = boto.dynamodb2.connect_to_region(
         "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
@@ -1485,11 +1493,9 @@ def test_put_item_nonexisting_range_key():
 
 def test_filter_expression():
     row1 = moto.dynamodb2.models.Item(
-        None,
-        None,
-        None,
-        None,
-        {
+        hash_key=None,
+        range_key=None,
+        attrs={
             "Id": {"N": "8"},
             "Subs": {"N": "5"},
             "Desc": {"S": "Some description"},
@@ -1497,11 +1503,9 @@ def test_filter_expression():
         },
     )
     row2 = moto.dynamodb2.models.Item(
-        None,
-        None,
-        None,
-        None,
-        {
+        hash_key=None,
+        range_key=None,
+        attrs={
             "Id": {"N": "8"},
             "Subs": {"N": "10"},
             "Desc": {"S": "A description"},

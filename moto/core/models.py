@@ -1,3 +1,5 @@
+import botocore
+import boto3
 import functools
 import inspect
 import os
@@ -405,6 +407,40 @@ class BotocoreStubber:
 
 botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
+
+
+def patch_client(client):
+    """
+    Explicitly patch a boto3-client
+    """
+    """
+    Adding the botocore_stubber to the BUILTIN_HANDLERS, as above, will mock everything as long as the import ordering is correct
+     - user:   start mock_service decorator
+     - system: imports core.model
+     - system: adds the stubber to the BUILTIN_HANDLERS
+     - user:   create a boto3 client - which will use the BUILTIN_HANDLERS
+
+    But, if for whatever reason the imports are wrong and the client is created first, it doesn't know about our stub yet
+    This method can be used to tell a client that it needs to be mocked, and append the botocore_stubber after creation
+    :param client:
+    :return:
+    """
+    if isinstance(client, botocore.client.BaseClient):
+        client.meta.events.register("before-send", botocore_stubber)
+    else:
+        raise Exception(f"Argument {client} should be of type boto3.client")
+
+
+def patch_resource(resource):
+    """
+    Explicitly patch a boto3-resource
+    """
+    if hasattr(resource, "meta") and isinstance(
+        resource.meta, boto3.resources.factory.ResourceMeta
+    ):
+        patch_client(resource.meta.client)
+    else:
+        raise Exception(f"Argument {resource} should be of type boto3.resource")
 
 
 def not_implemented_callback(request):
