@@ -265,3 +265,12 @@ class BasePathConflictException(ConflictException):
         super(BasePathConflictException, self).__init__(
             "ConflictException", "Base path already exists for this domain name"
         )
+
+
+class BasePathNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self):
+        super(BasePathNotFoundException, self).__init__(
+            "NotFoundException", "Invalid base path mapping identifier specified"
+        )

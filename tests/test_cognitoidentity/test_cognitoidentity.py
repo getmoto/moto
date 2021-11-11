@@ -156,9 +156,12 @@ def test_get_random_identity_id():
 def test_get_id():
     # These two do NOT work in server mode. They just don't return the data from the model.
     conn = boto3.client("cognito-identity", "us-west-2")
+    identity_pool_data = conn.create_identity_pool(
+        IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True
+    )
     result = conn.get_id(
         AccountId="someaccount",
-        IdentityPoolId="us-west-2:12345",
+        IdentityPoolId=identity_pool_data["IdentityPoolId"],
         Logins={"someurl": "12345"},
     )
     assert (
@@ -212,3 +215,21 @@ def test_get_open_id_token():
     result = conn.get_open_id_token(IdentityId="12345", Logins={"someurl": "12345"})
     assert len(result["Token"]) > 0
     assert result["IdentityId"] == "12345"
+
+
+@mock_cognitoidentity
+def test_list_identities():
+    conn = boto3.client("cognito-identity", "us-west-2")
+    identity_pool_data = conn.create_identity_pool(
+        IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True
+    )
+    identity_pool_id = identity_pool_data["IdentityPoolId"]
+    identity_data = conn.get_id(
+        AccountId="someaccount",
+        IdentityPoolId=identity_pool_id,
+        Logins={"someurl": "12345"},
+    )
+    identity_id = identity_data["IdentityId"]
+    identities = conn.list_identities(IdentityPoolId=identity_pool_id, MaxResults=123)
+    assert "IdentityPoolId" in identities and "Identities" in identities
+    assert identity_id in [x["IdentityId"] for x in identities["Identities"]]

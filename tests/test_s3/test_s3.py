@@ -6165,47 +6165,6 @@ def test_creating_presigned_post():
 
 
 @mock_s3
-def test_encryption():
-    # Create Bucket so that test can run
-    conn = boto3.client("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket="mybucket")
-
-    with pytest.raises(ClientError):
-        conn.get_bucket_encryption(Bucket="mybucket")
-
-    sse_config = {
-        "Rules": [
-            {
-                "ApplyServerSideEncryptionByDefault": {
-                    "SSEAlgorithm": "aws:kms",
-                    "KMSMasterKeyID": "12345678",
-                }
-            }
-        ]
-    }
-
-    conn.put_bucket_encryption(
-        Bucket="mybucket", ServerSideEncryptionConfiguration=sse_config
-    )
-
-    resp = conn.get_bucket_encryption(Bucket="mybucket")
-    assert "ServerSideEncryptionConfiguration" in resp
-    return_config = sse_config.copy()
-    return_config["Rules"][0]["BucketKeyEnabled"] = False
-    assert resp["ServerSideEncryptionConfiguration"].should.equal(return_config)
-
-    conn.delete_bucket_encryption(Bucket="mybucket")
-    with pytest.raises(ClientError) as exc:
-        conn.get_bucket_encryption(Bucket="mybucket")
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("ServerSideEncryptionConfigurationNotFoundError")
-    err["Message"].should.equal(
-        "The server side encryption configuration was not found"
-    )
-    err["BucketName"].should.equal("mybucket")
-
-
-@mock_s3
 def test_presigned_put_url_with_approved_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"

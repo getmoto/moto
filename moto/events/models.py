@@ -838,12 +838,13 @@ class EventPattern:
     def _does_item_match_filters(self, item, filters):
         allowed_values = [value for value in filters if isinstance(value, str)]
         allowed_values_match = item in allowed_values if allowed_values else True
+        full_match = isinstance(item, list) and item == allowed_values
         named_filter_matches = [
             self._does_item_match_named_filter(item, pattern)
             for pattern in filters
             if isinstance(pattern, dict)
         ]
-        return allowed_values_match and all(named_filter_matches)
+        return (full_match or allowed_values_match) and all(named_filter_matches)
 
     @staticmethod
     def _does_item_match_named_filter(item, pattern):

@@ -215,11 +215,19 @@ class CloudTrailBackend(BaseBackend):
     def get_trail_status(self, name):
         if len(name) < 3:
             raise TrailNameTooShort(actual_length=len(name))
-        if name not in self.trails:
+        trail_name = next(
+            (
+                trail.trail_name
+                for trail in self.trails.values()
+                if trail.trail_name == name or trail.arn == name
+            ),
+            None,
+        )
+        if not trail_name:
             # This particular method returns the ARN as part of the error message
             arn = f"arn:aws:cloudtrail:{self.region_name}:{ACCOUNT_ID}:trail/{name}"
             raise TrailNotFoundException(name=arn)
-        trail = self.trails[name]
+        trail = self.trails[trail_name]
         return trail.status
 
     def describe_trails(self, include_shadow_trails):

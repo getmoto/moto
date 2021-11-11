@@ -1,8 +1,18 @@
 import importlib
+import sys
 
 
-def lazy_load(module_name, element, boto3_name=None, backend=None):
+def lazy_load(
+    module_name, element, boto3_name=None, backend=None, warn_repurpose=False
+):
     def f(*args, **kwargs):
+        if warn_repurpose:
+            import warnings
+
+            warnings.warn(
+                f"Module {element} has been deprecated, and will be repurposed in a later release. "
+                "Please see https://github.com/spulec/moto/issues/4526 for more information."
+            )
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
 
@@ -53,7 +63,7 @@ mock_datapipeline_deprecated = lazy_load(
 mock_datasync = lazy_load(".datasync", "mock_datasync")
 mock_dms = lazy_load(".dms", "mock_dms")
 mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
-mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb")
+mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
 mock_dynamodb_deprecated = lazy_load(".dynamodb", "mock_dynamodb_deprecated")
 mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2", backend="dynamodb_backends2")
 mock_dynamodb2_deprecated = lazy_load(".dynamodb2", "mock_dynamodb2_deprecated")
@@ -99,7 +109,7 @@ mock_opsworks_deprecated = lazy_load(".opsworks", "mock_opsworks_deprecated")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_polly = lazy_load(".polly", "mock_polly")
 mock_ram = lazy_load(".ram", "mock_ram")
-mock_rds = lazy_load(".rds", "mock_rds")
+mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
 mock_rds_deprecated = lazy_load(".rds", "mock_rds_deprecated")
 mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
 mock_rds2_deprecated = lazy_load(".rds2", "mock_rds2_deprecated")
@@ -156,11 +166,30 @@ mock_mediastoredata = lazy_load(
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 
+
+def mock_all():
+    dec_names = [
+        d
+        for d in dir(sys.modules["moto"])
+        if d.startswith("mock_")
+        and not d.endswith("_deprecated")
+        and not d == "mock_all"
+    ]
+
+    def deco(f):
+        for dec_name in reversed(dec_names):
+            dec = globals()[dec_name]
+            f = dec(f)
+        return f
+
+    return deco
+
+
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.13.dev"
+__version__ = "2.2.14.dev"
 
 
 try:
