@@ -193,7 +193,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if not host:
             host = urlparse(request.url).netloc
 
-        custom_endpoints = settings.get_custom_endpoints()
+        custom_endpoints = settings.get_s3_custom_endpoints()
         if (
             host
             and custom_endpoints

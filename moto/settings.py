@@ -24,8 +24,8 @@ def get_sf_execution_history_type():
     return os.environ.get("SF_EXECUTION_HISTORY_TYPE", "SUCCESS")
 
 
-def get_custom_endpoints():
-    endpoints = os.environ.get("CUSTOM_ENDPOINTS")
+def get_s3_custom_endpoints():
+    endpoints = os.environ.get("MOTO_S3_CUSTOM_ENDPOINTS")
     if endpoints:
         return endpoints.split(",")
     return []

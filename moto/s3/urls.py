@@ -7,8 +7,7 @@ url_bases = [
     r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(.*)\.amazonaws.com",
 ]
 
-if settings.get_custom_endpoints():
-    url_bases.extend(settings.get_custom_endpoints())
+url_bases.extend(settings.get_s3_custom_endpoints())
 
 url_paths = {
     # subdomain bucket

@@ -18,7 +18,7 @@ def test_create_and_list_buckets(url):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
-    with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
+    with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         # Mock needs to be started after the environment variable is patched in
         with mock_s3():
             bucket = "mybucket"
@@ -36,7 +36,7 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(
-        os.environ, {"CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"}
+        os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"}
     ):
         # Mock needs to be started after the environment variable is patched in
         with mock_s3():
@@ -54,7 +54,7 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
 def test_put_and_get_object(url):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
-    with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
+    with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_s3():
             bucket = "mybucket"
             key = "file.txt"
@@ -75,7 +75,7 @@ def test_put_and_get_object(url):
 def test_put_and_list_objects(url):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
-    with patch.dict(os.environ, {"CUSTOM_ENDPOINTS": url}):
+    with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_s3():
             bucket = "mybucket"
 
