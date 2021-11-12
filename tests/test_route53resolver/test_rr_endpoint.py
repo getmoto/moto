@@ -306,12 +306,15 @@ def test_route53resolver_create_resolver_endpoint():
     assert endpoint["Status"] == "OPERATIONAL"
     assert "Creating the Resolver Endpoint" in endpoint["StatusMessage"]
 
-    now = datetime.now(timezone.utc)
-    time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
-    assert datetime.strptime(endpoint["CreationTime"], time_format) <= now
-    assert datetime.strptime(endpoint["ModificationTime"], time_format) <= now
+    time_format = "%Y-%m-%dT%H:%M:%S.%f+00:00"
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    creation_time = datetime.strptime(endpoint["CreationTime"], time_format)
+    creation_time = creation_time.replace(tzinfo=None)
+    assert creation_time <= now
 
-    # TODO: try an ipv6 block  /64
+    modification_time = datetime.strptime(endpoint["ModificationTime"], time_format)
+    modification_time = modification_time.replace(tzinfo=None)
+    assert modification_time <= now
 
 
 @mock_ec2
