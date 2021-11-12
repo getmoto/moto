@@ -1,6 +1,7 @@
 import uuid
 
 from boto3 import Session
+from datetime import datetime, timedelta
 
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
@@ -742,9 +743,30 @@ class LogsBackend(BaseBackend):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
-        return log_group.put_log_events(
-            log_group_name, log_stream_name, log_events, sequence_token
+
+        # Only events from the last 14 days or 2 hours in the future are accepted
+        rejected_info = {}
+        allowed_events = []
+        last_timestamp = None
+        oldest = int(unix_time_millis(datetime.utcnow() - timedelta(days=14)))
+        newest = int(unix_time_millis(datetime.utcnow() + timedelta(hours=2)))
+        for idx, event in enumerate(log_events):
+            if last_timestamp and last_timestamp > event["timestamp"]:
+                raise InvalidParameterException(
+                    "Log events in a single PutLogEvents request must be in chronological order."
+                )
+            if event["timestamp"] < oldest:
+                rejected_info["tooOldLogEventEndIndex"] = idx
+            elif event["timestamp"] > newest:
+                rejected_info["tooNewLogEventStartIndex"] = idx
+            else:
+                allowed_events.append(event)
+            last_timestamp = event["timestamp"]
+
+        token = log_group.put_log_events(
+            log_group_name, log_stream_name, allowed_events, sequence_token
         )
+        return token, rejected_info
 
     def get_log_events(
         self,

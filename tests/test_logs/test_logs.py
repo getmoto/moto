@@ -3,7 +3,7 @@ import os
 import time
 import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import boto3
 import pytest
@@ -401,8 +401,8 @@ def test_put_logs():
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
     messages = [
-        {"timestamp": 0, "message": "hello"},
-        {"timestamp": 0, "message": "world"},
+        {"timestamp": int(unix_time_millis()), "message": "hello"},
+        {"timestamp": int(unix_time_millis()), "message": "world"},
     ]
     put_results = conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
@@ -466,13 +466,123 @@ def test_filter_logs_raises_if_filter_pattern():
 
 
 @mock_logs
+def test_put_log_events_in_wrong_order():
+    conn = boto3.client("logs", "us-east-1")
+    log_group_name = "test"
+    log_stream_name = "teststream"
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    ts_1 = int(unix_time_millis(datetime.utcnow() - timedelta(days=2)))
+    ts_2 = int(unix_time_millis(datetime.utcnow() - timedelta(days=5)))
+
+    messages = [
+        {"message": f"Message {idx}", "timestamp": ts}
+        for idx, ts in enumerate([ts_1, ts_2])
+    ]
+
+    with pytest.raises(ClientError) as exc:
+        conn.put_log_events(
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            logEvents=messages,
+            sequenceToken="49599396607703531511419593985621160512859251095480828066",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Log events in a single PutLogEvents request must be in chronological order."
+    )
+
+
+@mock_logs
+@pytest.mark.parametrize("days_ago", [15, 400])
+def test_put_log_events_in_the_past(days_ago):
+    conn = boto3.client("logs", "us-east-1")
+    log_group_name = "test"
+    log_stream_name = "teststream"
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    timestamp = int(unix_time_millis(datetime.utcnow() - timedelta(days=days_ago)))
+
+    messages = [{"message": "Message number {}", "timestamp": timestamp}]
+
+    resp = conn.put_log_events(
+        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
+    )
+    resp.should.have.key("rejectedLogEventsInfo").should.equal(
+        {"tooOldLogEventEndIndex": 0}
+    )
+
+
+@mock_logs
+@pytest.mark.parametrize("minutes", [181, 300, 999999])
+def test_put_log_events_in_the_future(minutes):
+    conn = boto3.client("logs", "us-east-1")
+    log_group_name = "test"
+    log_stream_name = "teststream"
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    timestamp = int(unix_time_millis(datetime.utcnow() + timedelta(minutes=minutes)))
+
+    messages = [{"message": "Message number {}", "timestamp": timestamp}]
+
+    resp = conn.put_log_events(
+        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
+    )
+    resp.should.have.key("rejectedLogEventsInfo").should.equal(
+        {"tooNewLogEventStartIndex": 0}
+    )
+
+
+@mock_logs
+def test_put_log_events_now():
+    conn = boto3.client("logs", "us-east-1")
+    log_group_name = "test"
+    log_stream_name = "teststream"
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    ts_1 = int(unix_time_millis())
+    ts_2 = int(unix_time_millis(datetime.utcnow() + timedelta(minutes=5)))
+    ts_3 = int(unix_time_millis(datetime.utcnow() + timedelta(days=1)))
+
+    messages = [
+        {"message": f"Message {idx}", "timestamp": ts}
+        for idx, ts in enumerate([ts_1, ts_2, ts_3])
+    ]
+
+    resp = conn.put_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        logEvents=messages,
+        sequenceToken="49599396607703531511419593985621160512859251095480828066",
+    )
+
+    # Message 2 was too new
+    resp.should.have.key("rejectedLogEventsInfo").should.equal(
+        {"tooNewLogEventStartIndex": 2}
+    )
+    # Message 0 and 1 were persisted though
+    events = conn.filter_log_events(
+        logGroupName=log_group_name, logStreamNames=[log_stream_name], limit=20
+    )["events"]
+    messages = [e["message"] for e in events]
+    messages.should.contain("Message 0")
+    messages.should.contain("Message 1")
+    messages.shouldnt.contain("Message 2")
+
+
+@mock_logs
 def test_filter_logs_paging():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "/aws/dummy"
     log_stream_name = "stream/stage"
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
-    timestamp = int(time.time())
+    timestamp = int(unix_time_millis(datetime.utcnow()))
     messages = []
     for i in range(25):
         messages.append(
@@ -700,7 +810,11 @@ def test_get_log_events():
     client.create_log_group(logGroupName=log_group_name)
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    events = [{"timestamp": x, "message": str(x)} for x in range(20)]
+    data = [
+        (int(unix_time_millis(datetime.utcnow() + timedelta(milliseconds=x))), str(x))
+        for x in range(20)
+    ]
+    events = [{"timestamp": x, "message": y} for x, y in data]
 
     client.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=events
@@ -711,9 +825,9 @@ def test_get_log_events():
     )
 
     resp["events"].should.have.length_of(10)
-    for i in range(10):
-        resp["events"][i]["timestamp"].should.equal(i + 10)
-        resp["events"][i]["message"].should.equal(str(i + 10))
+    for idx, (x, y) in enumerate(data[10:]):
+        resp["events"][idx]["timestamp"].should.equal(x)
+        resp["events"][idx]["message"].should.equal(y)
     resp["nextForwardToken"].should.equal(
         "f/00000000000000000000000000000000000000000000000000000019"
     )
@@ -729,9 +843,9 @@ def test_get_log_events():
     )
 
     resp["events"].should.have.length_of(10)
-    for i in range(10):
-        resp["events"][i]["timestamp"].should.equal(i)
-        resp["events"][i]["message"].should.equal(str(i))
+    for idx, (x, y) in enumerate(data[0:10]):
+        resp["events"][idx]["timestamp"].should.equal(x)
+        resp["events"][idx]["message"].should.equal(y)
     resp["nextForwardToken"].should.equal(
         "f/00000000000000000000000000000000000000000000000000000009"
     )
@@ -762,8 +876,9 @@ def test_get_log_events():
     )
 
     resp["events"].should.have.length_of(1)
-    resp["events"][0]["timestamp"].should.equal(1)
-    resp["events"][0]["message"].should.equal(str(1))
+    x, y = data[1]
+    resp["events"][0]["timestamp"].should.equal(x)
+    resp["events"][0]["message"].should.equal(y)
     resp["nextForwardToken"].should.equal(
         "f/00000000000000000000000000000000000000000000000000000001"
     )
@@ -780,7 +895,11 @@ def test_get_log_events_with_start_from_head():
     client.create_log_group(logGroupName=log_group_name)
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    events = [{"timestamp": x, "message": str(x)} for x in range(20)]
+    data = [
+        (int(unix_time_millis(datetime.utcnow() + timedelta(milliseconds=x))), str(x))
+        for x in range(20)
+    ]
+    events = [{"timestamp": x, "message": y} for x, y in data]
 
     client.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=events
@@ -794,9 +913,9 @@ def test_get_log_events_with_start_from_head():
     )
 
     resp["events"].should.have.length_of(10)
-    for i in range(10):
-        resp["events"][i]["timestamp"].should.equal(i)
-        resp["events"][i]["message"].should.equal(str(i))
+    for idx, (x, y) in enumerate(data[0:10]):
+        resp["events"][idx]["timestamp"].should.equal(x)
+        resp["events"][idx]["message"].should.equal(y)
     resp["nextForwardToken"].should.equal(
         "f/00000000000000000000000000000000000000000000000000000009"
     )
@@ -812,9 +931,9 @@ def test_get_log_events_with_start_from_head():
     )
 
     resp["events"].should.have.length_of(10)
-    for i in range(10):
-        resp["events"][i]["timestamp"].should.equal(i + 10)
-        resp["events"][i]["message"].should.equal(str(i + 10))
+    for idx, (x, y) in enumerate(data[10:]):
+        resp["events"][idx]["timestamp"].should.equal(x)
+        resp["events"][idx]["message"].should.equal(y)
     resp["nextForwardToken"].should.equal(
         "f/00000000000000000000000000000000000000000000000000000019"
     )
@@ -845,8 +964,9 @@ def test_get_log_events_with_start_from_head():
     )
 
     resp["events"].should.have.length_of(1)
-    resp["events"][0]["timestamp"].should.equal(18)
-    resp["events"][0]["message"].should.equal(str(18))
+    x, y = data[18]
+    resp["events"][0]["timestamp"].should.equal(x)
+    resp["events"][0]["message"].should.equal(y)
     resp["nextForwardToken"].should.equal(
         "f/00000000000000000000000000000000000000000000000000000018"
     )

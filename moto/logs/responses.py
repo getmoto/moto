@@ -214,10 +214,18 @@ class LogsResponse(BaseResponse):
         log_events = self._get_param("logEvents")
         sequence_token = self._get_param("sequenceToken")
 
-        next_sequence_token = self.logs_backend.put_log_events(
+        next_sequence_token, rejected_info = self.logs_backend.put_log_events(
             log_group_name, log_stream_name, log_events, sequence_token
         )
-        return json.dumps({"nextSequenceToken": next_sequence_token})
+        if rejected_info:
+            return json.dumps(
+                {
+                    "nextSequenceToken": next_sequence_token,
+                    "rejectedLogEventsInfo": rejected_info,
+                }
+            )
+        else:
+            return json.dumps({"nextSequenceToken": next_sequence_token})
 
     def get_log_events(self):
         log_group_name = self._get_param("logGroupName")
