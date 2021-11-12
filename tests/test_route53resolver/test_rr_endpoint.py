@@ -318,50 +318,26 @@ def test_route53resolver_delete_resolver_endpoint():
     """Test good delete_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    random_num = get_random_hex(10)
-
-    # Create a resolver endpoint to have an entry that we can delete.
-    vpc_id = create_vpc(ec2_client)
-    subnet_ids = create_subnets(ec2_client, vpc_id)
-    ip_addrs = [
-        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
-        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
-    ]
-    security_group_id = create_security_group(ec2_client)
-    creator_request_id = random_num
-    name = "Y" + random_num
-    response = client.create_resolver_endpoint(
-        CreatorRequestId=creator_request_id,
-        Name=name,
-        SecurityGroupIds=[security_group_id],
-        Direction="INBOUND",
-        IpAddresses=ip_addrs,
-    )
-    id_value = response["ResolverEndpoint"]["Id"]
+    created_endpoint = create_endpoint(client, ec2_client)
 
     # Now delete the resolver endpoint and verify the response.
-    response = client.delete_resolver_endpoint(ResolverEndpointId=id_value)
-    endpoint = response["ResolverEndpoint"]
-    assert endpoint["CreatorRequestId"] == creator_request_id
-    assert (
-        endpoint["Arn"]
-        == f"arn:aws:route53resolver:{TEST_REGION}:{ACCOUNT_ID}:resolver-endpoint/{id_value}"
+    response = client.delete_resolver_endpoint(
+        ResolverEndpointId=created_endpoint["Id"]
     )
-    assert endpoint["Name"] == name
-    assert endpoint["SecurityGroupIds"] == [security_group_id]
-    assert endpoint["Direction"] == "INBOUND"
-    assert endpoint["IpAddressCount"] == 0  # TODO
-    assert endpoint["HostVPCId"] == vpc_id
+    endpoint = response["ResolverEndpoint"]
+    assert endpoint["CreatorRequestId"] == created_endpoint["CreatorRequestId"]
+    assert endpoint["Id"] == created_endpoint["Id"]
+    assert endpoint["Arn"] == created_endpoint["Arn"]
+    assert endpoint["Name"] == created_endpoint["Name"]
+    assert endpoint["SecurityGroupIds"] == created_endpoint["SecurityGroupIds"]
+    assert endpoint["Direction"] == created_endpoint["Direction"]
+    assert endpoint["IpAddressCount"] == created_endpoint["IpAddressCount"]
+    assert endpoint["HostVPCId"] == created_endpoint["HostVPCId"]
     assert endpoint["Status"] == "DELETING"
-    assert "Creating the Resolver Endpoint" in endpoint["StatusMessage"]
-
-    now = datetime.now(timezone.utc)
-    time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
-    assert datetime.strptime(endpoint["CreationTime"], time_format) <= now
-    assert datetime.strptime(endpoint["ModificationTime"], time_format) <= now
+    assert endpoint["StatusMessage"] == created_endpoint["StatusMessage"]
+    assert endpoint["CreationTime"] == created_endpoint["CreationTime"]
 
 
-@mock_ec2
 @mock_route53resolver
 def test_route53resolver_bad_delete_resolver_endpoint():
     """Test delete_resolver_endpoint API calls with a bad ID."""
@@ -383,6 +359,112 @@ def test_route53resolver_bad_delete_resolver_endpoint():
     # Delete a non-existent resolver endpoint.
     with pytest.raises(ClientError) as exc:
         client.delete_resolver_endpoint(ResolverEndpointId=random_num)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Resolver endpoint with ID '{random_num}' does not exist" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_get_resolver_endpoint():
+    """Test good get_resolver_endpoint API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    created_endpoint = create_endpoint(client, ec2_client)
+
+    # Now get the resolver endpoint and verify the response.
+    response = client.get_resolver_endpoint(ResolverEndpointId=created_endpoint["Id"])
+    endpoint = response["ResolverEndpoint"]
+    assert endpoint["CreatorRequestId"] == created_endpoint["CreatorRequestId"]
+    assert endpoint["Id"] == created_endpoint["Id"]
+    assert endpoint["Arn"] == created_endpoint["Arn"]
+    assert endpoint["Name"] == created_endpoint["Name"]
+    assert endpoint["SecurityGroupIds"] == created_endpoint["SecurityGroupIds"]
+    assert endpoint["Direction"] == created_endpoint["Direction"]
+    assert endpoint["IpAddressCount"] == created_endpoint["IpAddressCount"]
+    assert endpoint["HostVPCId"] == created_endpoint["HostVPCId"]
+    assert endpoint["Status"] == created_endpoint["Status"]
+    assert endpoint["StatusMessage"] == created_endpoint["StatusMessage"]
+    assert endpoint["CreationTime"] == created_endpoint["CreationTime"]
+    assert endpoint["ModificationTime"] == created_endpoint["ModificationTime"]
+
+
+@mock_route53resolver
+def test_route53resolver_bad_get_resolver_endpoint():
+    """Test get_resolver_endpoint API calls with a bad ID."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Use a resolver endpoint id that is too long.
+    long_id = "0123456789" * 6 + "xxxxx"
+    with pytest.raises(ClientError) as exc:
+        client.get_resolver_endpoint(ResolverEndpointId=long_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        f"Value '{long_id}' at 'resolverEndpointId' failed to satisfy "
+        f"constraint: Member must have length less than or equal to 64"
+    ) in err["Message"]
+
+    # Delete a non-existent resolver endpoint.
+    with pytest.raises(ClientError) as exc:
+        client.get_resolver_endpoint(ResolverEndpointId=random_num)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Resolver endpoint with ID '{random_num}' does not exist" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_update_resolver_endpoint():
+    """Test good update_resolver_endpoint API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    created_endpoint = create_endpoint(client, ec2_client)
+
+    # Now update the resolver endpoint name and verify the response.
+    new_name = "NewName" + get_random_hex(6)
+    response = client.update_resolver_endpoint(
+        ResolverEndpointId=created_endpoint["Id"], Name=new_name,
+    )
+    endpoint = response["ResolverEndpoint"]
+    assert endpoint["CreatorRequestId"] == created_endpoint["CreatorRequestId"]
+    assert endpoint["Id"] == created_endpoint["Id"]
+    assert endpoint["Arn"] == created_endpoint["Arn"]
+    assert endpoint["Name"] == new_name
+    assert endpoint["SecurityGroupIds"] == created_endpoint["SecurityGroupIds"]
+    assert endpoint["Direction"] == created_endpoint["Direction"]
+    assert endpoint["IpAddressCount"] == created_endpoint["IpAddressCount"]
+    assert endpoint["HostVPCId"] == created_endpoint["HostVPCId"]
+    assert endpoint["Status"] == created_endpoint["Status"]
+    assert endpoint["StatusMessage"] == created_endpoint["StatusMessage"]
+    assert endpoint["CreationTime"] == created_endpoint["CreationTime"]
+    assert endpoint["ModificationTime"] != created_endpoint["ModificationTime"]
+
+
+@mock_route53resolver
+def test_route53resolver_bad_update_resolver_endpoint():
+    """Test update_resolver_endpoint API calls with a bad ID."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+    random_name = "Z" + get_random_hex(10)
+
+    # Use a resolver endpoint id that is too long.
+    long_id = "0123456789" * 6 + "xxxxx"
+    with pytest.raises(ClientError) as exc:
+        client.update_resolver_endpoint(ResolverEndpointId=long_id, Name=random_name)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        f"Value '{long_id}' at 'resolverEndpointId' failed to satisfy "
+        f"constraint: Member must have length less than or equal to 64"
+    ) in err["Message"]
+
+    # Delete a non-existent resolver endpoint.
+    with pytest.raises(ClientError) as exc:
+        client.update_resolver_endpoint(ResolverEndpointId=random_num, Name=random_name)
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert f"Resolver endpoint with ID '{random_num}' does not exist" in err["Message"]

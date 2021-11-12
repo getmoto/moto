@@ -57,10 +57,10 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.direction = direction
         self.ip_addresses = ip_addresses
 
-        # TODO Validate fields here or before?
         # Constructed members.
         self.id = endpoint_id  # pylint: disable=invalid-name
-        self.ip_address_count = 0  # TODO
+        # TODO - correct number of ip addresses
+        self.ip_address_count = len(ip_addresses)
         self.host_vpc_id = self._vpc_id_from_subnet()
         self.status = "OPERATIONAL"
         # TODO - what is the trace id?  1-6185df07-570edfdd77b6f5d7617c9a29
@@ -103,13 +103,18 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             "ModificationTime": self.modification_time,
         }
 
+    def update_name(self, name):
+        """Replace existing name with new name."""
+        self.name = name
+        self.modification_time = datetime.now(timezone.utc).isoformat()
+
 
 class Route53ResolverBackend(BaseBackend):
     """Implementation of Route53Resolver APIs."""
 
     def __init__(self, region_name=None):
         self.region_name = region_name
-        self.resolver_endpoints = {}  # Key is creator_request_id
+        self.resolver_endpoints = {}  # Key is self-generated ID (endpoint_id)
         self.tagger = TaggingService()
 
     def reset(self):
@@ -252,7 +257,16 @@ class Route53ResolverBackend(BaseBackend):
 
     def get_resolver_endpoint(self, resolver_endpoint_id):
         """Return info for specified resolver endpoint."""
-        pass
+        self._validate_resolver_endpoint_id(resolver_endpoint_id)
+        return self.resolver_endpoints[resolver_endpoint_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(
+        self, resource_arn, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List all tags for the given resource."""
+        self._matched_arn(resource_arn)
+        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 
     def _matched_arn(self, resource_arn):
         """Given ARN, raise exception if there is no corresponding resource."""
@@ -289,13 +303,13 @@ class Route53ResolverBackend(BaseBackend):
         self._matched_arn(resource_arn)
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags_for_resource(
-        self, resource_arn, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
-        """List all tags for the given resource."""
-        self._matched_arn(resource_arn)
-        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
+    def update_resolver_endpoint(self, resolver_endpoint_id, name):
+        """Update name of Resolver endpoint."""
+        self._validate_resolver_endpoint_id(resolver_endpoint_id)
+        validate_args([(validate_name, "name", name)])
+        resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
+        resolver_endpoint.update_name(name)
+        return resolver_endpoint
 
 
 route53resolver_backends = {}

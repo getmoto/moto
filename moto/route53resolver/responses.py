@@ -48,8 +48,7 @@ class Route53ResolverResponse(BaseResponse):
         resolver_endpoint = self.route53resolver_backend.get_resolver_endpoint(
             resolver_endpoint_id=resolver_endpoint_id,
         )
-        # TODO: adjust response
-        return json.dumps(dict(resolverEndpoint=resolver_endpoint))
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
     def list_tags_for_resource(self):
         """Lists all tags for the given resource."""
@@ -85,3 +84,12 @@ class Route53ResolverResponse(BaseResponse):
             resource_arn=resource_arn, tag_keys=tag_keys
         )
         return ""
+
+    def update_resolver_endpoint(self):
+        """Update name of Resolver endpoint."""
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+        name = self._get_param("Name")
+        resolver_endpoint = self.route53resolver_backend.update_resolver_endpoint(
+            resolver_endpoint_id=resolver_endpoint_id, name=name,
+        )
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})

@@ -85,5 +85,5 @@ route53resolver
 - [ ] update_firewall_rule
 - [ ] update_firewall_rule_group_association
 - [ ] update_resolver_dnssec_config
-- [ ] update_resolver_endpoint
+- [X] update_resolver_endpoint
 - [ ] update_resolver_rule
