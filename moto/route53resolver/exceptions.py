@@ -86,7 +86,7 @@ class ResourceNotFoundException(JsonRESTError):
         super().__init__("ResourceNotFoundException", message)
 
 
-class ValidationException(JsonRESTError):
+class TagValidationException(JsonRESTError):
     """Tag validation failed."""
 
     code = 400

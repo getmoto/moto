@@ -16,8 +16,7 @@ from moto.route53resolver.exceptions import (
     # TODO LimitExceededException,
     # TODO ResourceExistsException,  --- for create?
     ResourceNotFoundException,
-    RRValidationException,
-    ValidationException,
+    TagValidationException,
 )
 from moto.route53resolver.utils import PAGINATION_MODEL
 from moto.route53resolver.validations import (
@@ -215,9 +214,11 @@ class Route53ResolverBackend(BaseBackend):
                 (validate_subnets, "ipAddresses.subnetId", ip_addresses),
             ]
         )
-        errmsg = self.tagger.validate_tags(tags or [])
+        errmsg = self.tagger.validate_tags(
+            tags or [], limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT,
+        )
         if errmsg:
-            raise ValidationException(errmsg)
+            raise TagValidationException(errmsg)
         self._verify_subnet_ips(region, ip_addresses)
         self._verify_security_group_ids(region, security_group_ids)
 
@@ -280,22 +281,11 @@ class Route53ResolverBackend(BaseBackend):
     def tag_resource(self, resource_arn, tags):
         """Add or overwrite one or more tags for specified resource."""
         self._matched_arn(resource_arn)
-        if len(tags) > ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT:
-            raise RRValidationException(
-                [
-                    (
-                        "tags",
-                        tags,
-                        (
-                            f"have length less than or equal to "
-                            f"{ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT}"
-                        ),
-                    )
-                ]
-            )
-        errmsg = self.tagger.validate_tags(tags)
+        errmsg = self.tagger.validate_tags(
+            tags, limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT,
+        )
         if errmsg:
-            raise ValidationException(errmsg)
+            raise TagValidationException(errmsg)
         self.tagger.tag_resource(resource_arn, tags)
 
     def untag_resource(self, resource_arn, tag_keys):
