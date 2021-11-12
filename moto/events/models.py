@@ -15,7 +15,11 @@ from boto3 import Session
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
-from moto.core.utils import unix_time, iso_8601_datetime_without_milliseconds
+from moto.core.utils import (
+    unix_time,
+    unix_time_millis,
+    iso_8601_datetime_without_milliseconds,
+)
 from moto.events.exceptions import (
     ValidationException,
     ResourceNotFoundException,
@@ -176,7 +180,7 @@ class Rule(CloudFormationModel):
         log_stream_name = str(uuid4())
         log_events = [
             {
-                "timestamp": unix_time(datetime.utcnow()),
+                "timestamp": unix_time_millis(datetime.utcnow()),
                 "message": json.dumps(event_copy),
             }
         ]
