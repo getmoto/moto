@@ -39,11 +39,13 @@ def create_subnets(ec2_client, vpc_id):
     return subnet_ids
 
 
-def create_endpoint(client, ec2_client, tags=None):
+def create_test_endpoint(client, ec2_client, tags=None):
     """Create an endpoint that can be used for testing purposes.
 
     Can't be used for unit tests that need to know/test the arguments.
     """
+    if not tags:
+        tags = []
     random_num = get_random_hex(10)
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     resolver_endpoint = client.create_resolver_endpoint(
@@ -55,7 +57,7 @@ def create_endpoint(client, ec2_client, tags=None):
             {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
             {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
         ],
-        Tags=tags if tags else [],
+        Tags=tags,
     )
     return resolver_endpoint["ResolverEndpoint"]
 
@@ -318,7 +320,7 @@ def test_route53resolver_delete_resolver_endpoint():
     """Test good delete_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    created_endpoint = create_endpoint(client, ec2_client)
+    created_endpoint = create_test_endpoint(client, ec2_client)
 
     # Now delete the resolver endpoint and verify the response.
     response = client.delete_resolver_endpoint(
@@ -370,7 +372,7 @@ def test_route53resolver_get_resolver_endpoint():
     """Test good get_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    created_endpoint = create_endpoint(client, ec2_client)
+    created_endpoint = create_test_endpoint(client, ec2_client)
 
     # Now get the resolver endpoint and verify the response.
     response = client.get_resolver_endpoint(ResolverEndpointId=created_endpoint["Id"])
@@ -421,7 +423,7 @@ def test_route53resolver_update_resolver_endpoint():
     """Test good update_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    created_endpoint = create_endpoint(client, ec2_client)
+    created_endpoint = create_test_endpoint(client, ec2_client)
 
     # Now update the resolver endpoint name and verify the response.
     new_name = "NewName" + get_random_hex(6)

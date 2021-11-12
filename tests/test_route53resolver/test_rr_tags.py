@@ -8,7 +8,7 @@ from moto import mock_route53resolver
 from moto.ec2 import mock_ec2
 from moto.route53resolver.models import ResolverEndpoint
 
-from .test_rr_endpoint import TEST_REGION, create_endpoint
+from .test_rr_endpoint import TEST_REGION, create_test_endpoint
 
 
 @mock_ec2
@@ -17,7 +17,7 @@ def test_route53resolver_tag_resource():
     """Test the addition of tags to a resource."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
-    resolver_endpoint = create_endpoint(client, ec2_client)
+    resolver_endpoint = create_test_endpoint(client, ec2_client)
 
     # Unknown resolver endpoint id.
     bad_arn = "foobar"
@@ -76,7 +76,7 @@ def test_route53resolver_untag_resource():
         {"Key": "two", "Value": "2"},
         {"Key": "three", "Value": "3"},
     ]
-    resolver_endpoint = create_endpoint(client, ec2_client, tags=tag_list)
+    resolver_endpoint = create_test_endpoint(client, ec2_client, tags=tag_list)
 
     # Untag all of the tags.  Verify there are no more tags.
     client.untag_resource(
@@ -99,7 +99,7 @@ def test_route53resolver_list_tags_for_resource():
         {"Key": f"{x}_k", "Value": f"{x}_v"}
         for x in range(1, ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT)
     ]
-    resolver_endpoint = create_endpoint(client, ec2_client, tags=tags)
+    resolver_endpoint = create_test_endpoint(client, ec2_client, tags=tags)
 
     # Verify limit and next token works.
     result = client.list_tags_for_resource(
