@@ -1,8 +1,10 @@
 """Handles incoming route53resolver requests/responses."""
 import json
 
+from moto.core.exceptions import InvalidToken
 from moto.core.responses import BaseResponse
-from .models import route53resolver_backends
+from moto.route53resolver.exceptions import InvalidNextTokenException
+from moto.route53resolver.models import route53resolver_backends
 
 
 class Route53ResolverResponse(BaseResponse):
@@ -32,6 +34,14 @@ class Route53ResolverResponse(BaseResponse):
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
+    def delete_resolver_endpoint(self):
+        """Delete a Resolver endpoint."""
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+        resolver_endpoint = self.route53resolver_backend.delete_resolver_endpoint(
+            resolver_endpoint_id=resolver_endpoint_id,
+        )
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
     def get_resolver_endpoint(self):
         """Return info about a specific Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
@@ -41,10 +51,37 @@ class Route53ResolverResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(dict(resolverEndpoint=resolver_endpoint))
 
-    def delete_resolver_endpoint(self):
-        """Delete a Resolver endpoint."""
-        resolver_endpoint_id = self._get_param("ResolverEndpointId")
-        resolver_endpoint = self.route53resolver_backend.delete_resolver_endpoint(
-            resolver_endpoint_id=resolver_endpoint_id,
+    def list_tags_for_resource(self):
+        """Lists all tags for the given resource."""
+        resource_arn = self._get_param("ResourceArn")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        try:
+            (tags, next_token) = self.route53resolver_backend.list_tags_for_resource(
+                resource_arn=resource_arn,
+                next_token=next_token,
+                max_results=max_results,
+            )
+        except InvalidToken as exc:
+            raise InvalidNextTokenException() from exc
+
+        response = {"Tags": tags}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
+
+    def tag_resource(self):
+        """Add one or more tags to a specified resource."""
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        self.route53resolver_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return ""
+
+    def untag_resource(self):
+        """Removes one or more tags from the specified resource."""
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys")
+        self.route53resolver_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
         )
-        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+        return ""

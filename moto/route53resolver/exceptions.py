@@ -29,6 +29,18 @@ class RRValidationException(JsonRESTError):
         super().__init__("ValidationException", msg_leader + "; ".join(msgs))
 
 
+class InvalidNextTokenException(JsonRESTError):
+    """Invalid next token parameter used to return a list of entities."""
+
+    code = 400
+
+    def __init__(self):
+        super().__init__(
+            "InvalidNextTokenException",
+            "Invalid value passed for the NextToken parameter",
+        )
+
+
 class InvalidParameterException(JsonRESTError):
     """One or more parameters in request are not valid."""
 
@@ -72,3 +84,12 @@ class ResourceNotFoundException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__("ResourceNotFoundException", message)
+
+
+class ValidationException(JsonRESTError):
+    """Tag validation failed."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ValidationException", message)

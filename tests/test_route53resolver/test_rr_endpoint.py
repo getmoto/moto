@@ -39,6 +39,27 @@ def create_subnets(ec2_client, vpc_id):
     return subnet_ids
 
 
+def create_endpoint(client, ec2_client, tags=None):
+    """Create an endpoint that can be used for testing purposes.
+
+    Can't be used for unit tests that need to know/test the arguments.
+    """
+    random_num = get_random_hex(10)
+    subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
+    resolver_endpoint = client.create_resolver_endpoint(
+        CreatorRequestId=random_num,
+        Name="X" + random_num,
+        SecurityGroupIds=[create_security_group(ec2_client)],
+        Direction="INBOUND",
+        IpAddresses=[
+            {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
+            {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+        ],
+        Tags=tags if tags else [],
+    )
+    return resolver_endpoint["ResolverEndpoint"]
+
+
 @mock_route53resolver
 def test_route53resolver_invalid_create_endpoint_args():
     """Test invalid arguments to the create_resolver_endpoint API."""
@@ -52,7 +73,7 @@ def test_route53resolver_invalid_create_endpoint_args():
     #  - more than 10 IP Address sets.
     #  - too many security group IDs.
     long_id = random_num * 25 + "123456"
-    long_name = random_num * 6 + "12345"
+    long_name = random_num * 6 + "abcde"
     too_many_security_groups = ["sg-" + get_random_hex(63)]
     bad_direction = "foo"
     too_many_ip_addresses = [{"SubnetId": f"{x}", "Ip": f"{x}" * 7} for x in range(11)]
@@ -113,7 +134,7 @@ def test_route53resolver_invalid_create_endpoint_args():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=ok_group_ids,
             Direction="OUTBOUND",
             IpAddresses=subnet_too_long,
@@ -140,7 +161,7 @@ def test_route53resolver_bad_create_endpoint_subnets():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=[f"sg-{random_num}"],
             Direction="INBOUND",
             IpAddresses=[{"SubnetId": subnet_ids[0], "Ip": "1.2.3.4"}],
@@ -154,7 +175,7 @@ def test_route53resolver_bad_create_endpoint_subnets():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=[f"sg-{random_num}"],
             Direction="INBOUND",
             IpAddresses=[
@@ -173,7 +194,7 @@ def test_route53resolver_bad_create_endpoint_subnets():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=[f"sg-{random_num}"],
             Direction="INBOUND",
             IpAddresses=[
@@ -204,7 +225,7 @@ def test_route53resolver_bad_create_endpoint_security_groups():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=["foo"],
             Direction="INBOUND",
             IpAddresses=ip_addrs,
@@ -219,7 +240,7 @@ def test_route53resolver_bad_create_endpoint_security_groups():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=["sg-abc"],
             Direction="INBOUND",
             IpAddresses=ip_addrs,
@@ -232,7 +253,7 @@ def test_route53resolver_bad_create_endpoint_security_groups():
     with pytest.raises(ClientError) as exc:
         client.create_resolver_endpoint(
             CreatorRequestId=random_num,
-            Name=random_num,
+            Name="X" + random_num,
             SecurityGroupIds=["sg-abc"] * 11,
             Direction="INBOUND",
             IpAddresses=ip_addrs,
@@ -259,7 +280,7 @@ def test_route53resolver_create_resolver_endpoint():
     security_group_id = create_security_group(ec2_client)
 
     creator_request_id = random_num
-    name = random_num
+    name = "X" + random_num
     response = client.create_resolver_endpoint(
         CreatorRequestId=creator_request_id,
         Name=name,
@@ -308,7 +329,7 @@ def test_route53resolver_delete_resolver_endpoint():
     ]
     security_group_id = create_security_group(ec2_client)
     creator_request_id = random_num
-    name = random_num
+    name = "Y" + random_num
     response = client.create_resolver_endpoint(
         CreatorRequestId=creator_request_id,
         Name=name,
@@ -321,7 +342,6 @@ def test_route53resolver_delete_resolver_endpoint():
     # Now delete the resolver endpoint and verify the response.
     response = client.delete_resolver_endpoint(ResolverEndpointId=id_value)
     endpoint = response["ResolverEndpoint"]
-    breakpoint()
     assert endpoint["CreatorRequestId"] == creator_request_id
     assert (
         endpoint["Arn"]

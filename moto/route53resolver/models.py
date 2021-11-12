@@ -14,9 +14,12 @@ from moto.route53resolver.exceptions import (
     InvalidParameterException,
     InvalidRequestException,
     # TODO LimitExceededException,
-    # TODO ResourceExistsException,
+    # TODO ResourceExistsException,  --- for create?
     ResourceNotFoundException,
+    RRValidationException,
+    ValidationException,
 )
+from moto.route53resolver.utils import PAGINATION_MODEL
 from moto.route53resolver.validations import (
     validate_args,
     validate_creator_request_id,
@@ -28,12 +31,14 @@ from moto.route53resolver.validations import (
     validate_subnets,
 )
 
-# TODO from moto.utilities.paginator import paginate
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 
 class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attributes
     """Representation of a fake Route53 Resolver Endpoint."""
+
+    MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
 
     def __init__(
         self,
@@ -205,6 +210,9 @@ class Route53ResolverBackend(BaseBackend):
                 (validate_subnets, "ipAddresses.subnetId", ip_addresses),
             ]
         )
+        errmsg = self.tagger.validate_tags(tags or [])
+        if errmsg:
+            raise ValidationException(errmsg)
         self._verify_subnet_ips(region, ip_addresses)
         self._verify_security_group_ids(region, security_group_ids)
 
@@ -221,7 +229,7 @@ class Route53ResolverBackend(BaseBackend):
             name,
         )
         self.resolver_endpoints[endpoint_id] = resolver_endpoint
-        self.tagger.tag_resource(endpoint_id, tags or [])
+        self.tagger.tag_resource(resolver_endpoint.arn, tags or [])
         return resolver_endpoint
 
     def _validate_resolver_endpoint_id(self, resolver_endpoint_id):
@@ -234,10 +242,6 @@ class Route53ResolverBackend(BaseBackend):
                 f"Resolver endpoint with ID '{resolver_endpoint_id}' does not exist"
             )
 
-    def get_resolver_endpoint(self, resolver_endpoint_id):
-        """Return info for specified resolver endpoint."""
-        pass
-
     def delete_resolver_endpoint(self, resolver_endpoint_id):
         """Delete a resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
@@ -245,6 +249,53 @@ class Route53ResolverBackend(BaseBackend):
         resolver_endpoint = self.resolver_endpoints.pop(resolver_endpoint_id)
         resolver_endpoint.status = "DELETING"
         return resolver_endpoint
+
+    def get_resolver_endpoint(self, resolver_endpoint_id):
+        """Return info for specified resolver endpoint."""
+        pass
+
+    def _matched_arn(self, resource_arn):
+        """Given ARN, raise exception if there is no corresponding resource."""
+        for resolver_endpoint in self.resolver_endpoints.values():
+            if resolver_endpoint.arn == resource_arn:
+                return
+        raise ResourceNotFoundException(
+            f"Resolver endpoint with ID '{resource_arn}' does not exist"
+        )
+
+    def tag_resource(self, resource_arn, tags):
+        """Add or overwrite one or more tags for specified resource."""
+        self._matched_arn(resource_arn)
+        if len(tags) > ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT:
+            raise RRValidationException(
+                [
+                    (
+                        "tags",
+                        tags,
+                        (
+                            f"have length less than or equal to "
+                            f"{ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT}"
+                        ),
+                    )
+                ]
+            )
+        errmsg = self.tagger.validate_tags(tags)
+        if errmsg:
+            raise ValidationException(errmsg)
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        """Removes tags from a resource."""
+        self._matched_arn(resource_arn)
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(
+        self, resource_arn, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List all tags for the given resource."""
+        self._matched_arn(resource_arn)
+        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 
 
 route53resolver_backends = {}
