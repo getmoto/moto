@@ -37,8 +37,8 @@ ec2
 - [X] allocate_address
 - [ ] allocate_hosts
 - [ ] apply_security_groups_to_client_vpn_target_network
-- [ ] assign_ipv6_addresses
-- [ ] assign_private_ip_addresses
+- [X] assign_ipv6_addresses
+- [X] assign_private_ip_addresses
 - [X] associate_address
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
@@ -505,8 +505,8 @@ ec2
 - [X] stop_instances
 - [ ] terminate_client_vpn_connections
 - [X] terminate_instances
-- [ ] unassign_ipv6_addresses
-- [ ] unassign_private_ip_addresses
+- [X] unassign_ipv6_addresses
+- [X] unassign_private_ip_addresses
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
