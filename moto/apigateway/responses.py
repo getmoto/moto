@@ -893,7 +893,7 @@ class APIGatewayResponse(BaseResponse):
                 )
                 return 200, {}, json.dumps(base_path_mapping)
             elif self.method == "DELETE":
-                # TODO Implements
-                pass
+                self.backend.delete_base_path_mapping(domain_name, base_path)
+                return 202, {}, ""
         except NotFoundException as e:
             return self.error("NotFoundException", e.message, 404)
