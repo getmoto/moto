@@ -796,7 +796,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     ):
         volume = self.ec2_backend.create_volume(
             size=size,
-            zone_name=self.region_name,
+            zone_name=self._placement.zone,
             snapshot_id=snapshot_id,
             encrypted=encrypted,
             kms_key_id=kms_key_id,
@@ -808,7 +808,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
-        volume = self.ec2_backend.create_volume(size=8, zone_name="us-east-1a")
+        volume = self.ec2_backend.create_volume(size=8, zone_name=self._placement.zone)
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1", True)
 
     def teardown_defaults(self):

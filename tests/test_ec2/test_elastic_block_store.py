@@ -561,6 +561,13 @@ def test_volume_attach_and_detach_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = reservation["Instances"][0]
+
+    volumes = client.describe_volumes(
+        Filters=[{"Name": "attachment.instance-id", "Values": [instance["InstanceId"]]}]
+    )["Volumes"]
+    volumes.should.have.length_of(1)
+    volumes[0]["AvailabilityZone"].should.equal("us-east-1a")
+
     volume = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
 
     volume.reload()

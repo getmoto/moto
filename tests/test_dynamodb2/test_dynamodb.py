@@ -1551,6 +1551,12 @@ def test_filter_expression():
     )
     filter_expr.expr(row1).should.be(True)
 
+    # BETWEEN integer test
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "0"}, ":v1": {"N": "10"}}
+    )
+    filter_expr.expr(row1).should.be(True)
+
     # PAREN test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
         "Id = :v0 AND (Subs = :v0 OR Subs = :v1)",

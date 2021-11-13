@@ -36,7 +36,7 @@ def test_send_to_cw_log_group():
     )
 
     # when
-    event_time = datetime(2021, 1, 1, 12, 23, 34)
+    event_time = datetime.utcnow()
     client_events.put_events(
         Entries=[
             {
