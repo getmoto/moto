@@ -301,7 +301,7 @@ def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many
     assert endpoint["Name"] == name
     assert endpoint["SecurityGroupIds"] == [security_group_id]
     assert endpoint["Direction"] == "INBOUND"
-    assert endpoint["IpAddressCount"] == 0  # TODO
+    assert endpoint["IpAddressCount"] == 2
     assert endpoint["HostVPCId"] == vpc_id
     assert endpoint["Status"] == "OPERATIONAL"
     assert "Creating the Resolver Endpoint" in endpoint["StatusMessage"]

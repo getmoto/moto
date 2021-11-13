@@ -58,8 +58,11 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
         # Constructed members.
         self.id = endpoint_id  # pylint: disable=invalid-name
-        # TODO - correct number of ip addresses
+
+        # NOTE; This currently doesn't reflect IPv6 addresses and will
+        # include reserved addresses.
         self.ip_address_count = len(ip_addresses)
+
         self.host_vpc_id = self._vpc_id_from_subnet()
         self.status = "OPERATIONAL"
 
@@ -101,7 +104,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             "Name": self.name,
             "SecurityGroupIds": self.security_group_ids,
             "Direction": self.direction,
-            "IpAddressCount": 0,  # TODO
+            "IpAddressCount": self.ip_address_count,
             "HostVPCId": self.host_vpc_id,
             "Status": self.status,
             "StatusMessage": self.status_message,
@@ -140,7 +143,8 @@ class Route53ResolverBackend(BaseBackend):
     def _verify_subnet_ips(region, ip_addresses):
         """Perform additional checks on the IPAddresses.
 
-        NOTE: This does not check if the IP is reserved.
+        NOTE: This does not check if the IP is reserved and doesn't include
+        IPv6 addresses.
         """
         if len(ip_addresses) < 2:
             raise InvalidRequestException(
