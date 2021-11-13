@@ -14,7 +14,7 @@ from moto.route53resolver.exceptions import (
     InvalidParameterException,
     InvalidRequestException,
     # TODO LimitExceededException,
-    # TODO ResourceExistsException,  --- for create?
+    ResourceExistsException,
     ResourceNotFoundException,
     TagValidationException,
 )
@@ -233,6 +233,14 @@ class Route53ResolverBackend(BaseBackend):
             raise TagValidationException(errmsg)
         self._verify_subnet_ips(region, ip_addresses)
         self._verify_security_group_ids(region, security_group_ids)
+
+        if creator_request_id in [
+            x.creator_request_id for x in self.resolver_endpoints.values()
+        ]:
+            raise ResourceExistsException(
+                f"Resolver endpoint with creator request ID "
+                f"'{creator_request_id}' already exists"
+            )
 
         endpoint_id = (
             f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"

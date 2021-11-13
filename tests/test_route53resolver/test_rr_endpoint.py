@@ -319,6 +319,38 @@ def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many
 
 @mock_ec2
 @mock_route53resolver
+def test_route53resolver_other_create_resolver_endpoint_errors():
+    """Test good delete_resolver_endpoint API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Create a good endpoint that we can use to test.
+    created_endpoint = create_test_endpoint(client, ec2_client)
+    request_id = created_endpoint["CreatorRequestId"]
+
+    # Attempt to create another endpoint with the same creator request id.
+    vpc_id = create_vpc(ec2_client)
+    subnet_ids = create_subnets(ec2_client, vpc_id)
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId=created_endpoint["CreatorRequestId"],
+            Name="X" + get_random_hex(10),
+            SecurityGroupIds=created_endpoint["SecurityGroupIds"],
+            Direction="INBOUND",
+            IpAddresses=[
+                {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
+                {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceExistsException"
+    assert (
+        f"Resolver endpoint with creator request ID '{request_id}' already exists"
+    ) in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
 def test_route53resolver_delete_resolver_endpoint():
     """Test good delete_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
