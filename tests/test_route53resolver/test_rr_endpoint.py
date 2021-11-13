@@ -267,7 +267,7 @@ def test_route53resolver_bad_create_endpoint_security_groups():
 
 @mock_ec2
 @mock_route53resolver
-def test_route53resolver_create_resolver_endpoint():
+def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many-locals
     """Test good create_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
@@ -339,7 +339,7 @@ def test_route53resolver_delete_resolver_endpoint():
     assert endpoint["IpAddressCount"] == created_endpoint["IpAddressCount"]
     assert endpoint["HostVPCId"] == created_endpoint["HostVPCId"]
     assert endpoint["Status"] == "DELETING"
-    assert endpoint["StatusMessage"] == created_endpoint["StatusMessage"]
+    assert "Deleting" in endpoint["StatusMessage"]
     assert endpoint["CreationTime"] == created_endpoint["CreationTime"]
 
 

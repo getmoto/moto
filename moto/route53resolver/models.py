@@ -1,4 +1,4 @@
-"""IIddRoute53ResolverBackend class with methods for supported APIs."""
+"""Route53ResolverBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network
 
@@ -62,8 +62,15 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.ip_address_count = len(ip_addresses)
         self.host_vpc_id = self._vpc_id_from_subnet()
         self.status = "OPERATIONAL"
-        # TODO - what is the trace id?  1-6185df07-570edfdd77b6f5d7617c9a29
-        self.status_message = "[Trace id: x] Creating the Resolver Endpoint"
+
+        # The status message should contain a trace Id which is the value
+        # of X-Amzn-Trace-Id.  We don't have that info, so a random number
+        # of similar format and length will be used.
+        self.status_message = (
+            f"[Trace id: 1-{get_random_hex(8)}-{get_random_hex(24)}] "
+            f"Creating the Resolver Endpoint"
+        )
+
         self.creation_time = datetime.now(timezone.utc).isoformat()
         self.modification_time = datetime.now(timezone.utc).isoformat()
 
@@ -157,8 +164,9 @@ class Route53ResolverBackend(BaseBackend):
                     f"'{subnet_id}' CIDR range or is reserved"
                 )
 
+            # NOTE:  IPv6 and reserved IPs are currently not being filtered.
             # Not sure if this is the correct way or the best way to check
-            # if the IP is within an IPV6 CIDR.
+            # if the IP is within an IPv6 CIDR.
             # ipv6_cidr_info = subnet_info.ipv6_cidr_block_associations
             # if not ipv6_cidr_info:
             #     continue
@@ -203,7 +211,11 @@ class Route53ResolverBackend(BaseBackend):
         ip_addresses,
         tags,
     ):  # pylint: disable=too-many-arguments
-        """Return description for a newly created resolver endpoint."""
+        """Return description for a newly created resolver endpoint.
+
+        NOTE:  IPv6 and reserved IPs are currently not being filtered when
+        calculating the create_resolver_endpoint() IpAddresses.
+        """
         validate_args(
             [
                 (validate_creator_request_id, "creatorRequestId", creator_request_id),
@@ -254,6 +266,9 @@ class Route53ResolverBackend(BaseBackend):
         self.tagger.delete_all_tags_for_resource(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints.pop(resolver_endpoint_id)
         resolver_endpoint.status = "DELETING"
+        resolver_endpoint.status_message = resolver_endpoint.status_message.replace(
+            "Creating", "Deleting"
+        )
         return resolver_endpoint
 
     def get_resolver_endpoint(self, resolver_endpoint_id):
