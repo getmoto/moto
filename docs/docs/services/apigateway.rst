@@ -44,7 +44,7 @@ apigateway
 - [ ] create_vpc_link
 - [X] delete_api_key
 - [X] delete_authorizer
-- [ ] delete_base_path_mapping
+- [X] delete_base_path_mapping
 - [ ] delete_client_certificate
 - [X] delete_deployment
 - [ ] delete_documentation_part

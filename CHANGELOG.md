@@ -1,6 +1,39 @@
 Moto Changelog
 ===================
 
+2.2.14
+------
+    General:
+        * Improved documentation for both users and contributors:
+          http://docs.getmoto.org/en/latest/
+        * The `@mock_all`-decorator is now available to mock all services at the same time
+        * The `moto.core.patch_client`/`moto.core.patch_resource`-methods are now available to patch boto3-clients and -resources instantiated after the mock was started.
+          This provides a workaround when encountering InvalidAccessKeyId-errors.
+
+    New Methods:
+        * APIGateway:
+            * delete_base_path_mapping()
+        * EC2:
+            * assign_ipv6_addresses()
+            * assign_private_ip_addresses()
+            * unassign_ipv6_addresses()
+            * unassign_private_ip_addresses()
+        * SSM:
+            * create_maintenance_window()
+            * delete_maintenance_window()
+            * get_maintenance_window()
+
+    Miscellaneous:
+        * CloudFormation no longer throws errors when trying to update unsupported resources.
+        * CloudTrail:get_trail_status() now also supports ARN's as a parameter
+        * CognitoIDP:list_users() now supports the AttributesToGet-parameter
+        * IOT:attach_policy() now supports Cognito IdentityPools as a target
+        * IOT:list_job_executions_for_thing() now supports pagination
+        * Kinesis:split_shards() now behaves more like AWS, by closing the original shard and creating two new ones
+        * Logs:put_log_events() now enforces timestamp-validation
+        * S3:create_multipart_upload() now supports the Tagging-parameter
+        * SSM:get_parameters_by_path() now support filtering by label
+
 2.2.13
 -----
     General:
