@@ -73,7 +73,9 @@ all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
 extras_per_service = {}
 for service_name in [
-    service[5:] for service in dir(service_list) if service.startswith("mock_")
+    service[5:]
+    for service in dir(service_list)
+    if service.startswith("mock_") and not service == "mock_all"
 ]:
     extras_per_service[service_name] = []
 extras_per_service.update(
