@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "AWS CloudFormation Sample Template to create a KMS Key.  The Fn::GetAtt is used to retrieve the ARN",

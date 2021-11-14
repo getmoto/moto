@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import string
 
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import datetime
 import uuid
 
@@ -12,6 +10,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_ec2, mock_ssm
+from moto.core import ACCOUNT_ID
 from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
 from tests import EXAMPLE_AMI_ID
 
@@ -120,8 +119,8 @@ def test_get_parameters_by_path():
     {p["ARN"] for p in response["Parameters"]}.should.equal(
         set(
             [
-                "arn:aws:ssm:us-east-1:1234567890:parameter/foo",
-                "arn:aws:ssm:us-east-1:1234567890:parameter/baz",
+                "arn:aws:ssm:us-east-1:{}:parameter/foo".format(ACCOUNT_ID),
+                "arn:aws:ssm:us-east-1:{}:parameter/baz".format(ACCOUNT_ID),
             ]
         )
     )
@@ -226,77 +225,105 @@ def test_get_parameters_by_path():
         "Valid filter keys include: [Type, KeyId].",
     )
 
+    # Label filter in get_parameters_by_path
+    client.label_parameter_version(Name="/foo/name2", Labels=["Label1"])
 
+    filters = [{"Key": "Label", "Values": ["Label1"]}]
+    response = client.get_parameters_by_path(Path="/foo", ParameterFilters=filters)
+    len(response["Parameters"]).should.equal(1)
+    {p["Name"] for p in response["Parameters"]}.should.equal(set(["/foo/name2"]))
+
+
+@pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
 @mock_ssm
-def test_put_parameter():
+def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
-
     response = client.put_parameter(
-        Name="test", Description="A test parameter", Value="value", Type="String"
+        Name=name, Description="A test parameter", Value="value", Type="String",
     )
 
     response["Version"].should.equal(1)
 
-    response = client.get_parameters(Names=["test"], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
     len(response["Parameters"]).should.equal(1)
-    response["Parameters"][0]["Name"].should.equal("test")
+    response["Parameters"][0]["Name"].should.equal(name)
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
     initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
     try:
         client.put_parameter(
-            Name="test", Description="desc 2", Value="value 2", Type="String"
+            Name=name, Description="desc 2", Value="value 2", Type="String"
         )
         raise RuntimeError("Should fail")
     except botocore.exceptions.ClientError as err:
         err.operation_name.should.equal("PutParameter")
-        err.response["Error"]["Message"].should.equal("Parameter test already exists.")
+        err.response["Error"]["Message"].should.equal(
+            "Parameter {} already exists.".format(name)
+        )
 
-    response = client.get_parameters(Names=["test"], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
     # without overwrite nothing change
     len(response["Parameters"]).should.equal(1)
-    response["Parameters"][0]["Name"].should.equal("test")
+    response["Parameters"][0]["Name"].should.equal(name)
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["DataType"].should.equal("text")
     response["Parameters"][0]["LastModifiedDate"].should.equal(
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
+    new_data_type = "aws:ec2:image"
+
+    with pytest.raises(ClientError) as ex:
+        response = client.put_parameter(
+            Name=name,
+            Description="desc 3",
+            Value="value 3",
+            Type="String",
+            Overwrite=True,
+            Tags=[{"Key": "foo", "Value": "bar"}],
+            DataType=new_data_type,
+        )
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
 
     response = client.put_parameter(
-        Name="test",
+        Name=name,
         Description="desc 3",
         Value="value 3",
         Type="String",
         Overwrite=True,
+        DataType=new_data_type,
     )
 
     response["Version"].should.equal(2)
 
-    response = client.get_parameters(Names=["test"], WithDecryption=False)
+    response = client.get_parameters(Names=[name], WithDecryption=False)
 
     # without overwrite nothing change
     len(response["Parameters"]).should.equal(1)
-    response["Parameters"][0]["Name"].should.equal("test")
+    response["Parameters"][0]["Name"].should.equal(name)
     response["Parameters"][0]["Value"].should.equal("value 3")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(2)
+    response["Parameters"][0]["DataType"].should_not.equal("text")
+    response["Parameters"][0]["DataType"].should.equal(new_data_type)
     response["Parameters"][0]["LastModifiedDate"].should_not.equal(
         initial_modification_date
     )
     response["Parameters"][0]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/{}".format(ACCOUNT_ID, name)
     )
 
 
@@ -395,11 +422,29 @@ def test_put_parameter_china():
 
 
 @mock_ssm
+@pytest.mark.parametrize("bad_data_type", ["not_text", "not_ec2", "something weird"])
+def test_put_parameter_invalid_data_type(bad_data_type):
+    client = boto3.client("ssm", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.put_parameter(
+            Name="test_name", Value="some_value", Type="String", DataType=bad_data_type
+        )
+    ex = e.value
+    ex.operation_name.should.equal("PutParameter")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        f"The following data type is not supported: {bad_data_type}"
+        " (Data type names are all lowercase.)"
+    )
+
+
+@mock_ssm
 def test_get_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test", Description="A test parameter", Value="value", Type="String"
+        Name="test", Description="A test parameter", Value="value", Type="String",
     )
 
     response = client.get_parameter(Name="test", WithDecryption=False)
@@ -407,9 +452,10 @@ def test_get_parameter():
     response["Parameter"]["Name"].should.equal("test")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+        "arn:aws:ssm:us-east-1:{}:parameter/test".format(ACCOUNT_ID)
     )
 
 
@@ -418,10 +464,10 @@ def test_get_parameter_with_version_and_labels():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test-1", Description="A test parameter", Value="value", Type="String"
+        Name="test-1", Description="A test parameter", Value="value", Type="String",
     )
     client.put_parameter(
-        Name="test-2", Description="A test parameter", Value="value", Type="String"
+        Name="test-2", Description="A test parameter", Value="value", Type="String",
     )
 
     client.label_parameter_version(
@@ -433,27 +479,30 @@ def test_get_parameter_with_version_and_labels():
     response["Parameter"]["Name"].should.equal("test-1")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test-1"
+        "arn:aws:ssm:us-east-1:{}:parameter/test-1".format(ACCOUNT_ID)
     )
 
     response = client.get_parameter(Name="test-2:1", WithDecryption=False)
     response["Parameter"]["Name"].should.equal("test-2")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+        "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
     )
 
     response = client.get_parameter(Name="test-2:test-label", WithDecryption=False)
     response["Parameter"]["Name"].should.equal("test-2")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["DataType"].should.equal("text")
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
-        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+        "arn:aws:ssm:us-east-1:{}:parameter/test-2".format(ACCOUNT_ID)
     )
 
     with pytest.raises(ClientError) as ex:
@@ -532,6 +581,7 @@ def test_describe_parameters():
     parameters.should.have.length_of(1)
     parameters[0]["Name"].should.equal("test")
     parameters[0]["Type"].should.equal("String")
+    parameters[0]["DataType"].should.equal("text")
     parameters[0]["AllowedPattern"].should.equal(r".*")
 
 
@@ -1009,7 +1059,7 @@ def test_describe_parameters_tags():
 
 
 @mock_ssm
-def test_tags_in_list_tags_from_resource():
+def test_tags_in_list_tags_from_resource_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
@@ -1022,8 +1072,31 @@ def test_tags_in_list_tags_from_resource():
     tags = client.list_tags_for_resource(
         ResourceId="/spam/eggs", ResourceType="Parameter"
     )
-
     assert tags.get("TagList") == [{"Key": "spam", "Value": "eggs"}]
+
+    client.delete_parameter(Name="/spam/eggs")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceType="Parameter", ResourceId="/spam/eggs")
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceId"
+
+
+@mock_ssm
+def test_tags_invalid_resource_id():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceType="Parameter", ResourceId="bar")
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceId"
+
+
+@mock_ssm
+def test_tags_invalid_resource_type():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_tags_for_resource(ResourceType="foo", ResourceId="bar")
+    assert ex.value.response["Error"]["Code"] == "InvalidResourceType"
 
 
 @mock_ssm
@@ -1393,7 +1466,7 @@ def test_label_parameter_version_invalid_name():
 
     test_parameter_name = "test"
 
-    response = client.label_parameter_version.when.called_with(
+    client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"]
     ).should.throw(
         ClientError,
@@ -1414,7 +1487,7 @@ def test_label_parameter_version_invalid_parameter_version():
         Type="String",
     )
 
-    response = client.label_parameter_version.when.called_with(
+    client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"], ParameterVersion=5
     ).should.throw(
         ClientError,
@@ -1588,12 +1661,21 @@ def test_get_parameter_history_missing_parameter():
 def test_add_remove_list_tags_for_resource():
     client = boto3.client("ssm", region_name="us-east-1")
 
+    with pytest.raises(ClientError) as ce:
+        client.add_tags_to_resource(
+            ResourceId="test",
+            ResourceType="Parameter",
+            Tags=[{"Key": "test-key", "Value": "test-value"}],
+        )
+    assert ce.value.response["Error"]["Code"] == "InvalidResourceId"
+
+    client.put_parameter(Name="test", Value="value", Type="String")
+
     client.add_tags_to_resource(
         ResourceId="test",
         ResourceType="Parameter",
         Tags=[{"Key": "test-key", "Value": "test-value"}],
     )
-
     response = client.list_tags_for_resource(
         ResourceId="test", ResourceType="Parameter"
     )

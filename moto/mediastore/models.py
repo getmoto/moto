@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 from datetime import date
 
@@ -83,6 +81,8 @@ class MediaStoreBackend(BaseBackend):
         return response_containers, None
 
     def list_tags_for_resource(self, name):
+        if name not in self._containers:
+            raise ContainerNotFoundException()
         tags = self._containers[name].tags
         return tags
 

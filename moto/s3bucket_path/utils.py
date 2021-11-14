@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def bucket_name_from_url(url):

@@ -190,6 +190,31 @@ class TransactionCanceledException(ValueError):
 
 class EmptyKeyAttributeException(MockValidationException):
     empty_str_msg = "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+    # AWS has a different message for empty index keys
+    empty_index_msg = "One or more parameter values are not valid. The update expression attempted to update a secondary index key to a value that is not supported. The AttributeValue for a key attribute cannot contain an empty string value."
+
+    def __init__(self, key_in_index=False):
+        super(EmptyKeyAttributeException, self).__init__(
+            self.empty_index_msg if key_in_index else self.empty_str_msg
+        )
+
+
+class UpdateHashRangeKeyException(MockValidationException):
+    msg = "One or more parameter values were invalid: Cannot update attribute {}. This attribute is part of the key"
+
+    def __init__(self, key_name):
+        super(UpdateHashRangeKeyException, self).__init__(self.msg.format(key_name))
+
+
+class InvalidAttributeTypeError(MockValidationException):
+    msg = "One or more parameter values were invalid: Type mismatch for key {} expected: {} actual: {}"
+
+    def __init__(self, name, expected_type, actual_type):
+        super().__init__(self.msg.format(name, expected_type, actual_type))
+
+
+class TooManyAddClauses(InvalidUpdateExpression):
+    msg = 'The "ADD" section can only be used once in an update expression;'
 
     def __init__(self):
-        super(EmptyKeyAttributeException, self).__init__(self.empty_str_msg)
+        super(TooManyAddClauses, self).__init__(self.msg)

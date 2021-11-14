@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
 
@@ -8,7 +7,7 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError, InvalidRequestException
+from moto.emr.exceptions import EmrError, InvalidRequestException, ValidationException
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
@@ -332,6 +331,15 @@ class FakeCluster(BaseModel):
             if self.master_instance_group_id:
                 raise Exception("Cannot add another master instance group")
             self.master_instance_group_id = instance_group.id
+            num_master_nodes = instance_group.num_instances
+            if num_master_nodes > 1:
+                # Cluster is HA
+                if num_master_nodes != 3:
+                    raise ValidationException(
+                        "Master instance group must have exactly 3 instances for HA clusters."
+                    )
+                self.keep_job_flow_alive_when_no_steps = True
+                self.termination_protected = True
         if instance_group.role == "CORE":
             if self.core_instance_group_id:
                 raise Exception("Cannot add another core instance group")
@@ -348,7 +356,7 @@ class FakeCluster(BaseModel):
                 # If we already have other steps, this one is pending
                 fake = FakeStep(state="PENDING", **step)
             else:
-                fake = FakeStep(state="STARTING", **step)
+                fake = FakeStep(state="RUNNING", **step)
             self.steps.append(fake)
             added_steps.append(fake)
         self.state = "RUNNING"
@@ -388,6 +396,13 @@ class ElasticMapReduceBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticmapreduce"
+        )
+
     @property
     def ec2_backend(self):
         """
@@ -399,7 +414,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return ec2_backends[self.region_name]
 
     def add_applications(self, cluster_id, applications):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_applications(applications)
 
     def add_instance_groups(self, cluster_id, instance_groups):
@@ -429,7 +444,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return steps
 
     def add_tags(self, cluster_id, tags):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_tags(tags)
 
     def describe_job_flows(
@@ -464,7 +479,7 @@ class ElasticMapReduceBackend(BaseBackend):
             if step.id == step_id:
                 return step
 
-    def get_cluster(self, cluster_id):
+    def describe_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
         raise EmrError("ResourceNotFoundException", "", "error_json")
@@ -563,7 +578,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return result_groups
 
     def remove_tags(self, cluster_id, tag_keys):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.remove_tags(tag_keys)
 
     def _manage_security_groups(
@@ -624,12 +639,20 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.set_termination_protection(value)
 
     def terminate_job_flows(self, job_flow_ids):
-        clusters = []
+        clusters_terminated = []
+        clusters_protected = []
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
+            if cluster.termination_protected:
+                clusters_protected.append(cluster)
+                continue
             cluster.terminate()
-            clusters.append(cluster)
-        return clusters
+            clusters_terminated.append(cluster)
+        if clusters_protected:
+            raise ValidationException(
+                "Could not shut down one or more job flows since they are termination protected."
+            )
+        return clusters_terminated
 
     def put_auto_scaling_policy(self, instance_group_id, auto_scaling_policy):
         instance_groups = self.get_instance_groups(

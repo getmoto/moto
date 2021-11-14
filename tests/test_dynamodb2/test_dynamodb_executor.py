@@ -12,9 +12,7 @@ def test_execution_of_if_not_exists_not_existing_value(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"S": "A"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -27,9 +25,7 @@ def test_execution_of_if_not_exists_not_existing_value(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"S": "A"}},
     )
     assert expected_item == item
@@ -42,9 +38,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_attrib
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"S": "A"}, "b": {"S": "B"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -57,9 +51,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_attrib
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"S": "B"}, "b": {"S": "B"}},
     )
     assert expected_item == item
@@ -71,9 +63,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_value(
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "b": {"N": "3"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -86,9 +76,7 @@ def test_execution_of_if_not_exists_with_existing_attribute_should_return_value(
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "b": {"N": "3"}, "a": {"N": "3"}},
     )
     assert expected_item == item
@@ -101,11 +89,7 @@ def test_execution_of_if_not_exists_with_non_existing_attribute_should_return_va
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
-        hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
-        range_key=None,
-        range_key_type=None,
-        attrs={"id": {"S": "1"}},
+        hash_key=DynamoType({"S": "id"}), range_key=None, attrs={"id": {"S": "1"}},
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,
@@ -117,9 +101,7 @@ def test_execution_of_if_not_exists_with_non_existing_attribute_should_return_va
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"N": "4"}},
     )
     assert expected_item == item
@@ -130,9 +112,7 @@ def test_execution_of_sum_operation(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"N": "3"}, "b": {"N": "4"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -145,9 +125,7 @@ def test_execution_of_sum_operation(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"N": "7"}, "b": {"N": "4"}},
     )
     assert expected_item == item
@@ -158,9 +136,7 @@ def test_execution_of_remove(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"N": "3"}, "b": {"N": "4"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -173,9 +149,7 @@ def test_execution_of_remove(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "b": {"N": "4"}},
     )
     assert expected_item == item
@@ -186,9 +160,7 @@ def test_execution_of_remove_in_map(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={
             "id": {"S": "foo2"},
             "itemmap": {
@@ -213,9 +185,7 @@ def test_execution_of_remove_in_map(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={
             "id": {"S": "foo2"},
             "itemmap": {
@@ -238,9 +208,7 @@ def test_execution_of_remove_in_list(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={
             "id": {"S": "foo2"},
             "itemmap": {
@@ -265,9 +233,7 @@ def test_execution_of_remove_in_list(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={
             "id": {"S": "foo2"},
             "itemmap": {
@@ -289,9 +255,7 @@ def test_execution_of_delete_element_from_set(table, attr_name):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -304,9 +268,7 @@ def test_execution_of_delete_element_from_set(table, attr_name):
     UpdateExpressionExecutor(validated_ast, item, expression_attribute_names).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value3"]},},
     )
     assert expected_item == item
@@ -323,11 +285,7 @@ def test_execution_of_delete_element_from_set(table, attr_name):
     ).validate()
     UpdateExpressionExecutor(validated_ast, item, expression_attribute_names).execute()
     expected_item = Item(
-        hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
-        range_key=None,
-        range_key_type=None,
-        attrs={"id": {"S": "foo2"}},
+        hash_key=DynamoType({"S": "id"}), range_key=None, attrs={"id": {"S": "foo2"}},
     )
     assert expected_item == item
 
@@ -337,9 +295,7 @@ def test_execution_of_add_number(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"N": "5"},},
     )
     validated_ast = UpdateExpressionValidator(
@@ -352,9 +308,7 @@ def test_execution_of_add_number(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"N": "15"}},
     )
     assert expected_item == item
@@ -365,9 +319,7 @@ def test_execution_of_add_set_to_a_number(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"N": "5"},},
     )
     try:
@@ -381,9 +333,7 @@ def test_execution_of_add_set_to_a_number(table):
         UpdateExpressionExecutor(validated_ast, item, None).execute()
         expected_item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "foo2"}, "s": {"N": "15"}},
         )
         assert expected_item == item
@@ -397,9 +347,7 @@ def test_execution_of_add_to_a_set(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]},},
     )
     validated_ast = UpdateExpressionValidator(
@@ -412,9 +360,7 @@ def test_execution_of_add_to_a_set(table):
     UpdateExpressionExecutor(validated_ast, item, None).execute()
     expected_item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={
             "id": {"S": "foo2"},
             "s": {"SS": ["value1", "value2", "value3", "value5"]},
@@ -443,9 +389,7 @@ def test_execution_of__delete_element_from_set_invalid_value(
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"SS": ["value1", "value2", "value3"]},},
     )
     try:
@@ -469,9 +413,7 @@ def test_execution_of_delete_element_from_a_string_attribute(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "s": {"S": "5"},},
     )
     try:

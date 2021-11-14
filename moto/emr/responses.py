@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import re
 from datetime import datetime
@@ -6,7 +5,7 @@ from functools import wraps
 
 import pytz
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
@@ -129,7 +128,7 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("DescribeCluster")
     def describe_cluster(self):
         cluster_id = self._get_param("ClusterId")
-        cluster = self.backend.get_cluster(cluster_id)
+        cluster = self.backend.describe_cluster(cluster_id)
         template = self.response_template(DESCRIBE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
@@ -505,7 +504,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @generate_boto3_response("SetTerminationProtection")
     def set_termination_protection(self):
-        termination_protection = self._get_param("TerminationProtected")
+        termination_protection = self._get_bool_param("TerminationProtected")
         job_ids = self._get_multi_param("JobFlowIds.member")
         self.backend.set_termination_protection(job_ids, termination_protection)
         template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)
@@ -529,7 +528,7 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("PutAutoScalingPolicy")
     def put_auto_scaling_policy(self):
         cluster_id = self._get_param("ClusterId")
-        cluster = self.backend.get_cluster(cluster_id)
+        cluster = self.backend.describe_cluster(cluster_id)
         instance_group_id = self._get_param("InstanceGroupId")
         auto_scaling_policy = self._get_param("AutoScalingPolicy")
         instance_group = self.backend.put_auto_scaling_policy(

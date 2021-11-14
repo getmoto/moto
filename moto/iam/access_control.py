@@ -18,11 +18,9 @@ import re
 from abc import abstractmethod, ABCMeta
 from enum import Enum
 
-import six
 from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
-from six import string_types
 
 from moto.core import ACCOUNT_ID
 from moto.core.exceptions import (
@@ -160,8 +158,7 @@ class CreateAccessKeyFailure(Exception):
         self.reason = reason
 
 
-@six.add_metaclass(ABCMeta)
-class IAMRequestBase(object):
+class IAMRequestBase(object, metaclass=ABCMeta):
     def __init__(self, method, path, data, headers):
         log.debug(
             "Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
@@ -332,7 +329,7 @@ class IAMPolicy(object):
                 if policy_version.is_default
             )
             policy_document = default_version.document
-        elif isinstance(policy, string_types):
+        elif isinstance(policy, str):
             policy_document = policy
         else:
             policy_document = policy["policy_document"]

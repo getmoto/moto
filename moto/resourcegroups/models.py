@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from builtins import str
 
 import json
@@ -97,6 +96,8 @@ class FakeResourceGroup(BaseModel):
         return True
 
     def _validate_resource_query(self, value):
+        if not value:
+            return True
         errors = []
         if value["Type"] not in {"CLOUDFORMATION_STACK_1_0", "TAG_FILTERS_1_0"}:
             errors.append(
@@ -229,6 +230,8 @@ class ResourceGroupsBackend(BaseBackend):
 
     @staticmethod
     def _validate_resource_query(resource_query):
+        if not resource_query:
+            return
         type = resource_query["Type"]
         query = json.loads(resource_query["Query"])
         query_keys = set(query.keys())

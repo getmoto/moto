@@ -1,9 +1,8 @@
-from __future__ import unicode_literals
 from collections import defaultdict
 import datetime
 import json
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
@@ -37,6 +36,12 @@ class DynamoType(object):
 
     def __repr__(self):
         return "DynamoType: {0}".format(self.to_json())
+
+    def add(self, dyn_type):
+        if self.type == "SS":
+            self.value.append(dyn_type.value)
+        if self.type == "N":
+            self.value = str(int(self.value) + int(dyn_type.value))
 
     def to_json(self):
         return {self.type: self.value}
@@ -146,7 +151,7 @@ class Table(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         key_attr = [
@@ -281,6 +286,24 @@ class Table(CloudFormationModel):
         except KeyError:
             return None
 
+    def update_item(self, hash_key, range_key, attr_updates):
+        item = self.get_item(hash_key, range_key)
+        if not item:
+            return None
+
+        for attr, update in attr_updates.items():
+            if update["Action"] == "PUT":
+                item.attrs[attr] = DynamoType(update["Value"])
+            if update["Action"] == "DELETE":
+                item.attrs.pop(attr)
+            if update["Action"] == "ADD":
+                item.attrs[attr].add(DynamoType(update["Value"]))
+        return item
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["StreamArn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -359,6 +382,16 @@ class DynamoDBBackend(BaseBackend):
         range_key = DynamoType(range_key_dict) if range_key_dict else None
 
         return table.delete_item(hash_key, range_key)
+
+    def update_item(self, table_name, hash_key_dict, range_key_dict, attr_updates):
+        table = self.tables.get(table_name)
+        if not table:
+            return None
+
+        hash_key = DynamoType(hash_key_dict)
+        range_key = DynamoType(range_key_dict) if range_key_dict else None
+
+        return table.update_item(hash_key, range_key, attr_updates)
 
 
 dynamodb_backend = DynamoDBBackend()

@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import boto3
 
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 

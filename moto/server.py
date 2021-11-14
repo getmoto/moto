@@ -1,28 +1,25 @@
-from __future__ import unicode_literals
-
 import argparse
 import io
 import json
 import os
-import re
 import signal
 import sys
+from functools import partial
 from threading import Lock
 
-import six
 from flask import Flask
 from flask_cors import CORS
 from flask.testing import FlaskClient
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
 import moto.backends as backends
+import moto.backend_index as backend_index
 from moto.core.utils import convert_flask_to_httpretty_response
 
-
-HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
+HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
 
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")
@@ -33,7 +30,10 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
-UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+UNSIGNED_ACTIONS = {
+    "AssumeRoleWithSAML": ("sts", "us-east-1"),
+    "AssumeRoleWithWebIdentity": ("sts", "us-east-1"),
+}
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
@@ -54,8 +54,10 @@ class DomainDispatcherApplication(object):
         self.lock = Lock()
         self.app_instances = {}
         self.service = service
+        self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host):
+
         if host == "moto_api":
             return host
 
@@ -65,15 +67,21 @@ class DomainDispatcherApplication(object):
         if host in backends.BACKENDS:
             return host
 
-        return backends.search_backend(
-            lambda backend: any(
-                re.match(url_base, "http://%s" % host)
-                for url_base in list(backend.values())[0].url_bases
+        for backend, pattern in self.backend_url_patterns:
+            if pattern.match("http://%s" % host):
+                return backend
+
+        if "amazonaws.com" in host:
+            print(
+                "Unable to find appropriate backend for {}."
+                "Remember to add the URL to urls.py, and run script/update_backend_index.py to index it.".format(
+                    host
+                )
             )
-        )
 
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
+        target = environ.get("HTTP_X_AMZ_TARGET")
         if auth:
             # Signed request
             # Parse auth header to find service assuming a SigV4 request
@@ -91,7 +99,6 @@ class DomainDispatcherApplication(object):
                 service, region = DEFAULT_SERVICE_REGION
         else:
             # Unsigned request
-            target = environ.get("HTTP_X_AMZ_TARGET")
             action = self.get_action_from_body(environ)
             if target:
                 service, _ = target.split(".", 1)
@@ -100,10 +107,18 @@ class DomainDispatcherApplication(object):
                 # See if we can match the Action to a known service
                 service, region = UNSIGNED_ACTIONS.get(action)
             else:
-                # S3 is the last resort when the target is also unknown
-                service, region = DEFAULT_SERVICE_REGION
+                service, region = self.get_service_from_path(environ)
+                if not service:
+                    # S3 is the last resort when the target is also unknown
+                    service, region = DEFAULT_SERVICE_REGION
 
-        if service == "dynamodb":
+        if service == "mediastore" and not target:
+            # All MediaStore API calls have a target header
+            # If no target is set, assume we're trying to reach the mediastore-data service
+            host = "data.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
+        elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
             else:
@@ -117,6 +132,10 @@ class DomainDispatcherApplication(object):
             host = "api.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
+        elif service == "timestream":
+            host = "ingest.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
         else:
             host = "{service}.{region}.amazonaws.com".format(
                 service=service, region=region
@@ -128,9 +147,7 @@ class DomainDispatcherApplication(object):
         path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
-        if six.PY2 and isinstance(path_info, str):
-            path_info = six.u(path_info)
-        if six.PY3 and isinstance(path_info, six.binary_type):
+        if isinstance(path_info, bytes):
             path_info = path_info.decode("utf-8")
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
@@ -172,6 +189,16 @@ class DomainDispatcherApplication(object):
                 # We've consumed the body = need to reset it
                 environ["wsgi.input"] = io.StringIO(body)
         return None
+
+    def get_service_from_path(self, environ):
+        # Moto sometimes needs to send a HTTP request to itself
+        # In which case it will send a request to 'http://localhost/service_region/whatever'
+        try:
+            path_info = environ.get("PATH_INFO", "/")
+            service, region = path_info[1 : path_info.index("/", 1)].split("_")
+            return service, region
+        except (KeyError, ValueError):
+            return None, None
 
     def __call__(self, environ, start_response):
         backend_app = self.get_application(environ)
@@ -238,20 +265,25 @@ def create_backend_app(service):
             endpoint = original_endpoint + str(index)
             index += 1
 
-        backend_app.add_url_rule(
-            url_path,
-            endpoint=endpoint,
-            methods=HTTP_METHODS,
-            view_func=view_func,
-            strict_slashes=False,
-        )
+        # Some services do not provide a URL path
+        # I.e., boto3 sends a request to 'https://ingest.timestream.amazonaws.com'
+        # Which means we have a empty url_path to catch this request - but Flask can't handle that
+        if url_path:
+            backend_app.add_url_rule(
+                url_path,
+                endpoint=endpoint,
+                methods=HTTP_METHODS,
+                view_func=view_func,
+                strict_slashes=False,
+            )
 
     backend_app.test_client_class = AWSTestHelper
     return backend_app
 
 
-def signal_handler(signum, frame):
-    print("Received signal %d" % signum)
+def signal_handler(reset_server_port, signum, frame):
+    if reset_server_port:
+        del os.environ["MOTO_SERVER_PORT"]
     sys.exit(0)
 
 
@@ -294,8 +326,16 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args(argv)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    reset_server_port = False
+    if "MOTO_SERVER_PORT" not in os.environ:
+        reset_server_port = True
+        os.environ["MOTO_SERVER_PORT"] = f"{args.port}"
+
+    try:
+        signal.signal(signal.SIGINT, partial(signal_handler, reset_server_port))
+        signal.signal(signal.SIGTERM, partial(signal_handler, reset_server_port))
+    except Exception:
+        pass  # ignore "ValueError: signal only works in main thread"
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

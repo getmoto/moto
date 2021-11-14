@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -176,6 +175,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         desired_count = self._get_int_param("desiredCount")
         load_balancers = self._get_param("loadBalancers")
         scheduling_strategy = self._get_param("schedulingStrategy")
+        service_registries = self._get_param("serviceRegistries")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
@@ -189,6 +189,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            service_registries=service_registries,
         )
         return json.dumps({"service": service.response_object})
 
@@ -448,3 +449,20 @@ class EC2ContainerServiceResponse(BaseResponse):
             cluster_str, service_str, primary_task_set
         )
         return json.dumps({"taskSet": task_set.response_object})
+
+    def put_account_setting(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_setting = self.ecs_backend.put_account_setting(name, value)
+        return json.dumps({"setting": account_setting.response_object})
+
+    def list_account_settings(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_settings = self.ecs_backend.list_account_settings(name, value)
+        return json.dumps({"settings": [s.response_object for s in account_settings]})
+
+    def delete_account_setting(self):
+        name = self._get_param("name")
+        self.ecs_backend.delete_account_setting(name)
+        return "{}"

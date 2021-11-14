@@ -1,9 +1,4 @@
-from __future__ import unicode_literals
-
-import sure  # noqa
-
-import moto.server as server
-from moto import mock_rds2
+import sure  # noqa # pylint: disable=unused-import
 
 """
 Test the different server responses

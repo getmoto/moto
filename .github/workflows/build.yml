@@ -4,12 +4,46 @@ on: [push, pull_request]
 
 jobs:
   # Install and cache dependencies
+  terraformcache:
+    name: Caching Terraform dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.8 ]
+
+    steps:
+    - name: Checkout Terraform Tests repo
+      uses: actions/checkout@v2
+      with:
+        repository: localstack/localstack-terraform-test
+        ref: build
+        path: moto-terraform-tests
+        submodules: 'true'
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '^1.16.0'
+    - run: go version
+    - name: cache
+      id: terraformcache
+      uses: actions/cache@v2
+      with:
+        path: '~/.cache'
+        key: 'terraformcache3'
+    - name: Download
+      env:
+        DOWNLOAD_TEST_BIN: 1
+      if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
+      run: |
+        cd moto-terraform-tests
+        bin/install-aws-test
+        cd ..
+
   cache:
     name: Caching
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 2.7, 3.6, 3.7, 3.8 ]
+        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -28,7 +62,7 @@ jobs:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
       - name: Update pip
-        if: ${{ steps.pip-cache.outputs.cache-hit != 'true' && matrix.python-version != '2.7' }}
+        if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
           python -m pip install --upgrade pip
       - name: Install project dependencies
@@ -59,9 +93,8 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
-    # Update PIP - recent version does not support PY2 though
+    # Update PIP
     - name: Update pip
-      if: ${{ matrix.python-version != '2.7' }}
       run: |
         python -m pip install --upgrade pip
     # Still need to properly install the dependencies - it will only skip the download part
@@ -79,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [2.7, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -99,16 +132,18 @@ jobs:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
     - name: Update pip
-      if: ${{ matrix.python-version != '2.7' }}
       run: |
         python -m pip install --upgrade pip
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
         pip install pytest-cov
+        pip install pytest-github-actions-annotate-failures
+        # https://github.com/aws/aws-xray-sdk-python/issues/196
+        pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
-        make test-coverage
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -122,7 +157,7 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        python-version: [2.7, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -147,28 +182,149 @@ jobs:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
     - name: Update pip
-      if: ${{ matrix.python-version != '2.7' }}
       run: |
         python -m pip install --upgrade pip
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
+        pip install "coverage<=4.5.4"
     - name: Test ServerMode/Coverage
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        make test-coverage
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: false
         flags: servertests
+    - name: "Stop MotoServer"
+      if: always()
+      run: |
+        mkdir serverlogs
+        pwd
+        ls -la
+        cp server_output.log serverlogs/server_output.log
+        docker stop motoserver
+    - name: Archive TF logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: motoserver-${{ matrix.python-version }}
+        path: |
+          serverlogs/*
+
+  test_responses:
+    name: Test Responses==0.12.0
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        python-version: [ 3.7, 3.8 ]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.py') }}-4
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install pytest-cov
+          pip install responses==0.12.0
+          pip install "coverage<=4.5.4"
+      - name: Test core-logic with responses==0.12.0
+        run: |
+          pytest -sv --cov=moto --cov-report xml ./tests/test_core
+      - name: "Upload coverage to Codecov"
+        if: ${{ github.repository == 'spulec/moto'}}
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+          flags: test_responses
+
+  terraform:
+    name: Terraform Tests
+    runs-on: ubuntu-latest
+    needs: terraformcache
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ 3.8 ]
+        part: ["aa", "ab", "ac"]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Checkout Terraform Tests repo
+      uses: actions/checkout@v2
+      with:
+        repository: localstack/localstack-terraform-test
+        ref: build
+        path: moto-terraform-tests
+        submodules: 'true'
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: cache
+      uses: actions/cache@v2
+      with:
+        path: '~/.cache'
+        key: 'terraformcache3'
+    - name: Start MotoServer
+      run: |
+        python setup.py sdist
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
+        MOTO_PORT=4566 python wait_for.py
+    # Poor man's parallelization
+    # Running them sequentially takes to much time
+    # And using the build in parallel-argument does not help with reducing runtime
+    # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
+    - name: Get list of tests
+      run: |
+        cd moto-terraform-tests
+        bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
+        split -n l/3 tftestlist.txt tf-split-
+        cd ..
+    - name: Run Terraform Tests
+      run: |
+        cd moto-terraform-tests
+        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
+        cd ..
+    - name: "Create report"
+      run: |
+        cd moto-terraform-tests
+        bin/create-report
+        bin/create-report-cli
+        cd ..
+    - name: Archive TF logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: buildfolder-${{ matrix.part }}
+        path: |
+          moto-terraform-tests/build/*
 
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [test, testserver]
+    needs: [test, testserver, terraform, test_responses]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'spulec/moto' }}
     strategy:
       matrix:
@@ -190,6 +346,19 @@ jobs:
         uses: pypa/gh-action-pypi-publish@master
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Build Docker release
+        run: |
+          docker build -t motoserver/moto . --tag moto:latest
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: motoserver/moto:latest
       - name: Get version number
         run: |
           version=$(grep -oP '(?<=__version__ = ")[0-9.a-z]+(?=")' moto/__init__.py)

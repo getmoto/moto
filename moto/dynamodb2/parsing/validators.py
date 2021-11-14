@@ -13,6 +13,7 @@ from moto.dynamodb2.exceptions import (
     InvalidUpdateExpressionInvalidDocumentPath,
     ProvidedKeyDoesNotExist,
     EmptyKeyAttributeException,
+    UpdateHashRangeKeyException,
 )
 from moto.dynamodb2.models import DynamoType
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -332,8 +333,27 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):
         assert len(node.children) == 2
         key = node.children[0].children[0].children[0]
         val_node = node.children[1].children[0]
-        if val_node.type in ["S", "B"] and key in self.key_attributes:
-            raise EmptyKeyAttributeException
+        if (
+            not val_node.value
+            and val_node.type in ["S", "B"]
+            and key in self.key_attributes
+        ):
+            raise EmptyKeyAttributeException(key_in_index=True)
+        return node
+
+
+class UpdateHashRangeKeyValidator(DepthFirstTraverser):
+    def __init__(self, table_key_attributes):
+        self.table_key_attributes = table_key_attributes
+
+    def _processing_map(self):
+        return {UpdateExpressionPath: self.check_for_hash_or_range_key}
+
+    def check_for_hash_or_range_key(self, node):
+        """Check that hash and range keys are not updated"""
+        key_to_update = node.children[0].children[0]
+        if key_to_update in self.table_key_attributes:
+            raise UpdateHashRangeKeyException(key_to_update)
         return node
 
 
@@ -382,6 +402,7 @@ class UpdateExpressionValidator(Validator):
     def get_ast_processors(self):
         """Get the different processors that go through the AST tree and processes the nodes."""
         processors = [
+            UpdateHashRangeKeyValidator(self.table.table_key_attrs),
             ExpressionAttributeValueProcessor(self.expression_attribute_values),
             ExpressionAttributeResolvingProcessor(
                 self.expression_attribute_names, self.item

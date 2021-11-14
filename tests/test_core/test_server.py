@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
+import sure  # noqa # pylint: disable=unused-import
 
-import sure  # noqa
-
-from tests.compat import patch
+from unittest.mock import patch
 from moto.server import main, create_backend_app, DomainDispatcherApplication
 
 

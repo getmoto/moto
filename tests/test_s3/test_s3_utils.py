@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import pytest
 from sure import expect
 from moto.s3.utils import (
@@ -8,7 +7,7 @@ from moto.s3.utils import (
     clean_key_name,
     undo_clean_key_name,
 )
-from tests.compat import patch
+from unittest.mock import patch
 
 
 def test_base_url():
