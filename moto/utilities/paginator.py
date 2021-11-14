@@ -1,7 +1,6 @@
-from functools import wraps
+from functools import wraps, reduce
 
 from botocore.paginate import TokenDecoder, TokenEncoder
-from six.moves import reduce
 
 from moto.core.exceptions import InvalidToken
 
