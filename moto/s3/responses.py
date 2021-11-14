@@ -1357,7 +1357,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
         if key is None and version_id is None:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
         elif key is None:
             raise MissingVersion()
 
@@ -1552,7 +1552,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     src_version_id=src_version_id,
                 )
             else:
-                return 404, response_headers, ""
+                raise MissingKey(key=src_key)
 
             new_key = self.backend.get_object(bucket_name, key_name)
             mdirective = request.headers.get("x-amz-metadata-directive")

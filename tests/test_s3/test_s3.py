@@ -3320,6 +3320,25 @@ def test_boto3_head_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_copy_non_existing_file():
+    s3 = boto3.resource("s3")
+    src = "srcbucket"
+    target = "target"
+    s3.create_bucket(Bucket=src)
+    s3.create_bucket(Bucket=target)
+
+    s3_client = boto3.client("s3")
+    with pytest.raises(ClientError) as exc:
+        s3_client.copy_object(
+            Bucket=target, CopySource={"Bucket": src, "Key": "foofoofoo"}, Key="newkey"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchKey")
+    err["Message"].should.equal("The specified key does not exist.")
+    err["Key"].should.equal("foofoofoo")
+
+
+@mock_s3
 def test_boto3_copy_object_with_versioning():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -3359,7 +3378,7 @@ def test_boto3_copy_object_with_versioning():
             Bucket="blah",
             Key="test5",
         )
-    e.value.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
     response = client.create_multipart_upload(Bucket="blah", Key="test4")
     upload_id = response["UploadId"]
@@ -4701,6 +4720,7 @@ def test_boto3_put_object_tagging():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -4760,6 +4780,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -4828,6 +4849,7 @@ def test_boto3_put_object_tagging_on_both_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )

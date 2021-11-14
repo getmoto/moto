@@ -1620,7 +1620,7 @@ class S3Backend(BaseBackend):
         if key is not None:
             key.set_acl(acl)
         else:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
 
     def put_object_legal_hold(
         self, bucket_name, key_name, version_id, legal_hold_status
@@ -1686,7 +1686,7 @@ class S3Backend(BaseBackend):
 
     def set_key_tags(self, key, tags, key_name=None):
         if key is None:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
         boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
         errmsg = self.tagger.validate_tags(boto_tags_dict)
         if errmsg:
