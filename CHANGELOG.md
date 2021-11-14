@@ -1,8 +1,16 @@
 Moto Changelog
 ===================
 
+2.2.15
+------
+    General:
+        * Fixed the dependency bug - `moto install[all]` now installs all required dependencies again.
+
 2.2.14
 ------
+    Known bugs:
+        * Running `pip install moto[all]` will not install all required dependencies.
+
     General:
         * Improved documentation for both users and contributors:
           http://docs.getmoto.org/en/latest/
