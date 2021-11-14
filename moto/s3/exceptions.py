@@ -5,7 +5,7 @@ ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 """
 
 ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
-{% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
+{% block extra %}<Key>{{ key }}</Key>{% endblock %}
 """
 
 ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
@@ -91,9 +91,11 @@ class MissingBucket(BucketError):
 class MissingKey(S3ClientError):
     code = 404
 
-    def __init__(self, key_name):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("template", "key_error")
+        self.templates["key_error"] = ERROR_WITH_KEY_NAME
         super(MissingKey, self).__init__(
-            "NoSuchKey", "The specified key does not exist.", Key=key_name
+            "NoSuchKey", "The specified key does not exist.", **kwargs
         )
 
 
