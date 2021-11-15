@@ -96,7 +96,7 @@ backend_url_patterns = [
         re.compile("https?://resource-groups(-fips)?\\.(.+)\\.amazonaws.com"),
     ),
     ("resourcegroupstaggingapi", re.compile("https?://tagging\\.(.+)\\.amazonaws.com")),
-    ("route53", re.compile("https?://route53(.*)\\.amazonaws.com")),
+    ("route53", re.compile("https?://route53(\..+)?\\.amazonaws.com")),
     (
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
