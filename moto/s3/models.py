@@ -1595,7 +1595,7 @@ class S3Backend(BaseBackend):
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=str(uuid.uuid4()) if bucket.is_versioned else None,
+            version_id=str(uuid.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,

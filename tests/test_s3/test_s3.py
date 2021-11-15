@@ -1372,6 +1372,63 @@ def test_delete_keys():
     keys[0].name.should.equal("file1")
 
 
+@mock_s3
+def test_delete_versioned_objects():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "test"
+    key = "test"
+
+    s3.create_bucket(Bucket=bucket)
+
+    s3.put_object(Bucket=bucket, Key=key, Body=b"")
+
+    s3.put_bucket_versioning(
+        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"},
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.shouldnt.be.empty
+    versions.shouldnt.be.empty
+    delete_markers.should.be.none
+
+    s3.delete_object(Bucket=bucket, Key=key)
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.shouldnt.be.empty
+    delete_markers.shouldnt.be.empty
+
+    s3.delete_object(
+        Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"),
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.should.be.none
+    delete_markers.shouldnt.be.empty
+
+    s3.delete_object(
+        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId"),
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.should.be.none
+    delete_markers.should.be.none
+
+
 # Has boto3 equivalent
 @mock_s3_deprecated
 def test_delete_keys_invalid():
