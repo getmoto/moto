@@ -10,14 +10,20 @@ import random
 import string
 import tempfile
 import threading
+import pytz
 import sys
 import time
 import uuid
 
 from bisect import insort
-import pytz
+from moto.core import (
+    ACCOUNT_ID,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
@@ -1314,7 +1320,7 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-class S3Backend(BaseBackend):
+class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def __init__(self):
         self.buckets = {}
         self.account_public_access_block = None
@@ -1358,9 +1364,10 @@ class S3Backend(BaseBackend):
         # Must provide a method 'get_cloudwatch_metrics' that will return a list of metrics, based on the data available
         # metric_providers["S3"] = self
 
-    def get_cloudwatch_metrics(self):
+    @classmethod
+    def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in self.buckets.items():
+        for name, bucket in s3_backend.buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1370,7 +1377,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Bytes",
                 )
             )
             metrics.append(
@@ -1382,7 +1392,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Count",
                 )
             )
         return metrics
