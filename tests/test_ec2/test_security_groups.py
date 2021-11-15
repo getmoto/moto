@@ -2391,16 +2391,20 @@ def test_filter_group_name():
 
     uniq_sg_name_prefix = str(uuid4())[0:6]
     sg1 = vpc.create_security_group(
-        Description="A Described Description Descriptor", GroupName=f"{uniq_sg_name_prefix}-test-1"
+        Description="A Described Description Descriptor",
+        GroupName=f"{uniq_sg_name_prefix}-test-1",
     )
     vpc.create_security_group(
-        Description="Another Description That Awes The Human Mind", GroupName=f"{uniq_sg_name_prefix}-test-12"
+        Description="Another Description That Awes The Human Mind",
+        GroupName=f"{uniq_sg_name_prefix}-test-12",
     )
     vpc.create_security_group(
-        Description="Yet Another Descriptive Description", GroupName=f"{uniq_sg_name_prefix}-test-13"
+        Description="Yet Another Descriptive Description",
+        GroupName=f"{uniq_sg_name_prefix}-test-13",
     )
     vpc.create_security_group(
-        Description="Such Description Much Described", GroupName=f"{uniq_sg_name_prefix}-test-14"
+        Description="Such Description Much Described",
+        GroupName=f"{uniq_sg_name_prefix}-test-14",
     )
 
     filter_to_match_group_1 = {
