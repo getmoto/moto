@@ -2389,17 +2389,18 @@ def test_filter_group_name():
     ec2r = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2r.create_vpc(CidrBlock="10.250.1.0/16")
 
+    uniq_sg_name_prefix = str(uuid4())[0:6]
     sg1 = vpc.create_security_group(
-        Description="A Described Description Descriptor", GroupName="test-1"
+        Description="A Described Description Descriptor", GroupName=f"{uniq_sg_name_prefix}-test-1"
     )
-    sg2 = vpc.create_security_group(
-        Description="Another Description That Awes The Human Mind", GroupName="test-12"
+    vpc.create_security_group(
+        Description="Another Description That Awes The Human Mind", GroupName=f"{uniq_sg_name_prefix}-test-12"
     )
-    sg3 = vpc.create_security_group(
-        Description="Yet Another Descriptive Description", GroupName="test-13"
+    vpc.create_security_group(
+        Description="Yet Another Descriptive Description", GroupName=f"{uniq_sg_name_prefix}-test-13"
     )
-    sg4 = vpc.create_security_group(
-        Description="Such Description Much Described", GroupName="test-14"
+    vpc.create_security_group(
+        Description="Such Description Much Described", GroupName=f"{uniq_sg_name_prefix}-test-14"
     )
 
     filter_to_match_group_1 = {
@@ -2411,7 +2412,3 @@ def test_filter_group_name():
     security_groups = list(security_groups)
     assert len(security_groups) == 1
     assert security_groups[0].group_name == "test-1"
-    # not really needed, but linter will complain if we don't explicitly use these groups somehow
-    assert security_groups[0].group_name not in [
-        sg.group_name for sg in [sg2, sg3, sg4]
-    ]
