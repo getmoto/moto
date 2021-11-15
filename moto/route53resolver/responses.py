@@ -50,6 +50,29 @@ class Route53ResolverResponse(BaseResponse):
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
+    def list_resolver_endpoints(self):
+        """Returns list of all Resolver endpoints, filtered if specified."""
+        filters = self._get_param("Filters")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 10)
+        try:
+            (
+                endpoints,
+                next_token,
+            ) = self.route53resolver_backend.list_resolver_endpoints(
+                filters=filters, next_token=next_token, max_results=max_results
+            )
+        except InvalidToken as exc:
+            raise InvalidNextTokenException() from exc
+
+        response = {
+            "ResolverEndpoints": [x.description() for x in endpoints],
+            "MaxResults": max_results,
+        }
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
+
     def list_tags_for_resource(self):
         """Lists all tags for the given resource."""
         resource_arn = self._get_param("ResourceArn")

@@ -289,6 +289,17 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_endpoints[resolver_endpoint_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
+    def list_resolver_endpoints(
+        self, filters=None, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List all resolver endpoints, using filters if specified."""
+        # TODO - sort by creator_request_id
+        # TODO - check subsequent filters
+        # TODO - validate name, values for filters
+        # TODO - validate range for max_results, and for tags?
+        return list(self.resolver_endpoints.values())
+
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(
         self, resource_arn, next_token=None, max_results=None,
     ):  # pylint: disable=unused-argument

@@ -120,6 +120,18 @@ def test_route53resolver_list_tags_for_resource():
     ]
     assert result["NextToken"]
 
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_bad_list_tags_for_resource():
+    """Test ability to list all tags for a resource."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Create a resolver endpoint to work with.
+    tags = [{"Key": "foo", "Value": "foobar"}]
+    resolver_endpoint = create_test_endpoint(client, ec2_client, tags=tags)
+
     # Bad resolver endpoint ARN.
     bad_arn = "xyz"
     with pytest.raises(ClientError) as exc:

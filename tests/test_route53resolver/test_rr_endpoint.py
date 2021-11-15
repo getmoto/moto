@@ -17,9 +17,21 @@ TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 def create_security_group(ec2_client):
     """Return a security group ID."""
-    return ec2_client.create_security_group(
-        Description="Security group used by unit tests", GroupName="RRUnitTests",
-    )["GroupId"]
+    group_name = "RRUnitTests"
+
+    # Does the security group already exist?
+    groups = ec2_client.describe_security_groups(
+        Filters=[{"Name": "group-name", "Values": [group_name]}]
+    )
+
+    # If so, we're done.  Otherwise, create it.
+    if groups["SecurityGroups"]:
+        return groups["SecurityGroups"][0]["GroupId"]
+
+    response = ec2_client.create_security_group(
+        Description="Security group used by unit tests", GroupName=group_name,
+    )
+    return response["GroupId"]
 
 
 def create_vpc(ec2_client):
@@ -39,7 +51,7 @@ def create_subnets(ec2_client, vpc_id):
     return subnet_ids
 
 
-def create_test_endpoint(client, ec2_client, tags=None):
+def create_test_endpoint(client, ec2_client, name=None, tags=None):
     """Create an endpoint that can be used for testing purposes.
 
     Can't be used for unit tests that need to know/test the arguments.
@@ -50,7 +62,7 @@ def create_test_endpoint(client, ec2_client, tags=None):
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     resolver_endpoint = client.create_resolver_endpoint(
         CreatorRequestId=random_num,
-        Name="X" + random_num,
+        Name=name if name else "X" + random_num,
         SecurityGroupIds=[create_security_group(ec2_client)],
         Direction="INBOUND",
         IpAddresses=[
@@ -505,3 +517,44 @@ def test_route53resolver_bad_update_resolver_endpoint():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert f"Resolver endpoint with ID '{random_num}' does not exist" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_list_resolver_endpoints():
+    """Test good list_resolver_endpoint API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # List endpoints when there are none.
+    response = client.list_resolver_endpoints()
+    assert len(response["ResolverEndpoints"]) == 0
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+
+    # Create 5 endpoints, verify all 5 are listed when no filters, max_results.
+    for idx in range(5):
+        create_test_endpoint(client, ec2_client, name=f"A{idx}-{random_num}")
+    response = client.list_resolver_endpoints()
+    endpoints = response["ResolverEndpoints"]
+    assert len(endpoints) == 5
+    assert response["MaxResults"] == 10
+    for idx in range(5):
+        assert endpoints[idx]["Name"].startswith(f"A{idx}")
+
+    # Set max_results to return 1 endpoint, use next_token to get remaining 4.
+    response = client.list_resolver_endpoints(MaxResults=1)
+    endpoints = response["ResolverEndpoints"]
+    assert len(endpoints) == 1
+    assert response["MaxResults"] == 1
+    assert "NextToken" in response
+    assert endpoints[0]["Name"].startswith("A0")
+
+    response = client.list_resolver_endpoints(NextToken=response["NextToken"])
+    endpoints = response["ResolverEndpoints"]
+    assert len(endpoints) == 4
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+    for idx, endpoint in enumerate(endpoints):
+        assert endpoint["Name"].startswith(f"A{idx + 1}")
