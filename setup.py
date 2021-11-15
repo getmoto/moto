@@ -39,7 +39,6 @@ install_requires = [
     "responses>=0.9.0",
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
-    "more-itertools",
     "importlib_metadata ; python_version < '3.8'",
 ]
 
