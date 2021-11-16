@@ -73,9 +73,8 @@ class DomainDispatcherApplication(object):
 
         if "amazonaws.com" in host:
             print(
-                "Unable to find appropriate backend for '{}'. Remember to add "
-                "the URL to urls.py, and run scripts/update_backend_index.py "
-                "to index it.".format(host)
+                "Unable to find appropriate backend for {}."
+                "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it.".format(host)
             )
 
     def infer_service_region_host(self, environ):
