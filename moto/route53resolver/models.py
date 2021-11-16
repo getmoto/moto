@@ -19,16 +19,7 @@ from moto.route53resolver.exceptions import (
     TagValidationException,
 )
 from moto.route53resolver.utils import PAGINATION_MODEL
-from moto.route53resolver.validations import (
-    validate_args,
-    validate_creator_request_id,
-    validate_direction,
-    validate_endpoint_id,
-    validate_ip_addresses,
-    validate_name,
-    validate_security_group_ids,
-    validate_subnets,
-)
+from moto.route53resolver.validations import validate_args
 
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -238,14 +229,19 @@ class Route53ResolverBackend(BaseBackend):
         NOTE:  IPv6 and reserved IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
         """
+        # TODO
+        # botocore.errorfactory.LimitExceededException: An error occurred
+        # (LimitExceededException) when calling the CreateResolverEndpoint
+        # operation: [RSLVR-00309] Account 'xxx' has exceeded 'max-endpoints'.
+
         validate_args(
             [
-                (validate_creator_request_id, "creatorRequestId", creator_request_id),
-                (validate_direction, "direction", direction),
-                (validate_ip_addresses, "ipAddresses", ip_addresses),
-                (validate_name, "name", name),
-                (validate_security_group_ids, "securityGroupIds", security_group_ids),
-                (validate_subnets, "ipAddresses.subnetId", ip_addresses),
+                ("creatorRequestId", creator_request_id),
+                ("direction", direction),
+                ("ipAddresses", ip_addresses),
+                ("name", name),
+                ("securityGroupIds", security_group_ids),
+                ("ipAddresses.subnetId", ip_addresses),
             ]
         )
         errmsg = self.tagger.validate_tags(
@@ -284,9 +280,7 @@ class Route53ResolverBackend(BaseBackend):
 
     def _validate_resolver_endpoint_id(self, resolver_endpoint_id):
         """Raise an exception if the id is invalid or unknown."""
-        validate_args(
-            [(validate_endpoint_id, "resolverEndpointId", resolver_endpoint_id)]
-        )
+        validate_args([("resolverEndpointId", resolver_endpoint_id)])
         if resolver_endpoint_id not in self.resolver_endpoints:
             raise ResourceNotFoundException(
                 f"Resolver endpoint with ID '{resolver_endpoint_id}' does not exist"
@@ -315,8 +309,6 @@ class Route53ResolverBackend(BaseBackend):
         """List IP endresses for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
-        # TODO - sort by creation time
-        # TODO - validate range for max_results
         return endpoint.ip_descriptions()
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -324,11 +316,9 @@ class Route53ResolverBackend(BaseBackend):
         self, filters=None, next_token=None, max_results=None,
     ):  # pylint: disable=unused-argument
         """List all resolver endpoints, using filters if specified."""
-        # TODO - sort by creator_request_id
         # TODO - check subsequent filters
         # TODO - validate name, values for filters
-        # TODO - validate range for max_results
-        return list(self.resolver_endpoints.values())
+        return sorted(self.resolver_endpoints.values(), key=lambda x: x.name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(
@@ -365,7 +355,7 @@ class Route53ResolverBackend(BaseBackend):
     def update_resolver_endpoint(self, resolver_endpoint_id, name):
         """Update name of Resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
-        validate_args([(validate_name, "name", name)])
+        validate_args([("name", name)])
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
         resolver_endpoint.update_name(name)
         return resolver_endpoint

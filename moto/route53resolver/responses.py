@@ -5,6 +5,7 @@ from moto.core.exceptions import InvalidToken
 from moto.core.responses import BaseResponse
 from moto.route53resolver.exceptions import InvalidNextTokenException
 from moto.route53resolver.models import route53resolver_backends
+from moto.route53resolver.validations import validate_args
 
 
 class Route53ResolverResponse(BaseResponse):
@@ -55,6 +56,7 @@ class Route53ResolverResponse(BaseResponse):
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults", 10)
+        validate_args([("maxResults", max_results)])
         try:
             (
                 ip_addresses,
@@ -80,6 +82,7 @@ class Route53ResolverResponse(BaseResponse):
         filters = self._get_param("Filters")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults", 10)
+        validate_args([("maxResults", max_results)])
         try:
             (
                 endpoints,

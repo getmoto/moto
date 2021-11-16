@@ -11,13 +11,26 @@ def validate_args(validators):
     """Raise exception if any of the validations fails.
 
     validators is a list of tuples each containing the following:
-        (validator_function, printable field name, field value)
+        (printable field name, field value)
 
     The error messages are accumulated before the exception is raised.
     """
+    validation_map = {
+        "creatorRequestId": validate_creator_request_id,
+        "direction": validate_direction,
+        "resolverEndpointId": validate_endpoint_id,
+        "ipAddresses": validate_ip_addresses,
+        "maxResults": validate_max_results,
+        "name": validate_name,
+        "securityGroupIds": validate_security_group_ids,
+        "ipAddresses.subnetId": validate_subnets,
+    }
+
     err_msgs = []
-    for (func, fieldname, value) in validators:
-        msg = func(value)
+    # This eventually could be a switch (python 3.10), eliminating the need
+    # for the above map and individual functions.
+    for (fieldname, value) in validators:
+        msg = validation_map[fieldname](value)
         if msg:
             err_msgs.append((fieldname, value, msg))
     if err_msgs:
@@ -49,6 +62,13 @@ def validate_ip_addresses(value):
     """Raise exception if IPs fail to match length constraint."""
     if len(value) > 10:
         return "have length less than or equal to 10"
+    return ""
+
+
+def validate_max_results(value):
+    """Raise exception if number of endpoints or IPs is too large."""
+    if value and value > 100:
+        return "have length less than or equal to 100"
     return ""
 
 

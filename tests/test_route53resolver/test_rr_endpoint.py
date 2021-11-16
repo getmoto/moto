@@ -555,6 +555,36 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
 
 @mock_ec2
 @mock_route53resolver
+def test_route53resolver_bad_list_resolver_endpoint_ip_addresses():
+    """Test bad list_resolver_endpoint_ip_addresses API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Bad endpoint id.
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_endpoint_ip_addresses(ResolverEndpointId="foo")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Resolver endpoint with ID 'foo' does not exist" in err["Message"]
+
+    # Good endpoint id, but bad max_results.
+    random_num = get_random_hex(10)
+    response = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_endpoint_ip_addresses(
+            ResolverEndpointId=response["Id"], MaxResults=250
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        "Value '250' at 'maxResults' failed to satisfy constraint: Member "
+        "must have length less than or equal to 100"
+    ) in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
 def test_route53resolver_list_resolver_endpoints():
     """Test good list_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -592,3 +622,24 @@ def test_route53resolver_list_resolver_endpoints():
     assert "NextToken" not in response
     for idx, endpoint in enumerate(endpoints):
         assert endpoint["Name"].startswith(f"A{idx + 1}")
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_bad_list_resolver_endpoints():
+    """Test bad list_resolver_endpoints API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Bad max_results.
+    random_num = get_random_hex(10)
+    create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_endpoints(MaxResults=250)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        "Value '250' at 'maxResults' failed to satisfy constraint: Member "
+        "must have length less than or equal to 100"
+    ) in err["Message"]
