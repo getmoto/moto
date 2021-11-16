@@ -112,6 +112,24 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             "ModificationTime": self.modification_time,
         }
 
+    def ip_descriptions(self):
+        """Return a list of dicts describing resolver endpoint IP addresses."""
+        ip_addrs = []
+        for idx, ip_info in enumerate(self.ip_addresses):
+            ip_addrs.append(
+                {
+                    # "IpId": f"rni-{get_random_hex(17)}",  # TODO
+                    "IpId": f"rni-12345{idx}",  # TODO
+                    "SubnetId": ip_info["SubnetId"],
+                    "Ip": ip_info["Ip"],
+                    "Status": "ATTACHED",
+                    "StatusMessage": "This IP address is operational.",
+                    "CreationTime": self.creation_time,
+                    "ModificationTime": self.modification_time,
+                }
+            )
+        return ip_addrs
+
     def update_name(self, name):
         """Replace existing name with new name."""
         self.name = name
@@ -246,6 +264,8 @@ class Route53ResolverBackend(BaseBackend):
                 f"'{creator_request_id}' already exists"
             )
 
+        # TODO - create a network interface?
+
         endpoint_id = (
             f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"
         )
@@ -289,6 +309,17 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_endpoints[resolver_endpoint_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
+    def list_resolver_endpoint_ip_addresses(
+        self, resolver_endpoint_id, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List IP endresses for specified resolver endpoint."""
+        self._validate_resolver_endpoint_id(resolver_endpoint_id)
+        endpoint = self.resolver_endpoints[resolver_endpoint_id]
+        # TODO - sort by creation time
+        # TODO - validate range for max_results
+        return endpoint.ip_descriptions()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoints(
         self, filters=None, next_token=None, max_results=None,
     ):  # pylint: disable=unused-argument
@@ -296,7 +327,7 @@ class Route53ResolverBackend(BaseBackend):
         # TODO - sort by creator_request_id
         # TODO - check subsequent filters
         # TODO - validate name, values for filters
-        # TODO - validate range for max_results, and for tags?
+        # TODO - validate range for max_results
         return list(self.resolver_endpoints.values())
 
     @paginate(pagination_model=PAGINATION_MODEL)

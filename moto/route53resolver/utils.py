@@ -1,6 +1,12 @@
 """Pagination control model for Route53Resolver."""
 
 PAGINATION_MODEL = {
+    "list_resolver_endpoint_ip_addresses": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "page_ending_range_keys": ["IpId"],
+    },
     "list_resolver_endpoints": {
         "input_token": "next_token",
         "limit_key": "max_results",

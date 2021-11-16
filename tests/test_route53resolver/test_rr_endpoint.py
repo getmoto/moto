@@ -521,6 +521,40 @@ def test_route53resolver_bad_update_resolver_endpoint():
 
 @mock_ec2
 @mock_route53resolver
+def test_route53resolver_list_resolver_endpoint_ip_addresses():
+    """Test good list_resolver_endpoint_ip_addresses API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    response = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    endpoint_id = response["Id"]
+    response = client.list_resolver_endpoint_ip_addresses(
+        ResolverEndpointId=endpoint_id
+    )
+    assert len(response["IpAddresses"]) == 2
+    assert response["MaxResults"] == 10
+
+    # Set max_results to return 1 address, use next_token to get remaining.
+    response = client.list_resolver_endpoint_ip_addresses(
+        ResolverEndpointId=endpoint_id, MaxResults=1
+    )
+    ip_addresses = response["IpAddresses"]
+    assert len(ip_addresses) == 1
+    assert response["MaxResults"] == 1
+    assert "NextToken" in response
+    # TODO - check all the fields
+
+    response = client.list_resolver_endpoint_ip_addresses(
+        ResolverEndpointId=endpoint_id, NextToken=response["NextToken"]
+    )
+    assert len(response["IpAddresses"]) == 1
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+
+
+@mock_ec2
+@mock_route53resolver
 def test_route53resolver_list_resolver_endpoints():
     """Test good list_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)

@@ -3669,7 +3669,7 @@
 </details>
 
 ## route53resolver
-<summary>13% implemented</summary>
+<summary>14% implemented</summary>
 
 <details>
 - [ ] associate_firewall_rule_group
@@ -3713,7 +3713,7 @@
 - [ ] list_firewall_rule_groups
 - [ ] list_firewall_rules
 - [ ] list_resolver_dnssec_configs
-- [ ] list_resolver_endpoint_ip_addresses
+- [X] list_resolver_endpoint_ip_addresses
 - [X] list_resolver_endpoints
 - [ ] list_resolver_query_log_config_associations
 - [ ] list_resolver_query_log_configs
