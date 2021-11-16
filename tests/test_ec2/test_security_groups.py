@@ -2415,4 +2415,4 @@ def test_filter_group_name():
 
     security_groups = list(security_groups)
     assert len(security_groups) == 1
-    assert security_groups[0].group_name == "test-1"
+    assert security_groups[0].group_name == sg1.group_name
