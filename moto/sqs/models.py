@@ -534,7 +534,12 @@ class Queue(CloudFormationModel):
                 [backend.delete_message(self.name, m.receipt_handle) for m in messages]
             else:
                 # Make messages visible again
-                [m.change_visibility(visibility_timeout=0) for m in messages]
+                [
+                    backend.change_message_visibility(
+                        self.name, m.receipt_handle, visibility_timeout=0
+                    )
+                    for m in messages
+                ]
 
     @classmethod
     def has_cfn_attr(cls, attribute_name):
