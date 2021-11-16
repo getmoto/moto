@@ -1049,7 +1049,7 @@ def test_copy_key_replace_metadata_boto3():
     s3.create_bucket(Bucket="foobar")
 
     key = s3.Object("foobar", "the-key")
-    key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
+    initial = key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
 
     client.copy_object(
         Bucket="foobar",
@@ -1061,6 +1061,7 @@ def test_copy_key_replace_metadata_boto3():
 
     resp = client.get_object(Bucket="foobar", Key="new-key")
     resp["Metadata"].should.equal({"momd": "Mometadatastring"})
+    resp["ETag"].should.equal(initial["ETag"])
 
 
 # Has boto3 equivalent
@@ -1369,6 +1370,63 @@ def test_delete_keys():
     keys = bucket.get_all_keys()
     keys.should.have.length_of(2)
     keys[0].name.should.equal("file1")
+
+
+@mock_s3
+def test_delete_versioned_objects():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "test"
+    key = "test"
+
+    s3.create_bucket(Bucket=bucket)
+
+    s3.put_object(Bucket=bucket, Key=key, Body=b"")
+
+    s3.put_bucket_versioning(
+        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"},
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.shouldnt.be.empty
+    versions.shouldnt.be.empty
+    delete_markers.should.be.none
+
+    s3.delete_object(Bucket=bucket, Key=key)
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.shouldnt.be.empty
+    delete_markers.shouldnt.be.empty
+
+    s3.delete_object(
+        Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"),
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.should.be.none
+    delete_markers.shouldnt.be.empty
+
+    s3.delete_object(
+        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId"),
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.should.be.none
+    delete_markers.should.be.none
 
 
 # Has boto3 equivalent
@@ -3319,6 +3377,25 @@ def test_boto3_head_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_copy_non_existing_file():
+    s3 = boto3.resource("s3")
+    src = "srcbucket"
+    target = "target"
+    s3.create_bucket(Bucket=src)
+    s3.create_bucket(Bucket=target)
+
+    s3_client = boto3.client("s3")
+    with pytest.raises(ClientError) as exc:
+        s3_client.copy_object(
+            Bucket=target, CopySource={"Bucket": src, "Key": "foofoofoo"}, Key="newkey"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchKey")
+    err["Message"].should.equal("The specified key does not exist.")
+    err["Key"].should.equal("foofoofoo")
+
+
+@mock_s3
 def test_boto3_copy_object_with_versioning():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -3358,7 +3435,7 @@ def test_boto3_copy_object_with_versioning():
             Bucket="blah",
             Key="test5",
         )
-    e.value.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
     response = client.create_multipart_upload(Bucket="blah", Key="test4")
     upload_id = response["UploadId"]
@@ -4700,6 +4777,7 @@ def test_boto3_put_object_tagging():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -4759,6 +4837,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -4827,6 +4906,7 @@ def test_boto3_put_object_tagging_on_both_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )

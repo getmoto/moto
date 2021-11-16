@@ -27,9 +27,7 @@ def test_valid_update_expression(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "forum_name"}),
-        hash_key_type="TYPE",
         range_key=DynamoType({"S": "forum_type"}),
-        range_key_type="TYPE",
         attrs={"forum_name": {"S": "hello"}},
     )
     UpdateExpressionValidator(
@@ -48,9 +46,7 @@ def test_validation_of_update_expression_with_keyword(table):
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "1"}, "path": {"N": "3"}},
         )
         UpdateExpressionValidator(
@@ -80,9 +76,7 @@ def test_validation_of_a_set_statement_with_incorrect_passed_value(
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "b": {"N": "3"}},
     )
     try:
@@ -111,9 +105,7 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "1"}, "path": {"N": "3"}},
         )
         UpdateExpressionValidator(
@@ -144,9 +136,7 @@ def test_validation_of_update_expression_with_attribute_name_that_is_not_defined
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "1"}, "path": {"N": "3"}},
         )
         UpdateExpressionValidator(
@@ -167,9 +157,7 @@ def test_validation_of_if_not_exists_not_existing_invalid_replace_value(table):
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "1"}, "a": {"S": "A"}},
         )
         UpdateExpressionValidator(
@@ -211,9 +199,7 @@ def test_validation_of_if_not_exists_not_existing_value(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"S": "A"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -234,9 +220,7 @@ def test_validation_of_if_not_exists_with_existing_attribute_should_return_attri
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"S": "A"}, "b": {"S": "B"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -256,9 +240,7 @@ def test_validation_of_if_not_exists_with_existing_attribute_should_return_value
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "b": {"N": "3"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -279,11 +261,7 @@ def test_validation_of_if_not_exists_with_non_existing_attribute_should_return_v
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
-        hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
-        range_key=None,
-        range_key_type=None,
-        attrs={"id": {"S": "1"}},
+        hash_key=DynamoType({"S": "id"}), range_key=None, attrs={"id": {"S": "1"}},
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,
@@ -301,9 +279,7 @@ def test_validation_of_sum_operation(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"N": "3"}, "b": {"N": "4"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -322,9 +298,7 @@ def test_validation_homogeneous_list_append_function(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "ri": {"L": [{"S": "i1"}, {"S": "i2"}]}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -345,9 +319,7 @@ def test_validation_hetereogenous_list_append_function(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "ri": {"L": [{"S": "i1"}, {"S": "i2"}]}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -374,9 +346,7 @@ def test_validation_list_append_function_with_non_list_arg(table):
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "1"}, "ri": {"L": [{"S": "i1"}, {"S": "i2"}]}},
         )
         UpdateExpressionValidator(
@@ -403,9 +373,7 @@ def test_sum_with_incompatible_types(table):
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "1"}, "ri": {"L": [{"S": "i1"}, {"S": "i2"}]}},
         )
         UpdateExpressionValidator(
@@ -425,9 +393,7 @@ def test_validation_of_subraction_operation(table):
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "1"}, "a": {"N": "3"}, "b": {"N": "4"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -451,9 +417,7 @@ def test_cannot_index_into_a_string(table):
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "foo2"}, "itemstr": {"S": "somestring"}},
         )
         UpdateExpressionValidator(
@@ -476,9 +440,7 @@ def test_validation_set_path_does_not_need_to_be_resolvable_when_setting_a_new_a
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
-        hash_key_type="TYPE",
         range_key=None,
-        range_key_type=None,
         attrs={"id": {"S": "foo2"}, "a": {"N": "3"}},
     )
     validated_ast = UpdateExpressionValidator(
@@ -500,9 +462,7 @@ def test_validation_set_path_does_not_need_to_be_resolvable_but_must_be_creatabl
         update_expression_ast = UpdateExpressionParser.make(update_expression)
         item = Item(
             hash_key=DynamoType({"S": "id"}),
-            hash_key_type="TYPE",
             range_key=None,
-            range_key_type=None,
             attrs={"id": {"S": "foo2"}, "a": {"N": "3"}},
         )
         UpdateExpressionValidator(
