@@ -360,6 +360,16 @@ def test_route53resolver_other_create_resolver_endpoint_errors():
         f"Resolver endpoint with creator request ID '{request_id}' already exists"
     ) in err["Message"]
 
+    # Too many endpoints.
+    random_num = get_random_hex(10)
+    for idx in range(4):
+        create_test_endpoint(client, ec2_client, name=f"A{idx}-{random_num}")
+    with pytest.raises(ClientError) as exc:
+        create_test_endpoint(client, ec2_client, name=f"A5-{random_num}")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "LimitExceededException"
+    assert f"Account '{ACCOUNT_ID}' has exceeded 'max-endpoints" in err["Message"]
+
 
 @mock_ec2
 @mock_route53resolver
@@ -598,16 +608,16 @@ def test_route53resolver_list_resolver_endpoints():
     assert "NextToken" not in response
 
     # Create 5 endpoints, verify all 5 are listed when no filters, max_results.
-    for idx in range(5):
+    for idx in range(4):
         create_test_endpoint(client, ec2_client, name=f"A{idx}-{random_num}")
     response = client.list_resolver_endpoints()
     endpoints = response["ResolverEndpoints"]
-    assert len(endpoints) == 5
+    assert len(endpoints) == 4
     assert response["MaxResults"] == 10
-    for idx in range(5):
+    for idx in range(4):
         assert endpoints[idx]["Name"].startswith(f"A{idx}")
 
-    # Set max_results to return 1 endpoint, use next_token to get remaining 4.
+    # Set max_results to return 1 endpoint, use next_token to get remaining 3.
     response = client.list_resolver_endpoints(MaxResults=1)
     endpoints = response["ResolverEndpoints"]
     assert len(endpoints) == 1
@@ -617,7 +627,7 @@ def test_route53resolver_list_resolver_endpoints():
 
     response = client.list_resolver_endpoints(NextToken=response["NextToken"])
     endpoints = response["ResolverEndpoints"]
-    assert len(endpoints) == 4
+    assert len(endpoints) == 3
     assert response["MaxResults"] == 10
     assert "NextToken" not in response
     for idx, endpoint in enumerate(endpoints):

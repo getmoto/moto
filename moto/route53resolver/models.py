@@ -13,7 +13,7 @@ from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
 from moto.route53resolver.exceptions import (
     InvalidParameterException,
     InvalidRequestException,
-    # TODO LimitExceededException,
+    LimitExceededException,
     ResourceExistsException,
     ResourceNotFoundException,
     TagValidationException,
@@ -29,6 +29,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
     """Representation of a fake Route53 Resolver Endpoint."""
 
     MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
+    MAX_ENDPOINTS_PER_REGION = 4
 
     def __init__(
         self,
@@ -177,23 +178,7 @@ class Route53ResolverBackend(BaseBackend):
                     f"'{subnet_id}' CIDR range or is reserved"
                 )
 
-            # NOTE:  IPv6 and reserved IPs are currently not being filtered.
-            # Not sure if this is the correct way or the best way to check
-            # if the IP is within an IPv6 CIDR.
-            # ipv6_cidr_info = subnet_info.ipv6_cidr_block_associations
-            # if not ipv6_cidr_info:
-            #     continue
-            #
-            # for ipv6_cidr in ipv6_cidr_info:
-            #     if ipv6_cidr_info.ipv6_cidr_block_state == "associated" and ip_address(
-            #         ip_addr
-            #     ) in ip_network(ipv6_cidr_info.cidr_block):
-            #         break
-            # else:
-            #     raise InvalidRequestException(
-            #         f'IP address "{ip_addr}" is either not in subnet '
-            #         f'"{subnet_id}" CIDR range or is reserved.'
-            #     )
+            # TODO - IP already in use?
 
     @staticmethod
     def _verify_security_group_ids(region, security_group_ids):
@@ -229,11 +214,6 @@ class Route53ResolverBackend(BaseBackend):
         NOTE:  IPv6 and reserved IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
         """
-        # TODO
-        # botocore.errorfactory.LimitExceededException: An error occurred
-        # (LimitExceededException) when calling the CreateResolverEndpoint
-        # operation: [RSLVR-00309] Account 'xxx' has exceeded 'max-endpoints'.
-
         validate_args(
             [
                 ("creatorRequestId", creator_request_id),
@@ -249,9 +229,15 @@ class Route53ResolverBackend(BaseBackend):
         )
         if errmsg:
             raise TagValidationException(errmsg)
+
+        endpoints = [x for x in self.resolver_endpoints.values() if x.region == region]
+        if len(endpoints) > ResolverEndpoint.MAX_ENDPOINTS_PER_REGION:
+            raise LimitExceededException(
+                f"Account '{ACCOUNT_ID}' has exceeded 'max-endpoints'"
+            )
+
         self._verify_subnet_ips(region, ip_addresses)
         self._verify_security_group_ids(region, security_group_ids)
-
         if creator_request_id in [
             x.creator_request_id for x in self.resolver_endpoints.values()
         ]:
