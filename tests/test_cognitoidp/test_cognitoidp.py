@@ -2987,6 +2987,18 @@ def test_admin_delete_user_attributes_non_existing_attribute():
         "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\n"
     )
 
+    with pytest.raises(ClientError) as exc:
+        conn.admin_delete_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributeNames=["nickname", "custom:foo", "custom:bar"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\nuser.custom:bar: Attribute does not exist in the schema.\n"
+    )
+
 
 @mock_cognitoidp
 def test_admin_delete_user_attributes_non_existing_user():
