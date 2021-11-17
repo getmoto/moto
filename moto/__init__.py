@@ -168,6 +168,7 @@ mock_mediastoredata = lazy_load(
 )
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
+mock_sdb = lazy_load(".sdb", "mock_sdb", boto3_name="sdb")
 
 
 def mock_all():

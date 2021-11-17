@@ -4087,6 +4087,22 @@
 - [ ] update_workteam
 </details>
 
+## sdb
+<details>
+<summary>50% implemented</summary>
+
+- [ ] batch_delete_attributes
+- [ ] batch_put_attributes
+- [X] create_domain
+- [ ] delete_attributes
+- [X] delete_domain
+- [ ] domain_metadata
+- [X] get_attributes
+- [X] list_domains
+- [X] put_attributes
+- [ ] select
+</details>
+
 ## secretsmanager
 <details>
 <summary>68% implemented</summary>
@@ -4804,7 +4820,6 @@
 - sagemaker-runtime
 - savingsplans
 - schemas
-- sdb
 - securityhub
 - serverlessrepo
 - service-quotas
