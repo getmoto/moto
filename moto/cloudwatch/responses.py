@@ -186,11 +186,9 @@ class CloudWatchResponse(BaseResponse):
         # Unsupported Parameters (To Be Implemented)
         unit = self._get_param("Unit")
         extended_statistics = self._get_param("ExtendedStatistics")
-        if extended_statistics:
-            raise NotImplementedError()
 
         # TODO: this should instead throw InvalidParameterCombination
-        if not statistics:
+        if not statistics and not extended_statistics:
             raise NotImplementedError(
                 "Must specify either Statistics or ExtendedStatistics"
             )
@@ -202,7 +200,7 @@ class CloudWatchResponse(BaseResponse):
             end_time,
             period,
             statistics,
-            unit,
+            unit=unit,
             dimensions=dimensions,
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)

@@ -399,13 +399,22 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
                 dict1.pop(key)
 
 
-def glob_matches(pattern, string):
-    """AWS API-style globbing regexes"""
-    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
-    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+def aws_api_matches(pattern, string):
+    """
+        AWS API can match a value based on a glob, or an exact match
+    """
+    # use a negative lookback regex to match stars that are not prefixed with a backslash
+    # and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
+    pattern, n = re.subn(r"(?<!\\)\*", r".*", pattern)
 
-    pattern = ".*" + pattern + ".*"
+    # ? in the AWS glob form becomes .? in regex
+    # also, don't substitute it if it is prefixed w/ a backslash
+    pattern, m = re.subn(r"(?<!\\)\?", r".?", pattern)
 
-    if re.match(pattern, str(string)):
+    # aws api seems to anchor
+    anchored_pattern = f"^{pattern}$"
+
+    if re.match(anchored_pattern, str(string)):
         return True
-    return False
+    else:
+        return False

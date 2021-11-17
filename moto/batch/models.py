@@ -26,6 +26,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core.utils import unix_time_millis
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 from ..utilities.tagging_service import TaggingService
 
@@ -582,11 +583,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 logs = []
                 for line in logs_stdout + logs_stderr:
                     date, line = line.split(" ", 1)
-                    date = dateutil.parser.parse(date)
-                    # TODO: Replace with int(date.timestamp()) once we yeet Python2 out of the window
-                    date = int(
-                        (time.mktime(date.timetuple()) + date.microsecond / 1000000.0)
-                    )
+                    date_obj = dateutil.parser.parse(date, ignoretz=True)
+                    date = unix_time_millis(date_obj)
                     logs.append({"timestamp": date, "message": line.strip()})
 
                 # Send to cloudwatch

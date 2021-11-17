@@ -10,15 +10,21 @@ import random
 import string
 import tempfile
 import threading
+import pytz
 import sys
 import time
 import uuid
 
 from bisect import insort
 from importlib import reload
-import pytz
+from moto.core import (
+    ACCOUNT_ID,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
@@ -1315,7 +1321,7 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-class S3Backend(BaseBackend):
+class S3Backend(BaseBackend, CloudWatchMetricProvider):
     """
     Moto implementation for S3.
 
@@ -1385,9 +1391,10 @@ class S3Backend(BaseBackend):
         # Must provide a method 'get_cloudwatch_metrics' that will return a list of metrics, based on the data available
         # metric_providers["S3"] = self
 
-    def get_cloudwatch_metrics(self):
+    @classmethod
+    def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in self.buckets.items():
+        for name, bucket in s3_backend.buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1397,7 +1404,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Bytes",
                 )
             )
             metrics.append(
@@ -1409,7 +1419,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Count",
                 )
             )
         return metrics
@@ -1622,7 +1635,7 @@ class S3Backend(BaseBackend):
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=str(uuid.uuid4()) if bucket.is_versioned else None,
+            version_id=str(uuid.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,
@@ -1647,7 +1660,7 @@ class S3Backend(BaseBackend):
         if key is not None:
             key.set_acl(acl)
         else:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
 
     def put_object_legal_hold(
         self, bucket_name, key_name, version_id, legal_hold_status
@@ -1713,7 +1726,7 @@ class S3Backend(BaseBackend):
 
     def set_key_tags(self, key, tags, key_name=None):
         if key is None:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
         boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
         errmsg = self.tagger.validate_tags(boto_tags_dict)
         if errmsg:
@@ -2043,7 +2056,6 @@ class S3Backend(BaseBackend):
             key_name=dest_key_name,
             value=key.value,
             storage=storage or key.storage_class,
-            etag=key.etag,
             multipart=key.multipart,
             encryption=key.encryption,
             kms_key_id=key.kms_key_id,

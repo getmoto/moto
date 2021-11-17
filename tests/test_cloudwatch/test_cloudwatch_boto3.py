@@ -11,7 +11,7 @@ from freezegun import freeze_time
 from operator import itemgetter
 from uuid import uuid4
 
-from moto import mock_cloudwatch
+from moto import mock_cloudwatch, mock_s3
 from moto.core import ACCOUNT_ID
 
 
@@ -170,6 +170,7 @@ def test_get_metric_statistics_dimensions():
             Statistics=["Average", "Sum"],
             **params[0],
         )
+        print(stats)
         stats["Datapoints"].should.have.length_of(1)
         datapoint = stats["Datapoints"][0]
         datapoint["Sum"].should.equal(params[1])
@@ -342,7 +343,7 @@ def test_list_metrics():
 def test_list_metrics_paginated():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify that only a single page of metrics is returned
-    cloudwatch.list_metrics()["Metrics"].should.be.empty
+    cloudwatch.list_metrics().shouldnt.have.key("NextToken")
     # Verify we can't pass a random NextToken
     with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=str(uuid4()))
@@ -708,6 +709,95 @@ def test_get_metric_data_for_multiple_metrics():
 
     res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
     res2["Values"].should.equal([25.0])
+
+
+@mock_cloudwatch
+@mock_s3
+def test_cloudwatch_return_s3_metrics():
+    utc_now = datetime.now(tz=pytz.utc)
+    bucket_name = "examplebucket"
+    cloudwatch = boto3.client("cloudwatch", "eu-west-3")
+
+    # given
+    s3 = boto3.resource("s3")
+    s3_client = boto3.client("s3")
+    bucket = s3.Bucket(bucket_name)
+    bucket.create(CreateBucketConfiguration={"LocationConstraint": "eu-west-3"})
+    bucket.put_object(Body=b"ABCD", Key="file.txt")
+
+    # when
+    metrics = cloudwatch.list_metrics(
+        Dimensions=[{"Name": "BucketName", "Value": bucket_name}]
+    )["Metrics"]
+
+    # then
+    metrics.should.have.length_of(2)
+    metrics.should.contain(
+        {
+            "Namespace": "AWS/S3",
+            "MetricName": "NumberOfObjects",
+            "Dimensions": [
+                {"Name": "StorageType", "Value": "AllStorageTypes"},
+                {"Name": "BucketName", "Value": bucket_name},
+            ],
+        }
+    )
+    metrics.should.contain(
+        {
+            "Namespace": "AWS/S3",
+            "MetricName": "BucketSizeBytes",
+            "Dimensions": [
+                {"Name": "StorageType", "Value": "StandardStorage"},
+                {"Name": "BucketName", "Value": bucket_name},
+            ],
+        }
+    )
+
+    # when
+    stats = cloudwatch.get_metric_statistics(
+        Namespace="AWS/S3",
+        MetricName="BucketSizeBytes",
+        Dimensions=[
+            {"Name": "BucketName", "Value": bucket_name},
+            {"Name": "StorageType", "Value": "StandardStorage"},
+        ],
+        StartTime=utc_now - timedelta(days=2),
+        EndTime=utc_now,
+        Period=86400,
+        Statistics=["Average"],
+        Unit="Bytes",
+    )
+
+    # then
+    stats.should.have.key("Label").equal("BucketSizeBytes")
+    stats.should.have.key("Datapoints").length_of(1)
+    data_point = stats["Datapoints"][0]
+    data_point.should.have.key("Average").being.above(0)
+    data_point.should.have.key("Unit").being.equal("Bytes")
+
+    # when
+    stats = cloudwatch.get_metric_statistics(
+        Namespace="AWS/S3",
+        MetricName="NumberOfObjects",
+        Dimensions=[
+            {"Name": "BucketName", "Value": bucket_name},
+            {"Name": "StorageType", "Value": "AllStorageTypes"},
+        ],
+        StartTime=utc_now - timedelta(days=2),
+        EndTime=utc_now,
+        Period=86400,
+        Statistics=["Average"],
+    )
+
+    # then
+    stats.should.have.key("Label").equal("NumberOfObjects")
+    stats.should.have.key("Datapoints").length_of(1)
+    data_point = stats["Datapoints"][0]
+    data_point.should.have.key("Average").being.equal(1)
+    data_point.should.have.key("Unit").being.equal("Count")
+
+    s3_client.delete_object(Bucket=bucket_name, Key="file.txt")
+    s3_client.delete_bucket(Bucket=bucket_name)
 
 
 @mock_cloudwatch

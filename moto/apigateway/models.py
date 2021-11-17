@@ -1780,6 +1780,16 @@ class APIGatewayBackend(BaseBackend):
 
         return self.base_path_mappings[domain_name][base_path]
 
+    def delete_base_path_mapping(self, domain_name, base_path):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path not in self.base_path_mappings[domain_name]:
+            raise BasePathNotFoundException()
+
+        self.base_path_mappings[domain_name].pop(base_path)
+
 
 apigateway_backends = {}
 for region_name in Session().get_available_regions("apigateway"):

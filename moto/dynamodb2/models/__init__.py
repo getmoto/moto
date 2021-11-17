@@ -23,6 +23,7 @@ from moto.dynamodb2.exceptions import (
     ConditionalCheckFailed,
     TransactionCanceledException,
     EmptyKeyAttributeException,
+    InvalidAttributeTypeError,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -67,11 +68,9 @@ class LimitedSizeDict(dict):
 
 
 class Item(BaseModel):
-    def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
+    def __init__(self, hash_key, range_key, attrs):
         self.hash_key = hash_key
-        self.hash_key_type = hash_key_type
         self.range_key = range_key
-        self.range_key_type = range_key_type
 
         if hash_key and hash_key.size() > HASH_KEY_MAX_LENGTH:
             raise HashKeyTooLong
@@ -86,9 +85,7 @@ class Item(BaseModel):
         return all(
             [
                 self.hash_key == other.hash_key,
-                self.hash_key_type == other.hash_key_type,
                 self.range_key == other.range_key,
-                self.range_key_type == other.range_key_type,
                 self.attrs == other.attrs,
             ]
         )
@@ -411,12 +408,17 @@ class Table(CloudFormationModel):
         self.range_key_type = None
         self.hash_key_type = None
         for elem in schema:
+            attr_type = [
+                a["AttributeType"]
+                for a in attr
+                if a["AttributeName"] == elem["AttributeName"]
+            ][0]
             if elem["KeyType"] == "HASH":
                 self.hash_key_attr = elem["AttributeName"]
-                self.hash_key_type = elem["KeyType"]
+                self.hash_key_type = attr_type
             else:
                 self.range_key_attr = elem["AttributeName"]
-                self.range_key_type = elem["KeyType"]
+                self.range_key_type = attr_type
         self.table_key_attrs = [
             key for key in (self.hash_key_attr, self.range_key_attr) if key
         ]
@@ -620,6 +622,18 @@ class Table(CloudFormationModel):
         else:
             range_value = None
 
+        if hash_value.type != self.hash_key_type:
+            raise InvalidAttributeTypeError(
+                self.hash_key_attr,
+                expected_type=self.hash_key_type,
+                actual_type=hash_value.type,
+            )
+        if range_value and range_value.type != self.range_key_type:
+            raise InvalidAttributeTypeError(
+                self.range_key_attr,
+                expected_type=self.range_key_type,
+                actual_type=range_value.type,
+            )
         if expected is None:
             expected = {}
             lookup_range_value = range_value
@@ -630,9 +644,7 @@ class Table(CloudFormationModel):
             else:
                 lookup_range_value = DynamoType(expected_range_value)
         current = self.get_item(hash_value, lookup_range_value)
-        item = Item(
-            hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs
-        )
+        item = Item(hash_value, range_value, item_attrs)
 
         if not overwrite:
             if not get_expected(expected).expr(current):
@@ -1427,13 +1439,7 @@ class DynamoDBBackend(BaseBackend):
         if item is None:
             if update_expression:
                 # Validate AST before creating anything
-                item = Item(
-                    hash_value,
-                    table.hash_key_type,
-                    range_value,
-                    table.range_key_type,
-                    attrs={},
-                )
+                item = Item(hash_value, range_value, attrs={},)
                 UpdateExpressionValidator(
                     update_expression_ast,
                     expression_attribute_names=expression_attribute_names,
