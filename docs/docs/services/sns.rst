@@ -12,8 +12,6 @@
 sns
 ===
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -55,6 +53,7 @@ sns
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
+- [ ] publish_batch
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes

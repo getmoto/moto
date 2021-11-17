@@ -12,7 +12,7 @@
 cloudtrail
 ==========
 
-Implementation of CloudTrail APIs.
+.. autoclass:: moto.cloudtrail.models.CloudTrailBackend
 
 |start-h3| Example usage |end-h3|
 

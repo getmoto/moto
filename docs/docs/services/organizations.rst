@@ -12,8 +12,6 @@
 organizations
 =============
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python

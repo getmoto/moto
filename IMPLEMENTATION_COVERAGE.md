@@ -271,19 +271,23 @@
 
 ## batch
 <details>
-<summary>84% implemented</summary>
+<summary>66% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
+- [ ] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
+- [ ] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
+- [ ] describe_scheduling_policies
 - [X] list_jobs
+- [ ] list_scheduling_policies
 - [ ] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -292,6 +296,7 @@
 - [ ] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
+- [ ] update_scheduling_policy
 </details>
 
 ## cloudformation
@@ -3669,9 +3674,9 @@
 </details>
 
 ## route53resolver
+<details>
 <summary>14% implemented</summary>
 
-<details>
 - [ ] associate_firewall_rule_group
 - [ ] associate_resolver_endpoint_ip_address
 - [ ] associate_resolver_query_log_config
@@ -4210,7 +4215,7 @@
 
 ## sns
 <details>
-<summary>53% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
@@ -4240,6 +4245,7 @@
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
+- [ ] publish_batch
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes
@@ -4656,6 +4662,7 @@
 - apigatewaymanagementapi
 - apigatewayv2
 - appconfig
+- appconfigdata
 - appflow
 - appintegrations
 - application-insights
@@ -4709,6 +4716,7 @@
 - discovery
 - dlm
 - docdb
+- drs
 - ebs
 - ecr-public
 - elastic-inference
@@ -4780,6 +4788,7 @@
 - mgh
 - mgn
 - migrationhub-config
+- migrationhubstrategy
 - mobile
 - mq
 - mturk
@@ -4807,6 +4816,7 @@
 - rds-data
 - redshift-data
 - rekognition
+- resiliencehub
 - robomaker
 - route53-recovery-cluster
 - route53-recovery-control-config
