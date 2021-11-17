@@ -105,6 +105,7 @@ extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
 extras_per_service["efs"] = extras_per_service["ec2"]
 # DirectoryService needs EC2 to verify VPCs and subnets.
 extras_per_service["ds"] = extras_per_service["ec2"]
+extras_per_service["route53resolver"] = extras_per_service["ec2"]
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,

@@ -1,7 +1,7 @@
 """Route53 base URL and path."""
 from .responses import Route53
 
-url_bases = [r"https?://route53(.*)\.amazonaws.com"]
+url_bases = [r"https?://route53(\..+)?\.amazonaws.com"]
 
 
 def tag_response1(*args, **kwargs):

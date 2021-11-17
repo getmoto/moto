@@ -74,7 +74,7 @@ class DomainDispatcherApplication(object):
         if "amazonaws.com" in host:
             print(
                 "Unable to find appropriate backend for {}."
-                "Remember to add the URL to urls.py, and run script/update_backend_index.py to index it.".format(
+                "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it.".format(
                     host
                 )
             )
@@ -91,6 +91,7 @@ class DomainDispatcherApplication(object):
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
                 service = SIGNING_ALIASES.get(service.lower(), service)
+                service = service.lower()
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use

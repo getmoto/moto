@@ -3668,6 +3668,75 @@
 - [ ] update_traffic_policy_instance
 </details>
 
+## route53resolver
+<summary>14% implemented</summary>
+
+<details>
+- [ ] associate_firewall_rule_group
+- [ ] associate_resolver_endpoint_ip_address
+- [ ] associate_resolver_query_log_config
+- [ ] associate_resolver_rule
+- [ ] create_firewall_domain_list
+- [ ] create_firewall_rule
+- [ ] create_firewall_rule_group
+- [X] create_resolver_endpoint
+- [ ] create_resolver_query_log_config
+- [ ] create_resolver_rule
+- [ ] delete_firewall_domain_list
+- [ ] delete_firewall_rule
+- [ ] delete_firewall_rule_group
+- [X] delete_resolver_endpoint
+- [ ] delete_resolver_query_log_config
+- [ ] delete_resolver_rule
+- [ ] disassociate_firewall_rule_group
+- [ ] disassociate_resolver_endpoint_ip_address
+- [ ] disassociate_resolver_query_log_config
+- [ ] disassociate_resolver_rule
+- [ ] get_firewall_config
+- [ ] get_firewall_domain_list
+- [ ] get_firewall_rule_group
+- [ ] get_firewall_rule_group_association
+- [ ] get_firewall_rule_group_policy
+- [ ] get_resolver_config
+- [ ] get_resolver_dnssec_config
+- [X] get_resolver_endpoint
+- [ ] get_resolver_query_log_config
+- [ ] get_resolver_query_log_config_association
+- [ ] get_resolver_query_log_config_policy
+- [ ] get_resolver_rule
+- [ ] get_resolver_rule_association
+- [ ] get_resolver_rule_policy
+- [ ] import_firewall_domains
+- [ ] list_firewall_configs
+- [ ] list_firewall_domain_lists
+- [ ] list_firewall_domains
+- [ ] list_firewall_rule_group_associations
+- [ ] list_firewall_rule_groups
+- [ ] list_firewall_rules
+- [ ] list_resolver_configs
+- [ ] list_resolver_dnssec_configs
+- [X] list_resolver_endpoint_ip_addresses
+- [X] list_resolver_endpoints
+- [ ] list_resolver_query_log_config_associations
+- [ ] list_resolver_query_log_configs
+- [ ] list_resolver_rule_associations
+- [ ] list_resolver_rules
+- [X] list_tags_for_resource
+- [ ] put_firewall_rule_group_policy
+- [ ] put_resolver_query_log_config_policy
+- [ ] put_resolver_rule_policy
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_firewall_config
+- [ ] update_firewall_domains
+- [ ] update_firewall_rule
+- [ ] update_firewall_rule_group_association
+- [ ] update_resolver_config
+- [ ] update_resolver_dnssec_config
+- [X] update_resolver_endpoint
+- [ ] update_resolver_rule
+</details>
+
 ## s3
 <details>
 <summary>59% implemented</summary>
@@ -4727,7 +4796,6 @@
 - route53-recovery-control-config
 - route53-recovery-readiness
 - route53domains
-- route53resolver
 - s3control
 - s3outposts
 - sagemaker-a2i-runtime
