@@ -43,9 +43,7 @@ SIGNING_ALIASES = {
 }
 
 # Some services are only recognizable by the version
-SERVICE_BY_VERSION = {
-    "2009-04-15": "sdb"
-}
+SERVICE_BY_VERSION = {"2009-04-15": "sdb"}
 
 
 class DomainDispatcherApplication(object):
@@ -97,7 +95,7 @@ class DomainDispatcherApplication(object):
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
                 service = SIGNING_ALIASES.get(service.lower(), service)
-            except ValueError as e:
+            except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use
                 # the deprecated SigV2, ergo prefer S3 as most likely default.
@@ -189,7 +187,7 @@ class DomainDispatcherApplication(object):
             request_body_size = int(environ["CONTENT_LENGTH"])
             if simple_form and request_body_size:
                 body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError):
             pass
         finally:
             if body:
