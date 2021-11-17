@@ -188,13 +188,10 @@ def test_describe_cluster():
 @mock_emr
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
-    raised = False
-    try:
+    with pytest.raises(ClientError) as e:
         conn.describe_cluster(ClusterId="DummyId")
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ResourceNotFoundException":
-            raised = True
-    raised.should.equal(True)
+
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_emr

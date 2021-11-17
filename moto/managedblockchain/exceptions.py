@@ -1,12 +1,6 @@
+import json
 from functools import wraps
 from werkzeug.exceptions import HTTPException
-from jinja2 import DictLoader, Environment
-
-
-ERROR_JSON_RESPONSE = """{
-    "message": "{{message}}"
-}
-"""
 
 
 def exception_handler(f):
@@ -23,18 +17,11 @@ def exception_handler(f):
 class ManagedBlockchainClientError(HTTPException):
     code = 400
 
-    templates = {
-        "error": ERROR_JSON_RESPONSE,
-    }
-
     def __init__(self, error_type, message, **kwargs):
         super(HTTPException, self).__init__()
-        env = Environment(loader=DictLoader(self.templates))
         self.error_type = error_type
         self.message = message
-        self.description = env.get_template("error").render(
-            error_type=error_type, message=message, **kwargs
-        )
+        self.description = json.dumps({"message": self.message})
 
     def get_headers(self, *args, **kwargs):
         return [

@@ -695,7 +695,7 @@ class CognitoIdpUser(BaseModel):
                         for w in wrong_attrs
                     ]
                 )
-                + "\\n"
+                + "\n"
             )
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
