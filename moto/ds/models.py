@@ -16,21 +16,7 @@ from moto.ds.exceptions import (
     ValidationException,
 )
 from moto.ds.utils import PAGINATION_MODEL
-from moto.ds.validations import (
-    validate_args,
-    validate_alias,
-    validate_description,
-    validate_directory_id,
-    validate_dns_ips,
-    validate_edition,
-    validate_name,
-    validate_password,
-    validate_short_name,
-    validate_size,
-    validate_sso_password,
-    validate_subnet_ids,
-    validate_user_name,
-)
+from moto.ds.validations import validate_args
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -226,26 +212,20 @@ class DirectoryServiceBackend(BaseBackend):
 
         validate_args(
             [
-                (validate_password, "password", password),
-                (validate_size, "size", size),
-                (validate_name, "name", name),
-                (validate_description, "description", description),
-                (validate_short_name, "shortName", short_name),
+                ("password", password),
+                ("size", size),
+                ("name", name),
+                ("description", description),
+                ("shortName", short_name),
                 (
-                    validate_subnet_ids,
                     "connectSettings.vpcSettings.subnetIds",
                     connect_settings["SubnetIds"],
                 ),
                 (
-                    validate_user_name,
                     "connectSettings.customerUserName",
                     connect_settings["CustomerUserName"],
                 ),
-                (
-                    validate_dns_ips,
-                    "connectSettings.customerDnsIps",
-                    connect_settings["CustomerDnsIps"],
-                ),
+                ("connectSettings.customerDnsIps", connect_settings["CustomerDnsIps"]),
             ]
         )
         # ConnectSettings and VpcSettings both have a VpcId and Subnets.
@@ -286,16 +266,12 @@ class DirectoryServiceBackend(BaseBackend):
             raise InvalidParameterException("VpcSettings must be specified.")
         validate_args(
             [
-                (validate_password, "password", password),
-                (validate_size, "size", size),
-                (validate_name, "name", name),
-                (validate_description, "description", description),
-                (validate_short_name, "shortName", short_name),
-                (
-                    validate_subnet_ids,
-                    "vpcSettings.subnetIds",
-                    vpc_settings["SubnetIds"],
-                ),
+                ("password", password),
+                ("size", size),
+                ("name", name),
+                ("description", description),
+                ("shortName", short_name),
+                ("vpcSettings.subnetIds", vpc_settings["SubnetIds"]),
             ]
         )
         subnets = self._get_subnets(region, vpc_settings)
@@ -323,7 +299,7 @@ class DirectoryServiceBackend(BaseBackend):
     def _validate_directory_id(self, directory_id):
         """Raise an exception if the directory id is invalid or unknown."""
         # Validation of ID takes precedence over a check for its existence.
-        validate_args([(validate_directory_id, "directoryId", directory_id)])
+        validate_args([("directoryId", directory_id)])
         if directory_id not in self.directories:
             raise EntityDoesNotExistException(
                 f"Directory {directory_id} does not exist"
@@ -345,8 +321,7 @@ class DirectoryServiceBackend(BaseBackend):
         # Is the alias already in use?
         if alias in [x.alias for x in self.directories.values()]:
             raise EntityAlreadyExistsException(f"Alias '{alias}' already exists.")
-
-        validate_args([(validate_alias, "alias", alias)])
+        validate_args([("alias", alias)])
 
         directory.update_alias(alias)
         return {"DirectoryId": directory_id, "Alias": alias}
@@ -372,16 +347,12 @@ class DirectoryServiceBackend(BaseBackend):
         # boto3 looks for missing vpc_settings for create_microsoft_ad().
         validate_args(
             [
-                (validate_password, "password", password),
-                (validate_edition, "edition", edition),
-                (validate_name, "name", name),
-                (validate_description, "description", description),
-                (validate_short_name, "shortName", short_name),
-                (
-                    validate_subnet_ids,
-                    "vpcSettings.subnetIds",
-                    vpc_settings["SubnetIds"],
-                ),
+                ("password", password),
+                ("edition", edition),
+                ("name", name),
+                ("description", description),
+                ("shortName", short_name),
+                ("vpcSettings.subnetIds", vpc_settings["SubnetIds"]),
             ]
         )
         subnets = self._get_subnets(region, vpc_settings)
@@ -416,24 +387,14 @@ class DirectoryServiceBackend(BaseBackend):
     def disable_sso(self, directory_id, username=None, password=None):
         """Disable single-sign on for a directory."""
         self._validate_directory_id(directory_id)
-        validate_args(
-            [
-                (validate_sso_password, "password", password),
-                (validate_user_name, "userName", username),
-            ]
-        )
+        validate_args([("ssoPassword", password), ("userName", username)])
         directory = self.directories[directory_id]
         directory.enable_sso(False)
 
     def enable_sso(self, directory_id, username=None, password=None):
         """Enable single-sign on for a directory."""
         self._validate_directory_id(directory_id)
-        validate_args(
-            [
-                (validate_sso_password, "password", password),
-                (validate_user_name, "userName", username),
-            ]
-        )
+        validate_args([("ssoPassword", password), ("userName", username)])
 
         directory = self.directories[directory_id]
         if directory.alias == directory_id:

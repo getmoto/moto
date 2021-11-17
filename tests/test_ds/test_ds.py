@@ -250,7 +250,7 @@ def test_ds_enable_sso():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        "Value at 'password' failed to satisfy constraint: Member must "
+        "Value at 'ssoPassword' failed to satisfy constraint: Member must "
         "have length less than or equal to 128"
     ) in err["Message"]
 
@@ -295,7 +295,7 @@ def test_ds_disable_sso():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        "Value at 'password' failed to satisfy constraint: Member must "
+        "Value at 'ssoPassword' failed to satisfy constraint: Member must "
         "have length less than or equal to 128"
     ) in err["Message"]
 
