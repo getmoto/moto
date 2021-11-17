@@ -7,7 +7,11 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError, InvalidRequestException, ValidationException
+from moto.emr.exceptions import (
+    InvalidRequestException,
+    ValidationException,
+    ResourceNotFoundException,
+)
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
@@ -482,7 +486,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def describe_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
-        raise EmrError("ResourceNotFoundException", "", "error_json")
+        raise ResourceNotFoundException("")
 
     def get_instance_groups(self, instance_group_ids):
         return [
