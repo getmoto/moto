@@ -16,6 +16,7 @@ import time
 import uuid
 
 from bisect import insort
+from importlib import reload
 from moto.core import (
     ACCOUNT_ID,
     BaseBackend,
@@ -1321,10 +1322,36 @@ class FakeBucket(CloudFormationModel):
 
 
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
+    """
+    Moto implementation for S3.
+
+    Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
+    Example usage:
+
+    .. sourcecode:: python
+
+        os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
+        @mock_s3
+        def test_my_custom_endpoint():
+            boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
+            ...
+
+    Note that this only works if the environment variable is set **before** the mock is initialized.
+    """
+
     def __init__(self):
         self.buckets = {}
         self.account_public_access_block = None
         self.tagger = TaggingService()
+
+    @property
+    def _url_module(self):
+        # The urls-property can be different depending on env variables
+        # Force a reload, to retrieve the correct set of URLs
+        import moto.s3.urls as backend_urls_module
+
+        reload(backend_urls_module)
+        return backend_urls_module
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

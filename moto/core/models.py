@@ -34,6 +34,7 @@ from .utils import (
     convert_flask_to_responses_response,
 )
 
+
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
 
@@ -702,7 +703,7 @@ class BaseBackend:
         A dictionary of the urls to be mocked with this service and the handlers
         that should be called in their place
         """
-        url_bases = self._url_module.url_bases
+        url_bases = self.url_bases
         unformatted_paths = self._url_module.url_paths
 
         urls = {}

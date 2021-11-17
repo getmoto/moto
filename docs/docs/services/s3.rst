@@ -12,7 +12,7 @@
 s3
 ==
 
-
+.. autoclass:: moto.s3.models.S3Backend
 
 |start-h3| Example usage |end-h3|
 
