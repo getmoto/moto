@@ -521,3 +521,52 @@ def test_create_target_group_with_target_type(target_type):
     group.should.have.key("TargetType").equal(target_type)
     group.shouldnt.have.key("Protocol")
     group.shouldnt.have.key("VpcId")
+
+
+@mock_elbv2
+@mock_ec2
+def test_delete_target_group_after_modifying_listener():
+    client = boto3.client("elbv2", region_name="us-east-1")
+
+    response, vpc, _, _, _, conn = create_load_balancer()
+
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    response = client.create_target_group(
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+    )
+    target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
+
+    response = client.create_target_group(
+        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id,
+    )
+    target_group_arn2 = response.get("TargetGroups")[0]["TargetGroupArn"]
+
+    response = conn.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTP",
+        Port=80,
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn1}],
+    )
+    listener_arn = response["Listeners"][0].get("ListenerArn")
+
+    client.modify_listener(
+        ListenerArn=listener_arn,
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn2,}],
+    )
+
+    response = conn.describe_listeners(LoadBalancerArn=load_balancer_arn)
+    default_actions = response["Listeners"][0]["DefaultActions"]
+    default_actions.should.equal(
+        [{"Type": "forward", "TargetGroupArn": target_group_arn2}]
+    )
+
+    # Target Group 1 can now be deleted, as the LB points to group 2
+    client.delete_target_group(TargetGroupArn=target_group_arn1)
+
+    # Sanity check - we're still pointing to group 2
+    response = conn.describe_listeners(LoadBalancerArn=load_balancer_arn)
+    default_actions = response["Listeners"][0]["DefaultActions"]
+    default_actions.should.equal(
+        [{"Type": "forward", "TargetGroupArn": target_group_arn2}]
+    )

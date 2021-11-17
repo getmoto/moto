@@ -607,7 +607,7 @@ class ELBV2Response(BaseResponse):
         protocol = self._get_param("Protocol")
         ssl_policy = self._get_param("SslPolicy")
         certificates = self._get_list_prefix("Certificates.member")
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = self._get_params().get("DefaultActions", [])
 
         # Should really move SSL Policies to models
         if ssl_policy is not None and ssl_policy not in [
