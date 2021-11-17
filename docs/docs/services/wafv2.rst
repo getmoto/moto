@@ -12,9 +12,7 @@
 wafv2
 =====
 
-
-    https://docs.aws.amazon.com/waf/latest/APIReference/API_Operations_AWS_WAFV2.html
-    
+.. autoclass:: moto.wafv2.models.WAFV2Backend
 
 |start-h3| Example usage |end-h3|
 

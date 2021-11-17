@@ -12,8 +12,6 @@
 batch
 =====
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -45,14 +43,18 @@ batch
         :rtype: tuple of str
         
 
+- [ ] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
+- [ ] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
+- [ ] describe_scheduling_policies
 - [X] list_jobs
+- [ ] list_scheduling_policies
 - [ ] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -76,4 +78,5 @@ batch
         :rtype: tuple of str
         
 
+- [ ] update_scheduling_policy
 

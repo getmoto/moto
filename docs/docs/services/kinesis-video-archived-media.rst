@@ -12,8 +12,6 @@
 kinesis-video-archived-media
 ============================
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
