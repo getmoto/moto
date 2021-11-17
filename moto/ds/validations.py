@@ -31,8 +31,7 @@ def validate_alias(value):
 
     alias_pattern = r"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
     if not re.match(alias_pattern, value):
-        json_pattern = alias_pattern.replace("\\", r"\\")
-        return fr"satisfy regular expression pattern: {json_pattern}"
+        return fr"satisfy regular expression pattern: {alias_pattern}"
     return ""
 
 
@@ -59,8 +58,7 @@ def validate_dns_ips(value):
     )
     for dnsip in value:
         if not re.match(dnsip_pattern, dnsip):
-            json_pattern = dnsip_pattern.replace("\\", r"\\")
-            return fr"satisfy regular expression pattern: {json_pattern}"
+            return fr"satisfy regular expression pattern: {dnsip_pattern}"
     return ""
 
 
@@ -73,7 +71,7 @@ def validate_edition(value):
 
 def validate_name(value):
     """Raise exception if name fails to match constraints."""
-    name_pattern = r"^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+$"
+    name_pattern = r"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$"
     if not re.match(name_pattern, value):
         return fr"satisfy regular expression pattern: {name_pattern}"
     return ""
@@ -88,9 +86,7 @@ def validate_password(value):
         r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*$"
     )
     if not re.match(passwd_pattern, value):
-        # Can't have an odd number of backslashes in a literal.
-        json_pattern = passwd_pattern.replace("\\", r"\\")
-        return fr"satisfy regular expression pattern: {json_pattern}"
+        return fr"satisfy regular expression pattern: {passwd_pattern}"
     return ""
 
 
@@ -98,8 +94,7 @@ def validate_short_name(value):
     """Raise exception if short name fails to match constraints."""
     short_name_pattern = r'^[^\/:*?"<>|.]+[^\/:*?"<>|]*$'
     if value and not re.match(short_name_pattern, value):
-        json_pattern = short_name_pattern.replace("\\", r"\\").replace('"', r"\"")
-        return fr"satisfy regular expression pattern: {json_pattern}"
+        return fr"satisfy regular expression pattern: {short_name_pattern}"
     return ""
 
 
