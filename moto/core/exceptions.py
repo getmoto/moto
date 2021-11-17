@@ -37,12 +37,6 @@ ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </ErrorResponse>
 """
 
-ERROR_JSON_RESPONSE = """{
-    "message": "{{message}}",
-    "__type": "{{error_type}}"
-}
-"""
-
 
 class RESTError(HTTPException):
     code = 400
