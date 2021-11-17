@@ -8,7 +8,7 @@ from moto import mock_route53resolver
 from moto.ec2 import mock_ec2
 from moto.route53resolver.models import ResolverEndpoint
 
-from .test_rr_endpoint import TEST_REGION, create_test_endpoint
+from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint
 
 
 @mock_ec2

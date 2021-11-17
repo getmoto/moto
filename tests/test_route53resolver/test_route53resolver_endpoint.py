@@ -572,7 +572,7 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
     response = client.list_resolver_endpoint_ip_addresses(
         ResolverEndpointId=endpoint_id
     )
-    assert len(response["IpAddresses"]) == 2
+    assert len(response["IpAddresses"]) == 3
     assert response["MaxResults"] == 10
 
     # Set max_results to return 1 address, use next_token to get remaining.
@@ -594,7 +594,7 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
     response = client.list_resolver_endpoint_ip_addresses(
         ResolverEndpointId=endpoint_id, NextToken=response["NextToken"]
     )
-    assert len(response["IpAddresses"]) == 1
+    assert len(response["IpAddresses"]) == 2
     assert response["MaxResults"] == 10
     assert "NextToken" not in response
 
