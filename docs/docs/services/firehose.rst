@@ -12,7 +12,7 @@
 firehose
 ========
 
-Implementation of Firehose APIs.
+.. autoclass:: moto.firehose.models.FirehoseBackend
 
 |start-h3| Example usage |end-h3|
 

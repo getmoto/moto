@@ -101,12 +101,14 @@ class TaggingService:
                 result[tag[self.key_name]] = None
         return result
 
-    def validate_tags(self, tags):
+    def validate_tags(self, tags, limit=0):
         """Returns error message if tags in 'tags' list of dicts are invalid.
 
         The validation does not include a check for duplicate keys.
         Duplicate keys are not always an error and the error message isn't
         consistent across services, so this should be a separate check.
+
+        If limit is provided, then the number of tags will be checked.
         """
         errors = []
         key_regex = re.compile(r"^(?!aws:)([\w\s\d_.:/=+\-@]*)$")
@@ -146,6 +148,12 @@ class TaggingService:
                             f"regular expression pattern: "
                             r"^[{a-zA-Z0-9 }_.://=+-@%]*$"
                         )
+
+        if limit and len(tags) > limit:
+            errors.append(
+                f"Value '{tags}' at 'tags' failed to satisfy constraint: "
+                f"Member must have length less than or equal to {limit}"
+            )
 
         errors_len = len(errors)
         return (

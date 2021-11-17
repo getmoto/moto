@@ -123,6 +123,9 @@ mock_resourcegroupstaggingapi = lazy_load(
 )
 mock_route53 = lazy_load(".route53", "mock_route53")
 mock_route53_deprecated = lazy_load(".route53", "mock_route53_deprecated")
+mock_route53resolver = lazy_load(
+    ".route53resolver", "mock_route53resolver", boto3_name="route53resolver"
+)
 mock_s3 = lazy_load(".s3", "mock_s3")
 mock_s3_deprecated = lazy_load(".s3", "mock_s3_deprecated")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
@@ -165,6 +168,7 @@ mock_mediastoredata = lazy_load(
 )
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
+mock_sdb = lazy_load(".sdb", "mock_sdb", boto3_name="sdb")
 
 
 def mock_all():

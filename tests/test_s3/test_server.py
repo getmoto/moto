@@ -55,7 +55,7 @@ def test_s3_server_bucket_create():
 
 
 def test_s3_server_ignore_subdomain_for_bucketnames():
-    with patch("moto.s3.responses.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
+    with patch("moto.settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
         test_client = authenticated_client()
 
         res = test_client.put("/mybucket", "http://foobaz.localhost:5000/")
