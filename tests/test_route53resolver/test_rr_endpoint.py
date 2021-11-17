@@ -66,8 +66,8 @@ def create_test_endpoint(client, ec2_client, name=None, tags=None):
         SecurityGroupIds=[create_security_group(ec2_client)],
         Direction="INBOUND",
         IpAddresses=[
-            {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
-            {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+            {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+            {"SubnetId": subnet_ids[1], "Ip": "10.0.0.20"},
         ],
         Tags=tags,
     )
@@ -220,6 +220,25 @@ def test_route53resolver_bad_create_endpoint_subnets():
     assert err["Code"] == "InvalidParameterException"
     assert "The subnet ID 'foo' does not exist" in err["Message"]
 
+    # Can't reuse a ip address in a subnet.
+    subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
+    with pytest.raises(ClientError) as exc:
+        client.create_resolver_endpoint(
+            CreatorRequestId="B" + random_num,
+            Name="B" + random_num,
+            SecurityGroupIds=[create_security_group(ec2_client)],
+            Direction="INBOUND",
+            IpAddresses=[
+                {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+                {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceExistsException"
+    assert (
+        f"The IP address '10.0.1.200' in subnet '{subnet_ids[0]}' is already in use"
+    ) in err["Message"]
+
 
 @mock_ec2
 @mock_route53resolver
@@ -231,8 +250,8 @@ def test_route53resolver_bad_create_endpoint_security_groups():
 
     subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
     ip_addrs = [
-        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
-        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.20"},
     ]
 
     # Subnet must begin with "sg-".
@@ -288,8 +307,8 @@ def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many
     vpc_id = create_vpc(ec2_client)
     subnet_ids = create_subnets(ec2_client, vpc_id)
     ip_addrs = [
-        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
-        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+        {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+        {"SubnetId": subnet_ids[1], "Ip": "10.0.0.20"},
     ]
     security_group_id = create_security_group(ec2_client)
 
@@ -350,8 +369,8 @@ def test_route53resolver_other_create_resolver_endpoint_errors():
             SecurityGroupIds=created_endpoint["SecurityGroupIds"],
             Direction="INBOUND",
             IpAddresses=[
-                {"SubnetId": subnet_ids[0], "Ip": "10.0.1.2"},
-                {"SubnetId": subnet_ids[1], "Ip": "10.0.0.2"},
+                {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+                {"SubnetId": subnet_ids[1], "Ip": "10.0.0.20"},
             ],
         )
     err = exc.value.response["Error"]
@@ -537,8 +556,19 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     random_num = get_random_hex(10)
 
-    response = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
-    endpoint_id = response["Id"]
+    subnet_ids = create_subnets(ec2_client, create_vpc(ec2_client))
+    response = client.create_resolver_endpoint(
+        CreatorRequestId="B" + random_num,
+        Name="B" + random_num,
+        SecurityGroupIds=[create_security_group(ec2_client)],
+        Direction="INBOUND",
+        IpAddresses=[
+            {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+            {"SubnetId": subnet_ids[1], "Ip": "10.0.0.20"},
+            {"SubnetId": subnet_ids[0], "Ip": "10.0.1.201"},
+        ],
+    )
+    endpoint_id = response["ResolverEndpoint"]["Id"]
     response = client.list_resolver_endpoint_ip_addresses(
         ResolverEndpointId=endpoint_id
     )
@@ -553,7 +583,13 @@ def test_route53resolver_list_resolver_endpoint_ip_addresses():
     assert len(ip_addresses) == 1
     assert response["MaxResults"] == 1
     assert "NextToken" in response
-    # TODO - check all the fields
+    assert ip_addresses[0]["IpId"].startswith("rni-")
+    assert ip_addresses[0]["SubnetId"] == subnet_ids[0]
+    assert ip_addresses[0]["Ip"] == "10.0.1.200"
+    assert ip_addresses[0]["Status"] == "ATTACHED"
+    assert ip_addresses[0]["StatusMessage"] == "This IP address is operational."
+    assert "CreationTime" in ip_addresses[0]
+    assert "ModificationTime" in ip_addresses[0]
 
     response = client.list_resolver_endpoint_ip_addresses(
         ResolverEndpointId=endpoint_id, NextToken=response["NextToken"]

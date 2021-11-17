@@ -1,4 +1,5 @@
 """Route53ResolverBackend class with methods for supported APIs."""
+from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network
 
@@ -51,8 +52,8 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         # Constructed members.
         self.id = endpoint_id  # pylint: disable=invalid-name
 
-        # NOTE; This currently doesn't reflect IPv6 addresses and will
-        # include reserved addresses.
+        # NOTE; This currently doesn't reflect IPv6 addresses.
+        self.subnets = self._build_subnet_info()
         self.ip_address_count = len(ip_addresses)
 
         self.host_vpc_id = self._vpc_id_from_subnet()
@@ -65,7 +66,6 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             f"[Trace id: 1-{get_random_hex(8)}-{get_random_hex(24)}] "
             f"Creating the Resolver Endpoint"
         )
-
         self.creation_time = datetime.now(timezone.utc).isoformat()
         self.modification_time = datetime.now(timezone.utc).isoformat()
 
@@ -87,6 +87,31 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         )[0]
         return subnet_info.vpc_id
 
+    def _build_subnet_info(self):
+        """Create a dict of subnet info, including ip addrs and ENI ids.
+
+        self.subnets[subnet_id][ip_addr1] = eni-id1 ...
+        """
+        subnets = defaultdict(dict)
+        for entry in self.ip_addresses:
+            subnets[entry["SubnetId"]][entry["Ip"]] = f"rni-{get_random_hex(17)}"
+        return subnets
+
+    def create_eni(self):
+        """Create a VPC ENI for each combo of AZ, subnet and IP."""
+        for subnet, ip_info in self.subnets.items():
+            for ip_addr, eni_id in ip_info.items():
+                ec2_backends[self.region].create_network_interface(
+                    description=f"Route 53 Resolver: {self.id}:{eni_id}",
+                    group_ids=self.security_group_ids,
+                    interface_type="interface",
+                    private_ip_address=ip_addr,
+                    private_ip_addresses=[
+                        {"Primary": True, "PrivateIpAddress": ip_addr}
+                    ],
+                    subnet=subnet,
+                )
+
     def description(self):
         """Return a dictionary of relevant info for this resolver endpoint."""
         return {
@@ -106,21 +131,21 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
     def ip_descriptions(self):
         """Return a list of dicts describing resolver endpoint IP addresses."""
-        ip_addrs = []
-        for idx, ip_info in enumerate(self.ip_addresses):
-            ip_addrs.append(
-                {
-                    # "IpId": f"rni-{get_random_hex(17)}",  # TODO
-                    "IpId": f"rni-12345{idx}",  # TODO
-                    "SubnetId": ip_info["SubnetId"],
-                    "Ip": ip_info["Ip"],
-                    "Status": "ATTACHED",
-                    "StatusMessage": "This IP address is operational.",
-                    "CreationTime": self.creation_time,
-                    "ModificationTime": self.modification_time,
-                }
-            )
-        return ip_addrs
+        description = []
+        for subnet_id, ip_info in self.subnets.items():
+            for ip_addr, eni_id in ip_info.items():
+                description.append(
+                    {
+                        "IpId": eni_id,
+                        "SubnetId": subnet_id,
+                        "Ip": ip_addr,
+                        "Status": "ATTACHED",
+                        "StatusMessage": "This IP address is operational.",
+                        "CreationTime": self.creation_time,
+                        "ModificationTime": self.modification_time,
+                    }
+                )
+        return description
 
     def update_name(self, name):
         """Replace existing name with new name."""
@@ -153,14 +178,14 @@ class Route53ResolverBackend(BaseBackend):
     def _verify_subnet_ips(region, ip_addresses):
         """Perform additional checks on the IPAddresses.
 
-        NOTE: This does not check if the IP is reserved and doesn't include
-        IPv6 addresses.
+        NOTE: This does not include IPv6 addresses.
         """
         if len(ip_addresses) < 2:
             raise InvalidRequestException(
                 "Resolver endpoint needs to have at least 2 IP addresses"
             )
 
+        subnets = defaultdict(set)
         for subnet_id, ip_addr in [(x["SubnetId"], x["Ip"]) for x in ip_addresses]:
             try:
                 subnet_info = ec2_backends[region].get_all_subnets(
@@ -171,14 +196,20 @@ class Route53ResolverBackend(BaseBackend):
                     f"The subnet ID '{subnet_id}' does not exist"
                 ) from exc
 
-            # IP in IPv4 CIDR range?
-            if not ip_address(ip_addr) in ip_network(subnet_info.cidr_block):
+            # IP in IPv4 CIDR range and not reserved?
+            if ip_address(ip_addr) in subnet_info.reserved_ips or ip_address(
+                ip_addr
+            ) not in ip_network(subnet_info.cidr_block):
                 raise InvalidRequestException(
                     f"IP address '{ip_addr}' is either not in subnet "
                     f"'{subnet_id}' CIDR range or is reserved"
                 )
 
-            # TODO - IP already in use?
+            if ip_addr in subnets[subnet_id]:
+                raise ResourceExistsException(
+                    f"The IP address '{ip_addr}' in subnet '{subnet_id}' is already in use"
+                )
+            subnets[subnet_id].add(ip_addr)
 
     @staticmethod
     def _verify_security_group_ids(region, security_group_ids):
@@ -211,7 +242,7 @@ class Route53ResolverBackend(BaseBackend):
     ):  # pylint: disable=too-many-arguments
         """Return description for a newly created resolver endpoint.
 
-        NOTE:  IPv6 and reserved IPs are currently not being filtered when
+        NOTE:  IPv6 IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
         """
         validate_args(
@@ -246,8 +277,6 @@ class Route53ResolverBackend(BaseBackend):
                 f"'{creator_request_id}' already exists"
             )
 
-        # TODO - create a network interface?
-
         endpoint_id = (
             f"rslvr-{'in' if direction == 'INBOUND' else 'out'}-{get_random_hex(17)}"
         )
@@ -260,6 +289,8 @@ class Route53ResolverBackend(BaseBackend):
             ip_addresses,
             name,
         )
+        resolver_endpoint.create_eni()
+
         self.resolver_endpoints[endpoint_id] = resolver_endpoint
         self.tagger.tag_resource(resolver_endpoint.arn, tags or [])
         return resolver_endpoint
