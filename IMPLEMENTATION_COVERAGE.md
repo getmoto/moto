@@ -3697,6 +3697,7 @@
 - [ ] get_firewall_rule_group
 - [ ] get_firewall_rule_group_association
 - [ ] get_firewall_rule_group_policy
+- [ ] get_resolver_config
 - [ ] get_resolver_dnssec_config
 - [X] get_resolver_endpoint
 - [ ] get_resolver_query_log_config
@@ -3712,6 +3713,7 @@
 - [ ] list_firewall_rule_group_associations
 - [ ] list_firewall_rule_groups
 - [ ] list_firewall_rules
+- [ ] list_resolver_configs
 - [ ] list_resolver_dnssec_configs
 - [X] list_resolver_endpoint_ip_addresses
 - [X] list_resolver_endpoints
@@ -3729,6 +3731,7 @@
 - [ ] update_firewall_domains
 - [ ] update_firewall_rule
 - [ ] update_firewall_rule_group_association
+- [ ] update_resolver_config
 - [ ] update_resolver_dnssec_config
 - [X] update_resolver_endpoint
 - [ ] update_resolver_rule
