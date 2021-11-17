@@ -1320,14 +1320,17 @@ class S3Backend(BaseBackend):
     Moto implementation for S3.
 
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
+    Example usage:
 
     .. sourcecode:: python
 
         os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
+        @mock_s3
         def test_my_custom_endpoint():
             boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
             ...
 
+    Note that this only works if the environment variable is set **before** the mock is initialized.
     """
 
     def __init__(self):
