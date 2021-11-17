@@ -1423,6 +1423,7 @@ Member must satisfy regular expression pattern: {}".format(
         if default_actions is not None and default_actions != []:
             # Is currently not validated
             listener.default_actions = default_actions
+            listener._default_rule[0].actions = default_actions
 
         return listener
 
