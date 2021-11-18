@@ -2048,6 +2048,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         storage=None,
         acl=None,
         src_version_id=None,
+        encryption=None,
+        kms_key_id=None,
     ):
         key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
@@ -2057,8 +2059,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             value=key.value,
             storage=storage or key.storage_class,
             multipart=key.multipart,
-            encryption=key.encryption,
-            kms_key_id=key.kms_key_id,
+            encryption=encryption or key.encryption,
+            kms_key_id=kms_key_id or key.kms_key_id,
             bucket_key_enabled=key.bucket_key_enabled,
             lock_mode=key.lock_mode,
             lock_legal_status=key.lock_legal_status,
