@@ -192,7 +192,7 @@ def test_ds_create_microsoft_ad_describe():
     assert directory["VpcSettings"]["VpcId"].startswith("vpc-")
     assert len(directory["VpcSettings"]["SubnetIds"]) == 2
     assert directory["Edition"] == "Standard"
-    assert set(directory["DnsIpAddrs"]) == set(["10.0.1.1", "10.0.0.1"])
+    assert len(directory["DnsIpAddrs"]) == 2
     assert "NextToken" not in result
 
 

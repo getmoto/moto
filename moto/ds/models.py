@@ -1,6 +1,5 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
-import ipaddress
 
 from boto3 import Session
 
@@ -18,6 +17,7 @@ from moto.ds.exceptions import (
 from moto.ds.utils import PAGINATION_MODEL
 from moto.ds.validations import validate_args
 from moto.ec2.exceptions import InvalidSubnetIdError
+from moto.ec2 import ec2_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -48,10 +48,10 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
+        region,
         name,
         password,
         directory_type,
-        subnets,
         size=None,
         vpc_settings=None,
         connect_settings=None,
@@ -59,6 +59,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         description=None,
         edition=None,
     ):  # pylint: disable=too-many-arguments
+        self.region = region
         self.name = name
         self.password = password
         self.directory_type = directory_type
@@ -78,26 +79,43 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.stage = "Active"
         self.launch_time = datetime.now(timezone.utc).isoformat()
         self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
+        # Create a security group and ENI, returning the IPs for the ENI.
+        subnet_ips = self.create_eni()
 
-        if directory_type != "ADConnector":
-            self.dns_ip_addrs = self.subnet_ips(subnets)
+        if self.directory_type != "ADConnector":
+            self.dns_ip_addrs = subnet_ips
         else:
             self.dns_ip_addrs = self.connect_settings["CustomerDnsIps"]
-            self.connect_settings["ConnectIps"] = self.subnet_ips(subnets)
+            self.connect_settings["ConnectIps"] = subnet_ips
 
-    @staticmethod
-    def subnet_ips(subnets):
-        """Return an IP from each of the given subnets.
+    def create_eni(self):
+        """Return IP addrs after creating an ENI for each subnet."""
+        if self.vpc_settings:
+            vpc_id = self.vpc_settings["VpcId"]
+            subnet_ids = self.vpc_settings["SubnetIds"]
+        else:
+            vpc_id = self.connect_settings["VpcId"]
+            subnet_ids = self.connect_settings["SubnetIds"]
 
-        This is a bit dodgey and may need to be reworked at a later time.
-        """
+        # Need a security group for the ENI.
+        security_group = ec2_backends[self.region].create_security_group(
+            name=f"{self.directory_id}_controllers",
+            description=(
+                f"AWS created security group for {self.directory_id} "
+                f"directory controllers"
+            ),
+            vpc_id=vpc_id,
+        )
+
         ip_addrs = []
-        for subnet in subnets:
-            ips = ipaddress.ip_network(subnet.cidr_block)
-            # Not sure if the following could occur, but if it does,
-            # the situation will be ignored.
-            if ips:
-                ip_addrs.append(str(ips[1]) if ips.num_addresses > 1 else str(ips[0]))
+        for subnet_id in subnet_ids:
+            eni_info = ec2_backends[self.region].create_network_interface(
+                subnet=subnet_id,
+                private_ip_address=None,
+                group_ids=[security_group.id],
+                description=f"AWS created network interface for {self.directory_id}",
+            )
+            ip_addrs.append(eni_info.private_ip_address)
         return ip_addrs
 
     def update_alias(self, alias):
@@ -153,8 +171,8 @@ class DirectoryServiceBackend(BaseBackend):
         )
 
     @staticmethod
-    def _get_subnets(region, vpc_settings):
-        """Return subnets if vpc_settings are invalid, else raise an exception.
+    def _verify_subnets(region, vpc_settings):
+        """Verify subnets are valid, else raise an exception.
 
         If settings are valid, add AvailabilityZones to vpc_settings.
         """
@@ -163,8 +181,6 @@ class DirectoryServiceBackend(BaseBackend):
                 "Invalid subnet ID(s). They must correspond to two subnets "
                 "in different Availability Zones."
             )
-
-        from moto.ec2 import ec2_backends  # pylint: disable=import-outside-toplevel
 
         # Subnet IDs are checked before the VPC ID.  The Subnet IDs must
         # be valid and in different availability zones.
@@ -188,9 +204,7 @@ class DirectoryServiceBackend(BaseBackend):
         vpcs = ec2_backends[region].describe_vpcs()
         if vpc_settings["VpcId"] not in [x.id for x in vpcs]:
             raise ClientException("Invalid VPC ID.")
-
         vpc_settings["AvailabilityZones"] = regions
-        return subnets
 
     def connect_directory(
         self,
@@ -229,7 +243,7 @@ class DirectoryServiceBackend(BaseBackend):
             ]
         )
         # ConnectSettings and VpcSettings both have a VpcId and Subnets.
-        subnets = self._get_subnets(region, connect_settings)
+        self._verify_subnets(region, connect_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
@@ -238,10 +252,10 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
+            region,
             name,
             password,
             "ADConnector",
-            subnets,
             size=size,
             connect_settings=connect_settings,
             short_name=short_name,
@@ -274,7 +288,7 @@ class DirectoryServiceBackend(BaseBackend):
                 ("vpcSettings.subnetIds", vpc_settings["SubnetIds"]),
             ]
         )
-        subnets = self._get_subnets(region, vpc_settings)
+        self._verify_subnets(region, vpc_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
@@ -283,10 +297,10 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
+            region,
             name,
             password,
             "SimpleAD",
-            subnets,
             size=size,
             vpc_settings=vpc_settings,
             short_name=short_name,
@@ -355,7 +369,7 @@ class DirectoryServiceBackend(BaseBackend):
                 ("vpcSettings.subnetIds", vpc_settings["SubnetIds"]),
             ]
         )
-        subnets = self._get_subnets(region, vpc_settings)
+        self._verify_subnets(region, vpc_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
@@ -364,10 +378,10 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
+            region,
             name,
             password,
             "MicrosoftAD",
-            subnets,
             vpc_settings=vpc_settings,
             short_name=short_name,
             description=description,
