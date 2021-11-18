@@ -476,12 +476,11 @@ class CognitoIdpUserPool(BaseModel):
         extra_data = {}
         user = self._get_user(username)
         if len(user.groups) > 0:
-            extra_data["cognito:groups"] = [
-                group.group_name
-                for group in user.groups
-            ]
-            
-        access_token, expires_in = self.create_jwt(client_id, username, "access", extra_data=extra_data)
+            extra_data["cognito:groups"] = [group.group_name for group in user.groups]
+
+        access_token, expires_in = self.create_jwt(
+            client_id, username, "access", extra_data=extra_data
+        )
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
