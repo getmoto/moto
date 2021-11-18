@@ -1305,6 +1305,59 @@ def test_create_group():
 
 
 @mock_cognitoidp
+def test_group_in_access_token():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
+    group_name = str(uuid.uuid4())
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name],
+    )["UserPoolClient"]["ClientId"]
+
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": user_attribute_name, "Value": user_attribute_value}],
+    )
+
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    # A newly created user is forced to set a new password
+    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
+    result["Session"].should_not.be.none
+
+    # This sets a new password and logs the user in (creates tokens)
+    new_password = str(uuid.uuid4())
+    result = conn.respond_to_auth_challenge(
+        Session=result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
+    )
+
+    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["AccessToken"])
+    claims["cognito:groups"].should.equal([group_name])
+
+
+@mock_cognitoidp
 def test_create_group_with_duplicate_name_raises_error():
     conn = boto3.client("cognito-idp", "us-west-2")
 
