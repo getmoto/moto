@@ -2049,7 +2049,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         acl=None,
         src_version_id=None,
         encryption=None,
-        kms_key_id=None
+        kms_key_id=None,
     ):
         key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 

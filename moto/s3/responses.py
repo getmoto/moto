@@ -1560,7 +1560,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     acl=acl,
                     src_version_id=src_version_id,
                     kms_key_id=kms_key_id,
-                    encryption=encryption
+                    encryption=encryption,
                 )
             else:
                 raise MissingKey(key=src_key)
