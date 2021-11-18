@@ -3378,7 +3378,7 @@ def test_boto3_head_object_with_versioning():
 
 @mock_s3
 def test_boto3_copy_non_existing_file():
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     src = "srcbucket"
     target = "target"
     s3.create_bucket(Bucket=src)
@@ -6578,12 +6578,13 @@ def test_request_partial_content_should_contain_all_metadata():
     assert response["ContentLength"] == 4
     assert response["ContentRange"] == "bytes {}/{}".format(query_range, len(body))
 
+
 @mock_s3
 @mock_kms
 def test_boto3_copy_object_with_kms_encryption():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
-    kms_key = kms_client.create_key()['KeyMetadata']['KeyId']
+    kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
 
     client.create_bucket(
         Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
@@ -6596,7 +6597,7 @@ def test_boto3_copy_object_with_kms_encryption():
         Bucket="blah",
         Key="test2",
         SSEKMSKeyId=kms_key,
-        ServerSideEncryption="aws:kms"
+        ServerSideEncryption="aws:kms",
     )
     result = client.head_object(Bucket="blah", Key="test2")
     assert result["SSEKMSKeyId"] == kms_key
