@@ -251,9 +251,7 @@ def test_ds_connect_directory_describe():
     assert directory["ConnectSettings"]["VpcId"].startswith("vpc-")
     assert len(directory["ConnectSettings"]["SubnetIds"]) == 2
     assert directory["ConnectSettings"]["CustomerUserName"] == "Admin"
-    assert set(directory["ConnectSettings"]["ConnectIps"]) == set(
-        ["10.0.0.1", "10.0.1.1"]
-    )
+    assert len(directory["ConnectSettings"]["ConnectIps"]) == 2
     assert directory["Size"] == "Small"
     assert set(directory["DnsIpAddrs"]) == set(["1.2.3.4", "5.6.7.8"])
     assert "NextToken" not in result

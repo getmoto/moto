@@ -11,13 +11,31 @@ def validate_args(validators):
     """Raise exception if any of the validations fails.
 
     validators is a list of tuples each containing the following:
-        (validator_function, printable field name, field value)
+        (printable field name, field value)
 
     The error messages are accumulated before the exception is raised.
     """
+    validation_map = {
+        "alias": validate_alias,
+        "description": validate_description,
+        "directoryId": validate_directory_id,
+        "connectSettings.customerDnsIps": validate_dns_ips,
+        "edition": validate_edition,
+        "name": validate_name,
+        "password": validate_password,
+        "shortName": validate_short_name,
+        "size": validate_size,
+        "ssoPassword": validate_sso_password,
+        "connectSettings.vpcSettings.subnetIds": validate_subnet_ids,
+        "connectSettings.customerUserName": validate_user_name,
+        "userName": validate_user_name,
+        "vpcSettings.subnetIds": validate_subnet_ids,
+    }
     err_msgs = []
-    for (func, fieldname, value) in validators:
-        msg = func(value)
+    # This eventually could be a switch (python 3.10), elminating the need
+    # for the above map and individual functions.
+    for (fieldname, value) in validators:
+        msg = validation_map[fieldname](value)
         if msg:
             err_msgs.append((fieldname, value, msg))
     if err_msgs:
