@@ -39,10 +39,10 @@ route53resolver
 
         NOTE:  IPv6 IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
-        
+
 
 - [ ] create_resolver_query_log_config
-- [ ] create_resolver_rule
+- [X] create_resolver_rule
 - [ ] delete_firewall_domain_list
 - [ ] delete_firewall_rule
 - [ ] delete_firewall_rule_group
@@ -50,7 +50,7 @@ route53resolver
   Delete a resolver endpoint.
 
 - [ ] delete_resolver_query_log_config
-- [ ] delete_resolver_rule
+- [X] delete_resolver_rule
 - [ ] disassociate_firewall_rule_group
 - [ ] disassociate_resolver_endpoint_ip_address
 - [ ] disassociate_resolver_query_log_config
@@ -68,7 +68,7 @@ route53resolver
 - [ ] get_resolver_query_log_config
 - [ ] get_resolver_query_log_config_association
 - [ ] get_resolver_query_log_config_policy
-- [ ] get_resolver_rule
+- [X] get_resolver_rule
 - [ ] get_resolver_rule_association
 - [ ] get_resolver_rule_policy
 - [ ] import_firewall_domains
@@ -89,7 +89,7 @@ route53resolver
 - [ ] list_resolver_query_log_config_associations
 - [ ] list_resolver_query_log_configs
 - [ ] list_resolver_rule_associations
-- [ ] list_resolver_rules
+- [X] list_resolver_rules
 - [X] list_tags_for_resource
   List all tags for the given resource.
 
