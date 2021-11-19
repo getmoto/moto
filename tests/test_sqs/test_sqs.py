@@ -3338,19 +3338,14 @@ def test_receive_message_again_preserves_attributes():
         QueueUrl=queue.url,
         MaxNumberOfMessages=2,
         MessageAttributeNames=["Custom1"],
-        VisibilityTimeout=1,
+        VisibilityTimeout=0,
     )["Messages"]
     assert len(first_messages[0]["MessageAttributes"]) == 1
     assert first_messages[0]["MessageAttributes"].get("Custom1") is not None
     assert first_messages[0]["MessageAttributes"].get("Custom2") is None
 
-    time.sleep(2)
-
     second_messages = conn.receive_message(
-        QueueUrl=queue.url,
-        MaxNumberOfMessages=2,
-        MessageAttributeNames=["All"],
-        VisibilityTimeout=1,
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"],
     )["Messages"]
     assert len(second_messages[0]["MessageAttributes"]) == 2
     assert second_messages[0]["MessageAttributes"].get("Custom1") is not None
