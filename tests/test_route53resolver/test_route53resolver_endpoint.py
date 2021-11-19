@@ -335,7 +335,7 @@ def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many
     assert endpoint["IpAddressCount"] == 2
     assert endpoint["HostVPCId"] == vpc_id
     assert endpoint["Status"] == "OPERATIONAL"
-    assert "Creating the Resolver Endpoint" in endpoint["StatusMessage"]
+    assert "Successfully created Resolver Endpoint" in endpoint["StatusMessage"]
 
     time_format = "%Y-%m-%dT%H:%M:%S.%f+00:00"
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -351,7 +351,7 @@ def test_route53resolver_create_resolver_endpoint():  # pylint: disable=too-many
 @mock_ec2
 @mock_route53resolver
 def test_route53resolver_other_create_resolver_endpoint_errors():
-    """Test good delete_resolver_endpoint API calls."""
+    """Test other error scenarios for create_resolver_endpoint API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
