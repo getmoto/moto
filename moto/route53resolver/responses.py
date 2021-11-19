@@ -88,7 +88,7 @@ class Route53ResolverResponse(BaseResponse):
                 endpoints,
                 next_token,
             ) = self.route53resolver_backend.list_resolver_endpoints(
-                filters=filters, next_token=next_token, max_results=max_results
+                filters, next_token=next_token, max_results=max_results
             )
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
