@@ -2,6 +2,7 @@
 from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network
+import re
 
 from boto3 import Session
 
@@ -25,12 +26,26 @@ from moto.route53resolver.validations import validate_args
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
+CAMEL_TO_SNAKE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
+
 
 class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attributes
     """Representation of a fake Route53 Resolver Endpoint."""
 
     MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
     MAX_ENDPOINTS_PER_REGION = 4
+
+    # There are two styles of filter names and either will be transformed
+    # into lowercase snake.
+    FILTER_NAMES = [
+        "creator_request_id",
+        "direction",
+        "host_vpc_id",
+        "ip_address_count",
+        "name",
+        "security_group_ids",
+        "status",
+    ]
 
     def __init__(
         self,
@@ -328,14 +343,71 @@ class Route53ResolverBackend(BaseBackend):
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
         return endpoint.ip_descriptions()
 
+    @staticmethod
+    def _add_field_name_to_filter(filters):
+        """Convert both styles of filter names to lowercase snake format.
+
+        "IP_ADDRESS_COUNT" or "IpAddressCount" will become "ip_address_count".
+        However, "HostVPCId" doesn't fit the pattern, so that's treated
+        special.
+        """
+        for rr_filter in filters:
+            filter_name = rr_filter["Name"]
+            if "_" not in filter_name:
+                if filter_name == "HostVPCId":
+                    filter_name = "host_vpc_id"
+                elif filter_name == "HostVpcId":
+                    filter_name = "WRONG"
+                elif not filter_name.isupper():
+                    filter_name = CAMEL_TO_SNAKE_PATTERN.sub("_", filter_name)
+            rr_filter["Field"] = filter_name.lower()
+
+    @staticmethod
+    def _validate_filters(filters, allowed_filter_names):
+        """Raise exception if filter names are not as expected."""
+        for rr_filter in filters:
+            if rr_filter["Field"] not in allowed_filter_names:
+                raise InvalidParameterException(
+                    f"The filter '{rr_filter['Name']}' is invalid"
+                )
+            if "Values" not in rr_filter:
+                raise InvalidParameterException(
+                    f"No values specified for filter {rr_filter['Name']}"
+                )
+
+    @staticmethod
+    def _matches_all_filters(entity, filters):
+        """Return True if this entity has fields matching all the filters."""
+        for rr_filter in filters:
+            field_value = getattr(entity, rr_filter["Field"])
+
+            if isinstance(field_value, list):
+                if not set(field_value).intersection(rr_filter["Values"]):
+                    return False
+            elif isinstance(field_value, int):
+                if str(field_value) not in rr_filter["Values"]:
+                    return False
+            elif field_value not in rr_filter["Values"]:
+                return False
+
+        return True
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoints(
-        self, filters=None, next_token=None, max_results=None,
+        self, filters, next_token=None, max_results=None,
     ):  # pylint: disable=unused-argument
         """List all resolver endpoints, using filters if specified."""
-        # TODO - check subsequent filters
-        # TODO - validate name, values for filters
-        return sorted(self.resolver_endpoints.values(), key=lambda x: x.name)
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverEndpoint.FILTER_NAMES)
+
+        endpoints = []
+        for endpoint in sorted(self.resolver_endpoints.values(), key=lambda x: x.name):
+            if self._matches_all_filters(endpoint, filters):
+                endpoints.append(endpoint)
+        return endpoints
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(
