@@ -672,6 +672,121 @@ def test_route53resolver_list_resolver_endpoints():
 
 @mock_ec2
 @mock_route53resolver
+def test_route53resolver_list_resolver_endpoints_filters():
+    """Test good list_resolver_endpoint API calls that use filters."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Create some endpoints for testing purposes
+    security_group_id = create_security_group(ec2_client)
+    vpc_id = create_vpc(ec2_client)
+    subnet_ids = create_subnets(ec2_client, vpc_id)
+    ip0_values = ["10.0.1.201", "10.0.1.202", "10.0.1.203", "10.0.1.204"]
+    ip1_values = ["10.0.0.21", "10.0.0.22", "10.0.0.23", "10.0.0.24"]
+    endpoints = []
+    for idx in range(1, 5):
+        ip_addrs = [
+            {"SubnetId": subnet_ids[0], "Ip": "10.0.1.200"},
+            {"SubnetId": subnet_ids[1], "Ip": "10.0.0.20"},
+            {"SubnetId": subnet_ids[0], "Ip": ip0_values[idx - 1]},
+            {"SubnetId": subnet_ids[1], "Ip": ip1_values[idx - 1]},
+        ]
+        response = client.create_resolver_endpoint(
+            CreatorRequestId=f"F{idx}-{random_num}",
+            Name=f"F{idx}-{random_num}",
+            SecurityGroupIds=[security_group_id],
+            Direction="INBOUND" if idx % 2 else "OUTBOUND",
+            IpAddresses=ip_addrs,
+        )
+        endpoints.append(response["ResolverEndpoint"])
+
+    # Try all the valid filter names, including some of the old style names.
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "CreatorRequestId", "Values": [f"F3-{random_num}"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 1
+    assert response["ResolverEndpoints"][0]["CreatorRequestId"] == f"F3-{random_num}"
+
+    response = client.list_resolver_endpoints(
+        Filters=[
+            {
+                "Name": "CREATOR_REQUEST_ID",
+                "Values": [f"F2-{random_num}", f"F4-{random_num}"],
+            }
+        ]
+    )
+    assert len(response["ResolverEndpoints"]) == 2
+    assert response["ResolverEndpoints"][0]["CreatorRequestId"] == f"F2-{random_num}"
+    assert response["ResolverEndpoints"][1]["CreatorRequestId"] == f"F4-{random_num}"
+
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "Direction", "Values": ["INBOUND"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 2
+    assert response["ResolverEndpoints"][0]["CreatorRequestId"] == f"F1-{random_num}"
+    assert response["ResolverEndpoints"][1]["CreatorRequestId"] == f"F3-{random_num}"
+
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "HostVPCId", "Values": [vpc_id]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 4
+
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "IpAddressCount", "Values": ["4"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 4
+
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "Name", "Values": [f"F1-{random_num}"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 1
+    assert response["ResolverEndpoints"][0]["Name"] == f"F1-{random_num}"
+
+    response = client.list_resolver_endpoints(
+        Filters=[
+            {"Name": "HOST_VPC_ID", "Values": [vpc_id]},
+            {"Name": "DIRECTION", "Values": ["INBOUND"]},
+            {"Name": "NAME", "Values": [f"F3-{random_num}"]},
+        ]
+    )
+    assert len(response["ResolverEndpoints"]) == 1
+    assert response["ResolverEndpoints"][0]["Name"] == f"F3-{random_num}"
+
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "SecurityGroupIds", "Values": [security_group_id]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 4
+
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "Status", "Values": ["OPERATIONAL"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 4
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "Status", "Values": ["CREATING"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 0
+
+
+@mock_route53resolver
+def test_route53resolver_bad_list_resolver_endpoints_filters():
+    """Test bad list_resolver_endpoint API calls that use filters."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+
+    # botocore barfs on an empty "Values":
+    # TypeError: list_resolver_endpoints() only accepts keyword arguments.
+    # client.list_resolver_endpoints([{"Name": "Direction", "Values": []}])
+    # client.list_resolver_endpoints([{"Values": []}])
+
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_endpoints(Filters=[{"Name": "foo", "Values": ["bar"]}])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "The filter 'foo' is invalid" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
 def test_route53resolver_bad_list_resolver_endpoints():
     """Test bad list_resolver_endpoints API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
