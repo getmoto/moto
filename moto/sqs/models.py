@@ -534,7 +534,12 @@ class Queue(CloudFormationModel):
                 [backend.delete_message(self.name, m.receipt_handle) for m in messages]
             else:
                 # Make messages visible again
-                [m.change_visibility(visibility_timeout=0) for m in messages]
+                [
+                    backend.change_message_visibility(
+                        self.name, m.receipt_handle, visibility_timeout=0
+                    )
+                    for m in messages
+                ]
 
     @classmethod
     def has_cfn_attr(cls, attribute_name):
@@ -862,12 +867,14 @@ class SQSBackend(BaseBackend):
 
                 queue.pending_messages.add(message)
                 message.mark_received(visibility_timeout=visibility_timeout)
-                _filter_message_attributes(message, message_attribute_names)
+                # Create deepcopy to not mutate the message state when filtering for attributes
+                message_copy = deepcopy(message)
+                _filter_message_attributes(message_copy, message_attribute_names)
                 if not self.is_message_valid_based_on_retention_period(
                     queue_name, message
                 ):
                     break
-                result.append(message)
+                result.append(message_copy)
                 if len(result) >= count:
                     break
 
