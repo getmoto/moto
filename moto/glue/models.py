@@ -14,52 +14,8 @@ from .exceptions import (
     TableNotFoundException,
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
-    VersionNotFoundException
+    VersionNotFoundException,
 )
-
-
-class FakeJob:
-    def __init__(
-            self,
-            name,
-            role,
-            command,
-            description=None,
-            log_uri=None,
-            execution_property=None,
-            default_arguments=None,
-            non_overridable_arguments=None,
-            connections=None,
-            max_retries=None,
-            allocated_capacity=None,
-            timeout=None,
-            max_capacity=None,
-            security_configuration=None,
-            tags=None,
-            notification_property=None,
-            glue_version=None,
-            number_of_workers=None,
-            worker_type=None,
-    ):
-        self.name = name
-        self.description = description
-        self.log_uri = log_uri
-        self.role = role
-        self.execution_property = execution_property
-        self.command = command
-        self.default_arguments = default_arguments
-        self.non_overridable_arguments = non_overridable_arguments
-        self.connections = connections
-        self.max_retries = max_retries
-        self.allocated_capacity = allocated_capacity
-        self.timeout = timeout
-        self.max_capacity = max_capacity
-        self.security_configuration = security_configuration
-        self.tags = tags
-        self.notification_property = notification_property
-        self.glue_version = glue_version
-        self.number_of_workers = number_of_workers
-        self.worker_type = worker_type
 
 
 class GlueBackend(BaseBackend):
@@ -445,6 +401,51 @@ class LastCrawlInfo(BaseModel):
             "StartTime": self.start_time,
             "Status": self.status,
         }
+
+class FakeJob:
+    def __init__(
+        self,
+        name,
+        role,
+        command,
+        description=None,
+        log_uri=None,
+        execution_property=None,
+        default_arguments=None,
+        non_overridable_arguments=None,
+        connections=None,
+        max_retries=None,
+        allocated_capacity=None,
+        timeout=None,
+        max_capacity=None,
+        security_configuration=None,
+        tags=None,
+        notification_property=None,
+        glue_version=None,
+        number_of_workers=None,
+        worker_type=None,
+    ):
+        self.name = name
+        self.description = description
+        self.log_uri = log_uri
+        self.role = role
+        self.execution_property = execution_property
+        self.command = command
+        self.default_arguments = default_arguments
+        self.non_overridable_arguments = non_overridable_arguments
+        self.connections = connections
+        self.max_retries = max_retries
+        self.allocated_capacity = allocated_capacity
+        self.timeout = timeout
+        self.max_capacity = max_capacity
+        self.security_configuration = security_configuration
+        self.tags = tags
+        self.notification_property = notification_property
+        self.glue_version = glue_version
+        self.number_of_workers = number_of_workers
+        self.worker_type = worker_type
+        self.created_on = datetime.utcnow()
+        self.last_modified_on = datetime.utcnow()
 
 
 glue_backend = GlueBackend()
