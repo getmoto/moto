@@ -78,21 +78,21 @@ class GlueBackend(BaseBackend):
         return {}
 
     def create_crawler(
-            self,
-            name,
-            role,
-            database_name,
-            description,
-            targets,
-            schedule,
-            classifiers,
-            table_prefix,
-            schema_change_policy,
-            recrawl_policy,
-            lineage_configuration,
-            configuration,
-            crawler_security_configuration,
-            tags,
+        self,
+        name,
+        role,
+        database_name,
+        description,
+        targets,
+        schedule,
+        classifiers,
+        table_prefix,
+        schema_change_policy,
+        recrawl_policy,
+        lineage_configuration,
+        configuration,
+        crawler_security_configuration,
+        tags,
     ):
         if name in self.crawlers:
             raise CrawlerAlreadyExistsException()
@@ -139,26 +139,26 @@ class GlueBackend(BaseBackend):
             raise CrawlerNotFoundException(name)
 
     def create_job(
-            self,
-            name,
-            role,
-            command,
-            description,
-            log_uri,
-            execution_property,
-            default_arguments,
-            non_overridable_arguments,
-            connections,
-            max_retries,
-            allocated_capacity,
-            timeout,
-            max_capacity,
-            security_configuration,
-            tags,
-            notification_property,
-            glue_version,
-            number_of_workers,
-            worker_type,
+        self,
+        name,
+        role,
+        command,
+        description,
+        log_uri,
+        execution_property,
+        default_arguments,
+        non_overridable_arguments,
+        connections,
+        max_retries,
+        allocated_capacity,
+        timeout,
+        max_capacity,
+        security_configuration,
+        tags,
+        notification_property,
+        glue_version,
+        number_of_workers,
+        worker_type,
     ):
         self.jobs[name] = FakeJob(
             name,
@@ -295,21 +295,21 @@ class FakePartition(BaseModel):
 
 class FakeCrawler(BaseModel):
     def __init__(
-            self,
-            name,
-            role,
-            database_name,
-            description,
-            targets,
-            schedule,
-            classifiers,
-            table_prefix,
-            schema_change_policy,
-            recrawl_policy,
-            lineage_configuration,
-            configuration,
-            crawler_security_configuration,
-            tags,
+        self,
+        name,
+        role,
+        database_name,
+        description,
+        targets,
+        schedule,
+        classifiers,
+        table_prefix,
+        schema_change_policy,
+        recrawl_policy,
+        lineage_configuration,
+        configuration,
+        crawler_security_configuration,
+        tags,
     ):
         self.name = name
         self.role = role
@@ -383,7 +383,7 @@ class FakeCrawler(BaseModel):
 
 class LastCrawlInfo(BaseModel):
     def __init__(
-            self, error_message, log_group, log_stream, message_prefix, start_time, status,
+        self, error_message, log_group, log_stream, message_prefix, start_time, status,
     ):
         self.error_message = error_message
         self.log_group = log_group
@@ -401,6 +401,7 @@ class LastCrawlInfo(BaseModel):
             "StartTime": self.start_time,
             "Status": self.status,
         }
+
 
 class FakeJob:
     def __init__(
