@@ -181,10 +181,7 @@ class mock_all(ContextDecorator):
                 and not mock.endswith("_deprecated")
                 and not mock == ("mock_all")
             ):
-                try:
-                    self.mocks.append(globals()[mock]())
-                except:  # noqa
-                    continue
+                self.mocks.append(globals()[mock]())
 
     def __enter__(self):
         for mock in self.mocks:

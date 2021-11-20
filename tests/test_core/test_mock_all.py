@@ -25,7 +25,7 @@ def test_context_manager():
     rgn = "us-east-1"
 
     with mock_all():
-        sqs = boto3.Session().client("sqs", region_name=rgn)
+        sqs = boto3.client("sqs", region_name=rgn)
         r = sqs.list_queues()
         r["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
