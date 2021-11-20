@@ -490,10 +490,34 @@ class Route53ResolverBackend(BaseBackend):
         )
         return resolver_endpoint
 
+    def _validate_resolver_rule_id(self, resolver_rule_id):
+        """Raise an exception if the id is invalid or unknown."""
+        validate_args([("resolverRuleId", resolver_rule_id)])
+        if resolver_rule_id not in self.resolver_rules:
+            raise ResourceNotFoundException(
+                f"Resolver rule with ID '{resolver_rule_id}' does not exist"
+            )
+
+    def delete_resolver_rule(self, resolver_rule_id):
+        """Delete a resolver rule."""
+        self._validate_resolver_rule_id(resolver_rule_id)
+        self.tagger.delete_all_tags_for_resource(resolver_rule_id)
+        resolver_rule = self.resolver_rules.pop(resolver_rule_id)
+        resolver_rule.status = "DELETING"
+        resolver_rule.status_message = resolver_rule.status_message.replace(
+            "Successfully created", "Deleting"
+        )
+        return resolver_rule
+
     def get_resolver_endpoint(self, resolver_endpoint_id):
         """Return info for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         return self.resolver_endpoints[resolver_endpoint_id]
+
+    def get_resolver_rule(self, resolver_rule_id):
+        """Return info for specified resolver rule."""
+        self._validate_resolver_rule_id(resolver_rule_id)
+        return self.resolver_rules[resolver_rule_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoint_ip_addresses(

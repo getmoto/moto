@@ -24,6 +24,7 @@ def validate_args(validators):
         "maxResults": validate_max_results,
         "name": validate_name,
         "resolverEndpointId": validate_endpoint_id,
+        "resolverRuleId": validate_rule_id,
         "ruleType": validate_rule_type,
         "securityGroupIds": validate_security_group_ids,
         "targetIps.port": validate_target_port,
@@ -90,6 +91,13 @@ def validate_name(value):
         name_pattern = r"^(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)$"
         if not re.match(name_pattern, value):
             return fr"satisfy regular expression pattern: {name_pattern}"
+    return ""
+
+
+def validate_rule_id(value):
+    """Raise exception if resolver rule id has invalid length."""
+    if value and len(value) > 64:
+        return "have length less than or equal to 64"
     return ""
 
 

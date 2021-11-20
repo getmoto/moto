@@ -277,3 +277,102 @@ def test_route53resolver_bad_create_resolver_rule():
     err = exc.value.response["Error"]
     assert err["Code"] == "LimitExceededException"
     assert f"Account '{ACCOUNT_ID}' has exceeded 'max-rules" in err["Message"]
+
+
+@mock_route53resolver
+def test_route53resolver_delete_resolver_rule():
+    """Test good delete_resolver_rule API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    created_rule = create_test_rule(client)
+
+    # Now delete the resolver rule and verify the response.
+    response = client.delete_resolver_rule(ResolverRuleId=created_rule["Id"])
+    rule = response["ResolverRule"]
+    assert rule["Id"] == created_rule["Id"]
+    assert rule["CreatorRequestId"] == created_rule["CreatorRequestId"]
+    assert rule["Arn"] == created_rule["Arn"]
+    assert rule["DomainName"] == created_rule["DomainName"]
+    assert rule["Status"] == "DELETING"
+    assert "Deleting" in rule["StatusMessage"]
+    assert rule["RuleType"] == created_rule["RuleType"]
+    assert rule["Name"] == created_rule["Name"]
+    assert rule["TargetIps"] == created_rule["TargetIps"]
+    assert rule["OwnerId"] == created_rule["OwnerId"]
+    assert rule["ShareStatus"] == created_rule["ShareStatus"]
+    assert rule["CreationTime"] == created_rule["CreationTime"]
+
+
+@mock_route53resolver
+def test_route53resolver_bad_delete_resolver_rule():
+    """Test delete_resolver_rule API calls with a bad ID."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Use a resolver rule id that is too long.
+    long_id = "0123456789" * 6 + "xxxxx"
+    with pytest.raises(ClientError) as exc:
+        client.delete_resolver_rule(ResolverRuleId=long_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        f"Value '{long_id}' at 'resolverRuleId' failed to satisfy "
+        f"constraint: Member must have length less than or equal to 64"
+    ) in err["Message"]
+
+    # Delete a non-existent resolver rule.
+    with pytest.raises(ClientError) as exc:
+        client.delete_resolver_rule(ResolverRuleId=random_num)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Resolver rule with ID '{random_num}' does not exist" in err["Message"]
+
+
+@mock_route53resolver
+def test_route53resolver_get_resolver_rule():
+    """Test good get_resolver_rule API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    created_rule = create_test_rule(client)
+
+    # Now get the resolver rule and verify the response.
+    response = client.get_resolver_rule(ResolverRuleId=created_rule["Id"])
+    rule = response["ResolverRule"]
+    assert rule["Id"] == created_rule["Id"]
+    assert rule["CreatorRequestId"] == created_rule["CreatorRequestId"]
+    assert rule["Arn"] == created_rule["Arn"]
+    assert rule["DomainName"] == created_rule["DomainName"]
+    assert rule["Status"] == created_rule["Status"]
+    assert rule["StatusMessage"] == created_rule["StatusMessage"]
+    assert rule["RuleType"] == created_rule["RuleType"]
+    assert rule["Name"] == created_rule["Name"]
+    assert rule["TargetIps"] == created_rule["TargetIps"]
+    assert rule["OwnerId"] == created_rule["OwnerId"]
+    assert rule["ShareStatus"] == created_rule["ShareStatus"]
+    assert rule["CreationTime"] == created_rule["CreationTime"]
+    assert rule["ModificationTime"] == created_rule["ModificationTime"]
+
+
+@mock_route53resolver
+def test_route53resolver_bad_get_resolver_rule():
+    """Test get_resolver_rule API calls with a bad ID."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Use a resolver rule id that is too long.
+    long_id = "0123456789" * 6 + "xxxxx"
+    with pytest.raises(ClientError) as exc:
+        client.get_resolver_rule(ResolverRuleId=long_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        f"Value '{long_id}' at 'resolverRuleId' failed to satisfy "
+        f"constraint: Member must have length less than or equal to 64"
+    ) in err["Message"]
+
+    # Delete a non-existent resolver rule.
+    with pytest.raises(ClientError) as exc:
+        client.get_resolver_rule(ResolverRuleId=random_num)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Resolver rule with ID '{random_num}' does not exist" in err["Message"]
