@@ -1,12 +1,12 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import glue_backend
 from .exceptions import (
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     TableNotFoundException,
 )
+from .models import glue_backend
 
 
 class GlueResponse(BaseResponse):
@@ -317,3 +317,46 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("Name")
         self.glue_backend.delete_crawler(name)
         return ""
+
+    def create_job(self):
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        log_uri = self._get_param("LogUri")
+        role = self._get_param("Role")
+        execution_property = self._get_param("ExecutionProperty")
+        command = self._get_param("Command")
+        default_arguments = self._get_param("DefaultArguments")
+        non_overridable_arguments = self._get_param("NonOverridableArguments")
+        connections = self._get_param("Connections")
+        max_retries = self._get_int_param("MaxRetries")
+        allocated_capacity = self._get_int_param("AllocatedCapacity")
+        timeout = self._get_int_param("Timeout")
+        max_capacity = self._get_param("MaxCapacity")
+        security_configuration = self._get_param("SecurityConfiguration")
+        tags = self._get_param("Tags")
+        notification_property = self._get_param("NotificationProperty")
+        glue_version = self._get_param("GlueVersion")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        worker_type = self._get_param("WorkerType")
+        name = self.glue_backend.create_job(
+            name=name,
+            description=description,
+            log_uri=log_uri,
+            role=role,
+            execution_property=execution_property,
+            command=command,
+            default_arguments=default_arguments,
+            non_overridable_arguments=non_overridable_arguments,
+            connections=connections,
+            max_retries=max_retries,
+            allocated_capacity=allocated_capacity,
+            timeout=timeout,
+            max_capacity=max_capacity,
+            security_configuration=security_configuration,
+            tags=tags,
+            notification_property=notification_property,
+            glue_version=glue_version,
+            number_of_workers=number_of_workers,
+            worker_type=worker_type,
+        )
+        return json.dumps(dict(Name=name))
