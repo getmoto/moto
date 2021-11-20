@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import random
 import string
 import re
+from collections import defaultdict
 from copy import copy
 
 import requests
@@ -18,6 +19,9 @@ import responses
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url
+from .integration_parsers.aws_parser import TypeAwsParser
+from .integration_parsers.http_parser import TypeHttpParser
+from .integration_parsers.unknown_parser import TypeUnknownParser
 from .exceptions import (
     ApiKeyNotFoundException,
     UsagePlanNotFoundException,
@@ -242,6 +246,9 @@ class Resource(CloudFormationModel):
         self.path_part = path_part
         self.parent_id = parent_id
         self.resource_methods = {}
+        self.integration_parsers = defaultdict(TypeUnknownParser)
+        self.integration_parsers["HTTP"] = TypeHttpParser()
+        self.integration_parsers["AWS"] = TypeAwsParser()
 
     def to_dict(self):
         response = {
@@ -306,15 +313,9 @@ class Resource(CloudFormationModel):
         integration = self.get_integration(request.method)
         integration_type = integration["type"]
 
-        if integration_type == "HTTP":
-            uri = integration["uri"]
-            requests_func = getattr(requests, integration["httpMethod"].lower())
-            response = requests_func(uri)
-        else:
-            raise NotImplementedError(
-                "The {0} type has not been implemented".format(integration_type)
-            )
-        return response.status_code, response.text
+        status, result = self.integration_parsers[integration_type].invoke(request, integration)
+
+        return status, result
 
     def add_method(
         self,
@@ -761,6 +762,7 @@ class RestAPI(CloudFormationModel):
         self.models = {}
         self.request_validators = {}
         self.add_child("/")  # Add default child
+        self.current_mocks = []
 
     def __repr__(self):
         return str(self.id)
@@ -909,17 +911,28 @@ class RestAPI(CloudFormationModel):
             api_id=self.id.upper(), region_name=self.region_name, stage_name=stage_name
         )
 
-        for url in [stage_url_lower, stage_url_upper]:
-            responses_mock._matches.insert(
-                0,
-                responses.CallbackResponse(
-                    url=url,
-                    method=responses.GET,
-                    callback=self.resource_callback,
-                    content_type="text/plain",
-                    match_querystring=False,
-                ),
-            )
+        for resource_id, resource in self.resources.items():
+            path = resource.get_path()
+            for http_method, method in resource.resource_methods.items():
+                # AWS_PROXY
+                integration_type = method["methodIntegration"]["type"]
+                # 'arn:aws:apigateway:us-east-1:dynamodb:action/PutItem&Table=MusicCollection'
+                integration_target = method["methodIntegration"]["uri"]
+                response = method["methodIntegration"]["integrationResponses"]
+                print(f"Respose for {path}: {response}")
+
+                path = "" if path == "/" else path
+
+                for url in [stage_url_lower, stage_url_upper]:
+                    callback_response = responses.CallbackResponse(
+                        url=url + path,
+                        method=http_method,
+                        callback=self.resource_callback,
+                        content_type="text/plain",
+                        match_querystring=False,
+                    )
+                    self.current_mocks.append(callback_response)
+                    responses_mock._matches.insert(0, callback_response)
 
     def create_authorizer(
         self,
@@ -1414,7 +1427,7 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         return resource.delete_integration(method_type)
 
-    def create_integration_response(
+    def put_integration_response(
         self,
         function_id,
         resource_id,
@@ -1458,7 +1471,7 @@ class APIGatewayBackend(BaseBackend):
         if not any(methods):
             raise NoMethodDefined()
         method_integrations = [
-            method["methodIntegration"] if "methodIntegration" in method else None
+            method.get("methodIntegration", None)
             for method in methods
         ]
         if not any(method_integrations):

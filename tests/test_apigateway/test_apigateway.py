@@ -1812,50 +1812,6 @@ def test_get_model_with_invalid_name():
 
 
 @mock_apigateway
-def test_http_proxying_integration():
-    responses_mock.add(
-        responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
-    )
-
-    region_name = "us-west-2"
-    client = boto3.client("apigateway", region_name=region_name)
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
-    )
-
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-
-    response = client.put_integration(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        type="HTTP",
-        uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="GET",
-    )
-
-    stage_name = "staging"
-    client.create_deployment(restApiId=api_id, stageName=stage_name)
-
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
-    )
-
-    if not settings.TEST_SERVER_MODE:
-        requests.get(deploy_url).content.should.equal(b"a fake response")
-
-
-@mock_apigateway
 def test_api_key_value_min_length():
     region_name = "us-east-1"
     client = boto3.client("apigateway", region_name=region_name)
