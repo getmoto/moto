@@ -174,14 +174,17 @@ mock_sdb = lazy_load(".sdb", "mock_sdb", boto3_name="sdb")
 
 class mock_all(ContextDecorator):
     def __init__(self):
-        self.mocks = [
-            globals()[mock]()
-            for mock in dir(sys.modules["moto"])
-            if mock.startswith("mock_")
-            and not mock.endswith("_deprecated")
-            and not mock == "mock_all"
-            and not mock == "mock_xray_client"
-        ]
+        self.mocks = []
+        for mock in dir(sys.modules["moto"]):
+            if (
+                mock.startswith("mock_")
+                and not mock.endswith("_deprecated")
+                and not mock == ("mock_all")
+            ):
+                try:
+                    self.mocks.append(globals()[mock]())
+                except:
+                    continue
 
     def __enter__(self):
         for mock in self.mocks:
