@@ -583,7 +583,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 logs = []
                 for line in logs_stdout + logs_stderr:
                     date, line = line.split(" ", 1)
-                    date_obj = dateutil.parser.parse(date, ignoretz=True)
+                    date_obj = (
+                        dateutil.parser.parse(date)
+                        .astimezone(datetime.timezone.utc)
+                        .replace(tzinfo=None)
+                    )
                     date = unix_time_millis(date_obj)
                     logs.append({"timestamp": date, "message": line.strip()})
 
