@@ -183,7 +183,7 @@ class mock_all(ContextDecorator):
             ):
                 try:
                     self.mocks.append(globals()[mock]())
-                except:
+                except:  # noqa
                     continue
 
     def __enter__(self):
