@@ -4,7 +4,6 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
 from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
-
 from .exceptions import (
     JsonRESTError,
     CrawlerAlreadyExistsException,
@@ -23,6 +22,7 @@ class GlueBackend(BaseBackend):
     def __init__(self):
         self.databases = OrderedDict()
         self.crawlers = OrderedDict()
+        self.jobs = OrderedDict()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -137,6 +137,51 @@ class GlueBackend(BaseBackend):
             del self.crawlers[name]
         except KeyError:
             raise CrawlerNotFoundException(name)
+
+    def create_job(
+        self,
+        name,
+        role,
+        command,
+        description,
+        log_uri,
+        execution_property,
+        default_arguments,
+        non_overridable_arguments,
+        connections,
+        max_retries,
+        allocated_capacity,
+        timeout,
+        max_capacity,
+        security_configuration,
+        tags,
+        notification_property,
+        glue_version,
+        number_of_workers,
+        worker_type,
+    ):
+        self.jobs[name] = FakeJob(
+            name,
+            role,
+            command,
+            description,
+            log_uri,
+            execution_property,
+            default_arguments,
+            non_overridable_arguments,
+            connections,
+            max_retries,
+            allocated_capacity,
+            timeout,
+            max_capacity,
+            security_configuration,
+            tags,
+            notification_property,
+            glue_version,
+            number_of_workers,
+            worker_type,
+        )
+        return name
 
 
 class FakeDatabase(BaseModel):
@@ -356,6 +401,52 @@ class LastCrawlInfo(BaseModel):
             "StartTime": self.start_time,
             "Status": self.status,
         }
+
+
+class FakeJob:
+    def __init__(
+        self,
+        name,
+        role,
+        command,
+        description=None,
+        log_uri=None,
+        execution_property=None,
+        default_arguments=None,
+        non_overridable_arguments=None,
+        connections=None,
+        max_retries=None,
+        allocated_capacity=None,
+        timeout=None,
+        max_capacity=None,
+        security_configuration=None,
+        tags=None,
+        notification_property=None,
+        glue_version=None,
+        number_of_workers=None,
+        worker_type=None,
+    ):
+        self.name = name
+        self.description = description
+        self.log_uri = log_uri
+        self.role = role
+        self.execution_property = execution_property
+        self.command = command
+        self.default_arguments = default_arguments
+        self.non_overridable_arguments = non_overridable_arguments
+        self.connections = connections
+        self.max_retries = max_retries
+        self.allocated_capacity = allocated_capacity
+        self.timeout = timeout
+        self.max_capacity = max_capacity
+        self.security_configuration = security_configuration
+        self.tags = tags
+        self.notification_property = notification_property
+        self.glue_version = glue_version
+        self.number_of_workers = number_of_workers
+        self.worker_type = worker_type
+        self.created_on = datetime.utcnow()
+        self.last_modified_on = datetime.utcnow()
 
 
 glue_backend = GlueBackend()
