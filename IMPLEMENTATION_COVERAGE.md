@@ -3675,12 +3675,12 @@
 
 ## route53resolver
 <details>
-<summary>14% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] associate_firewall_rule_group
 - [ ] associate_resolver_endpoint_ip_address
 - [ ] associate_resolver_query_log_config
-- [ ] associate_resolver_rule
+- [X] associate_resolver_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
@@ -3696,7 +3696,7 @@
 - [ ] disassociate_firewall_rule_group
 - [ ] disassociate_resolver_endpoint_ip_address
 - [ ] disassociate_resolver_query_log_config
-- [ ] disassociate_resolver_rule
+- [X] disassociate_resolver_rule
 - [ ] get_firewall_config
 - [ ] get_firewall_domain_list
 - [ ] get_firewall_rule_group
@@ -3709,7 +3709,7 @@
 - [ ] get_resolver_query_log_config_association
 - [ ] get_resolver_query_log_config_policy
 - [ ] get_resolver_rule
-- [ ] get_resolver_rule_association
+- [X] get_resolver_rule_association
 - [ ] get_resolver_rule_policy
 - [ ] import_firewall_domains
 - [ ] list_firewall_configs
@@ -3724,7 +3724,7 @@
 - [X] list_resolver_endpoints
 - [ ] list_resolver_query_log_config_associations
 - [ ] list_resolver_query_log_configs
-- [ ] list_resolver_rule_associations
+- [X] list_resolver_rule_associations
 - [ ] list_resolver_rules
 - [X] list_tags_for_resource
 - [ ] put_firewall_rule_group_policy
