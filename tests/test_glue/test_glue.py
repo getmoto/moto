@@ -86,5 +86,8 @@ def create_glue_client():
 def create_test_job(client, tags=None):
     job_name = str(uuid4())
     client.create_job(
-        Name=job_name, Role="test_role", Command=dict(Name="test_command"), Tags=tags or {}
+        Name=job_name,
+        Role="test_role",
+        Command=dict(Name="test_command"),
+        Tags=tags or {},
     )
