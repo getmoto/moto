@@ -47,6 +47,7 @@ def test_xray_dynamo_request_id():
 
 def test_xray_dynamo_request_id_with_context_mgr():
     with mock_xray_client():
+        assert isinstance(xray_core.xray_recorder._emitter, MockEmitter)
         with mock_dynamodb2():
             # Could be ran in any order, so we need to tell sdk that its been unpatched
             xray_core_patcher._PATCHED_MODULES = set()
@@ -74,6 +75,9 @@ def test_xray_dynamo_request_id_with_context_mgr():
             )
             setattr(requests.Session, "request", original_session_request)
             setattr(requests.Session, "prepare_request", original_session_prep_request)
+
+    # Verify we have unmocked the xray recorder
+    assert not isinstance(xray_core.xray_recorder._emitter, MockEmitter)
 
 
 @mock_xray_client
