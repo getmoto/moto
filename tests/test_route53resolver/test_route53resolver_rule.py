@@ -17,7 +17,7 @@ from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
-def create_test_rule(client, tags=None):
+def create_test_rule(client, name=None, tags=None):
     """Create an rule that can be used for testing purposes.
 
     Can't be used for unit tests that need to know/test the arguments.
@@ -28,7 +28,7 @@ def create_test_rule(client, tags=None):
 
     resolver_rule = client.create_resolver_rule(
         CreatorRequestId=random_num,
-        Name="X" + random_num,
+        Name=name if name else "X" + random_num,
         RuleType="FORWARD",
         DomainName=f"X{random_num}.com",
         TargetIps=[
@@ -157,7 +157,7 @@ def test_route53resolver_create_resolver_rule():  # pylint: disable=too-many-loc
         rule["Arn"]
         == f"arn:aws:route53resolver:{TEST_REGION}:{ACCOUNT_ID}:resolver-rule/{id_value}"
     )
-    assert rule["DomainName"] == domain_name
+    assert rule["DomainName"] == domain_name + "."
     assert rule["Status"] == "COMPLETE"
     assert "Successfully created Resolver Rule" in rule["StatusMessage"]
     assert rule["RuleType"] == "FORWARD"
@@ -376,3 +376,160 @@ def test_route53resolver_bad_get_resolver_rule():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert f"Resolver rule with ID '{random_num}' does not exist" in err["Message"]
+
+
+@mock_route53resolver
+def test_route53resolver_list_resolver_rules():
+    """Test good list_resolver_rules API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # List rules when there are none.
+    response = client.list_resolver_rules()
+    assert len(response["ResolverRules"]) == 0
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+
+    # Create 4 rules, verify all 4 are listed when no filters, max_results.
+    for idx in range(4):
+        create_test_rule(client, name=f"A{idx}-{random_num}")
+    response = client.list_resolver_rules()
+    rules = response["ResolverRules"]
+    assert len(rules) == 4
+    assert response["MaxResults"] == 10
+    for idx in range(4):
+        assert rules[idx]["Name"].startswith(f"A{idx}")
+
+    # Set max_results to return 1 rule, use next_token to get remaining 3.
+    response = client.list_resolver_rules(MaxResults=1)
+    rules = response["ResolverRules"]
+    assert len(rules) == 1
+    assert response["MaxResults"] == 1
+    assert "NextToken" in response
+    assert rules[0]["Name"].startswith("A0")
+
+    response = client.list_resolver_rules(NextToken=response["NextToken"])
+    rules = response["ResolverRules"]
+    assert len(rules) == 3
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+    for idx, rule in enumerate(rules):
+        assert rule["Name"].startswith(f"A{idx + 1}")
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_list_resolver_rules_filters():
+    """Test good list_resolver_rules API calls that use filters."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Create some endpoints and rules for testing purposes.
+    endpoint1 = create_test_endpoint(client, ec2_client)["Id"]
+    endpoint2 = create_test_endpoint(client, ec2_client)["Id"]
+
+    rules = []
+    for idx in range(1, 5):
+        response = client.create_resolver_rule(
+            CreatorRequestId=f"F{idx}-{random_num}",
+            Name=f"F{idx}-{random_num}",
+            RuleType="FORWARD" if idx % 2 else "RECURSIVE",
+            DomainName=f"test{idx}.test",
+            TargetIps=[{"Ip": f"10.0.1.{idx}", "Port": 50 + idx}],
+            ResolverEndpointId=endpoint1 if idx % 2 else endpoint2,
+        )
+        rules.append(response["ResolverRule"])
+
+    # Try all the valid filter names, including some of the old style names.
+    response = client.list_resolver_rules(
+        Filters=[{"Name": "CreatorRequestId", "Values": [f"F3-{random_num}"]}]
+    )
+    assert len(response["ResolverRules"]) == 1
+    assert response["ResolverRules"][0]["CreatorRequestId"] == f"F3-{random_num}"
+
+    response = client.list_resolver_rules(
+        Filters=[
+            {
+                "Name": "CREATOR_REQUEST_ID",
+                "Values": [f"F2-{random_num}", f"F4-{random_num}"],
+            }
+        ]
+    )
+    assert len(response["ResolverRules"]) == 2
+    assert response["ResolverRules"][0]["CreatorRequestId"] == f"F2-{random_num}"
+    assert response["ResolverRules"][1]["CreatorRequestId"] == f"F4-{random_num}"
+
+    response = client.list_resolver_rules(
+        Filters=[{"Name": "Type", "Values": ["FORWARD"]}]
+    )
+    assert len(response["ResolverRules"]) == 2
+    assert response["ResolverRules"][0]["CreatorRequestId"] == f"F1-{random_num}"
+    assert response["ResolverRules"][1]["CreatorRequestId"] == f"F3-{random_num}"
+
+    response = client.list_resolver_rules(
+        Filters=[{"Name": "Name", "Values": [f"F1-{random_num}"]}]
+    )
+    assert len(response["ResolverRules"]) == 1
+    assert response["ResolverRules"][0]["Name"] == f"F1-{random_num}"
+
+    response = client.list_resolver_rules(
+        Filters=[
+            {"Name": "RESOLVER_ENDPOINT_ID", "Values": [endpoint1, endpoint2]},
+            {"Name": "TYPE", "Values": ["FORWARD"]},
+            {"Name": "NAME", "Values": [f"F3-{random_num}"]},
+        ]
+    )
+    assert len(response["ResolverRules"]) == 1
+    assert response["ResolverRules"][0]["Name"] == f"F3-{random_num}"
+
+    response = client.list_resolver_rules(
+        Filters=[{"Name": "DomainName", "Values": ["test4.test."]}]
+    )
+    assert len(response["ResolverRules"]) == 1
+    assert response["ResolverRules"][0]["Name"] == f"F4-{random_num}"
+
+    response = client.list_resolver_rules(
+        Filters=[{"Name": "Status", "Values": ["COMPLETE"]}]
+    )
+    assert len(response["ResolverRules"]) == 4
+    response = client.list_resolver_rules(
+        Filters=[{"Name": "Status", "Values": ["FAILED"]}]
+    )
+    assert len(response["ResolverRules"]) == 0
+
+
+@mock_route53resolver
+def test_route53resolver_bad_list_resolver_rules_filters():
+    """Test bad list_resolver_rules API calls that use filters."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+
+    # botocore barfs on an empty "Values":
+    # TypeError: list_resolver_rules() only accepts keyword arguments.
+    # client.list_resolver_rules([{"Name": "Direction", "Values": []}])
+    # client.list_resolver_rules([{"Values": []}])
+
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_rules(Filters=[{"Name": "foo", "Values": ["bar"]}])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "The filter 'foo' is invalid" in err["Message"]
+
+
+@mock_route53resolver
+def test_route53resolver_bad_list_resolver_rules():
+    """Test bad list_resolver_rules API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+
+    # Bad max_results.
+    random_num = get_random_hex(10)
+    create_test_rule(client, name=f"A-{random_num}")
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_rules(MaxResults=250)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        "Value '250' at 'maxResults' failed to satisfy constraint: Member "
+        "must have length less than or equal to 100"
+    ) in err["Message"]

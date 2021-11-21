@@ -35,6 +35,17 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
     MAX_TAGS_PER_RESOLVER_RULE = 200
     MAX_RULES_PER_REGION = 1000
 
+    # There are two styles of filter names and either will be transformed
+    # into lowercase snake.
+    FILTER_NAMES = [
+        "creator_request_id",
+        "domain_name",
+        "name",
+        "resolver_endpoint_id",
+        "status",
+        "rule_type",  # actual filter is "Type"
+    ]
+
     def __init__(
         self,
         region,
@@ -51,7 +62,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.name = name
         self.rule_id = rule_id
         self.rule_type = rule_type
-        self.domain_name = domain_name
+        self.domain_name = domain_name + "."
         self.target_ips = target_ips
         self.resolver_endpoint_id = resolver_endpoint_id
 
@@ -543,6 +554,8 @@ class Route53ResolverBackend(BaseBackend):
                     filter_name = "host_vpc_id"
                 elif filter_name == "HostVpcId":
                     filter_name = "WRONG"
+                elif filter_name in ["Type", "TYPE"]:
+                    filter_name = "rule_type"
                 elif not filter_name.isupper():
                     filter_name = CAMEL_TO_SNAKE_PATTERN.sub("_", filter_name)
             rr_filter["Field"] = filter_name.lower()
@@ -595,21 +608,41 @@ class Route53ResolverBackend(BaseBackend):
         return endpoints
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags_for_resource(
-        self, resource_arn, next_token=None, max_results=None,
+    def list_resolver_rules(
+        self, filters, next_token=None, max_results=None,
     ):  # pylint: disable=unused-argument
-        """List all tags for the given resource."""
-        self._matched_arn(resource_arn)
-        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
+        """List all resolver rules, using filters if specified."""
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverRule.FILTER_NAMES)
+
+        rules = []
+        for rule in sorted(self.resolver_rules.values(), key=lambda x: x.name):
+            if self._matches_all_filters(rule, filters):
+                rules.append(rule)
+        return rules
 
     def _matched_arn(self, resource_arn):
         """Given ARN, raise exception if there is no corresponding resource."""
         for resolver_endpoint in self.resolver_endpoints.values():
             if resolver_endpoint.arn == resource_arn:
                 return
+        for resolver_rule in self.resolver_rules.values():
+            if resolver_rule.arn == resource_arn:
+                return
         raise ResourceNotFoundException(
             f"Resolver endpoint with ID '{resource_arn}' does not exist"
         )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(
+        self, resource_arn, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List all tags for the given resource."""
+        self._matched_arn(resource_arn)
+        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 
     def tag_resource(self, resource_arn, tags):
         """Add or overwrite one or more tags for specified resource."""

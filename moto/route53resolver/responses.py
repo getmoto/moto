@@ -146,7 +146,7 @@ class Route53ResolverResponse(BaseResponse):
         validate_args([("maxResults", max_results)])
         try:
             (rules, next_token) = self.route53resolver_backend.list_resolver_rules(
-                filters=filters, next_token=next_token, max_results=max_results
+                filters, next_token=next_token, max_results=max_results
             )
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc

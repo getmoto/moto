@@ -632,7 +632,7 @@ def test_route53resolver_bad_list_resolver_endpoint_ip_addresses():
 @mock_ec2
 @mock_route53resolver
 def test_route53resolver_list_resolver_endpoints():
-    """Test good list_resolver_endpoint API calls."""
+    """Test good list_resolver_endpoints API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     random_num = get_random_hex(10)
@@ -673,7 +673,7 @@ def test_route53resolver_list_resolver_endpoints():
 @mock_ec2
 @mock_route53resolver
 def test_route53resolver_list_resolver_endpoints_filters():
-    """Test good list_resolver_endpoint API calls that use filters."""
+    """Test good list_resolver_endpoints API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     random_num = get_random_hex(10)
@@ -770,7 +770,7 @@ def test_route53resolver_list_resolver_endpoints_filters():
 
 @mock_route53resolver
 def test_route53resolver_bad_list_resolver_endpoints_filters():
-    """Test bad list_resolver_endpoint API calls that use filters."""
+    """Test bad list_resolver_endpoints API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
 
     # botocore barfs on an empty "Values":
