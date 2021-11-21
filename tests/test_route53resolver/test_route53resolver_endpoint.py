@@ -736,6 +736,10 @@ def test_route53resolver_list_resolver_endpoints_filters():
         Filters=[{"Name": "IpAddressCount", "Values": ["4"]}]
     )
     assert len(response["ResolverEndpoints"]) == 4
+    response = client.list_resolver_endpoints(
+        Filters=[{"Name": "IpAddressCount", "Values": ["0", "7"]}]
+    )
+    assert len(response["ResolverEndpoints"]) == 0
 
     response = client.list_resolver_endpoints(
         Filters=[{"Name": "Name", "Values": [f"F1-{random_num}"]}]
@@ -783,6 +787,14 @@ def test_route53resolver_bad_list_resolver_endpoints_filters():
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
     assert "The filter 'foo' is invalid" in err["Message"]
+
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_endpoints(
+            Filters=[{"Name": "HostVpcId", "Values": ["bar"]}]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "The filter 'HostVpcId' is invalid" in err["Message"]
 
 
 @mock_ec2
