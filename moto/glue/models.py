@@ -78,21 +78,21 @@ class GlueBackend(BaseBackend):
         return {}
 
     def create_crawler(
-        self,
-        name,
-        role,
-        database_name,
-        description,
-        targets,
-        schedule,
-        classifiers,
-        table_prefix,
-        schema_change_policy,
-        recrawl_policy,
-        lineage_configuration,
-        configuration,
-        crawler_security_configuration,
-        tags,
+            self,
+            name,
+            role,
+            database_name,
+            description,
+            targets,
+            schedule,
+            classifiers,
+            table_prefix,
+            schema_change_policy,
+            recrawl_policy,
+            lineage_configuration,
+            configuration,
+            crawler_security_configuration,
+            tags,
     ):
         if name in self.crawlers:
             raise CrawlerAlreadyExistsException()
@@ -139,26 +139,26 @@ class GlueBackend(BaseBackend):
             raise CrawlerNotFoundException(name)
 
     def create_job(
-        self,
-        name,
-        role,
-        command,
-        description,
-        log_uri,
-        execution_property,
-        default_arguments,
-        non_overridable_arguments,
-        connections,
-        max_retries,
-        allocated_capacity,
-        timeout,
-        max_capacity,
-        security_configuration,
-        tags,
-        notification_property,
-        glue_version,
-        number_of_workers,
-        worker_type,
+            self,
+            name,
+            role,
+            command,
+            description,
+            log_uri,
+            execution_property,
+            default_arguments,
+            non_overridable_arguments,
+            connections,
+            max_retries,
+            allocated_capacity,
+            timeout,
+            max_capacity,
+            security_configuration,
+            tags,
+            notification_property,
+            glue_version,
+            number_of_workers,
+            worker_type,
     ):
         self.jobs[name] = FakeJob(
             name,
@@ -182,6 +182,27 @@ class GlueBackend(BaseBackend):
             worker_type,
         )
         return name
+
+    def list_jobs(self, next_token, max_results, tags):
+        next_token = int(next_token) or 0
+        total_number_of_jobs = len(self.jobs)
+        max_results = max_results or total_number_of_jobs
+        last_token = next_token + max_results
+        job_names = self.filter_jobs_by_tags(tags, next_token, last_token)
+        return job_names, last_token if last_token <= total_number_of_jobs else total_number_of_jobs
+
+    def filter_jobs_by_tags(self, tags, next_token, last_token):
+        if not tags:
+            return [job for _, job in self.jobs.items()][next_token: last_token]
+        return [job for _, job in self.jobs.items() if self.is_tags_match(job.tags, tags)][next_token: last_token]
+
+    @staticmethod
+    def is_tags_match(job_tags, tags):
+        mutual_keys = set(job_tags).intersection(tags)
+        for key in mutual_keys:
+            if job_tags[key] == tags[key]:
+                return True
+        return False
 
 
 class FakeDatabase(BaseModel):
@@ -295,21 +316,21 @@ class FakePartition(BaseModel):
 
 class FakeCrawler(BaseModel):
     def __init__(
-        self,
-        name,
-        role,
-        database_name,
-        description,
-        targets,
-        schedule,
-        classifiers,
-        table_prefix,
-        schema_change_policy,
-        recrawl_policy,
-        lineage_configuration,
-        configuration,
-        crawler_security_configuration,
-        tags,
+            self,
+            name,
+            role,
+            database_name,
+            description,
+            targets,
+            schedule,
+            classifiers,
+            table_prefix,
+            schema_change_policy,
+            recrawl_policy,
+            lineage_configuration,
+            configuration,
+            crawler_security_configuration,
+            tags,
     ):
         self.name = name
         self.role = role
@@ -383,7 +404,7 @@ class FakeCrawler(BaseModel):
 
 class LastCrawlInfo(BaseModel):
     def __init__(
-        self, error_message, log_group, log_stream, message_prefix, start_time, status,
+            self, error_message, log_group, log_stream, message_prefix, start_time, status,
     ):
         self.error_message = error_message
         self.log_group = log_group
@@ -405,26 +426,26 @@ class LastCrawlInfo(BaseModel):
 
 class FakeJob:
     def __init__(
-        self,
-        name,
-        role,
-        command,
-        description=None,
-        log_uri=None,
-        execution_property=None,
-        default_arguments=None,
-        non_overridable_arguments=None,
-        connections=None,
-        max_retries=None,
-        allocated_capacity=None,
-        timeout=None,
-        max_capacity=None,
-        security_configuration=None,
-        tags=None,
-        notification_property=None,
-        glue_version=None,
-        number_of_workers=None,
-        worker_type=None,
+            self,
+            name,
+            role,
+            command,
+            description=None,
+            log_uri=None,
+            execution_property=None,
+            default_arguments=None,
+            non_overridable_arguments=None,
+            connections=None,
+            max_retries=None,
+            allocated_capacity=None,
+            timeout=None,
+            max_capacity=None,
+            security_configuration=None,
+            tags=None,
+            notification_property=None,
+            glue_version=None,
+            number_of_workers=None,
+            worker_type=None,
     ):
         self.name = name
         self.description = description
@@ -447,6 +468,29 @@ class FakeJob:
         self.worker_type = worker_type
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
+
+    def as_dict(self):
+        return dict(Name=self.name,
+                    Description=self.description,
+                    LogUri=self.log_uri,
+                    Role=self.role,
+                    ExecutionProperty=self.execution_property,
+                    Command=self.command,
+                    DefaultArguments=self.default_arguments,
+                    NonOverridableArguments=self.non_overridable_arguments,
+                    Connections=self.connections,
+                    MaxRetries=self.max_retries,
+                    AllocatedCapacity=self.allocated_capacity,
+                    Timeout=self.timeout,
+                    MaxCapacity=self.max_capacity,
+                    SecurityConfiguration=self.security_configuration,
+                    Tags=self.tags,
+                    NotificationProperty=self.notification_property,
+                    GlueVersion=self.glue_version,
+                    NumberOfWorkers=self.number_of_workers,
+                    WorkerType=self.worker_type,
+                    created_on=str(self.created_on),
+                    last_modified_on=str(self.last_modified_on))
 
 
 glue_backend = GlueBackend()

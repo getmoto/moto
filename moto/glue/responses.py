@@ -360,3 +360,14 @@ class GlueResponse(BaseResponse):
             worker_type=worker_type,
         )
         return json.dumps(dict(Name=name))
+
+    def list_jobs(self):
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        tags = self._get_param("Tags")
+        job_names, next_token = self.glue_backend.list_jobs(
+            next_token=next_token,
+            max_results=max_results,
+            tags=tags,
+        )
+        return json.dumps(dict(JobNames=[job.as_dict() for job in job_names], NextToken=next_token))
