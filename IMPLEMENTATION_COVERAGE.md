@@ -2103,7 +2103,7 @@
 
 ## glue
 <details>
-<summary>7% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2127,7 +2127,7 @@
 - [X] create_crawler
 - [X] create_database
 - [ ] create_dev_endpoint
-- [ ] create_job
+- [X] create_job
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index

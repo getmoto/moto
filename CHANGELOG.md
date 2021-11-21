@@ -1,6 +1,34 @@
 Moto Changelog
 ===================
 
+2.2.16
+------
+    New Services:
+        * SimpleDB:
+            * create_domain()
+            * delete_domain()
+            * get_attributes()
+            * list_domains()
+            * put_attributes()
+
+    New Methods:
+        * Glue:
+            * create_job
+        * Route53 Resolver:
+            * create_resolver_endpoint()
+            * delete_resolver_endpoint()
+            * get_resolver_endpoint()
+            * list_resolver_endpoints()
+            * list_resolver_endpoint_ip_addresses()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_resolver_endpoint()
+
+    Miscellaneous:
+        * Moto now supports mocking S3-equivalent libraries such as Ceph
+        * Cognito IDP now exposes the `cognito:groups`-attribute as part of the AccessToken
+
 2.2.15
 ------
     General:
