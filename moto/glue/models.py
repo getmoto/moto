@@ -184,7 +184,7 @@ class GlueBackend(BaseBackend):
         return name
 
     def list_jobs(self, next_token, max_results, tags):
-        next_token = int(next_token) or 0
+        next_token = int(next_token) if next_token else 0
         total_number_of_jobs = len(self.jobs)
         max_results = max_results or total_number_of_jobs
         last_token = next_token + max_results
