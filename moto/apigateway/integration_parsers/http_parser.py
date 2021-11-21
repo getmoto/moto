@@ -1,5 +1,6 @@
 import requests
 
+
 class TypeHttpParser:
     """
     Parse invocations to a APIGateway resource with integration type HTTP

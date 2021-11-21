@@ -2,13 +2,11 @@ import json
 
 import boto3
 from freezegun import freeze_time
-import requests
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import ACCOUNT_ID
-from moto.core.models import responses_mock
 import pytest
 
 

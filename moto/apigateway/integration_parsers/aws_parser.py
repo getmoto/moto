@@ -1,7 +1,7 @@
 import requests
 
-class TypeAwsParser:
 
+class TypeAwsParser:
     def invoke(self, request, integration):
         # integration.uri = arn:aws:apigateway:{region}:{subdomain.service|service}:path|action/{service_api}
         # example value = 'arn:aws:apigateway:us-west-2:dynamodb:action/PutItem&Table=MusicCollection'
@@ -16,6 +16,9 @@ class TypeAwsParser:
                 res = requests.post(target_url, request.body, headers=headers)
                 return res.status_code, res.content
             else:
-                return 400, f"Integration for service {service} / {path} is not yet supported"
+                return (
+                    400,
+                    f"Integration for service {service} / {path} is not yet supported",
+                )
         except Exception as e:
             return 400, str(e)

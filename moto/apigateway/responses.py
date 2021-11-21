@@ -193,7 +193,7 @@ class APIGatewayResponse(BaseResponse):
             authorizer_id = self._get_param("authorizerId")
             authorization_scopes = self._get_param("authorizationScopes")
             request_validator_id = self._get_param("requestValidatorId")
-            method = self.backend.create_method(
+            method = self.backend.put_method(
                 function_id,
                 resource_id,
                 method_type,
@@ -234,7 +234,7 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == "PUT":
             response_models = self._get_param("responseModels")
             response_parameters = self._get_param("responseParameters")
-            method_response = self.backend.create_method_response(
+            method_response = self.backend.put_method_response(
                 function_id,
                 resource_id,
                 method_type,
@@ -482,7 +482,7 @@ class APIGatewayResponse(BaseResponse):
                     "httpMethod"
                 )  # default removed because it's a required parameter
 
-                integration_response = self.backend.create_integration(
+                integration_response = self.backend.put_integration(
                     function_id,
                     resource_id,
                     method_type,
