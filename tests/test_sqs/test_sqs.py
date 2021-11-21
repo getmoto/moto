@@ -1517,9 +1517,9 @@ def test_message_becomes_inflight_when_received():
 
 @mock_sqs
 def test_message_becomes_inflight_when_received_boto3():
-    sqs = boto3.resource("sqs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
     )
 
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
@@ -1537,7 +1537,7 @@ def test_message_becomes_inflight_when_received_boto3():
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
 
     # Wait
-    time.sleep(2)
+    time.sleep(3)
 
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
