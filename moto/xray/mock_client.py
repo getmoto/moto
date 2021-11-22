@@ -1,4 +1,3 @@
-from functools import wraps
 import os
 from moto.xray import xray_backends
 import aws_xray_sdk.core
@@ -32,7 +31,7 @@ class MockEmitter(UDPEmitter):
         raise RuntimeError("Should not be running this")
 
 
-def mock_xray_client(f):
+class MockXrayClient:
     """
     Mocks the X-Ray sdk by pwning its evil singleton with our methods
 
@@ -43,30 +42,43 @@ def mock_xray_client(f):
     that itno the recorder instance.
     """
 
-    @wraps(f)
-    def _wrapped(*args, **kwargs):
-        print("Starting X-Ray Patch")
+    def __call__(self, f=None):
+        if not f:
+            return self
 
-        old_xray_context_var = os.environ.get("AWS_XRAY_CONTEXT_MISSING")
+        def wrapped_f():
+            self.start()
+            try:
+                f()
+            finally:
+                self.stop()
+
+        return wrapped_f
+
+    def start(self):
+        print("Starting X-Ray Patch")
+        self.old_xray_context_var = os.environ.get("AWS_XRAY_CONTEXT_MISSING")
         os.environ["AWS_XRAY_CONTEXT_MISSING"] = "LOG_ERROR"
-        old_xray_context = aws_xray_sdk.core.xray_recorder._context
-        old_xray_emitter = aws_xray_sdk.core.xray_recorder._emitter
+        self.old_xray_context = aws_xray_sdk.core.xray_recorder._context
+        self.old_xray_emitter = aws_xray_sdk.core.xray_recorder._emitter
         aws_xray_sdk.core.xray_recorder._context = AWSContext()
         aws_xray_sdk.core.xray_recorder._emitter = MockEmitter()
 
-        try:
-            return f(*args, **kwargs)
-        finally:
+    def stop(self):
+        if self.old_xray_context_var is None:
+            del os.environ["AWS_XRAY_CONTEXT_MISSING"]
+        else:
+            os.environ["AWS_XRAY_CONTEXT_MISSING"] = self.old_xray_context_var
 
-            if old_xray_context_var is None:
-                del os.environ["AWS_XRAY_CONTEXT_MISSING"]
-            else:
-                os.environ["AWS_XRAY_CONTEXT_MISSING"] = old_xray_context_var
+        aws_xray_sdk.core.xray_recorder._emitter = self.old_xray_emitter
+        aws_xray_sdk.core.xray_recorder._context = self.old_xray_context
 
-            aws_xray_sdk.core.xray_recorder._emitter = old_xray_emitter
-            aws_xray_sdk.core.xray_recorder._context = old_xray_context
+    def __enter__(self):
+        self.start()
+        return self
 
-    return _wrapped
+    def __exit__(self, *args):
+        self.stop()
 
 
 class XRaySegment(object):

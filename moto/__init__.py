@@ -1,5 +1,6 @@
 import importlib
 import sys
+from contextlib import ContextDecorator
 
 
 def lazy_load(
@@ -171,22 +172,27 @@ mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_sdb = lazy_load(".sdb", "mock_sdb", boto3_name="sdb")
 
 
-def mock_all():
-    dec_names = [
-        d
-        for d in dir(sys.modules["moto"])
-        if d.startswith("mock_")
-        and not d.endswith("_deprecated")
-        and not d == "mock_all"
-    ]
+class MockAll(ContextDecorator):
+    def __init__(self):
+        self.mocks = []
+        for mock in dir(sys.modules["moto"]):
+            if (
+                mock.startswith("mock_")
+                and not mock.endswith("_deprecated")
+                and not mock == ("mock_all")
+            ):
+                self.mocks.append(globals()[mock]())
 
-    def deco(f):
-        for dec_name in reversed(dec_names):
-            dec = globals()[dec_name]
-            f = dec(f)
-        return f
+    def __enter__(self):
+        for mock in self.mocks:
+            mock.start()
 
-    return deco
+    def __exit__(self, *exc):
+        for mock in self.mocks:
+            mock.stop()
+
+
+mock_all = MockAll
 
 
 # import logging
