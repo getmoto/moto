@@ -37,6 +37,7 @@ class Cluster:
     def __init__(self, **kwargs):
         self.db_name = kwargs.get("db_name")
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
+        self.deletion_protection = kwargs.get("deletion_protection")
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version")
         if not self.engine_version:
@@ -133,7 +134,7 @@ class Cluster:
               <AssociatedRoles></AssociatedRoles>
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
-              <DeletionProtection>false</DeletionProtection>
+              <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>false</HttpEndpointEnabled>
               <CopyTagsToSnapshot>false</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
@@ -264,6 +265,7 @@ class Database(CloudFormationModel):
         )
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get("tags", [])
+        self.deletion_protection = kwargs.get("deletion_protection", False)
 
     @property
     def db_instance_arn(self):
@@ -425,6 +427,7 @@ class Database(CloudFormationModel):
                 </Tag>
               {%- endfor -%}
               </TagList>
+              <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
             </DBInstance>"""
         )
         return template.render(database=self)
@@ -1120,6 +1123,10 @@ class RDS2Backend(BaseBackend):
 
     def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
+            if self.databases[db_instance_identifier].deletion_protection:
+                raise InvalidParameterValue(
+                    "Can't delete Instance with protection enabled"
+                )
             if db_snapshot_name:
                 self.create_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
@@ -1433,7 +1440,13 @@ class RDS2Backend(BaseBackend):
         return self.clusters.values()
 
     def delete_db_cluster(self, cluster_identifier):
-        return self.clusters.pop(cluster_identifier)
+        if cluster_identifier in self.clusters:
+            if self.clusters[cluster_identifier].deletion_protection:
+                raise InvalidParameterValue(
+                    "Can't delete Cluster with protection enabled"
+                )
+            return self.clusters.pop(cluster_identifier)
+        raise DBClusterNotFoundError(cluster_identifier)
 
     def start_db_cluster(self, cluster_identifier):
         if cluster_identifier not in self.clusters:
