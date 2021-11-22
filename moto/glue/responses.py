@@ -366,8 +366,22 @@ class GlueResponse(BaseResponse):
         max_results = self._get_int_param("MaxResults")
         tags = self._get_param("Tags")
         job_names, next_token = self.glue_backend.list_jobs(
-            next_token=next_token, max_results=max_results, tags=tags,
+            next_token=next_token, max_results=max_results
         )
+        filtered_jobs = self.filter_jobs_by_tags(job_names, tags)
         return json.dumps(
-            dict(JobNames=[job.as_dict() for job in job_names], NextToken=next_token)
+            dict(JobNames=[job.as_dict() for job in filtered_jobs], NextToken=next_token)
         )
+
+    def filter_jobs_by_tags(self, jobs, tags):
+        if not tags:
+            return [job for job in jobs]
+        return [job for job in jobs if self.is_tags_match(job.tags, tags)]
+
+    @staticmethod
+    def is_tags_match(job_tags, tags):
+        mutual_keys = set(job_tags).intersection(tags)
+        for key in mutual_keys:
+            if job_tags[key] == tags[key]:
+                return True
+        return False

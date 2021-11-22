@@ -48,7 +48,6 @@ def test_list_jobs_with_max_results():
         create_test_job(client)
     response = client.list_jobs(MaxResults=2)
     response["JobNames"].should.have.length_of(2)
-    response["NextToken"].should.equal(2)
 
 
 @mock_glue
@@ -56,8 +55,9 @@ def test_list_jobs_from_next_token():
     client = create_glue_client()
     for _ in range(10):
         create_test_job(client)
-    response = client.list_jobs(NextToken="7")
-    response["JobNames"].should.have.length_of(3)
+    first_response = client.list_jobs(MaxResults=3)
+    response = client.list_jobs(NextToken=first_response["NextToken"])
+    response["JobNames"].should.have.length_of(7)
 
 
 @mock_glue
@@ -67,7 +67,6 @@ def test_list_jobs_with_max_results_greater_than_actual_results():
         create_test_job(client)
     response = client.list_jobs(MaxResults=10)
     response["JobNames"].should.have.length_of(4)
-    response["NextToken"].should.equal(4)
 
 
 @mock_glue
