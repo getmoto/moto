@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>51% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -113,10 +113,10 @@
 - [ ] import_documentation_parts
 - [ ] import_rest_api
 - [ ] put_gateway_response
-- [ ] put_integration
-- [ ] put_integration_response
-- [ ] put_method
-- [ ] put_method_response
+- [X] put_integration
+- [X] put_integration_response
+- [X] put_method
+- [X] put_method_response
 - [ ] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
@@ -3686,13 +3686,13 @@
 - [ ] create_firewall_rule_group
 - [X] create_resolver_endpoint
 - [ ] create_resolver_query_log_config
-- [ ] create_resolver_rule
+- [X] create_resolver_rule
 - [ ] delete_firewall_domain_list
 - [ ] delete_firewall_rule
 - [ ] delete_firewall_rule_group
 - [X] delete_resolver_endpoint
 - [ ] delete_resolver_query_log_config
-- [ ] delete_resolver_rule
+- [X] delete_resolver_rule
 - [ ] disassociate_firewall_rule_group
 - [ ] disassociate_resolver_endpoint_ip_address
 - [ ] disassociate_resolver_query_log_config
@@ -3708,7 +3708,7 @@
 - [ ] get_resolver_query_log_config
 - [ ] get_resolver_query_log_config_association
 - [ ] get_resolver_query_log_config_policy
-- [ ] get_resolver_rule
+- [X] get_resolver_rule
 - [X] get_resolver_rule_association
 - [ ] get_resolver_rule_policy
 - [ ] import_firewall_domains
@@ -3725,7 +3725,7 @@
 - [ ] list_resolver_query_log_config_associations
 - [ ] list_resolver_query_log_configs
 - [X] list_resolver_rule_associations
-- [ ] list_resolver_rules
+- [X] list_resolver_rules
 - [X] list_tags_for_resource
 - [ ] put_firewall_rule_group_policy
 - [ ] put_resolver_query_log_config_policy

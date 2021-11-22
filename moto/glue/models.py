@@ -16,9 +16,19 @@ from .exceptions import (
     PartitionNotFoundException,
     VersionNotFoundException,
 )
+from ..utilities.paginator import paginate
 
 
 class GlueBackend(BaseBackend):
+    PAGINATION_MODEL = {
+        "list_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "page_ending_range_keys": ["name"],
+        },
+    }
+
     def __init__(self):
         self.databases = OrderedDict()
         self.crawlers = OrderedDict()
@@ -182,6 +192,10 @@ class GlueBackend(BaseBackend):
             worker_type,
         )
         return name
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_jobs(self):
+        return [job for _, job in self.jobs.items()]
 
 
 class FakeDatabase(BaseModel):
@@ -447,6 +461,9 @@ class FakeJob:
         self.worker_type = worker_type
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
+
+    def get_name(self):
+        return self.name
 
 
 glue_backend = GlueBackend()

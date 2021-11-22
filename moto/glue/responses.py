@@ -360,3 +360,31 @@ class GlueResponse(BaseResponse):
             worker_type=worker_type,
         )
         return json.dumps(dict(Name=name))
+
+    def list_jobs(self):
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        tags = self._get_param("Tags")
+        jobs, next_token = self.glue_backend.list_jobs(
+            next_token=next_token, max_results=max_results
+        )
+        filtered_job_names = self.filter_jobs_by_tags(jobs, tags)
+        return json.dumps(
+            dict(
+                JobNames=[job_name for job_name in filtered_job_names],
+                NextToken=next_token,
+            )
+        )
+
+    def filter_jobs_by_tags(self, jobs, tags):
+        if not tags:
+            return [job.get_name() for job in jobs]
+        return [job.get_name() for job in jobs if self.is_tags_match(job.tags, tags)]
+
+    @staticmethod
+    def is_tags_match(job_tags, tags):
+        mutual_keys = set(job_tags).intersection(tags)
+        for key in mutual_keys:
+            if job_tags[key] == tags[key]:
+                return True
+        return False
