@@ -370,7 +370,9 @@ class GlueResponse(BaseResponse):
         )
         filtered_jobs = self.filter_jobs_by_tags(job_names, tags)
         return json.dumps(
-            dict(JobNames=[job.as_dict() for job in filtered_jobs], NextToken=next_token)
+            dict(
+                JobNames=[job.as_dict() for job in filtered_jobs], NextToken=next_token
+            )
         )
 
     def filter_jobs_by_tags(self, jobs, tags):
