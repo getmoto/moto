@@ -2,13 +2,11 @@ import json
 
 import boto3
 from freezegun import freeze_time
-import requests
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import ACCOUNT_ID
-from moto.core.models import responses_mock
 import pytest
 
 
@@ -1809,50 +1807,6 @@ def test_get_model_with_invalid_name():
         client.get_model(restApiId=rest_api_id, modelName="fake")
     ex.value.response["Error"]["Message"].should.equal("Invalid Model Name specified")
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-
-
-@mock_apigateway
-def test_http_proxying_integration():
-    responses_mock.add(
-        responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
-    )
-
-    region_name = "us-west-2"
-    client = boto3.client("apigateway", region_name=region_name)
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
-    )
-
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-
-    response = client.put_integration(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        type="HTTP",
-        uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="GET",
-    )
-
-    stage_name = "staging"
-    client.create_deployment(restApiId=api_id, stageName=stage_name)
-
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
-    )
-
-    if not settings.TEST_SERVER_MODE:
-        requests.get(deploy_url).content.should.equal(b"a fake response")
 
 
 @mock_apigateway
