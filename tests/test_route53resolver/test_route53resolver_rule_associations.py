@@ -205,3 +205,52 @@ def test_route53resolver_bad_disassociate_resolver_rule():
         f"Resolver Rule Association between Resolver Rule "
         f"'{test_rule_id}' and VPC '{test_vpc_id}' does not exist"
     ) in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_get_resolver_rule_association():
+    """Test good get_resolver_rule_association API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Create a good association for testing purposes.
+    created_association = create_test_rule_association(client, ec2_client)
+
+    # Now get the resolver rule association and verify the response.
+    response = client.get_resolver_rule_association(
+        ResolverRuleAssociationId=created_association["Id"]
+    )
+    association = response["ResolverRuleAssociation"]
+    assert association["Id"] == created_association["Id"]
+    assert association["ResolverRuleId"] == created_association["ResolverRuleId"]
+    assert association["Name"] == created_association["Name"]
+    assert association["VPCId"] == created_association["VPCId"]
+    assert association["Status"] == created_association["Status"]
+    assert association["StatusMessage"] == created_association["StatusMessage"]
+
+
+@mock_route53resolver
+def test_route53resolver_bad_get_resolver_rule_association():
+    """Test get_resolver_rule_association API calls with a bad ID."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Use a resolver rule association id that is too long.
+    long_id = "0123456789" * 6 + "xxxxx"
+    with pytest.raises(ClientError) as exc:
+        client.get_resolver_rule_association(ResolverRuleAssociationId=long_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        f"Value '{long_id}' at 'resolverRuleAssociationId' failed to satisfy "
+        f"constraint: Member must have length less than or equal to 64"
+    ) in err["Message"]
+
+    # Get a non-existent resolver rule association.
+    with pytest.raises(ClientError) as exc:
+        client.get_resolver_rule_association(ResolverRuleAssociationId=random_num)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"ResolverRuleAssociation '{random_num}' does not Exist" in err["Message"]

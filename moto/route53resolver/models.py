@@ -643,6 +643,15 @@ class Route53ResolverBackend(BaseBackend):
         self._validate_resolver_rule_id(resolver_rule_id)
         return self.resolver_rules[resolver_rule_id]
 
+    def get_resolver_rule_association(self, resolver_rule_association_id):
+        """Return info for specified resolver rule association."""
+        validate_args([("resolverRuleAssociationId", resolver_rule_association_id)])
+        if resolver_rule_association_id not in self.resolver_rule_associations:
+            raise ResourceNotFoundException(
+                f"ResolverRuleAssociation '{resolver_rule_association_id}' does not Exist"
+            )
+        return self.resolver_rule_associations[resolver_rule_association_id]
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoint_ip_addresses(
         self, resolver_endpoint_id, next_token=None, max_results=None,
