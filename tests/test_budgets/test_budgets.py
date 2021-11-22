@@ -10,7 +10,7 @@ from moto.core import ACCOUNT_ID
 
 @mock_budgets
 def test_create_and_describe_budget_minimal_params():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     resp = client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -65,7 +65,7 @@ def test_create_and_describe_budget_minimal_params():
 
 @mock_budgets
 def test_create_existing_budget():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -95,7 +95,7 @@ def test_create_existing_budget():
 
 @mock_budgets
 def test_create_budget_without_limit_param():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
         client.create_budget(
             AccountId=ACCOUNT_ID,
@@ -110,7 +110,7 @@ def test_create_budget_without_limit_param():
 
 @mock_budgets
 def test_describe_unknown_budget():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
         client.describe_budget(AccountId=ACCOUNT_ID, BudgetName="unknown")
     err = exc.value.response["Error"]
@@ -122,14 +122,14 @@ def test_describe_unknown_budget():
 
 @mock_budgets
 def test_describe_no_budgets():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     resp = client.describe_budgets(AccountId=ACCOUNT_ID)
     resp.should.have.key("Budgets").equals([])
 
 
 @mock_budgets
 def test_create_and_describe_all_budgets():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -146,7 +146,7 @@ def test_create_and_describe_all_budgets():
 
 @mock_budgets
 def test_delete_budget():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -166,7 +166,7 @@ def test_delete_budget():
 
 @mock_budgets
 def test_delete_unknown_budget():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
         client.delete_budget(AccountId=ACCOUNT_ID, BudgetName="unknown")
     err = exc.value.response["Error"]

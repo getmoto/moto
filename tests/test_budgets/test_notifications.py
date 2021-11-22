@@ -9,7 +9,7 @@ from moto.core import ACCOUNT_ID
 
 @mock_budgets
 def test_create_and_describe_notification():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -48,7 +48,7 @@ def test_create_and_describe_notification():
 
 @mock_budgets
 def test_create_notification():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -107,7 +107,7 @@ def test_create_notification():
 
 @mock_budgets
 def test_create_notification_unknown_budget():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
 
     with pytest.raises(ClientError) as exc:
         client.create_notification(
@@ -131,7 +131,7 @@ def test_create_notification_unknown_budget():
 
 @mock_budgets
 def test_delete_notification():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
         AccountId=ACCOUNT_ID,
         Budget={
@@ -176,7 +176,7 @@ def test_delete_notification():
 
 @mock_budgets
 def test_delete_notification_unknown_budget():
-    client = boto3.client("budgets")
+    client = boto3.client("budgets", region_name="us-east-1")
 
     with pytest.raises(ClientError) as exc:
         client.delete_notification(
