@@ -51,6 +51,7 @@ class RDS2Response(BaseResponse):
                 "VpcSecurityGroupIds.VpcSecurityGroupId"
             ),
             "tags": list(),
+            "deletion_protection": self._get_bool_param("DeletionProtection"),
         }
         args["tags"] = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         return args
@@ -93,6 +94,7 @@ class RDS2Response(BaseResponse):
             ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
+            "deletion_protection": self._get_bool_param("DeletionProtection"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
             "engine_mode": self._get_param("EngineMode"),
