@@ -1133,6 +1133,7 @@ class APIGatewayBackend(BaseBackend):
      - TemplateMapping is not yet supported for requests/responses
      - This only works when using the decorators, not in ServerMode
     """
+
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
         self.apis = {}
