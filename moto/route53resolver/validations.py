@@ -28,6 +28,7 @@ def validate_args(validators):
         "ruleType": validate_rule_type,
         "securityGroupIds": validate_security_group_ids,
         "targetIps.port": validate_target_port,
+        "vPCId": validate_vpc_id,
     }
 
     err_msgs = []
@@ -132,4 +133,11 @@ def validate_target_port(value):
     """Raise exception if target port fails to match length constraint."""
     if value and value["Port"] > 65535:
         return "have value less than or equal to 65535"
+    return ""
+
+
+def validate_vpc_id(value):
+    """Raise exception if VPC id has invalid length."""
+    if len(value) > 64:
+        return "have length less than or equal to 64"
     return ""
