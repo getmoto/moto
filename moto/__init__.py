@@ -172,7 +172,7 @@ mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_sdb = lazy_load(".sdb", "mock_sdb", boto3_name="sdb")
 
 
-class mock_all(ContextDecorator):
+class MockAll(ContextDecorator):
     def __init__(self):
         self.mocks = []
         for mock in dir(sys.modules["moto"]):
@@ -190,6 +190,9 @@ class mock_all(ContextDecorator):
     def __exit__(self, *exc):
         for mock in self.mocks:
             mock.stop()
+
+
+mock_all = MockAll
 
 
 # import logging
