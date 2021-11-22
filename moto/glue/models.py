@@ -462,30 +462,8 @@ class FakeJob:
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
 
-    def as_dict(self):
-        return dict(
-            Name=self.name,
-            Description=self.description,
-            LogUri=self.log_uri,
-            Role=self.role,
-            ExecutionProperty=self.execution_property,
-            Command=self.command,
-            DefaultArguments=self.default_arguments,
-            NonOverridableArguments=self.non_overridable_arguments,
-            Connections=self.connections,
-            MaxRetries=self.max_retries,
-            AllocatedCapacity=self.allocated_capacity,
-            Timeout=self.timeout,
-            MaxCapacity=self.max_capacity,
-            SecurityConfiguration=self.security_configuration,
-            Tags=self.tags,
-            NotificationProperty=self.notification_property,
-            GlueVersion=self.glue_version,
-            NumberOfWorkers=self.number_of_workers,
-            WorkerType=self.worker_type,
-            created_on=str(self.created_on),
-            last_modified_on=str(self.last_modified_on),
-        )
+    def get_name(self):
+        return self.name
 
 
 glue_backend = GlueBackend()
