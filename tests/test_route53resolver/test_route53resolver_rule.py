@@ -12,7 +12,7 @@ from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
 
-from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint
+from .test_route53resolver_endpoint import create_test_endpoint
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
