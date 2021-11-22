@@ -1130,6 +1130,7 @@ class APIGatewayBackend(BaseBackend):
      - Other types (AWS_PROXY, MOCK, etc) are ignored
      - Other services are not yet supported
      - The BasePath of an API is ignored
+     - TemplateMapping is not yet supported for requests/responses
      - This only works when using the decorators, not in ServerMode
     """
     def __init__(self, region_name):
