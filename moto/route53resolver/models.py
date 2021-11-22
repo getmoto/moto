@@ -1,7 +1,7 @@
 """Route53ResolverBackend class with methods for supported APIs."""
 from collections import defaultdict
 from datetime import datetime, timezone
-from ipaddress import ip_address, ip_network
+from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
 from boto3 import Session
@@ -27,6 +27,83 @@ from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 CAMEL_TO_SNAKE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
+
+
+class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
+    """Representation of a fake Route53 Resolver Rule."""
+
+    MAX_TAGS_PER_RESOLVER_RULE = 200
+    MAX_RULES_PER_REGION = 1000
+
+    # There are two styles of filter names and either will be transformed
+    # into lowercase snake.
+    FILTER_NAMES = [
+        "creator_request_id",
+        "domain_name",
+        "name",
+        "resolver_endpoint_id",
+        "status",
+        "rule_type",  # actual filter is "Type"
+    ]
+
+    def __init__(
+        self,
+        region,
+        rule_id,
+        creator_request_id,
+        rule_type,
+        domain_name,
+        target_ips=None,
+        resolver_endpoint_id=None,
+        name=None,
+    ):  # pylint: disable=too-many-arguments
+        self.region = region
+        self.creator_request_id = creator_request_id
+        self.name = name
+        self.rule_id = rule_id
+        self.rule_type = rule_type
+        self.domain_name = domain_name + "."
+        self.target_ips = target_ips
+        self.resolver_endpoint_id = resolver_endpoint_id
+
+        # Constructed members.
+        self.id = rule_id  # pylint: disable=invalid-name
+        self.status = "COMPLETE"
+
+        # The status message should contain a trace Id which is the value
+        # of X-Amzn-Trace-Id.  We don't have that info, so a random number
+        # of similar format and length will be used.
+        self.status_message = (
+            f"[Trace id: 1-{get_random_hex(8)}-{get_random_hex(24)}] "
+            f"Successfully created Resolver Rule"
+        )
+        self.share_status = "SHARED_WITH_ME"
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+        self.modification_time = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def arn(self):
+        """Return ARN for this resolver rule."""
+        return f"arn:aws:route53resolver:{self.region}:{ACCOUNT_ID}:resolver-rule/{self.id}"
+
+    def description(self):
+        """Return a dictionary of relevant info for this resolver rule."""
+        return {
+            "Id": self.id,
+            "CreatorRequestId": self.creator_request_id,
+            "Arn": self.arn,
+            "DomainName": self.domain_name,
+            "Status": self.status,
+            "StatusMessage": self.status_message,
+            "RuleType": self.rule_type,
+            "Name": self.name,
+            "TargetIps": self.target_ips,
+            "ResolverEndpointId": self.resolver_endpoint_id,
+            "OwnerId": ACCOUNT_ID,
+            "ShareStatus": self.share_status,
+            "CreationTime": self.creation_time,
+            "ModificationTime": self.modification_time,
+        }
 
 
 class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attributes
@@ -79,7 +156,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         # of similar format and length will be used.
         self.status_message = (
             f"[Trace id: 1-{get_random_hex(8)}-{get_random_hex(24)}] "
-            f"Creating the Resolver Endpoint"
+            f"Successfully created Resolver Endpoint"
         )
         self.creation_time = datetime.now(timezone.utc).isoformat()
         self.modification_time = datetime.now(timezone.utc).isoformat()
@@ -174,6 +251,7 @@ class Route53ResolverBackend(BaseBackend):
     def __init__(self, region_name=None):
         self.region_name = region_name
         self.resolver_endpoints = {}  # Key is self-generated ID (endpoint_id)
+        self.resolver_rules = {}  # Key is self-generated ID (rule_id)
         self.tagger = TaggingService()
 
     def reset(self):
@@ -310,6 +388,100 @@ class Route53ResolverBackend(BaseBackend):
         self.tagger.tag_resource(resolver_endpoint.arn, tags or [])
         return resolver_endpoint
 
+    def create_resolver_rule(
+        self,
+        region,
+        creator_request_id,
+        name,
+        rule_type,
+        domain_name,
+        target_ips,
+        resolver_endpoint_id,
+        tags,
+    ):  # pylint: disable=too-many-arguments
+        """Return description for a newly created resolver rule."""
+        validate_args(
+            [
+                ("creatorRequestId", creator_request_id),
+                ("ruleType", rule_type),
+                ("domainName", domain_name),
+                ("name", name),
+                *[("targetIps.port", x) for x in target_ips],
+                ("resolverEndpointId", resolver_endpoint_id),
+            ]
+        )
+        errmsg = self.tagger.validate_tags(
+            tags or [], limit=ResolverRule.MAX_TAGS_PER_RESOLVER_RULE,
+        )
+        if errmsg:
+            raise TagValidationException(errmsg)
+
+        rules = [x for x in self.resolver_rules.values() if x.region == region]
+        if len(rules) > ResolverRule.MAX_RULES_PER_REGION:
+            # Did not verify that this is the actual error message.
+            raise LimitExceededException(
+                f"Account '{ACCOUNT_ID}' has exceeded 'max-rules'"
+            )
+
+        # Per the AWS documentation and as seen with the AWS console, target
+        # ips are only relevant when the value of Rule is FORWARD.  However,
+        # boto3 ignores this condition and so shall we.
+
+        for ip_addr in [x["Ip"] for x in target_ips]:
+            try:
+                # boto3 fails with an InternalServiceException if IPv6
+                # addresses are used, which isn't helpful.
+                if not isinstance(ip_address(ip_addr), IPv4Address):
+                    raise InvalidParameterException(
+                        f"Only IPv4 addresses may be used: '{ip_addr}'"
+                    )
+            except ValueError as exc:
+                raise InvalidParameterException(
+                    f"Invalid IP address: '{ip_addr}'"
+                ) from exc
+
+        # The boto3 documentation indicates that ResolverEndpoint is
+        # optional, as does the AWS documention.  But if resolver_endpoint_id
+        # is set to None or an empty string, it results in boto3 raising
+        # a ParamValidationError either regarding the type or len of string.
+        if resolver_endpoint_id:
+            if resolver_endpoint_id not in [
+                x.id for x in self.resolver_endpoints.values()
+            ]:
+                raise ResourceNotFoundException(
+                    f"Resolver endpoint with ID '{resolver_endpoint_id}' does not exist."
+                )
+
+            if rule_type == "SYSTEM":
+                raise InvalidRequestException(
+                    "Cannot specify resolver endpoint ID and target IP "
+                    "for SYSTEM type resolver rule"
+                )
+
+        if creator_request_id in [
+            x.creator_request_id for x in self.resolver_rules.values()
+        ]:
+            raise ResourceExistsException(
+                f"Resolver rule with creator request ID "
+                f"'{creator_request_id}' already exists"
+            )
+
+        rule_id = f"rslvr-rr-{get_random_hex(17)}"
+        resolver_rule = ResolverRule(
+            region,
+            rule_id,
+            creator_request_id,
+            rule_type,
+            domain_name,
+            target_ips,
+            resolver_endpoint_id,
+            name,
+        )
+
+        self.resolver_rules[rule_id] = resolver_rule
+        self.tagger.tag_resource(resolver_rule.arn, tags or [])
+        return resolver_rule
+
     def _validate_resolver_endpoint_id(self, resolver_endpoint_id):
         """Raise an exception if the id is invalid or unknown."""
         validate_args([("resolverEndpointId", resolver_endpoint_id)])
@@ -325,14 +497,38 @@ class Route53ResolverBackend(BaseBackend):
         resolver_endpoint = self.resolver_endpoints.pop(resolver_endpoint_id)
         resolver_endpoint.status = "DELETING"
         resolver_endpoint.status_message = resolver_endpoint.status_message.replace(
-            "Creating", "Deleting"
+            "Successfully created", "Deleting"
         )
         return resolver_endpoint
+
+    def _validate_resolver_rule_id(self, resolver_rule_id):
+        """Raise an exception if the id is invalid or unknown."""
+        validate_args([("resolverRuleId", resolver_rule_id)])
+        if resolver_rule_id not in self.resolver_rules:
+            raise ResourceNotFoundException(
+                f"Resolver rule with ID '{resolver_rule_id}' does not exist"
+            )
+
+    def delete_resolver_rule(self, resolver_rule_id):
+        """Delete a resolver rule."""
+        self._validate_resolver_rule_id(resolver_rule_id)
+        self.tagger.delete_all_tags_for_resource(resolver_rule_id)
+        resolver_rule = self.resolver_rules.pop(resolver_rule_id)
+        resolver_rule.status = "DELETING"
+        resolver_rule.status_message = resolver_rule.status_message.replace(
+            "Successfully created", "Deleting"
+        )
+        return resolver_rule
 
     def get_resolver_endpoint(self, resolver_endpoint_id):
         """Return info for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         return self.resolver_endpoints[resolver_endpoint_id]
+
+    def get_resolver_rule(self, resolver_rule_id):
+        """Return info for specified resolver rule."""
+        self._validate_resolver_rule_id(resolver_rule_id)
+        return self.resolver_rules[resolver_rule_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoint_ip_addresses(
@@ -358,6 +554,8 @@ class Route53ResolverBackend(BaseBackend):
                     filter_name = "host_vpc_id"
                 elif filter_name == "HostVpcId":
                     filter_name = "WRONG"
+                elif filter_name in ["Type", "TYPE"]:
+                    filter_name = "rule_type"
                 elif not filter_name.isupper():
                     filter_name = CAMEL_TO_SNAKE_PATTERN.sub("_", filter_name)
             rr_filter["Field"] = filter_name.lower()
@@ -410,21 +608,41 @@ class Route53ResolverBackend(BaseBackend):
         return endpoints
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags_for_resource(
-        self, resource_arn, next_token=None, max_results=None,
+    def list_resolver_rules(
+        self, filters, next_token=None, max_results=None,
     ):  # pylint: disable=unused-argument
-        """List all tags for the given resource."""
-        self._matched_arn(resource_arn)
-        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
+        """List all resolver rules, using filters if specified."""
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverRule.FILTER_NAMES)
+
+        rules = []
+        for rule in sorted(self.resolver_rules.values(), key=lambda x: x.name):
+            if self._matches_all_filters(rule, filters):
+                rules.append(rule)
+        return rules
 
     def _matched_arn(self, resource_arn):
         """Given ARN, raise exception if there is no corresponding resource."""
         for resolver_endpoint in self.resolver_endpoints.values():
             if resolver_endpoint.arn == resource_arn:
                 return
+        for resolver_rule in self.resolver_rules.values():
+            if resolver_rule.arn == resource_arn:
+                return
         raise ResourceNotFoundException(
             f"Resolver endpoint with ID '{resource_arn}' does not exist"
         )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(
+        self, resource_arn, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List all tags for the given resource."""
+        self._matched_arn(resource_arn)
+        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 
     def tag_resource(self, resource_arn, tags):
         """Add or overwrite one or more tags for specified resource."""

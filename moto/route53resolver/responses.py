@@ -35,6 +35,27 @@ class Route53ResolverResponse(BaseResponse):
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
+    def create_resolver_rule(self):
+        """Specify which Resolver enpoint the queries will pass through."""
+        creator_request_id = self._get_param("CreatorRequestId")
+        name = self._get_param("Name")
+        rule_type = self._get_param("RuleType")
+        domain_name = self._get_param("DomainName")
+        target_ips = self._get_param("TargetIps", [])
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+        tags = self._get_param("Tags", [])
+        resolver_rule = self.route53resolver_backend.create_resolver_rule(
+            region=self.region,
+            creator_request_id=creator_request_id,
+            name=name,
+            rule_type=rule_type,
+            domain_name=domain_name,
+            target_ips=target_ips,
+            resolver_endpoint_id=resolver_endpoint_id,
+            tags=tags,
+        )
+        return json.dumps({"ResolverRule": resolver_rule.description()})
+
     def delete_resolver_endpoint(self):
         """Delete a Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
@@ -43,6 +64,14 @@ class Route53ResolverResponse(BaseResponse):
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
 
+    def delete_resolver_rule(self):
+        """Delete a Resolver rule."""
+        resolver_rule_id = self._get_param("ResolverRuleId")
+        resolver_rule = self.route53resolver_backend.delete_resolver_rule(
+            resolver_rule_id=resolver_rule_id,
+        )
+        return json.dumps({"ResolverRule": resolver_rule.description()})
+
     def get_resolver_endpoint(self):
         """Return info about a specific Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
@@ -50,6 +79,14 @@ class Route53ResolverResponse(BaseResponse):
             resolver_endpoint_id=resolver_endpoint_id,
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
+    def get_resolver_rule(self):
+        """Return info about a specific Resolver rule."""
+        resolver_rule_id = self._get_param("ResolverRuleId")
+        resolver_rule = self.route53resolver_backend.get_resolver_rule(
+            resolver_rule_id=resolver_rule_id,
+        )
+        return json.dumps({"ResolverRule": resolver_rule.description()})
 
     def list_resolver_endpoint_ip_addresses(self):
         """Returns list of IP addresses for specified Resolver endpoint."""
@@ -95,6 +132,27 @@ class Route53ResolverResponse(BaseResponse):
 
         response = {
             "ResolverEndpoints": [x.description() for x in endpoints],
+            "MaxResults": max_results,
+        }
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
+
+    def list_resolver_rules(self):
+        """Returns list of all Resolver rules, filtered if specified."""
+        filters = self._get_param("Filters")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 10)
+        validate_args([("maxResults", max_results)])
+        try:
+            (rules, next_token) = self.route53resolver_backend.list_resolver_rules(
+                filters, next_token=next_token, max_results=max_results
+            )
+        except InvalidToken as exc:
+            raise InvalidNextTokenException() from exc
+
+        response = {
+            "ResolverRules": [x.description() for x in rules],
             "MaxResults": max_results,
         }
         if next_token:

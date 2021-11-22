@@ -18,12 +18,16 @@ def validate_args(validators):
     validation_map = {
         "creatorRequestId": validate_creator_request_id,
         "direction": validate_direction,
-        "resolverEndpointId": validate_endpoint_id,
+        "domainName": validate_domain_name,
         "ipAddresses": validate_ip_addresses,
+        "ipAddresses.subnetId": validate_subnets,
         "maxResults": validate_max_results,
         "name": validate_name,
+        "resolverEndpointId": validate_endpoint_id,
+        "resolverRuleId": validate_rule_id,
+        "ruleType": validate_rule_type,
         "securityGroupIds": validate_security_group_ids,
-        "ipAddresses.subnetId": validate_subnets,
+        "targetIps.port": validate_target_port,
     }
 
     err_msgs = []
@@ -38,7 +42,7 @@ def validate_args(validators):
 
 
 def validate_creator_request_id(value):
-    """Raise exception if the creator_request id has invalid length."""
+    """Raise exception if the creator_request_id has invalid length."""
     if value and len(value) > 255:
         return "have length less than or equal to 255"
     return ""
@@ -51,9 +55,16 @@ def validate_direction(value):
     return ""
 
 
+def validate_domain_name(value):
+    """Raise exception if the domain_name has invalid length."""
+    if len(value) > 256:
+        return "have length less than or equal to 256"
+    return ""
+
+
 def validate_endpoint_id(value):
     """Raise exception if resolver endpoint id has invalid length."""
-    if len(value) > 64:
+    if value and len(value) > 64:
         return "have length less than or equal to 64"
     return ""
 
@@ -83,6 +94,20 @@ def validate_name(value):
     return ""
 
 
+def validate_rule_id(value):
+    """Raise exception if resolver rule id has invalid length."""
+    if value and len(value) > 64:
+        return "have length less than or equal to 64"
+    return ""
+
+
+def validate_rule_type(value):
+    """Raise exception if rule_type not one of the allowed values."""
+    if value and value not in ["FORWARD", "SYSTEM", "RECURSIVE"]:
+        return "satisfy enum value set: [FORWARD, SYSTEM, RECURSIVE]"
+    return ""
+
+
 def validate_security_group_ids(value):
     """Raise exception if IPs fail to match length constraint."""
     # Too many security group IDs is an InvalidParameterException.
@@ -100,4 +125,11 @@ def validate_subnets(value):
     for subnet_id in [x["SubnetId"] for x in value]:
         if len(subnet_id) > 32:
             return "have length less than or equal to 32"
+    return ""
+
+
+def validate_target_port(value):
+    """Raise exception if target port fails to match length constraint."""
+    if value and value["Port"] > 65535:
+        return "have value less than or equal to 65535"
     return ""
