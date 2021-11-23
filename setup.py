@@ -43,10 +43,7 @@ install_requires = [
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
-_dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
-_dep_python_jose_ecdsa_pin = (
-    "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
-)
+_dep_python_jose = "python-jose[cryptography]>=3.3.0,<4.0.0"
 _dep_dataclasses = "dataclasses; python_version < '3.7'"
 _dep_docker = "docker>=2.5.1"
 _dep_jsondiff = "jsondiff>=1.1.2"
@@ -59,7 +56,6 @@ _setuptools = "setuptools"
 all_extra_deps = [
     _dep_PyYAML,
     _dep_python_jose,
-    _dep_python_jose_ecdsa_pin,
     _dep_docker,
     _dep_jsondiff,
     _dep_aws_xray_sdk,
@@ -79,11 +75,11 @@ for service_name in [
     extras_per_service[service_name] = []
 extras_per_service.update(
     {
-        "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "apigateway": [_dep_python_jose],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],
         "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
-        "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "cognitoidp": [_dep_python_jose],
         "ec2": [_dep_sshpubkeys],
         "iotdata": [_dep_jsondiff],
         "s3": [_dep_PyYAML],
