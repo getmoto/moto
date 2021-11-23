@@ -17,6 +17,7 @@ from moto.route53resolver.exceptions import (
     InvalidRequestException,
     LimitExceededException,
     ResourceExistsException,
+    ResourceInUseException,
     ResourceNotFoundException,
     TagValidationException,
 )
@@ -576,6 +577,20 @@ class Route53ResolverBackend(BaseBackend):
     def delete_resolver_endpoint(self, resolver_endpoint_id):
         """Delete a resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
+
+        # Can't delete an endpoint if there are rules associated with it.
+        rules = [
+            x.id
+            for x in self.resolver_rules.values()
+            if x.resolver_endpoint_id == resolver_endpoint_id
+        ]
+        if rules:
+            raise InvalidRequestException(
+                f"Cannot delete resolver endpoint unless its related resolver "
+                f"rules are deleted.  The following rules still exist for "
+                f"this resolver endpoint:  {','.join(rules)}"
+            )
+
         self.tagger.delete_all_tags_for_resource(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints.pop(resolver_endpoint_id)
         resolver_endpoint.status = "DELETING"
@@ -595,6 +610,19 @@ class Route53ResolverBackend(BaseBackend):
     def delete_resolver_rule(self, resolver_rule_id):
         """Delete a resolver rule."""
         self._validate_resolver_rule_id(resolver_rule_id)
+
+        # Can't delete an rule unless VPC's are disassociated.
+        associations = [
+            x.id
+            for x in self.resolver_rule_associations.values()
+            if x.resolver_rule_id == resolver_rule_id
+        ]
+        if associations:
+            raise ResourceInUseException(
+                "Please disassociate this resolver rule from VPC first "
+                "before deleting"
+            )
+
         self.tagger.delete_all_tags_for_resource(resolver_rule_id)
         resolver_rule = self.resolver_rules.pop(resolver_rule_id)
         resolver_rule.status = "DELETING"

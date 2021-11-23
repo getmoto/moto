@@ -11,7 +11,7 @@ from moto.core import ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.ec2 import mock_ec2
 
-from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint
+from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint, create_vpc
 
 
 def create_test_rule(client, name=None, tags=None):
@@ -299,10 +299,12 @@ def test_route53resolver_delete_resolver_rule():
     assert rule["CreationTime"] == created_rule["CreationTime"]
 
 
+@mock_ec2
 @mock_route53resolver
 def test_route53resolver_bad_delete_resolver_rule():
     """Test delete_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     random_num = get_random_hex(10)
 
     # Use a resolver rule id that is too long.
@@ -323,6 +325,18 @@ def test_route53resolver_bad_delete_resolver_rule():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert f"Resolver rule with ID '{random_num}' does not exist" in err["Message"]
+
+    # Verify a rule can't be deleted if VPCs are associated with it.
+    test_rule = create_test_rule(client)
+    vpc_id = create_vpc(ec2_client)
+    client.associate_resolver_rule(ResolverRuleId=test_rule["Id"], VPCId=vpc_id)
+    with pytest.raises(ClientError) as exc:
+        client.delete_resolver_rule(ResolverRuleId=test_rule["Id"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceInUseException"
+    assert (
+        "Please disassociate this resolver rule from VPC first before deleting"
+    ) in err["Message"]
 
 
 @mock_route53resolver
