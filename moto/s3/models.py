@@ -386,10 +386,9 @@ class FakeMultipart(BaseModel):
         return key
 
     def list_parts(self, part_number_marker, max_parts):
-        for part_id in self.partlist:
-            part = self.parts[part_id]
-            if part_number_marker <= part.name < part_number_marker + max_parts:
-                yield part
+        max_marker = part_number_marker + max_parts
+        for part_id in self.partlist[part_number_marker:max_marker]:
+            yield self.parts[part_id]
 
 
 class FakeGrantee(BaseModel):
@@ -1874,7 +1873,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def is_truncated(self, bucket_name, multipart_id, next_part_number_marker):
         bucket = self.get_bucket(bucket_name)
-        return len(bucket.multiparts[multipart_id].parts) >= next_part_number_marker
+        return len(bucket.multiparts[multipart_id].parts) > next_part_number_marker
 
     def create_multipart_upload(
         self, bucket_name, key_name, metadata, storage_type, tags

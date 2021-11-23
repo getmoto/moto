@@ -3,7 +3,7 @@ from moto import mock_s3
 import boto3
 import os
 import pytest
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from .test_s3 import DEFAULT_REGION_NAME
 
@@ -80,3 +80,53 @@ def test_multipart_upload_with_tags():
     response = client.get_object_tagging(Bucket=bucket, Key=key)
     actual = {t["Key"]: t["Value"] for t in response.get("TagSet", [])}
     actual.should.equal({"a": "b"})
+
+
+@mock_s3
+def test_multipart_upload_should_return_part_10000():
+    bucket = "dummybucket"
+    s3_client = boto3.client("s3", "us-east-1")
+
+    key = "test_file"
+    s3_client.create_bucket(Bucket=bucket)
+
+    mpu = s3_client.create_multipart_upload(Bucket=bucket, Key=key)
+    mpu_id = mpu["UploadId"]
+    s3_client.upload_part(
+        Bucket=bucket, Key=key, PartNumber=1, UploadId=mpu_id, Body="data"
+    )
+    s3_client.upload_part(
+        Bucket=bucket, Key=key, PartNumber=2, UploadId=mpu_id, Body="data"
+    )
+    s3_client.upload_part(
+        Bucket=bucket, Key=key, PartNumber=10000, UploadId=mpu_id, Body="data"
+    )
+
+    all_parts = s3_client.list_parts(Bucket=bucket, Key=key, UploadId=mpu_id)["Parts"]
+    part_nrs = [part["PartNumber"] for part in all_parts]
+    part_nrs.should.equal([1, 2, 10000])
+
+
+@mock_s3
+@pytest.mark.parametrize("part_nr", [10001, 10002, 20000])
+def test_s3_multipart_upload_cannot_upload_part_over_10000(part_nr):
+    bucket = "dummy"
+    s3_client = boto3.client("s3", "us-east-1")
+
+    key = "test_file"
+    s3_client.create_bucket(Bucket=bucket)
+
+    mpu = s3_client.create_multipart_upload(Bucket=bucket, Key=key)
+    mpu_id = mpu["UploadId"]
+
+    with pytest.raises(ClientError) as exc:
+        s3_client.upload_part(
+            Bucket=bucket, Key=key, PartNumber=part_nr, UploadId=mpu_id, Body="data"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidArgument")
+    err["Message"].should.equal(
+        "Part number must be an integer between 1 and 10000, inclusive"
+    )
+    err["ArgumentName"].should.equal("partNumber")
+    err["ArgumentValue"].should.equal(f"{part_nr}")

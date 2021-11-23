@@ -3870,41 +3870,53 @@ def test_boto3_multipart_version():
 
 
 @mock_s3
-def test_boto3_multipart_list_parts_invalid_argument():
+@pytest.mark.parametrize(
+    "part_nr,msg,msg2",
+    [
+        (
+            -42,
+            "Argument max-parts must be an integer between 0 and 2147483647",
+            "Argument part-number-marker must be an integer between 0 and 2147483647",
+        ),
+        (
+            2147483647 + 42,
+            "Provided max-parts not an integer or within integer range",
+            "Provided part-number-marker not an integer or within integer range",
+        ),
+    ],
+)
+def test_boto3_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
     s3 = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="mybucket")
+    bucket_name = "mybucketasdfljoqwerasdfas"
+    s3.create_bucket(Bucket=bucket_name)
 
-    mpu = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")
+    mpu = s3.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     mpu_id = mpu["UploadId"]
 
     def get_parts(**kwarg):
-        s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id, **kwarg)
+        s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id, **kwarg)
 
-    for value in [-42, 2147483647 + 42]:
-        with pytest.raises(ClientError) as err:
-            get_parts(**{"MaxParts": value})
-        e = err.value.response["Error"]
-        e["Code"].should.equal("InvalidArgument")
-        e["Message"].should.equal(
-            "Argument max-parts must be an integer between 0 and 2147483647"
-        )
+    with pytest.raises(ClientError) as err:
+        get_parts(**{"MaxParts": part_nr})
+    e = err.value.response["Error"]
+    e["Code"].should.equal("InvalidArgument")
+    e["Message"].should.equal(msg)
 
-        with pytest.raises(ClientError) as err:
-            get_parts(**{"PartNumberMarker": value})
-        e = err.value.response["Error"]
-        e["Code"].should.equal("InvalidArgument")
-        e["Message"].should.equal(
-            "Argument part-number-marker must be an integer between 0 and 2147483647"
-        )
+    with pytest.raises(ClientError) as err:
+        get_parts(**{"PartNumberMarker": part_nr})
+    e = err.value.response["Error"]
+    e["Code"].should.equal("InvalidArgument")
+    e["Message"].should.equal(msg2)
 
 
 @mock_s3
 @reduced_min_part_size
 def test_boto3_multipart_list_parts():
     s3 = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="mybucket")
+    bucket_name = "mybucketasdfljoqwerasdfas"
+    s3.create_bucket(Bucket=bucket_name)
 
-    mpu = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")
+    mpu = s3.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     mpu_id = mpu["UploadId"]
 
     parts = []
@@ -3914,7 +3926,7 @@ def test_boto3_multipart_list_parts():
         # Get uploaded parts using default values
         uploaded_parts = []
 
-        uploaded = s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id,)
+        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id,)
 
         assert uploaded["PartNumberMarker"] == 0
 
@@ -3926,7 +3938,7 @@ def test_boto3_multipart_list_parts():
                 )
             assert uploaded_parts == parts
 
-            next_part_number_marker = uploaded["Parts"][-1]["PartNumber"] + 1
+            next_part_number_marker = uploaded["Parts"][-1]["PartNumber"]
         else:
             next_part_number_marker = 0
 
@@ -3941,7 +3953,7 @@ def test_boto3_multipart_list_parts():
 
         while "there are parts":
             uploaded = s3.list_parts(
-                Bucket="mybucket",
+                Bucket=bucket_name,
                 Key="the-key",
                 UploadId=mpu_id,
                 PartNumberMarker=part_number_marker,
@@ -3979,7 +3991,7 @@ def test_boto3_multipart_list_parts():
         part_size = REDUCED_PART_SIZE + i
         body = b"1" * part_size
         part = s3.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=i,
             UploadId=mpu_id,
@@ -3997,7 +4009,7 @@ def test_boto3_multipart_list_parts():
     get_parts_by_batch(11)
 
     s3.complete_multipart_upload(
-        Bucket="mybucket",
+        Bucket=bucket_name,
         Key="the-key",
         UploadId=mpu_id,
         MultipartUpload={"Parts": parts},
