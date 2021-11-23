@@ -1200,7 +1200,7 @@ def test_describe_classic_link_dns_support_multiple():
 
 
 @mock_ec2
-def test_describe_vpc_end_points():
+def test_describe_vpc_gateway_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
 
@@ -1235,6 +1235,59 @@ def test_describe_vpc_end_points():
     endpoint_by_id["VpcEndpointType"].should.equal("gateway")
     endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
     endpoint_by_id["State"].should.equal("available")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidVpcEndpointId.NotFound")
+
+
+@mock_ec2
+def test_describe_vpc_interface_end_points():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = ec2.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    route_table = ec2.create_route_table(VpcId=vpc["VpcId"])["RouteTable"]
+    vpc_end_point = ec2.create_vpc_endpoint(
+        VpcId=vpc["VpcId"],
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet["SubnetId"]],
+    )["VpcEndpoint"]
+    our_id = vpc_end_point["VpcEndpointId"]
+
+    vpc_end_point["DnsEntries"].should.have.length_of(1)
+    vpc_end_point["DnsEntries"][0].should.have.key("DnsName").should.match(
+        r".*com\.tester\.my-test-endpoint$"
+    )
+    vpc_end_point["DnsEntries"][0].should.have.key("HostedZoneId")
+
+    all_endpoints = retrieve_all_endpoints(ec2)
+    [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
+    our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
+    vpc_end_point["PrivateDnsEnabled"].should.be.true
+    our_endpoint["PrivateDnsEnabled"].should.be.true
+
+    our_endpoint["VpcId"].should.equal(vpc["VpcId"])
+    our_endpoint.should_not.have.key("RouteTableIds")
+
+    our_endpoint["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
+
+    our_endpoint.should.have.key("VpcEndpointType").equal("interface")
+    our_endpoint.should.have.key("ServiceName").equal("com.tester.my-test-endpoint")
+    our_endpoint.should.have.key("State").equal("available")
+
+    endpoint_by_id = ec2.describe_vpc_endpoints(VpcEndpointIds=[our_id])[
+        "VpcEndpoints"
+    ][0]
+    endpoint_by_id["VpcEndpointId"].should.equal(our_id)
+    endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
+    endpoint_by_id.should_not.have.key("RouteTableIds")
+    endpoint_by_id["VpcEndpointType"].should.equal("interface")
+    endpoint_by_id["ServiceName"].should.equal("com.tester.my-test-endpoint")
+    endpoint_by_id["State"].should.equal("available")
+    endpoint_by_id["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])

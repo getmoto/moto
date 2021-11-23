@@ -691,13 +691,16 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </networkInterfaceIdSet>
                 {% endif %}
-                {% if vpc_end_point.dns_entries %}
-                    <dnsEntries>
-                        {% for dns_entry in vpc_end_point.dns_entries %}
-                            <item>{{ dns_entry }}</item>
-                        {% endfor %}
-                    </dnsEntries>
+                <dnsEntrySet>
+                {% if vpc_end_point.dns_entries  %}
+                    {% for entry in vpc_end_point.dns_entries %}
+                    <item>
+                        <hostedZoneId>{{ entry["hosted_zone_id"] }}</hostedZoneId>
+                        <dnsName>{{ entry["dns_name"] }}</dnsName>
+                    </item>
+                    {% endfor %}
                 {% endif %}
+                </dnsEntrySet>
                 {% if vpc_end_point.security_group_ids %}
                     <groupSet>
                         {% for group_id in vpc_end_point.security_group_ids %}
