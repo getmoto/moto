@@ -77,6 +77,15 @@ class ResourceExistsException(JsonRESTError):
         super().__init__("ResourceExistsException", message)
 
 
+class ResourceInUseException(JsonRESTError):
+    """The resource has other resources associated with it."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ResourceInUseException", message)
+
+
 class ResourceNotFoundException(JsonRESTError):
     """The specified resource doesn't exist."""
 

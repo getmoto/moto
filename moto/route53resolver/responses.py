@@ -16,6 +16,21 @@ class Route53ResolverResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return route53resolver_backends[self.region]
 
+    def associate_resolver_rule(self):
+        """Associate a Resolver rule with a VPC."""
+        resolver_rule_id = self._get_param("ResolverRuleId")
+        name = self._get_param("Name")
+        vpc_id = self._get_param("VPCId")
+        resolver_rule_association = self.route53resolver_backend.associate_resolver_rule(
+            region=self.region,
+            resolver_rule_id=resolver_rule_id,
+            name=name,
+            vpc_id=vpc_id,
+        )
+        return json.dumps(
+            {"ResolverRuleAssociation": resolver_rule_association.description()}
+        )
+
     def create_resolver_endpoint(self):
         """Create an inbound or outbound Resolver endpoint."""
         creator_request_id = self._get_param("CreatorRequestId")
@@ -72,6 +87,17 @@ class Route53ResolverResponse(BaseResponse):
         )
         return json.dumps({"ResolverRule": resolver_rule.description()})
 
+    def disassociate_resolver_rule(self):
+        """Remove the association between a Resolver rule and a VPC."""
+        vpc_id = self._get_param("VPCId")
+        resolver_rule_id = self._get_param("ResolverRuleId")
+        resolver_rule_association = self.route53resolver_backend.disassociate_resolver_rule(
+            vpc_id=vpc_id, resolver_rule_id=resolver_rule_id,
+        )
+        return json.dumps(
+            {"ResolverRuleAssociation": resolver_rule_association.description()}
+        )
+
     def get_resolver_endpoint(self):
         """Return info about a specific Resolver endpoint."""
         resolver_endpoint_id = self._get_param("ResolverEndpointId")
@@ -87,6 +113,16 @@ class Route53ResolverResponse(BaseResponse):
             resolver_rule_id=resolver_rule_id,
         )
         return json.dumps({"ResolverRule": resolver_rule.description()})
+
+    def get_resolver_rule_association(self):
+        """Return info about association between a Resolver rule and a VPC."""
+        resolver_rule_association_id = self._get_param("ResolverRuleAssociationId")
+        resolver_rule_association = self.route53resolver_backend.get_resolver_rule_association(
+            resolver_rule_association_id=resolver_rule_association_id
+        )
+        return json.dumps(
+            {"ResolverRuleAssociation": resolver_rule_association.description()}
+        )
 
     def list_resolver_endpoint_ip_addresses(self):
         """Returns list of IP addresses for specified Resolver endpoint."""
@@ -153,6 +189,30 @@ class Route53ResolverResponse(BaseResponse):
 
         response = {
             "ResolverRules": [x.description() for x in rules],
+            "MaxResults": max_results,
+        }
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)
+
+    def list_resolver_rule_associations(self):
+        """Returns list of all Resolver associations, filtered if specified."""
+        filters = self._get_param("Filters")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 10)
+        validate_args([("maxResults", max_results)])
+        try:
+            (
+                associations,
+                next_token,
+            ) = self.route53resolver_backend.list_resolver_rule_associations(
+                filters, next_token=next_token, max_results=max_results
+            )
+        except InvalidToken as exc:
+            raise InvalidNextTokenException() from exc
+
+        response = {
+            "ResolverRuleAssociations": [x.description() for x in associations],
             "MaxResults": max_results,
         }
         if next_token:

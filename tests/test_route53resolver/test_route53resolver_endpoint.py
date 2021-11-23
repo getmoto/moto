@@ -416,10 +416,12 @@ def test_route53resolver_delete_resolver_endpoint():
     assert endpoint["CreationTime"] == created_endpoint["CreationTime"]
 
 
+@mock_ec2
 @mock_route53resolver
 def test_route53resolver_bad_delete_resolver_endpoint():
     """Test delete_resolver_endpoint API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     random_num = get_random_hex(10)
 
     # Use a resolver endpoint id that is too long.
@@ -440,6 +442,25 @@ def test_route53resolver_bad_delete_resolver_endpoint():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert f"Resolver endpoint with ID '{random_num}' does not exist" in err["Message"]
+
+    # Create an endpoint and a rule referencing that endpoint.  Verify the
+    # endpoint can't be deleted due to that rule.
+    endpoint = create_test_endpoint(client, ec2_client)
+    resolver_rule = client.create_resolver_rule(
+        CreatorRequestId=random_num,
+        RuleType="FORWARD",
+        DomainName=f"X{random_num}.com",
+        ResolverEndpointId=endpoint["Id"],
+    )
+    with pytest.raises(ClientError) as exc:
+        client.delete_resolver_endpoint(ResolverEndpointId=endpoint["Id"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert (
+        f"Cannot delete resolver endpoint unless its related resolver rules "
+        f"are deleted.  The following rules still exist for this resolver "
+        f"endpoint:  {resolver_rule['ResolverRule']['Id']}"
+    ) in err["Message"]
 
 
 @mock_ec2
