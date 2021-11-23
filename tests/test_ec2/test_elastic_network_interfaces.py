@@ -10,6 +10,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2.utils import random_private_ip
+from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
 
@@ -653,7 +654,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
     )
 
     create_instances_result = ec2_resource.create_instances(
-        ImageId="ami-d3adb33f", MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )
     instance = create_instances_result[0]
 
