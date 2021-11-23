@@ -698,7 +698,7 @@ class DynamoHandler(BaseResponse):
                 range_comparison = None
                 range_values = []
 
-            if "=" not in hash_key_expression:
+            if not re.search("[^<>]=", hash_key_expression):
                 return self.error(
                     "com.amazonaws.dynamodb.v20111205#ValidationException",
                     "Query key condition not supported",
