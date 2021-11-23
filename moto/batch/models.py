@@ -295,7 +295,7 @@ class JobDefinition(CloudFormationModel):
         if vcpus < 1:
             raise ClientException("container vcpus limit must be greater than 0")
 
-    def update(self, parameters, _type, container_properties, retry_strategy):
+    def update(self, parameters, _type, container_properties, retry_strategy, tags):
         if parameters is None:
             parameters = self.parameters
 
@@ -316,6 +316,7 @@ class JobDefinition(CloudFormationModel):
             region_name=self._region,
             revision=self.revision,
             retry_strategy=retry_strategy,
+            tags=tags,
         )
 
     def describe(self):
@@ -1276,9 +1277,9 @@ class BatchBackend(BaseBackend):
                 retry_strategy = retry_strategy["attempts"]
             except Exception:
                 raise ClientException("retryStrategy is malformed")
+        if not tags:
+            tags = {}
         if job_def is None:
-            if not tags:
-                tags = {}
             job_def = JobDefinition(
                 def_name,
                 parameters,
@@ -1291,7 +1292,7 @@ class BatchBackend(BaseBackend):
         else:
             # Make new jobdef
             job_def = job_def.update(
-                parameters, _type, container_properties, retry_strategy
+                parameters, _type, container_properties, retry_strategy, tags
             )
 
         self._job_definitions[job_def.arn] = job_def
