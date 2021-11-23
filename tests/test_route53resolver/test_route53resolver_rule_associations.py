@@ -254,3 +254,159 @@ def test_route53resolver_bad_get_resolver_rule_association():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert f"ResolverRuleAssociation '{random_num}' does not Exist" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_list_resolver_rule_associations():
+    """Test good list_resolver_rule_associations API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # List rule associations when there are none.
+    response = client.list_resolver_rule_associations()
+    assert len(response["ResolverRuleAssociations"]) == 0
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+
+    # Create 4 associations, verify all are listed when no filters, max_results.
+    for idx in range(4):
+        create_test_rule_association(client, ec2_client, name=f"A{idx}-{random_num}")
+    response = client.list_resolver_rule_associations()
+    associations = response["ResolverRuleAssociations"]
+    assert len(associations) == 4
+    assert response["MaxResults"] == 10
+    for idx in range(4):
+        assert associations[idx]["Name"].startswith(f"A{idx}")
+
+    # Set max_results to return 1 association, use next_token to get
+    # remaining 3.
+    response = client.list_resolver_rule_associations(MaxResults=1)
+    associations = response["ResolverRuleAssociations"]
+    assert len(associations) == 1
+    assert response["MaxResults"] == 1
+    assert "NextToken" in response
+    assert associations[0]["Name"].startswith("A0")
+
+    response = client.list_resolver_rule_associations(NextToken=response["NextToken"])
+    associations = response["ResolverRuleAssociations"]
+    assert len(associations) == 3
+    assert response["MaxResults"] == 10
+    assert "NextToken" not in response
+    for idx, association in enumerate(associations):
+        assert association["Name"].startswith(f"A{idx + 1}")
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_list_resolver_rule_associations_filters():
+    """Test good list_resolver_rule_associations API calls that use filters."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    random_num = get_random_hex(10)
+
+    # Create some rule associations for testing purposes
+    vpc_id1 = create_vpc(ec2_client)
+    vpc_id2 = create_vpc(ec2_client)
+    associations = []
+    rule_ids = ["zero_offset"]
+    for idx in range(1, 5):
+        association = create_test_rule_association(
+            client,
+            ec2_client,
+            name=f"F{idx}-{random_num}",
+            vpc_id=vpc_id1 if idx % 2 else vpc_id2,
+        )
+        associations.append(association)
+        rule_ids.append(association["ResolverRuleId"])
+
+    # Try all the valid filter names, including some of the old style names.
+    response = client.list_resolver_rule_associations(
+        Filters=[{"Name": "ResolverRuleId", "Values": [rule_ids[3]]}]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 1
+    assert response["ResolverRuleAssociations"][0]["ResolverRuleId"] == rule_ids[3]
+
+    response = client.list_resolver_rule_associations(
+        Filters=[{"Name": "RESOLVER_RULE_ID", "Values": [rule_ids[2], rule_ids[4]]}]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 2
+    assert response["ResolverRuleAssociations"][0]["ResolverRuleId"] == rule_ids[2]
+    assert response["ResolverRuleAssociations"][1]["ResolverRuleId"] == rule_ids[4]
+
+    response = client.list_resolver_rule_associations(
+        Filters=[{"Name": "VPCId", "Values": [vpc_id2]}]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 2
+
+    response = client.list_resolver_rule_associations(
+        Filters=[{"Name": "Name", "Values": [f"F1-{random_num}"]}]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 1
+    assert response["ResolverRuleAssociations"][0]["Name"] == f"F1-{random_num}"
+
+    response = client.list_resolver_rule_associations(
+        Filters=[
+            {"Name": "VPC_ID", "Values": [vpc_id1]},
+            {"Name": "NAME", "Values": [f"F3-{random_num}"]},
+        ]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 1
+    assert response["ResolverRuleAssociations"][0]["Name"] == f"F3-{random_num}"
+
+    response = client.list_resolver_rule_associations(
+        Filters=[{"Name": "Status", "Values": ["COMPLETE"]}]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 4
+    response = client.list_resolver_rule_associations(
+        Filters=[{"Name": "Status", "Values": ["CREATING"]}]
+    )
+    assert len(response["ResolverRuleAssociations"]) == 0
+
+
+@mock_route53resolver
+def test_route53resolver_bad_list_resolver_rule_associations_filters():
+    """Test bad list_resolver_rule_associations API calls that use filters."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+
+    # botocore barfs on an empty "Values":
+    # TypeError: list_resolver_rule_associations() only accepts keyword arguments.
+    # client.list_resolver_rule_associations([{"Name": "Direction", "Values": []}])
+    # client.list_resolver_rule_associations([{"Values": []}])
+
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_rule_associations(
+            Filters=[{"Name": "foo", "Values": ["bar"]}]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "The filter 'foo' is invalid" in err["Message"]
+
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_rule_associations(
+            Filters=[{"Name": "VpcId", "Values": ["bar"]}]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert "The filter 'VpcId' is invalid" in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_route53resolver_bad_list_resolver_rule_associations():
+    """Test bad list_resolver_rule_associations API calls."""
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    # Bad max_results.
+    create_test_rule_association(client, ec2_client)
+    with pytest.raises(ClientError) as exc:
+        client.list_resolver_rule_associations(MaxResults=250)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
+        "Value '250' at 'maxResults' failed to satisfy constraint: Member "
+        "must have length less than or equal to 100"
+    ) in err["Message"]

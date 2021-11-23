@@ -672,10 +672,12 @@ class Route53ResolverBackend(BaseBackend):
         for rr_filter in filters:
             filter_name = rr_filter["Name"]
             if "_" not in filter_name:
-                if filter_name == "HostVPCId":
-                    filter_name = "host_vpc_id"
-                elif filter_name == "HostVpcId":
+                if "Vpc" in filter_name:
                     filter_name = "WRONG"
+                elif filter_name == "HostVPCId":
+                    filter_name = "host_vpc_id"
+                elif filter_name == "VPCId":
+                    filter_name = "vpc_id"
                 elif filter_name in ["Type", "TYPE"]:
                     filter_name = "rule_type"
                 elif not filter_name.isupper():
@@ -742,6 +744,25 @@ class Route53ResolverBackend(BaseBackend):
 
         rules = []
         for rule in sorted(self.resolver_rules.values(), key=lambda x: x.name):
+            if self._matches_all_filters(rule, filters):
+                rules.append(rule)
+        return rules
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_resolver_rule_associations(
+        self, filters, next_token=None, max_results=None,
+    ):  # pylint: disable=unused-argument
+        """List all resolver rule associations, using filters if specified."""
+        if not filters:
+            filters = []
+
+        self._add_field_name_to_filter(filters)
+        self._validate_filters(filters, ResolverRuleAssociation.FILTER_NAMES)
+
+        rules = []
+        for rule in sorted(
+            self.resolver_rule_associations.values(), key=lambda x: x.name
+        ):
             if self._matches_all_filters(rule, filters):
                 rules.append(rule)
         return rules
