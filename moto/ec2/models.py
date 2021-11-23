@@ -504,6 +504,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return self.subnet.availability_zone
         elif filter_name == "description":
             return self.description
+        elif filter_name == "attachment.instance-id":
+            return self.instance.id if self.instance else None
         else:
             return super().get_filter_value(filter_name, "DescribeNetworkInterfaces")
 
