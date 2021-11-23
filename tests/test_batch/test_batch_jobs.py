@@ -701,7 +701,9 @@ def test_update_job_definition():
         containerProperties=container_props,
     )
 
-    job_defs = batch_client.describe_job_definitions()["jobDefinitions"]
+    job_defs = batch_client.describe_job_definitions(jobDefinitionName="test-job")[
+        "jobDefinitions"
+    ]
     job_defs.should.have.length_of(2)
 
     job_defs[0]["containerProperties"]["memory"].should.equal(1024)
