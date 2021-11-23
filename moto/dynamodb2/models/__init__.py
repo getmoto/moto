@@ -1009,6 +1009,7 @@ class RestoredTable(Table):
         }
         return result
 
+
 class RestoredPITTable(Table):
     def __init__(self, name, source):
         params = self._parse_params_from_table(source)
@@ -1025,10 +1026,10 @@ class RestoredPITTable(Table):
         params = {
             "schema": copy.deepcopy(table.schema),
             "attr": copy.deepcopy(table.attr),
-            "throughput": copy.deepcopy(table.throughput)
+            "throughput": copy.deepcopy(table.throughput),
         }
         return params
-    
+
     def describe(self, base_key="TableDescription"):
         result = super(RestoredPITTable, self).describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
@@ -1037,6 +1038,7 @@ class RestoredPITTable(Table):
             "RestoreInProgress": False,
         }
         return result
+
 
 class Backup(object):
     def __init__(
@@ -1717,7 +1719,7 @@ class DynamoDBBackend(BaseBackend):
         new_table = RestoredTable(target_table_name, backup)
         self.tables[target_table_name] = new_table
         return new_table
-    
+
     def restore_table_to_point_in_time(self, target_table_name, source_table_name):
         source = self.get_table(source_table_name)
         if source is None:

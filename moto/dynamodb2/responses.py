@@ -1203,7 +1203,7 @@ class DynamoHandler(BaseResponse):
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
             return self.error(er, "Table already exists: %s" % target_table_name)
-    
+
     def restore_table_to_point_in_time(self):
         body = self.body
         target_table_name = body.get("TargetTableName")
