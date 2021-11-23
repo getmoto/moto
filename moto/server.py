@@ -119,7 +119,10 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
-        if service == "mediastore" and not target:
+        if service == "budgets":
+            # Budgets is global
+            host = f"{service}.amazonaws.com"
+        elif service == "mediastore" and not target:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
             host = "data.{service}.{region}.amazonaws.com".format(

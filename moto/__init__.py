@@ -38,7 +38,7 @@ mock_lambda = lazy_load(
 )
 mock_lambda_deprecated = lazy_load(".awslambda", "mock_lambda_deprecated")
 mock_batch = lazy_load(".batch", "mock_batch")
-mock_batch = lazy_load(".batch", "mock_batch")
+mock_budgets = lazy_load(".budgets", "mock_budgets")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudformation_deprecated = lazy_load(
     ".cloudformation", "mock_cloudformation_deprecated"
@@ -169,7 +169,7 @@ mock_mediastoredata = lazy_load(
 )
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
-mock_sdb = lazy_load(".sdb", "mock_sdb", boto3_name="sdb")
+mock_sdb = lazy_load(".sdb", "mock_sdb")
 
 
 class MockAll(ContextDecorator):
