@@ -1,8 +1,9 @@
+import json
 import random
 import re
 import string
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 def region_from_managedblckchain_url(url):
@@ -27,11 +28,20 @@ def get_network_id():
     )
 
 
-def memberid_from_managedblockchain_url(full_url):
+def memberid_from_managedblockchain_request(full_url, body):
     id_search = re.search(r"\/m-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
+    else:
+        # >= botocore 1.19.41 can add the memberId as a query parameter, or in the body
+        parsed_url = urlparse(full_url)
+        qs = parse_qs(parsed_url.query)
+        if "memberId" in qs:
+            return_id = qs.get("memberId")[0]
+        elif body:
+            body = json.loads(body)
+            return_id = body["MemberId"]
     return return_id
 
 

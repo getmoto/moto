@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from base64 import b64decode
 import datetime
 import xmltodict
@@ -59,6 +58,13 @@ class AssumedRole(BaseModel):
 class STSBackend(BaseBackend):
     def __init__(self):
         self.assumed_roles = []
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sts"
+        )
 
     def get_session_token(self, duration):
         token = Token(duration=duration)
@@ -121,6 +127,11 @@ class STSBackend(BaseBackend):
         role = AssumedRole(**kwargs)
         self.assumed_roles.append(role)
         return role
+
+    def get_caller_identity(self):
+        # Logic resides in responses.py
+        # Fake method here to make implementation coverage script aware that this method is implemented
+        pass
 
 
 sts_backend = STSBackend()

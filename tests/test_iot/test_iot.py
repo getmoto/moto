@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import boto3
 
-from moto import mock_iot
+from moto import mock_iot, mock_cognitoidentity
 from botocore.exceptions import ClientError
 import pytest
 
@@ -55,6 +53,31 @@ def test_attach_policy():
     res = client.list_attached_policies(target=cert_arn)
     res.should.have.key("policies").which.should.have.length_of(1)
     res["policies"][0]["policyName"].should.equal("my-policy")
+
+
+@mock_iot
+@mock_cognitoidentity
+def test_attach_policy_to_identity():
+    region = "ap-northeast-1"
+
+    cognito_identity_client = boto3.client("cognito-identity", region_name=region)
+    identity_pool_name = "test_identity_pool"
+    identity_pool = cognito_identity_client.create_identity_pool(
+        IdentityPoolName=identity_pool_name, AllowUnauthenticatedIdentities=True
+    )
+    identity = cognito_identity_client.get_id(
+        AccountId="test", IdentityPoolId=identity_pool["IdentityPoolId"]
+    )
+
+    client = boto3.client("iot", region_name=region)
+    policy_name = "my-policy"
+    doc = "{}"
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=identity["IdentityId"])
+
+    res = client.list_attached_policies(target=identity["IdentityId"])
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal(policy_name)
 
 
 @mock_iot
@@ -139,8 +162,32 @@ def test_policy_versions():
         policy1["policyVersionId"]
     )
 
+    policy3 = client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_3"}),
+        setAsDefault=False,
+    )
+    policy3.should.have.key("policyArn").which.should_not.be.none
+    policy3.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_3"})
+    )
+    policy3.should.have.key("policyVersionId").which.should.equal("4")
+    policy3.should.have.key("isDefaultVersion").which.should.equal(False)
+
+    policy4 = client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_4"}),
+        setAsDefault=False,
+    )
+    policy4.should.have.key("policyArn").which.should_not.be.none
+    policy4.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_4"})
+    )
+    policy4.should.have.key("policyVersionId").which.should.equal("5")
+    policy4.should.have.key("isDefaultVersion").which.should.equal(False)
+
     policy_versions = client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(5)
     list(
         map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
     ).count(True).should.equal(1)
@@ -162,10 +209,10 @@ def test_policy_versions():
     )
 
     client.set_default_policy_version(
-        policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+        policyName=policy_name, policyVersionId=policy4["policyVersionId"]
     )
     policy_versions = client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(5)
     list(
         map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
     ).count(True).should.equal(1)
@@ -173,25 +220,48 @@ def test_policy_versions():
         filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
     )
     default_policy[0].should.have.key("versionId").should.equal(
-        policy2["policyVersionId"]
+        policy4["policyVersionId"]
     )
 
     policy = client.get_policy(policyName=policy_name)
     policy.should.have.key("policyName").which.should.equal(policy_name)
     policy.should.have.key("policyArn").which.should_not.be.none
     policy.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_2"})
+        json.dumps({"version": "version_4"})
     )
     policy.should.have.key("defaultVersionId").which.should.equal(
-        policy2["policyVersionId"]
+        policy4["policyVersionId"]
     )
 
+    try:
+        client.create_policy_version(
+            policyName=policy_name,
+            policyDocument=json.dumps({"version": "version_5"}),
+            setAsDefault=False,
+        )
+        assert False, "Should have failed in previous call"
+    except Exception as exception:
+        exception.response["Error"]["Message"].should.equal(
+            "The policy %s already has the maximum number of versions (5)" % policy_name
+        )
+
     client.delete_policy_version(policyName=policy_name, policyVersionId="1")
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(4)
+
+    client.delete_policy_version(
+        policyName=policy_name, policyVersionId=policy1["policyVersionId"]
+    )
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    client.delete_policy_version(
+        policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+    )
     policy_versions = client.list_policy_versions(policyName=policy_name)
     policy_versions.should.have.key("policyVersions").which.should.have.length_of(2)
 
     client.delete_policy_version(
-        policyName=policy_name, policyVersionId=policy1["policyVersionId"]
+        policyName=policy_name, policyVersionId=policy3["policyVersionId"]
     )
     policy_versions = client.list_policy_versions(policyName=policy_name)
     policy_versions.should.have.key("policyVersions").which.should.have.length_of(1)
@@ -199,7 +269,7 @@ def test_policy_versions():
     # should fail as it"s the default policy. Should use delete_policy instead
     try:
         client.delete_policy_version(
-            policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+            policyName=policy_name, policyVersionId=policy4["policyVersionId"]
         )
         assert False, "Should have failed in previous call"
     except Exception as exception:
@@ -218,6 +288,7 @@ def test_things():
     thing_type = client.create_thing_type(thingTypeName=type_name)
     thing_type.should.have.key("thingTypeName").which.should.equal(type_name)
     thing_type.should.have.key("thingTypeArn")
+    thing_type["thingTypeArn"].should.contain(type_name)
 
     res = client.list_thing_types()
     res.should.have.key("thingTypes").which.should.have.length_of(1)
@@ -228,6 +299,8 @@ def test_things():
     thing_type.should.have.key("thingTypeName").which.should.equal(type_name)
     thing_type.should.have.key("thingTypeProperties")
     thing_type.should.have.key("thingTypeMetadata")
+    thing_type.should.have.key("thingTypeArn")
+    thing_type["thingTypeArn"].should.contain(type_name)
 
     # thing
     thing = client.create_thing(thingName=name, thingTypeName=type_name)
@@ -535,6 +608,10 @@ def test_certs():
     cert_desc.should.have.key("certificateArn").which.should_not.be.none
     cert_desc.should.have.key("certificateId").which.should_not.be.none
     cert_desc.should.have.key("certificatePem").which.should_not.be.none
+    cert_desc.should.have.key("validity").which.should_not.be.none
+    validity = cert_desc["validity"]
+    validity.should.have.key("notBefore").which.should_not.be.none
+    validity.should.have.key("notAfter").which.should_not.be.none
     cert_desc.should.have.key("status").which.should.equal("ACTIVE")
     cert_pem = cert_desc["certificatePem"]
 
@@ -836,7 +913,7 @@ def test_principal_policy_deprecated():
 def test_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"
-    thing = client.create_thing(thingName=thing_name)
+    client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
 
@@ -844,8 +921,7 @@ def test_principal_thing():
 
     res = client.list_principal_things(principal=cert_arn)
     res.should.have.key("things").which.should.have.length_of(1)
-    for thing in res["things"]:
-        thing.should_not.be.none
+    res["things"][0].should.equal(thing_name)
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(1)
     for principal in res["principals"]:
@@ -870,7 +946,7 @@ def test_principal_thing():
 def test_delete_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"
-    thing = client.create_thing(thingName=thing_name)
+    client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
     cert_id = cert["certificateId"]
@@ -906,7 +982,7 @@ class TestListThingGroup:
     def test_should_list_all_groups(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups()
         resp.should.have.key("thingGroups")
@@ -916,7 +992,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(recursive=False)
         resp.should.have.key("thingGroups")
@@ -926,7 +1002,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a)
         resp.should.have.key("thingGroups")
@@ -945,7 +1021,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
         resp.should.have.key("thingGroups")
@@ -958,7 +1034,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
         resp.should.have.key("thingGroups")
@@ -974,7 +1050,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-1", recursive=False
@@ -991,7 +1067,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
@@ -1019,7 +1095,7 @@ def test_delete_thing_group():
     tree_dict = {
         group_name_1a: {group_name_2a: {},},
     }
-    group_catalog = generate_thing_group_tree(client, tree_dict)
+    generate_thing_group_tree(client, tree_dict)
 
     # delete group with child
     try:
@@ -1285,6 +1361,7 @@ def test_thing_groups():
     thing_group = client.create_thing_group(thingGroupName=group_name)
     thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
     thing_group.should.have.key("thingGroupArn")
+    thing_group["thingGroupArn"].should.contain(group_name)
 
     res = client.list_thing_groups()
     res.should.have.key("thingGroups").which.should.have.length_of(1)
@@ -1297,6 +1374,8 @@ def test_thing_groups():
     thing_group.should.have.key("thingGroupProperties")
     thing_group.should.have.key("thingGroupMetadata")
     thing_group.should.have.key("version")
+    thing_group.should.have.key("thingGroupArn")
+    thing_group["thingGroupArn"].should.contain(group_name)
 
     # delete thing group
     client.delete_thing_group(thingGroupName=group_name)
@@ -1955,6 +2034,12 @@ def test_list_job_executions_for_job():
         "thingArn"
     ).which.should.equal(thing["thingArn"])
 
+    job_execution = client.list_job_executions_for_job(jobId=job_id, status="QUEUED")
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key(
+        "thingArn"
+    ).which.should.equal(thing["thingArn"])
+
 
 @mock_iot
 def test_list_job_executions_for_thing():
@@ -1991,3 +2076,273 @@ def test_list_job_executions_for_thing():
     job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
         job_id
     )
+
+    job_execution = client.list_job_executions_for_thing(
+        thingName=name, status="QUEUED"
+    )
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
+        job_id
+    )
+
+
+@mock_iot
+def test_list_job_executions_for_thing_paginated():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    thing = client.create_thing(thingName=name)
+
+    for idx in range(0, 10):
+        client.create_job(
+            jobId=f"TestJob_{idx}",
+            targets=[thing["thingArn"]],
+            document=json.dumps({"field": "value"}),
+        )
+
+    res = client.list_job_executions_for_thing(thingName=name, maxResults=2)
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(2)
+    res.should.have.key("nextToken")
+
+    res = client.list_job_executions_for_thing(
+        thingName=name, maxResults=1, nextToken=res["nextToken"]
+    )
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(1)
+    res.should.have.key("nextToken")
+
+    res = client.list_job_executions_for_thing(
+        thingName=name, nextToken=res["nextToken"]
+    )
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(7)
+    res.shouldnt.have.key("nextToken")
+
+
+class TestTopicRules:
+    name = "my-rule"
+    payload = {
+        "sql": "SELECT * FROM 'topic/*' WHERE something > 0",
+        "actions": [
+            {"dynamoDBv2": {"putItem": {"tableName": "my-table"}, "roleArn": "my-role"}}
+        ],
+        "errorAction": {
+            "republish": {"qos": 0, "roleArn": "my-role", "topic": "other-topic"}
+        },
+        "description": "my-description",
+        "ruleDisabled": False,
+        "awsIotSqlVersion": "2016-03-23",
+    }
+
+    @mock_iot
+    def test_topic_rule_create(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        # duplicated rule name
+        with pytest.raises(ClientError) as ex:
+            client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceAlreadyExistsException")
+
+    @mock_iot
+    def test_topic_rule_list(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # empty response
+        res = client.list_topic_rules()
+        res.should.have.key("rules").which.should.have.length_of(0)
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+        client.create_topic_rule(ruleName="my-rule-2", topicRulePayload=self.payload)
+
+        res = client.list_topic_rules()
+        res.should.have.key("rules").which.should.have.length_of(2)
+        for rule, name in zip(res["rules"], [self.name, "my-rule-2"]):
+            rule.should.have.key("ruleName").which.should.equal(name)
+            rule.should.have.key("createdAt").which.should_not.be.none
+            rule.should.have.key("ruleArn").which.should_not.be.none
+            rule.should.have.key("ruleDisabled").which.should.equal(
+                self.payload["ruleDisabled"]
+            )
+            rule.should.have.key("topicPattern").which.should.equal("topic/*")
+
+    @mock_iot
+    def test_topic_rule_get(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.get_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        rule = client.get_topic_rule(ruleName=self.name)
+
+        rule.should.have.key("ruleArn").which.should_not.be.none
+        rule.should.have.key("rule")
+        rrule = rule["rule"]
+        rrule.should.have.key("actions").which.should.equal(self.payload["actions"])
+        rrule.should.have.key("awsIotSqlVersion").which.should.equal(
+            self.payload["awsIotSqlVersion"]
+        )
+        rrule.should.have.key("createdAt").which.should_not.be.none
+        rrule.should.have.key("description").which.should.equal(
+            self.payload["description"]
+        )
+        rrule.should.have.key("errorAction").which.should.equal(
+            self.payload["errorAction"]
+        )
+        rrule.should.have.key("ruleDisabled").which.should.equal(
+            self.payload["ruleDisabled"]
+        )
+        rrule.should.have.key("ruleName").which.should.equal(self.name)
+        rrule.should.have.key("sql").which.should.equal(self.payload["sql"])
+
+    @mock_iot
+    def test_topic_rule_replace(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.replace_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        payload = self.payload.copy()
+        payload["description"] = "new-description"
+        client.replace_topic_rule(
+            ruleName=self.name, topicRulePayload=payload,
+        )
+
+        rule = client.get_topic_rule(ruleName=self.name)
+        rule["rule"]["ruleName"].should.equal(self.name)
+        rule["rule"]["description"].should.equal(payload["description"])
+
+    @mock_iot
+    def test_topic_rule_disable(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.disable_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        client.disable_topic_rule(ruleName=self.name)
+
+        rule = client.get_topic_rule(ruleName=self.name)
+        rule["rule"]["ruleName"].should.equal(self.name)
+        rule["rule"]["ruleDisabled"].should.equal(True)
+
+    @mock_iot
+    def test_topic_rule_enable(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.enable_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        payload = self.payload.copy()
+        payload["ruleDisabled"] = True
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=payload)
+
+        client.enable_topic_rule(ruleName=self.name)
+
+        rule = client.get_topic_rule(ruleName=self.name)
+        rule["rule"]["ruleName"].should.equal(self.name)
+        rule["rule"]["ruleDisabled"].should.equal(False)
+
+    @mock_iot
+    def test_topic_rule_delete(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+
+        # no such rule
+        with pytest.raises(ClientError) as ex:
+            client.delete_topic_rule(ruleName=self.name)
+        error_code = ex.value.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+
+        client.create_topic_rule(ruleName=self.name, topicRulePayload=self.payload)
+
+        client.enable_topic_rule(ruleName=self.name)
+
+        client.delete_topic_rule(ruleName=self.name)
+
+        res = client.list_topic_rules()
+        res.should.have.key("rules").which.should.have.length_of(0)
+
+    @mock_iot
+    def test_deprecate_undeprecate_thing_type(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        thing_type_name = "my-type-name"
+        client.create_thing_type(
+            thingTypeName=thing_type_name,
+            thingTypeProperties={"searchableAttributes": ["s1", "s2", "s3"]},
+        )
+
+        res = client.describe_thing_type(thingTypeName=thing_type_name)
+        res["thingTypeMetadata"]["deprecated"].should.equal(False)
+        client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=False)
+
+        res = client.describe_thing_type(thingTypeName=thing_type_name)
+        res["thingTypeMetadata"]["deprecated"].should.equal(True)
+
+        client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=True)
+
+        res = client.describe_thing_type(thingTypeName=thing_type_name)
+        res["thingTypeMetadata"]["deprecated"].should.equal(False)
+
+    @mock_iot
+    def test_deprecate_thing_type_not_exist(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        thing_type_name = "my-type-name"
+        with pytest.raises(client.exceptions.ResourceNotFoundException):
+            client.deprecate_thing_type(
+                thingTypeName=thing_type_name, undoDeprecate=False
+            )
+
+    @mock_iot
+    def test_create_thing_with_deprecated_type(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        thing_type_name = "my-type-name"
+        client.create_thing_type(
+            thingTypeName=thing_type_name,
+            thingTypeProperties={"searchableAttributes": ["s1", "s2", "s3"]},
+        )
+        client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=False)
+        with pytest.raises(client.exceptions.InvalidRequestException):
+            client.create_thing(thingName="thing-name", thingTypeName=thing_type_name)
+
+    @mock_iot
+    def test_update_thing_with_deprecated_type(self):
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        thing_type_name = "my-type-name"
+        thing_name = "thing-name"
+
+        client.create_thing_type(
+            thingTypeName=thing_type_name,
+            thingTypeProperties={"searchableAttributes": ["s1", "s2", "s3"]},
+        )
+        deprecated_thing_type_name = "my-type-name-deprecated"
+        client.create_thing_type(
+            thingTypeName=deprecated_thing_type_name,
+            thingTypeProperties={"searchableAttributes": ["s1", "s2", "s3"]},
+        )
+        client.deprecate_thing_type(
+            thingTypeName=deprecated_thing_type_name, undoDeprecate=False
+        )
+        client.create_thing(thingName=thing_name, thingTypeName=thing_type_name)
+        with pytest.raises(client.exceptions.InvalidRequestException):
+            client.update_thing(
+                thingName=thing_name, thingTypeName=deprecated_thing_type_name
+            )

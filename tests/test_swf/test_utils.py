@@ -1,4 +1,4 @@
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.swf.utils import decapitalize
 

@@ -3,6 +3,7 @@ import json
 
 
 from moto import mock_ssm, mock_cloudformation
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_ssm
@@ -15,7 +16,7 @@ def test_get_command_invocations_from_stack():
             "EC2Instance1": {
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
-                    "ImageId": "ami-test-image-id",
+                    "ImageId": EXAMPLE_AMI_ID,
                     "KeyName": "test",
                     "InstanceType": "t2.micro",
                     "Tags": [
@@ -39,7 +40,7 @@ def test_get_command_invocations_from_stack():
 
     stack_template_str = json.dumps(stack_template)
 
-    response = cloudformation_client.create_stack(
+    cloudformation_client.create_stack(
         StackName="test_stack",
         TemplateBody=stack_template_str,
         Capabilities=("CAPABILITY_IAM",),
@@ -65,6 +66,6 @@ def test_get_command_invocations_from_stack():
     cmd_id = cmd["CommandId"]
     instance_ids = cmd["InstanceIds"]
 
-    invocation_response = client.get_command_invocation(
+    client.get_command_invocation(
         CommandId=cmd_id, InstanceId=instance_ids[0], PluginName="aws:runShellScript"
     )

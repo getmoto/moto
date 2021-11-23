@@ -1,11 +1,11 @@
-from __future__ import unicode_literals
+from tests import EXAMPLE_AMI_ID
 
 template = {
     "Parameters": {"R53ZoneName": {"Type": "String", "Default": "my_zone"}},
     "Resources": {
         "Ec2Instance": {
             "Type": "AWS::EC2::Instance",
-            "Properties": {"ImageId": "ami-1234abcd", "PrivateIpAddress": "10.0.0.25"},
+            "Properties": {"ImageId": EXAMPLE_AMI_ID, "PrivateIpAddress": "10.0.0.25"},
         },
         "HostedZone": {
             "Type": "AWS::Route53::HostedZone",

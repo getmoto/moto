@@ -1,14 +1,17 @@
 import base64
-import boto3
+from io import BytesIO
 import json
+import sure  # noqa # pylint: disable=unused-import
 import time
+from zipfile import ZipFile, ZIP_DEFLATED
 import zlib
 
+import boto3
 from botocore.exceptions import ClientError
-from io import BytesIO
-from moto import mock_logs, mock_lambda, mock_iam
+from datetime import datetime
+from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
+from moto.core.utils import unix_time_millis
 import pytest
-from zipfile import ZipFile, ZIP_DEFLATED
 
 
 @mock_lambda
@@ -47,14 +50,14 @@ def test_put_subscription_filter_update():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    creation_time = filter["creationTime"]
+    sub_filter = response["subscriptionFilters"][0]
+    creation_time = sub_filter["creationTime"]
     creation_time.should.be.a(int)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = ""
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = ""
 
     # when
     # to update an existing subscription filter the 'filerName' must be identical
@@ -68,13 +71,13 @@ def test_put_subscription_filter_update():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.equal(creation_time)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = "[]"
+    sub_filter = response["subscriptionFilters"][0]
+    sub_filter["creationTime"].should.equal(creation_time)
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = "[]"
 
     # when
     # only one subscription filter can be associated with a log group
@@ -131,21 +134,23 @@ def test_put_subscription_filter_with_lambda():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.be.a(int)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = ""
+    sub_filter = response["subscriptionFilters"][0]
+    sub_filter["creationTime"].should.be.a(int)
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = ""
 
     # when
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         logEvents=[
-            {"timestamp": 0, "message": "test"},
-            {"timestamp": 0, "message": "test 2"},
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
         ],
     )
 
@@ -170,15 +175,106 @@ def test_put_subscription_filter_with_lambda():
     log_events.should.have.length_of(2)
     log_events[0]["id"].should.be.a(int)
     log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(0)
+    log_events[0]["timestamp"].should.equal(ts_0)
     log_events[1]["id"].should.be.a(int)
     log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(0)
+    log_events[1]["timestamp"].should.equal(ts_1)
+
+
+@mock_s3
+@mock_firehose
+@mock_logs
+@pytest.mark.network
+def test_put_subscription_filter_with_firehose():
+    # given
+    region_name = "us-east-1"
+    client_firehose = boto3.client("firehose", region_name)
+    client_logs = boto3.client("logs", region_name)
+
+    log_group_name = "/firehose-test"
+    log_stream_name = "delivery-stream"
+    client_logs.create_log_group(logGroupName=log_group_name)
+    client_logs.create_log_stream(
+        logGroupName=log_group_name, logStreamName=log_stream_name
+    )
+
+    # Create a S3 bucket.
+    bucket_name = "firehosetestbucket"
+    s3_client = boto3.client("s3", region_name=region_name)
+    s3_client.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
+    )
+
+    # Create the Firehose delivery stream that uses that S3 bucket as
+    # the destination.
+    delivery_stream_name = "firehose_log_test"
+    firehose_arn = client_firehose.create_delivery_stream(
+        DeliveryStreamName=delivery_stream_name,
+        ExtendedS3DestinationConfiguration={
+            "RoleARN": _get_role_name(region_name),
+            "BucketARN": f"arn:aws:s3::{bucket_name}",
+        },
+    )["DeliveryStreamARN"]
+
+    # when
+    client_logs.put_subscription_filter(
+        logGroupName=log_group_name,
+        filterName="firehose-test",
+        filterPattern="",
+        destinationArn=firehose_arn,
+    )
+
+    # then
+    response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
+    response["subscriptionFilters"].should.have.length_of(1)
+    _filter = response["subscriptionFilters"][0]
+    _filter["creationTime"].should.be.a(int)
+    _filter["destinationArn"] = firehose_arn
+    _filter["distribution"] = "ByLogStream"
+    _filter["logGroupName"] = "/firehose-test"
+    _filter["filterName"] = "firehose-test"
+    _filter["filterPattern"] = ""
+
+    # when
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow()))
+    client_logs.put_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        logEvents=[
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
+        ],
+    )
+
+    # then
+    bucket_objects = s3_client.list_objects_v2(Bucket=bucket_name)
+    message = s3_client.get_object(
+        Bucket=bucket_name, Key=bucket_objects["Contents"][0]["Key"]
+    )
+    response = json.loads(
+        zlib.decompress(message["Body"].read(), 16 + zlib.MAX_WBITS).decode("utf-8")
+    )
+
+    response["messageType"].should.equal("DATA_MESSAGE")
+    response["owner"].should.equal("123456789012")
+    response["logGroup"].should.equal("/firehose-test")
+    response["logStream"].should.equal("delivery-stream")
+    response["subscriptionFilters"].should.equal(["firehose-test"])
+    log_events = sorted(response["logEvents"], key=lambda log_event: log_event["id"])
+    log_events.should.have.length_of(2)
+    log_events[0]["id"].should.be.a(int)
+    log_events[0]["message"].should.equal("test")
+    log_events[0]["timestamp"].should.equal(ts_0)
+    log_events[1]["id"].should.be.a(int)
+    log_events[1]["message"].should.equal("test 2")
+    log_events[1]["timestamp"].should.equal(ts_1)
 
 
 @mock_lambda
 @mock_logs
-def test_delete_subscription_filter_errors():
+def test_delete_subscription_filter():
     # given
     region_name = "us-east-1"
     client_lambda = boto3.client("lambda", region_name)

@@ -1,23 +1,16 @@
-from __future__ import unicode_literals
-
 import boto3
 import json
 import os
-import sure  # noqa
-import sys
+import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
 from dateutil.tz import tzutc
 from botocore.exceptions import ClientError
 import pytest
 
-from moto import mock_cloudformation, mock_sts, mock_stepfunctions
+from moto import mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
 
-if sys.version_info[0] < 3:
-    import mock
-    from unittest import SkipTest
-else:
-    from unittest import SkipTest, mock
+from unittest import SkipTest, mock
 
 region = "us-east-1"
 simple_definition = (
@@ -194,8 +187,8 @@ def test_update_state_machine():
 def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    list = client.list_state_machines()
-    list["stateMachines"].should.be.empty
+    sm_list = client.list_state_machines()
+    sm_list["stateMachines"].should.be.empty
 
 
 @mock_stepfunctions
@@ -212,25 +205,26 @@ def test_state_machine_list_returns_created_state_machines():
     machine2 = client.create_state_machine(
         name="name2", definition=str(simple_definition), roleArn=_get_default_role()
     )
-    list = client.list_state_machines()
+    sm_list = client.list_state_machines()
     #
-    list["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    list["stateMachines"].should.have.length_of(2)
-    list["stateMachines"][0]["creationDate"].should.be.a(datetime)
-    list["stateMachines"][0]["creationDate"].should.equal(machine1["creationDate"])
-    list["stateMachines"][0]["name"].should.equal("name1")
-    list["stateMachines"][0]["stateMachineArn"].should.equal(
+    sm_list["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    sm_list["stateMachines"].should.have.length_of(2)
+    sm_list["stateMachines"][0]["creationDate"].should.be.a(datetime)
+    sm_list["stateMachines"][0]["creationDate"].should.equal(machine1["creationDate"])
+    sm_list["stateMachines"][0]["name"].should.equal("name1")
+    sm_list["stateMachines"][0]["stateMachineArn"].should.equal(
         machine1["stateMachineArn"]
     )
-    list["stateMachines"][1]["creationDate"].should.be.a(datetime)
-    list["stateMachines"][1]["creationDate"].should.equal(machine2["creationDate"])
-    list["stateMachines"][1]["name"].should.equal("name2")
-    list["stateMachines"][1]["stateMachineArn"].should.equal(
+    sm_list["stateMachines"][1]["creationDate"].should.be.a(datetime)
+    sm_list["stateMachines"][1]["creationDate"].should.equal(machine2["creationDate"])
+    sm_list["stateMachines"][1]["name"].should.equal("name2")
+    sm_list["stateMachines"][1]["stateMachineArn"].should.equal(
         machine2["stateMachineArn"]
     )
 
 
 @mock_stepfunctions
+@mock_sts
 def test_state_machine_list_pagination():
     client = boto3.client("stepfunctions", region_name=region)
     for i in range(25):
@@ -928,6 +922,14 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
     execution_history["events"].should.equal(expected_events)
 
 
+@pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1"])
+@mock_stepfunctions
+def test_stepfunction_regions(region):
+    client = boto3.client("stepfunctions", region_name=region)
+    resp = client.list_state_machines()
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
 @mock_stepfunctions
 @mock_sts
 @mock.patch.dict(os.environ, {"SF_EXECUTION_HISTORY_TYPE": "FAILURE"})
@@ -981,198 +983,6 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
     )
     execution_history["events"].should.have.length_of(3)
     execution_history["events"].should.equal(expected_events)
-
-
-@mock_stepfunctions
-@mock_cloudformation
-def test_state_machine_cloudformation():
-    sf = boto3.client("stepfunctions", region_name="us-east-1")
-    cf = boto3.resource("cloudformation", region_name="us-east-1")
-    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
-    role_arn = (
-        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1;"
-    )
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "An example template for a Step Functions state machine.",
-        "Resources": {
-            "MyStateMachine": {
-                "Type": "AWS::StepFunctions::StateMachine",
-                "Properties": {
-                    "StateMachineName": "HelloWorld-StateMachine",
-                    "StateMachineType": "STANDARD",
-                    "DefinitionString": definition,
-                    "RoleArn": role_arn,
-                    "Tags": [
-                        {"Key": "key1", "Value": "value1"},
-                        {"Key": "key2", "Value": "value2"},
-                    ],
-                },
-            }
-        },
-        "Outputs": {
-            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
-            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
-        },
-    }
-    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
-    outputs_list = cf.Stack("test_stack").outputs
-    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
-    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    state_machine["stateMachineArn"].should.equal(output["StateMachineArn"])
-    state_machine["name"].should.equal(output["StateMachineName"])
-    state_machine["roleArn"].should.equal(role_arn)
-    state_machine["definition"].should.equal(definition)
-    tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
-    for i, tag in enumerate(tags, 1):
-        tag["key"].should.equal("key{}".format(i))
-        tag["value"].should.equal("value{}".format(i))
-
-    cf.Stack("test_stack").delete()
-    with pytest.raises(ClientError) as ex:
-        sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
-    ex.value.response["Error"]["Message"].should.contain("Does Not Exist")
-
-
-@mock_stepfunctions
-@mock_cloudformation
-def test_state_machine_cloudformation_update_with_replacement():
-    sf = boto3.client("stepfunctions", region_name="us-east-1")
-    cf = boto3.resource("cloudformation", region_name="us-east-1")
-    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
-    role_arn = (
-        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1"
-    )
-    properties = {
-        "StateMachineName": "HelloWorld-StateMachine",
-        "DefinitionString": definition,
-        "RoleArn": role_arn,
-        "Tags": [
-            {"Key": "key1", "Value": "value1"},
-            {"Key": "key2", "Value": "value2"},
-        ],
-    }
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "An example template for a Step Functions state machine.",
-        "Resources": {
-            "MyStateMachine": {
-                "Type": "AWS::StepFunctions::StateMachine",
-                "Properties": {},
-            }
-        },
-        "Outputs": {
-            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
-            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
-        },
-    }
-    template["Resources"]["MyStateMachine"]["Properties"] = properties
-    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
-    outputs_list = cf.Stack("test_stack").outputs
-    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
-    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    original_machine_arn = state_machine["stateMachineArn"]
-    original_creation_date = state_machine["creationDate"]
-
-    # Update State Machine, with replacement.
-    updated_role = role_arn + "-updated"
-    updated_definition = definition.replace("HelloWorld", "HelloWorld2")
-    updated_properties = {
-        "StateMachineName": "New-StateMachine-Name",
-        "DefinitionString": updated_definition,
-        "RoleArn": updated_role,
-        "Tags": [
-            {"Key": "key3", "Value": "value3"},
-            {"Key": "key1", "Value": "updated_value"},
-        ],
-    }
-    template["Resources"]["MyStateMachine"]["Properties"] = updated_properties
-    cf.Stack("test_stack").update(TemplateBody=json.dumps(template))
-    outputs_list = cf.Stack("test_stack").outputs
-    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
-    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    state_machine["stateMachineArn"].should_not.equal(original_machine_arn)
-    state_machine["name"].should.equal("New-StateMachine-Name")
-    state_machine["creationDate"].should.be.greater_than(original_creation_date)
-    state_machine["roleArn"].should.equal(updated_role)
-    state_machine["definition"].should.equal(updated_definition)
-    tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
-    tags.should.have.length_of(3)
-    for tag in tags:
-        if tag["key"] == "key1":
-            tag["value"].should.equal("updated_value")
-
-    with pytest.raises(ClientError) as ex:
-        sf.describe_state_machine(stateMachineArn=original_machine_arn)
-    ex.value.response["Error"]["Code"].should.equal("StateMachineDoesNotExist")
-    ex.value.response["Error"]["Message"].should.contain("State Machine Does Not Exist")
-
-
-@mock_stepfunctions
-@mock_cloudformation
-def test_state_machine_cloudformation_update_with_no_interruption():
-    sf = boto3.client("stepfunctions", region_name="us-east-1")
-    cf = boto3.resource("cloudformation", region_name="us-east-1")
-    definition = '{"StartAt": "HelloWorld", "States": {"HelloWorld": {"Type": "Task", "Resource": "arn:aws:lambda:us-east-1:111122223333;:function:HelloFunction", "End": true}}}'
-    role_arn = (
-        "arn:aws:iam::111122223333:role/service-role/StatesExecutionRole-us-east-1"
-    )
-    properties = {
-        "StateMachineName": "HelloWorld-StateMachine",
-        "DefinitionString": definition,
-        "RoleArn": role_arn,
-        "Tags": [
-            {"Key": "key1", "Value": "value1"},
-            {"Key": "key2", "Value": "value2"},
-        ],
-    }
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "An example template for a Step Functions state machine.",
-        "Resources": {
-            "MyStateMachine": {
-                "Type": "AWS::StepFunctions::StateMachine",
-                "Properties": {},
-            }
-        },
-        "Outputs": {
-            "StateMachineArn": {"Value": {"Ref": "MyStateMachine"}},
-            "StateMachineName": {"Value": {"Fn::GetAtt": ["MyStateMachine", "Name"]}},
-        },
-    }
-    template["Resources"]["MyStateMachine"]["Properties"] = properties
-    cf.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
-    outputs_list = cf.Stack("test_stack").outputs
-    output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
-    state_machine = sf.describe_state_machine(stateMachineArn=output["StateMachineArn"])
-    machine_arn = state_machine["stateMachineArn"]
-    creation_date = state_machine["creationDate"]
-
-    # Update State Machine in-place, no replacement.
-    updated_role = role_arn + "-updated"
-    updated_definition = definition.replace("HelloWorld", "HelloWorldUpdated")
-    updated_properties = {
-        "DefinitionString": updated_definition,
-        "RoleArn": updated_role,
-        "Tags": [
-            {"Key": "key3", "Value": "value3"},
-            {"Key": "key1", "Value": "updated_value"},
-        ],
-    }
-    template["Resources"]["MyStateMachine"]["Properties"] = updated_properties
-    cf.Stack("test_stack").update(TemplateBody=json.dumps(template))
-
-    state_machine = sf.describe_state_machine(stateMachineArn=machine_arn)
-    state_machine["name"].should.equal("HelloWorld-StateMachine")
-    state_machine["creationDate"].should.equal(creation_date)
-    state_machine["roleArn"].should.equal(updated_role)
-    state_machine["definition"].should.equal(updated_definition)
-    tags = sf.list_tags_for_resource(resourceArn=machine_arn).get("tags")
-    tags.should.have.length_of(3)
-    for tag in tags:
-        if tag["key"] == "key1":
-            tag["value"].should.equal("updated_value")
 
 
 def _get_account_id():

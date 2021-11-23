@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import route53_backend
 
 route53_backends = {"global": route53_backend}

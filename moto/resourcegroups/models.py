@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from builtins import str
 
 import json
@@ -12,7 +11,9 @@ from .exceptions import BadRequestException
 
 
 class FakeResourceGroup(BaseModel):
-    def __init__(self, name, resource_query, description=None, tags=None):
+    def __init__(
+        self, name, resource_query, description=None, tags=None, configuration=None
+    ):
         self.errors = []
         description = description or ""
         tags = tags or {}
@@ -28,6 +29,7 @@ class FakeResourceGroup(BaseModel):
         self.arn = "arn:aws:resource-groups:us-west-1:{AccountId}:{name}".format(
             name=name, AccountId=ACCOUNT_ID
         )
+        self.configuration = configuration
 
     @staticmethod
     def _format_error(key, value, constraint):
@@ -94,6 +96,8 @@ class FakeResourceGroup(BaseModel):
         return True
 
     def _validate_resource_query(self, value):
+        if not value:
+            return True
         errors = []
         if value["Type"] not in {"CLOUDFORMATION_STACK_1_0", "TAG_FILTERS_1_0"}:
             errors.append(
@@ -226,6 +230,8 @@ class ResourceGroupsBackend(BaseBackend):
 
     @staticmethod
     def _validate_resource_query(resource_query):
+        if not resource_query:
+            return
         type = resource_query["Type"]
         query = json.loads(resource_query["Query"])
         query_keys = set(query.keys())
@@ -297,10 +303,16 @@ class ResourceGroupsBackend(BaseBackend):
             if tag.lower().startswith("aws:"):
                 raise BadRequestException("Tag keys must not start with 'aws:'")
 
-    def create_group(self, name, resource_query, description=None, tags=None):
+    def create_group(
+        self, name, resource_query, description=None, tags=None, configuration=None
+    ):
         tags = tags or {}
         group = FakeResourceGroup(
-            name=name, resource_query=resource_query, description=description, tags=tags
+            name=name,
+            resource_query=resource_query,
+            description=description,
+            tags=tags,
+            configuration=configuration,
         )
         if name in self.groups:
             raise BadRequestException("Cannot create group: group already exists")
@@ -348,6 +360,15 @@ class ResourceGroupsBackend(BaseBackend):
     def update_group_query(self, group_name, resource_query):
         self._validate_resource_query(resource_query)
         self.groups.by_name[group_name].resource_query = resource_query
+        return self.groups.by_name[group_name]
+
+    def get_group_configuration(self, group_name):
+        group = self.groups.by_name.get(group_name)
+        configuration = group.configuration
+        return configuration
+
+    def put_group_configuration(self, group_name, configuration):
+        self.groups.by_name[group_name].configuration = configuration
         return self.groups.by_name[group_name]
 
 

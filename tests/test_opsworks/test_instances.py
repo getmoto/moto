@@ -1,9 +1,9 @@
-from __future__ import unicode_literals
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_opsworks
 from moto import mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_opsworks
@@ -183,6 +183,7 @@ def test_ec2_integration():
     )["LayerId"]
 
     instance_id = opsworks.create_instance(
+        AmiId=EXAMPLE_AMI_ID,
         StackId=stack_id,
         LayerIds=[layer_id],
         InstanceType="t2.micro",

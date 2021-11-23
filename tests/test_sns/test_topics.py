@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
 import boto
 import json
-import six
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
@@ -11,6 +9,7 @@ from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 from moto.core import ACCOUNT_ID
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_create_and_delete_topic():
     conn = boto.connect_sns()
@@ -32,12 +31,14 @@ def test_create_and_delete_topic():
     topics.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_delete_non_existent_topic():
     conn = boto.connect_sns()
     conn.delete_topic.when.called_with("a-fake-arn").should.throw(BotoServerError)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_get_missing_topic():
     conn = boto.connect_sns()
@@ -46,6 +47,7 @@ def test_get_missing_topic():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_create_topic_in_multiple_regions():
     for region in ["us-west-1", "us-west-2"]:
@@ -56,6 +58,7 @@ def test_create_topic_in_multiple_regions():
         ).should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_topic_corresponds_to_region():
     for region in ["us-east-1", "us-west-2"]:
@@ -70,6 +73,7 @@ def test_topic_corresponds_to_region():
         )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_topic_attributes():
     conn = boto.connect_sns()
@@ -124,17 +128,9 @@ def test_topic_attributes():
         DEFAULT_EFFECTIVE_DELIVERY_POLICY
     )
 
-    # boto can't handle prefix-mandatory strings:
-    # i.e. unicode on Python 2 -- u"foobar"
-    # and bytes on Python 3 -- b"foobar"
-    if six.PY2:
-        policy = json.dumps({b"foo": b"bar"})
-        displayname = b"My display name"
-        delivery = {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}}
-    else:
-        policy = json.dumps({"foo": "bar"})
-        displayname = "My display name"
-        delivery = {"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}
+    policy = json.dumps({"foo": "bar"})
+    displayname = "My display name"
+    delivery = {"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}
     conn.set_topic_attributes(topic_arn, "Policy", policy)
     conn.set_topic_attributes(topic_arn, "DisplayName", displayname)
     conn.set_topic_attributes(topic_arn, "DeliveryPolicy", delivery)
@@ -149,6 +145,7 @@ def test_topic_attributes():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_topic_paging():
     conn = boto.connect_sns()
@@ -170,6 +167,7 @@ def test_topic_paging():
     next_token.should.equal(None)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_topic_kms_master_key_id_attribute():
     conn = boto.connect_sns()

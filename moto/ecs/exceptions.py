@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError, JsonRESTError
 
 
@@ -45,7 +44,16 @@ class ClusterNotFoundException(JsonRESTError):
 
     def __init__(self):
         super(ClusterNotFoundException, self).__init__(
-            error_type="ClientException", message="Cluster not found",
+            error_type="ClusterNotFoundException", message="Cluster not found.",
+        )
+
+
+class EcsClientException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(EcsClientException, self).__init__(
+            error_type="ClientException", message=message,
         )
 
 
@@ -54,5 +62,12 @@ class InvalidParameterException(JsonRESTError):
 
     def __init__(self, message):
         super(InvalidParameterException, self).__init__(
-            error_type="ClientException", message=message,
+            error_type="InvalidParameterException", message=message,
+        )
+
+
+class UnknownAccountSettingException(InvalidParameterException):
+    def __init__(self):
+        super().__init__(
+            "unknown should be one of [serviceLongArnFormat,taskLongArnFormat,containerInstanceLongArnFormat,containerLongArnFormat,awsvpcTrunking,containerInsights,dualStackIPv6]"
         )

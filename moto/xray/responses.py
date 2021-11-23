@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
 import json
 import datetime
 
 from moto.core.responses import BaseResponse
 from moto.core.exceptions import AWSError
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 
 from .models import xray_backends
 from .exceptions import BadSegmentException

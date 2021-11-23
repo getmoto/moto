@@ -91,7 +91,7 @@ EB_CREATE_APPLICATION = """
           </MaxCountRule>
         </VersionLifecycleConfig>
       </ResourceLifecycleConfig>
-      <ApplicationArn>arn:aws:elasticbeanstalk:{{ region_name }}:111122223333:application/{{ application.application_name }}</ApplicationArn>
+      <ApplicationArn>{{ application.arn }}</ApplicationArn>
       <ApplicationName>{{ application.application_name }}</ApplicationName>
       <DateUpdated>2019-09-03T13:08:29.049Z</DateUpdated>
     </Application>
@@ -125,7 +125,7 @@ EB_DESCRIBE_APPLICATIONS = """
             </MaxCountRule>
           </VersionLifecycleConfig>
         </ResourceLifecycleConfig>
-        <ApplicationArn>arn:aws:elasticbeanstalk:{{ region_name }}:111122223333:application/{{ application.application_name }}</ApplicationArn>
+        <ApplicationArn>{{ application.arn }}</ApplicationArn>
         <ApplicationName>{{ application.application_name }}</ApplicationName>
         <DateUpdated>2019-09-03T13:08:29.049Z</DateUpdated>
       </member>

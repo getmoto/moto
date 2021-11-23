@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import datetime
 import boto3
-from botocore.exceptions import ClientError, ParamValidationError
-import sure  # noqa
+from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
@@ -120,27 +117,6 @@ def test_create_notebook_instance_params():
 
     resp = sagemaker.list_tags(ResourceArn=resp["NotebookInstanceArn"])
     assert resp["Tags"] == GENERIC_TAGS_PARAM
-
-
-@mock_sagemaker
-def test_create_notebook_instance_bad_volume_size():
-
-    sagemaker = boto3.client("sagemaker", region_name="us-east-1")
-
-    vol_size = 2
-    args = {
-        "NotebookInstanceName": "MyNotebookInstance",
-        "InstanceType": "ml.t2.medium",
-        "RoleArn": FAKE_ROLE_ARN,
-        "VolumeSizeInGB": vol_size,
-    }
-    with pytest.raises(ParamValidationError) as ex:
-        sagemaker.create_notebook_instance(**args)
-    assert ex.value.args[
-        0
-    ] == "Parameter validation failed:\nInvalid range for parameter VolumeSizeInGB, value: {}, valid range: 5-inf".format(
-        vol_size
-    )
 
 
 @mock_sagemaker

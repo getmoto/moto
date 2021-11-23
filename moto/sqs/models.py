@@ -1,12 +1,13 @@
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 import json
+import random
 import re
-import six
+import string
+
 import struct
 from copy import deepcopy
+from typing import Dict
 from xml.sax.saxutils import escape
 
 from boto3 import Session
@@ -67,7 +68,7 @@ DEDUPLICATION_TIME_IN_SECONDS = 300
 
 
 class Message(BaseModel):
-    def __init__(self, message_id, body):
+    def __init__(self, message_id, body, system_attributes={}):
         self.id = message_id
         self._body = body
         self.message_attributes = {}
@@ -78,8 +79,10 @@ class Message(BaseModel):
         self.approximate_receive_count = 0
         self.deduplication_id = None
         self.group_id = None
+        self.sequence_number = None
         self.visible_at = 0
         self.delayed_until = 0
+        self.system_attributes = system_attributes
 
     @property
     def body_md5(self):
@@ -142,7 +145,7 @@ class Message(BaseModel):
 
     @staticmethod
     def utf8(string):
-        if isinstance(string, six.string_types):
+        if isinstance(string, str):
             return string.encode("utf-8")
         return string
 
@@ -217,7 +220,12 @@ class Queue(CloudFormationModel):
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
     ]
-    FIFO_ATTRIBUTES = ["FifoQueue", "ContentBasedDeduplication"]
+    FIFO_ATTRIBUTES = [
+        "ContentBasedDeduplication",
+        "DeduplicationScope",
+        "FifoQueue",
+        "FifoThroughputLimit",
+    ]
     KMS_ATTRIBUTES = ["KmsDataKeyReusePeriodSeconds", "KmsMasterKeyId"]
     ALLOWED_PERMISSIONS = (
         "*",
@@ -252,8 +260,10 @@ class Queue(CloudFormationModel):
         # default settings for a non fifo queue
         defaults = {
             "ContentBasedDeduplication": "false",
+            "DeduplicationScope": "queue",
             "DelaySeconds": 0,
             "FifoQueue": "false",
+            "FifoThroughputLimit": "perQueue",
             "KmsDataKeyReusePeriodSeconds": 300,  # five minutes
             "KmsMasterKeyId": None,
             "MaximumMessageSize": MAXIMUM_MESSAGE_LENGTH,
@@ -302,7 +312,7 @@ class Queue(CloudFormationModel):
         )
         bool_fields = ("ContentBasedDeduplication", "FifoQueue")
 
-        for key, value in six.iteritems(attributes):
+        for key, value in attributes.items():
             if key in integer_fields:
                 value = int(value)
             if key in bool_fields:
@@ -323,7 +333,7 @@ class Queue(CloudFormationModel):
 
     def _setup_dlq(self, policy):
 
-        if isinstance(policy, six.text_type):
+        if isinstance(policy, str):
             try:
                 self.redrive_policy = json.loads(policy)
             except ValueError:
@@ -383,12 +393,15 @@ class Queue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = deepcopy(cloudformation_json["Properties"])
         # remove Tags from properties and convert tags list to dict
         tags = properties.pop("Tags", [])
         tags_dict = tags_from_cloudformation_tags_list(tags)
+
+        # Could be passed as an integer - just treat it as a string
+        resource_name = str(resource_name)
 
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
@@ -473,6 +486,7 @@ class Queue(CloudFormationModel):
 
     @property
     def messages(self):
+        # TODO: This can become very inefficient if a large number of messages are in-flight
         return [
             message
             for message in self._messages
@@ -493,7 +507,6 @@ class Queue(CloudFormationModel):
                         return
 
         self._messages.append(message)
-        from moto.awslambda import lambda_backends
 
         for arn, esm in self.lambda_event_source_mappings.items():
             backend = sqs_backends[self.region]
@@ -511,6 +524,8 @@ class Queue(CloudFormationModel):
                 self.visibility_timeout,
             )
 
+            from moto.awslambda import lambda_backends
+
             result = lambda_backends[self.region].send_sqs_batch(
                 arn, messages, self.queue_arn
             )
@@ -518,10 +533,17 @@ class Queue(CloudFormationModel):
             if result:
                 [backend.delete_message(self.name, m.receipt_handle) for m in messages]
             else:
+                # Make messages visible again
                 [
-                    backend.change_message_visibility(self.name, m.receipt_handle, 0)
+                    backend.change_message_visibility(
+                        self.name, m.receipt_handle, visibility_timeout=0
+                    )
                     for m in messages
                 ]
+
+    @classmethod
+    def has_cfn_attr(cls, attribute_name):
+        return attribute_name in ["Arn", "QueueName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -563,7 +585,7 @@ def _filter_message_attributes(message, input_message_attributes):
 class SQSBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
-        self.queues = {}
+        self.queues: Dict[str, Queue] = {}
         super(SQSBackend, self).__init__()
 
     def reset(self):
@@ -571,6 +593,13 @@ class SQSBackend(BaseBackend):
         self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "sqs"
+        )
 
     def create_queue(self, name, tags=None, **kwargs):
         queue = self.queues.get(name)
@@ -624,15 +653,14 @@ class SQSBackend(BaseBackend):
         return queue
 
     def delete_queue(self, queue_name):
-        if queue_name in self.queues:
-            return self.queues.pop(queue_name)
-        return False
+        self.get_queue(queue_name)
+
+        del self.queues[queue_name]
 
     def get_queue_attributes(self, queue_name, attribute_names):
         queue = self.get_queue(queue_name)
-
-        if not len(attribute_names):
-            attribute_names.append("All")
+        if not attribute_names:
+            return {}
 
         valid_names = (
             ["All"]
@@ -671,6 +699,7 @@ class SQSBackend(BaseBackend):
         delay_seconds=None,
         deduplication_id=None,
         group_id=None,
+        system_attributes=None,
     ):
 
         queue = self.get_queue(queue_name)
@@ -687,7 +716,7 @@ class SQSBackend(BaseBackend):
             delay_seconds = queue.delay_seconds
 
         message_id = get_random_message_id()
-        message = Message(message_id, message_body)
+        message = Message(message_id, message_body, system_attributes)
 
         # if content based deduplication is set then set sha256 hash of the message
         # as the deduplication_id
@@ -699,7 +728,16 @@ class SQSBackend(BaseBackend):
         # Attributes, but not *message* attributes
         if deduplication_id is not None:
             message.deduplication_id = deduplication_id
-        if group_id is not None:
+            message.sequence_number = "".join(
+                random.choice(string.digits) for _ in range(20)
+            )
+
+        if group_id is None:
+            # MessageGroupId is a mandatory parameter for all
+            # messages in a fifo queue
+            if queue.fifo_queue:
+                raise MissingParameter("MessageGroupId")
+        else:
             message.group_id = group_id
 
         if message_attributes:
@@ -820,6 +858,7 @@ class SQSBackend(BaseBackend):
 
                 if (
                     queue.dead_letter_queue is not None
+                    and queue.redrive_policy
                     and message.approximate_receive_count
                     >= queue.redrive_policy["maxReceiveCount"]
                 ):
@@ -828,8 +867,14 @@ class SQSBackend(BaseBackend):
 
                 queue.pending_messages.add(message)
                 message.mark_received(visibility_timeout=visibility_timeout)
-                _filter_message_attributes(message, message_attribute_names)
-                result.append(message)
+                # Create deepcopy to not mutate the message state when filtering for attributes
+                message_copy = deepcopy(message)
+                _filter_message_attributes(message_copy, message_attribute_names)
+                if not self.is_message_valid_based_on_retention_period(
+                    queue_name, message
+                ):
+                    break
+                result.append(message_copy)
                 if len(result) >= count:
                     break
 
@@ -860,12 +905,11 @@ class SQSBackend(BaseBackend):
         ):
             raise ReceiptHandleIsInvalid()
 
+        # Delete message from queue regardless of pending state
         new_messages = []
         for message in queue._messages:
-            # Only delete message if it is not visible and the receipt_handle
-            # matches.
             if message.receipt_handle == receipt_handle:
-                queue.pending_messages.remove(message)
+                queue.pending_messages.discard(message)
                 continue
             new_messages.append(message)
         queue._messages = new_messages
@@ -876,6 +920,17 @@ class SQSBackend(BaseBackend):
             if message.receipt_handle == receipt_handle:
                 if message.visible:
                     raise MessageNotInflight
+
+                visibility_timeout_msec = int(visibility_timeout) * 1000
+                given_visibility_timeout = unix_time_millis() + visibility_timeout_msec
+                if given_visibility_timeout - message.sent_timestamp > 43200 * 1000:
+                    raise InvalidParameterValue(
+                        "Value {0} for parameter VisibilityTimeout is invalid. Reason: Total "
+                        "VisibilityTimeout for the message is beyond the limit [43200 seconds]".format(
+                            visibility_timeout
+                        )
+                    )
+
                 message.change_visibility(visibility_timeout)
                 if message.visible:
                     # If the message is visible again, remove it from pending
@@ -903,7 +958,7 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not actions:
-            raise MissingParameter()
+            raise MissingParameter("Actions")
 
         if not account_ids:
             raise InvalidParameterValue(
@@ -976,14 +1031,11 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not len(tags):
-            raise RESTError(
-                "MissingParameter", "The request must contain the parameter Tags."
-            )
+            raise MissingParameter("Tags")
 
         if len(tags) > 50:
-            raise RESTError(
-                "InvalidParameterValue",
-                "Too many tags added for queue {}.".format(queue_name),
+            raise InvalidParameterValue(
+                "Too many tags added for queue {}.".format(queue_name)
             )
 
         queue.tags.update(tags)
@@ -1005,6 +1057,18 @@ class SQSBackend(BaseBackend):
 
     def list_queue_tags(self, queue_name):
         return self.get_queue(queue_name)
+
+    def is_message_valid_based_on_retention_period(self, queue_name, message):
+        message_attributes = self.get_queue_attributes(
+            queue_name, ["MessageRetentionPeriod"]
+        )
+        retain_until = (
+            message_attributes.get("MessageRetentionPeriod")
+            + message.sent_timestamp / 1000
+        )
+        if retain_until <= unix_time():
+            return False
+        return True
 
 
 sqs_backends = {}

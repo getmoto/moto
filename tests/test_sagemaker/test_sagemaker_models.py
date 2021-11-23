@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import boto3
 from botocore.exceptions import ClientError
 import pytest
 from moto import mock_sagemaker
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.sagemaker.models import VpcConfig
 
@@ -15,10 +12,8 @@ class MySageMakerModel(object):
     def __init__(self, name, arn, container=None, vpc_config=None):
         self.name = name
         self.arn = arn
-        self.container = container if container else {}
-        self.vpc_config = (
-            vpc_config if vpc_config else {"sg-groups": ["sg-123"], "subnets": ["123"]}
-        )
+        self.container = container or {}
+        self.vpc_config = vpc_config or {"sg-groups": ["sg-123"], "subnets": ["123"]}
 
     def save(self):
         client = boto3.client("sagemaker", region_name="us-east-1")
@@ -43,6 +38,14 @@ def test_describe_model():
     test_model.save()
     model = client.describe_model(ModelName="blah")
     assert model.get("ModelName").should.equal("blah")
+
+
+@mock_sagemaker
+def test_describe_model_not_found():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    with pytest.raises(ClientError) as err:
+        client.describe_model(ModelName="unknown")
+    assert err.value.response["Error"]["Message"].should.contain("Could not find model")
 
 
 @mock_sagemaker

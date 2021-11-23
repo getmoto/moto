@@ -1,14 +1,10 @@
 #!/usr/bin/env python
-from __future__ import unicode_literals
-import codecs
 from io import open
 import os
 import re
-import setuptools
 from setuptools import setup, find_packages
 import sys
-
-PY2 = sys.version_info[0] == 2
+import moto.__init__ as service_list
 
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
 here = os.path.abspath(os.path.dirname(__file__))
@@ -34,60 +30,31 @@ def get_version():
 install_requires = [
     "boto3>=1.9.201",
     "botocore>=1.12.201",
-    "cryptography>=2.3.0",
+    "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "six>1.9",
     "werkzeug",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.9.0",
-    "MarkupSafe<2.0",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
+    "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
+    "Jinja2>=2.10.1",
+    "importlib_metadata ; python_version < '3.8'",
 ]
-
-#
-# Avoid pins where they are not necessary.  These pins were introduced by the
-# following commit for Py2 compatibility.  They are not required for non-Py2
-# users.
-#
-#   https://github.com/mpenkov/moto/commit/00134d2df37bb4dcd5f447ef951d383bfec0903c
-#
-if PY2:
-    install_requires += [
-        #
-        # This is an indirect dependency. Version 5.0.0 claims to be for
-        # Py2.6+, but it really isn't.
-        #
-        # https://github.com/jaraco/configparser/issues/51
-        #
-        "configparser<5.0",
-        "Jinja2<3.0.0,>=2.10.1",
-        "mock<=3.0.5",
-        "more-itertools==5.0.0",
-        "setuptools==44.0.0",
-        "zipp==0.6.0",
-    ]
-else:
-    install_requires += [
-        "Jinja2>=2.10.1",
-        "mock",
-        "more-itertools",
-        "setuptools",
-        "zipp",
-    ]
 
 _dep_PyYAML = "PyYAML>=5.1"
 _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
 _dep_python_jose_ecdsa_pin = (
     "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
 )
+_dep_dataclasses = "dataclasses; python_version < '3.7'"
 _dep_docker = "docker>=2.5.1"
 _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
-_dep_idna = "idna<3,>=2.5"
+_dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
-_dep_sshpubkeys_py2 = "sshpubkeys>=3.1.0,<4.0; python_version<'3'"
-_dep_sshpubkeys_py3 = "sshpubkeys>=3.1.0; python_version>'3'"
+_dep_sshpubkeys = "sshpubkeys>=3.1.0"
+_setuptools = "setuptools"
 
 all_extra_deps = [
     _dep_PyYAML,
@@ -98,44 +65,53 @@ all_extra_deps = [
     _dep_aws_xray_sdk,
     _dep_idna,
     _dep_cfn_lint,
-    _dep_sshpubkeys_py2,
-    _dep_sshpubkeys_py3,
+    _dep_sshpubkeys,
+    _setuptools,
 ]
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
-# TODO: do we want to add ALL services here?
-# i.e. even those without extra dependencies.
-# Would be good for future-compatibility, I guess.
-extras_per_service = {
-    "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "awslambda": [_dep_docker],
-    "batch": [_dep_docker],
-    "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
-    "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "dynamodb2": [_dep_docker],
-    "dynamodbstreams": [_dep_docker],
-    "ec2": [_dep_docker, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
-    "iotdata": [_dep_jsondiff],
-    "s3": [_dep_PyYAML],
-    "ses": [_dep_docker],
-    "sns": [_dep_docker],
-    "sqs": [_dep_docker],
-    "ssm": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
-    "xray": [_dep_aws_xray_sdk],
-}
+extras_per_service = {}
+for service_name in [
+    service[5:]
+    for service in dir(service_list)
+    if service.startswith("mock_") and not service == "mock_all"
+]:
+    extras_per_service[service_name] = []
+extras_per_service.update(
+    {
+        "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "awslambda": [_dep_docker],
+        "batch": [_dep_docker],
+        "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
+        "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "ec2": [_dep_sshpubkeys],
+        "iotdata": [_dep_jsondiff],
+        "s3": [_dep_PyYAML],
+        "ses": [],
+        "sns": [],
+        "sqs": [],
+        "ssm": [_dep_PyYAML, _dep_dataclasses],
+        # XRay module uses pkg_resources, but doesn't have an explicit
+        # dependency listed.  This should be fixed in the next version:
+        # https://github.com/aws/aws-xray-sdk-python/issues/305
+        "xray": [_dep_aws_xray_sdk, _setuptools],
+    }
+)
+
+# When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
+extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
+extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
+# EFS depends on EC2 to find subnets etc
+extras_per_service["efs"] = extras_per_service["ec2"]
+# DirectoryService needs EC2 to verify VPCs and subnets.
+extras_per_service["ds"] = extras_per_service["ec2"]
+extras_per_service["route53resolver"] = extras_per_service["ec2"]
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,
 }
 
 extras_require.update(extras_per_service)
-
-# https://hynek.me/articles/conditional-python-dependencies/
-if int(setuptools.__version__.split(".", 1)[0]) < 18:
-    if sys.version_info[0:2] < (3, 3):
-        install_requires.append("backports.tempfile")
-else:
-    extras_require[":python_version<'3.3'"] = ["backports.tempfile"]
 
 
 setup(
@@ -148,11 +124,7 @@ setup(
     author="Steve Pulec",
     author_email="spulec@gmail.com",
     url="https://github.com/spulec/moto",
-    entry_points={
-        "console_scripts": [
-            "moto_server = moto.server:main",
-        ],
-    },
+    entry_points={"console_scripts": ["moto_server = moto.server:main"]},
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
@@ -160,17 +132,14 @@ setup(
     license="Apache",
     test_suite="tests",
     classifiers=[
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
-    project_urls={
-        "Documentation": "http://docs.getmoto.org/en/latest/",
-    },
+    project_urls={"Documentation": "http://docs.getmoto.org/en/latest/"},
 )

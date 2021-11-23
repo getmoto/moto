@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import random
 import re
@@ -9,9 +7,12 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime
 
-from boto3 import Session
+from .utils import PAGINATION_MODEL
 
+from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from moto.utilities.utils import random_string
+from moto.utilities.paginator import paginate
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
@@ -20,8 +21,8 @@ from .exceptions import (
     InvalidStateTransitionException,
     VersionConflictException,
     ResourceAlreadyExistsException,
+    VersionsLimitExceededException,
 )
-from moto.utilities.utils import random_string
 
 
 class FakeThing(BaseModel):
@@ -67,6 +68,7 @@ class FakeThingType(BaseModel):
             "thingTypeId": self.thing_type_id,
             "thingTypeProperties": self.thing_type_properties,
             "thingTypeMetadata": self.metadata,
+            "thingTypeArn": self.arn,
         }
 
 
@@ -125,6 +127,7 @@ class FakeThingGroup(BaseModel):
             "version": self.version,
             "thingGroupProperties": self.thing_group_properties,
             "thingGroupMetadata": self.metadata,
+            "thingGroupArn": self.arn,
         }
 
 
@@ -142,7 +145,8 @@ class FakeCertificate(BaseModel):
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
-
+        self.validity_not_before = time.time() - 86400
+        self.validity_not_after = time.time() + 86400
         self.ca_certificate_id = None
         self.ca_certificate_pem = ca_certificate_pem
         if ca_certificate_pem:
@@ -172,6 +176,10 @@ class FakeCertificate(BaseModel):
             "ownedBy": self.owner,
             "creationDate": self.creation_date,
             "lastModifiedDate": self.last_modified_date,
+            "validity": {
+                "notBefore": self.validity_not_before,
+                "notAfter": self.validity_not_after,
+            },
             "transferData": self.transfer_data,
         }
 
@@ -425,6 +433,57 @@ class FakeEndpoint(BaseModel):
         return obj
 
 
+class FakeRule(BaseModel):
+    def __init__(
+        self,
+        rule_name,
+        description,
+        created_at,
+        rule_disabled,
+        topic_pattern,
+        actions,
+        error_action,
+        sql,
+        aws_iot_sql_version,
+        region_name,
+    ):
+        self.region_name = region_name
+        self.rule_name = rule_name
+        self.description = description or ""
+        self.created_at = created_at
+        self.rule_disabled = bool(rule_disabled)
+        self.topic_pattern = topic_pattern
+        self.actions = actions or []
+        self.error_action = error_action or {}
+        self.sql = sql
+        self.aws_iot_sql_version = aws_iot_sql_version or "2016-03-23"
+        self.arn = "arn:aws:iot:%s:1:rule/%s" % (self.region_name, rule_name)
+
+    def to_get_dict(self):
+        return {
+            "rule": {
+                "actions": self.actions,
+                "awsIotSqlVersion": self.aws_iot_sql_version,
+                "createdAt": self.created_at,
+                "description": self.description,
+                "errorAction": self.error_action,
+                "ruleDisabled": self.rule_disabled,
+                "ruleName": self.rule_name,
+                "sql": self.sql,
+            },
+            "ruleArn": self.arn,
+        }
+
+    def to_dict(self):
+        return {
+            "ruleName": self.rule_name,
+            "createdAt": self.created_at,
+            "ruleArn": self.arn,
+            "ruleDisabled": self.rule_disabled,
+            "topicPattern": self.topic_pattern,
+        }
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
@@ -438,12 +497,27 @@ class IoTBackend(BaseBackend):
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
         self.principal_things = OrderedDict()
+        self.rules = OrderedDict()
         self.endpoint = None
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "iot"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region,
+            zones,
+            "data.iot",
+            private_dns_names=False,
+            special_service_name="iot.data",
+            policy_supported=False,
+        )
 
     def create_thing(self, thing_name, thing_type_name, attribute_payload):
         thing_types = self.list_thing_types()
@@ -455,6 +529,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                # note - typo (depreated) exists also in the original exception.
+                raise InvalidRequestException(
+                    msg=f"Can not create new thing with depreated thing type:{thing_type_name}"
+                )
         if attribute_payload is None:
             attributes = {}
         elif "attributes" not in attribute_payload:
@@ -569,6 +649,15 @@ class IoTBackend(BaseBackend):
         thing_type = self.describe_thing_type(thing_type_name)
         del self.thing_types[thing_type.arn]
 
+    def deprecate_thing_type(self, thing_type_name, undo_deprecate):
+        thing_types = [
+            _ for _ in self.thing_types.values() if _.thing_type_name == thing_type_name
+        ]
+        if len(thing_types) == 0:
+            raise ResourceNotFoundException()
+        thing_types[0].metadata["deprecated"] = not undo_deprecate
+        return thing_types[0]
+
     def update_thing(
         self,
         thing_name,
@@ -593,6 +682,12 @@ class IoTBackend(BaseBackend):
             if len(filtered_thing_types) == 0:
                 raise ResourceNotFoundException()
             thing_type = filtered_thing_types[0]
+
+            if thing_type.metadata["deprecated"]:
+                raise InvalidRequestException(
+                    msg=f"Can not update a thing to use deprecated thing type: {thing_type_name}"
+                )
+
             thing.thing_type = thing_type
 
         if remove_thing_type:
@@ -756,6 +851,8 @@ class IoTBackend(BaseBackend):
         policy = self.get_policy(policy_name)
         if not policy:
             raise ResourceNotFoundException()
+        if len(policy.versions) >= 5:
+            raise VersionsLimitExceededException(policy_name)
         version = FakePolicyVersion(
             policy_name, policy_document, set_as_default, self.region_name
         )
@@ -816,9 +913,18 @@ class IoTBackend(BaseBackend):
                 raise ResourceNotFoundException()
             principal = certs[0]
             return principal
-        else:
-            # TODO: search for cognito_ids
-            pass
+        from moto.cognitoidentity import cognitoidentity_backends
+
+        cognito = cognitoidentity_backends[self.region_name]
+        identities = []
+        for identity_pool in cognito.identity_pools:
+            pool_identities = cognito.pools_identities.get(identity_pool, None)
+            identities.extend(
+                [pi["IdentityId"] for pi in pool_identities.get("Identities", [])]
+            )
+            if principal_arn in identities:
+                return {"IdentityId": principal_arn}
+
         raise ResourceNotFoundException()
 
     def attach_principal_policy(self, policy_name, principal_arn):
@@ -871,7 +977,7 @@ class IoTBackend(BaseBackend):
 
     def list_principal_things(self, principal_arn):
         thing_names = [
-            k[0] for k, v in self.principal_things.items() if k[0] == principal_arn
+            k[1] for k, v in self.principal_things.items() if k[0] == principal_arn
         ]
         return thing_names
 
@@ -1223,7 +1329,7 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
@@ -1243,9 +1349,8 @@ class IoTBackend(BaseBackend):
 
         return job_executions, next_token
 
-    def list_job_executions_for_thing(
-        self, thing_name, status, max_results, next_token
-    ):
+    @paginate(PAGINATION_MODEL)
+    def list_job_executions_for_thing(self, thing_name, status):
         job_executions = [
             self.job_executions[je].to_dict()
             for je in self.job_executions
@@ -1255,25 +1360,53 @@ class IoTBackend(BaseBackend):
         if status is not None:
             job_executions = list(
                 filter(
-                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
                     job_executions,
                 )
             )
 
-        token = next_token
-        if token is None:
-            job_executions = job_executions[0:max_results]
-            next_token = str(max_results) if len(job_executions) > max_results else None
-        else:
-            token = int(token)
-            job_executions = job_executions[token : token + max_results]
-            next_token = (
-                str(token + max_results)
-                if len(job_executions) > token + max_results
-                else None
-            )
+        return job_executions
 
-        return job_executions, next_token
+    def list_topic_rules(self):
+        return [r.to_dict() for r in self.rules.values()]
+
+    def get_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        return self.rules[rule_name].to_get_dict()
+
+    def create_topic_rule(self, rule_name, sql, **kwargs):
+        if rule_name in self.rules:
+            raise ResourceAlreadyExistsException("Rule with given name already exists")
+        result = re.search(r"FROM\s+([^\s]*)", sql)
+        topic = result.group(1).strip("'") if result else None
+        self.rules[rule_name] = FakeRule(
+            rule_name=rule_name,
+            created_at=int(time.time()),
+            topic_pattern=topic,
+            sql=sql,
+            region_name=self.region_name,
+            **kwargs,
+        )
+
+    def replace_topic_rule(self, rule_name, **kwargs):
+        self.delete_topic_rule(rule_name)
+        self.create_topic_rule(rule_name, **kwargs)
+
+    def delete_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        del self.rules[rule_name]
+
+    def enable_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        self.rules[rule_name].rule_disabled = False
+
+    def disable_topic_rule(self, rule_name):
+        if rule_name not in self.rules:
+            raise ResourceNotFoundException()
+        self.rules[rule_name].rule_disabled = True
 
 
 iot_backends = {}
