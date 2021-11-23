@@ -116,6 +116,7 @@ def test_ds_describe_directories():
         assert dir_info["Type"] == "SimpleAD"
         assert dir_info["VpcSettings"]["VpcId"].startswith("vpc-")
         assert len(dir_info["VpcSettings"]["SubnetIds"]) == 2
+        assert dir_info["VpcSettings"]["SecurityGroupId"].startswith("sg-")
         assert len(dir_info["DnsIpAddrs"]) == 2
     assert "NextToken" not in result
 
