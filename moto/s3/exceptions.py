@@ -253,6 +253,22 @@ class InvalidMaxPartArgument(S3ClientError):
         super(InvalidMaxPartArgument, self).__init__("InvalidArgument", error)
 
 
+class InvalidMaxPartNumberArgument(InvalidArgumentError):
+    code = 400
+
+    def __init__(self, value, *args, **kwargs):
+        error = "Part number must be an integer between 1 and 10000, inclusive"
+        super().__init__(message=error, name="partNumber", value=value, *args, **kwargs)
+
+
+class NotAnIntegerException(InvalidArgumentError):
+    code = 400
+
+    def __init__(self, name, value, *args, **kwargs):
+        error = f"Provided {name} not an integer or within integer range"
+        super().__init__(message=error, name=name, value=value, *args, **kwargs)
+
+
 class InvalidNotificationARN(S3ClientError):
     code = 400
 
