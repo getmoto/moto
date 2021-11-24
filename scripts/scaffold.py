@@ -396,9 +396,9 @@ def get_response_query_template(service, operation):  # pylint: disable=too-many
 
         start_tag = f"<{name}>"
         iter_name = f"{prefix[-1]}.{name.lower()}" if prefix else name.lower()
-        loop_start = f"{{%% for {singular_name.lower()} in {iter_name} %%}}"
+        loop_start = f"{{% for {singular_name.lower()} in {iter_name} %}}"
         end_tag = f"</{name}>"
-        loop_end = "{{ endfor }}"
+        loop_end = "{% endfor %}"
 
         start_tag_indexes = [i for i, l in enumerate(xml_body_lines) if start_tag in l]
         if len(start_tag_indexes) != 1:

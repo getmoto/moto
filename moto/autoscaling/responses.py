@@ -429,6 +429,12 @@ class AutoScalingResponse(BaseResponse):
             timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
         )
 
+    def describe_tags(self):
+        filters = self._get_params().get("Filters", [])
+        tags = self.autoscaling_backend.describe_tags(filters=filters)
+        template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
+        return template.render(tags=tags, next_token=None)
+
 
 CREATE_LAUNCH_CONFIGURATION_TEMPLATE = """<CreateLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
@@ -682,7 +688,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         {% endif %}
         <HealthCheckGracePeriod>{{ group.health_check_period }}</HealthCheckGracePeriod>
         <DefaultCooldown>{{ group.default_cooldown }}</DefaultCooldown>
-        <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/{{ group.name }}</AutoScalingGroupARN>
+        <AutoScalingGroupARN>{{ group.arn }}</AutoScalingGroupARN>
         {% if group.termination_policies %}
         <TerminationPolicies>
           {% for policy in group.termination_policies %}
@@ -990,3 +996,25 @@ TERMINATE_INSTANCES_TEMPLATE = """<TerminateInstanceInAutoScalingGroupResponse x
     <RequestId>a1ba8fb9-31d6-4d9a-ace1-a7f76749df11EXAMPLE</RequestId>
   </ResponseMetadata>
 </TerminateInstanceInAutoScalingGroupResponse>"""
+
+DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeTagsResult>
+    <Tags>
+{% for tag in tags %}
+      <member>
+        <ResourceId>{{ tag.resource_id }}</ResourceId>
+        <ResourceType>{{ tag.resource_type }}</ResourceType>
+        <Key>{{ tag.key }}</Key>
+        <Value>{{ tag.value }}</Value>
+        <PropagateAtLaunch>{{ tag.propagate_at_launch }}</PropagateAtLaunch>
+      </member>
+{% endfor %}
+    </Tags>
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
+  </DescribeTagsResult>
+</DescribeTagsResponse>"""

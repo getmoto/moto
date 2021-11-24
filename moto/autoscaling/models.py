@@ -1,4 +1,6 @@
+import itertools
 import random
+from uuid import uuid4
 
 from moto.packages.boto.ec2.blockdevicemapping import (
     BlockDeviceType,
@@ -282,6 +284,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.autoscaling_backend = autoscaling_backend
         self.ec2_backend = ec2_backend
         self.name = name
+        self._id = str(uuid4())
+        self.region = self.autoscaling_backend.region
 
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
@@ -308,8 +312,25 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.suspended_processes = []
         self.instance_states = []
-        self.tags = tags if tags else []
+        self.tags = tags or []
         self.set_desired_capacity(desired_capacity)
+
+    @property
+    def tags(self):
+        return self._tags
+
+    @tags.setter
+    def tags(self, tags):
+        for tag in tags:
+            if "resource_id" not in tag or not tag["resource_id"]:
+                tag["resource_id"] = self.name
+            if "resource_type" not in tag or not tag["resource_type"]:
+                tag["resource_type"] = "auto-scaling-group"
+        self._tags = tags
+
+    @property
+    def arn(self):
+        return f"arn:aws:autoscaling:{self.region}:{ACCOUNT_ID}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
 
     def active_instances(self):
         return [x for x in self.instance_states if x.lifecycle_state == "InService"]
@@ -1203,6 +1224,25 @@ class AutoScalingBackend(BaseBackend):
         self.detach_instances(group.name, [instance.id], should_decrement)
         self.ec2_backend.terminate_instances([instance.id])
         return instance_state, original_size, group.desired_capacity
+
+    def describe_tags(self, filters):
+        """
+        Pagination is not yet implemented.
+        Only the `auto-scaling-group` and `propagate-at-launch` filters are implemented.
+        """
+        resources = self.autoscaling_groups.values()
+        tags = list(itertools.chain(*[r.tags for r in resources]))
+        for f in filters:
+            if f["Name"] == "auto-scaling-group":
+                tags = [t for t in tags if t["resource_id"] in f["Values"]]
+            if f["Name"] == "propagate-at-launch":
+                values = [v.lower() for v in f["Values"]]
+                tags = [
+                    t
+                    for t in tags
+                    if t.get("propagate_at_launch", "").lower() in values
+                ]
+        return tags
 
 
 autoscaling_backends = {}
