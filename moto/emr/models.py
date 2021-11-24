@@ -167,7 +167,7 @@ class FakeCluster(BaseModel):
         step_concurrency_level=1,
         security_configuration=None,
         kerberos_attributes=None,
-        auto_scaling_role=None
+        auto_scaling_role=None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
