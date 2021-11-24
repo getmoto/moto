@@ -415,6 +415,12 @@ def test_route53resolver_delete_resolver_endpoint():
     assert "Deleting" in endpoint["StatusMessage"]
     assert endpoint["CreationTime"] == created_endpoint["CreationTime"]
 
+    # Verify there are no endpoints or no network interfaces.
+    response = client.list_resolver_endpoints()
+    assert len(response["ResolverEndpoints"]) == 0
+    result = ec2_client.describe_network_interfaces()
+    assert len(result["NetworkInterfaces"]) == 0
+
 
 @mock_ec2
 @mock_route53resolver

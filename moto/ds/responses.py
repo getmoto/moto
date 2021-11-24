@@ -97,13 +97,13 @@ class DirectoryServiceResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         limit = self._get_int_param("Limit")
         try:
-            (descriptions, next_token) = self.ds_backend.describe_directories(
+            (directories, next_token) = self.ds_backend.describe_directories(
                 directory_ids, next_token=next_token, limit=limit
             )
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"DirectoryDescriptions": [x.to_json() for x in descriptions]}
+        response = {"DirectoryDescriptions": [x.to_dict() for x in directories]}
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)

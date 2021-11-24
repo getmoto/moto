@@ -36,6 +36,16 @@ def test_ds_delete_directory():
     result = client.delete_directory(DirectoryId=directory_id)
     assert result["DirectoryId"] == directory_id
 
+    # Verify there are no dictionaries, network interfaces or associated
+    # security groups.
+    result = client.describe_directories()
+    assert len(result["DirectoryDescriptions"]) == 0
+    result = ec2_client.describe_network_interfaces()
+    assert len(result["NetworkInterfaces"]) == 0
+    result = ec2_client.describe_security_groups()
+    for group in result["SecurityGroups"]:
+        assert "directory controllers" not in group["Description"]
+
     # Attempt to delete a non-existent directory.
     nonexistent_id = f"d-{get_random_hex(10)}"
     with pytest.raises(ClientError) as exc:
@@ -116,6 +126,7 @@ def test_ds_describe_directories():
         assert dir_info["Type"] == "SimpleAD"
         assert dir_info["VpcSettings"]["VpcId"].startswith("vpc-")
         assert len(dir_info["VpcSettings"]["SubnetIds"]) == 2
+        assert dir_info["VpcSettings"]["SecurityGroupId"].startswith("sg-")
         assert len(dir_info["DnsIpAddrs"]) == 2
     assert "NextToken" not in result
 

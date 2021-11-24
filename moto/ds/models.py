@@ -79,26 +79,31 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.stage = "Active"
         self.launch_time = datetime.now(timezone.utc).isoformat()
         self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
-        # Create a security group and ENI, returning the IPs for the ENI.
-        subnet_ips = self.create_eni()
 
-        if self.directory_type != "ADConnector":
-            self.dns_ip_addrs = subnet_ips
-        else:
+        if self.directory_type == "ADConnector":
+            self.security_group_id = self.create_security_group(
+                self.connect_settings["VpcId"]
+            )
+            self.eni_ids, self.subnet_ips = self.create_eni(
+                self.security_group_id, self.connect_settings["SubnetIds"]
+            )
+            self.connect_settings["SecurityGroupId"] = self.security_group_id
+            self.connect_settings["ConnectIps"] = self.subnet_ips
             self.dns_ip_addrs = self.connect_settings["CustomerDnsIps"]
-            self.connect_settings["ConnectIps"] = subnet_ips
 
-    def create_eni(self):
-        """Return IP addrs after creating an ENI for each subnet."""
-        if self.vpc_settings:
-            vpc_id = self.vpc_settings["VpcId"]
-            subnet_ids = self.vpc_settings["SubnetIds"]
         else:
-            vpc_id = self.connect_settings["VpcId"]
-            subnet_ids = self.connect_settings["SubnetIds"]
+            self.security_group_id = self.create_security_group(
+                self.vpc_settings["VpcId"]
+            )
+            self.eni_ids, self.subnet_ips = self.create_eni(
+                self.security_group_id, self.vpc_settings["SubnetIds"]
+            )
+            self.vpc_settings["SecurityGroupId"] = self.security_group_id
+            self.dns_ip_addrs = self.subnet_ips
 
-        # Need a security group for the ENI.
-        security_group = ec2_backends[self.region].create_security_group(
+    def create_security_group(self, vpc_id):
+        """Create security group for the network interface."""
+        security_group_info = ec2_backends[self.region].create_security_group(
             name=f"{self.directory_id}_controllers",
             description=(
                 f"AWS created security group for {self.directory_id} "
@@ -106,17 +111,31 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
             ),
             vpc_id=vpc_id,
         )
+        return security_group_info.id
 
-        ip_addrs = []
+    def delete_security_group(self):
+        """Delete the given security group."""
+        ec2_backends[self.region].delete_security_group(group_id=self.security_group_id)
+
+    def create_eni(self, security_group_id, subnet_ids):
+        """Return ENI ids and primary addresses created for each subnet."""
+        eni_ids = []
+        subnet_ips = []
         for subnet_id in subnet_ids:
             eni_info = ec2_backends[self.region].create_network_interface(
                 subnet=subnet_id,
                 private_ip_address=None,
-                group_ids=[security_group.id],
+                group_ids=[security_group_id],
                 description=f"AWS created network interface for {self.directory_id}",
             )
-            ip_addrs.append(eni_info.private_ip_address)
-        return ip_addrs
+            eni_ids.append(eni_info.id)
+            subnet_ips.append(eni_info.private_ip_address)
+        return eni_ids, subnet_ips
+
+    def delete_eni(self):
+        """Delete ENI for each subnet and the security group."""
+        for eni_id in self.eni_ids:
+            ec2_backends[self.region].delete_network_interface(eni_id)
 
     def update_alias(self, alias):
         """Change default alias to given alias."""
@@ -127,26 +146,37 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         """Enable/disable sso based on whether new_state is True or False."""
         self.sso_enabled = new_state
 
-    def to_json(self):
-        """Convert the attributes into json with CamelCase tags."""
-        replacement_keys = {"directory_type": "Type"}
-        exclude_items = ["password"]
+    def to_dict(self):
+        """Create a dictionary of attributes for Directory."""
+        attributes = {
+            "AccessUrl": self.access_url,
+            "Alias": self.alias,
+            "DirectoryId": self.directory_id,
+            "DesiredNumberOfDomainControllers": self.desired_number_of_domain_controllers,
+            "DnsIpAddrs": self.dns_ip_addrs,
+            "LaunchTime": self.launch_time,
+            "Name": self.name,
+            "SsoEnabled": self.sso_enabled,
+            "Stage": self.stage,
+            "StageLastUpdatedDateTime": self.stage_last_updated_date_time,
+            "Type": self.directory_type,
+        }
 
-        json_result = {}
-        for item, value in self.__dict__.items():
-            # Discard empty strings, but allow values set to False or zero.
-            if value == "" or item in exclude_items:
-                continue
+        if self.edition:
+            attributes["Edition"] = self.edition
+        if self.size:
+            attributes["Size"] = self.size
+        if self.short_name:
+            attributes["ShortName"] = self.short_name
+        if self.description:
+            attributes["Description"] = self.description
 
-            if item in replacement_keys:
-                json_result[replacement_keys[item]] = value
-            else:
-                new_tag = "".join(x.title() for x in item.split("_"))
-                json_result[new_tag] = value
-
-        if json_result["ConnectSettings"]:
-            json_result["ConnectSettings"]["CustomerDnsIps"] = None
-        return json_result
+        if self.vpc_settings:
+            attributes["VpcSettings"] = self.vpc_settings
+        else:
+            attributes["ConnectSettings"] = self.connect_settings
+            attributes["ConnectSettings"]["CustomerDnsIps"] = None
+        return attributes
 
 
 class DirectoryServiceBackend(BaseBackend):
@@ -394,6 +424,8 @@ class DirectoryServiceBackend(BaseBackend):
     def delete_directory(self, directory_id):
         """Delete directory with the matching ID."""
         self._validate_directory_id(directory_id)
+        self.directories[directory_id].delete_eni()
+        self.directories[directory_id].delete_security_group()
         self.tagger.delete_all_tags_for_resource(directory_id)
         self.directories.pop(directory_id)
         return directory_id
