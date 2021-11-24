@@ -118,3 +118,5 @@ TestAccAWSENI_basic
 TestAccAWSENI_IPv6
 TestAccAWSENI_disappears
 TestAccAWSS3BucketObject_
+TestAccAWSIAMPolicy_
+TestAccAWSIAMGroup_
