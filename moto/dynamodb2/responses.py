@@ -1203,3 +1203,19 @@ class DynamoHandler(BaseResponse):
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
             return self.error(er, "Table already exists: %s" % target_table_name)
+
+    def restore_table_to_point_in_time(self):
+        body = self.body
+        target_table_name = body.get("TargetTableName")
+        source_table_name = body.get("SourceTableName")
+        try:
+            restored_table = self.dynamodb_backend.restore_table_to_point_in_time(
+                target_table_name, source_table_name
+            )
+            return dynamo_json_dump(restored_table.describe())
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#SourceTableNotFoundException"
+            return self.error(er, "Source table not found: %s" % source_table_name)
+        except ValueError:
+            er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
+            return self.error(er, "Table already exists: %s" % target_table_name)

@@ -1020,6 +1020,36 @@ class RestoredTable(Table):
         return result
 
 
+class RestoredPITTable(Table):
+    def __init__(self, name, source):
+        params = self._parse_params_from_table(source)
+        super(RestoredPITTable, self).__init__(name, **params)
+        self.indexes = copy.deepcopy(source.indexes)
+        self.global_indexes = copy.deepcopy(source.global_indexes)
+        self.items = copy.deepcopy(source.items)
+        # Restore Attrs
+        self.source_table_arn = source.table_arn
+        self.restore_date_time = self.created_at
+
+    @staticmethod
+    def _parse_params_from_table(table):
+        params = {
+            "schema": copy.deepcopy(table.schema),
+            "attr": copy.deepcopy(table.attr),
+            "throughput": copy.deepcopy(table.throughput),
+        }
+        return params
+
+    def describe(self, base_key="TableDescription"):
+        result = super(RestoredPITTable, self).describe(base_key=base_key)
+        result[base_key]["RestoreSummary"] = {
+            "SourceTableArn": self.source_table_arn,
+            "RestoreDateTime": unix_time(self.restore_date_time),
+            "RestoreInProgress": False,
+        }
+        return result
+
+
 class Backup(object):
     def __init__(
         self, backend, name, table, status=None, type_=None,
@@ -1697,6 +1727,22 @@ class DynamoDBBackend(BaseBackend):
         if existing_table is not None:
             raise ValueError()
         new_table = RestoredTable(target_table_name, backup)
+        self.tables[target_table_name] = new_table
+        return new_table
+
+    """
+    Currently this only accepts the source and target table elements, and will
+    copy all items from the source without respect to other arguments.
+    """
+
+    def restore_table_to_point_in_time(self, target_table_name, source_table_name):
+        source = self.get_table(source_table_name)
+        if source is None:
+            raise KeyError()
+        existing_table = self.get_table(target_table_name)
+        if existing_table is not None:
+            raise ValueError()
+        new_table = RestoredPITTable(target_table_name, source)
         self.tables[target_table_name] = new_table
         return new_table
 

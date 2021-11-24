@@ -5525,6 +5525,76 @@ def test_restore_table_from_backup():
 
 
 @mock_dynamodb2
+def test_restore_table_to_point_in_time():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = "test-table"
+    resp = client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resp.get("TableDescription")
+    for i in range(5):
+        client.put_item(TableName=table_name, Item={"id": {"S": "item %d" % i}})
+
+    restored_table_name = "restored-from-pit"
+    restored = client.restore_table_to_point_in_time(
+        TargetTableName=restored_table_name, SourceTableName=table_name
+    ).get("TableDescription")
+    restored.should.have.key("TableName").should.equal(restored_table_name)
+    restored.should.have.key("KeySchema").should.equal(table["KeySchema"])
+    restored.should.have.key("TableStatus")
+    restored.should.have.key("ItemCount").should.equal(5)
+    restored.should.have.key("TableArn").should.contain(restored_table_name)
+    restored.should.have.key("RestoreSummary").should.be.a(dict)
+    summary = restored.get("RestoreSummary")
+    summary.should.have.key("SourceTableArn").should.equal(table["TableArn"])
+    summary.should.have.key("RestoreDateTime").should.be.a(datetime)
+    summary.should.have.key("RestoreInProgress").should.equal(False)
+
+
+@mock_dynamodb2
+def test_restore_table_to_point_in_time_raises_error_when_source_not_exist():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = "test-table"
+    restored_table_name = "restored-from-pit"
+    with pytest.raises(ClientError) as ex:
+        client.restore_table_to_point_in_time(
+            TargetTableName=restored_table_name, SourceTableName=table_name
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("SourceTableNotFoundException")
+    error["Message"].should.equal("Source table not found: %s" % table_name)
+
+
+@mock_dynamodb2
+def test_restore_table_to_point_in_time_raises_error_when_dest_exist():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = "test-table"
+    restored_table_name = "restored-from-pit"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.create_table(
+        TableName=restored_table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    with pytest.raises(ClientError) as ex:
+        client.restore_table_to_point_in_time(
+            TargetTableName=restored_table_name, SourceTableName=table_name
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("TableAlreadyExistsException")
+    error["Message"].should.equal("Table already exists: %s" % restored_table_name)
+
+
+@mock_dynamodb2
 def test_delete_non_existent_backup_raises_error():
     client = boto3.client("dynamodb", "us-east-1")
     non_existent_arn = "arn:aws:dynamodb:us-east-1:123456789012:table/table-name/backup/01623095754481-2cfcd6f9"
