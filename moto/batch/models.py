@@ -200,6 +200,7 @@ class JobDefinition(CloudFormationModel):
         tags={},
         revision=0,
         retry_strategy=0,
+        timeout=None,
     ):
         self.name = name
         self.retries = retry_strategy
@@ -210,9 +211,8 @@ class JobDefinition(CloudFormationModel):
         self.arn = None
         self.status = "ACTIVE"
         self.tagger = TaggingService()
-        if parameters is None:
-            parameters = {}
-        self.parameters = parameters
+        self.parameters = parameters or {}
+        self.timeout = timeout
 
         self._validate()
         self._update_arn()
@@ -295,7 +295,9 @@ class JobDefinition(CloudFormationModel):
         if vcpus < 1:
             raise ClientException("container vcpus limit must be greater than 0")
 
-    def update(self, parameters, _type, container_properties, retry_strategy, tags):
+    def update(
+        self, parameters, _type, container_properties, retry_strategy, tags, timeout
+    ):
         if parameters is None:
             parameters = self.parameters
 
@@ -317,6 +319,7 @@ class JobDefinition(CloudFormationModel):
             revision=self.revision,
             retry_strategy=retry_strategy,
             tags=tags,
+            timeout=timeout,
         )
 
     def describe(self):
@@ -333,6 +336,8 @@ class JobDefinition(CloudFormationModel):
             result["containerProperties"] = self.container_properties
         if self.retries is not None and self.retries > 0:
             result["retryStrategy"] = {"attempts": self.retries}
+        if self.timeout:
+            result["timeout"] = self.timeout
 
         return result
 
@@ -362,6 +367,7 @@ class JobDefinition(CloudFormationModel):
             tags=lowercase_first_key(properties.get("Tags", {})),
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=lowercase_first_key(properties["ContainerProperties"]),
+            timeout=lowercase_first_key(properties.get("timeout", {})),
         )
         arn = res[1]
 
@@ -378,6 +384,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         container_overrides,
         depends_on,
         all_jobs,
+        timeout,
     ):
         """
         Docker Job
@@ -405,6 +412,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_stopped = False
         self.job_stopped_reason = None
         self.depends_on = depends_on
+        self.timeout = timeout
         self.all_jobs = all_jobs
 
         self.stop = False
@@ -447,6 +455,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
             result["container"]["logStreamName"] = self.log_stream_name
         if self.job_stopped_reason is not None:
             result["statusReason"] = self.job_stopped_reason
+        if self.timeout:
+            result["timeout"] = self.timeout
         return result
 
     def _get_container_property(self, p, default):
@@ -473,6 +483,13 @@ class Job(threading.Thread, BaseModel, DockerModel):
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
         )
+
+    def _get_attempt_duration(self):
+        if self.timeout:
+            return self.timeout["attemptDurationSeconds"]
+        if self.job_definition.timeout:
+            return self.job_definition.timeout["attemptDurationSeconds"]
+        return None
 
     def run(self):
         """
@@ -546,9 +563,22 @@ class Job(threading.Thread, BaseModel, DockerModel):
             self.job_state = "RUNNING"
             try:
                 container.reload()
+
+                max_time = None
+                if self._get_attempt_duration():
+                    attempt_duration = self._get_attempt_duration()
+                    max_time = self.job_started_at + datetime.timedelta(
+                        seconds=attempt_duration
+                    )
+
                 while container.status == "running" and not self.stop:
                     container.reload()
                     time.sleep(0.5)
+
+                    if max_time and datetime.datetime.now() > max_time:
+                        raise Exception(
+                            "Job time exceeded the configured attemptDurationSeconds"
+                        )
 
                 # Container should be stopped by this point... unless asked to stop
                 if container.status == "running":
@@ -1266,7 +1296,14 @@ class BatchBackend(BaseBackend):
             del self._job_queues[job_queue.arn]
 
     def register_job_definition(
-        self, def_name, parameters, _type, tags, retry_strategy, container_properties
+        self,
+        def_name,
+        parameters,
+        _type,
+        tags,
+        retry_strategy,
+        container_properties,
+        timeout,
     ):
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
@@ -1288,11 +1325,12 @@ class BatchBackend(BaseBackend):
                 tags=tags,
                 region_name=self.region_name,
                 retry_strategy=retry_strategy,
+                timeout=timeout,
             )
         else:
             # Make new jobdef
             job_def = job_def.update(
-                parameters, _type, container_properties, retry_strategy, tags
+                parameters, _type, container_properties, retry_strategy, tags, timeout
             )
 
         self._job_definitions[job_def.arn] = job_def
@@ -1347,6 +1385,7 @@ class BatchBackend(BaseBackend):
         retries=None,
         depends_on=None,
         container_overrides=None,
+        timeout=None,
     ):
         # TODO parameters, retries (which is a dict raw from request), job dependencies and container overrides are ignored for now
 
@@ -1369,6 +1408,7 @@ class BatchBackend(BaseBackend):
             container_overrides=container_overrides,
             depends_on=depends_on,
             all_jobs=self._jobs,
+            timeout=timeout,
         )
         self._jobs[job.job_id] = job
 
