@@ -58,6 +58,11 @@ class GlueBackend(BaseBackend):
     def get_databases(self):
         return [self.databases[key] for key in self.databases] if self.databases else []
 
+    def delete_database(self, database_name):
+        if database_name not in self.databases:
+            raise DatabaseNotFoundException(database_name)
+        del self.databases[database_name]
+
     def create_table(self, database_name, table_name, table_input):
         database = self.get_database(database_name)
 
