@@ -1215,7 +1215,7 @@ class DynamoHandler(BaseResponse):
             return dynamo_json_dump(restored_table.describe())
         except KeyError:
             er = "com.amazonaws.dynamodb.v20111205#SourceTableNotFoundException"
-            return self.error(er, "Sourec table not found: %s" % source_table_name)
+            return self.error(er, "Source table not found: %s" % source_table_name)
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
             return self.error(er, "Table already exists: %s" % target_table_name)
