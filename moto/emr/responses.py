@@ -276,6 +276,7 @@ class ElasticMapReduceResponse(BaseResponse):
             log_uri=self._get_param("LogUri"),
             job_flow_role=self._get_param("JobFlowRole"),
             service_role=self._get_param("ServiceRole"),
+            auto_scaling_role=self._get_param("AutoScalingRole"),
             steps=steps_from_query_string(self._get_list_prefix("Steps.member")),
             visible_to_all_users=self._get_bool_param("VisibleToAllUsers", False),
             instance_attrs=instance_attrs,
@@ -652,6 +653,7 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       <SecurityConfiguration>{{ cluster.security_configuration }}</SecurityConfiguration>
       {% endif %}
       <ServiceRole>{{ cluster.service_role }}</ServiceRole>
+      <AutoScalingRole>{{ cluster.auto_scaling_role }}</AutoScalingRole>
       <Status>
         <State>{{ cluster.state }}</State>
         <StateChangeReason>
