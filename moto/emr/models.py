@@ -167,6 +167,7 @@ class FakeCluster(BaseModel):
         step_concurrency_level=1,
         security_configuration=None,
         kerberos_attributes=None,
+        auto_scaling_role=None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -274,6 +275,7 @@ class FakeCluster(BaseModel):
             security_configuration  # ToDo: Raise if doesn't already exist.
         )
         self.kerberos_attributes = kerberos_attributes
+        self.auto_scaling_role = auto_scaling_role
 
     @property
     def arn(self):

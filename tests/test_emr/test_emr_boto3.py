@@ -116,6 +116,7 @@ def test_describe_cluster():
     }
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
     args["SecurityConfiguration"] = "my-security-configuration"
+    args["AutoScalingRole"] = "EMR_AutoScaling_DefaultRole"
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
@@ -164,6 +165,7 @@ def test_describe_cluster():
     cl["SecurityConfiguration"].should.be.a(str)
     cl["SecurityConfiguration"].should.equal(args["SecurityConfiguration"])
     cl["ServiceRole"].should.equal(args["ServiceRole"])
+    cl["AutoScalingRole"].should.equal(args["AutoScalingRole"])
 
     status = cl["Status"]
     status["State"].should.equal("TERMINATED")
