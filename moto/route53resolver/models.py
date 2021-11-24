@@ -187,6 +187,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
         # NOTE; This currently doesn't reflect IPv6 addresses.
         self.subnets = self._build_subnet_info()
+        self.eni_ids = self.create_eni()
         self.ip_address_count = len(ip_addresses)
 
         self.host_vpc_id = self._vpc_id_from_subnet()
@@ -232,9 +233,10 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
     def create_eni(self):
         """Create a VPC ENI for each combo of AZ, subnet and IP."""
+        eni_ids = []
         for subnet, ip_info in self.subnets.items():
             for ip_addr, eni_id in ip_info.items():
-                ec2_backends[self.region].create_network_interface(
+                eni_info = ec2_backends[self.region].create_network_interface(
                     description=f"Route 53 Resolver: {self.id}:{eni_id}",
                     group_ids=self.security_group_ids,
                     interface_type="interface",
@@ -244,6 +246,13 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
                     ],
                     subnet=subnet,
                 )
+                eni_ids.append(eni_info.id)
+        return eni_ids
+
+    def delete_eni(self):
+        """Delete the VPC ENI created for the subnet and IP combos."""
+        for eni_id in self.eni_ids:
+            ec2_backends[self.region].delete_network_interface(eni_id)
 
     def description(self):
         """Return a dictionary of relevant info for this resolver endpoint."""
@@ -466,7 +475,6 @@ class Route53ResolverBackend(BaseBackend):
             ip_addresses,
             name,
         )
-        resolver_endpoint.create_eni()
 
         self.resolver_endpoints[endpoint_id] = resolver_endpoint
         self.tagger.tag_resource(resolver_endpoint.arn, tags or [])
@@ -593,6 +601,7 @@ class Route53ResolverBackend(BaseBackend):
 
         self.tagger.delete_all_tags_for_resource(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints.pop(resolver_endpoint_id)
+        resolver_endpoint.delete_eni()
         resolver_endpoint.status = "DELETING"
         resolver_endpoint.status_message = resolver_endpoint.status_message.replace(
             "Successfully created", "Deleting"
