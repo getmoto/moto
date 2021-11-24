@@ -3,6 +3,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Key
 from moto import mock_dynamodb2
 
 
@@ -374,3 +375,56 @@ def test_put_item_wrong_attribute_type():
     err["Message"].should.equal(
         "One or more parameter values were invalid: Type mismatch for key created_at expected: N actual: S"
     )
+
+
+@mock_dynamodb2
+# https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
+def test_hash_key_cannot_use_begins_with_operations():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+
+    items = [
+        {"key": "prefix-$LATEST", "value": "$LATEST"},
+        {"key": "prefix-DEV", "value": "DEV"},
+        {"key": "prefix-PROD", "value": "PROD"},
+    ]
+
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=item)
+
+    table = dynamodb.Table("test-table")
+    with pytest.raises(ClientError) as ex:
+        table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Query key condition not supported"
+    )
+
+
+# Test this again, but with manually supplying an operator
+@mock_dynamodb2
+@pytest.mark.parametrize("operator", ["<", "<=", ">", ">="])
+def test_hash_key_can_only_use_equals_operations(operator):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamodb.Table("test-table")
+
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression=f"pk {operator} :pk",
+            ExpressionAttributeValues={":pk": "p"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Query key condition not supported")
