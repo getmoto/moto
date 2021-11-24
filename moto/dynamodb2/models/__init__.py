@@ -72,11 +72,6 @@ class Item(BaseModel):
         self.hash_key = hash_key
         self.range_key = range_key
 
-        if hash_key and hash_key.size() > HASH_KEY_MAX_LENGTH:
-            raise HashKeyTooLong
-        if range_key and (range_key.size() > RANGE_KEY_MAX_LENGTH):
-            raise RangeKeyTooLong
-
         self.attrs = LimitedSizeDict()
         for key, value in attrs.items():
             self.attrs[key] = DynamoType(value)
@@ -595,6 +590,18 @@ class Table(CloudFormationModel):
             keys.append(range_key)
         return keys
 
+    def _validate_key_sizes(self, item_attrs):
+        for hash_name in self.hash_key_names:
+            hash_value = item_attrs.get(hash_name)
+            if hash_value:
+                if DynamoType(hash_value).size() > HASH_KEY_MAX_LENGTH:
+                    raise HashKeyTooLong
+        for range_name in self.range_key_names:
+            range_value = item_attrs.get(range_name)
+            if range_value:
+                if DynamoType(range_value).size() > RANGE_KEY_MAX_LENGTH:
+                    raise RangeKeyTooLong
+
     def put_item(
         self,
         item_attrs,
@@ -634,6 +641,9 @@ class Table(CloudFormationModel):
                 expected_type=self.range_key_type,
                 actual_type=range_value.type,
             )
+
+        self._validate_key_sizes(item_attrs)
+
         if expected is None:
             expected = {}
             lookup_range_value = range_value
