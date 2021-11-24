@@ -2124,7 +2124,9 @@ class IAMBackend(BaseBackend):
 
     def update_group(self, group_name, new_group_name, new_path="/"):
         if new_group_name in self.groups:
-            raise IAMConflictException("Group {0} already exists".format(new_group_name))
+            raise IAMConflictException(
+                "Group {0} already exists".format(new_group_name)
+            )
         try:
             group = self.groups[group_name]
         except KeyError:
