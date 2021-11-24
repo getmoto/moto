@@ -35,6 +35,11 @@ class GlueResponse(BaseResponse):
             {"DatabaseList": [database.as_dict() for database in database_list]}
         )
 
+    def delete_database(self):
+        name = self.parameters.get("Name")
+        self.glue_backend.delete_database(name)
+        return json.dumps({})
+
     def create_table(self):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
