@@ -12,8 +12,6 @@
 dynamodb
 ========
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -63,7 +61,7 @@ dynamodb
 - [X] put_item
 - [X] query
 - [X] restore_table_from_backup
-- [ ] restore_table_to_point_in_time
+- [X] restore_table_to_point_in_time
 - [X] scan
 - [X] tag_resource
 - [X] transact_get_items

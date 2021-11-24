@@ -42,6 +42,9 @@ SIGNING_ALIASES = {
     "iotdata": "data.iot",
 }
 
+# Some services are only recognizable by the version
+SERVICE_BY_VERSION = {"2009-04-15": "sdb"}
+
 
 class DomainDispatcherApplication(object):
     """
@@ -74,14 +77,15 @@ class DomainDispatcherApplication(object):
         if "amazonaws.com" in host:
             print(
                 "Unable to find appropriate backend for {}."
-                "Remember to add the URL to urls.py, and run script/update_backend_index.py to index it.".format(
+                "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it.".format(
                     host
                 )
             )
 
-    def infer_service_region_host(self, environ):
+    def infer_service_region_host(self, body, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
+        service = None
         if auth:
             # Signed request
             # Parse auth header to find service assuming a SigV4 request
@@ -91,6 +95,7 @@ class DomainDispatcherApplication(object):
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
                 service = SIGNING_ALIASES.get(service.lower(), service)
+                service = service.lower()
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use
@@ -99,20 +104,25 @@ class DomainDispatcherApplication(object):
                 service, region = DEFAULT_SERVICE_REGION
         else:
             # Unsigned request
-            action = self.get_action_from_body(environ)
+            action = self.get_action_from_body(body)
             if target:
                 service, _ = target.split(".", 1)
                 service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
             elif action and action in UNSIGNED_ACTIONS:
                 # See if we can match the Action to a known service
                 service, region = UNSIGNED_ACTIONS.get(action)
-            else:
+            if not service:
+                service, region = self.get_service_from_body(body, environ)
+            if not service:
                 service, region = self.get_service_from_path(environ)
-                if not service:
-                    # S3 is the last resort when the target is also unknown
-                    service, region = DEFAULT_SERVICE_REGION
+            if not service:
+                # S3 is the last resort when the target is also unknown
+                service, region = DEFAULT_SERVICE_REGION
 
-        if service == "mediastore" and not target:
+        if service == "budgets":
+            # Budgets is global
+            host = f"{service}.amazonaws.com"
+        elif service == "mediastore" and not target:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
             host = "data.{service}.{region}.amazonaws.com".format(
@@ -160,8 +170,9 @@ class DomainDispatcherApplication(object):
         with self.lock:
             backend = self.get_backend_for_host(host)
             if not backend:
-                # No regular backend found; try parsing other headers
-                host = self.infer_service_region_host(environ)
+                # No regular backend found; try parsing body/other headers
+                body = self._get_body(environ)
+                host = self.infer_service_region_host(body, environ)
                 backend = self.get_backend_for_host(host)
 
             app = self.app_instances.get(backend, None)
@@ -170,7 +181,7 @@ class DomainDispatcherApplication(object):
                 self.app_instances[backend] = app
             return app
 
-    def get_action_from_body(self, environ):
+    def _get_body(self, environ):
         body = None
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
@@ -180,15 +191,38 @@ class DomainDispatcherApplication(object):
             request_body_size = int(environ["CONTENT_LENGTH"])
             if simple_form and request_body_size:
                 body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
-                body_dict = dict(x.split("=") for x in body.split("&"))
-                return body_dict["Action"]
         except (KeyError, ValueError):
             pass
         finally:
             if body:
                 # We've consumed the body = need to reset it
                 environ["wsgi.input"] = io.StringIO(body)
-        return None
+        return body
+
+    def get_service_from_body(self, body, environ):
+        # Some services have the SDK Version in the body
+        # If the version is unique, we can derive the service from it
+        version = self.get_version_from_body(body)
+        if version and version in SERVICE_BY_VERSION:
+            # Boto3/1.20.7 Python/3.8.10 Linux/5.11.0-40-generic Botocore/1.23.7 region/eu-west-1
+            region = environ.get("HTTP_USER_AGENT", "").split("/")[-1]
+            return SERVICE_BY_VERSION[version], region
+        return None, None
+
+    def get_version_from_body(self, body):
+        try:
+            body_dict = dict(x.split("=") for x in body.split("&"))
+            return body_dict["Version"]
+        except (AttributeError, KeyError, ValueError):
+            return None
+
+    def get_action_from_body(self, body):
+        try:
+            # AWS requests use querystrings as the body (Action=x&Data=y&...)
+            body_dict = dict(x.split("=") for x in body.split("&"))
+            return body_dict["Action"]
+        except (AttributeError, KeyError, ValueError):
+            return None
 
     def get_service_from_path(self, environ):
         # Moto sometimes needs to send a HTTP request to itself
@@ -197,7 +231,7 @@ class DomainDispatcherApplication(object):
             path_info = environ.get("PATH_INFO", "/")
             service, region = path_info[1 : path_info.index("/", 1)].split("_")
             return service, region
-        except (KeyError, ValueError):
+        except (AttributeError, KeyError, ValueError):
             return None, None
 
     def __call__(self, environ, start_response):

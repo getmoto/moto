@@ -23,7 +23,7 @@ import pytest
 
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import settings, mock_s3, mock_config
+from moto import settings, mock_s3, mock_config, mock_kms
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
@@ -613,7 +613,7 @@ def test_copy_key_replace_metadata_boto3():
     s3.create_bucket(Bucket="foobar")
 
     key = s3.Object("foobar", "the-key")
-    key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
+    initial = key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
 
     client.copy_object(
         Bucket="foobar",
@@ -625,6 +625,7 @@ def test_copy_key_replace_metadata_boto3():
 
     resp = client.get_object(Bucket="foobar", Key="new-key")
     resp["Metadata"].should.equal({"momd": "Mometadatastring"})
+    resp["ETag"].should.equal(initial["ETag"])
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -774,6 +775,63 @@ def test_post_with_metadata_to_bucket_boto3():
 
     resp = client.get_object(Bucket="foobar", Key="the-key")
     resp["Metadata"].should.equal({"test": "metadata"})
+
+
+@mock_s3
+def test_delete_versioned_objects():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "test"
+    key = "test"
+
+    s3.create_bucket(Bucket=bucket)
+
+    s3.put_object(Bucket=bucket, Key=key, Body=b"")
+
+    s3.put_bucket_versioning(
+        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"},
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.shouldnt.be.empty
+    versions.shouldnt.be.empty
+    delete_markers.should.be.none
+
+    s3.delete_object(Bucket=bucket, Key=key)
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.shouldnt.be.empty
+    delete_markers.shouldnt.be.empty
+
+    s3.delete_object(
+        Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"),
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.should.be.none
+    delete_markers.shouldnt.be.empty
+
+    s3.delete_object(
+        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId"),
+    )
+
+    objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
+    versions = s3.list_object_versions(Bucket=bucket).get("Versions")
+    delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
+
+    objects.should.be.none
+    versions.should.be.none
+    delete_markers.should.be.none
 
 
 @mock_s3
@@ -2298,6 +2356,25 @@ def test_boto3_head_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_copy_non_existing_file():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    src = "srcbucket"
+    target = "target"
+    s3.create_bucket(Bucket=src)
+    s3.create_bucket(Bucket=target)
+
+    s3_client = boto3.client("s3")
+    with pytest.raises(ClientError) as exc:
+        s3_client.copy_object(
+            Bucket=target, CopySource={"Bucket": src, "Key": "foofoofoo"}, Key="newkey"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchKey")
+    err["Message"].should.equal("The specified key does not exist.")
+    err["Key"].should.equal("foofoofoo")
+
+
+@mock_s3
 def test_boto3_copy_object_with_versioning():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -2337,7 +2414,7 @@ def test_boto3_copy_object_with_versioning():
             Bucket="blah",
             Key="test5",
         )
-    e.value.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
 
     response = client.create_multipart_upload(Bucket="blah", Key="test4")
     upload_id = response["UploadId"]
@@ -2772,41 +2849,53 @@ def test_boto3_multipart_version():
 
 
 @mock_s3
-def test_boto3_multipart_list_parts_invalid_argument():
+@pytest.mark.parametrize(
+    "part_nr,msg,msg2",
+    [
+        (
+            -42,
+            "Argument max-parts must be an integer between 0 and 2147483647",
+            "Argument part-number-marker must be an integer between 0 and 2147483647",
+        ),
+        (
+            2147483647 + 42,
+            "Provided max-parts not an integer or within integer range",
+            "Provided part-number-marker not an integer or within integer range",
+        ),
+    ],
+)
+def test_boto3_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
     s3 = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="mybucket")
+    bucket_name = "mybucketasdfljoqwerasdfas"
+    s3.create_bucket(Bucket=bucket_name)
 
-    mpu = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")
+    mpu = s3.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     mpu_id = mpu["UploadId"]
 
     def get_parts(**kwarg):
-        s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id, **kwarg)
+        s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id, **kwarg)
 
-    for value in [-42, 2147483647 + 42]:
-        with pytest.raises(ClientError) as err:
-            get_parts(**{"MaxParts": value})
-        e = err.value.response["Error"]
-        e["Code"].should.equal("InvalidArgument")
-        e["Message"].should.equal(
-            "Argument max-parts must be an integer between 0 and 2147483647"
-        )
+    with pytest.raises(ClientError) as err:
+        get_parts(**{"MaxParts": part_nr})
+    e = err.value.response["Error"]
+    e["Code"].should.equal("InvalidArgument")
+    e["Message"].should.equal(msg)
 
-        with pytest.raises(ClientError) as err:
-            get_parts(**{"PartNumberMarker": value})
-        e = err.value.response["Error"]
-        e["Code"].should.equal("InvalidArgument")
-        e["Message"].should.equal(
-            "Argument part-number-marker must be an integer between 0 and 2147483647"
-        )
+    with pytest.raises(ClientError) as err:
+        get_parts(**{"PartNumberMarker": part_nr})
+    e = err.value.response["Error"]
+    e["Code"].should.equal("InvalidArgument")
+    e["Message"].should.equal(msg2)
 
 
 @mock_s3
 @reduced_min_part_size
 def test_boto3_multipart_list_parts():
     s3 = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="mybucket")
+    bucket_name = "mybucketasdfljoqwerasdfas"
+    s3.create_bucket(Bucket=bucket_name)
 
-    mpu = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")
+    mpu = s3.create_multipart_upload(Bucket=bucket_name, Key="the-key")
     mpu_id = mpu["UploadId"]
 
     parts = []
@@ -2816,7 +2905,7 @@ def test_boto3_multipart_list_parts():
         # Get uploaded parts using default values
         uploaded_parts = []
 
-        uploaded = s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id,)
+        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id,)
 
         assert uploaded["PartNumberMarker"] == 0
 
@@ -2828,7 +2917,7 @@ def test_boto3_multipart_list_parts():
                 )
             assert uploaded_parts == parts
 
-            next_part_number_marker = uploaded["Parts"][-1]["PartNumber"] + 1
+            next_part_number_marker = uploaded["Parts"][-1]["PartNumber"]
         else:
             next_part_number_marker = 0
 
@@ -2843,7 +2932,7 @@ def test_boto3_multipart_list_parts():
 
         while "there are parts":
             uploaded = s3.list_parts(
-                Bucket="mybucket",
+                Bucket=bucket_name,
                 Key="the-key",
                 UploadId=mpu_id,
                 PartNumberMarker=part_number_marker,
@@ -2881,7 +2970,7 @@ def test_boto3_multipart_list_parts():
         part_size = REDUCED_PART_SIZE + i
         body = b"1" * part_size
         part = s3.upload_part(
-            Bucket="mybucket",
+            Bucket=bucket_name,
             Key="the-key",
             PartNumber=i,
             UploadId=mpu_id,
@@ -2899,7 +2988,7 @@ def test_boto3_multipart_list_parts():
     get_parts_by_batch(11)
 
     s3.complete_multipart_upload(
-        Bucket="mybucket",
+        Bucket=bucket_name,
         Key="the-key",
         UploadId=mpu_id,
         MultipartUpload={"Parts": parts},
@@ -3679,6 +3768,7 @@ def test_boto3_put_object_tagging():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -3738,6 +3828,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -3806,6 +3897,7 @@ def test_boto3_put_object_tagging_on_both_version():
         {
             "Code": "NoSuchKey",
             "Message": "The specified key does not exist.",
+            "Key": "key-with-tags",
             "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
         }
     )
@@ -5476,3 +5568,28 @@ def test_request_partial_content_should_contain_all_metadata():
     assert response["LastModified"] == obj.last_modified
     assert response["ContentLength"] == 4
     assert response["ContentRange"] == "bytes {}/{}".format(query_range, len(body))
+
+
+@mock_s3
+@mock_kms
+def test_boto3_copy_object_with_kms_encryption():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
+    kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
+
+    client.create_bucket(
+        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
+    )
+
+    client.put_object(Bucket="blah", Key="test1", Body=b"test1")
+
+    client.copy_object(
+        CopySource={"Bucket": "blah", "Key": "test1"},
+        Bucket="blah",
+        Key="test2",
+        SSEKMSKeyId=kms_key,
+        ServerSideEncryption="aws:kms",
+    )
+    result = client.head_object(Bucket="blah", Key="test2")
+    assert result["SSEKMSKeyId"] == kms_key
+    assert result["ServerSideEncryption"] == "aws:kms"

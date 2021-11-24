@@ -12,8 +12,6 @@
 glue
 ====
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -49,7 +47,7 @@ glue
 - [X] create_crawler
 - [X] create_database
 - [ ] create_dev_endpoint
-- [ ] create_job
+- [X] create_job
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index

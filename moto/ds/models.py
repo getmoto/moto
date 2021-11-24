@@ -1,6 +1,5 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
-import ipaddress
 
 from boto3 import Session
 
@@ -16,22 +15,9 @@ from moto.ds.exceptions import (
     ValidationException,
 )
 from moto.ds.utils import PAGINATION_MODEL
-from moto.ds.validations import (
-    validate_args,
-    validate_alias,
-    validate_description,
-    validate_directory_id,
-    validate_dns_ips,
-    validate_edition,
-    validate_name,
-    validate_password,
-    validate_short_name,
-    validate_size,
-    validate_sso_password,
-    validate_subnet_ids,
-    validate_user_name,
-)
+from moto.ds.validations import validate_args
 from moto.ec2.exceptions import InvalidSubnetIdError
+from moto.ec2 import ec2_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -62,10 +48,10 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
+        region,
         name,
         password,
         directory_type,
-        subnets,
         size=None,
         vpc_settings=None,
         connect_settings=None,
@@ -73,6 +59,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         description=None,
         edition=None,
     ):  # pylint: disable=too-many-arguments
+        self.region = region
         self.name = name
         self.password = password
         self.directory_type = directory_type
@@ -93,26 +80,62 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.launch_time = datetime.now(timezone.utc).isoformat()
         self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
 
-        if directory_type != "ADConnector":
-            self.dns_ip_addrs = self.subnet_ips(subnets)
-        else:
+        if self.directory_type == "ADConnector":
+            self.security_group_id = self.create_security_group(
+                self.connect_settings["VpcId"]
+            )
+            self.eni_ids, self.subnet_ips = self.create_eni(
+                self.security_group_id, self.connect_settings["SubnetIds"]
+            )
+            self.connect_settings["SecurityGroupId"] = self.security_group_id
+            self.connect_settings["ConnectIps"] = self.subnet_ips
             self.dns_ip_addrs = self.connect_settings["CustomerDnsIps"]
-            self.connect_settings["ConnectIps"] = self.subnet_ips(subnets)
 
-    @staticmethod
-    def subnet_ips(subnets):
-        """Return an IP from each of the given subnets.
+        else:
+            self.security_group_id = self.create_security_group(
+                self.vpc_settings["VpcId"]
+            )
+            self.eni_ids, self.subnet_ips = self.create_eni(
+                self.security_group_id, self.vpc_settings["SubnetIds"]
+            )
+            self.vpc_settings["SecurityGroupId"] = self.security_group_id
+            self.dns_ip_addrs = self.subnet_ips
 
-        This is a bit dodgey and may need to be reworked at a later time.
-        """
-        ip_addrs = []
-        for subnet in subnets:
-            ips = ipaddress.ip_network(subnet.cidr_block)
-            # Not sure if the following could occur, but if it does,
-            # the situation will be ignored.
-            if ips:
-                ip_addrs.append(str(ips[1]) if ips.num_addresses > 1 else str(ips[0]))
-        return ip_addrs
+    def create_security_group(self, vpc_id):
+        """Create security group for the network interface."""
+        security_group_info = ec2_backends[self.region].create_security_group(
+            name=f"{self.directory_id}_controllers",
+            description=(
+                f"AWS created security group for {self.directory_id} "
+                f"directory controllers"
+            ),
+            vpc_id=vpc_id,
+        )
+        return security_group_info.id
+
+    def delete_security_group(self):
+        """Delete the given security group."""
+        ec2_backends[self.region].delete_security_group(group_id=self.security_group_id)
+
+    def create_eni(self, security_group_id, subnet_ids):
+        """Return ENI ids and primary addresses created for each subnet."""
+        eni_ids = []
+        subnet_ips = []
+        for subnet_id in subnet_ids:
+            eni_info = ec2_backends[self.region].create_network_interface(
+                subnet=subnet_id,
+                private_ip_address=None,
+                group_ids=[security_group_id],
+                description=f"AWS created network interface for {self.directory_id}",
+            )
+            eni_ids.append(eni_info.id)
+            subnet_ips.append(eni_info.private_ip_address)
+        return eni_ids, subnet_ips
+
+    def delete_eni(self):
+        """Delete ENI for each subnet and the security group."""
+        for eni_id in self.eni_ids:
+            ec2_backends[self.region].delete_network_interface(eni_id)
 
     def update_alias(self, alias):
         """Change default alias to given alias."""
@@ -123,26 +146,37 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         """Enable/disable sso based on whether new_state is True or False."""
         self.sso_enabled = new_state
 
-    def to_json(self):
-        """Convert the attributes into json with CamelCase tags."""
-        replacement_keys = {"directory_type": "Type"}
-        exclude_items = ["password"]
+    def to_dict(self):
+        """Create a dictionary of attributes for Directory."""
+        attributes = {
+            "AccessUrl": self.access_url,
+            "Alias": self.alias,
+            "DirectoryId": self.directory_id,
+            "DesiredNumberOfDomainControllers": self.desired_number_of_domain_controllers,
+            "DnsIpAddrs": self.dns_ip_addrs,
+            "LaunchTime": self.launch_time,
+            "Name": self.name,
+            "SsoEnabled": self.sso_enabled,
+            "Stage": self.stage,
+            "StageLastUpdatedDateTime": self.stage_last_updated_date_time,
+            "Type": self.directory_type,
+        }
 
-        json_result = {}
-        for item, value in self.__dict__.items():
-            # Discard empty strings, but allow values set to False or zero.
-            if value == "" or item in exclude_items:
-                continue
+        if self.edition:
+            attributes["Edition"] = self.edition
+        if self.size:
+            attributes["Size"] = self.size
+        if self.short_name:
+            attributes["ShortName"] = self.short_name
+        if self.description:
+            attributes["Description"] = self.description
 
-            if item in replacement_keys:
-                json_result[replacement_keys[item]] = value
-            else:
-                new_tag = "".join(x.title() for x in item.split("_"))
-                json_result[new_tag] = value
-
-        if json_result["ConnectSettings"]:
-            json_result["ConnectSettings"]["CustomerDnsIps"] = None
-        return json_result
+        if self.vpc_settings:
+            attributes["VpcSettings"] = self.vpc_settings
+        else:
+            attributes["ConnectSettings"] = self.connect_settings
+            attributes["ConnectSettings"]["CustomerDnsIps"] = None
+        return attributes
 
 
 class DirectoryServiceBackend(BaseBackend):
@@ -167,8 +201,8 @@ class DirectoryServiceBackend(BaseBackend):
         )
 
     @staticmethod
-    def _get_subnets(region, vpc_settings):
-        """Return subnets if vpc_settings are invalid, else raise an exception.
+    def _verify_subnets(region, vpc_settings):
+        """Verify subnets are valid, else raise an exception.
 
         If settings are valid, add AvailabilityZones to vpc_settings.
         """
@@ -177,8 +211,6 @@ class DirectoryServiceBackend(BaseBackend):
                 "Invalid subnet ID(s). They must correspond to two subnets "
                 "in different Availability Zones."
             )
-
-        from moto.ec2 import ec2_backends  # pylint: disable=import-outside-toplevel
 
         # Subnet IDs are checked before the VPC ID.  The Subnet IDs must
         # be valid and in different availability zones.
@@ -202,9 +234,7 @@ class DirectoryServiceBackend(BaseBackend):
         vpcs = ec2_backends[region].describe_vpcs()
         if vpc_settings["VpcId"] not in [x.id for x in vpcs]:
             raise ClientException("Invalid VPC ID.")
-
         vpc_settings["AvailabilityZones"] = regions
-        return subnets
 
     def connect_directory(
         self,
@@ -226,30 +256,24 @@ class DirectoryServiceBackend(BaseBackend):
 
         validate_args(
             [
-                (validate_password, "password", password),
-                (validate_size, "size", size),
-                (validate_name, "name", name),
-                (validate_description, "description", description),
-                (validate_short_name, "shortName", short_name),
+                ("password", password),
+                ("size", size),
+                ("name", name),
+                ("description", description),
+                ("shortName", short_name),
                 (
-                    validate_subnet_ids,
                     "connectSettings.vpcSettings.subnetIds",
                     connect_settings["SubnetIds"],
                 ),
                 (
-                    validate_user_name,
                     "connectSettings.customerUserName",
                     connect_settings["CustomerUserName"],
                 ),
-                (
-                    validate_dns_ips,
-                    "connectSettings.customerDnsIps",
-                    connect_settings["CustomerDnsIps"],
-                ),
+                ("connectSettings.customerDnsIps", connect_settings["CustomerDnsIps"]),
             ]
         )
         # ConnectSettings and VpcSettings both have a VpcId and Subnets.
-        subnets = self._get_subnets(region, connect_settings)
+        self._verify_subnets(region, connect_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
@@ -258,10 +282,10 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
+            region,
             name,
             password,
             "ADConnector",
-            subnets,
             size=size,
             connect_settings=connect_settings,
             short_name=short_name,
@@ -286,19 +310,15 @@ class DirectoryServiceBackend(BaseBackend):
             raise InvalidParameterException("VpcSettings must be specified.")
         validate_args(
             [
-                (validate_password, "password", password),
-                (validate_size, "size", size),
-                (validate_name, "name", name),
-                (validate_description, "description", description),
-                (validate_short_name, "shortName", short_name),
-                (
-                    validate_subnet_ids,
-                    "vpcSettings.subnetIds",
-                    vpc_settings["SubnetIds"],
-                ),
+                ("password", password),
+                ("size", size),
+                ("name", name),
+                ("description", description),
+                ("shortName", short_name),
+                ("vpcSettings.subnetIds", vpc_settings["SubnetIds"]),
             ]
         )
-        subnets = self._get_subnets(region, vpc_settings)
+        self._verify_subnets(region, vpc_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
@@ -307,10 +327,10 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
+            region,
             name,
             password,
             "SimpleAD",
-            subnets,
             size=size,
             vpc_settings=vpc_settings,
             short_name=short_name,
@@ -323,7 +343,7 @@ class DirectoryServiceBackend(BaseBackend):
     def _validate_directory_id(self, directory_id):
         """Raise an exception if the directory id is invalid or unknown."""
         # Validation of ID takes precedence over a check for its existence.
-        validate_args([(validate_directory_id, "directoryId", directory_id)])
+        validate_args([("directoryId", directory_id)])
         if directory_id not in self.directories:
             raise EntityDoesNotExistException(
                 f"Directory {directory_id} does not exist"
@@ -345,8 +365,7 @@ class DirectoryServiceBackend(BaseBackend):
         # Is the alias already in use?
         if alias in [x.alias for x in self.directories.values()]:
             raise EntityAlreadyExistsException(f"Alias '{alias}' already exists.")
-
-        validate_args([(validate_alias, "alias", alias)])
+        validate_args([("alias", alias)])
 
         directory.update_alias(alias)
         return {"DirectoryId": directory_id, "Alias": alias}
@@ -372,19 +391,15 @@ class DirectoryServiceBackend(BaseBackend):
         # boto3 looks for missing vpc_settings for create_microsoft_ad().
         validate_args(
             [
-                (validate_password, "password", password),
-                (validate_edition, "edition", edition),
-                (validate_name, "name", name),
-                (validate_description, "description", description),
-                (validate_short_name, "shortName", short_name),
-                (
-                    validate_subnet_ids,
-                    "vpcSettings.subnetIds",
-                    vpc_settings["SubnetIds"],
-                ),
+                ("password", password),
+                ("edition", edition),
+                ("name", name),
+                ("description", description),
+                ("shortName", short_name),
+                ("vpcSettings.subnetIds", vpc_settings["SubnetIds"]),
             ]
         )
-        subnets = self._get_subnets(region, vpc_settings)
+        self._verify_subnets(region, vpc_settings)
 
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
@@ -393,10 +408,10 @@ class DirectoryServiceBackend(BaseBackend):
             raise DirectoryLimitExceededException("Tag Limit is exceeding")
 
         directory = Directory(
+            region,
             name,
             password,
             "MicrosoftAD",
-            subnets,
             vpc_settings=vpc_settings,
             short_name=short_name,
             description=description,
@@ -409,6 +424,8 @@ class DirectoryServiceBackend(BaseBackend):
     def delete_directory(self, directory_id):
         """Delete directory with the matching ID."""
         self._validate_directory_id(directory_id)
+        self.directories[directory_id].delete_eni()
+        self.directories[directory_id].delete_security_group()
         self.tagger.delete_all_tags_for_resource(directory_id)
         self.directories.pop(directory_id)
         return directory_id
@@ -416,24 +433,14 @@ class DirectoryServiceBackend(BaseBackend):
     def disable_sso(self, directory_id, username=None, password=None):
         """Disable single-sign on for a directory."""
         self._validate_directory_id(directory_id)
-        validate_args(
-            [
-                (validate_sso_password, "password", password),
-                (validate_user_name, "userName", username),
-            ]
-        )
+        validate_args([("ssoPassword", password), ("userName", username)])
         directory = self.directories[directory_id]
         directory.enable_sso(False)
 
     def enable_sso(self, directory_id, username=None, password=None):
         """Enable single-sign on for a directory."""
         self._validate_directory_id(directory_id)
-        validate_args(
-            [
-                (validate_sso_password, "password", password),
-                (validate_user_name, "userName", username),
-            ]
-        )
+        validate_args([("ssoPassword", password), ("userName", username)])
 
         directory = self.directories[directory_id]
         if directory.alias == directory_id:

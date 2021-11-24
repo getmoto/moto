@@ -913,9 +913,18 @@ class IoTBackend(BaseBackend):
                 raise ResourceNotFoundException()
             principal = certs[0]
             return principal
-        else:
-            # TODO: search for cognito_ids
-            pass
+        from moto.cognitoidentity import cognitoidentity_backends
+
+        cognito = cognitoidentity_backends[self.region_name]
+        identities = []
+        for identity_pool in cognito.identity_pools:
+            pool_identities = cognito.pools_identities.get(identity_pool, None)
+            identities.extend(
+                [pi["IdentityId"] for pi in pool_identities.get("Identities", [])]
+            )
+            if principal_arn in identities:
+                return {"IdentityId": principal_arn}
+
         raise ResourceNotFoundException()
 
     def attach_principal_policy(self, policy_name, principal_arn):

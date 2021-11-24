@@ -1398,9 +1398,9 @@ def test_send_large_message_fails_boto3():
 
 @mock_sqs
 def test_message_becomes_inflight_when_received_boto3():
-    sqs = boto3.resource("sqs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
     )
 
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
@@ -1418,7 +1418,7 @@ def test_message_becomes_inflight_when_received_boto3():
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
 
     # Wait
-    time.sleep(2)
+    time.sleep(3)
 
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
@@ -2880,3 +2880,38 @@ def test_message_attributes_contains_trace_header():
         messages[0]["Attributes"]["AWSTraceHeader"]
         == "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1"
     )
+
+
+@mock_sqs
+def test_receive_message_again_preserves_attributes():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    q_name = str(uuid4())[0:6]
+    q_resp = conn.create_queue(QueueName=q_name)
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "Custom1": {"StringValue": "Custom_Value_1", "DataType": "String"},
+            "Custom2": {"StringValue": "Custom_Value_2", "DataType": "String"},
+        },
+    )
+
+    first_messages = conn.receive_message(
+        QueueUrl=queue.url,
+        MaxNumberOfMessages=2,
+        MessageAttributeNames=["Custom1"],
+        VisibilityTimeout=0,
+    )["Messages"]
+    assert len(first_messages[0]["MessageAttributes"]) == 1
+    assert first_messages[0]["MessageAttributes"].get("Custom1") is not None
+    assert first_messages[0]["MessageAttributes"].get("Custom2") is None
+
+    second_messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"],
+    )["Messages"]
+    assert len(second_messages[0]["MessageAttributes"]) == 2
+    assert second_messages[0]["MessageAttributes"].get("Custom1") is not None
+    assert second_messages[0]["MessageAttributes"].get("Custom2") is not None

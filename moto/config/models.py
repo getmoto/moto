@@ -794,7 +794,7 @@ class ConfigRule(ConfigEmptyDictable):
             if not set(param_names).issubset(allowed_names):
                 raise InvalidParameterValueException(
                     "Unknown parameters provided in the inputParameters: "
-                    + self.input_parameters.replace('"', '\\"')
+                    + self.input_parameters
                 )
 
         # Verify all the required parameters are specified.

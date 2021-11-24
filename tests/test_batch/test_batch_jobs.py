@@ -667,3 +667,47 @@ def prepare_job(batch_client, commands, iam_arn, job_def_name):
     )
     job_def_arn = resp["jobDefinitionArn"]
     return job_def_arn, queue_arn
+
+
+@mock_batch
+def test_update_job_definition():
+    _, _, _, _, batch_client = _get_clients()
+
+    tags = [
+        {"Foo1": "bar1", "Baz1": "buzz1"},
+        {"Foo2": "bar2", "Baz2": "buzz2"},
+    ]
+
+    container_props = {
+        "image": "amazonlinux",
+        "memory": 1024,
+        "vcpus": 2,
+    }
+
+    batch_client.register_job_definition(
+        jobDefinitionName="test-job",
+        type="container",
+        tags=tags[0],
+        parameters={},
+        containerProperties=container_props,
+    )
+
+    container_props["memory"] = 2048
+    batch_client.register_job_definition(
+        jobDefinitionName="test-job",
+        type="container",
+        tags=tags[1],
+        parameters={},
+        containerProperties=container_props,
+    )
+
+    job_defs = batch_client.describe_job_definitions(jobDefinitionName="test-job")[
+        "jobDefinitions"
+    ]
+    job_defs.should.have.length_of(2)
+
+    job_defs[0]["containerProperties"]["memory"].should.equal(1024)
+    job_defs[0]["tags"].should.equal(tags[0])
+
+    job_defs[1]["containerProperties"]["memory"].should.equal(2048)
+    job_defs[1]["tags"].should.equal(tags[1])

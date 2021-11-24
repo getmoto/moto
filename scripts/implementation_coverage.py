@@ -34,11 +34,21 @@ def get_moto_implementation(service_name):
         return backends[0], mock_name
 
 
+def get_module_name(o):
+    klass = o.__class__
+    module = klass.__module__
+    if module == 'builtins':
+        return klass.__qualname__ # avoid outputs like 'builtins.str'
+    return module + '.' + klass.__qualname__
+
+
 def calculate_extended_implementation_coverage():
     service_names = Session().get_available_services()
     coverage = {}
     for service_name in service_names:
         moto_client, mock_name = get_moto_implementation(service_name)
+        if not moto_client:
+            continue
         real_client = boto3.client(service_name, region_name="us-east-1")
         implemented = dict()
         not_implemented = []
@@ -54,6 +64,7 @@ def calculate_extended_implementation_coverage():
 
         coverage[service_name] = {
             "docs": moto_client.__doc__,
+            "module_name": get_module_name(moto_client),
             "name": mock_name,
             "implemented": implemented,
             "not_implemented": not_implemented,
@@ -201,8 +212,10 @@ def write_implementation_coverage_to_docs(coverage):
             file.write(("=" * len(title)) + "\n")
             file.write("\n")
 
-            file.write(coverage[service_name].get("docs") or "")
-            file.write("\n\n")
+            if coverage[service_name]["docs"]:
+                # Only show auto-generated documentation if it exists
+                file.write(".. autoclass:: " + coverage[service_name].get("module_name"))
+                file.write("\n\n")
 
             file.write("|start-h3| Example usage |end-h3|\n\n")
             file.write(f""".. sourcecode:: python

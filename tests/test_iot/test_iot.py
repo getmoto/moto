@@ -2,7 +2,7 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 import boto3
 
-from moto import mock_iot
+from moto import mock_iot, mock_cognitoidentity
 from botocore.exceptions import ClientError
 import pytest
 
@@ -53,6 +53,31 @@ def test_attach_policy():
     res = client.list_attached_policies(target=cert_arn)
     res.should.have.key("policies").which.should.have.length_of(1)
     res["policies"][0]["policyName"].should.equal("my-policy")
+
+
+@mock_iot
+@mock_cognitoidentity
+def test_attach_policy_to_identity():
+    region = "ap-northeast-1"
+
+    cognito_identity_client = boto3.client("cognito-identity", region_name=region)
+    identity_pool_name = "test_identity_pool"
+    identity_pool = cognito_identity_client.create_identity_pool(
+        IdentityPoolName=identity_pool_name, AllowUnauthenticatedIdentities=True
+    )
+    identity = cognito_identity_client.get_id(
+        AccountId="test", IdentityPoolId=identity_pool["IdentityPoolId"]
+    )
+
+    client = boto3.client("iot", region_name=region)
+    policy_name = "my-policy"
+    doc = "{}"
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=identity["IdentityId"])
+
+    res = client.list_attached_policies(target=identity["IdentityId"])
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal(policy_name)
 
 
 @mock_iot

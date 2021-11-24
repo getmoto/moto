@@ -12,7 +12,7 @@
 ds
 ==
 
-Implementation of DirectoryService APIs.
+.. autoclass:: moto.ds.models.DirectoryServiceBackend
 
 |start-h3| Example usage |end-h3|
 

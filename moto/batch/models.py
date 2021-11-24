@@ -26,6 +26,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core.utils import unix_time_millis
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 from ..utilities.tagging_service import TaggingService
 
@@ -294,7 +295,7 @@ class JobDefinition(CloudFormationModel):
         if vcpus < 1:
             raise ClientException("container vcpus limit must be greater than 0")
 
-    def update(self, parameters, _type, container_properties, retry_strategy):
+    def update(self, parameters, _type, container_properties, retry_strategy, tags):
         if parameters is None:
             parameters = self.parameters
 
@@ -315,6 +316,7 @@ class JobDefinition(CloudFormationModel):
             region_name=self._region,
             revision=self.revision,
             retry_strategy=retry_strategy,
+            tags=tags,
         )
 
     def describe(self):
@@ -582,11 +584,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 logs = []
                 for line in logs_stdout + logs_stderr:
                     date, line = line.split(" ", 1)
-                    date = dateutil.parser.parse(date)
-                    # TODO: Replace with int(date.timestamp()) once we yeet Python2 out of the window
-                    date = int(
-                        (time.mktime(date.timetuple()) + date.microsecond / 1000000.0)
+                    date_obj = (
+                        dateutil.parser.parse(date)
+                        .astimezone(datetime.timezone.utc)
+                        .replace(tzinfo=None)
                     )
+                    date = unix_time_millis(date_obj)
                     logs.append({"timestamp": date, "message": line.strip()})
 
                 # Send to cloudwatch
@@ -1274,9 +1277,9 @@ class BatchBackend(BaseBackend):
                 retry_strategy = retry_strategy["attempts"]
             except Exception:
                 raise ClientException("retryStrategy is malformed")
+        if not tags:
+            tags = {}
         if job_def is None:
-            if not tags:
-                tags = {}
             job_def = JobDefinition(
                 def_name,
                 parameters,
@@ -1289,7 +1292,7 @@ class BatchBackend(BaseBackend):
         else:
             # Make new jobdef
             job_def = job_def.update(
-                parameters, _type, container_properties, retry_strategy
+                parameters, _type, container_properties, retry_strategy, tags
             )
 
         self._job_definitions[job_def.arn] = job_def

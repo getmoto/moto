@@ -45,6 +45,41 @@ def test_xray_dynamo_request_id():
     setattr(requests.Session, "prepare_request", original_session_prep_request)
 
 
+def test_xray_dynamo_request_id_with_context_mgr():
+    with mock_xray_client():
+        assert isinstance(xray_core.xray_recorder._emitter, MockEmitter)
+        with mock_dynamodb2():
+            # Could be ran in any order, so we need to tell sdk that its been unpatched
+            xray_core_patcher._PATCHED_MODULES = set()
+            xray_core.patch_all()
+
+            client = boto3.client("dynamodb", region_name="us-east-1")
+
+            with XRaySegment():
+                resp = client.list_tables()
+                resp["ResponseMetadata"].should.contain("RequestId")
+                id1 = resp["ResponseMetadata"]["RequestId"]
+
+            with XRaySegment():
+                client.list_tables()
+                resp = client.list_tables()
+                id2 = resp["ResponseMetadata"]["RequestId"]
+
+            id1.should_not.equal(id2)
+
+            setattr(
+                botocore.client.BaseClient, "_make_api_call", original_make_api_call
+            )
+            setattr(
+                botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers
+            )
+            setattr(requests.Session, "request", original_session_request)
+            setattr(requests.Session, "prepare_request", original_session_prep_request)
+
+    # Verify we have unmocked the xray recorder
+    assert not isinstance(xray_core.xray_recorder._emitter, MockEmitter)
+
+
 @mock_xray_client
 def test_xray_udp_emitter_patched():
     # Could be ran in any order, so we need to tell sdk that its been unpatched

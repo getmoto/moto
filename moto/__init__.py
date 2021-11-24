@@ -1,5 +1,6 @@
 import importlib
 import sys
+from contextlib import ContextDecorator
 
 
 def lazy_load(
@@ -34,6 +35,7 @@ mock_lambda = lazy_load(
     ".awslambda", "mock_lambda", boto3_name="lambda", backend="lambda_backends"
 )
 mock_batch = lazy_load(".batch", "mock_batch")
+mock_budgets = lazy_load(".budgets", "mock_budgets")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
@@ -91,6 +93,9 @@ mock_resourcegroupstaggingapi = lazy_load(
     ".resourcegroupstaggingapi", "mock_resourcegroupstaggingapi"
 )
 mock_route53 = lazy_load(".route53", "mock_route53")
+mock_route53resolver = lazy_load(
+    ".route53resolver", "mock_route53resolver", boto3_name="route53resolver"
+)
 mock_s3 = lazy_load(".s3", "mock_s3")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")
@@ -127,31 +132,37 @@ mock_mediastoredata = lazy_load(
 )
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
+mock_sdb = lazy_load(".sdb", "mock_sdb")
 
 
-def mock_all():
-    dec_names = [
-        d
-        for d in dir(sys.modules["moto"])
-        if d.startswith("mock_")
-        and not d.endswith("_deprecated")
-        and not d == "mock_all"
-    ]
+class MockAll(ContextDecorator):
+    def __init__(self):
+        self.mocks = []
+        for mock in dir(sys.modules["moto"]):
+            if (
+                mock.startswith("mock_")
+                and not mock.endswith("_deprecated")
+                and not mock == ("mock_all")
+            ):
+                self.mocks.append(globals()[mock]())
 
-    def deco(f):
-        for dec_name in reversed(dec_names):
-            dec = globals()[dec_name]
-            f = dec(f)
-        return f
+    def __enter__(self):
+        for mock in self.mocks:
+            mock.start()
 
-    return deco
+    def __exit__(self, *exc):
+        for mock in self.mocks:
+            mock.stop()
+
+
+mock_all = MockAll
 
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.14.dev"
+__version__ = "2.2.17.dev"
 
 
 try:

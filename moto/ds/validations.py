@@ -11,13 +11,31 @@ def validate_args(validators):
     """Raise exception if any of the validations fails.
 
     validators is a list of tuples each containing the following:
-        (validator_function, printable field name, field value)
+        (printable field name, field value)
 
     The error messages are accumulated before the exception is raised.
     """
+    validation_map = {
+        "alias": validate_alias,
+        "description": validate_description,
+        "directoryId": validate_directory_id,
+        "connectSettings.customerDnsIps": validate_dns_ips,
+        "edition": validate_edition,
+        "name": validate_name,
+        "password": validate_password,
+        "shortName": validate_short_name,
+        "size": validate_size,
+        "ssoPassword": validate_sso_password,
+        "connectSettings.vpcSettings.subnetIds": validate_subnet_ids,
+        "connectSettings.customerUserName": validate_user_name,
+        "userName": validate_user_name,
+        "vpcSettings.subnetIds": validate_subnet_ids,
+    }
     err_msgs = []
-    for (func, fieldname, value) in validators:
-        msg = func(value)
+    # This eventually could be a switch (python 3.10), elminating the need
+    # for the above map and individual functions.
+    for (fieldname, value) in validators:
+        msg = validation_map[fieldname](value)
         if msg:
             err_msgs.append((fieldname, value, msg))
     if err_msgs:
@@ -31,8 +49,7 @@ def validate_alias(value):
 
     alias_pattern = r"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
     if not re.match(alias_pattern, value):
-        json_pattern = alias_pattern.replace("\\", r"\\")
-        return fr"satisfy regular expression pattern: {json_pattern}"
+        return fr"satisfy regular expression pattern: {alias_pattern}"
     return ""
 
 
@@ -59,8 +76,7 @@ def validate_dns_ips(value):
     )
     for dnsip in value:
         if not re.match(dnsip_pattern, dnsip):
-            json_pattern = dnsip_pattern.replace("\\", r"\\")
-            return fr"satisfy regular expression pattern: {json_pattern}"
+            return fr"satisfy regular expression pattern: {dnsip_pattern}"
     return ""
 
 
@@ -73,7 +89,7 @@ def validate_edition(value):
 
 def validate_name(value):
     """Raise exception if name fails to match constraints."""
-    name_pattern = r"^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+$"
+    name_pattern = r"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$"
     if not re.match(name_pattern, value):
         return fr"satisfy regular expression pattern: {name_pattern}"
     return ""
@@ -88,9 +104,7 @@ def validate_password(value):
         r"(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]))^.*$"
     )
     if not re.match(passwd_pattern, value):
-        # Can't have an odd number of backslashes in a literal.
-        json_pattern = passwd_pattern.replace("\\", r"\\")
-        return fr"satisfy regular expression pattern: {json_pattern}"
+        return fr"satisfy regular expression pattern: {passwd_pattern}"
     return ""
 
 
@@ -98,8 +112,7 @@ def validate_short_name(value):
     """Raise exception if short name fails to match constraints."""
     short_name_pattern = r'^[^\/:*?"<>|.]+[^\/:*?"<>|]*$'
     if value and not re.match(short_name_pattern, value):
-        json_pattern = short_name_pattern.replace("\\", r"\\").replace('"', r"\"")
-        return fr"satisfy regular expression pattern: {json_pattern}"
+        return fr"satisfy regular expression pattern: {short_name_pattern}"
     return ""
 
 

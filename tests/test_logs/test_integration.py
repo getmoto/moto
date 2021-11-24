@@ -8,7 +8,9 @@ import zlib
 
 import boto3
 from botocore.exceptions import ClientError
+from datetime import datetime
 from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
+from moto.core.utils import unix_time_millis
 import pytest
 
 
@@ -141,12 +143,14 @@ def test_put_subscription_filter_with_lambda():
     sub_filter["filterPattern"] = ""
 
     # when
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         logEvents=[
-            {"timestamp": 0, "message": "test"},
-            {"timestamp": 0, "message": "test 2"},
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
         ],
     )
 
@@ -171,10 +175,10 @@ def test_put_subscription_filter_with_lambda():
     log_events.should.have.length_of(2)
     log_events[0]["id"].should.be.a(int)
     log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(0)
+    log_events[0]["timestamp"].should.equal(ts_0)
     log_events[1]["id"].should.be.a(int)
     log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(0)
+    log_events[1]["timestamp"].should.equal(ts_1)
 
 
 @mock_s3
@@ -233,12 +237,14 @@ def test_put_subscription_filter_with_firehose():
     _filter["filterPattern"] = ""
 
     # when
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow()))
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         logEvents=[
-            {"timestamp": 0, "message": "test"},
-            {"timestamp": 0, "message": "test 2"},
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
         ],
     )
 
@@ -260,10 +266,10 @@ def test_put_subscription_filter_with_firehose():
     log_events.should.have.length_of(2)
     log_events[0]["id"].should.be.a(int)
     log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(0)
+    log_events[0]["timestamp"].should.equal(ts_0)
     log_events[1]["id"].should.be.a(int)
     log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(0)
+    log_events[1]["timestamp"].should.equal(ts_1)
 
 
 @mock_lambda

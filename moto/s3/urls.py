@@ -1,9 +1,13 @@
+from moto import settings
+
 from .responses import S3ResponseInstance
 
 url_bases = [
     r"https?://s3(.*)\.amazonaws.com",
     r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(.*)\.amazonaws.com",
 ]
+
+url_bases.extend(settings.get_s3_custom_endpoints())
 
 url_paths = {
     # subdomain bucket

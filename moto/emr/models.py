@@ -7,7 +7,11 @@ import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError, InvalidRequestException, ValidationException
+from moto.emr.exceptions import (
+    InvalidRequestException,
+    ValidationException,
+    ResourceNotFoundException,
+)
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
@@ -163,6 +167,7 @@ class FakeCluster(BaseModel):
         step_concurrency_level=1,
         security_configuration=None,
         kerberos_attributes=None,
+        auto_scaling_role=None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -270,6 +275,7 @@ class FakeCluster(BaseModel):
             security_configuration  # ToDo: Raise if doesn't already exist.
         )
         self.kerberos_attributes = kerberos_attributes
+        self.auto_scaling_role = auto_scaling_role
 
     @property
     def arn(self):
@@ -482,7 +488,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def describe_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
-        raise EmrError("ResourceNotFoundException", "", "error_json")
+        raise ResourceNotFoundException("")
 
     def get_instance_groups(self, instance_group_ids):
         return [

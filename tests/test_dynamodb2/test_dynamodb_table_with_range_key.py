@@ -138,8 +138,8 @@ def test_get_item_without_range_key_boto3():
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
     )
 
-    hash_key = 3241526475
-    range_key = 1234567890987
+    hash_key = "3241526475"
+    range_key = "1234567890987"
     table.put_item(Item={"id": hash_key, "subject": range_key})
 
     with pytest.raises(ClientError) as ex:

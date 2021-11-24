@@ -2,11 +2,15 @@ import json
 
 from boto3 import Session
 
+from moto.core import (
+    BaseBackend,
+    BaseModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
 )
-from moto.core import BaseBackend, BaseModel
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
@@ -258,6 +262,7 @@ class Statistics:
         self.timestamp = iso_8601_datetime_without_milliseconds(dt)
         self.values = []
         self.stats = stats
+        self.unit = None
 
     @property
     def sample_count(self):
@@ -265,10 +270,6 @@ class Statistics:
             return None
 
         return len(self.values)
-
-    @property
-    def unit(self):
-        return None
 
     @property
     def sum(self):
@@ -325,9 +326,10 @@ class CloudWatchBackend(BaseBackend):
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly
     def aws_metric_data(self):
+        providers = CloudWatchMetricProvider.__subclasses__()
         md = []
-        for name, service in metric_providers.items():
-            md.extend(service.get_cloudwatch_metrics())
+        for provider in providers:
+            md.extend(provider.get_cloudwatch_metrics())
         return md
 
     def put_metric_alarm(
@@ -530,13 +532,14 @@ class CloudWatchBackend(BaseBackend):
         end_time,
         period,
         stats,
+        dimensions,
         unit=None,
-        dimensions=None,
     ):
         period_delta = timedelta(seconds=period)
+        # TODO: Also filter by unit and dimensions
         filtered_data = [
             md
-            for md in self.metric_data
+            for md in self.get_all_metrics()
             if md.namespace == namespace
             and md.name == metric_name
             and start_time <= md.timestamp <= end_time
@@ -566,6 +569,7 @@ class CloudWatchBackend(BaseBackend):
                 dt + period_delta
             ):
                 s.values.append(filtered_data[idx].value)
+                s.unit = filtered_data[idx].unit
                 idx += 1
 
             if not s.values:
@@ -685,8 +689,3 @@ for region in Session().get_available_regions(
     cloudwatch_backends[region] = CloudWatchBackend(region)
 for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
     cloudwatch_backends[region] = CloudWatchBackend(region)
-
-# List of services that provide OOTB CW metrics
-# See the S3Backend constructor for an example
-# TODO: We might have to separate this out per region for non-global services
-metric_providers = {}

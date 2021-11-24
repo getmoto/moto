@@ -1,4 +1,4 @@
-.. _contributing faq:
+.. _contributing developer faq:
 
 .. role:: bash(code)
    :language: bash
@@ -7,13 +7,8 @@
    :language: python
 
 =============================
-FAQ
+FAQ for Developers
 =============================
-
-Is Moto concurrency safe?
-############################
-
-No. Moto is not designed for multithreaded access/multiprocessing.
 
 When running the linter...
 #############################

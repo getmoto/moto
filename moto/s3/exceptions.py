@@ -5,7 +5,7 @@ ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 """
 
 ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
-{% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
+{% block extra %}<Key>{{ key }}</Key>{% endblock %}
 """
 
 ERROR_WITH_ARGUMENT = """{% extends 'single_error' %}
@@ -91,9 +91,11 @@ class MissingBucket(BucketError):
 class MissingKey(S3ClientError):
     code = 404
 
-    def __init__(self, key_name):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("template", "key_error")
+        self.templates["key_error"] = ERROR_WITH_KEY_NAME
         super(MissingKey, self).__init__(
-            "NoSuchKey", "The specified key does not exist.", Key=key_name
+            "NoSuchKey", "The specified key does not exist.", **kwargs
         )
 
 
@@ -249,6 +251,22 @@ class InvalidMaxPartArgument(S3ClientError):
             arg, min_val, max_val
         )
         super(InvalidMaxPartArgument, self).__init__("InvalidArgument", error)
+
+
+class InvalidMaxPartNumberArgument(InvalidArgumentError):
+    code = 400
+
+    def __init__(self, value, *args, **kwargs):
+        error = "Part number must be an integer between 1 and 10000, inclusive"
+        super().__init__(message=error, name="partNumber", value=value, *args, **kwargs)
+
+
+class NotAnIntegerException(InvalidArgumentError):
+    code = 400
+
+    def __init__(self, name, value, *args, **kwargs):
+        error = f"Provided {name} not an integer or within integer range"
+        super().__init__(message=error, name=name, value=value, *args, **kwargs)
 
 
 class InvalidNotificationARN(S3ClientError):

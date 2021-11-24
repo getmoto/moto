@@ -23,6 +23,7 @@ from moto.dynamodb2.exceptions import (
     ConditionalCheckFailed,
     TransactionCanceledException,
     EmptyKeyAttributeException,
+    InvalidAttributeTypeError,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -67,16 +68,9 @@ class LimitedSizeDict(dict):
 
 
 class Item(BaseModel):
-    def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
+    def __init__(self, hash_key, range_key, attrs):
         self.hash_key = hash_key
-        self.hash_key_type = hash_key_type
         self.range_key = range_key
-        self.range_key_type = range_key_type
-
-        if hash_key and hash_key.size() > HASH_KEY_MAX_LENGTH:
-            raise HashKeyTooLong
-        if range_key and (range_key.size() > RANGE_KEY_MAX_LENGTH):
-            raise RangeKeyTooLong
 
         self.attrs = LimitedSizeDict()
         for key, value in attrs.items():
@@ -86,9 +80,7 @@ class Item(BaseModel):
         return all(
             [
                 self.hash_key == other.hash_key,
-                self.hash_key_type == other.hash_key_type,
                 self.range_key == other.range_key,
-                self.range_key_type == other.range_key_type,
                 self.attrs == other.attrs,
             ]
         )
@@ -411,12 +403,17 @@ class Table(CloudFormationModel):
         self.range_key_type = None
         self.hash_key_type = None
         for elem in schema:
+            attr_type = [
+                a["AttributeType"]
+                for a in attr
+                if a["AttributeName"] == elem["AttributeName"]
+            ][0]
             if elem["KeyType"] == "HASH":
                 self.hash_key_attr = elem["AttributeName"]
-                self.hash_key_type = elem["KeyType"]
+                self.hash_key_type = attr_type
             else:
                 self.range_key_attr = elem["AttributeName"]
-                self.range_key_type = elem["KeyType"]
+                self.range_key_type = attr_type
         self.table_key_attrs = [
             key for key in (self.hash_key_attr, self.range_key_attr) if key
         ]
@@ -593,6 +590,18 @@ class Table(CloudFormationModel):
             keys.append(range_key)
         return keys
 
+    def _validate_key_sizes(self, item_attrs):
+        for hash_name in self.hash_key_names:
+            hash_value = item_attrs.get(hash_name)
+            if hash_value:
+                if DynamoType(hash_value).size() > HASH_KEY_MAX_LENGTH:
+                    raise HashKeyTooLong
+        for range_name in self.range_key_names:
+            range_value = item_attrs.get(range_name)
+            if range_value:
+                if DynamoType(range_value).size() > RANGE_KEY_MAX_LENGTH:
+                    raise RangeKeyTooLong
+
     def put_item(
         self,
         item_attrs,
@@ -620,6 +629,21 @@ class Table(CloudFormationModel):
         else:
             range_value = None
 
+        if hash_value.type != self.hash_key_type:
+            raise InvalidAttributeTypeError(
+                self.hash_key_attr,
+                expected_type=self.hash_key_type,
+                actual_type=hash_value.type,
+            )
+        if range_value and range_value.type != self.range_key_type:
+            raise InvalidAttributeTypeError(
+                self.range_key_attr,
+                expected_type=self.range_key_type,
+                actual_type=range_value.type,
+            )
+
+        self._validate_key_sizes(item_attrs)
+
         if expected is None:
             expected = {}
             lookup_range_value = range_value
@@ -630,9 +654,7 @@ class Table(CloudFormationModel):
             else:
                 lookup_range_value = DynamoType(expected_range_value)
         current = self.get_item(hash_value, lookup_range_value)
-        item = Item(
-            hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs
-        )
+        item = Item(hash_value, range_value, item_attrs)
 
         if not overwrite:
             if not get_expected(expected).expr(current):
@@ -991,6 +1013,36 @@ class RestoredTable(Table):
         result = super(RestoredTable, self).describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceBackupArn": self.source_backup_arn,
+            "SourceTableArn": self.source_table_arn,
+            "RestoreDateTime": unix_time(self.restore_date_time),
+            "RestoreInProgress": False,
+        }
+        return result
+
+
+class RestoredPITTable(Table):
+    def __init__(self, name, source):
+        params = self._parse_params_from_table(source)
+        super(RestoredPITTable, self).__init__(name, **params)
+        self.indexes = copy.deepcopy(source.indexes)
+        self.global_indexes = copy.deepcopy(source.global_indexes)
+        self.items = copy.deepcopy(source.items)
+        # Restore Attrs
+        self.source_table_arn = source.table_arn
+        self.restore_date_time = self.created_at
+
+    @staticmethod
+    def _parse_params_from_table(table):
+        params = {
+            "schema": copy.deepcopy(table.schema),
+            "attr": copy.deepcopy(table.attr),
+            "throughput": copy.deepcopy(table.throughput),
+        }
+        return params
+
+    def describe(self, base_key="TableDescription"):
+        result = super(RestoredPITTable, self).describe(base_key=base_key)
+        result[base_key]["RestoreSummary"] = {
             "SourceTableArn": self.source_table_arn,
             "RestoreDateTime": unix_time(self.restore_date_time),
             "RestoreInProgress": False,
@@ -1427,13 +1479,7 @@ class DynamoDBBackend(BaseBackend):
         if item is None:
             if update_expression:
                 # Validate AST before creating anything
-                item = Item(
-                    hash_value,
-                    table.hash_key_type,
-                    range_value,
-                    table.range_key_type,
-                    attrs={},
-                )
+                item = Item(hash_value, range_value, attrs={},)
                 UpdateExpressionValidator(
                     update_expression_ast,
                     expression_attribute_names=expression_attribute_names,
@@ -1681,6 +1727,22 @@ class DynamoDBBackend(BaseBackend):
         if existing_table is not None:
             raise ValueError()
         new_table = RestoredTable(target_table_name, backup)
+        self.tables[target_table_name] = new_table
+        return new_table
+
+    """
+    Currently this only accepts the source and target table elements, and will
+    copy all items from the source without respect to other arguments.
+    """
+
+    def restore_table_to_point_in_time(self, target_table_name, source_table_name):
+        source = self.get_table(source_table_name)
+        if source is None:
+            raise KeyError()
+        existing_table = self.get_table(target_table_name)
+        if existing_table is not None:
+            raise ValueError()
+        new_table = RestoredPITTable(target_table_name, source)
         self.tables[target_table_name] = new_table
         return new_table
 

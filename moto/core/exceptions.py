@@ -37,12 +37,6 @@ ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </ErrorResponse>
 """
 
-ERROR_JSON_RESPONSE = """{
-    "message": "{{message}}",
-    "__type": "{{error_type}}"
-}
-"""
-
 
 class RESTError(HTTPException):
     code = 400
@@ -53,22 +47,22 @@ class RESTError(HTTPException):
         "single_error": SINGLE_ERROR_RESPONSE,
         "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
         "error": ERROR_RESPONSE,
-        "error_json": ERROR_JSON_RESPONSE,
     }
 
     def __init__(self, error_type, message, template="error", **kwargs):
         super(RESTError, self).__init__()
-        env = Environment(loader=DictLoader(self.templates))
         self.error_type = error_type
         self.message = message
-        self.description = env.get_template(template).render(
-            error_type=error_type,
-            message=message,
-            request_id_tag=self.request_id_tag_name,
-            **kwargs
-        )
 
-        self.content_type = "application/xml"
+        if template in self.templates.keys():
+            env = Environment(loader=DictLoader(self.templates))
+            self.description = env.get_template(template).render(
+                error_type=error_type,
+                message=message,
+                request_id_tag=self.request_id_tag_name,
+                **kwargs
+            )
+            self.content_type = "application/xml"
 
     def get_headers(self, *args, **kwargs):
         return [
@@ -87,6 +81,9 @@ class DryRunClientError(RESTError):
 class JsonRESTError(RESTError):
     def __init__(self, error_type, message, template="error_json", **kwargs):
         super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
+        self.description = json.dumps(
+            {"__type": self.error_type, "message": self.message}
+        )
         self.content_type = "application/json"
 
     def get_body(self, *args, **kwargs):

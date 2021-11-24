@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
+from moto.s3.exceptions import S3ClientError
 from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
 from .exceptions import ValidationError, MissingParameterError
@@ -632,6 +633,32 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(UPDATE_STACK_INSTANCES_RESPONSE_TEMPLATE)
         return template.render(operation=operation)
 
+    def get_stack_policy(self):
+        stack_name = self._get_param("StackName")
+        policy = self.cloudformation_backend.get_stack_policy(stack_name)
+        template = self.response_template(GET_STACK_POLICY_RESPONSE)
+        return template.render(policy=policy)
+
+    def set_stack_policy(self):
+        stack_name = self._get_param("StackName")
+        policy_url = self._get_param("StackPolicyURL")
+        policy_body = self._get_param("StackPolicyBody")
+        if policy_body and policy_url:
+            raise ValidationError(
+                message="You cannot specify both StackPolicyURL and StackPolicyBody"
+            )
+        if policy_url:
+            try:
+                policy_body = self._get_stack_from_s3_url(policy_url)
+            except S3ClientError as s3_e:
+                raise ValidationError(
+                    message=f"S3 error: Access Denied: {s3_e.error_type}"
+                )
+        self.cloudformation_backend.set_stack_policy(
+            stack_name, policy_body=policy_body
+        )
+        return SET_STACK_POLICY_RESPONSE
+
 
 VALIDATE_STACK_RESPONSE_TEMPLATE = """<ValidateTemplateResponse>
         <ValidateTemplateResult>
@@ -1244,3 +1271,21 @@ GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://clo
   </ResponseMetadata>
 </GetTemplateSummaryResponse>
 """
+
+SET_STACK_POLICY_RESPONSE = """<SetStackPolicyResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ResponseMetadata>
+    <RequestId>abe48993-e23f-4167-b703-5b0f1b6aa84f</RequestId>
+  </ResponseMetadata>
+</SetStackPolicyResponse>"""
+
+
+GET_STACK_POLICY_RESPONSE = """<GetStackPolicyResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <GetStackPolicyResult>
+    {% if policy %}
+    <StackPolicyBody>{{ policy }}</StackPolicyBody>
+    {% endif %}
+  </GetStackPolicyResult>
+  <ResponseMetadata>
+    <RequestId>e9e39eb6-1c05-4f0e-958a-b63f420e0a07</RequestId>
+  </ResponseMetadata>
+</GetStackPolicyResponse>"""

@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>50% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -41,7 +41,7 @@
 - [ ] create_vpc_link
 - [X] delete_api_key
 - [X] delete_authorizer
-- [ ] delete_base_path_mapping
+- [X] delete_base_path_mapping
 - [ ] delete_client_certificate
 - [X] delete_deployment
 - [ ] delete_documentation_part
@@ -113,10 +113,10 @@
 - [ ] import_documentation_parts
 - [ ] import_rest_api
 - [ ] put_gateway_response
-- [ ] put_integration
-- [ ] put_integration_response
-- [ ] put_method
-- [ ] put_method_response
+- [X] put_integration
+- [X] put_integration_response
+- [X] put_method
+- [X] put_method_response
 - [ ] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
@@ -271,19 +271,23 @@
 
 ## batch
 <details>
-<summary>84% implemented</summary>
+<summary>66% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
+- [ ] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
+- [ ] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
+- [ ] describe_scheduling_policies
 - [X] list_jobs
+- [ ] list_scheduling_policies
 - [ ] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -292,6 +296,35 @@
 - [ ] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
+- [ ] update_scheduling_policy
+</details>
+
+## budgets
+<details>
+<summary>31% implemented</summary>
+
+- [X] create_budget
+- [ ] create_budget_action
+- [X] create_notification
+- [ ] create_subscriber
+- [X] delete_budget
+- [ ] delete_budget_action
+- [X] delete_notification
+- [ ] delete_subscriber
+- [X] describe_budget
+- [ ] describe_budget_action
+- [ ] describe_budget_action_histories
+- [ ] describe_budget_actions_for_account
+- [ ] describe_budget_actions_for_budget
+- [ ] describe_budget_performance_history
+- [X] describe_budgets
+- [X] describe_notifications_for_budget
+- [ ] describe_subscribers_for_notification
+- [ ] execute_budget_action
+- [ ] update_budget
+- [ ] update_budget_action
+- [ ] update_notification
+- [ ] update_subscriber
 </details>
 
 ## cloudformation
@@ -1066,8 +1099,8 @@
 - [X] allocate_address
 - [ ] allocate_hosts
 - [ ] apply_security_groups_to_client_vpn_target_network
-- [ ] assign_ipv6_addresses
-- [ ] assign_private_ip_addresses
+- [X] assign_ipv6_addresses
+- [X] assign_private_ip_addresses
 - [X] associate_address
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
@@ -1523,8 +1556,8 @@
 - [X] stop_instances
 - [ ] terminate_client_vpn_connections
 - [X] terminate_instances
-- [ ] unassign_ipv6_addresses
-- [ ] unassign_private_ip_addresses
+- [X] unassign_ipv6_addresses
+- [X] unassign_private_ip_addresses
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
@@ -2098,7 +2131,7 @@
 
 ## glue
 <details>
-<summary>7% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2122,7 +2155,7 @@
 - [X] create_crawler
 - [X] create_database
 - [ ] create_dev_endpoint
-- [ ] create_job
+- [X] create_job
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
@@ -3668,6 +3701,75 @@
 - [ ] update_traffic_policy_instance
 </details>
 
+## route53resolver
+<details>
+<summary>27% implemented</summary>
+
+- [ ] associate_firewall_rule_group
+- [ ] associate_resolver_endpoint_ip_address
+- [ ] associate_resolver_query_log_config
+- [X] associate_resolver_rule
+- [ ] create_firewall_domain_list
+- [ ] create_firewall_rule
+- [ ] create_firewall_rule_group
+- [X] create_resolver_endpoint
+- [ ] create_resolver_query_log_config
+- [X] create_resolver_rule
+- [ ] delete_firewall_domain_list
+- [ ] delete_firewall_rule
+- [ ] delete_firewall_rule_group
+- [X] delete_resolver_endpoint
+- [ ] delete_resolver_query_log_config
+- [X] delete_resolver_rule
+- [ ] disassociate_firewall_rule_group
+- [ ] disassociate_resolver_endpoint_ip_address
+- [ ] disassociate_resolver_query_log_config
+- [X] disassociate_resolver_rule
+- [ ] get_firewall_config
+- [ ] get_firewall_domain_list
+- [ ] get_firewall_rule_group
+- [ ] get_firewall_rule_group_association
+- [ ] get_firewall_rule_group_policy
+- [ ] get_resolver_config
+- [ ] get_resolver_dnssec_config
+- [X] get_resolver_endpoint
+- [ ] get_resolver_query_log_config
+- [ ] get_resolver_query_log_config_association
+- [ ] get_resolver_query_log_config_policy
+- [X] get_resolver_rule
+- [X] get_resolver_rule_association
+- [ ] get_resolver_rule_policy
+- [ ] import_firewall_domains
+- [ ] list_firewall_configs
+- [ ] list_firewall_domain_lists
+- [ ] list_firewall_domains
+- [ ] list_firewall_rule_group_associations
+- [ ] list_firewall_rule_groups
+- [ ] list_firewall_rules
+- [ ] list_resolver_configs
+- [ ] list_resolver_dnssec_configs
+- [X] list_resolver_endpoint_ip_addresses
+- [X] list_resolver_endpoints
+- [ ] list_resolver_query_log_config_associations
+- [ ] list_resolver_query_log_configs
+- [X] list_resolver_rule_associations
+- [X] list_resolver_rules
+- [X] list_tags_for_resource
+- [ ] put_firewall_rule_group_policy
+- [ ] put_resolver_query_log_config_policy
+- [ ] put_resolver_rule_policy
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_firewall_config
+- [ ] update_firewall_domains
+- [ ] update_firewall_rule
+- [ ] update_firewall_rule_group_association
+- [ ] update_resolver_config
+- [ ] update_resolver_dnssec_config
+- [X] update_resolver_endpoint
+- [ ] update_resolver_rule
+</details>
+
 ## s3
 <details>
 <summary>59% implemented</summary>
@@ -4018,6 +4120,22 @@
 - [ ] update_workteam
 </details>
 
+## sdb
+<details>
+<summary>50% implemented</summary>
+
+- [ ] batch_delete_attributes
+- [ ] batch_put_attributes
+- [X] create_domain
+- [ ] delete_attributes
+- [X] delete_domain
+- [ ] domain_metadata
+- [X] get_attributes
+- [X] list_domains
+- [X] put_attributes
+- [ ] select
+</details>
+
 ## secretsmanager
 <details>
 <summary>68% implemented</summary>
@@ -4125,7 +4243,7 @@
 
 ## sns
 <details>
-<summary>53% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
@@ -4155,6 +4273,7 @@
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
+- [ ] publish_batch
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes
@@ -4571,6 +4690,7 @@
 - apigatewaymanagementapi
 - apigatewayv2
 - appconfig
+- appconfigdata
 - appflow
 - appintegrations
 - application-insights
@@ -4583,7 +4703,6 @@
 - autoscaling-plans
 - backup
 - braket
-- budgets
 - ce
 - chime
 - chime-sdk-identity
@@ -4624,6 +4743,7 @@
 - discovery
 - dlm
 - docdb
+- drs
 - ebs
 - ecr-public
 - elastic-inference
@@ -4695,6 +4815,7 @@
 - mgh
 - mgn
 - migrationhub-config
+- migrationhubstrategy
 - mobile
 - mq
 - mturk
@@ -4722,12 +4843,12 @@
 - rds-data
 - redshift-data
 - rekognition
+- resiliencehub
 - robomaker
 - route53-recovery-cluster
 - route53-recovery-control-config
 - route53-recovery-readiness
 - route53domains
-- route53resolver
 - s3control
 - s3outposts
 - sagemaker-a2i-runtime
@@ -4736,7 +4857,6 @@
 - sagemaker-runtime
 - savingsplans
 - schemas
-- sdb
 - securityhub
 - serverlessrepo
 - service-quotas

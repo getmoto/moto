@@ -12,7 +12,7 @@
 apigateway
 ==========
 
-
+.. autoclass:: moto.apigateway.models.APIGatewayBackend
 
 |start-h3| Example usage |end-h3|
 
@@ -44,7 +44,7 @@ apigateway
 - [ ] create_vpc_link
 - [X] delete_api_key
 - [X] delete_authorizer
-- [ ] delete_base_path_mapping
+- [X] delete_base_path_mapping
 - [ ] delete_client_certificate
 - [X] delete_deployment
 - [ ] delete_documentation_part
@@ -116,10 +116,10 @@ apigateway
 - [ ] import_documentation_parts
 - [ ] import_rest_api
 - [ ] put_gateway_response
-- [ ] put_integration
-- [ ] put_integration_response
-- [ ] put_method
-- [ ] put_method_response
+- [X] put_integration
+- [X] put_integration_response
+- [X] put_method
+- [X] put_method_response
 - [ ] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
