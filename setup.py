@@ -45,7 +45,7 @@ install_requires = [
 _dep_PyYAML = "PyYAML>=5.1"
 _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
 _dep_python_jose_ecdsa_pin = (
-    "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
+    "ecdsa!=0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
 )
 _dep_dataclasses = "dataclasses; python_version < '3.7'"
 _dep_docker = "docker>=2.5.1"
