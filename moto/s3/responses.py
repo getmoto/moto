@@ -1630,6 +1630,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         response_headers = {}
         version_id = query.get("versionId", [None])[0]
+        if version_id and not self.backend.get_bucket(bucket_name).is_versioned:
+            return 400, response_headers, ""
+
         part_number = query.get("partNumber", [None])[0]
         if part_number:
             part_number = int(part_number)
