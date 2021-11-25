@@ -558,6 +558,24 @@ def test_send_message_with_message_group_id():
 
 
 @mock_sqs
+def test_send_message_with_message_group_id_standard_queue():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
+
+    with pytest.raises(ClientError) as ex:
+        queue.send_message(
+            MessageBody="mydata", MessageGroupId="group_id_1",
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "Value group_id_1 for parameter MessageGroupId is invalid. "
+        "Reason: The request include parameter that is not valid for this queue type."
+    )
+
+
+@mock_sqs
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 
@@ -2097,7 +2115,9 @@ def test_delete_message_errors():
 @mock_sqs
 def test_send_message_batch():
     client = boto3.client("sqs", region_name="us-east-1")
-    response = client.create_queue(QueueName=str(uuid4())[0:6])
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"},
+    )
     queue_url = response["QueueUrl"]
 
     response = client.send_message_batch(
