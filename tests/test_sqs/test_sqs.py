@@ -564,8 +564,7 @@ def test_send_message_with_message_group_id_standard_queue():
 
     with pytest.raises(ClientError) as ex:
         queue.send_message(
-            MessageBody="mydata",
-            MessageGroupId="group_id_1",
+            MessageBody="mydata", MessageGroupId="group_id_1",
         )
 
     err = ex.value.response["Error"]
