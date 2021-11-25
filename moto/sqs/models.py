@@ -710,13 +710,6 @@ class SQSBackend(BaseBackend):
             )
             raise InvalidParameterValue(msg)
 
-        if not queue.fifo_queue and group_id is not None:
-            msg = (
-                "Value {} for parameter MessageGroupId is invalid. "
-                "Reason: The request include parameter that is not valid for this queue type."
-            ).format(group_id)
-            raise InvalidParameterValue(msg)
-
         if delay_seconds:
             delay_seconds = int(delay_seconds)
         else:
@@ -745,6 +738,12 @@ class SQSBackend(BaseBackend):
             if queue.fifo_queue:
                 raise MissingParameter("MessageGroupId")
         else:
+            if not queue.fifo_queue:
+                msg = (
+                    "Value {} for parameter MessageGroupId is invalid. "
+                    "Reason: The request include parameter that is not valid for this queue type."
+                ).format(group_id)
+                raise InvalidParameterValue(msg)
             message.group_id = group_id
 
         if message_attributes:
