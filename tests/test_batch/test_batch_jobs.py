@@ -684,8 +684,9 @@ def test_update_job_definition():
         "vcpus": 2,
     }
 
+    job_def_name = str(uuid4())[0:6]
     batch_client.register_job_definition(
-        jobDefinitionName="test-job",
+        jobDefinitionName=job_def_name,
         type="container",
         tags=tags[0],
         parameters={},
@@ -694,14 +695,14 @@ def test_update_job_definition():
 
     container_props["memory"] = 2048
     batch_client.register_job_definition(
-        jobDefinitionName="test-job",
+        jobDefinitionName=job_def_name,
         type="container",
         tags=tags[1],
         parameters={},
         containerProperties=container_props,
     )
 
-    job_defs = batch_client.describe_job_definitions(jobDefinitionName="test-job")[
+    job_defs = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)[
         "jobDefinitions"
     ]
     job_defs.should.have.length_of(2)
@@ -724,15 +725,16 @@ def test_register_job_definition_with_timeout():
         "vcpus": 2,
     }
 
+    job_def_name = str(uuid4())[0:6]
     batch_client.register_job_definition(
-        jobDefinitionName="test-job",
+        jobDefinitionName=job_def_name,
         type="container",
         parameters={},
         containerProperties=container_props,
         timeout={"attemptDurationSeconds": 3},
     )
 
-    resp = batch_client.describe_job_definitions(jobDefinitionName="test-job")
+    resp = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)
     job_def = resp["jobDefinitions"][0]
     job_def.should.have.key("timeout").equals({"attemptDurationSeconds": 3})
 
