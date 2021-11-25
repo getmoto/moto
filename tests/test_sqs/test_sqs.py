@@ -2115,7 +2115,9 @@ def test_delete_message_errors():
 @mock_sqs
 def test_send_message_batch():
     client = boto3.client("sqs", region_name="us-east-1")
-    response = client.create_queue(QueueName=str(uuid4())[0:6])
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"},
+    )
     queue_url = response["QueueUrl"]
 
     response = client.send_message_batch(
