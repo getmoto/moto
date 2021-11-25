@@ -2140,9 +2140,8 @@ class IAMBackend(BaseBackend):
                 self.detach_group_policy(policy_arn, group_name)
             if new_path:
                 group.path = new_path
-            if new_group_name:
-                group.name = new_group_name
-                self.groups[new_group_name] = self.groups.pop(group_name)
+            group.name = new_group_name
+            self.groups[new_group_name] = self.groups.pop(group_name)
             for policy_arn in existing_policies:
                 self.attach_group_policy(policy_arn, new_group_name)
 
