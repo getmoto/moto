@@ -2123,27 +2123,28 @@ class IAMBackend(BaseBackend):
             )
 
     def update_group(self, group_name, new_group_name, new_path="/"):
-        if new_group_name in self.groups:
-            raise IAMConflictException(
-                "Group {0} already exists".format(new_group_name)
-            )
-        try:
-            group = self.groups[group_name]
-        except KeyError:
-            raise IAMNotFoundException(
-                "The group with name {0} cannot be found.".format(group_name)
-            )
-
-        existing_policies = group.managed_policies.copy()
-        for policy_arn in existing_policies:
-            self.detach_group_policy(policy_arn, group_name)
-        if new_path:
-            group.path = new_path
         if new_group_name:
-            group.name = new_group_name
-            self.groups[new_group_name] = self.groups.pop(group_name)
-        for policy_arn in existing_policies:
-            self.attach_group_policy(policy_arn, new_group_name)
+            if new_group_name in self.groups:
+                raise IAMConflictException(
+                    "Group {0} already exists".format(new_group_name)
+                )
+            try:
+                group = self.groups[group_name]
+            except KeyError:
+                raise IAMNotFoundException(
+                    "The group with name {0} cannot be found.".format(group_name)
+                )
+
+            existing_policies = group.managed_policies.copy()
+            for policy_arn in existing_policies:
+                self.detach_group_policy(policy_arn, group_name)
+            if new_path:
+                group.path = new_path
+            if new_group_name:
+                group.name = new_group_name
+                self.groups[new_group_name] = self.groups.pop(group_name)
+            for policy_arn in existing_policies:
+                self.attach_group_policy(policy_arn, new_group_name)
 
     def create_user(self, user_name, path="/", tags=None):
         if user_name in self.users:
