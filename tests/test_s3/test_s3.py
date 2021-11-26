@@ -6614,3 +6614,17 @@ def test_boto3_copy_object_with_kms_encryption():
     result = client.head_object(Bucket="blah", Key="test2")
     assert result["SSEKMSKeyId"] == kms_key
     assert result["ServerSideEncryption"] == "aws:kms"
+
+
+@mock_s3
+def test_head_versioned_key_in_not_versioned_bucket():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="simple-bucked")
+
+    with pytest.raises(ClientError) as ex:
+        client.head_object(
+            Bucket="simple-bucked", Key="file.txt", VersionId="noVersion"
+        )
+
+    response = ex.value.response
+    assert response["Error"]["Code"] == "400"
