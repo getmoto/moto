@@ -684,8 +684,9 @@ def test_update_job_definition():
         "vcpus": 2,
     }
 
+    job_def_name = str(uuid4())[0:6]
     batch_client.register_job_definition(
-        jobDefinitionName="test-job",
+        jobDefinitionName=job_def_name,
         type="container",
         tags=tags[0],
         parameters={},
@@ -694,20 +695,100 @@ def test_update_job_definition():
 
     container_props["memory"] = 2048
     batch_client.register_job_definition(
-        jobDefinitionName="test-job",
+        jobDefinitionName=job_def_name,
         type="container",
         tags=tags[1],
         parameters={},
         containerProperties=container_props,
     )
 
-    job_defs = batch_client.describe_job_definitions(jobDefinitionName="test-job")[
+    job_defs = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)[
         "jobDefinitions"
     ]
     job_defs.should.have.length_of(2)
 
     job_defs[0]["containerProperties"]["memory"].should.equal(1024)
     job_defs[0]["tags"].should.equal(tags[0])
+    job_defs[0].shouldnt.have.key("timeout")
 
     job_defs[1]["containerProperties"]["memory"].should.equal(2048)
     job_defs[1]["tags"].should.equal(tags[1])
+
+
+@mock_batch
+def test_register_job_definition_with_timeout():
+    _, _, _, _, batch_client = _get_clients()
+
+    container_props = {
+        "image": "amazonlinux",
+        "memory": 1024,
+        "vcpus": 2,
+    }
+
+    job_def_name = str(uuid4())[0:6]
+    batch_client.register_job_definition(
+        jobDefinitionName=job_def_name,
+        type="container",
+        parameters={},
+        containerProperties=container_props,
+        timeout={"attemptDurationSeconds": 3},
+    )
+
+    resp = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)
+    job_def = resp["jobDefinitions"][0]
+    job_def.should.have.key("timeout").equals({"attemptDurationSeconds": 3})
+
+
+@mock_batch
+@mock_ec2
+@mock_iam
+def test_submit_job_with_timeout():
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+
+    job_def_name = str(uuid4())[0:6]
+    commands = ["sleep", "3"]
+    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
+
+    resp = batch_client.submit_job(
+        jobName=str(uuid4())[0:6],
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn,
+        timeout={"attemptDurationSeconds": 1},
+    )
+    job_id = resp["jobId"]
+
+    # This should fail, as the job-duration is longer than the attemptDurationSeconds
+    _wait_for_job_status(batch_client, job_id, "FAILED")
+
+
+@mock_batch
+@mock_ec2
+@mock_iam
+def test_submit_job_with_timeout_set_at_definition():
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+
+    job_def_name = str(uuid4())[0:6]
+    commands = ["sleep", "3"]
+    _, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_def_name,
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": commands,
+        },
+        timeout={"attemptDurationSeconds": 1},
+    )
+    job_def_arn = resp["jobDefinitionArn"]
+
+    resp = batch_client.submit_job(
+        jobName=str(uuid4())[0:6], jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id = resp["jobId"]
+
+    # This should fail, as the job-duration is longer than the attemptDurationSeconds
+    _wait_for_job_status(batch_client, job_id, "FAILED")
