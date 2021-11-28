@@ -39,8 +39,6 @@ from moto.core import BaseBackend
 from inflection import singularize
 from implementation_coverage import get_moto_implementation
 
-PRIMITIVE_SHAPES = ["string", "timestamp", "integer", "boolean", "sensitiveStringType", "long"]
-
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "./template")
 
 INPUT_IGNORED_IN_BACKEND = ["Marker", "PageSize"]
@@ -55,15 +53,13 @@ def print_progress(title, body, color):
 
 def select_service_and_operation():
     """Prompt user to select service and operation."""
-    service_name = None
     service_names = Session().get_available_services()
     service_completer = WordCompleter(service_names)
-    while service_name not in service_names:
-        service_name = prompt("Select service: ", completer=service_completer)
-        if service_name not in service_names:
-            click.secho(f"{service_name} is not valid service", fg="red")
-
-    moto_client, _name = get_moto_implementation(service_name)
+    service_name = prompt("Select service: ", completer=service_completer)
+    if service_name not in service_names:
+        click.secho(f"{service_name} is not valid service", fg="red")
+        raise click.Abort()
+    moto_client = get_moto_implementation(service_name)
     real_client = boto3.client(service_name, region_name="us-east-1")
     implemented = []
     not_implemented = []
@@ -83,16 +79,15 @@ def select_service_and_operation():
         check = "X" if operation_name in implemented else " "
         click.secho(f"[{check}] {operation_name}")
     click.echo("=================================")
+    operation_name = prompt("Select Operation: ", completer=operation_completer)
 
-    operation_available = False
-    while not operation_available:
-        operation_name = prompt("Select Operation: ", completer=operation_completer)
-        if operation_name not in operation_names:
-            click.secho(f"{operation_name} is not valid operation", fg="red")
-        elif operation_name in implemented:
-            click.secho(f"{operation_name} is already implemented", fg="red")
-        else:
-            operation_available = True
+    if operation_name not in operation_names:
+        click.secho(f"{operation_name} is not valid operation", fg="red")
+        raise click.Abort()
+
+    if operation_name in implemented:
+        click.secho(f"{operation_name} is already implemented", fg="red")
+        raise click.Abort()
     return service_name, operation_name
 
 
@@ -276,7 +271,7 @@ def get_function_in_responses(
         body += f"        {input_name}={input_name},\n"
 
     body += "    )\n"
-    if protocol in ["query", "rest-xml"]:
+    if protocol == "query":
         body += f"    template = self.response_template({operation.upper()}_TEMPLATE)\n"
         names = ", ".join([f"{n}={n}" for n in output_names])
         body += f"    return template.render({names})\n"
@@ -421,87 +416,6 @@ def get_response_query_template(service, operation):  # pylint: disable=too-many
     return body
 
 
-def get_response_restxml_template(service, operation):
-    """refers to definition of API in botocore, and autogenerates template
-        Assume that protocol is rest-xml. Shares some familiarity with protocol=query
-    """
-    client = boto3.client(service)
-    aws_operation_name = get_operation_name_in_keys(
-        to_upper_camel_case(operation),
-        list(client._service_model._service_description["operations"].keys()),
-    )
-    op_model = client._service_model.operation_model(aws_operation_name)
-    result_wrapper = op_model._operation_model["output"]["shape"]
-    response_wrapper = result_wrapper.replace("Result", "Response")
-    metadata = op_model.metadata
-
-    shapes = client._service_model._shape_resolver._shape_map
-
-    # build xml tree
-    t_root = etree.Element(response_wrapper)
-
-    # build metadata
-    t_metadata = etree.Element("ResponseMetadata")
-    t_request_id = etree.Element("RequestId")
-    t_request_id.text = "1549581b-12b7-11e3-895e-1334aEXAMPLE"
-    t_metadata.append(t_request_id)
-    t_root.append(t_metadata)
-
-    def _find_member(tree, shape_name, name_prefix):
-        shape = shapes[shape_name]
-        if shape["type"] == "list":
-            t_for = etree.Element("REPLACE_FOR")
-            t_for.set("for", to_snake_case(shape_name))
-            t_for.set("in", ".".join(name_prefix[:-1]) + "." + shape_name)
-            member_shape = shape["member"]["shape"]
-            member_name = shape["member"].get("locationName")
-            if member_shape in PRIMITIVE_SHAPES:
-                t_member = etree.Element(member_name)
-                t_member.text = f"{{{{ {to_snake_case(shape_name)}.{to_snake_case(member_name)} }}}}"
-                t_for.append(t_member)
-            else:
-                _find_member(t_for, member_shape, [to_snake_case(shape_name)])
-            tree.append(t_for)
-        elif shape["type"] in PRIMITIVE_SHAPES:
-            tree.text = f"{{{{ {shape_name} }}}}"
-        else:
-            for child, details in shape["members"].items():
-                child = details.get("locationName", child)
-                if details["shape"] in PRIMITIVE_SHAPES:
-                    t_member = etree.Element(child)
-                    t_member.text = "{{ " + ".".join(name_prefix) + f".{to_snake_case(child)} }}}}"
-                    tree.append(t_member)
-                else:
-                    t = etree.Element(child)
-                    _find_member(t, details["shape"], name_prefix + [to_snake_case(child)])
-                    tree.append(t)
-
-    # build result
-    t_result = etree.Element(result_wrapper)
-    for name, details in shapes[result_wrapper]["members"].items():
-        shape = details["shape"]
-        name = details.get("locationName", name)
-        if shape in PRIMITIVE_SHAPES:
-            t_member = etree.Element(name)
-            t_member.text = f"{{{{ {to_snake_case(name)} }}}}"
-            t_result.append(t_member)
-        else:
-            _find_member(t_result, name, name_prefix=["root"])
-    t_root.append(t_result)
-    xml_body = etree.tostring(t_root, pretty_print=True).decode("utf-8")
-    #
-    # Still need to add FOR-loops in this template
-    #     <REPLACE_FOR for="x" in="y">
-    # becomes
-    #     {% for x in y %}
-    def conv(m):
-        return m.group().replace("REPLACE_FOR", "").replace("=", "").replace('"', " ").replace("<", "{%").replace(">", "%}").strip()
-    xml_body = re.sub(r"<REPLACE_FOR[\sa-zA-Z\"=_.]+>", conv, xml_body)
-    xml_body = xml_body.replace("</REPLACE_FOR>", "{% endfor %}")
-    body = f'\n{operation.upper()}_TEMPLATE = """{xml_body}"""'
-    return body
-
-
 def insert_code_to_class(path, base_class, new_code):
     """Add code for class handling service's response or backend."""
     with open(path, encoding="utf-8") as fhandle:
@@ -585,11 +499,8 @@ def insert_codes(service, operation, api_protocol):
     insert_code_to_class(responses_path, BaseResponse, func_in_responses)
 
     # insert template
-    if api_protocol in ["query", "rest-xml"]:
-        if api_protocol == "query":
-            template = get_response_query_template(service, operation)
-        elif api_protocol == "rest-xml":
-            template = get_response_restxml_template(service, operation)
+    if api_protocol == "query":
+        template = get_response_query_template(service, operation)
         with open(responses_path, encoding="utf-8") as fhandle:
             lines = [_[:-1] for _ in fhandle.readlines()]
         lines += template.splitlines()
@@ -621,7 +532,7 @@ def main():
     api_protocol = boto3.client(service)._service_model.metadata["protocol"]
     initialize_service(service, api_protocol)
 
-    if api_protocol in ["query", "json", "rest-json", "rest-xml"]:
+    if api_protocol in ["query", "json", "rest-json"]:
         insert_codes(service, operation, api_protocol)
     else:
         print_progress(
