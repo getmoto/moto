@@ -15,10 +15,10 @@ class CloudFrontException(RESTError):
 
     code = 400
 
-    def __init__(self, **kwargs):
-        kwargs.setdefault("template", "error")
-        self.templates["error"] = EXCEPTION_RESPONSE
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("template", "cferror")
+        self.templates["cferror"] = EXCEPTION_RESPONSE
+        super().__init__(*args, **kwargs)
 
 
 class OriginDoesNotExist(CloudFrontException):
@@ -26,45 +26,47 @@ class OriginDoesNotExist(CloudFrontException):
     code = 404
 
     def __init__(self, **kwargs):
-        kwargs["error_type"] = "NoSuchOrigin"
-        kwargs["message"] = "One or more of your origins or origin groups do not exist."
-        super().__init__(**kwargs)
+        super().__init__(
+            "NoSuchOrigin",
+            message="One or more of your origins or origin groups do not exist.",
+            **kwargs,
+        )
 
 
 class InvalidOriginServer(CloudFrontException):
     def __init__(self, **kwargs):
-        kwargs["error_type"] = "InvalidOrigin"
-        kwargs[
-            "message"
-        ] = "The specified origin server does not exist or is not valid."
-        super().__init__(**kwargs)
+        super().__init__(
+            "InvalidOrigin",
+            message="The specified origin server does not exist or is not valid.",
+            **kwargs,
+        )
 
 
 class DomainNameNotAnS3Bucket(CloudFrontException):
     def __init__(self, **kwargs):
-        kwargs["error_type"] = "InvalidArgument"
-        kwargs[
-            "message"
-        ] = "The parameter Origin DomainName does not refer to a valid S3 bucket."
-        super().__init__(**kwargs)
+        super().__init__(
+            "InvalidArgument",
+            message="The parameter Origin DomainName does not refer to a valid S3 bucket.",
+            **kwargs,
+        )
 
 
 class DistributionAlreadyExists(CloudFrontException):
     def __init__(self, dist_id, **kwargs):
-        kwargs["error_type"] = "DistributionAlreadyExists"
-        kwargs[
-            "message"
-        ] = f"The caller reference that you are using to create a distribution is associated with another distribution. Already exists: {dist_id}"
-        super().__init__(**kwargs)
+        super().__init__(
+            "DistributionAlreadyExists",
+            message=f"The caller reference that you are using to create a distribution is associated with another distribution. Already exists: {dist_id}",
+            **kwargs,
+        )
 
 
 class InvalidIfMatchVersion(CloudFrontException):
     def __init__(self, **kwargs):
-        kwargs["error_type"] = "InvalidIfMatchVersion"
-        kwargs[
-            "message"
-        ] = "The If-Match version is missing or not valid for the resource."
-        super().__init__(**kwargs)
+        super().__init__(
+            "InvalidIfMatchVersion",
+            message="The If-Match version is missing or not valid for the resource.",
+            **kwargs,
+        )
 
 
 class NoSuchDistribution(CloudFrontException):
@@ -72,6 +74,8 @@ class NoSuchDistribution(CloudFrontException):
     code = 404
 
     def __init__(self, **kwargs):
-        kwargs["error_type"] = "NoSuchDistribution"
-        kwargs["message"] = "The specified distribution does not exist."
-        super().__init__(**kwargs)
+        super().__init__(
+            "NoSuchDistribution",
+            message="The specified distribution does not exist.",
+            **kwargs,
+        )
