@@ -346,6 +346,7 @@ def get_func_in_tests(service, operation):
     body += f"    resp = client.{operation}()\n"
     body += f"\n"
     body += f"    raise Exception(\"NotYetImplemented\")"
+    body += "\n"
     return body
 
 
