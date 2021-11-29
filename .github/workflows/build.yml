@@ -170,8 +170,8 @@ jobs:
     - name: Start MotoServer
       run: |
         python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
-        python wait_for.py
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        python scripts/ci_wait_for_server.py
     - name: Get pip cache dir
       id: pip-cache
       run: |
@@ -290,8 +290,8 @@ jobs:
     - name: Start MotoServer
       run: |
         python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/travis_moto_server.sh &
-        MOTO_PORT=4566 python wait_for.py
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        MOTO_PORT=4566 python scripts/ci_wait_for_server.py
     # Poor man's parallelization
     # Running them sequentially takes to much time
     # And using the build in parallel-argument does not help with reducing runtime

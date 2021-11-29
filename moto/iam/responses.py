@@ -507,7 +507,7 @@ class IamResponse(BaseResponse):
     def update_group(self):
         group_name = self._get_param("GroupName")
         new_group_name = self._get_param("NewGroupName")
-        new_path = self._get_param("NewPath", "/")
+        new_path = self._get_param("NewPath")
         iam_backend.update_group(group_name, new_group_name, new_path)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateGroup")

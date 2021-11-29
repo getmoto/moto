@@ -31,6 +31,8 @@ route53resolver
 - [ ] associate_resolver_endpoint_ip_address
 - [ ] associate_resolver_query_log_config
 - [X] associate_resolver_rule
+  Return description for a newly created resolver rule association.
+
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
@@ -39,10 +41,12 @@ route53resolver
 
         NOTE:  IPv6 IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
-
+        
 
 - [ ] create_resolver_query_log_config
 - [X] create_resolver_rule
+  Return description for a newly created resolver rule.
+
 - [ ] delete_firewall_domain_list
 - [ ] delete_firewall_rule
 - [ ] delete_firewall_rule_group
@@ -51,10 +55,14 @@ route53resolver
 
 - [ ] delete_resolver_query_log_config
 - [X] delete_resolver_rule
+  Delete a resolver rule.
+
 - [ ] disassociate_firewall_rule_group
 - [ ] disassociate_resolver_endpoint_ip_address
 - [ ] disassociate_resolver_query_log_config
 - [X] disassociate_resolver_rule
+  Removes association between a resolver rule and a VPC.
+
 - [ ] get_firewall_config
 - [ ] get_firewall_domain_list
 - [ ] get_firewall_rule_group
@@ -69,7 +77,11 @@ route53resolver
 - [ ] get_resolver_query_log_config_association
 - [ ] get_resolver_query_log_config_policy
 - [X] get_resolver_rule
+  Return info for specified resolver rule.
+
 - [X] get_resolver_rule_association
+  Return info for specified resolver rule association.
+
 - [ ] get_resolver_rule_policy
 - [ ] import_firewall_domains
 - [ ] list_firewall_configs
@@ -89,7 +101,11 @@ route53resolver
 - [ ] list_resolver_query_log_config_associations
 - [ ] list_resolver_query_log_configs
 - [X] list_resolver_rule_associations
+  List all resolver rule associations, using filters if specified.
+
 - [X] list_resolver_rules
+  List all resolver rules, using filters if specified.
+
 - [X] list_tags_for_resource
   List all tags for the given resource.
 

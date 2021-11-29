@@ -47,7 +47,7 @@ def ecs_new_arn_format():
 
 
 def moto_server_port():
-    return os.environ.get("MOTO_SERVER_PORT") or "5000"
+    return os.environ.get("MOTO_PORT") or "5000"
 
 
 def moto_server_host():

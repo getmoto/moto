@@ -317,7 +317,7 @@ def create_backend_app(service):
 
 def signal_handler(reset_server_port, signum, frame):
     if reset_server_port:
-        del os.environ["MOTO_SERVER_PORT"]
+        del os.environ["MOTO_PORT"]
     sys.exit(0)
 
 
@@ -361,9 +361,9 @@ def main(argv=sys.argv[1:]):
     args = parser.parse_args(argv)
 
     reset_server_port = False
-    if "MOTO_SERVER_PORT" not in os.environ:
+    if "MOTO_PORT" not in os.environ:
         reset_server_port = True
-        os.environ["MOTO_SERVER_PORT"] = f"{args.port}"
+        os.environ["MOTO_PORT"] = f"{args.port}"
 
     try:
         signal.signal(signal.SIGINT, partial(signal_handler, reset_server_port))

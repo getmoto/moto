@@ -1730,12 +1730,12 @@ class DynamoDBBackend(BaseBackend):
         self.tables[target_table_name] = new_table
         return new_table
 
-    """
-    Currently this only accepts the source and target table elements, and will
-    copy all items from the source without respect to other arguments.
-    """
-
     def restore_table_to_point_in_time(self, target_table_name, source_table_name):
+        """
+        Currently this only accepts the source and target table elements, and will
+        copy all items from the source without respect to other arguments.
+        """
+
         source = self.get_table(source_table_name)
         if source is None:
             raise KeyError()

@@ -122,6 +122,7 @@ iot
 - [X] describe_job
 - [X] describe_job_execution
 - [ ] describe_job_template
+- [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
@@ -178,6 +179,7 @@ iot
 - [X] list_job_executions_for_thing
 - [ ] list_job_templates
 - [X] list_jobs
+- [ ] list_managed_job_templates
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates

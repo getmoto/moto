@@ -2075,13 +2075,10 @@ class IAMBackend(BaseBackend):
         return group
 
     def get_group(self, group_name, marker=None, max_items=None):
-        group = None
         try:
-            group = self.groups[group_name]
+            return self.groups[group_name]
         except KeyError:
             raise IAMNotFoundException("Group {0} not found".format(group_name))
-
-        return group
 
     def list_groups(self):
         return self.groups.values()
@@ -2122,11 +2119,11 @@ class IAMBackend(BaseBackend):
                 "The group with name {0} cannot be found.".format(group_name)
             )
 
-    def update_group(self, group_name, new_group_name, new_path="/"):
+    def update_group(self, group_name, new_group_name, new_path):
         if new_group_name:
             if new_group_name in self.groups:
                 raise IAMConflictException(
-                    "Group {0} already exists".format(new_group_name)
+                    message="Group {0} already exists".format(new_group_name)
                 )
             try:
                 group = self.groups[group_name]

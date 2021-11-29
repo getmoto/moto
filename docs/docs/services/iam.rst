@@ -173,7 +173,7 @@ iam
 - [X] update_access_key
 - [X] update_account_password_policy
 - [ ] update_assume_role_policy
-- [ ] update_group
+- [X] update_group
 - [X] update_login_profile
 - [ ] update_open_id_connect_provider_thumbprint
 - [X] update_role
