@@ -144,7 +144,7 @@ class convert_flask_to_httpretty_response(object):
         from flask import request, Response
 
         try:
-            result = self.callback(request, request.url, {})
+            result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple

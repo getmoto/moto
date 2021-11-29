@@ -13,6 +13,7 @@ backend_url_patterns = [
     ("batch", re.compile("https?://batch\\.(.+)\\.amazonaws.com")),
     ("budgets", re.compile("https?://budgets\\.amazonaws\\.com")),
     ("cloudformation", re.compile("https?://cloudformation\\.(.+)\\.amazonaws\\.com")),
+    ("cloudfront", re.compile("https?://cloudfront\\.amazonaws\\.com")),
     ("cloudtrail", re.compile("https?://cloudtrail\\.(.+)\\.amazonaws\\.com")),
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
     ("codecommit", re.compile("https?://codecommit\\.(.+)\\.amazonaws\\.com")),
