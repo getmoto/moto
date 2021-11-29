@@ -4,9 +4,6 @@ import boto3
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_{{ escaped_service }}
 
+# See our Development Tips on writing tests for hints on how to write good tests:
+# http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
-@mock_{{ escaped_service }}
-def test_list():
-    """Test input/output of the list API."""
-    # do test
-    pass
