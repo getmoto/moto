@@ -94,6 +94,7 @@ redshift
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
 - [ ] describe_resize
@@ -110,6 +111,7 @@ redshift
 - [ ] enable_logging
 - [X] enable_snapshot_copy
 - [X] get_cluster_credentials
+- [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile

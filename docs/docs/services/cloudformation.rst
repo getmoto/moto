@@ -58,7 +58,7 @@ cloudformation
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
-- [ ] get_stack_policy
+- [X] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
 - [ ] import_stacks_to_stack_set
@@ -79,7 +79,11 @@ cloudformation
 - [ ] register_publisher
 - [ ] register_type
 - [ ] rollback_stack
-- [ ] set_stack_policy
+- [X] set_stack_policy
+  
+        Note that Moto does no validation/parsing/enforcement of this policy - we simply persist it.
+        
+
 - [ ] set_type_configuration
 - [ ] set_type_default_version
 - [ ] signal_resource

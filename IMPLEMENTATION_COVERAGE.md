@@ -204,7 +204,7 @@
 
 ## autoscaling
 <details>
-<summary>45% implemented</summary>
+<summary>47% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -241,7 +241,7 @@
 - [ ] describe_scaling_activities
 - [ ] describe_scaling_process_types
 - [ ] describe_scheduled_actions
-- [ ] describe_tags
+- [X] describe_tags
 - [ ] describe_termination_policy_types
 - [ ] describe_warm_pool
 - [X] detach_instances
@@ -329,7 +329,7 @@
 
 ## cloudformation
 <details>
-<summary>27% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] activate_type
 - [ ] batch_describe_type_configurations
@@ -364,7 +364,7 @@
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
-- [ ] get_stack_policy
+- [X] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
 - [ ] import_stacks_to_stack_set
@@ -385,7 +385,7 @@
 - [ ] register_publisher
 - [ ] register_type
 - [ ] rollback_stack
-- [ ] set_stack_policy
+- [X] set_stack_policy
 - [ ] set_type_configuration
 - [ ] set_type_default_version
 - [ ] signal_resource
@@ -1119,7 +1119,7 @@
 
 ## dynamodb
 <details>
-<summary>56% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] batch_execute_statement
 - [X] batch_get_item
@@ -1157,7 +1157,7 @@
 - [X] put_item
 - [X] query
 - [X] restore_table_from_backup
-- [ ] restore_table_to_point_in_time
+- [X] restore_table_to_point_in_time
 - [X] scan
 - [X] tag_resource
 - [X] transact_get_items
@@ -1579,6 +1579,7 @@
 - [ ] modify_launch_template
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
+- [ ] modify_private_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute
@@ -2149,11 +2150,14 @@
 
 ## forecast
 <details>
-<summary>14% implemented</summary>
+<summary>11% implemented</summary>
 
+- [ ] create_auto_predictor
 - [ ] create_dataset
 - [X] create_dataset_group
 - [ ] create_dataset_import_job
+- [ ] create_explainability
+- [ ] create_explainability_export
 - [ ] create_forecast
 - [ ] create_forecast_export_job
 - [ ] create_predictor
@@ -2161,14 +2165,19 @@
 - [ ] delete_dataset
 - [X] delete_dataset_group
 - [ ] delete_dataset_import_job
+- [ ] delete_explainability
+- [ ] delete_explainability_export
 - [ ] delete_forecast
 - [ ] delete_forecast_export_job
 - [ ] delete_predictor
 - [ ] delete_predictor_backtest_export_job
 - [ ] delete_resource_tree
+- [ ] describe_auto_predictor
 - [ ] describe_dataset
 - [X] describe_dataset_group
 - [ ] describe_dataset_import_job
+- [ ] describe_explainability
+- [ ] describe_explainability_export
 - [ ] describe_forecast
 - [ ] describe_forecast_export_job
 - [ ] describe_predictor
@@ -2177,6 +2186,8 @@
 - [X] list_dataset_groups
 - [ ] list_dataset_import_jobs
 - [ ] list_datasets
+- [ ] list_explainabilities
+- [ ] list_explainability_exports
 - [ ] list_forecast_export_jobs
 - [ ] list_forecasts
 - [ ] list_predictor_backtest_export_jobs
@@ -2229,7 +2240,7 @@
 
 ## glue
 <details>
-<summary>8% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2271,7 +2282,7 @@
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
 - [X] delete_crawler
-- [ ] delete_database
+- [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
@@ -2346,7 +2357,7 @@
 - [ ] list_blueprints
 - [ ] list_crawlers
 - [ ] list_dev_endpoints
-- [ ] list_jobs
+- [X] list_jobs
 - [ ] list_ml_transforms
 - [ ] list_registries
 - [ ] list_schema_versions
@@ -2547,7 +2558,7 @@
 - [X] update_access_key
 - [X] update_account_password_policy
 - [ ] update_assume_role_policy
-- [ ] update_group
+- [X] update_group
 - [X] update_login_profile
 - [ ] update_open_id_connect_provider_thumbprint
 - [X] update_role
@@ -2565,7 +2576,7 @@
 
 ## iot
 <details>
-<summary>28% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -2664,6 +2675,7 @@
 - [X] describe_job
 - [X] describe_job_execution
 - [ ] describe_job_template
+- [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
@@ -2720,6 +2732,7 @@
 - [X] list_job_executions_for_thing
 - [ ] list_job_templates
 - [X] list_jobs
+- [ ] list_managed_job_templates
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
@@ -3544,6 +3557,7 @@
 - [ ] promote_read_replica
 - [ ] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
+- [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] register_db_proxy_targets
 - [ ] remove_from_global_cluster
@@ -3573,7 +3587,7 @@
 
 ## redshift
 <details>
-<summary>24% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -3644,6 +3658,7 @@
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
 - [ ] describe_resize
@@ -3660,6 +3675,7 @@
 - [ ] enable_logging
 - [X] enable_snapshot_copy
 - [X] get_cluster_credentials
+- [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
@@ -3801,7 +3817,7 @@
 
 ## route53resolver
 <details>
-<summary>27% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] associate_firewall_rule_group
 - [ ] associate_resolver_endpoint_ip_address
@@ -4911,6 +4927,7 @@
 - meteringmarketplace
 - mgh
 - mgn
+- migration-hub-refactor-spaces
 - migrationhub-config
 - migrationhubstrategy
 - mobile

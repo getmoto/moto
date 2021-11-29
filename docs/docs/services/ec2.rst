@@ -428,6 +428,7 @@ ec2
 - [ ] modify_launch_template
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
+- [ ] modify_private_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute

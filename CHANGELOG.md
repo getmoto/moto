@@ -1,6 +1,44 @@
 Moto Changelog
 ===================
 
+2.2.17
+------
+    New Services:
+        * CloudFront:
+            * create_distribution()
+            * delete_distribution()
+            * get_distribution()
+            * list_distributions()
+
+    New Methods:
+        * Autoscaling:
+            * describe_tags()
+        * CloudFormation:
+            * get_stack_policy()
+            * set_stack_policy()
+        * DynamoDB:
+            * restore_table_to_point_in_time()
+        * Glue:
+            * delete_database()
+            * list_jobs()
+        * IAM:
+            * update_group()
+        * Route53 Resolver:
+            * associate_resolver_rule()
+            * create_resolver_rule()
+            * delete_resolver_rule()
+            * disassociate_resolver_rule()
+            * get_resolver_rule()
+            * get_resolver_rule_association()
+            * list_resolver_rules()
+            * list_resolver_rule_associations()
+
+    Miscellaneous:
+        * Batch: register_job_definition() now supports the timeout-parameter
+        * Batch: submit_job() now supports the timeout-parameter
+        * EC2: describe_network_interfaces() now supports the `attachment.instance-id` filter
+
+
 2.2.16
 ------
     New Services:
