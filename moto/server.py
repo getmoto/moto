@@ -335,7 +335,11 @@ def main(argv=sys.argv[1:]):
         "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"
     )
     parser.add_argument(
-        "-p", "--port", type=int, help="Port number to use for connection", default=5000
+        "-p",
+        "--port",
+        type=int,
+        help="Port number to use for connection",
+        default=int(os.environ.get("MOTO_PORT", 5000)),
     )
     parser.add_argument(
         "-r",

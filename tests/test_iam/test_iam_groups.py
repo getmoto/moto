@@ -394,7 +394,9 @@ def test_update_group_path():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group", Path="/path")
 
-    conn.update_group(GroupName="my-group", NewGroupName="new-group", NewPath="/new-path")
+    conn.update_group(
+        GroupName="my-group", NewGroupName="new-group", NewPath="/new-path"
+    )
 
     # Verify the path has changed
     new = conn.get_group(GroupName="new-group")["Group"]
