@@ -39,9 +39,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
 
     def __init__(self, athena_backend, name, configuration, description, tags):
         self.region_name = athena_backend.region_name
-        super(WorkGroup, self).__init__(
-            self.region_name, "workgroup/{}".format(name), tags
-        )
+        super().__init__(self.region_name, "workgroup/{}".format(name), tags)
         self.athena_backend = athena_backend
         self.name = name
         self.description = description

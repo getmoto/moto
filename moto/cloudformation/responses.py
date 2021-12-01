@@ -1,6 +1,8 @@
 import json
 import yaml
 from urllib.parse import urlparse
+from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
+from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
@@ -28,7 +30,7 @@ def get_template_summary_response_from_template(template_body):
 
     try:
         template_dict = yaml.load(template_body, Loader=yaml.Loader)
-    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+    except (ParserError, ScannerError):
         template_dict = json.loads(template_body)
 
     resources_types = get_resource_types(template_dict)
@@ -446,7 +448,7 @@ class CloudFormationResponse(BaseResponse):
             pass
         try:
             description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError, KeyError):
+        except (ParserError, ScannerError, KeyError):
             pass
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
         return template.render(description=description)

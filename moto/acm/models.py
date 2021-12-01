@@ -405,7 +405,7 @@ class CertBundle(BaseModel):
 
 class AWSCertificateManagerBackend(BaseBackend):
     def __init__(self, region):
-        super(AWSCertificateManagerBackend, self).__init__()
+        super().__init__()
         self.region = region
         self._certificates = {}
         self._idempotency_tokens = {}

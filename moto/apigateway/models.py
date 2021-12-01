@@ -60,7 +60,7 @@ STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_nam
 
 class Deployment(CloudFormationModel, dict):
     def __init__(self, deployment_id, name, description=""):
-        super(Deployment, self).__init__()
+        super().__init__()
         self["id"] = deployment_id
         self["stageName"] = name
         self["description"] = description
@@ -121,7 +121,7 @@ class Integration(BaseModel, dict):
         tls_config=None,
         cache_namespace=None,
     ):
-        super(Integration, self).__init__()
+        super().__init__()
         self["type"] = integration_type
         self["uri"] = uri
         self["httpMethod"] = http_method
@@ -158,7 +158,7 @@ class Integration(BaseModel, dict):
 
 class MethodResponse(BaseModel, dict):
     def __init__(self, status_code, response_models=None, response_parameters=None):
-        super(MethodResponse, self).__init__()
+        super().__init__()
         self["statusCode"] = status_code
         self["responseModels"] = response_models
         self["responseParameters"] = response_parameters
@@ -166,7 +166,7 @@ class MethodResponse(BaseModel, dict):
 
 class Method(CloudFormationModel, dict):
     def __init__(self, method_type, authorization_type, **kwargs):
-        super(Method, self).__init__()
+        super().__init__()
         self.update(
             dict(
                 httpMethod=method_type,
@@ -237,9 +237,9 @@ class Method(CloudFormationModel, dict):
 
 
 class Resource(CloudFormationModel):
-    def __init__(self, id, region_name, api_id, path_part, parent_id):
-        super(Resource, self).__init__()
-        self.id = id
+    def __init__(self, resource_id, region_name, api_id, path_part, parent_id):
+        super().__init__()
+        self.id = resource_id
         self.region_name = region_name
         self.api_id = api_id
         self.path_part = path_part
@@ -383,9 +383,9 @@ class Resource(CloudFormationModel):
 
 
 class Authorizer(BaseModel, dict):
-    def __init__(self, id, name, authorizer_type, **kwargs):
-        super(Authorizer, self).__init__()
-        self["id"] = id
+    def __init__(self, authorizer_id, name, authorizer_type, **kwargs):
+        super().__init__()
+        self["id"] = authorizer_id
         self["name"] = name
         self["type"] = authorizer_type
         if kwargs.get("provider_arns"):
@@ -442,7 +442,7 @@ class Stage(BaseModel, dict):
         tags=None,
         tracing_enabled=None,
     ):
-        super(Stage, self).__init__()
+        super().__init__()
         if variables is None:
             variables = {}
         self["stageName"] = name
@@ -579,11 +579,11 @@ class ApiKey(BaseModel, dict):
         enabled=False,
         generateDistinctId=False,
         value=None,
-        stageKeys=[],
+        stageKeys=None,
         tags=None,
         customerId=None,
     ):
-        super(ApiKey, self).__init__()
+        super().__init__()
         self["id"] = create_id()
         self["value"] = (
             value
@@ -595,7 +595,7 @@ class ApiKey(BaseModel, dict):
         self["description"] = description
         self["enabled"] = enabled
         self["createdDate"] = self["lastUpdatedDate"] = int(time.time())
-        self["stageKeys"] = stageKeys
+        self["stageKeys"] = stageKeys or []
         self["tags"] = tags
 
     def update_operations(self, patch_operations):
@@ -628,7 +628,7 @@ class UsagePlan(BaseModel, dict):
         productCode=None,
         tags=None,
     ):
-        super(UsagePlan, self).__init__()
+        super().__init__()
         self["id"] = create_id()
         self["name"] = name
         self["description"] = description
@@ -671,9 +671,9 @@ class RequestValidator(BaseModel, dict):
     OP_REPLACE = "replace"
     OP_OP = "op"
 
-    def __init__(self, id, name, validateRequestBody, validateRequestParameters):
-        super(RequestValidator, self).__init__()
-        self[RequestValidator.PROP_ID] = id
+    def __init__(self, _id, name, validateRequestBody, validateRequestParameters):
+        super().__init__()
+        self[RequestValidator.PROP_ID] = _id
         self[RequestValidator.PROP_NAME] = name
         self[RequestValidator.PROP_VALIDATE_REQUEST_BODY] = validateRequestBody
         self[
@@ -706,11 +706,11 @@ class RequestValidator(BaseModel, dict):
 
 
 class UsagePlanKey(BaseModel, dict):
-    def __init__(self, id, type, name, value):
-        super(UsagePlanKey, self).__init__()
-        self["id"] = id
+    def __init__(self, plan_id, plan_type, name, value):
+        super().__init__()
+        self["id"] = plan_id
         self["name"] = name
-        self["type"] = type
+        self["type"] = plan_type
         self["value"] = value
 
 
@@ -737,9 +737,9 @@ class RestAPI(CloudFormationModel):
     OPERATION_VALUE = "value"
     OPERATION_OP = "op"
 
-    def __init__(self, id, region_name, name, description, **kwargs):
-        super(RestAPI, self).__init__()
-        self.id = id
+    def __init__(self, api_id, region_name, name, description, **kwargs):
+        super().__init__()
+        self.id = api_id
         self.region_name = region_name
         self.name = name
         self.description = description
@@ -855,7 +855,7 @@ class RestAPI(CloudFormationModel):
     def add_child(self, path, parent_id=None):
         child_id = create_id()
         child = Resource(
-            id=child_id,
+            resource_id=child_id,
             region_name=self.region_name,
             api_id=self.id,
             path_part=path,
@@ -875,7 +875,7 @@ class RestAPI(CloudFormationModel):
     ):
         model_id = create_id()
         new_model = Model(
-            id=model_id,
+            model_id=model_id,
             name=name,
             description=description,
             schema=schema,
@@ -909,11 +909,11 @@ class RestAPI(CloudFormationModel):
             api_id=self.id.upper(), region_name=self.region_name, stage_name=stage_name
         )
 
-        for resource_id, resource in self.resources.items():
+        for resource in self.resources.values():
             path = resource.get_path()
             path = "" if path == "/" else path
 
-            for http_method, method in resource.resource_methods.items():
+            for http_method in resource.resource_methods.keys():
                 for url in [stage_url_lower, stage_url_upper]:
                     callback_response = responses.CallbackResponse(
                         url=url + path,
@@ -926,7 +926,7 @@ class RestAPI(CloudFormationModel):
 
     def create_authorizer(
         self,
-        id,
+        authorizer_id,
         name,
         authorizer_type,
         provider_arns=None,
@@ -938,7 +938,7 @@ class RestAPI(CloudFormationModel):
         authorizer_result_ttl=None,
     ):
         authorizer = Authorizer(
-            id=id,
+            authorizer_id=authorizer_id,
             name=name,
             authorizer_type=authorizer_type,
             provider_arns=provider_arns,
@@ -949,7 +949,7 @@ class RestAPI(CloudFormationModel):
             identiy_validation_expression=identiy_validation_expression,
             authorizer_result_ttl=authorizer_result_ttl,
         )
-        self.authorizers[id] = authorizer
+        self.authorizers[authorizer_id] = authorizer
         return authorizer
 
     def create_stage(
@@ -1012,7 +1012,7 @@ class RestAPI(CloudFormationModel):
     ):
         validator_id = create_id()
         request_validator = RequestValidator(
-            id=validator_id,
+            _id=validator_id,
             name=name,
             validateRequestBody=validateRequestBody,
             validateRequestParameters=validateRequestParameters,
@@ -1040,7 +1040,7 @@ class RestAPI(CloudFormationModel):
 
 class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
-        super(DomainName, self).__init__()
+        super().__init__()
         self["domainName"] = domain_name
         self["regionalDomainName"] = "d-%s.execute-api.%s.amazonaws.com" % (
             create_id(),
@@ -1077,9 +1077,9 @@ class DomainName(BaseModel, dict):
 
 
 class Model(BaseModel, dict):
-    def __init__(self, id, name, **kwargs):
-        super(Model, self).__init__()
-        self["id"] = id
+    def __init__(self, model_id, name, **kwargs):
+        super().__init__()
+        self["id"] = model_id
         self["name"] = name
         if kwargs.get("description"):
             self["description"] = kwargs.get("description")
@@ -1095,7 +1095,7 @@ class Model(BaseModel, dict):
 
 class BasePathMapping(BaseModel, dict):
     def __init__(self, domain_name, rest_api_id, **kwargs):
-        super(BasePathMapping, self).__init__()
+        super().__init__()
         self["domain_name"] = domain_name
         self["restApiId"] = rest_api_id
         if kwargs.get("basePath"):
@@ -1135,7 +1135,7 @@ class APIGatewayBackend(BaseBackend):
     """
 
     def __init__(self, region_name):
-        super(APIGatewayBackend, self).__init__()
+        super().__init__()
         self.apis = {}
         self.keys = {}
         self.usage_plans = {}
@@ -1591,8 +1591,8 @@ class APIGatewayBackend(BaseBackend):
         api_key = self.keys[key_id]
 
         usage_plan_key = UsagePlanKey(
-            id=key_id,
-            type=payload["keyType"],
+            plan_id=key_id,
+            plan_type=payload["keyType"],
             name=api_key["name"],
             value=api_key["value"],
         )

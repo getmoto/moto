@@ -59,7 +59,7 @@ class ScalableDimensionValueSet(Enum):
 
 class ApplicationAutoscalingBackend(BaseBackend):
     def __init__(self, region, ecs):
-        super(ApplicationAutoscalingBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.ecs_backend = ecs
         self.targets = OrderedDict()
@@ -124,7 +124,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """Raises a ValidationException if an ECS service does not exist
         for the specified resource ID.
         """
-        resource_type, cluster, service = r_id.split("/")
+        _, cluster, service = r_id.split("/")
         result, _ = self.ecs_backend.describe_services(cluster, [service])
         if len(result) != 1:
             raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
@@ -242,7 +242,7 @@ def _target_params_are_valid(namespace, r_id, dimension):
         try:
             valid_dimensions = [d.value for d in ScalableDimensionValueSet]
             resource_type_exceptions = [r.value for r in ResourceTypeExceptionValueSet]
-            d_namespace, d_resource_type, scaling_property = dimension.split(":")
+            d_namespace, d_resource_type, _ = dimension.split(":")
             if d_resource_type not in resource_type_exceptions:
                 resource_type = _get_resource_type_from_resource_id(r_id)
             else:

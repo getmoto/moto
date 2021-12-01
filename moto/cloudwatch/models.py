@@ -64,9 +64,9 @@ class MetricStat(object):
 
 class MetricDataQuery(object):
     def __init__(
-        self, id, label, period, return_data, expression=None, metric_stat=None
+        self, query_id, label, period, return_data, expression=None, metric_stat=None
     ):
-        self.id = id
+        self.id = query_id
         self.label = label
         self.period = period
         self.return_data = return_data
@@ -214,13 +214,13 @@ class MetricDatum(BaseModel):
         ]
         self.unit = unit
 
-    def filter(self, namespace, name, dimensions, already_present_metrics=[]):
+    def filter(self, namespace, name, dimensions, already_present_metrics=None):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
             return False
 
-        for metric in already_present_metrics:
+        for metric in already_present_metrics or []:
             if self.dimensions and are_dimensions_same(
                 metric.dimensions, self.dimensions
             ):
