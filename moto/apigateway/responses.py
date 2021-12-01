@@ -289,9 +289,9 @@ class APIGatewayResponse(BaseResponse):
                 )
 
             authorizer_response = self.backend.create_authorizer(
-                restapi_id,
-                name,
-                authorizer_type,
+                restapi_id=restapi_id,
+                name=name,
+                authorizer_type=authorizer_type,
                 provider_arns=provider_arns,
                 auth_type=auth_type,
                 authorizer_uri=authorizer_uri,

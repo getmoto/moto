@@ -4,8 +4,10 @@ import yaml
 import uuid
 
 from boto3 import Session
-
 from collections import OrderedDict
+from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
+from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
+
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import ACCOUNT_ID
 from moto.core.utils import (
@@ -54,7 +56,11 @@ class FakeStackSet(BaseModel):
         self.stack_instances = self.instances.stack_instances
         self.operations = []
 
-    def _create_operation(self, operation_id, action, status, accounts=[], regions=[]):
+    def _create_operation(
+        self, operation_id, action, status, accounts=None, regions=None
+    ):
+        accounts = accounts or []
+        regions = regions or []
         operation = {
             "OperationId": str(operation_id),
             "Action": action,
@@ -309,7 +315,7 @@ class FakeStack(BaseModel):
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        except (ParserError, ScannerError):
             self.template_dict = json.loads(self.template)
 
     @property
@@ -418,7 +424,7 @@ class FakeChangeSet(BaseModel):
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        except (ParserError, ScannerError):
             self.template_dict = json.loads(self.template)
 
     @property

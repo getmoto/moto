@@ -51,7 +51,7 @@ class CognitoIdentity(BaseModel):
 
 class CognitoIdentityBackend(BaseBackend):
     def __init__(self, region):
-        super(CognitoIdentityBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.identity_pools = OrderedDict()
         self.pools_identities = {}

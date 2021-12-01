@@ -421,7 +421,7 @@ class CognitoIdpUserPool(BaseModel):
         return self.users.get(username)
 
     def create_jwt(
-        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data=None
     ):
         now = int(time.time())
         payload = {
@@ -435,7 +435,7 @@ class CognitoIdpUserPool(BaseModel):
             "exp": now + expires_in,
             "email": flatten_attrs(self._get_user(username).attributes).get("email"),
         }
-        payload.update(extra_data)
+        payload.update(extra_data or {})
         headers = {"kid": "dummy"}  # KID as present in jwks-public.json
 
         return (
@@ -517,12 +517,12 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
     def _distribution_name(self):
         if self.custom_domain_config and "CertificateArn" in self.custom_domain_config:
-            hash = hashlib.md5(
+            unique_hash = hashlib.md5(
                 self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
-            return "{hash}.cloudfront.net".format(hash=hash[:16])
-        hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
-        return "{hash}.amazoncognito.com".format(hash=hash[:16])
+            return f"{unique_hash[:16]}.cloudfront.net"
+        unique_hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
+        return f"{unique_hash[:16]}.amazoncognito.com"
 
     def to_json(self, extended=True):
         distribution = self._distribution_name()
@@ -730,7 +730,7 @@ class CognitoResourceServer(BaseModel):
 
 class CognitoIdpBackend(BaseBackend):
     def __init__(self, region):
-        super(CognitoIdpBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.user_pools = OrderedDict()
         self.user_pool_domains = OrderedDict()

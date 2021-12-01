@@ -13,7 +13,7 @@ class AuthenticatedClient(FlaskClient):
         kwargs["headers"] = kwargs.get("headers", {})
         kwargs["headers"]["Authorization"] = "Any authorization header"
         kwargs["content_length"] = 0  # Fixes content-length complaints.
-        return super(AuthenticatedClient, self).open(*args, **kwargs)
+        return super().open(*args, **kwargs)
 
 
 def authenticated_client():

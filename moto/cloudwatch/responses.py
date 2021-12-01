@@ -55,7 +55,7 @@ class CloudWatchResponse(BaseResponse):
                     )
                 metric_data_queries.append(
                     MetricDataQuery(
-                        id=metric.get("Id"),
+                        query_id=metric.get("Id"),
                         label=metric.get("Label"),
                         period=metric.get("Period"),
                         return_data=metric.get("ReturnData"),

@@ -207,8 +207,8 @@ def rfc_1123_datetime(datetime):
     return datetime.strftime(RFC1123)
 
 
-def str_to_rfc_1123_datetime(str):
-    return datetime.datetime.strptime(str, RFC1123)
+def str_to_rfc_1123_datetime(value):
+    return datetime.datetime.strptime(value, RFC1123)
 
 
 def unix_time(dt=None):
@@ -320,7 +320,7 @@ def tags_from_query_string(
     querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
 ):
     response_values = {}
-    for key, value in querystring_dict.items():
+    for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
@@ -405,11 +405,11 @@ def aws_api_matches(pattern, string):
     """
     # use a negative lookback regex to match stars that are not prefixed with a backslash
     # and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
-    pattern, n = re.subn(r"(?<!\\)\*", r".*", pattern)
+    pattern, _ = re.subn(r"(?<!\\)\*", r".*", pattern)
 
     # ? in the AWS glob form becomes .? in regex
     # also, don't substitute it if it is prefixed w/ a backslash
-    pattern, m = re.subn(r"(?<!\\)\?", r".?", pattern)
+    pattern, _ = re.subn(r"(?<!\\)\?", r".?", pattern)
 
     # aws api seems to anchor
     anchored_pattern = f"^{pattern}$"

@@ -1017,7 +1017,7 @@ def test_boto3_update_settype_item_with_conditions():
         """A set with predictable iteration order"""
 
         def __init__(self, values):
-            super(OrderedSet, self).__init__(values)
+            super().__init__(values)
             self.__ordered_values = values
 
         def __iter__(self):

@@ -27,7 +27,7 @@ from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis
-from moto.utilities.docker_utilities import DockerModel, parse_image_ref
+from moto.utilities.docker_utilities import DockerModel
 from ..utilities.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)
@@ -197,7 +197,7 @@ class JobDefinition(CloudFormationModel):
         _type,
         container_properties,
         region_name,
-        tags={},
+        tags=None,
         revision=0,
         retry_strategy=0,
         timeout=None,
@@ -217,13 +217,13 @@ class JobDefinition(CloudFormationModel):
         self._validate()
         self._update_arn()
 
-        tags = self._format_tags(tags)
+        tags = self._format_tags(tags or {})
         # Validate the tags before proceeding.
-        errmsg = self.tagger.validate_tags(tags or [])
+        errmsg = self.tagger.validate_tags(tags)
         if errmsg:
             raise ValidationError(errmsg)
 
-        self.tagger.tag_resource(self.arn, tags or [])
+        self.tagger.tag_resource(self.arn, tags)
 
     def _format_tags(self, tags):
         return [{"Key": k, "Value": v} for k, v in tags.items()]
@@ -546,9 +546,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
             self.job_started_at = datetime.datetime.now()
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
-            image_repository, image_tag = parse_image_ref(image)
-            # avoid explicit pulling here, to allow using cached images
-            # self.docker_client.images.pull(image_repository, image_tag)
             self.job_state = "STARTING"
             container = self.docker_client.containers.run(
                 image,
@@ -691,7 +688,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
 class BatchBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(BatchBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
         self._compute_environments = {}
