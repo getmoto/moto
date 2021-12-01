@@ -40,7 +40,5 @@ def _matcher(patterns, strings):
 def _match_pattern(pattern, str):
     for word in pattern.split(" "):
         if word not in str:
-            print(pattern, ":", str, False)
             return False
-    print(pattern, ":", str, True)
     return True
