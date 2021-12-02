@@ -2346,3 +2346,115 @@ class TestTopicRules:
             client.update_thing(
                 thingName=thing_name, thingTypeName=deprecated_thing_type_name
             )
+
+
+@mock_iot
+def test_domain_configuration():
+    client = boto3.client("iot", region_name="us-east-1")
+
+    # Creation with only the name should succeed, creating same name fails
+    domain_config_1 = client.create_domain_configuration(
+        domainConfigurationName="testConfig1"
+    )
+    domain_config_1.should.have.key("domainConfigurationName").which.should.equal(
+        "testConfig1"
+    )
+    domain_config_1.should.have.key("domainConfigurationArn").which.should_not.be.none
+    with pytest.raises(client.exceptions.ResourceAlreadyExistsException):
+        client.create_domain_configuration(domainConfigurationName="testConfig1")
+
+    # Create a second with full parameters
+    domain_config_2 = client.create_domain_configuration(
+        domainConfigurationName="testConfig2",
+        domainName="example.com",
+        serverCertificateArns=["ARN1", "ARN2"],
+        validationCertificateArn="VARN",
+        authorizerConfig={
+            "defaultAuthorizerName": "name",
+            "allowAuthorizerOverride": True,
+        },
+        serviceType="DATA",
+    )
+    domain_config_2.should.have.key("domainConfigurationName").which.should.equal(
+        "testConfig2"
+    )
+    domain_config_2.should.have.key("domainConfigurationArn").which.should_not.be.none
+
+    # Describe an existing configuration, and a nonexistent one should error out
+    described_config = client.describe_domain_configuration(
+        domainConfigurationName="testConfig2"
+    )
+    described_config.should.have.key("domainConfigurationName").which.should.equal(
+        "testConfig2"
+    )
+    described_config.should.have.key("domainConfigurationArn")
+    described_config.should.have.key("serverCertificates")
+    described_config.should.have.key("authorizerConfig")
+    described_config.should.have.key("domainConfigurationStatus").which.should.equal(
+        "ENABLED"
+    )
+    described_config.should.have.key("serviceType").which.should.equal("DATA")
+    described_config.should.have.key("domainType")
+    described_config.should.have.key("lastStatusChangeDate")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.describe_domain_configuration(domainConfigurationName="doesntExist")
+
+    # Update an existing configuration
+    client.update_domain_configuration(
+        domainConfigurationName="testConfig2",
+        authorizerConfig={
+            "defaultAuthorizerName": "updatedName",
+            "allowAuthorizerOverride": False,
+        },
+        domainConfigurationStatus="DISABLED",
+    )
+    described_updated_config = client.describe_domain_configuration(
+        domainConfigurationName="testConfig2"
+    )
+    described_updated_config.should.have.key("authorizerConfig").which.should.have.key(
+        "defaultAuthorizerName"
+    ).which.should.equal("updatedName")
+    described_updated_config.should.have.key("authorizerConfig").which.should.have.key(
+        "allowAuthorizerOverride"
+    ).which.should.equal(False)
+    described_updated_config.should.have.key(
+        "domainConfigurationStatus"
+    ).which.should.equal("DISABLED")
+
+    # Update with "removeAuthorizerConfig=True" and check it's removed
+    client.update_domain_configuration(
+        domainConfigurationName="testConfig2", removeAuthorizerConfig=True
+    )
+    described_updated_config = client.describe_domain_configuration(
+        domainConfigurationName="testConfig2"
+    )
+    described_updated_config.should_not.have.key("authorizerConfig")
+
+    # Updating a nonexistent config should fail
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.update_domain_configuration(domainConfigurationName="doesntExist")
+
+    # List, there should be 2 results
+    domain_configs = client.list_domain_configurations()
+    domain_configs.should.have.key("domainConfigurations").which.should.have.length_of(
+        2
+    )
+
+    # Delete and check results, one at a time
+    client.delete_domain_configuration(domainConfigurationName="testConfig1")
+    domain_configs = client.list_domain_configurations()
+    domain_configs.should.have.key("domainConfigurations").which.should.have.length_of(
+        1
+    )
+    domain_configs["domainConfigurations"][0].should.have.key(
+        "domainConfigurationName"
+    ).which.should.equal("testConfig2")
+    client.delete_domain_configuration(domainConfigurationName="testConfig2")
+    domain_configs = client.list_domain_configurations()
+    domain_configs.should.have.key("domainConfigurations").which.should.have.length_of(
+        0
+    )
+
+    # Delete something that doesn't exist - should fail
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.delete_domain_configuration(domainConfigurationName="doesntExist")
