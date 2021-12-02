@@ -59,10 +59,21 @@ See the below example how it works in practice:
                 # The default limit of the above parameter is not provided
                 "limit_default": 100,
                 #
-                # The collection of keys/attributes that should guarantee uniqueness for a given resource.
+                # One or more attributes  that guarantee uniqueness for a given resource.
                 # For most resources it will just be an ID, or ARN, which is always unique.
-                # In order to know what is the last resource that we're sending back, an encoded version of these attributes is used as the NextToken.
-                "page_ending_range_keys": ["start_date", "execution_arn"],
+                # An encoded version of these attributes is used as the NextToken.
+                "unique_attribute": "arn",
+                # Provide a list if only a combination of attributes is guaranteed to be unique
+                "unique_attribute": ["start_date", "execution_arn"],
+                #
+                # By default, an exception will be thrown if the user-provided next_token is invalid
+                "fail_on_invalid_token": True  # Default value - no need to specify this
+                # This can be customized to:
+                #   - silently fail, and just return an empty list
+                "fail_on_invalid_token": False,
+                #   - throw a custom exception, by providing an exception class
+                #     The paginator will `raise CustomException()` or `raise CustomException(invalid_token)`
+                "fail_on_invalid_token": CustomException
             },
             # another method that will use different configuration options
             "list_other_things": {
@@ -72,9 +83,17 @@ See the below example how it works in practice:
 
         # The decorator with the pagination logic
         @paginate(pagination_model=PAGINATION_MODEL)
-        # Note that this method does not list the 'next_token'/'max_results'-arguments
-        # The decorator uses them, but our logic doesn't need them
+        # Note that this method does not have the 'next_token'/'max_results'-arguments
         def list_resources(self):
             # Note that we simply return all resources - the decorator takes care of all pagination magic
+            return self.full_list_of_resources
+
+        @paginate(pagination_model=PAGINATION_MODEL)
+        # If we do need the 'next_token'/'max_results'-arguments, just add them to the function
+        # The decorator will only pass them along if required
+        def list_other_things(self, max_results=None):
+            if max_results == "42":
+                # Custom validation magic
+                pass
             return self.full_list_of_resources
 

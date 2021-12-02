@@ -25,7 +25,7 @@ class GlueBackend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "page_ending_range_keys": ["name"],
+            "unique_attribute": "name",
         },
     }
 

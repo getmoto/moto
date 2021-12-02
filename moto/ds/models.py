@@ -452,9 +452,7 @@ class DirectoryServiceBackend(BaseBackend):
         directory.enable_sso(True)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def describe_directories(
-        self, directory_ids=None, next_token=None, limit=0
-    ):  # pylint: disable=unused-argument
+    def describe_directories(self, directory_ids=None):
         """Return info on all directories or directories with matching IDs."""
         for directory_id in directory_ids or self.directories:
             self._validate_directory_id(directory_id)
@@ -506,9 +504,7 @@ class DirectoryServiceBackend(BaseBackend):
         self.tagger.untag_resource_using_names(resource_id, tag_keys)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags_for_resource(
-        self, resource_id, next_token=None, limit=None,
-    ):  # pylint: disable=unused-argument
+    def list_tags_for_resource(self, resource_id):
         """List all tags on a directory."""
         self._validate_directory_id(resource_id)
         return self.tagger.list_tags_for_resource(resource_id).get("Tags")

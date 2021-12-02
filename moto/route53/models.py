@@ -598,9 +598,7 @@ class Route53Backend(BaseBackend):
         return self.query_logging_configs[query_logging_config_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_query_logging_configs(
-        self, hosted_zone_id=None, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_query_logging_configs(self, hosted_zone_id=None):
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?

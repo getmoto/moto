@@ -690,9 +690,7 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_rule_associations[resolver_rule_association_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_endpoint_ip_addresses(
-        self, resolver_endpoint_id, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_endpoint_ip_addresses(self, resolver_endpoint_id):
         """List IP endresses for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
@@ -752,9 +750,7 @@ class Route53ResolverBackend(BaseBackend):
         return True
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_endpoints(
-        self, filters, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_endpoints(self, filters):
         """List all resolver endpoints, using filters if specified."""
         if not filters:
             filters = []
@@ -769,9 +765,7 @@ class Route53ResolverBackend(BaseBackend):
         return endpoints
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_rules(
-        self, filters, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_rules(self, filters):
         """List all resolver rules, using filters if specified."""
         if not filters:
             filters = []
@@ -786,9 +780,7 @@ class Route53ResolverBackend(BaseBackend):
         return rules
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_rule_associations(
-        self, filters, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_rule_associations(self, filters):
         """List all resolver rule associations, using filters if specified."""
         if not filters:
             filters = []
@@ -817,9 +809,7 @@ class Route53ResolverBackend(BaseBackend):
         )
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags_for_resource(
-        self, resource_arn, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_tags_for_resource(self, resource_arn):
         """List all tags for the given resource."""
         self._matched_arn(resource_arn)
         return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
