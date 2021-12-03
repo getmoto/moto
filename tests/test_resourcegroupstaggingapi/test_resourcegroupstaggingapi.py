@@ -421,6 +421,7 @@ def test_get_resources_rds():
     resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
     assert_response(resp, 2)
 
+
 @mock_lambda
 @mock_resourcegroupstaggingapi
 @mock_iam
@@ -446,7 +447,7 @@ def test_get_resources_lambda():
               """
 
     # create one lambda without tags
-    no_tag_arn = client.create_function(
+    client.create_function(
         FunctionName="lambda-no-tag",
         Runtime="python2.7",
         Role=get_role_name(),
@@ -456,7 +457,7 @@ def test_get_resources_lambda():
         Timeout=3,
         MemorySize=128,
         Publish=True,
-    )["FunctionArn"]
+    )
 
     # create second & third lambda with tags
     circle_arn = client.create_function(
