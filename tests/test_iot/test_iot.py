@@ -2401,7 +2401,7 @@ class TestDomainConfigurations:
     def test_create_domain_configuration_invalid_service_type(self):
         client = boto3.client("iot", region_name="us-east-1")
         with pytest.raises(client.exceptions.InvalidRequestException) as exc:
-            domain_config = client.create_domain_configuration(
+            client.create_domain_configuration(
                 domainConfigurationName="testConfig", serviceType="INVALIDTYPE"
             )
         err = exc.value.response["Error"]
@@ -2521,10 +2521,10 @@ class TestDomainConfigurations:
     @mock_iot
     def test_list_domain_configuration(self):
         client = boto3.client("iot", region_name="us-east-1")
-        domain_config_1 = client.create_domain_configuration(
+        client.create_domain_configuration(
             domainConfigurationName="testConfig1"
         )
-        domain_config_2 = client.create_domain_configuration(
+        client.create_domain_configuration(
             domainConfigurationName="testConfig2"
         )
         domain_configs = client.list_domain_configurations()
@@ -2541,7 +2541,7 @@ class TestDomainConfigurations:
     @mock_iot
     def test_delete_domain_configuration(self):
         client = boto3.client("iot", region_name="us-east-1")
-        domain_config = client.create_domain_configuration(
+        client.create_domain_configuration(
             domainConfigurationName="testConfig"
         )
         domain_configs = client.list_domain_configurations()
