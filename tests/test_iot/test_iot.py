@@ -1093,7 +1093,9 @@ def test_delete_thing_group():
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
     tree_dict = {
-        group_name_1a: {group_name_2a: {},},
+        group_name_1a: {
+            group_name_2a: {},
+        },
     }
     generate_thing_group_tree(client, tree_dict)
 
@@ -2217,7 +2219,8 @@ class TestTopicRules:
         payload = self.payload.copy()
         payload["description"] = "new-description"
         client.replace_topic_rule(
-            ruleName=self.name, topicRulePayload=payload,
+            ruleName=self.name,
+            topicRulePayload=payload,
         )
 
         rule = client.get_topic_rule(ruleName=self.name)
@@ -2521,12 +2524,8 @@ class TestDomainConfigurations:
     @mock_iot
     def test_list_domain_configuration(self):
         client = boto3.client("iot", region_name="us-east-1")
-        client.create_domain_configuration(
-            domainConfigurationName="testConfig1"
-        )
-        client.create_domain_configuration(
-            domainConfigurationName="testConfig2"
-        )
+        client.create_domain_configuration(domainConfigurationName="testConfig1")
+        client.create_domain_configuration(domainConfigurationName="testConfig2")
         domain_configs = client.list_domain_configurations()
         domain_configs.should.have.key(
             "domainConfigurations"
@@ -2541,9 +2540,7 @@ class TestDomainConfigurations:
     @mock_iot
     def test_delete_domain_configuration(self):
         client = boto3.client("iot", region_name="us-east-1")
-        client.create_domain_configuration(
-            domainConfigurationName="testConfig"
-        )
+        client.create_domain_configuration(domainConfigurationName="testConfig")
         domain_configs = client.list_domain_configurations()
         domain_configs.should.have.key(
             "domainConfigurations"
