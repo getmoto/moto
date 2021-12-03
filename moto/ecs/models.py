@@ -1568,7 +1568,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             for service in self.services.values():
                 if service.arn == resource_arn:
                     service.tags = self._merge_tags(service.tags, tags)
-                return {}
+                    return {}
             else:
                 raise ServiceNotFoundException
         raise NotImplementedError()
@@ -1594,7 +1594,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     service.tags = [
                         tag for tag in service.tags if tag["key"] not in tag_keys
                     ]
-                return {}
+                    return {}
             else:
                 raise ServiceNotFoundException
         raise NotImplementedError()
