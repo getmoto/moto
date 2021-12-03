@@ -374,7 +374,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, ACCOUNT_ID, self.function_name
         )
 
-        self.tags = dict()
+        if spec.get("Tags"):
+            self.tags = spec.get("Tags")
+        else:
+            self.tags = dict()
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(

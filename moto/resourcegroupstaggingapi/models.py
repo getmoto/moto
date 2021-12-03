@@ -15,6 +15,7 @@ from moto.rds2 import rds2_backends
 from moto.glacier import glacier_backends
 from moto.redshift import redshift_backends
 from moto.emr import emr_backends
+from moto.awslambda import lambda_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -106,6 +107,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         :rtype: moto.redshift.models.RedshiftBackend
         """
         return redshift_backends[self.region_name]
+
+    @property
+    def lambda_backend(self):
+        """
+        :rtype: moto.awslambda.models.LambdaBackend
+        """
+        return lambda_backends[self.region_name]
 
     def _get_resources_generator(self, tag_filters=None, resource_type_filters=None):
         # Look at
@@ -420,6 +428,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # VPC Subnet
         # VPC Virtual Private Gateway
         # VPC VPN Connection
+
+        # Lambda Instance
+        def transform_lambda_tags(dictTags):
+            result = []
+            for key, value in dictTags.items():
+                result.append({"Key": key, "Value": value})
+            return result
+
+        if not resource_type_filters or "lambda" in resource_type_filters:
+            for f in self.lambda_backend.list_functions():
+                tags = transform_lambda_tags(f.tags)
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": f.function_arn,
+                    "Tags": tags,
+                }
 
     def _get_tag_keys_generator(self):
         # Look at
