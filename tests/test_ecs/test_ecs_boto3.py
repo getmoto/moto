@@ -2766,25 +2766,49 @@ def test_ecs_service_tag_resource():
             }
         ],
     )
-    response = client.create_service(
+    create_response2 = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service_2",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+    )
+    create_response = client.create_service(
         cluster="test_ecs_cluster",
         serviceName="test_ecs_service",
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
+
     client.tag_resource(
-        resourceArn=response["service"]["serviceArn"],
+        resourceArn=create_response["service"]["serviceArn"],
         tags=[
             {"key": "createdBy", "value": "moto-unittest"},
             {"key": "foo", "value": "bar"},
         ],
     )
+    client.tag_resource(
+        resourceArn=create_response2["service"]["serviceArn"],
+        tags=[
+            {"key": "createdBy-2", "value": "moto-unittest-2"},
+            {"key": "foo-2", "value": "bar-2"},
+        ],
+    )
     response = client.list_tags_for_resource(
-        resourceArn=response["service"]["serviceArn"]
+        resourceArn=create_response["service"]["serviceArn"]
     )
     type(response["tags"]).should.be(list)
     response["tags"].should.equal(
         [{"key": "createdBy", "value": "moto-unittest"}, {"key": "foo", "value": "bar"}]
+    )
+    response2 = client.list_tags_for_resource(
+        resourceArn=create_response2["service"]["serviceArn"]
+    )
+    type(response2["tags"]).should.be(list)
+    response2["tags"].should.equal(
+        [
+            {"key": "createdBy-2", "value": "moto-unittest-2"},
+            {"key": "foo-2", "value": "bar-2"},
+        ]
     )
 
 
