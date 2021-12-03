@@ -2348,113 +2348,217 @@ class TestTopicRules:
             )
 
 
-@mock_iot
-def test_domain_configuration():
-    client = boto3.client("iot", region_name="us-east-1")
+class TestDomainConfigurations:
+    @mock_iot
+    def test_create_domain_configuration_only_name(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationArn").which.should_not.be.none
 
-    # Creation with only the name should succeed, creating same name fails
-    domain_config_1 = client.create_domain_configuration(
-        domainConfigurationName="testConfig1"
-    )
-    domain_config_1.should.have.key("domainConfigurationName").which.should.equal(
-        "testConfig1"
-    )
-    domain_config_1.should.have.key("domainConfigurationArn").which.should_not.be.none
-    with pytest.raises(client.exceptions.ResourceAlreadyExistsException):
-        client.create_domain_configuration(domainConfigurationName="testConfig1")
+    @mock_iot
+    def test_create_duplicate_domain_configuration_fails(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationArn").which.should_not.be.none
+        with pytest.raises(client.exceptions.ResourceAlreadyExistsException) as exc:
+            client.create_domain_configuration(domainConfigurationName="testConfig")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceAlreadyExistsException")
+        err["Message"].should.equal(
+            "Domain configuration with given name already exists."
+        )
 
-    # Create a second with full parameters
-    domain_config_2 = client.create_domain_configuration(
-        domainConfigurationName="testConfig2",
-        domainName="example.com",
-        serverCertificateArns=["ARN1", "ARN2"],
-        validationCertificateArn="VARN",
-        authorizerConfig={
-            "defaultAuthorizerName": "name",
-            "allowAuthorizerOverride": True,
-        },
-        serviceType="DATA",
-    )
-    domain_config_2.should.have.key("domainConfigurationName").which.should.equal(
-        "testConfig2"
-    )
-    domain_config_2.should.have.key("domainConfigurationArn").which.should_not.be.none
+    @mock_iot
+    def test_create_domain_configuration_full_params(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        domain_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationArn").which.should_not.be.none
 
-    # Describe an existing configuration, and a nonexistent one should error out
-    described_config = client.describe_domain_configuration(
-        domainConfigurationName="testConfig2"
-    )
-    described_config.should.have.key("domainConfigurationName").which.should.equal(
-        "testConfig2"
-    )
-    described_config.should.have.key("domainConfigurationArn")
-    described_config.should.have.key("serverCertificates")
-    described_config.should.have.key("authorizerConfig")
-    described_config.should.have.key("domainConfigurationStatus").which.should.equal(
-        "ENABLED"
-    )
-    described_config.should.have.key("serviceType").which.should.equal("DATA")
-    described_config.should.have.key("domainType")
-    described_config.should.have.key("lastStatusChangeDate")
-    with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.describe_domain_configuration(domainConfigurationName="doesntExist")
+    @mock_iot
+    def test_create_domain_configuration_invalid_service_type(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.InvalidRequestException) as exc:
+            domain_config = client.create_domain_configuration(
+                domainConfigurationName="testConfig", serviceType="INVALIDTYPE"
+            )
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("InvalidRequestException")
+        err["Message"].should.equal(
+            "An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration operation: Service type INVALIDTYPE not recognized."
+        )
 
-    # Update an existing configuration
-    client.update_domain_configuration(
-        domainConfigurationName="testConfig2",
-        authorizerConfig={
-            "defaultAuthorizerName": "updatedName",
-            "allowAuthorizerOverride": False,
-        },
-        domainConfigurationStatus="DISABLED",
-    )
-    described_updated_config = client.describe_domain_configuration(
-        domainConfigurationName="testConfig2"
-    )
-    described_updated_config.should.have.key("authorizerConfig").which.should.have.key(
-        "defaultAuthorizerName"
-    ).which.should.equal("updatedName")
-    described_updated_config.should.have.key("authorizerConfig").which.should.have.key(
-        "allowAuthorizerOverride"
-    ).which.should.equal(False)
-    described_updated_config.should.have.key(
-        "domainConfigurationStatus"
-    ).which.should.equal("DISABLED")
+    @mock_iot
+    def test_describe_nonexistent_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+            client.describe_domain_configuration(domainConfigurationName="doesntExist")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceNotFoundException")
+        err["Message"].should.equal("The specified resource does not exist.")
 
-    # Update with "removeAuthorizerConfig=True" and check it's removed
-    client.update_domain_configuration(
-        domainConfigurationName="testConfig2", removeAuthorizerConfig=True
-    )
-    described_updated_config = client.describe_domain_configuration(
-        domainConfigurationName="testConfig2"
-    )
-    described_updated_config.should_not.have.key("authorizerConfig")
+    @mock_iot
+    def test_describe_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
 
-    # Updating a nonexistent config should fail
-    with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.update_domain_configuration(domainConfigurationName="doesntExist")
+        client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        described_config = client.describe_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        described_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        described_config.should.have.key("domainConfigurationArn")
+        described_config.should.have.key("serverCertificates")
+        described_config.should.have.key("authorizerConfig")
+        described_config.should.have.key(
+            "domainConfigurationStatus"
+        ).which.should.equal("ENABLED")
+        described_config.should.have.key("serviceType").which.should.equal("DATA")
+        described_config.should.have.key("domainType")
+        described_config.should.have.key("lastStatusChangeDate")
 
-    # List, there should be 2 results
-    domain_configs = client.list_domain_configurations()
-    domain_configs.should.have.key("domainConfigurations").which.should.have.length_of(
-        2
-    )
+    @mock_iot
+    def test_update_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        client.update_domain_configuration(
+            domainConfigurationName="testConfig",
+            authorizerConfig={
+                "defaultAuthorizerName": "updatedName",
+                "allowAuthorizerOverride": False,
+            },
+            domainConfigurationStatus="DISABLED",
+        )
+        described_updated_config = client.describe_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        described_updated_config.should.have.key(
+            "authorizerConfig"
+        ).which.should.have.key("defaultAuthorizerName").which.should.equal(
+            "updatedName"
+        )
+        described_updated_config.should.have.key(
+            "authorizerConfig"
+        ).which.should.have.key("allowAuthorizerOverride").which.should.equal(False)
+        described_updated_config.should.have.key(
+            "domainConfigurationStatus"
+        ).which.should.equal("DISABLED")
 
-    # Delete and check results, one at a time
-    client.delete_domain_configuration(domainConfigurationName="testConfig1")
-    domain_configs = client.list_domain_configurations()
-    domain_configs.should.have.key("domainConfigurations").which.should.have.length_of(
-        1
-    )
-    domain_configs["domainConfigurations"][0].should.have.key(
-        "domainConfigurationName"
-    ).which.should.equal("testConfig2")
-    client.delete_domain_configuration(domainConfigurationName="testConfig2")
-    domain_configs = client.list_domain_configurations()
-    domain_configs.should.have.key("domainConfigurations").which.should.have.length_of(
-        0
-    )
+    @mock_iot
+    def test_update_domain_configuration_remove_authorizer_type(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        client.update_domain_configuration(
+            domainConfigurationName="testConfig", removeAuthorizerConfig=True
+        )
+        described_updated_config = client.describe_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        described_updated_config.should_not.have.key("authorizerConfig")
 
-    # Delete something that doesn't exist - should fail
-    with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.delete_domain_configuration(domainConfigurationName="doesntExist")
+    @mock_iot
+    def test_update_nonexistent_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+            client.update_domain_configuration(domainConfigurationName="doesntExist")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceNotFoundException")
+        err["Message"].should.equal("The specified resource does not exist.")
+
+    @mock_iot
+    def test_list_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config_1 = client.create_domain_configuration(
+            domainConfigurationName="testConfig1"
+        )
+        domain_config_2 = client.create_domain_configuration(
+            domainConfigurationName="testConfig2"
+        )
+        domain_configs = client.list_domain_configurations()
+        domain_configs.should.have.key(
+            "domainConfigurations"
+        ).which.should.have.length_of(2)
+        domain_configs["domainConfigurations"][0].should.have.key(
+            "domainConfigurationName"
+        ).which.should.equal("testConfig1")
+        domain_configs["domainConfigurations"][1].should.have.key(
+            "domainConfigurationName"
+        ).which.should.equal("testConfig2")
+
+    @mock_iot
+    def test_delete_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        domain_configs = client.list_domain_configurations()
+        domain_configs.should.have.key(
+            "domainConfigurations"
+        ).which.should.have.length_of(1)
+        client.delete_domain_configuration(domainConfigurationName="testConfig")
+        domain_configs = client.list_domain_configurations()
+        domain_configs.should.have.key(
+            "domainConfigurations"
+        ).which.should.have.length_of(0)
+
+    @mock_iot
+    def test_delete_nonexistent_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+            client.delete_domain_configuration(domainConfigurationName="doesntExist")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceNotFoundException")
+        err["Message"].should.equal("The specified resource does not exist.")

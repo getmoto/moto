@@ -496,21 +496,9 @@ class FakeDomainConfiguration(BaseModel):
         authorizer_config,
         domain_type,
     ):
-        if domain_configuration_status not in ["ENABLED", "DISABLED"]:
-            raise InvalidRequestException(
-                " An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
-                "operation: Domain configuration status %s not recognized."
-                % domain_configuration_status
-            )
-        if domain_type not in ["ENDPOINT", "AWS_MANAGED", "CUSTOMER_MANAGED"]:
-            raise InvalidRequestException(
-                " An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
-                "operation: Domain type %s not recognized." % domain_type
-            )
-        # Handle None service type (is it possible)?
         if service_type and service_type not in ["DATA", "CREDENTIAL_PROVIDER", "JOBS"]:
             raise InvalidRequestException(
-                " An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
+                "An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
                 "operation: Service type %s not recognized." % service_type
             )
         self.domain_configuration_name = domain_configuration_name
@@ -1488,7 +1476,7 @@ class IoTBackend(BaseBackend):
     ):
         if domain_configuration_name in self.domain_configurations:
             raise ResourceAlreadyExistsException(
-                "Domain configuration with given name already exists"
+                "Domain configuration with given name already exists."
             )
         self.domain_configurations[domain_configuration_name] = FakeDomainConfiguration(
             self.region_name,
@@ -1504,12 +1492,12 @@ class IoTBackend(BaseBackend):
 
     def delete_domain_configuration(self, domain_configuration_name):
         if domain_configuration_name not in self.domain_configurations:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("The specified resource does not exist.")
         del self.domain_configurations[domain_configuration_name]
 
     def describe_domain_configuration(self, domain_configuration_name):
         if domain_configuration_name not in self.domain_configurations:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("The specified resource does not exist.")
         return self.domain_configurations[domain_configuration_name]
 
     def list_domain_configurations(self):
@@ -1523,7 +1511,7 @@ class IoTBackend(BaseBackend):
         remove_authorizer_config,
     ):
         if domain_configuration_name not in self.domain_configurations:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("The specified resource does not exist.")
         domain_configuration = self.domain_configurations[domain_configuration_name]
         if authorizer_config is not None:
             domain_configuration.authorizer_config = authorizer_config
