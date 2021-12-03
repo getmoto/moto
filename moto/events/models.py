@@ -1070,7 +1070,7 @@ class EventsBackend(BaseBackend):
         return False
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rule_names_by_target(self, target_arn, next_token=None, limit=None):
+    def list_rule_names_by_target(self, target_arn):
         matching_rules = []
 
         for _, rule in self.rules.items():
@@ -1081,7 +1081,7 @@ class EventsBackend(BaseBackend):
         return matching_rules
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rules(self, prefix=None, next_token=None, limit=None):
+    def list_rules(self, prefix=None):
         match_string = ".*"
         if prefix is not None:
             match_string = "^" + prefix + match_string

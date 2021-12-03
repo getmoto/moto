@@ -672,9 +672,7 @@ class LogsBackend(BaseBackend):
         del self.groups[log_group_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def describe_log_groups(
-        self, log_group_name_prefix=None, limit=None, next_token=None
-    ):
+    def describe_log_groups(self, log_group_name_prefix=None):
         if log_group_name_prefix is None:
             log_group_name_prefix = ""
 

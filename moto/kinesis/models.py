@@ -543,7 +543,7 @@ class KinesisBackend(BaseBackend):
             )
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_shards(self, stream_name, limit=None, next_token=None):
+    def list_shards(self, stream_name):
         stream = self.describe_stream(stream_name)
         shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
         return [shard.to_json() for shard in shards]

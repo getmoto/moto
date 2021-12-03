@@ -767,7 +767,7 @@ class CognitoIdpBackend(BaseBackend):
         }
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_user_pools(self, max_results=None, next_token=None):
+    def list_user_pools(self):
         return list(self.user_pools.values())
 
     def describe_user_pool(self, user_pool_id):
@@ -827,7 +827,7 @@ class CognitoIdpBackend(BaseBackend):
         return user_pool_client
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
+    def list_user_pool_clients(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.clients.values())
@@ -868,7 +868,7 @@ class CognitoIdpBackend(BaseBackend):
         return identity_provider
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
+    def list_identity_providers(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.identity_providers.values())
@@ -1071,7 +1071,7 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError("Invalid token")
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_users(self, user_pool_id, pagination_token=None, limit=None):
+    def list_users(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.users.values())
