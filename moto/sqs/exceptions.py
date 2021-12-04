@@ -1,11 +1,6 @@
 from moto.core.exceptions import RESTError
 
 
-class MessageNotInflight(Exception):
-    description = "The message referred to is not in flight."
-    status_code = 400
-
-
 class ReceiptHandleIsInvalid(RESTError):
     code = 400
 
