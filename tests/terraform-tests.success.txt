@@ -120,3 +120,4 @@ TestAccAWSENI_disappears
 TestAccAWSS3BucketObject_
 TestAccAWSIAMPolicy_
 TestAccAWSIAMGroup_
+TestAccAWSIAMRolePolicy
