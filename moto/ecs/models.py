@@ -12,6 +12,7 @@ from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 from moto.ec2 import ec2_backends
+from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     EcsClientException,
     ServiceNotFoundException,
@@ -719,6 +720,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.container_instances = {}
         self.task_sets = {}
         self.region_name = region_name
+        self.tagger = TaggingService(
+            tag_name="tags", key_name="key", value_name="value"
+        )
 
     def reset(self):
         region_name = self.region_name
@@ -759,9 +763,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
-    def create_cluster(self, cluster_name):
+    def create_cluster(self, cluster_name, tags=None):
         cluster = Cluster(cluster_name, self.region_name)
         self.clusters[cluster_name] = cluster
+        if tags:
+            self.tagger.tag_resource(cluster.arn, tags)
         return cluster
 
     def list_clusters(self):
@@ -770,7 +776,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         """
         return [cluster.arn for cluster in self.clusters.values()]
 
-    def describe_clusters(self, list_clusters_name=None):
+    def describe_clusters(self, list_clusters_name=None, include=None):
+        """
+        Only include=TAGS is currently supported.
+        """
         list_clusters = []
         failures = []
         if list_clusters_name is None:
@@ -785,6 +794,14 @@ class EC2ContainerServiceBackend(BaseBackend):
                     failures.append(
                         ClusterFailure("MISSING", cluster_name, self.region_name)
                     )
+
+        if "TAGS" in (include or []):
+            for cluster in list_clusters:
+                cluster_arn = cluster["clusterArn"]
+                if self.tagger.has_tags(cluster_arn):
+                    cluster_tags = self.tagger.list_tags_for_resource(cluster_arn)
+                    cluster.update(cluster_tags)
+
         return list_clusters, failures
 
     def delete_cluster(self, cluster_str):
