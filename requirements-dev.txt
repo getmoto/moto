@@ -10,4 +10,5 @@ inflection
 lxml
 mypy
 packaging
+build
 prompt_toolkit

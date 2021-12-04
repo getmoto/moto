@@ -37,7 +37,7 @@ jobs:
     - name: Set version number
       run: python update_version_from_git.py ${{ env.VERSION }}
     - name: Build
-      run: python setup.py sdist bdist_wheel
+      run: python -m build
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
