@@ -9,4 +9,5 @@ click
 inflection==0.3.1
 lxml
 packaging
+build
 prompt_toolkit

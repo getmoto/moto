@@ -29,9 +29,8 @@ import sys
 from packaging.version import Version
 
 
-def migrate_source_attribute(attr, to_this, target_file, regex):
+def migrate_source_attribute(attr, to_this, target_file):
     """Updates __magic__ attributes in the source file"""
-    change_this = re.compile(regex, re.S)
     new_file = []
     found = False
 
@@ -41,7 +40,7 @@ def migrate_source_attribute(attr, to_this, target_file, regex):
     for line in lines:
         if line.startswith(attr):
             found = True
-            line = re.sub(change_this, to_this, line)
+            line = to_this
         new_file.append(line)
 
     if found:
@@ -49,14 +48,19 @@ def migrate_source_attribute(attr, to_this, target_file, regex):
             fp.writelines(new_file)
 
 
-def migrate_version(target_file, new_version):
-    """Updates __version__ in the source file"""
-    regex = r"['\"](.*)['\"]"
+def migrate_version(new_version):
+    initpy = os.path.abspath("moto/__init__.py")
+    setupcfg = os.path.abspath("setup.cfg")
+    """Updates __version__ in the init file"""
     migrate_source_attribute(
         "__version__",
-        '"{new_version}"'.format(new_version=new_version),
-        target_file,
-        regex,
+        to_this=f'__version__ = "{new_version}"\n',
+        target_file=initpy,
+    )
+    migrate_source_attribute(
+        "version =",
+        to_this=f'version = {new_version}\n',
+        target_file=setupcfg,
     )
 
 
@@ -130,7 +134,6 @@ def release_version_correct():
     """
     if is_master_branch():
         # update for a pre release version.
-        initpy = os.path.abspath("moto/__init__.py")
 
         new_version = prerelease_version()
         print(
@@ -141,7 +144,7 @@ def release_version_correct():
         assert (
             len(new_version.split(".")) >= 4
         ), "moto/__init__.py version should be like 0.0.2.dev"
-        migrate_version(initpy, new_version)
+        migrate_version(new_version)
     else:
         assert False, "No non-master deployments yet"
 
@@ -155,8 +158,8 @@ if __name__ == "__main__":
             new_version = arg
         if new_version == "patch":
             new_version = increase_patch_version(get_version())
-        initpy = os.path.abspath("moto/__init__.py")
-        migrate_version(initpy, new_version)
+
+        migrate_version(new_version)
     else:
         print(
             "Invalid usage. Supply 0 or 1 arguments. "
