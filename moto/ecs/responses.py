@@ -27,9 +27,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def create_cluster(self):
         cluster_name = self._get_param("clusterName")
+        tags = self._get_param("tags")
         if cluster_name is None:
             cluster_name = "default"
-        cluster = self.ecs_backend.create_cluster(cluster_name)
+        cluster = self.ecs_backend.create_cluster(cluster_name, tags)
         return json.dumps({"cluster": cluster.response_object})
 
     def list_clusters(self):
@@ -42,8 +43,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def describe_clusters(self):
-        list_clusters_name = self._get_param("clusters")
-        clusters, failures = self.ecs_backend.describe_clusters(list_clusters_name)
+        names = self._get_param("clusters")
+        include = self._get_param("include")
+        clusters, failures = self.ecs_backend.describe_clusters(names, include)
         return json.dumps(
             {
                 "clusters": clusters,
