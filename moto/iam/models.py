@@ -156,7 +156,7 @@ class SAMLProvider(BaseModel):
 
 
 class OpenIDConnectProvider(BaseModel):
-    def __init__(self, url, thumbprint_list, client_id_list=None):
+    def __init__(self, url, thumbprint_list, client_id_list=None, tags=None):
         self._errors = []
         self._validate(url, thumbprint_list, client_id_list)
 
@@ -165,6 +165,7 @@ class OpenIDConnectProvider(BaseModel):
         self.thumbprint_list = thumbprint_list
         self.client_id_list = client_id_list
         self.create_date = datetime.utcnow()
+        self.tags = tags
 
     @property
     def arn(self):
@@ -237,6 +238,9 @@ class OpenIDConnectProvider(BaseModel):
                     count=count, plural=plural, errors=errors
                 )
             )
+
+    def get_tags(self):
+        return [self.tags[tag] for tag in self.tags]
 
 
 class PolicyVersion(object):
@@ -2618,14 +2622,53 @@ class IAMBackend(BaseBackend):
                     return user
         return None
 
-    def create_open_id_connect_provider(self, url, thumbprint_list, client_id_list):
-        open_id_provider = OpenIDConnectProvider(url, thumbprint_list, client_id_list)
+    def create_open_id_connect_provider(
+        self, url, thumbprint_list, client_id_list, tags
+    ):
+        clean_tags = self._tag_verification(tags)
+        open_id_provider = OpenIDConnectProvider(
+            url, thumbprint_list, client_id_list, clean_tags
+        )
 
         if open_id_provider.arn in self.open_id_providers:
             raise EntityAlreadyExists("Unknown")
 
         self.open_id_providers[open_id_provider.arn] = open_id_provider
         return open_id_provider
+
+    def update_open_id_connect_provider_thumbprint(self, arn, thumbprint_list):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+        open_id_provider.thumbprint_list = thumbprint_list
+
+    def tag_open_id_connect_provider(self, arn, tags):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+        clean_tags = self._tag_verification(tags)
+        open_id_provider.tags.update(clean_tags)
+
+    def untag_open_id_connect_provider(self, arn, tag_keys):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+
+        for key in tag_keys:
+            ref_key = key.lower()
+            self._validate_tag_key(key, exception_param="tagKeys")
+            open_id_provider.tags.pop(ref_key, None)
+
+    def list_open_id_connect_provider_tags(self, arn, marker, max_items=100):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+
+        max_items = int(max_items)
+        tag_index = sorted(open_id_provider.tags)
+        start_idx = int(marker) if marker else 0
+
+        tag_index = tag_index[start_idx : start_idx + max_items]
+
+        if len(open_id_provider.tags) <= (start_idx + max_items):
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        tags = [open_id_provider.tags[tag] for tag in tag_index]
+        return tags, marker
 
     def delete_open_id_connect_provider(self, arn):
         self.open_id_providers.pop(arn, None)
