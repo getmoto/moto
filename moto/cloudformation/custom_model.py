@@ -62,7 +62,9 @@ class CustomModel(CloudFormationModel):
         # Alternative: Maybe we should let the user pass in a container-name where Moto is running?
         # Similar to how we know for sure that the container in our CI is called 'motoserver'
         host = f"{settings.moto_server_host()}:{settings.moto_server_port()}"
-        response_url = f"{host}/cloudformation_{region_name}/cfnresponse?stack={stack_id}"
+        response_url = (
+            f"{host}/cloudformation_{region_name}/cfnresponse?stack={stack_id}"
+        )
 
         event = {
             "RequestType": "Create",

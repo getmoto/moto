@@ -74,8 +74,9 @@ jobs:
     - name: Test
       env:
         TEST_SERVER_MODE: ${{ true }}
+        MOTO_PORT: 4555
       run: |
-        pytest -sv tests/test_awslambda tests/test_cloudformation
+        pytest -sv tests/test_awslambda/test_lambda_invoke.py::test_invoke_lambda_using_environment_port tests/test_cloudformation/test_cloudformation_custom_resources.py
     - name: "Stop MotoServer"
       if: always()
       run: |

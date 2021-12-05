@@ -1127,6 +1127,7 @@ The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, whic
 
 When using the decorators, invoked functions cannot reach Moto, so any boto3-invocations that you may use within your Lambda will try to connect to AWS.
     """
+
     def __init__(self, region_name):
         self._lambdas = LambdaStorage()
         self._event_source_mappings = {}
