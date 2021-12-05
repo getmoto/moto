@@ -428,3 +428,41 @@ def test_hash_key_can_only_use_equals_operations(operator):
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.equal("Query key condition not supported")
+
+
+@mock_dynamodb2
+def test_creating_table_with_0_local_indexes():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+            LocalSecondaryIndexes=[],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty"
+    )
+
+
+@mock_dynamodb2
+def test_creating_table_with_0_global_indexes():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="test-table",
+            KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+            GlobalSecondaryIndexes=[],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty"
+    )
