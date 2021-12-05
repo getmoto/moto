@@ -169,8 +169,8 @@ def test_invoke_lambda_using_environment_port():
     success_result["StatusCode"].should.equal(202)
     response = success_result["Payload"].read()
     functions = json.loads(response.decode("utf-8"))["response"]
-    functions.should.have.length_of(1)
-    functions[0]["FunctionName"].should.equal(function_name)
+    function_names = [f["FunctionName"] for f in functions]
+    function_names.should.contain(function_name)
 
 
 @pytest.mark.network
