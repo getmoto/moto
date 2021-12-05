@@ -952,13 +952,53 @@ class IamResponse(BaseResponse):
         open_id_provider_url = self._get_param("Url")
         thumbprint_list = self._get_multi_param("ThumbprintList.member")
         client_id_list = self._get_multi_param("ClientIDList.member")
+        tags = self._get_multi_param("Tags.member")
 
         open_id_provider = iam_backend.create_open_id_connect_provider(
-            open_id_provider_url, thumbprint_list, client_id_list
+            open_id_provider_url, thumbprint_list, client_id_list, tags
         )
 
         template = self.response_template(CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
         return template.render(open_id_provider=open_id_provider)
+
+    def update_open_id_connect_provider_thumbprint(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        thumbprint_list = self._get_multi_param("ThumbprintList.member")
+
+        iam_backend.update_open_id_connect_provider_thumbprint(
+            open_id_provider_arn, thumbprint_list
+        )
+
+        template = self.response_template(UPDATE_OPEN_ID_CONNECT_PROVIDER_THUMBPRINT)
+        return template.render()
+
+    def tag_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        tags = self._get_multi_param("Tags.member")
+
+        iam_backend.tag_open_id_connect_provider(open_id_provider_arn, tags)
+
+        template = self.response_template(TAG_OPEN_ID_CONNECT_PROVIDER)
+        return template.render()
+
+    def untag_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        iam_backend.untag_open_id_connect_provider(open_id_provider_arn, tag_keys)
+
+        template = self.response_template(UNTAG_OPEN_ID_CONNECT_PROVIDER)
+        return template.render()
+
+    def list_open_id_connect_provider_tags(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        marker = self._get_param("Marker")
+        max_items = self._get_param("MaxItems", 100)
+        tags, marker = iam_backend.list_open_id_connect_provider_tags(
+            open_id_provider_arn, marker, max_items
+        )
+        template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDER_TAGS)
+        return template.render(tags=tags, marker=marker)
 
     def delete_open_id_connect_provider(self):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
@@ -2567,6 +2607,27 @@ UNTAG_POLICY_TEMPLATE = """<UntagPolicyResponse xmlns="https://iam.amazonaws.com
   </ResponseMetadata>
 </UntagPolicyResponse>"""
 
+LIST_OPEN_ID_CONNECT_PROVIDER_TAGS = """<ListOpenIDConnectProviderTagsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListOpenIDConnectProviderTagsResult>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Tags>
+      {% for tag in tags %}
+      <member>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListOpenIDConnectProviderTagsResult>
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListOpenIDConnectProviderTagsResponse>
+"""
+
 
 CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <CreateOpenIDConnectProviderResult>
@@ -2577,6 +2638,26 @@ CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderRespon
   </ResponseMetadata>
 </CreateOpenIDConnectProviderResponse>"""
 
+UPDATE_OPEN_ID_CONNECT_PROVIDER_THUMBPRINT = """<UpdateOpenIDConnectProviderThumbprintResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>29b6031c-4f66-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</UpdateOpenIDConnectProviderThumbprintResponse>
+"""
+
+TAG_OPEN_ID_CONNECT_PROVIDER = """<TagOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagOpenIDConnectProviderResponse>
+"""
+
+UNTAG_OPEN_ID_CONNECT_PROVIDER = """<UntagOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagOpenIDConnectProviderResponse>
+"""
 
 DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<DeleteOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ResponseMetadata>
@@ -2599,6 +2680,16 @@ GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<GetOpenIDConnectProviderResponse xml
       {% endfor %}
     </ClientIDList>
     <Url>{{ open_id_provider.url }}</Url>
+    {% if open_id_provider.tags %}
+    <Tags>
+    {% for tag in open_id_provider.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+    {% endfor %}
+    </Tags>
+    {% endif %}
   </GetOpenIDConnectProviderResult>
   <ResponseMetadata>
     <RequestId>2c91531b-4f65-11e4-aefa-bfd6aEXAMPLE</RequestId>
