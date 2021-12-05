@@ -1108,6 +1108,25 @@ class LayerStorage(object):
 
 
 class LambdaBackend(BaseBackend):
+    """
+Implementation of the AWS Lambda endpoint.
+Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
+
+It is also possible to connect from AWS Lambdas to other services, as long as you're running in ServerMode.
+The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to create the endpoint_url that points to the MotoServer:
+
+.. sourcecode:: python
+
+    def lambda_handler(event, context):
+        host = os.environ.get("MOTO_HOST")
+        port = os.environ.get("MOTO_PORT")
+        url = host + ":" + port
+        ec2 = boto3.client('ec2', region_name='us-west-2', endpoint_url=url)
+
+        ec2.do_whatever_inside_the_existing_moto_server()
+
+When using the decorators, invoked functions cannot reach Moto, so any boto3-invocations that you may use within your Lambda will try to connect to AWS.
+    """
     def __init__(self, region_name):
         self._lambdas = LambdaStorage()
         self._event_source_mappings = {}

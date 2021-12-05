@@ -12,6 +12,8 @@
 lambda
 ======
 
+.. autoclass:: moto.awslambda.models.LambdaBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
