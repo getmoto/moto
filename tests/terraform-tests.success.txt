@@ -126,5 +126,4 @@ TestAccAWSIAMGroupPolicy
 TestAccAWSDataSourceIAMRole
 TestAccAWSDataSourceIAMUser
 TestAccAWSIAMAccountAlias
-TestAccAWSIAMAccountPasswordPolicy
 TestAccAWSIAMOpenIDConnectProvider
