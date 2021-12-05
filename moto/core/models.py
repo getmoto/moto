@@ -19,7 +19,6 @@ except ImportError:
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
-from distutils.version import LooseVersion
 from http.client import responses as http_responses
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
@@ -27,6 +26,7 @@ from werkzeug.wrappers import Request
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
+from moto.utilities.distutils_version import LooseVersion
 from unittest.mock import patch
 from .utils import (
     convert_httpretty_response,
