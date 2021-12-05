@@ -13,12 +13,14 @@ from moto import (
     settings,
 )
 from uuid import uuid4
+from unittest import SkipTest
 from .utilities import (
     get_role_name,
     get_test_zip_file_error,
     get_test_zip_file1,
     get_zip_with_multiple_files,
     get_test_zip_file2,
+    get_lambda_using_environment_port,
 )
 
 _lambda_region = "us-west-2"
@@ -143,6 +145,32 @@ def test_invoke_event_function():
     )
     success_result["StatusCode"].should.equal(202)
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
+
+
+@pytest.mark.network
+@mock_lambda
+def test_invoke_lambda_using_environment_port():
+    if not settings.TEST_SERVER_MODE:
+        raise SkipTest("Can only test environment variables in server mode")
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_lambda_using_environment_port()},
+    )
+
+    success_result = conn.invoke(
+        FunctionName=function_name, InvocationType="Event", Payload="{}"
+    )
+
+    success_result["StatusCode"].should.equal(202)
+    response = success_result["Payload"].read()
+    functions = json.loads(response.decode("utf-8"))["response"]
+    functions.should.have.length_of(1)
+    functions[0]["FunctionName"].should.equal(function_name)
 
 
 @pytest.mark.network

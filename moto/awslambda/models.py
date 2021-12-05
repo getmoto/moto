@@ -568,6 +568,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             }
 
             env_vars.update(self.environment_vars)
+            env_vars["MOTO_HOST"] = settings.moto_server_host()
+            env_vars["MOTO_PORT"] = settings.moto_server_port()
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
