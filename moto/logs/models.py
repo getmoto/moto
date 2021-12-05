@@ -28,6 +28,28 @@ class LogQuery(BaseModel):
         self.query = query
 
 
+class Destination(BaseModel):
+    def __init__(
+        self, region, destination_name, role_arn, target_arn, access_policy=None
+    ):
+        self.access_policy = access_policy
+        self.arn = f"arn:aws:logs:{region}:{moto_core.ACCOUNT_ID}:destination:{destination_name}"
+        self.creation_time = int(unix_time_millis())
+        self.destination_name = destination_name
+        self.role_arn = role_arn
+        self.target_arn = target_arn
+
+    def to_dict(self):
+        return {
+            "accessPolicy": self.access_policy,
+            "arn": self.arn,
+            "creationTime": self.creation_time,
+            "destinationName": self.destination_name,
+            "roleArn": self.role_arn,
+            "targetArn": self.target_arn,
+        }
+
+
 class LogEvent(BaseModel):
     _event_id = 0
 
@@ -634,6 +656,7 @@ class LogsBackend(BaseBackend):
         self.filters = MetricFilters()
         self.queries = dict()
         self.resource_policies = dict()
+        self.destinations = dict()
 
     def reset(self):
         region_name = self.region_name
@@ -684,6 +707,52 @@ class LogsBackend(BaseBackend):
         groups = sorted(groups, key=lambda x: x["logGroupName"])
 
         return groups
+
+    def get_destination(self, destination_name):
+        for destination in self.destinations:
+            if self.destinations[destination].destination_name == destination_name:
+                return self.destinations[destination]
+        raise ResourceNotFoundException()
+
+    def put_destination(self, destination_name, role_arn, target_arn):
+        for destination in self.destinations:
+            if self.destinations[destination].destination_name == destination_name:
+                return destination
+        destination = Destination(
+            self.region_name, destination_name, role_arn, target_arn
+        )
+        self.destinations[destination.arn] = destination
+        return destination
+
+    def delete_destination(self, destination_name):
+        destination = self.get_destination(destination_name)
+        self.destinations.pop(destination.arn)
+        return
+
+    def describe_destinations(self, destination_name_prefix, limit, next_token=None):
+        if limit > 50:
+            raise InvalidParameterException(
+                constraint="Member must have value less than or equal to 50",
+                parameter="limit",
+                value=limit,
+            )
+
+        result = []
+        for destination in self.destinations:
+            result.append(self.destinations[destination].to_dict())
+        if next_token:
+            result = result[:next_token]
+        result = [
+            destination
+            for destination in result
+            if destination["destinationName"].startswith(destination_name_prefix)
+        ]
+        return result, next_token
+
+    def put_destination_policy(self, destination_name, access_policy):
+        destination = self.get_destination(destination_name)
+        destination.access_policy = access_policy
+        return
 
     def create_log_stream(self, log_group_name, log_stream_name):
         if log_group_name not in self.groups:

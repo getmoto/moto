@@ -178,6 +178,50 @@ class LogsResponse(BaseResponse):
             result["nextToken"] = next_token
         return json.dumps(result)
 
+    def put_destination(self):
+        destination_name = self._get_param("destinationName")
+        role_arn = self._get_param("roleArn")
+        target_arn = self._get_param("targetArn")
+
+        destination = self.logs_backend.put_destination(
+            destination_name, role_arn, target_arn
+        )
+        result = {
+            "destination": {
+                "accessPolicy": destination.access_policy,
+                "arn": destination.arn,
+                "creationTime": destination.creation_time,
+                "destinationName": destination.destination_name,
+                "roleArn": destination.role_arn,
+                "targetArn": destination.target_arn,
+            }
+        }
+        return json.dumps(result)
+
+    def delete_destination(self):
+        destination_name = self._get_param("destinationName")
+        self.logs_backend.delete_destination(destination_name)
+        return ""
+
+    def describe_destinations(self):
+        destination_name_prefix = self._get_param("DestinationNamePrefix")
+        limit = self._get_param("limit", 50)
+        next_token = self._get_param("nextToken")
+
+        destinations, next_token = self.logs_backend.describe_destinations(
+            destination_name_prefix, limit, next_token
+        )
+
+        result = {"destinations": destinations, "nextToken": next_token}
+        return json.dumps(result)
+
+    def put_destination_policy(self):
+        access_policy = self._get_param("accessPolicy")
+        destination_name = self._get_param("destinationName")
+
+        self.logs_backend.put_destination_policy(destination_name, access_policy)
+        return ""
+
     def create_log_stream(self):
         log_group_name = self._get_param("logGroupName")
         log_stream_name = self._get_param("logStreamName")
