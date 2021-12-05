@@ -179,8 +179,20 @@ class DynamoHandler(BaseResponse):
         # getting attribute definition
         attr = body["AttributeDefinitions"]
         # getting the indexes
-        global_indexes = body.get("GlobalSecondaryIndexes", [])
-        local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
+        global_indexes = body.get("GlobalSecondaryIndexes")
+        if global_indexes == []:
+            return self.error(
+                "ValidationException",
+                "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty",
+            )
+        global_indexes = global_indexes or []
+        local_secondary_indexes = body.get("LocalSecondaryIndexes")
+        if local_secondary_indexes == []:
+            return self.error(
+                "ValidationException",
+                "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty",
+            )
+        local_secondary_indexes = local_secondary_indexes or []
         # Verify AttributeDefinitions list all
         expected_attrs = []
         expected_attrs.extend([key["AttributeName"] for key in key_schema])
