@@ -4,7 +4,7 @@ from .responses import GuardDutyResponse
 response = GuardDutyResponse()
 
 url_bases = [
-    "https?://guardduty.(.+).amazonaws.com",
+    "https?://guardduty\\.(.+)\\.amazonaws\\.com",
 ]
 
 
