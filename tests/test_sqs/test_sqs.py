@@ -290,9 +290,7 @@ def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
     assert not Queue._is_empty_redrive_policy(
         json.dumps({"deadLetterTargetArn": test_dlq_arn, "maxReceiveCount": 5})
     )
-    assert not Queue._is_empty_redrive_policy(
-        json.dumps({"maxReceiveCount": 5})
-    )
+    assert not Queue._is_empty_redrive_policy(json.dumps({"maxReceiveCount": 5}))
 
 
 @mock_sqs
