@@ -335,7 +335,7 @@ class Queue(CloudFormationModel):
 
             setattr(self, camelcase_to_underscores(key), value)
 
-        if attributes.get("RedrivePolicy", None):
+        if attributes.get("RedrivePolicy", None) is not None:
             self._setup_dlq(attributes["RedrivePolicy"])
 
         if attributes.get("Policy"):
@@ -343,7 +343,21 @@ class Queue(CloudFormationModel):
 
         self.last_modified_timestamp = now
 
+    @staticmethod
+    def _is_empty_redrive_policy(policy):
+        if isinstance(policy, str):
+            if policy == "" or len(json.loads(policy)) == 0:
+                return True
+        elif isinstance(policy, dict) and len(policy) == 0:
+            return True
+
+        return False
+
     def _setup_dlq(self, policy):
+        if Queue._is_empty_redrive_policy(policy):
+            self.redrive_policy = None
+            self.dead_letter_queue = None
+            return
 
         if isinstance(policy, str):
             try:

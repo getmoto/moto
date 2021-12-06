@@ -20,6 +20,7 @@ import pytest
 from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
 from moto.sqs.models import (
+    Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     MAXIMUM_MESSAGE_LENGTH,
@@ -277,6 +278,46 @@ def test_set_queue_attribute_empty_policy_removes_attr():
         "Attributes"
     ]
     response.shouldnt.have.key("Policy")
+
+
+def test_is_empty_redrive_policy_returns_true_for_empty_and_falsy_values():
+    assert Queue._is_empty_redrive_policy("")
+    assert Queue._is_empty_redrive_policy("{}")
+
+
+def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
+    test_dlq_arn = "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue"
+    assert not Queue._is_empty_redrive_policy(
+        json.dumps({"deadLetterTargetArn": test_dlq_arn, "maxReceiveCount": 5})
+    )
+    assert not Queue._is_empty_redrive_policy(json.dumps({"maxReceiveCount": 5}))
+
+
+@mock_sqs
+def test_set_queue_attribute_empty_redrive_removes_attr():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    dlq_resp = client.create_queue(QueueName="test-dlr-queue")
+    dlq_arn1 = client.get_queue_attributes(
+        QueueUrl=dlq_resp["QueueUrl"], AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+    q_name = str(uuid4())[0:6]
+    response = client.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 5}
+            ),
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    no_redrive = {"RedrivePolicy": ""}
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=no_redrive)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    response.shouldnt.have.key("RedrivePolicy")
 
 
 @mock_sqs
