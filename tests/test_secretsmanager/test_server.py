@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json
-import sure  # noqa
+
+import boto3
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
-from moto import mock_secretsmanager
-
-"""
-Test the different server responses for secretsmanager
-"""
+from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs, settings
+from tests.test_awslambda.test_lambda import get_test_zip_file1
 
 DEFAULT_SECRET_NAME = "test-secret"
 
@@ -20,7 +18,7 @@ def test_get_secret_value():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foo-secret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -57,7 +55,7 @@ def test_get_secret_that_does_not_match():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foo-secret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -77,7 +75,7 @@ def test_get_secret_that_has_no_value():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -128,7 +126,7 @@ def test_describe_secret():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": "test-secret", "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -139,7 +137,7 @@ def test_describe_secret():
         headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
     )
 
-    create_secret_2 = test_client.post(
+    test_client.post(
         "/",
         data={"Name": "test-secret-2", "SecretString": "barsecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -184,7 +182,7 @@ def test_describe_secret_that_does_not_match():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -205,7 +203,7 @@ def test_rotate_secret():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -307,7 +305,7 @@ def test_rotate_secret_that_does_not_match():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -325,11 +323,59 @@ def test_rotate_secret_that_does_not_match():
 
 
 @mock_secretsmanager
-def test_rotate_secret_client_request_token_too_short():
+def test_rotate_secret_that_is_still_rotating():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
     create_secret = test_client.post(
+        "/",
+        data={
+            "Name": DEFAULT_SECRET_NAME,
+            "SecretString": "foosecret",
+            # "VersionStages": ["AWSPENDING"],
+        },
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    create_secret = json.loads(create_secret.data.decode("utf-8"))
+
+    # Get the secret into a broken state.
+    version_id = create_secret["VersionId"]
+    test_client.post(
+        "/",
+        data={
+            "SecretId": "test-secret",
+            "VersionStage": "AWSPENDING",
+            "MoveToVersionId": version_id,
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    metadata = json.loads(describe_secret.data.decode("utf-8"))
+    assert metadata["SecretVersionsToStages"][version_id] == [
+        "AWSCURRENT",
+        "AWSPENDING",
+    ]
+
+    # Then attempt to rotate it
+    rotate_secret = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME},
+        headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+    )
+    assert rotate_secret.status_code == 400
+
+
+@mock_secretsmanager
+def test_rotate_secret_client_request_token_too_short():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -355,7 +401,7 @@ def test_rotate_secret_client_request_token_too_long():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -383,7 +429,7 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -402,6 +448,79 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     json_data = json.loads(rotate_secret.data.decode("utf-8"))
     assert json_data["message"] == "RotationLambdaARN must <= 2048 characters long."
     assert json_data["__type"] == "InvalidParameterException"
+
+
+if not settings.TEST_SERVER_MODE:
+
+    @mock_iam
+    @mock_lambda
+    @mock_logs
+    @mock_secretsmanager
+    def test_rotate_secret_lambda_invocations():
+        conn = boto3.client("iam", region_name="us-east-1")
+        logs_conn = boto3.client("logs", region_name="us-east-1")
+        role = conn.create_role(
+            RoleName="role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
+        )
+
+        conn = boto3.client("lambda", region_name="us-east-1")
+        func = conn.create_function(
+            FunctionName="testFunction",
+            Code=dict(ZipFile=get_test_zip_file1()),
+            Handler="lambda_function.lambda_handler",
+            Runtime="python2.7",
+            Role=role["Role"]["Arn"],
+        )
+
+        secretsmanager_backend = server.create_backend_app("secretsmanager")
+        secretsmanager_client = secretsmanager_backend.test_client()
+
+        secretsmanager_client.post(
+            "/",
+            data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+            headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+        )
+
+        with pytest.raises(logs_conn.exceptions.ResourceNotFoundException):
+            # The log group doesn't exist yet
+            logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
+
+        secretsmanager_client.post(
+            "/",
+            data={
+                "SecretId": DEFAULT_SECRET_NAME,
+                "RotationLambdaARN": func["FunctionArn"],
+            },
+            headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+        )
+
+        # The log group now exists and has been logged to 4 times (for each invocation)
+        logs = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
+        assert len(logs["logStreams"]) == 4
+
+    @mock_iam
+    @mock_lambda
+    @mock_logs
+    @mock_secretsmanager
+    def test_rotate_secret_with_incorrect_lambda_arn():
+        secretsmanager_backend = server.create_backend_app("secretsmanager")
+        secretsmanager_client = secretsmanager_backend.test_client()
+
+        secretsmanager_client.post(
+            "/",
+            data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+            headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+        )
+
+        resp = secretsmanager_client.post(
+            "/",
+            data={"SecretId": DEFAULT_SECRET_NAME, "RotationLambdaARN": "notarealarn",},
+            headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+        )
+        json_data = json.loads(resp.data.decode("utf-8"))
+        assert json_data["message"] == "Resource not found for ARN 'notarealarn'."
+        assert json_data["__type"] == "ResourceNotFoundException"
+        assert resp.status_code == 404
 
 
 @mock_secretsmanager
@@ -612,7 +731,7 @@ def test_get_resource_policy_secret():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
-    create_secret = test_client.post(
+    test_client.post(
         "/",
         data={"Name": "test-secret", "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -627,6 +746,177 @@ def test_get_resource_policy_secret():
     assert json_data  # Returned dict is not empty
     assert json_data["ARN"] != ""
     assert json_data["Name"] == "test-secret"
+
+
+@mock_secretsmanager
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_update_secret_version_stage(pass_arn):
+    custom_stage = "CUSTOM_STAGE"
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+    create_secret = test_client.post(
+        "/",
+        data={"Name": "test-secret", "SecretString": "secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    create_secret = json.loads(create_secret.data.decode("utf-8"))
+    secret_id = create_secret["ARN"] if pass_arn else DEFAULT_SECRET_NAME
+    initial_version = create_secret["VersionId"]
+
+    # Create a new version
+    put_secret = test_client.post(
+        "/",
+        data={
+            "SecretId": secret_id,
+            "SecretString": "secret",
+            "VersionStages": [custom_stage],
+        },
+        headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
+    )
+    put_secret = json.loads(put_secret.data.decode("utf-8"))
+    new_version = put_secret["VersionId"]
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": secret_id},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data["SecretVersionsToStages"]
+    assert len(stages) == 2
+    assert stages[initial_version] == ["AWSPREVIOUS"]
+    assert stages[new_version] == [custom_stage]
+
+    test_client.post(
+        "/",
+        data={
+            "SecretId": secret_id,
+            "VersionStage": custom_stage,
+            "RemoveFromVersionId": new_version,
+            "MoveToVersionId": initial_version,
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": secret_id},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data["SecretVersionsToStages"]
+    assert len(stages) == 2
+    assert stages[initial_version] == ["AWSPREVIOUS", custom_stage]
+    assert stages[new_version] == []
+
+
+@mock_secretsmanager
+def test_update_secret_version_stage_currentversion_handling():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+    create_secret = test_client.post(
+        "/",
+        data={"Name": "test-secret", "SecretString": "secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    create_secret = json.loads(create_secret.data.decode("utf-8"))
+    initial_version = create_secret["VersionId"]
+
+    # Create a new version
+    put_secret = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME, "SecretString": "secret",},
+        headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
+    )
+    put_secret = json.loads(put_secret.data.decode("utf-8"))
+    new_version = put_secret["VersionId"]
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data["SecretVersionsToStages"]
+    assert len(stages) == 2
+    assert stages[initial_version] == ["AWSPREVIOUS"]
+    assert stages[new_version] == ["AWSCURRENT"]
+
+    test_client.post(
+        "/",
+        data={
+            "SecretId": "test-secret",
+            "VersionStage": "AWSCURRENT",
+            "RemoveFromVersionId": new_version,
+            "MoveToVersionId": initial_version,
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.DescribeSecret"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    stages = json_data["SecretVersionsToStages"]
+    assert len(stages) == 2
+    assert stages[initial_version] == ["AWSCURRENT"]
+    assert stages[new_version] == ["AWSPREVIOUS"]
+
+
+@mock_secretsmanager
+def test_update_secret_version_stage_validation():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    # Secret ID that doesn't exist
+    resp = test_client.post(
+        "/",
+        data={"SecretId": "nonexistent"},
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 404
+
+    # Add a secret so we can run further checks
+    secret = test_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    secret = json.loads(secret.data.decode("utf-8"))
+
+    # "Remove from" version ID that doesn't exist
+    resp = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME, "RemoveFromVersionId": "nonexistent"},
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 400
+
+    # "Remove from" stage name which isn't attached to the given version
+    resp = test_client.post(
+        "/",
+        data={
+            "SecretId": DEFAULT_SECRET_NAME,
+            "RemoveFromVersionId": secret["VersionId"],
+            "VersionStage": "nonexistent",
+        },
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 400
+
+    # "Move to" version ID that doesn't exist
+    resp = test_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME, "MoveToVersionId": "nonexistent",},
+        headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
+    )
+    assert resp.status_code == 400
 
 
 #

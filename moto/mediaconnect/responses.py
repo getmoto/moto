@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -81,3 +79,42 @@ class MediaConnectResponse(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps(dict(tags=tags))
+
+    def add_flow_vpc_interfaces(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        vpc_interfaces = self._get_param("vpcInterfaces")
+        flow_arn, vpc_interfaces = self.mediaconnect_backend.add_flow_vpc_interfaces(
+            flow_arn=flow_arn, vpc_interfaces=vpc_interfaces
+        )
+        return json.dumps(dict(flow_arn=flow_arn, vpc_interfaces=vpc_interfaces))
+
+    def remove_flow_vpc_interface(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        vpc_interface_name = unquote(self._get_param("vpcInterfaceName"))
+        (
+            flow_arn,
+            vpc_interface_name,
+        ) = self.mediaconnect_backend.remove_flow_vpc_interface(
+            flow_arn=flow_arn, vpc_interface_name=vpc_interface_name
+        )
+        return json.dumps(
+            dict(flow_arn=flow_arn, vpc_interface_name=vpc_interface_name)
+        )
+
+    def add_flow_outputs(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        outputs = self._get_param("outputs")
+        flow_arn, outputs = self.mediaconnect_backend.add_flow_outputs(
+            flow_arn=flow_arn, outputs=outputs
+        )
+        return json.dumps(dict(flow_arn=flow_arn, outputs=outputs))
+
+    def remove_flow_output(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        output_name = unquote(self._get_param("outputArn"))
+        flow_arn, output_name = self.mediaconnect_backend.remove_flow_output(
+            flow_arn=flow_arn, output_name=output_name
+        )
+        return json.dumps(dict(flow_arn=flow_arn, output_name=output_name))
+
+    # add methods from here

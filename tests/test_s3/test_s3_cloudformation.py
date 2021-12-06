@@ -1,7 +1,7 @@
 import json
 import boto3
 
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 from moto import mock_s3, mock_cloudformation
 
@@ -18,9 +18,7 @@ def test_s3_bucket_cloudformation_basic():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    stack_id = cf.create_stack(StackName="test_stack", TemplateBody=template_json)[
-        "StackId"
-    ]
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
     stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
 
     s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
@@ -55,10 +53,8 @@ def test_s3_bucket_cloudformation_with_properties():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    stack_id = cf.create_stack(StackName="test_stack", TemplateBody=template_json)[
-        "StackId"
-    ]
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+    cf.describe_stacks(StackName="test_stack")
     s3.head_bucket(Bucket=bucket_name)
 
     encryption = s3.get_bucket_encryption(Bucket=bucket_name)

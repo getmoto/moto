@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from functools import wraps
 
 import binascii
@@ -6,10 +5,9 @@ import datetime
 import inspect
 import random
 import re
-import six
 import string
 from botocore.exceptions import ClientError
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
@@ -68,20 +66,13 @@ def camelcase_to_pascal(argument):
 
 
 def method_names_from_class(clazz):
-    # On Python 2, methods are different from functions, and the `inspect`
-    # predicates distinguish between them. On Python 3, methods are just
-    # regular functions, and `inspect.ismethod` doesn't work, so we have to
-    # use `inspect.isfunction` instead
-    if six.PY2:
-        predicate = inspect.ismethod
-    else:
-        predicate = inspect.isfunction
+    predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
 
 def get_random_hex(length=8):
     chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    return "".join(six.text_type(random.choice(chars)) for x in range(length))
+    return "".join(str(random.choice(chars)) for x in range(length))
 
 
 def get_random_message_id():
@@ -153,7 +144,7 @@ class convert_flask_to_httpretty_response(object):
         from flask import request, Response
 
         try:
-            result = self.callback(request, request.url, {})
+            result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
@@ -184,7 +175,7 @@ class convert_flask_to_responses_response(object):
 
     def __call__(self, request, *args, **kwargs):
         for key, val in request.headers.items():
-            if isinstance(val, six.binary_type):
+            if isinstance(val, bytes):
                 request.headers[key] = val.decode("utf-8")
 
         result = self.callback(request, request.url, request.headers)
@@ -196,14 +187,17 @@ def iso_8601_datetime_with_milliseconds(datetime):
     return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+# Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
+def iso_8601_datetime_with_nanoseconds(datetime):
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+
+
 def iso_8601_datetime_without_milliseconds(datetime):
-    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def iso_8601_datetime_without_milliseconds_s3(datetime):
-    return (
-        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000") + "Z"
-    )
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
@@ -213,8 +207,8 @@ def rfc_1123_datetime(datetime):
     return datetime.strftime(RFC1123)
 
 
-def str_to_rfc_1123_datetime(str):
-    return datetime.datetime.strptime(str, RFC1123)
+def str_to_rfc_1123_datetime(value):
+    return datetime.datetime.strptime(value, RFC1123)
 
 
 def unix_time(dt=None):
@@ -230,13 +224,9 @@ def unix_time_millis(dt=None):
 
 def gen_amz_crc32(response, headerdict=None):
     if not isinstance(response, bytes):
-        response = response.encode()
+        response = response.encode("utf-8")
 
     crc = binascii.crc32(response)
-    if six.PY2:
-        # https://python.readthedocs.io/en/v2.7.2/library/binascii.html
-        # TLDR: Use bitshift to match Py3 behaviour
-        crc = crc & 0xFFFFFFFF
 
     if headerdict is not None and isinstance(headerdict, dict):
         headerdict.update({"x-amz-crc32": str(crc)})
@@ -261,7 +251,7 @@ def amz_crc32(f):
         headers = {}
         status = 200
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             body = response
         else:
             if len(response) == 2:
@@ -293,7 +283,7 @@ def amzn_request_id(f):
         headers = {}
         status = 200
 
-        if isinstance(response, six.string_types):
+        if isinstance(response, str):
             body = response
         else:
             if len(response) == 2:
@@ -326,35 +316,11 @@ def path_url(url):
     return path
 
 
-def py2_strip_unicode_keys(blob):
-    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
-    if type(blob) == unicode:  # noqa
-        return str(blob)
-
-    elif type(blob) == dict:
-        for key in list(blob.keys()):
-            value = blob.pop(key)
-            blob[str(key)] = py2_strip_unicode_keys(value)
-
-    elif type(blob) == list:
-        for i in range(0, len(blob)):
-            blob[i] = py2_strip_unicode_keys(blob[i])
-
-    elif type(blob) == set:
-        new_set = set()
-        for value in blob:
-            new_set.add(py2_strip_unicode_keys(value))
-
-        blob = new_set
-
-    return blob
-
-
 def tags_from_query_string(
     querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
 ):
     response_values = {}
-    for key, value in querystring_dict.items():
+    for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
@@ -405,6 +371,50 @@ def remap_nested_keys(root, key_transform):
     if isinstance(root, dict):
         return {
             key_transform(k): remap_nested_keys(v, key_transform)
-            for k, v in six.iteritems(root)
+            for k, v in root.items()
         }
     return root
+
+
+def merge_dicts(dict1, dict2, remove_nulls=False):
+    """Given two arbitrarily nested dictionaries, merge the second dict into the first.
+
+    :param dict dict1: the dictionary to be updated.
+    :param dict dict2: a dictionary of keys/values to be merged into dict1.
+
+    :param bool remove_nulls: If true, updated values equal to None or an empty dictionary
+        will be removed from dict1.
+    """
+    for key in dict2:
+        if isinstance(dict2[key], dict):
+            if key in dict1 and key in dict2:
+                merge_dicts(dict1[key], dict2[key], remove_nulls)
+            else:
+                dict1[key] = dict2[key]
+            if dict1[key] == {} and remove_nulls:
+                dict1.pop(key)
+        else:
+            dict1[key] = dict2[key]
+            if dict1[key] is None and remove_nulls:
+                dict1.pop(key)
+
+
+def aws_api_matches(pattern, string):
+    """
+        AWS API can match a value based on a glob, or an exact match
+    """
+    # use a negative lookback regex to match stars that are not prefixed with a backslash
+    # and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
+    pattern, _ = re.subn(r"(?<!\\)\*", r".*", pattern)
+
+    # ? in the AWS glob form becomes .? in regex
+    # also, don't substitute it if it is prefixed w/ a backslash
+    pattern, _ = re.subn(r"(?<!\\)\?", r".?", pattern)
+
+    # aws api seems to anchor
+    anchored_pattern = f"^{pattern}$"
+
+    if re.match(anchored_pattern, str(string)):
+        return True
+    else:
+        return False

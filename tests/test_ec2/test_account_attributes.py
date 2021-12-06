@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 import boto3
 from moto import mock_ec2
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 
 @mock_ec2

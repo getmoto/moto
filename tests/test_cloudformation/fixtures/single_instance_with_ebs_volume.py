@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 template = {

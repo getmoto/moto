@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import json
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 from botocore.exceptions import ClientError
 from moto import mock_iotdata, mock_iot
@@ -109,3 +107,41 @@ def test_update():
 def test_publish():
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     client.publish(topic="test/topic", qos=1, payload=b"")
+
+
+@mock_iot
+@mock_iotdata
+def test_delete_field_from_device_shadow():
+    test_thing_name = "TestThing"
+
+    iot_raw_client = boto3.client("iot", region_name="eu-central-1")
+    iot_raw_client.create_thing(thingName=test_thing_name)
+    iot = boto3.client("iot-data", region_name="eu-central-1")
+
+    iot.update_thing_shadow(
+        thingName=test_thing_name,
+        payload=json.dumps({"state": {"desired": {"state1": 1, "state2": 2}}}),
+    )
+    response = json.loads(
+        iot.get_thing_shadow(thingName=test_thing_name)["payload"].read()
+    )
+    assert len(response["state"]["desired"]) == 2
+
+    iot.update_thing_shadow(
+        thingName=test_thing_name,
+        payload=json.dumps({"state": {"desired": {"state1": None}}}),
+    )
+    response = json.loads(
+        iot.get_thing_shadow(thingName=test_thing_name)["payload"].read()
+    )
+    assert len(response["state"]["desired"]) == 1
+    assert "state2" in response["state"]["desired"]
+
+    iot.update_thing_shadow(
+        thingName=test_thing_name,
+        payload=json.dumps({"state": {"desired": {"state2": None}}}),
+    )
+    response = json.loads(
+        iot.get_thing_shadow(thingName=test_thing_name)["payload"].read()
+    )
+    assert "desired" not in response["state"]

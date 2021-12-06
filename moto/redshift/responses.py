@@ -1,11 +1,8 @@
-from __future__ import unicode_literals
-
 import json
 
 import xmltodict
 
 from jinja2 import Template
-from six import iteritems
 
 from moto.core.responses import BaseResponse
 from .models import redshift_backends
@@ -250,7 +247,7 @@ class RedshiftResponse(BaseResponse):
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise
         # we'll stomp all over our cluster metadata with None values.
-        for (key, value) in iteritems(request_kwargs):
+        for (key, value) in request_kwargs.items():
             if value is not None and value != []:
                 cluster_kwargs[key] = value
 

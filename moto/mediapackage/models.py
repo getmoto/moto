@@ -1,7 +1,10 @@
-from __future__ import unicode_literals
-from boto3 import Session
-from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
+
+from boto3 import Session
+
+from moto.core import BaseBackend, BaseModel
+
+from .exceptions import ClientError
 
 
 class Channel(BaseModel):
@@ -69,13 +72,13 @@ class MediaPackageBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(MediaPackageBackend, self).__init__()
         self.region_name = region_name
+        self._channels = OrderedDict()
+        self._origin_endpoints = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
-        self._channels = OrderedDict()
-        self._origin_endpoints = OrderedDict()
 
     def create_channel(self, description, id, tags):
         arn = "arn:aws:mediapackage:channel:{}".format(id)
@@ -97,13 +100,22 @@ class MediaPackageBackend(BaseBackend):
         return response_channels
 
     def describe_channel(self, id):
-        channel = self._channels[id]
-        return channel.to_dict()
+        try:
+            channel = self._channels[id]
+            return channel.to_dict()
+        except KeyError:
+            error = "NotFoundException"
+            raise ClientError(error, "channel with id={} not found".format(id))
 
     def delete_channel(self, id):
-        channel = self._channels[id]
-        del self._channels[id]
-        return channel.to_dict()
+        try:
+            channel = self._channels[id]
+            del self._channels[id]
+            return channel.to_dict()
+
+        except KeyError:
+            error = "NotFoundException"
+            raise ClientError(error, "channel with id={} not found".format(id))
 
     def create_origin_endpoint(
         self,
@@ -148,8 +160,12 @@ class MediaPackageBackend(BaseBackend):
         return origin_endpoint
 
     def describe_origin_endpoint(self, id):
-        origin_endpoint = self._origin_endpoints[id]
-        return origin_endpoint.to_dict()
+        try:
+            origin_endpoint = self._origin_endpoints[id]
+            return origin_endpoint.to_dict()
+        except KeyError:
+            error = "NotFoundException"
+            raise ClientError(error, "origin endpoint with id={} not found".format(id))
 
     def list_origin_endpoints(self):
         origin_endpoints = list(self._origin_endpoints.values())
@@ -157,9 +173,13 @@ class MediaPackageBackend(BaseBackend):
         return response_origin_endpoints
 
     def delete_origin_endpoint(self, id):
-        origin_endpoint = self._origin_endpoints[id]
-        del self._origin_endpoints[id]
-        return origin_endpoint.to_dict()
+        try:
+            origin_endpoint = self._origin_endpoints[id]
+            del self._origin_endpoints[id]
+            return origin_endpoint.to_dict()
+        except KeyError:
+            error = "NotFoundException"
+            raise ClientError(error, "origin endpoint with id={} not found".format(id))
 
     def update_origin_endpoint(
         self,
@@ -176,19 +196,24 @@ class MediaPackageBackend(BaseBackend):
         time_delay_seconds,
         whitelist,
     ):
-        origin_endpoint = self._origin_endpoints[id]
-        origin_endpoint.authorization = authorization
-        origin_endpoint.cmaf_package = cmaf_package
-        origin_endpoint.dash_package = dash_package
-        origin_endpoint.description = description
-        origin_endpoint.hls_package = hls_package
-        origin_endpoint.manifest_name = manifest_name
-        origin_endpoint.mss_package = mss_package
-        origin_endpoint.origination = origination
-        origin_endpoint.startover_window_seconds = startover_window_seconds
-        origin_endpoint.time_delay_seconds = time_delay_seconds
-        origin_endpoint.whitelist = whitelist
-        return origin_endpoint
+        try:
+            origin_endpoint = self._origin_endpoints[id]
+            origin_endpoint.authorization = authorization
+            origin_endpoint.cmaf_package = cmaf_package
+            origin_endpoint.dash_package = dash_package
+            origin_endpoint.description = description
+            origin_endpoint.hls_package = hls_package
+            origin_endpoint.manifest_name = manifest_name
+            origin_endpoint.mss_package = mss_package
+            origin_endpoint.origination = origination
+            origin_endpoint.startover_window_seconds = startover_window_seconds
+            origin_endpoint.time_delay_seconds = time_delay_seconds
+            origin_endpoint.whitelist = whitelist
+            return origin_endpoint
+
+        except KeyError:
+            error = "NotFoundException"
+        raise ClientError(error, "origin endpoint with id={} not found".format(id))
 
 
 mediapackage_backends = {}
