@@ -11,16 +11,6 @@ class GuardDutyResponse(BaseResponse):
     def guardduty_backend(self):
         return guardduty_backends[self.region]
 
-    # @property
-    # def request_params(self):
-    #     try:
-    #         return json.loads(self.body)
-    #     except ValueError:
-    #         return {}
-
-    # def _get_param(self, param, default=None):
-    #     return self.request_params.get(param,default)
-
     def detector(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":

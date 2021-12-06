@@ -47,6 +47,5 @@ def test_list_detectors():
     d2 = client.create_detector(Enable=False,)["DetectorId"]
 
     response = client.list_detectors()
-    print(response)
     response.should.have.key("DetectorIds")
     set(response["DetectorIds"]).should.equal({d1, d2})
