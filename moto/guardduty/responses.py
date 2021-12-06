@@ -44,15 +44,6 @@ class GuardDutyResponse(BaseResponse):
         return 200, {}, json.dumps(dict(detectorId=detector_id))
 
     def list_detectors(self):
-        maxResults = int(self._get_param("maxResults"))
-        nextToken = self._get_param("nextToken")
-        detectorIds, nextToken = self.guardduty_backend.list_detectors(
-            maxResults, nextToken
-        )
+        detector_ids = self.guardduty_backend.list_detectors()
 
-        return 200, {}, json.dumps({"DetectorIds": detectorIds, "NextToken": nextToken})
-
-    # add methods from here
-
-
-# add templates from here
+        return 200, {}, json.dumps({"detectorIds": detector_ids})

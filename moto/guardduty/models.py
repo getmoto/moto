@@ -3,7 +3,6 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
 from uuid import uuid4
-from .exceptions import MissingParameterError
 
 
 class GuardDutyBackend(BaseBackend):
@@ -27,11 +26,7 @@ class GuardDutyBackend(BaseBackend):
         ]:
             finding_publishing_frequency = "SIX_HOURS"
 
-        if enable is None or "":
-            raise MissingParameterError(parameter="enabled")
-
         service_role = "AWSServiceRoleForAmazonGuardDuty"
-        print(finding_publishing_frequency)
         detector = Detector(
             self,
             datetime.now,
@@ -44,12 +39,14 @@ class GuardDutyBackend(BaseBackend):
         self.detectors[detector.id] = detector
         return detector.id
 
-    def list_detectors(self, maxResults, nextToken):
+    def list_detectors(self):
+        """
+        The MaxResults and NextToken-parameter have not yet been implemented.
+        """
         detectorids = []
         for detector in self.detectors:
             detectorids.append(self.detectors[detector].id)
-            nextToken = str(maxResults) if len(detectorids) > maxResults else None
-            return detectorids, nextToken
+        return detectorids
 
 
 class Detector(BaseModel):
