@@ -355,7 +355,8 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
         name_prefix = []
 
     class_name = shape.__class__.__name__
-    if class_name in ("StringShape", "Shape"):
+    shape_type = shape.type_name
+    if class_name in ("StringShape", "Shape") or shape_type == "structure":
         tree = etree.Element(name)  # pylint: disable=c-extension-no-member
         if name_prefix:
             tree.text = f"{{{{ {name_prefix[-1]}.{to_snake_case(name)} }}}}"
@@ -363,23 +364,24 @@ def _get_subtree(name, shape, replace_list, name_prefix=None):
             tree.text = f"{{{{ {to_snake_case(name)} }}}}"
         return tree
 
-    if class_name in ("ListShape",):
+    if class_name in ("ListShape",) or shape_type == "list":
         # pylint: disable=c-extension-no-member
         replace_list.append((name, name_prefix))
         tree = etree.Element(name)
         t_member = etree.Element("member")
         tree.append(t_member)
-        for nested_name, nested_shape in shape.member.members.items():
-            t_member.append(
-                _get_subtree(
-                    nested_name,
-                    nested_shape,
-                    replace_list,
-                    name_prefix + [singularize(name.lower())],
+        if hasattr(shape.member, "members"):
+            for nested_name, nested_shape in shape.member.members.items():
+                t_member.append(
+                    _get_subtree(
+                        nested_name,
+                        nested_shape,
+                        replace_list,
+                        name_prefix + [singularize(name.lower())],
+                    )
                 )
-            )
         return tree
-    raise ValueError("Not supported Shape")
+    raise ValueError(f"Not supported Shape: {shape}")
 
 
 def get_response_query_template(service, operation):  # pylint: disable=too-many-locals

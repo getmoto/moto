@@ -171,6 +171,9 @@ mock_mediastoredata = lazy_load(
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_sdb = lazy_load(".sdb", "mock_sdb")
+mock_elasticache = lazy_load(
+    ".elasticache", "mock_elasticache", boto3_name="elasticache"
+)
 
 
 class MockAll(ContextDecorator):

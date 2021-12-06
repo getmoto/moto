@@ -45,6 +45,7 @@ backend_url_patterns = [
     ("efs", re.compile("https?://elasticfilesystem\\.(.+)\\.amazonaws.com")),
     ("efs", re.compile("https?://elasticfilesystem\\.amazonaws.com")),
     ("eks", re.compile("https?://eks\\.(.+)\\.amazonaws.com")),
+    ("elasticache", re.compile("https?://elasticache\\.(.+)\\.amazonaws\\.com")),
     (
         "elasticbeanstalk",
         re.compile(
