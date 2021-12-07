@@ -143,7 +143,6 @@ jobs:
         pwd
         ls -la
         cp server_output.log serverlogs2/server_output.log
-        docker stop motoserver
     - name: Archive TF logs
       if: always()
       uses: actions/upload-artifact@v2
