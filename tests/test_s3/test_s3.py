@@ -1749,6 +1749,7 @@ def test_restore_key():
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
+    key.storage_class = "GLACIER"
     key.set_contents_from_string("some value")
     list(bucket)[0].ongoing_restore.should.be.none
     key.restore(1)
@@ -1770,7 +1771,7 @@ def test_restore_key_boto3():
     bucket = s3.Bucket("foobar")
     bucket.create()
 
-    key = bucket.put_object(Key="the-key", Body=b"somedata")
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
     key.restore.should.be.none
     key.restore_object(RestoreRequest={"Days": 1})
     if settings.TEST_SERVER_MODE:
@@ -1790,6 +1791,24 @@ def test_restore_key_boto3():
         )
 
 
+@mock_s3
+def test_cannot_restore_standard_class_object_boto3():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3.Bucket("foobar")
+    bucket.create()
+
+    key = bucket.put_object(Key="the-key", Body=b"somedata")
+    with pytest.raises(Exception) as err:
+        key.restore_object(RestoreRequest={"Days": 1})
+
+    err = err.value.response["Error"]
+    err["Code"].should.equal("InvalidObjectState")
+    err["StorageClass"].should.equal("STANDARD")
+    err["Message"].should.equal(
+        "The operation is not valid for the object's storage class"
+    )
+
+
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3_deprecated
 def test_restore_key_headers():
@@ -1797,6 +1816,7 @@ def test_restore_key_headers():
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
     key.key = "the-key"
+    key.storage_class = "GLACIER"
     key.set_contents_from_string("some value")
     key.restore(1, headers={"foo": "bar"})
     key = bucket.get_key("the-key")

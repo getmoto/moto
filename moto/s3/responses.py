@@ -2085,6 +2085,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
             key = self.backend.get_object(bucket_name, key_name)
+            if key.storage_class not in ["GLACIER", "DEEP_ARCHIVE"]:
+                raise InvalidObjectState(storage_class=key.storage_class)
             r = 202
             if key.expiry_date is not None:
                 r = 200
