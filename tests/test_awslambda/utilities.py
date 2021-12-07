@@ -55,14 +55,30 @@ import os
 
 def lambda_handler(event, context):
     base_url = os.environ.get("MOTO_HOST")
-    _port = os.environ.get("MOTO_PORT")
-    url = base_url + ":" + _port
+    port = os.environ.get("MOTO_PORT")
+    url = base_url + ":" + port
     conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
 
     functions = conn.list_functions()["Functions"]
 
     return {'response': functions}
 """
+    return _process_lambda(func_str)
+
+
+def get_lambda_using_network_mode():
+    func_str = """
+    import boto3
+    import os
+
+    def lambda_handler(event, context):
+        port = os.environ.get("MOTO_PORT")
+        url = "http://localhost:" + port
+        conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
+
+        functions = conn.list_functions()["Functions"]
+        return {'response': functions}
+    """
     return _process_lambda(func_str)
 
 

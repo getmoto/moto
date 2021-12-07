@@ -576,11 +576,16 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    run_kwargs = (
-                        dict(links={"motoserver": "motoserver"})
-                        if settings.TEST_SERVER_MODE
-                        else {}
-                    )
+                    run_kwargs = dict()
+                    network_mode = settings.moto_network_mode()
+                    if network_mode:
+                        run_kwargs["network_mode"] = network_mode
+                    elif settings.TEST_SERVER_MODE:
+                        # AWSLambda can make HTTP requests to a Docker container called 'motoserver'
+                        # Only works if our Docker-container is named 'motoserver'
+                        # TODO: should remove this and rely on 'network_mode' instead, as this is too tightly coupled with our own test setup
+                        run_kwargs["links"] = {"motoserver": "motoserver"}
+
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
                     #   for communication with other mock AWS services running on localhost
                     if platform == "linux" or platform == "linux2":
@@ -1112,8 +1117,8 @@ class LambdaBackend(BaseBackend):
 Implementation of the AWS Lambda endpoint.
 Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
 
-It is also possible to connect from AWS Lambdas to other services, as long as you're running in ServerMode.
-The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to create the endpoint_url that points to the MotoServer:
+It is possible to connect from AWS Lambdas to other services, as long as you are running Moto in ServerMode.
+The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to build the url that MotoServer runs on:
 
 .. sourcecode:: python
 
@@ -1125,7 +1130,20 @@ The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, whic
 
         ec2.do_whatever_inside_the_existing_moto_server()
 
-When using the decorators, invoked functions cannot reach Moto, so any boto3-invocations that you may use within your Lambda will try to connect to AWS.
+The Docker container uses the default network mode, `bridge`. It is possible to override this value. For example, when setting the network mode to `host`, Docker would use the network stack of the host. That means that AWSLambda can reach the MotoServer by using 'localhost'.
+
+.. sourcecode:: bash
+
+    MOTO_DOCKER_NETWORK_MODE=host moto_server -p 1234
+
+.. sourcecode:: python
+
+    def lambda_handler(event, context):
+        ec2 = boto3.client('ec2', region_name='us-west-2', endpoint_url="http://localhost:1234")
+
+        ec2.do_whatever_inside_the_existing_moto_server()
+
+.. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
 
     def __init__(self, region_name):
