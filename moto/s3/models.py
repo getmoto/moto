@@ -2066,6 +2066,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_until=key.lock_until,
         )
         self.tagger.copy_tags(key.arn, new_key.arn)
+        new_key.set_metadata(key.metadata)
 
         if acl is not None:
             new_key.set_acl(acl)

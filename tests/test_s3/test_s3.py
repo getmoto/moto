@@ -1043,6 +1043,27 @@ def test_copy_key_replace_metadata():
 
 
 @mock_s3
+def test_copy_key_with_metadata_boto3():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="foobar")
+
+    key = s3.Object("foobar", "the-key")
+    metadata = {"md": "Metadatastring"}
+    content_type = "application/json"
+    initial = key.put(Body=b"{}", Metadata=metadata, ContentType=content_type)
+
+    client.copy_object(
+        Bucket="foobar", CopySource="foobar/the-key", Key="new-key",
+    )
+
+    resp = client.get_object(Bucket="foobar", Key="new-key")
+    resp["Metadata"].should.equal(metadata)
+    resp["ContentType"].should.equal(content_type)
+    resp["ETag"].should.equal(initial["ETag"])
+
+
+@mock_s3
 def test_copy_key_replace_metadata_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
