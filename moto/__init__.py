@@ -95,6 +95,7 @@ mock_forecast = lazy_load(".forecast", "mock_forecast")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glacier_deprecated = lazy_load(".glacier", "mock_glacier_deprecated")
 mock_glue = lazy_load(".glue", "mock_glue")
+mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
 mock_iam = lazy_load(".iam", "mock_iam")
 mock_iam_deprecated = lazy_load(".iam", "mock_iam_deprecated")
 mock_iot = lazy_load(".iot", "mock_iot")
@@ -197,7 +198,6 @@ class MockAll(ContextDecorator):
 
 
 mock_all = MockAll
-
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
