@@ -441,7 +441,12 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def change_resource_record_sets(self, the_zone, change_list):
+    def list_resource_record_sets(self, zone_id, start_type, start_name):
+        the_zone = self.get_hosted_zone(zone_id)
+        return the_zone.get_record_sets(start_type, start_name)
+
+    def change_resource_record_sets(self, zoneid, change_list):
+        the_zone = self.get_hosted_zone(zoneid)
         for value in change_list:
             action = value["Action"]
             record_set = value["ResourceRecordSet"]
@@ -504,7 +509,10 @@ class Route53Backend(BaseBackend):
         return dnsname, zones
 
     def get_hosted_zone(self, id_):
-        return self.zones.get(id_.replace("/hostedzone/", ""))
+        the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
+        if not the_zone:
+            raise NoSuchHostedZone(id_)
+        return the_zone
 
     def get_hosted_zone_by_name(self, name):
         for zone in self.list_hosted_zones():
@@ -513,6 +521,8 @@ class Route53Backend(BaseBackend):
         return None
 
     def delete_hosted_zone(self, id_):
+        # Verify it exists
+        self.get_hosted_zone(id_)
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
     def create_health_check(self, caller_reference, health_check_args):

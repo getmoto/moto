@@ -1,20 +1,32 @@
 """Handles Route53 API requests, invokes method and returns response."""
+from functools import wraps
 from urllib.parse import parse_qs, urlparse
 
 from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.core.exceptions import InvalidToken
-from moto.route53.exceptions import Route53ClientError, InvalidPaginationToken
+from moto.route53.exceptions import Route53ClientError
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
+def error_handler(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Route53ClientError as e:
+            return e.code, e.get_headers(), e.get_body()
+
+    return _wrapper
+
+
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
 
+    @error_handler
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -64,22 +76,21 @@ class Route53(BaseResponse):
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
         return 200, headers, template.render(zones=zones, dnsname=dnsname, xmlns=XMLNS)
 
+    @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
-        the_zone = route53_backend.get_hosted_zone(zoneid)
-        if not the_zone:
-            return no_such_hosted_zone_error(zoneid, headers)
 
         if request.method == "GET":
+            the_zone = route53_backend.get_hosted_zone(zoneid)
             template = Template(GET_HOSTED_ZONE_RESPONSE)
-
             return 200, headers, template.render(zone=the_zone)
         elif request.method == "DELETE":
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
+    @error_handler
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -87,9 +98,6 @@ class Route53(BaseResponse):
         method = request.method
 
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
-        the_zone = route53_backend.get_hosted_zone(zoneid)
-        if not the_zone:
-            return no_such_hosted_zone_error(zoneid, headers)
 
         if method == "POST":
             elements = xmltodict.parse(self.body)
@@ -104,9 +112,7 @@ class Route53(BaseResponse):
                     ]["Change"]
                 ]
 
-            error_msg = route53_backend.change_resource_record_sets(
-                the_zone, change_list
-            )
+            error_msg = route53_backend.change_resource_record_sets(zoneid, change_list)
             if error_msg:
                 return 400, headers, error_msg
 
@@ -121,7 +127,9 @@ class Route53(BaseResponse):
             if start_type and not start_name:
                 return 400, headers, "The input is not valid"
 
-            record_sets = the_zone.get_record_sets(start_type, start_name)
+            record_sets = route53_backend.list_resource_record_sets(
+                zoneid, start_type=start_type, start_name=start_name
+            )
             return 200, headers, template.render(record_sets=record_sets)
 
     def health_check_response(self, request, full_url, headers):
@@ -218,6 +226,7 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
+    @error_handler
     def list_or_create_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -225,12 +234,10 @@ class Route53(BaseResponse):
             json_body = xmltodict.parse(self.body)["CreateQueryLoggingConfigRequest"]
             hosted_zone_id = json_body["HostedZoneId"]
             log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
-            try:
-                query_logging_config = route53_backend.create_query_logging_config(
-                    self.region, hosted_zone_id, log_group_arn
-                )
-            except Route53ClientError as r53error:
-                return r53error.code, {}, r53error.description
+
+            query_logging_config = route53_backend.create_query_logging_config(
+                self.region, hosted_zone_id, log_group_arn
+            )
 
             template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
             headers["Location"] = query_logging_config.location
@@ -244,22 +251,14 @@ class Route53(BaseResponse):
             hosted_zone_id = self._get_param("hostedzoneid")
             next_token = self._get_param("nexttoken")
             max_results = self._get_int_param("maxresults")
-            try:
-                try:
-                    # The paginator picks up named arguments, returns tuple.
-                    # pylint: disable=unbalanced-tuple-unpacking
-                    (
-                        all_configs,
-                        next_token,
-                    ) = route53_backend.list_query_logging_configs(
-                        hosted_zone_id=hosted_zone_id,
-                        next_token=next_token,
-                        max_results=max_results,
-                    )
-                except InvalidToken as exc:
-                    raise InvalidPaginationToken() from exc
-            except Route53ClientError as r53error:
-                return r53error.code, {}, r53error.description
+
+            # The paginator picks up named arguments, returns tuple.
+            # pylint: disable=unbalanced-tuple-unpacking
+            (all_configs, next_token,) = route53_backend.list_query_logging_configs(
+                hosted_zone_id=hosted_zone_id,
+                next_token=next_token,
+                max_results=max_results,
+            )
 
             template = Template(LIST_QUERY_LOGGING_CONFIGS_RESPONSE)
             return (
@@ -272,18 +271,16 @@ class Route53(BaseResponse):
                 ),
             )
 
+    @error_handler
     def get_or_delete_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         query_logging_config_id = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "GET":
-            try:
-                query_logging_config = route53_backend.get_query_logging_config(
-                    query_logging_config_id
-                )
-            except Route53ClientError as r53error:
-                return r53error.code, {}, r53error.description
+            query_logging_config = route53_backend.get_query_logging_config(
+                query_logging_config_id
+            )
             template = Template(GET_QUERY_LOGGING_CONFIG_RESPONSE)
             return (
                 200,
@@ -292,25 +289,8 @@ class Route53(BaseResponse):
             )
 
         elif request.method == "DELETE":
-            try:
-                route53_backend.delete_query_logging_config(query_logging_config_id)
-            except Route53ClientError as r53error:
-                return r53error.code, {}, r53error.description
+            route53_backend.delete_query_logging_config(query_logging_config_id)
             return 200, headers, ""
-
-
-def no_such_hosted_zone_error(zoneid, headers=None):
-    if not headers:
-        headers = {}
-    headers["X-Amzn-ErrorType"] = "NoSuchHostedZone"
-    headers["Content-Type"] = "text/xml"
-    error_response = f"""<ErrorResponse xmlns="{XMLNS}">
-        <Error>
-            <Code>NoSuchHostedZone</Code>
-            <Message>Zone {zoneid} Not Found</Message>
-        </Error>
-    </ErrorResponse>"""
-    return 404, headers, error_response
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
