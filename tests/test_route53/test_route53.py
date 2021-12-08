@@ -98,7 +98,7 @@ def test_get_unknown_hosted_zone():
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("NoSuchHostedZone")
-    err["Message"].should.equal("Zone unknown Not Found")
+    err["Message"].should.equal("No hosted zone found with ID: unknown")
 
 
 # Has boto3 equivalent
@@ -224,7 +224,7 @@ def test_list_resource_record_set_unknown_zone():
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("NoSuchHostedZone")
-    err["Message"].should.equal("Zone abcd Not Found")
+    err["Message"].should.equal("No hosted zone found with ID: abcd")
 
 
 @mock_route53

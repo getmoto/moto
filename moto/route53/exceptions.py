@@ -51,6 +51,7 @@ class NoSuchHostedZone(Route53ClientError):
     def __init__(self, host_zone_id):
         message = f"No hosted zone found with ID: {host_zone_id}"
         super().__init__("NoSuchHostedZone", message)
+        self.content_type = "text/xml"
 
 
 class NoSuchQueryLoggingConfig(Route53ClientError):
