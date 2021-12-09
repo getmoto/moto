@@ -1,10 +1,4 @@
-from __future__ import unicode_literals
-
-from moto.core.exceptions import RESTError, JsonRESTError
-
-
-class EmrError(RESTError):
-    code = 400
+from moto.core.exceptions import JsonRESTError
 
 
 class InvalidRequestException(JsonRESTError):
@@ -18,4 +12,11 @@ class ValidationException(JsonRESTError):
     def __init__(self, message, **kwargs):
         super(ValidationException, self).__init__(
             "ValidationException", message, **kwargs
+        )
+
+
+class ResourceNotFoundException(JsonRESTError):
+    def __init__(self, message, **kwargs):
+        super(ResourceNotFoundException, self).__init__(
+            "ResourceNotFoundException", message, **kwargs
         )

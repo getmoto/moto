@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -14,9 +13,11 @@ class InternetGateways(BaseResponse):
 
     def create_internet_gateway(self):
         if self.is_not_dryrun("CreateInternetGateway"):
-            tags = self._get_multi_param("TagSpecification")
+            tags = self._get_multi_param(
+                "TagSpecification", skip_result_conversion=True
+            )
             if tags:
-                tags = tags[0].get("Tag")
+                tags = tags[0].get("Tag") or []
             igw = self.ec2_backend.create_internet_gateway(tags=tags)
             template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
             return template.render(internet_gateway=igw)
@@ -62,11 +63,10 @@ CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http
   <internetGateway>
     <internetGatewayId>{{ internet_gateway.id }}</internetGatewayId>
     <attachmentSet/>
+    <ownerId>{{ internet_gateway.owner_id }}</ownerId>
     <tagSet>
       {% for tag in internet_gateway.get_tags() %}
         <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
           <key>{{ tag.key }}</key>
           <value>{{ tag.value }}</value>
         </item>
@@ -87,6 +87,7 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
     {% for igw in internet_gateways %}
     <item>
       <internetGatewayId>{{ igw.id }}</internetGatewayId>
+      <ownerId>{{ igw.owner_id or none }}</ownerId>
       {% if igw.vpc  %}
         <attachmentSet>
           <item>
@@ -100,8 +101,6 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
       <tagSet>
         {% for tag in igw.get_tags() %}
           <item>
-            <resourceId>{{ tag.resource_id }}</resourceId>
-            <resourceType>{{ tag.resource_type }}</resourceType>
             <key>{{ tag.key }}</key>
             <value>{{ tag.value }}</value>
           </item>

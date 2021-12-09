@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from moto.core.exceptions import RESTError
@@ -10,12 +8,12 @@ from moto.core.utils import (
     underscores_to_camelcase,
     camelcase_to_pascal,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
+    InvalidAddress,
     InvalidAttributeName,
-    MessageNotInflight,
     ReceiptHandleIsInvalid,
     BatchEntryIdsNotDistinct,
 )
@@ -51,11 +49,14 @@ class SQSResponse(BaseResponse):
 
     def _get_queue_name(self):
         try:
-            queue_name = self.querystring.get("QueueUrl")[0].split("/")[-1]
+            queue_url = self.querystring.get("QueueUrl")[0]
+            if queue_url.startswith("http://") or queue_url.startswith("https://"):
+                return queue_url.split("/")[-1]
+            else:
+                raise InvalidAddress(queue_url)
         except TypeError:
-            # Fallback to reading from the URL
-            queue_name = self.path.split("/")[-1]
-        return queue_name
+            # Fallback to reading from the URL for botocore
+            return self.path.split("/")[-1]
 
     def _get_validated_visibility_timeout(self, timeout=None):
         """
@@ -121,17 +122,11 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        try:
-            self.sqs_backend.change_message_visibility(
-                queue_name=queue_name,
-                receipt_handle=receipt_handle,
-                visibility_timeout=visibility_timeout,
-            )
-        except MessageNotInflight as e:
-            return (
-                "Invalid request: {0}".format(e.description),
-                dict(status=e.status_code),
-            )
+        self.sqs_backend.change_message_visibility(
+            queue_name=queue_name,
+            receipt_handle=receipt_handle,
+            visibility_timeout=visibility_timeout,
+        )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
@@ -174,15 +169,6 @@ class SQSResponse(BaseResponse):
                         "Message": e.description,
                     }
                 )
-            except MessageNotInflight as e:
-                error.append(
-                    {
-                        "Id": entry["id"],
-                        "SenderFault": "false",
-                        "Code": "AWS.SimpleQueueService.MessageNotInflight",
-                        "Message": e.description,
-                    }
-                )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
         return template.render(success=success, errors=error)
@@ -195,6 +181,10 @@ class SQSResponse(BaseResponse):
 
         attribute_names = self._get_multi_param("AttributeName")
 
+        # if connecting to AWS via boto, then 'AttributeName' is just a normal parameter
+        if not attribute_names:
+            attribute_names = self.querystring.get("AttributeName")
+
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
@@ -202,23 +192,28 @@ class SQSResponse(BaseResponse):
 
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
+        attribute = self.attribute
+
+        # Fixes issue with Policy set to empty str
+        attribute_names = self._get_multi_param("Attribute")
+        if attribute_names:
+            for attr in attribute_names:
+                if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
+                    attribute = {attr["Name"]: None}
+
         queue_name = self._get_queue_name()
-        self.sqs_backend.set_queue_attributes(queue_name, self.attribute)
+        self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.delete_queue(queue_name)
-        if not queue:
-            return (
-                "A queue with name {0} does not exist".format(queue_name),
-                dict(status=404),
-            )
+
+        self.sqs_backend.delete_queue(queue_name)
 
         template = self.response_template(DELETE_QUEUE_RESPONSE)
-        return template.render(queue=queue)
+        return template.render()
 
     def send_message(self):
         message = self._get_param("MessageBody")
@@ -635,7 +630,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
                 {% if 'Binary' in value.data_type %}
                 <BinaryValue>{{ value.binary_value }}</BinaryValue>
                 {% else %}
-                <StringValue>{{ value.string_value }}</StringValue>
+                <StringValue><![CDATA[{{ value.string_value }}]]></StringValue>
                 {% endif %}
               </Value>
             </MessageAttribute>

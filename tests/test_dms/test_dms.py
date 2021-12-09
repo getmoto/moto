@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_dms

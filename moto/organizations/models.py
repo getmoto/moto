@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import re
 import json
@@ -32,6 +30,7 @@ class FakeOrganization(BaseModel):
         self.master_account_id = utils.MASTER_ACCOUNT_ID
         self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
+            # TODO: verify if this should be enabled by default (breaks TF tests for CloudTrail)
             {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
         ]
 
@@ -141,7 +140,10 @@ class FakeRoot(FakeOrganizationalUnit):
         self.type = "ROOT"
         self.id = organization.root_id
         self.name = "Root"
-        self.policy_types = [{"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}]
+        self.policy_types = [
+            # TODO: verify if this should be enabled by default (breaks TF tests for CloudTrail)
+            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
+        ]
         self._arn_format = utils.ROOT_ARN_FORMAT
         self.attached_policies = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
@@ -328,6 +330,9 @@ class FakeDelegatedAdministrator(BaseModel):
 
 class OrganizationsBackend(BaseBackend):
     def __init__(self):
+        self._reset()
+
+    def _reset(self):
         self.org = None
         self.accounts = []
         self.ou = []
@@ -374,6 +379,10 @@ class OrganizationsBackend(BaseBackend):
         if not self.org:
             raise AWSOrganizationsNotInUseException
         return self.org.describe()
+
+    def delete_organization(self, **kwargs):
+        self._reset()
+        return {}
 
     def list_roots(self):
         return dict(Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)])
@@ -578,7 +587,7 @@ class OrganizationsBackend(BaseBackend):
         ).match(kwargs["TargetId"]):
             ou = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
             if ou is not None:
-                if ou not in ou.attached_policies:
+                if policy not in ou.attached_policies:
                     ou.attached_policies.append(policy)
                     policy.attachments.append(ou)
             else:
@@ -591,7 +600,7 @@ class OrganizationsBackend(BaseBackend):
                 (a for a in self.accounts if a.id == kwargs["TargetId"]), None
             )
             if account is not None:
-                if account not in account.attached_policies:
+                if policy not in account.attached_policies:
                     account.attached_policies.append(policy)
                     policy.attachments.append(account)
             else:
@@ -855,7 +864,7 @@ class OrganizationsBackend(BaseBackend):
         if re.match(root_id_regex, target_id) or re.match(ou_id_regex, target_id):
             ou = next((ou for ou in self.ou if ou.id == target_id), None)
             if ou is not None:
-                if ou in ou.attached_policies:
+                if policy in ou.attached_policies:
                     ou.attached_policies.remove(policy)
                     policy.attachments.remove(ou)
             else:
@@ -868,7 +877,7 @@ class OrganizationsBackend(BaseBackend):
                 (account for account in self.accounts if account.id == target_id), None,
             )
             if account is not None:
-                if account in account.attached_policies:
+                if policy in account.attached_policies:
                     account.attached_policies.remove(policy)
                     policy.attachments.remove(account)
             else:

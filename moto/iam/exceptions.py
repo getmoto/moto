@@ -1,12 +1,15 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
+
+XMLNS_IAM = "https://iam.amazonaws.com/doc/2010-05-08/"
 
 
 class IAMNotFoundException(RESTError):
     code = 404
 
     def __init__(self, message):
-        super(IAMNotFoundException, self).__init__("NoSuchEntity", message)
+        super(IAMNotFoundException, self).__init__(
+            "NoSuchEntity", message, xmlns=XMLNS_IAM, template="wrapped_single_error"
+        )
 
 
 class IAMConflictException(RESTError):
@@ -44,7 +47,10 @@ class MalformedPolicyDocument(RESTError):
 
     def __init__(self, message=""):
         super(MalformedPolicyDocument, self).__init__(
-            "MalformedPolicyDocument", message
+            "MalformedPolicyDocument",
+            message,
+            xmlns=XMLNS_IAM,
+            template="wrapped_single_error",
         )
 
 
@@ -134,4 +140,6 @@ class NoSuchEntity(RESTError):
     code = 404
 
     def __init__(self, message):
-        super(NoSuchEntity, self).__init__("NoSuchEntity", message)
+        super(NoSuchEntity, self).__init__(
+            "NoSuchEntity", message, xmlns=XMLNS_IAM, template="wrapped_single_error"
+        )

@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import json
 from werkzeug.exceptions import BadRequest
 
 
 class AthenaClientError(BadRequest):
     def __init__(self, code, message):
-        super(AthenaClientError, self).__init__()
+        super().__init__()
         self.description = json.dumps(
             {
                 "Error": {

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 
 from .models import iam_backend, User
@@ -18,7 +16,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         iam_backend.detach_role_policy(policy_arn, role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DetachRolePolicyResponse")
+        return template.render(name="DetachRolePolicy")
 
     def attach_group_policy(self):
         policy_arn = self._get_param("PolicyArn")
@@ -53,8 +51,9 @@ class IamResponse(BaseResponse):
         path = self._get_param("Path")
         policy_document = self._get_param("PolicyDocument")
         policy_name = self._get_param("PolicyName")
+        tags = self._get_multi_param("Tags.member")
         policy = iam_backend.create_policy(
-            description, path, policy_document, policy_name
+            description, path, policy_document, policy_name, tags
         )
         template = self.response_template(CREATE_POLICY_TEMPLATE)
         return template.render(policy=policy)
@@ -124,7 +123,7 @@ class IamResponse(BaseResponse):
         entity_groups = []
         entity_users = []
 
-        if entity == "User":
+        if not entity or entity == "User":
             users = iam_backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
@@ -132,7 +131,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_users.append(user.name)
 
-        elif entity == "Role":
+        if not entity or entity == "Role":
             roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
@@ -140,7 +139,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_roles.append(role.name)
 
-        elif entity == "Group":
+        if not entity or entity == "Group":
             groups = iam_backend.list_groups()
             if groups:
                 for group in groups:
@@ -148,7 +147,7 @@ class IamResponse(BaseResponse):
                         if p == policy_arn:
                             entity_groups.append(group.name)
 
-        elif entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
+        if entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
             users = iam_backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
@@ -214,7 +213,7 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         iam_backend.delete_role(role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DeleteRoleResponse")
+        return template.render(name="DeleteRole")
 
     def list_role_policies(self):
         role_name = self._get_param("RoleName")
@@ -228,14 +227,14 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         iam_backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="PutRolePolicyResponse")
+        return template.render(name="PutRolePolicy")
 
     def delete_role_policy(self):
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
         iam_backend.delete_role_policy(role_name, policy_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="DeleteRolePolicyResponse")
+        return template.render(name="DeleteRolePolicy")
 
     def get_role_policy(self):
         role_name = self._get_param("RoleName")
@@ -255,7 +254,7 @@ class IamResponse(BaseResponse):
         role = iam_backend.get_role(role_name)
         role.assume_role_policy_document = self._get_param("PolicyDocument")
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="UpdateAssumeRolePolicyResponse")
+        return template.render(name="UpdateAssumeRolePolicy")
 
     def update_role_description(self):
         role_name = self._get_param("RoleName")
@@ -309,6 +308,34 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_POLICY_VERSIONS_TEMPLATE)
         return template.render(policy_versions=policy_versions)
 
+    def list_policy_tags(self):
+        policy_arn = self._get_param("PolicyArn")
+        marker = self._get_param("Marker")
+        max_items = self._get_param("MaxItems", 100)
+
+        tags, marker = iam_backend.list_policy_tags(policy_arn, marker, max_items)
+
+        template = self.response_template(LIST_POLICY_TAG_TEMPLATE)
+        return template.render(tags=tags, marker=marker)
+
+    def tag_policy(self):
+        policy_arn = self._get_param("PolicyArn")
+        tags = self._get_multi_param("Tags.member")
+
+        iam_backend.tag_policy(policy_arn, tags)
+
+        template = self.response_template(TAG_POLICY_TEMPLATE)
+        return template.render()
+
+    def untag_policy(self):
+        policy_arn = self._get_param("PolicyArn")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        iam_backend.untag_policy(policy_arn, tag_keys)
+
+        template = self.response_template(UNTAG_POLICY_TEMPLATE)
+        return template.render()
+
     def delete_policy_version(self):
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
@@ -320,8 +347,11 @@ class IamResponse(BaseResponse):
     def create_instance_profile(self):
         profile_name = self._get_param("InstanceProfileName")
         path = self._get_param("Path", "/")
+        tags = self._get_multi_param("Tags.member")
 
-        profile = iam_backend.create_instance_profile(profile_name, path, role_ids=[])
+        profile = iam_backend.create_instance_profile(
+            profile_name, path, role_names=[], tags=tags
+        )
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
@@ -440,7 +470,7 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         iam_backend.put_group_policy(group_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name="PutGroupPolicyResponse")
+        return template.render(name="PutGroupPolicy")
 
     def list_group_policies(self):
         group_name = self._get_param("GroupName")
@@ -461,11 +491,26 @@ class IamResponse(BaseResponse):
         template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
         return template.render(name="GetGroupPolicyResponse", **policy_result)
 
+    def delete_group_policy(self):
+        group_name = self._get_param("GroupName")
+        policy_name = self._get_param("PolicyName")
+        iam_backend.delete_group_policy(group_name, policy_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteGroupPolicy")
+
     def delete_group(self):
         group_name = self._get_param("GroupName")
         iam_backend.delete_group(group_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteGroup")
+
+    def update_group(self):
+        group_name = self._get_param("GroupName")
+        new_group_name = self._get_param("NewGroupName")
+        new_path = self._get_param("NewPath")
+        iam_backend.update_group(group_name, new_group_name, new_path)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="UpdateGroup")
 
     def create_user(self):
         user_name = self._get_param("UserName")
@@ -907,13 +952,53 @@ class IamResponse(BaseResponse):
         open_id_provider_url = self._get_param("Url")
         thumbprint_list = self._get_multi_param("ThumbprintList.member")
         client_id_list = self._get_multi_param("ClientIDList.member")
+        tags = self._get_multi_param("Tags.member")
 
         open_id_provider = iam_backend.create_open_id_connect_provider(
-            open_id_provider_url, thumbprint_list, client_id_list
+            open_id_provider_url, thumbprint_list, client_id_list, tags
         )
 
         template = self.response_template(CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
         return template.render(open_id_provider=open_id_provider)
+
+    def update_open_id_connect_provider_thumbprint(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        thumbprint_list = self._get_multi_param("ThumbprintList.member")
+
+        iam_backend.update_open_id_connect_provider_thumbprint(
+            open_id_provider_arn, thumbprint_list
+        )
+
+        template = self.response_template(UPDATE_OPEN_ID_CONNECT_PROVIDER_THUMBPRINT)
+        return template.render()
+
+    def tag_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        tags = self._get_multi_param("Tags.member")
+
+        iam_backend.tag_open_id_connect_provider(open_id_provider_arn, tags)
+
+        template = self.response_template(TAG_OPEN_ID_CONNECT_PROVIDER)
+        return template.render()
+
+    def untag_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        tag_keys = self._get_multi_param("TagKeys.member")
+
+        iam_backend.untag_open_id_connect_provider(open_id_provider_arn, tag_keys)
+
+        template = self.response_template(UNTAG_OPEN_ID_CONNECT_PROVIDER)
+        return template.render()
+
+    def list_open_id_connect_provider_tags(self):
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        marker = self._get_param("Marker")
+        max_items = self._get_param("MaxItems", 100)
+        tags, marker = iam_backend.list_open_id_connect_provider_tags(
+            open_id_provider_arn, marker, max_items
+        )
+        template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDER_TAGS)
+        return template.render(tags=tags, marker=marker)
 
     def delete_open_id_connect_provider(self):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
@@ -1093,6 +1178,14 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      <Tags>
+        {% for tag_key, tag_value in policy.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>
@@ -1112,6 +1205,16 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
       <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      {% if policy.tags %}
+      <Tags>
+        {% for tag in policy.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
+      {% endif %}
     </Policy>
   </GetPolicyResult>
   <ResponseMetadata>
@@ -1223,11 +1326,30 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
   <CreateInstanceProfileResult>
     <InstanceProfile>
       <InstanceProfileId>{{ profile.id }}</InstanceProfileId>
-      <Roles/>
+      <Roles>
+        {% for role in profile.roles %}
+        <member>
+          <Path>{{ role.path }}</Path>
+          <Arn>{{ role.arn }}</Arn>
+          <RoleName>{{ role.name }}</RoleName>
+          <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+          <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
+          <RoleId>{{ role.id }}</RoleId>
+        </member>
+        {% endfor %}
+      </Roles>
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
       <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
+      <Tags>
+        {% for tag_key, tag_value in profile.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </InstanceProfile>
   </CreateInstanceProfileResult>
   <ResponseMetadata>
@@ -1261,6 +1383,14 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
       <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
+      <Tags>
+        {% for tag_key, tag_value in profile.tags.items() %}
+        <member>
+          <Key>{{ tag_key }}</Key>
+          <Value>{{ tag_value }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
     </InstanceProfile>
   </GetInstanceProfileResult>
   <ResponseMetadata>
@@ -1276,7 +1406,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       {% if role.description is not none %}
-      <Description>{{role.description}}</Description>
+      <Description>{{ role.description_escaped }}</Description>
       {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
@@ -1330,7 +1460,9 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <Description>{{role.description}}</Description>
+      {% if role.description is not none %}
+      <Description>{{ role.description_escaped }}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
@@ -1358,8 +1490,8 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description %}
-      <Description>{{role.description}}</Description>
+      {% if role.description is not none %}
+      <Description>{{ role.description_escaped }}</Description>
       {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
@@ -1422,7 +1554,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         </PermissionsBoundary>
         {% endif %}
         {% if role.description is not none %}
-        <Description>{{ role.description }}</Description>
+        <Description>{{ role.description_escaped }}</Description>
         {% endif %}
       </member>
       {% endfor %}
@@ -1810,10 +1942,10 @@ LIST_USER_TAGS_TEMPLATE = """<ListUserTagsResponse>
    <ListUserTagsResult>
       <Tags>
         {% for tag in user_tags %}
-          <item>
+          <member>
             <Key>{{ tag.Key }}</Key>
             <Value>{{ tag.Value }}</Value>
-          </item>
+          </member>
         {% endfor %}
        </Tags>
       <IsTruncated>false</IsTruncated>
@@ -2243,7 +2375,9 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
                 <Arn>{{ role.arn }}</Arn>
                 <RoleName>{{ role.name }}</RoleName>
                 <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-                <Description>{{role.description}}</Description>
+                {% if role.description is not none %}
+                <Description>{{ role.description_escaped }}</Description>
+                {% endif %}
                 <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
                 <RoleId>{{ role.id }}</RoleId>
                 {% if role.permissions_boundary %}
@@ -2439,6 +2573,62 @@ UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc
 </UntagRoleResponse>"""
 
 
+TAG_POLICY_TEMPLATE = """<TagPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagPolicyResponse>"""
+
+
+LIST_POLICY_TAG_TEMPLATE = """<ListPolicyTagsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListPolicyTagsResult>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Tags>
+      {% for tag in tags %}
+      <member>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListPolicyTagsResult>
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListPolicyTagsResponse>"""
+
+
+UNTAG_POLICY_TEMPLATE = """<UntagPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagPolicyResponse>"""
+
+LIST_OPEN_ID_CONNECT_PROVIDER_TAGS = """<ListOpenIDConnectProviderTagsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListOpenIDConnectProviderTagsResult>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Tags>
+      {% for tag in tags %}
+      <member>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListOpenIDConnectProviderTagsResult>
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListOpenIDConnectProviderTagsResponse>
+"""
+
+
 CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <CreateOpenIDConnectProviderResult>
     <OpenIDConnectProviderArn>{{ open_id_provider.arn }}</OpenIDConnectProviderArn>
@@ -2448,6 +2638,26 @@ CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderRespon
   </ResponseMetadata>
 </CreateOpenIDConnectProviderResponse>"""
 
+UPDATE_OPEN_ID_CONNECT_PROVIDER_THUMBPRINT = """<UpdateOpenIDConnectProviderThumbprintResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>29b6031c-4f66-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</UpdateOpenIDConnectProviderThumbprintResponse>
+"""
+
+TAG_OPEN_ID_CONNECT_PROVIDER = """<TagOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagOpenIDConnectProviderResponse>
+"""
+
+UNTAG_OPEN_ID_CONNECT_PROVIDER = """<UntagOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagOpenIDConnectProviderResponse>
+"""
 
 DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<DeleteOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <ResponseMetadata>
@@ -2470,6 +2680,16 @@ GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<GetOpenIDConnectProviderResponse xml
       {% endfor %}
     </ClientIDList>
     <Url>{{ open_id_provider.url }}</Url>
+    {% if open_id_provider.tags %}
+    <Tags>
+    {% for tag in open_id_provider.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+    {% endfor %}
+    </Tags>
+    {% endif %}
   </GetOpenIDConnectProviderResult>
   <ResponseMetadata>
     <RequestId>2c91531b-4f65-11e4-aefa-bfd6aEXAMPLE</RequestId>

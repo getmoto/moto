@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.dynamodb2.models import dynamodb_backends as dynamodb_backends2
 from ..core.models import base_decorator, deprecated_base_decorator
 

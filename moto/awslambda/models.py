@@ -1,11 +1,10 @@
-from __future__ import unicode_literals
-
 import base64
 import time
 from collections import defaultdict
 import copy
 import datetime
 from gzip import GzipFile
+from sys import platform
 
 import docker
 import docker.errors
@@ -202,7 +201,7 @@ class Permission(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         backend = lambda_backends[region_name]
@@ -271,7 +270,7 @@ class LayerVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -375,7 +374,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, ACCOUNT_ID, self.function_name
         )
 
-        self.tags = dict()
+        if spec.get("Tags"):
+            self.tags = spec.get("Tags")
+        else:
+            self.tags = dict()
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
@@ -569,14 +571,21 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
-                    self.docker_client.ping()  # Verify Docker is running
                     run_kwargs = (
                         dict(links={"motoserver": "motoserver"})
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
+                    # add host.docker.internal host on linux to emulate Mac + Windows behavior
+                    #   for communication with other mock AWS services running on localhost
+                    if platform == "linux" or platform == "linux2":
+                        run_kwargs["extra_hosts"] = {
+                            "host.docker.internal": "host-gateway"
+                        }
+
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
@@ -608,26 +617,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
             output = output.decode("utf-8")
 
-            # Send output to "logs" backend
-            invoke_id = uuid.uuid4().hex
-            log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-                date=datetime.datetime.utcnow(),
-                version=self.version,
-                invoke_id=invoke_id,
-            )
-
-            self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
-
-            log_events = [
-                {"timestamp": unix_time_millis(), "message": line}
-                for line in output.splitlines()
-            ]
-            self.logs_backend.put_log_events(
-                self.logs_group_name, log_stream_name, log_events, None
-            )
-
-            if exit_code != 0:
-                raise Exception("lambda invoke failed output: {}".format(output))
+            self.save_logs(output)
 
             # We only care about the response from the lambda
             # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
@@ -635,20 +625,35 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             logs = os.linesep.join(
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
-            return resp, False, logs
+            invocation_error = exit_code != 0
+            return resp, invocation_error, logs
         except docker.errors.DockerException as e:
             # Docker itself is probably not running - there will be no Lambda-logs to handle
-            return "error running docker: {}".format(e), True, ""
-        except BaseException as e:
-            logs = os.linesep.join(
-                [line for line in self.convert(output).splitlines()[:-1]]
-            )
-            return "error running lambda: {}".format(e), True, logs
+            msg = "error running docker: {}".format(e)
+            self.save_logs(msg)
+            return msg, True, ""
+
+    def save_logs(self, output):
+        # Send output to "logs" backend
+        invoke_id = uuid.uuid4().hex
+        log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+            date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id,
+        )
+        self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
+        log_events = [
+            {"timestamp": unix_time_millis(), "message": line}
+            for line in output.splitlines()
+        ]
+        self.logs_backend.put_log_events(
+            self.logs_group_name, log_stream_name, log_events, None
+        )
 
     def invoke(self, body, request_headers, response_headers):
 
         if body:
             body = json.loads(body)
+        else:
+            body = "{}"
 
         # Get the invocation type:
         res, errored, logs = self._invoke_lambda(code=self.code, event=body)
@@ -675,7 +680,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -715,6 +720,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         fn = backend.create_function(spec)
         return fn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -735,7 +744,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
         zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
-        zip_file.writestr("lambda_function.zip", code)
+        zip_file.writestr("index.py", code)
+        # This should really be part of the 'lambci' docker image
+        from moto.packages.cfnresponse import cfnresponse
+
+        with open(cfnresponse.__file__) as cfn:
+            zip_file.writestr("cfnresponse.py", cfn.read())
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
@@ -832,7 +846,7 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         lambda_backend = lambda_backends[region_name]
@@ -885,7 +899,7 @@ class LambdaVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
@@ -937,8 +951,10 @@ class LambdaStorage(object):
     def get_arn(self, arn):
         return self._arns.get(arn, None)
 
-    def get_function_by_name_or_arn(self, input, qualifier=None):
-        return self.get_function_by_name(input, qualifier) or self.get_arn(input)
+    def get_function_by_name_or_arn(self, name_or_arn, qualifier=None):
+        return self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
+            name_or_arn
+        )
 
     def put_function(self, fn):
         """
@@ -970,7 +986,9 @@ class LambdaStorage(object):
         fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
-    def publish_function(self, name):
+    def publish_function(self, name_or_arn, description=""):
+        function = self.get_function_by_name_or_arn(name_or_arn)
+        name = function.function_name
         if name not in self._functions:
             return None
         if not self._functions[name]["latest"]:
@@ -979,6 +997,8 @@ class LambdaStorage(object):
         new_version = len(self._functions[name]["versions"]) + 1
         fn = copy.copy(self._functions[name]["latest"])
         fn.set_version(new_version)
+        if description:
+            fn.description = description
 
         self._functions[name]["versions"].append(fn)
         self._arns[fn.function_arn] = fn
@@ -1032,10 +1052,23 @@ class LambdaStorage(object):
         result = []
 
         for function_group in self._functions.values():
-            if function_group["latest"] is not None:
-                result.append(function_group["latest"])
+            latest = copy.deepcopy(function_group["latest"])
+            latest.function_arn = "{}:$LATEST".format(latest.function_arn)
+            result.append(latest)
 
             result.extend(function_group["versions"])
+
+        return result
+
+    def latest(self):
+        """
+        Return the list of functions with version @LATEST
+        :return:
+        """
+        result = []
+        for function_group in self._functions.values():
+            if function_group["latest"] is not None:
+                result.append(function_group["latest"])
 
         return result
 
@@ -1084,6 +1117,13 @@ class LambdaBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "lambda"
+        )
+
     def create_function(self, spec):
         function_name = spec.get("FunctionName", None)
         if function_name is None:
@@ -1095,6 +1135,9 @@ class LambdaBackend(BaseBackend):
 
         if spec.get("Publish"):
             ver = self.publish_function(function_name)
+            fn = copy.deepcopy(
+                fn
+            )  # We don't want to change the actual version - just the return value
             fn.version = ver.version
         return fn
 
@@ -1166,8 +1209,8 @@ class LambdaBackend(BaseBackend):
     def layers_versions_by_arn(self, layer_version_arn):
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
-    def publish_function(self, function_name):
-        return self._lambdas.publish_function(function_name)
+    def publish_function(self, function_name, description=""):
+        return self._lambdas.publish_function(function_name, description)
 
     def get_function(self, function_name_or_arn, qualifier=None):
         return self._lambdas.get_function_by_name_or_arn(
@@ -1188,7 +1231,7 @@ class LambdaBackend(BaseBackend):
         if not esm:
             return False
 
-        for key, value in spec.items():
+        for key in spec.keys():
             if key == "FunctionName":
                 func = self._lambdas.get_function_by_name_or_arn(spec[key])
                 esm.function_arn = func.function_arn
@@ -1214,8 +1257,10 @@ class LambdaBackend(BaseBackend):
     def delete_function(self, function_name, qualifier=None):
         return self._lambdas.del_function(function_name, qualifier)
 
-    def list_functions(self):
-        return self._lambdas.all()
+    def list_functions(self, func_version=None):
+        if func_version == "ALL":
+            return self._lambdas.all()
+        return self._lambdas.latest()
 
     def send_sqs_batch(self, function_arn, messages, queue_arn):
         success = True

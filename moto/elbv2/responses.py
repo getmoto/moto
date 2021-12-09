@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
@@ -6,7 +5,8 @@ from .models import elbv2_backends
 from .exceptions import DuplicateTagKeysError
 from .exceptions import LoadBalancerNotFoundError
 from .exceptions import TargetGroupNotFoundError
-
+from .exceptions import ListenerNotFoundError
+from .exceptions import ListenerOrBalancerMissingError
 
 SSL_POLICIES = [
     {
@@ -124,6 +124,16 @@ SSL_POLICIES = [
             {"name": "DES-CBC3-SHA", "priority": 19},
         ],
     },
+    {
+        "name": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+        "ssl_protocols": ["TLSv1.2"],
+        "ciphers": [
+            {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
+            {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
+            {"name": "ECDHE-ECDSA-AES256-GCM-SHA384", "priority": 3},
+            {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 4},
+        ],
+    },
 ]
 
 
@@ -138,12 +148,14 @@ class ELBV2Response(BaseResponse):
         subnet_ids = self._get_multi_param("Subnets.member")
         security_groups = self._get_multi_param("SecurityGroups.member")
         scheme = self._get_param("Scheme")
+        loadbalancer_type = self._get_param("Type")
 
         load_balancer = self.elbv2_backend.create_load_balancer(
             name=load_balancer_name,
             security_groups=security_groups,
             subnet_ids=subnet_ids,
             scheme=scheme,
+            loadbalancer_type=loadbalancer_type,
         )
         self._add_tags(load_balancer)
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
@@ -151,25 +163,12 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_rule(self):
-        listener_arn = self._get_param("ListenerArn")
-        _conditions = self._get_list_prefix("Conditions.member")
-        conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition["field"] = _condition["field"]
-            values = sorted(
-                [e for e in _condition.items() if "values.member" in e[0]],
-                key=lambda x: x[0],
-            )
-            condition["values"] = [e[1] for e in values]
-            conditions.append(condition)
-        priority = self._get_int_param("Priority")
-        actions = self._get_list_prefix("Actions.member")
+        params = self._get_params()
         rules = self.elbv2_backend.create_rule(
-            listener_arn=listener_arn,
-            conditions=conditions,
-            priority=priority,
-            actions=actions,
+            listener_arn=params["ListenerArn"],
+            conditions=params["Conditions"],
+            priority=params["Priority"],
+            actions=params["Actions"],
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
@@ -185,9 +184,11 @@ class ELBV2Response(BaseResponse):
         healthcheck_path = self._get_param("HealthCheckPath")
         healthcheck_interval_seconds = self._get_param("HealthCheckIntervalSeconds")
         healthcheck_timeout_seconds = self._get_param("HealthCheckTimeoutSeconds")
+        healthcheck_enabled = self._get_param("HealthCheckEnabled")
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
         matcher = self._get_param("Matcher")
+        target_type = self._get_param("TargetType")
 
         target_group = self.elbv2_backend.create_target_group(
             name,
@@ -199,9 +200,11 @@ class ELBV2Response(BaseResponse):
             healthcheck_path=healthcheck_path,
             healthcheck_interval_seconds=healthcheck_interval_seconds,
             healthcheck_timeout_seconds=healthcheck_timeout_seconds,
+            healthcheck_enabled=healthcheck_enabled,
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
+            target_type=target_type,
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
@@ -209,6 +212,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_listener(self):
+        params = self._get_params()
         load_balancer_arn = self._get_param("LoadBalancerArn")
         protocol = self._get_param("Protocol")
         port = self._get_param("Port")
@@ -218,7 +222,7 @@ class ELBV2Response(BaseResponse):
             certificate = certificates[0].get("certificate_arn")
         else:
             certificate = None
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = params.get("DefaultActions", [])
 
         listener = self.elbv2_backend.create_listener(
             load_balancer_arn=load_balancer_arn,
@@ -311,7 +315,7 @@ class ELBV2Response(BaseResponse):
         load_balancer_arn = self._get_param("LoadBalancerArn")
         listener_arns = self._get_multi_param("ListenerArns.member")
         if not load_balancer_arn and not listener_arns:
-            raise LoadBalancerNotFoundError()
+            raise ListenerOrBalancerMissingError()
 
         listeners = self.elbv2_backend.describe_listeners(
             load_balancer_arn, listener_arns
@@ -350,18 +354,9 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
-        _conditions = self._get_list_prefix("Conditions.member")
-        conditions = []
-        for _condition in _conditions:
-            condition = {}
-            condition["field"] = _condition["field"]
-            values = sorted(
-                [e for e in _condition.items() if "values.member" in e[0]],
-                key=lambda x: x[0],
-            )
-            condition["values"] = [e[1] for e in values]
-            conditions.append(condition)
-        actions = self._get_list_prefix("Actions.member")
+        params = self._get_params()
+        conditions = params["Conditions"]
+        actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
         )
@@ -474,6 +469,14 @@ class ELBV2Response(BaseResponse):
                 resource = self.elbv2_backend.load_balancers.get(arn)
                 if not resource:
                     raise LoadBalancerNotFoundError()
+            elif ":listener" in arn:
+                lb_arn, _, _ = arn.replace(":listener", ":loadbalancer").rpartition("/")
+                balancer = self.elbv2_backend.load_balancers.get(lb_arn)
+                if not balancer:
+                    raise LoadBalancerNotFoundError()
+                resource = balancer.listeners.get(arn)
+                if not resource:
+                    raise ListenerNotFoundError()
             else:
                 raise LoadBalancerNotFoundError()
             resources.append(resource)
@@ -576,6 +579,7 @@ class ELBV2Response(BaseResponse):
         health_check_path = self._get_param("HealthCheckPath")
         health_check_interval = self._get_param("HealthCheckIntervalSeconds")
         health_check_timeout = self._get_param("HealthCheckTimeoutSeconds")
+        health_check_enabled = self._get_param("HealthCheckEnabled")
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
         http_codes = self._get_param("Matcher.HttpCode")
@@ -590,6 +594,7 @@ class ELBV2Response(BaseResponse):
             healthy_threshold_count,
             unhealthy_threshold_count,
             http_codes,
+            health_check_enabled=health_check_enabled,
         )
 
         template = self.response_template(MODIFY_TARGET_GROUP_TEMPLATE)
@@ -602,7 +607,7 @@ class ELBV2Response(BaseResponse):
         protocol = self._get_param("Protocol")
         ssl_policy = self._get_param("SslPolicy")
         certificates = self._get_list_prefix("Certificates.member")
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = self._get_params().get("DefaultActions", [])
 
         # Should really move SSL Policies to models
         if ssl_policy is not None and ssl_policy not in [
@@ -708,7 +713,7 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
         <State>
           <Code>{{ load_balancer.state }}</Code>
         </State>
-        <Type>application</Type>
+        <Type>{{ load_balancer.loadbalancer_type }}</Type>
       </member>
     </LoadBalancers>
   </CreateLoadBalancerResult>
@@ -725,12 +730,72 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
+            {% if "Values" in condition %}
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -774,14 +839,21 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
-        <HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>
-        <HealthCheckPath>{{ target_group.healthcheck_path }}</HealthCheckPath>
+        <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
+        <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
         <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
+        <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
         {% if target_group.matcher %}
@@ -815,7 +887,9 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
           {% endfor %}
         </Certificates>
         {% endif %}
+        {% if listener.port %}
         <Port>{{ listener.port }}</Port>
+        {% endif %}
         <SslPolicy>{{ listener.ssl_policy }}</SslPolicy>
         <ListenerArn>{{ listener.arn }}</ListenerArn>
         <DefaultActions>
@@ -889,7 +963,7 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
         <State>
           <Code>{{ load_balancer.state }}</Code>
         </State>
-        <Type>application</Type>
+        <Type>{{ load_balancer.loadbalancer_type }}</Type>
         <IpAddressType>ipv4</IpAddressType>
       </member>
       {% endfor %}
@@ -908,16 +982,76 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
     <Rules>
       {% for rule in rules %}
       <member>
-        <IsDefault>{{ "true" if rules.is_default else "false" }}</IsDefault>
+        <IsDefault>{{ "true" if rule.is_default else "false" }}</IsDefault>
         <Conditions>
           {% for condition in rule.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                  <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
+            {% if "Values" in condition %}
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>
@@ -949,14 +1083,21 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
-        <HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>
-        <HealthCheckPath>{{ target_group.healthcheck_path }}</HealthCheckPath>
+        <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
+        <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
         <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
+        <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
         {% if target_group.matcher %}
@@ -997,7 +1138,7 @@ DESCRIBE_TARGET_GROUP_ATTRIBUTES_TEMPLATE = """<DescribeTargetGroupAttributesRes
   </ResponseMetadata>
 </DescribeTargetGroupAttributesResponse>"""
 
-DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+DESCRIBE_LISTENERS_TEMPLATE = """<DescribeListenersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeListenersResult>
     <Listeners>
       {% for listener in listeners %}
@@ -1028,7 +1169,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
   <ResponseMetadata>
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
-</DescribeLoadBalancersResponse>"""
+</DescribeListenersResponse>"""
 
 CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ConfigureHealthCheckResult>
@@ -1053,12 +1194,72 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
         <Conditions>
           {% for condition in rules.conditions %}
           <member>
-            <Field>{{ condition["field"] }}</Field>
+            <Field>{{ condition["Field"] }}</Field>
+            {% if "PathPatternConfig" in condition %}
+            <PathPatternConfig>
+              <Values>
+                {% for value in condition["PathPatternConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </PathPatternConfig>
+            {% endif %}
+            {% if "HostHeaderConfig" in condition %}
+            <HostHeaderConfig>
+              <Values>
+                {% for value in condition["HostHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HostHeaderConfig>
+            {% endif %}
+            {% if "HttpHeaderConfig" in condition %}
+            <HttpHeaderConfig>
+              <HttpHeaderName>{{ condition["HttpHeaderConfig"]["HttpHeaderName"] }}</HttpHeaderName>
+              <Values>
+                {% for value in condition["HttpHeaderConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpHeaderConfig>
+            {% endif %}
+            {% if "HttpRequestMethodConfig" in condition %}
+            <HttpRequestMethodConfig>
+              <Values>
+                {% for value in condition["HttpRequestMethodConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </HttpRequestMethodConfig>
+            {% endif %}
+            {% if "QueryStringConfig" in condition %}
+            <QueryStringConfig>
+              <Values>
+                {% for value in condition["QueryStringConfig"]["Values"] %}
+                <member>
+                    <Key>{{ value["Key"] }}</Key>
+                    <Value>{{ value["Value"] }}</Value>
+                </member>
+                {% endfor %}
+              </Values>
+            </QueryStringConfig>
+            {% endif %}
+            {% if "SourceIpConfig" in condition %}
+            <SourceIpConfig>
+              <Values>
+                {% for value in condition["SourceIpConfig"]["Values"] %}
+                <member>{{ value }}</member>
+                {% endfor %}
+              </Values>
+            </SourceIpConfig>
+            {% endif %}
+            {% if "Values" in condition %}
             <Values>
-              {% for value in condition["values"] %}
+              {% for value in condition["Values"] %}
               <member>{{ value }}</member>
               {% endfor %}
             </Values>
+            {% endif %}
           </member>
           {% endfor %}
         </Conditions>

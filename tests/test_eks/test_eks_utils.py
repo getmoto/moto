@@ -6,17 +6,17 @@ try:
 except ImportError:
     from urlparse import urlparse
 
-from moto.utilities.utils import random_string
+from moto.utilities.utils import random_string as generate_random_name
 from tests.test_eks.test_eks_constants import (
     ClusterAttributes,
     ClusterInputs,
+    FargateProfileAttributes,
+    FargateProfileInputs,
     NodegroupAttributes,
     NodegroupInputs,
     ResponseAttributes,
     STATUS,
 )
-
-generate_random_name = random_string
 
 
 def attributes_to_test(inputs, name):
@@ -46,6 +46,25 @@ def generate_clusters(client, num_clusters, minimal):
     ]
 
 
+def generate_fargate_profiles(client, cluster_name, num_profiles, minimal):
+    """
+    Generates 'num_profiles' number of fargate profiles with randomized data and adds them to
+    the mocked backend.
+    If 'minimal' is True, only the required values are generated; if False, all values are generated.
+    Returns a list of the names of the generated Fargate profiles.
+    """
+    return [
+        client.create_fargate_profile(
+            fargateProfileName=generate_random_name(),
+            clusterName=cluster_name,
+            **_input_builder(FargateProfileInputs, minimal)
+        )[ResponseAttributes.FARGATE_PROFILE][
+            FargateProfileAttributes.FARGATE_PROFILE_NAME
+        ]
+        for _ in range(num_profiles)
+    ]
+
+
 def generate_nodegroups(client, cluster_name, num_nodegroups, minimal):
     """
     Generates 'num_nodegroups' number of nodegroups with randomized data and adds them to the mocked backend.
@@ -60,6 +79,13 @@ def generate_nodegroups(client, cluster_name, num_nodegroups, minimal):
         )[ResponseAttributes.NODEGROUP][NodegroupAttributes.NODEGROUP_NAME]
         for _ in range(num_nodegroups)
     ]
+
+
+def generate_dict(prefix, count):
+    return {
+        "{prefix}_{count}".format(prefix=prefix, count=_count): str(_count)
+        for _count in range(count)
+    }
 
 
 def is_valid_uri(value):

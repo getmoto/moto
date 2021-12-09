@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_resourcegroups
 
@@ -143,7 +141,7 @@ def test_untag():
 def test_update_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    get_response = test_get_group()
+    test_get_group()
 
     response = resource_groups.update_group(
         GroupName="test_resource_group", Description="description_2"

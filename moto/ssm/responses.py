@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -127,6 +126,35 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         return json.dumps({"DocumentIdentifiers": documents, "NextToken": token})
 
+    def describe_document_permission(self):
+        name = self._get_param("Name")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        permission_type = self._get_param("PermissionType")
+
+        result = self.ssm_backend.describe_document_permission(
+            name=name,
+            max_results=max_results,
+            next_token=next_token,
+            permission_type=permission_type,
+        )
+        return json.dumps(result)
+
+    def modify_document_permission(self):
+        account_ids_to_add = self._get_param("AccountIdsToAdd")
+        account_ids_to_remove = self._get_param("AccountIdsToRemove")
+        name = self._get_param("Name")
+        permission_type = self._get_param("PermissionType")
+        shared_document_version = self._get_param("SharedDocumentVersion")
+
+        self.ssm_backend.modify_document_permission(
+            name=name,
+            account_ids_to_add=account_ids_to_add,
+            account_ids_to_remove=account_ids_to_remove,
+            shared_document_version=shared_document_version,
+            permission_type=permission_type,
+        )
+
     def _get_param(self, param, default=None):
         return self.request_params.get(param, default)
 
@@ -232,7 +260,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         for parameter in result[token:]:
             response["Parameters"].append(parameter.describe_response_object(False))
 
-            token = token + 1
+            token += 1
             if len(response["Parameters"]) == page_size:
                 response["NextToken"] = str(end)
                 break
@@ -248,9 +276,18 @@ class SimpleSystemManagerResponse(BaseResponse):
         keyid = self._get_param("KeyId")
         overwrite = self._get_param("Overwrite", False)
         tags = self._get_param("Tags", [])
+        data_type = self._get_param("DataType", "text")
 
         result = self.ssm_backend.put_parameter(
-            name, description, value, type_, allowed_pattern, keyid, overwrite, tags
+            name,
+            description,
+            value,
+            type_,
+            allowed_pattern,
+            keyid,
+            overwrite,
+            tags,
+            data_type,
         )
 
         if result is None:
@@ -308,20 +345,26 @@ class SimpleSystemManagerResponse(BaseResponse):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         tags = {t["Key"]: t["Value"] for t in self._get_param("Tags")}
-        self.ssm_backend.add_tags_to_resource(resource_id, resource_type, tags)
+        self.ssm_backend.add_tags_to_resource(
+            resource_type=resource_type, resource_id=resource_id, tags=tags
+        )
         return json.dumps({})
 
     def remove_tags_from_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
         keys = self._get_param("TagKeys")
-        self.ssm_backend.remove_tags_from_resource(resource_id, resource_type, keys)
+        self.ssm_backend.remove_tags_from_resource(
+            resource_type=resource_type, resource_id=resource_id, keys=keys
+        )
         return json.dumps({})
 
     def list_tags_for_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
-        tags = self.ssm_backend.list_tags_for_resource(resource_id, resource_type)
+        tags = self.ssm_backend.list_tags_for_resource(
+            resource_type=resource_type, resource_id=resource_id
+        )
         tag_list = [{"Key": k, "Value": v} for (k, v) in tags.items()]
         response = {"TagList": tag_list}
         return json.dumps(response)
@@ -336,3 +379,46 @@ class SimpleSystemManagerResponse(BaseResponse):
         return json.dumps(
             self.ssm_backend.get_command_invocation(**self.request_params)
         )
+
+    def create_maintenance_window(self):
+        name = self._get_param("Name")
+        desc = self._get_param("Description", None)
+        enabled = self._get_bool_param("Enabled", True)
+        duration = self._get_int_param("Duration")
+        cutoff = self._get_int_param("Cutoff")
+        schedule = self._get_param("Schedule")
+        schedule_timezone = self._get_param("ScheduleTimezone")
+        schedule_offset = self._get_int_param("ScheduleOffset")
+        start_date = self._get_param("StartDate")
+        end_date = self._get_param("EndDate")
+        window_id = self.ssm_backend.create_maintenance_window(
+            name=name,
+            description=desc,
+            enabled=enabled,
+            duration=duration,
+            cutoff=cutoff,
+            schedule=schedule,
+            schedule_timezone=schedule_timezone,
+            schedule_offset=schedule_offset,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return json.dumps({"WindowId": window_id})
+
+    def get_maintenance_window(self):
+        window_id = self._get_param("WindowId")
+        window = self.ssm_backend.get_maintenance_window(window_id)
+        return json.dumps(window.to_json())
+
+    def describe_maintenance_windows(self):
+        filters = self._get_param("Filters", None)
+        windows = [
+            window.to_json()
+            for window in self.ssm_backend.describe_maintenance_windows(filters)
+        ]
+        return json.dumps({"WindowIdentities": windows})
+
+    def delete_maintenance_window(self):
+        window_id = self._get_param("WindowId")
+        self.ssm_backend.delete_maintenance_window(window_id)
+        return "{}"

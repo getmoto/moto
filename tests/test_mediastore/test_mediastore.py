@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_mediastore
@@ -221,7 +219,7 @@ def test_list_tags_for_resource_return_none_if_no_tags():
 
 
 @mock_mediastore
-def test_list_tags_for_resource_return_none_if_no_tags():
+def test_list_tags_for_resource_return_error_for_unknown_resource():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
         client.list_tags_for_resource(Resource="not_existing")

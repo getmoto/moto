@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 from .responses import IoTDataPlaneResponse
 
-url_bases = ["https?://data.iot.(.+).amazonaws.com"]
+url_bases = [r"https?://data\.iot\.(.+)\.amazonaws.com"]
 
 
 response = IoTDataPlaneResponse()
