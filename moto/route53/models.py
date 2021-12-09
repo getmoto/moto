@@ -197,55 +197,6 @@ class RecordSet(CloudFormationModel):
     def physical_resource_id(self):
         return self.name
 
-    def to_xml(self):
-        template = Template(
-            """<ResourceRecordSet>
-                <Name>{{ record_set.name }}</Name>
-                <Type>{{ record_set.type_ }}</Type>
-                {% if record_set.set_identifier %}
-                    <SetIdentifier>{{ record_set.set_identifier }}</SetIdentifier>
-                {% endif %}
-                {% if record_set.weight %}
-                    <Weight>{{ record_set.weight }}</Weight>
-                {% endif %}
-                {% if record_set.region %}
-                    <Region>{{ record_set.region }}</Region>
-                {% endif %}
-                {% if record_set.ttl %}
-                    <TTL>{{ record_set.ttl }}</TTL>
-                {% endif %}
-                {% if record_set.failover %}
-                    <Failover>{{ record_set.failover }}</Failover>
-                {% endif %}
-                {% if record_set.geo_location %}
-                <GeoLocation>
-                {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
-                  {% if record_set.geo_location[geo_key] %}<{{ geo_key }}>{{ record_set.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
-                {% endfor %}
-                </GeoLocation>
-                {% endif %}
-                {% if record_set.alias_target %}
-                <AliasTarget>
-                    <HostedZoneId>{{ record_set.alias_target['HostedZoneId'] }}</HostedZoneId>
-                    <DNSName>{{ record_set.alias_target['DNSName'] }}</DNSName>
-                    <EvaluateTargetHealth>{{ record_set.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
-                </AliasTarget>
-                {% else %}
-                <ResourceRecords>
-                    {% for record in record_set.records %}
-                    <ResourceRecord>
-                        <Value>{{ record|e }}</Value>
-                    </ResourceRecord>
-                    {% endfor %}
-                </ResourceRecords>
-                {% endif %}
-                {% if record_set.health_check %}
-                    <HealthCheckId>{{ record_set.health_check }}</HealthCheckId>
-                {% endif %}
-            </ResourceRecordSet>"""
-        )
-        return template.render(record_set=self)
-
     def delete(self, *args, **kwargs):
         """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
         hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)

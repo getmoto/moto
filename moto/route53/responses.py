@@ -341,20 +341,46 @@ LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
        <ResourceRecordSet>
            <Name>{{ record.name }}</Name>
            <Type>{{ record.type_ }}</Type>
-           <TTL>{{ record.ttl }}</TTL>
-           <Identifier>{{ record.set_identifier }}</Identifier>
-           <Weight>{{ record.weight }}</Weight>
-           <HealthCheck>{{ record.health_check }}</HealthCheck>
-           <AliasTarget>{{ record.alias_target }}</AliasTarget>
-           <Failover>{{ record.failover }}</Failover>
-           <GeoLocation>{{ record.geo_location }}</GeoLocation>
+           {% if record.set_identifier %}
+               <SetIdentifier>{{ record.set_identifier }}</SetIdentifier>
+           {% endif %}
+           {% if record.weight %}
+               <Weight>{{ record.weight }}</Weight>
+           {% endif %}
+           {% if record.region %}
+               <Region>{{ record.region }}</Region>
+           {% endif %}
+           {% if record.ttl %}
+               <TTL>{{ record.ttl }}</TTL>
+           {% endif %}
+           {% if record.failover %}
+               <Failover>{{ record.failover }}</Failover>
+           {% endif %}
+           {% if record.geo_location %}
+           <GeoLocation>
+           {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
+             {% if record.geo_location[geo_key] %}<{{ geo_key }}>{{ record.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
+           {% endfor %}
+           </GeoLocation>
+           {% endif %}
+           {% if record.alias_target %}
+           <AliasTarget>
+               <HostedZoneId>{{ record.alias_target['HostedZoneId'] }}</HostedZoneId>
+               <DNSName>{{ record.alias_target['DNSName'] }}</DNSName>
+               <EvaluateTargetHealth>{{ record.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
+           </AliasTarget>
+           {% else %}
            <ResourceRecords>
-                {% for resource_record in record.records %}
-                    <ResourceRecord>
-                        <Value><![CDATA[{{ resource_record }}]]></Value>
-                    </ResourceRecord>
-                {% endfor %}
+               {% for resource in record.records %}
+               <ResourceRecord>
+                   <Value><![CDATA[{{ resource }}]]></Value>
+               </ResourceRecord>
+               {% endfor %}
            </ResourceRecords>
+           {% endif %}
+           {% if record.health_check %}
+               <HealthCheckId>{{ record.health_check }}</HealthCheckId>
+           {% endif %}
         </ResourceRecordSet>
        {% endfor %}
    </ResourceRecordSets>
