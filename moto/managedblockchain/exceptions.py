@@ -1,9 +1,40 @@
-from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
+import json
+from functools import wraps
+from werkzeug.exceptions import HTTPException
 
 
-class ManagedBlockchainClientError(RESTError):
+def exception_handler(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except ManagedBlockchainClientError as err:
+            return err.code, err.get_headers(), err.description
+
+    return _wrapper
+
+
+class ManagedBlockchainClientError(HTTPException):
     code = 400
+
+    def __init__(self, error_type, message, **kwargs):
+        super(HTTPException, self).__init__()
+        self.error_type = error_type
+        self.message = message
+        self.description = json.dumps({"message": self.message})
+
+    def get_headers(self, *args, **kwargs):
+        return [
+            ("Content-Type", "application/json"),
+            ("x-amzn-ErrorType", self.error_type),
+        ]
+
+    @property
+    def response(self):
+        return self.get_body()
+
+    def get_body(self, *args, **kwargs):
+        return self.description
 
 
 class BadRequestException(ManagedBlockchainClientError):

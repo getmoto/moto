@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from jinja2 import Template
 from werkzeug.exceptions import BadRequest
 
@@ -24,15 +22,16 @@ class RDSClientError(BadRequest):
 class DBInstanceNotFoundError(RDSClientError):
     def __init__(self, database_identifier):
         super(DBInstanceNotFoundError, self).__init__(
-            "DBInstanceNotFound", "Database {0} not found.".format(database_identifier)
+            "DBInstanceNotFound",
+            "DBInstance {0} not found.".format(database_identifier),
         )
 
 
 class DBSnapshotNotFoundError(RDSClientError):
-    def __init__(self):
+    def __init__(self, snapshot_identifier):
         super(DBSnapshotNotFoundError, self).__init__(
             "DBSnapshotNotFound",
-            "DBSnapshotIdentifier does not refer to an existing DB snapshot.",
+            "DBSnapshot {} not found.".format(snapshot_identifier),
         )
 
 
@@ -106,4 +105,29 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
             "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
                 database_snapshot_identifier
             ),
+        )
+
+
+class InvalidParameterValue(RDSClientError):
+    def __init__(self, message):
+        super(InvalidParameterValue, self).__init__("InvalidParameterValue", message)
+
+
+class InvalidParameterCombination(RDSClientError):
+    def __init__(self, message):
+        super(InvalidParameterCombination, self).__init__(
+            "InvalidParameterCombination", message
+        )
+
+
+class InvalidDBClusterStateFault(RDSClientError):
+    def __init__(self, message):
+        super().__init__("InvalidDBClusterStateFault", message)
+
+
+class DBClusterNotFoundError(RDSClientError):
+    def __init__(self, cluster_identifier):
+        super(DBClusterNotFoundError, self).__init__(
+            "DBClusterNotFoundFault",
+            "DBCluster {} not found.".format(cluster_identifier),
         )

@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_elasticbeanstalk
@@ -11,6 +11,7 @@ def test_create_application():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     app = conn.create_application(ApplicationName="myapp",)
     app["Application"]["ApplicationName"].should.equal("myapp")
+    app["Application"]["ApplicationArn"].should.contain("myapp")
 
 
 @mock_elasticbeanstalk
@@ -31,6 +32,7 @@ def test_describe_applications():
     apps = conn.describe_applications()
     len(apps["Applications"]).should.equal(1)
     apps["Applications"][0]["ApplicationName"].should.equal("myapp")
+    apps["Applications"][0]["ApplicationArn"].should.contain("myapp")
 
 
 @mock_elasticbeanstalk
@@ -40,6 +42,7 @@ def test_create_environment():
     app = conn.create_application(ApplicationName="myapp",)
     env = conn.create_environment(ApplicationName="myapp", EnvironmentName="myenv",)
     env["EnvironmentName"].should.equal("myenv")
+    env["EnvironmentArn"].should.contain("myapp/myenv")
 
 
 @mock_elasticbeanstalk
@@ -56,6 +59,7 @@ def test_describe_environments():
     len(envs).should.equal(1)
     envs[0]["ApplicationName"].should.equal("myapp")
     envs[0]["EnvironmentName"].should.equal("myenv")
+    envs[0]["EnvironmentArn"].should.contain("myapp/myenv")
 
 
 def tags_dict_to_list(tag_dict):

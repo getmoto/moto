@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import time
 
 from boto3 import Session
@@ -40,9 +39,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
 
     def __init__(self, athena_backend, name, configuration, description, tags):
         self.region_name = athena_backend.region_name
-        super(WorkGroup, self).__init__(
-            self.region_name, "workgroup/{}".format(name), tags
-        )
+        super().__init__(self.region_name, "workgroup/{}".format(name), tags)
         self.athena_backend = athena_backend
         self.name = name
         self.description = description
@@ -79,6 +76,13 @@ class AthenaBackend(BaseBackend):
         self.work_groups = {}
         self.executions = {}
         self.named_queries = {}
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "athena"
+        )
 
     def create_work_group(self, name, configuration, description, tags):
         if name in self.work_groups:

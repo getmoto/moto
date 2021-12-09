@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import json
-from six.moves.urllib.parse import unquote
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import iot_backends
@@ -105,6 +103,14 @@ class IoTResponse(BaseResponse):
         thing_type_name = self._get_param("thingTypeName")
         self.iot_backend.delete_thing_type(thing_type_name=thing_type_name)
         return json.dumps(dict())
+
+    def deprecate_thing_type(self):
+        thing_type_name = self._get_param("thingTypeName")
+        undo_deprecate = self._get_param("undoDeprecate")
+        thing_type = self.iot_backend.deprecate_thing_type(
+            thing_type_name=thing_type_name, undo_deprecate=undo_deprecate
+        )
+        return json.dumps(thing_type.to_dict())
 
     def update_thing(self):
         thing_name = self._get_param("thingName")
@@ -425,8 +431,19 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
         return json.dumps(dict())
 
+    def dispatch_attached_policies(self, request, full_url, headers):
+        # This endpoint requires specialized handling because it has
+        # a uri parameter containing forward slashes that is not
+        # correctly url encoded when we're running in server mode.
+        # https://github.com/pallets/flask/issues/900
+        self.setup_class(request, full_url, headers)
+        self.querystring["Action"] = ["ListAttachedPolicies"]
+        target = self.path.partition("/attached-policies/")[-1]
+        self.querystring["target"] = [unquote(target)] if "%" in target else [target]
+        return self.call_action()
+
     def list_attached_policies(self):
-        principal = unquote(self._get_param("target"))
+        principal = self._get_param("target")
         # marker = self._get_param("marker")
         # page_size = self._get_int_param("pageSize")
         policies = self.iot_backend.list_attached_policies(target=principal)
@@ -634,4 +651,48 @@ class IoTResponse(BaseResponse):
             thing_groups_to_add=thing_groups_to_add,
             thing_groups_to_remove=thing_groups_to_remove,
         )
+        return json.dumps(dict())
+
+    def list_topic_rules(self):
+        return json.dumps(dict(rules=self.iot_backend.list_topic_rules()))
+
+    def get_topic_rule(self):
+        return json.dumps(
+            self.iot_backend.get_topic_rule(rule_name=self._get_param("ruleName"))
+        )
+
+    def create_topic_rule(self):
+        self.iot_backend.create_topic_rule(
+            rule_name=self._get_param("ruleName"),
+            description=self._get_param("description"),
+            rule_disabled=self._get_param("ruleDisabled"),
+            actions=self._get_param("actions"),
+            error_action=self._get_param("errorAction"),
+            sql=self._get_param("sql"),
+            aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
+        )
+        return json.dumps(dict())
+
+    def replace_topic_rule(self):
+        self.iot_backend.replace_topic_rule(
+            rule_name=self._get_param("ruleName"),
+            description=self._get_param("description"),
+            rule_disabled=self._get_param("ruleDisabled"),
+            actions=self._get_param("actions"),
+            error_action=self._get_param("errorAction"),
+            sql=self._get_param("sql"),
+            aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
+        )
+        return json.dumps(dict())
+
+    def delete_topic_rule(self):
+        self.iot_backend.delete_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def enable_topic_rule(self):
+        self.iot_backend.enable_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def disable_topic_rule(self):
+        self.iot_backend.disable_topic_rule(rule_name=self._get_param("ruleName"))
         return json.dumps(dict())

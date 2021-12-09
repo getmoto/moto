@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import hashlib
 
 import datetime
 
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 
 from .utils import get_job_id
 
@@ -101,8 +99,8 @@ class Vault(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:glacier:{0}:012345678901:vaults/{1}".format(
-            self.region, self.vault_name
+        return "arn:aws:glacier:{0}:{1}:vaults/{2}".format(
+            self.region, ACCOUNT_ID, self.vault_name
         )
 
     def to_dict(self):
@@ -122,6 +120,7 @@ class Vault(BaseModel):
     def create_archive(self, body, description):
         archive_id = hashlib.md5(body).hexdigest()
         self.archives[archive_id] = {}
+        self.archives[archive_id]["archive_id"] = archive_id
         self.archives[archive_id]["body"] = body
         self.archives[archive_id]["size"] = len(body)
         self.archives[archive_id]["sha256"] = hashlib.sha256(body).hexdigest()
@@ -129,7 +128,7 @@ class Vault(BaseModel):
             "%Y-%m-%dT%H:%M:%S.000Z"
         )
         self.archives[archive_id]["description"] = description
-        return archive_id
+        return self.archives[archive_id]
 
     def get_archive_body(self, archive_id):
         return self.archives[archive_id]["body"]
@@ -204,7 +203,7 @@ class GlacierBackend(BaseBackend):
     def create_vault(self, vault_name):
         self.vaults[vault_name] = Vault(vault_name, self.region_name)
 
-    def list_vaules(self):
+    def list_vaults(self):
         return self.vaults.values()
 
     def delete_vault(self, vault_name):
@@ -215,9 +214,24 @@ class GlacierBackend(BaseBackend):
         job_id = vault.initiate_job(job_type, tier, archive_id)
         return job_id
 
+    def describe_job(self, vault_name, archive_id):
+        vault = self.get_vault(vault_name)
+        return vault.describe_job(archive_id)
+
     def list_jobs(self, vault_name):
         vault = self.get_vault(vault_name)
         return vault.list_jobs()
+
+    def get_job_output(self, vault_name, job_id):
+        vault = self.get_vault(vault_name)
+        if vault.job_ready(job_id):
+            return vault.get_job_output(job_id)
+        else:
+            return None
+
+    def upload_archive(self, vault_name, body, description):
+        vault = self.get_vault(vault_name)
+        return vault.create_archive(body, description)
 
 
 glacier_backends = {}

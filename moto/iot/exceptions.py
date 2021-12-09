@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
@@ -59,4 +58,13 @@ class ResourceAlreadyExistsException(IoTClientError):
         self.code = 409
         super(ResourceAlreadyExistsException, self).__init__(
             "ResourceAlreadyExistsException", msg or "The resource already exists."
+        )
+
+
+class VersionsLimitExceededException(IoTClientError):
+    def __init__(self, name):
+        self.code = 409
+        super(VersionsLimitExceededException, self).__init__(
+            "VersionsLimitExceededException",
+            "The policy %s already has the maximum number of versions (5)" % name,
         )

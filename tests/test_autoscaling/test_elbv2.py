@@ -1,10 +1,10 @@
-from __future__ import unicode_literals
 import boto3
 
-import sure  # noqa
-from moto import mock_autoscaling, mock_ec2, mock_elbv2
+import sure  # noqa # pylint: disable=unused-import
+from moto import mock_autoscaling, mock_elbv2
 
 from .utils import setup_networking
+from tests import EXAMPLE_AMI_ID
 
 
 @mock_elbv2
@@ -32,7 +32,9 @@ def test_attach_detach_target_groups():
     target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
 
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration"
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
     )
 
     # create asg, attach to target group on create
@@ -102,7 +104,9 @@ def test_detach_all_target_groups():
     target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
 
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration"
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
     )
 
     client.create_auto_scaling_group(

@@ -1,12 +1,11 @@
-from __future__ import unicode_literals
-
 import boto
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
 from moto.core import ACCOUNT_ID
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_create_platform_application():
     conn = boto.connect_sns()
@@ -26,6 +25,7 @@ def test_create_platform_application():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_get_platform_application_attributes():
     conn = boto.connect_sns()
@@ -51,6 +51,7 @@ def test_get_platform_application_attributes():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_get_missing_platform_application_attributes():
     conn = boto.connect_sns()
@@ -59,6 +60,7 @@ def test_get_missing_platform_application_attributes():
     ).should.throw(BotoServerError)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_set_platform_application_attributes():
     conn = boto.connect_sns()
@@ -82,6 +84,7 @@ def test_set_platform_application_attributes():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_list_platform_applications():
     conn = boto.connect_sns()
@@ -95,6 +98,7 @@ def test_list_platform_applications():
     applications.should.have.length_of(2)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_delete_platform_application():
     conn = boto.connect_sns()
@@ -117,6 +121,7 @@ def test_delete_platform_application():
     applications.should.have.length_of(1)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_create_platform_endpoint():
     conn = boto.connect_sns()
@@ -142,6 +147,7 @@ def test_create_platform_endpoint():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_get_list_endpoints_by_platform_application():
     conn = boto.connect_sns()
@@ -175,6 +181,7 @@ def test_get_list_endpoints_by_platform_application():
     endpoint_list[0]["EndpointArn"].should.equal(endpoint_arn)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_get_endpoint_attributes():
     conn = boto.connect_sns()
@@ -189,7 +196,7 @@ def test_get_endpoint_attributes():
         platform_application_arn=application_arn,
         token="some_unique_id",
         custom_user_data="some user data",
-        attributes={"Enabled": False, "CustomUserData": "some data"},
+        attributes={"CustomUserData": "some data"},
     )
     endpoint_arn = endpoint["CreatePlatformEndpointResponse"][
         "CreatePlatformEndpointResult"
@@ -199,10 +206,11 @@ def test_get_endpoint_attributes():
         "GetEndpointAttributesResponse"
     ]["GetEndpointAttributesResult"]["Attributes"]
     attributes.should.equal(
-        {"Token": "some_unique_id", "Enabled": "False", "CustomUserData": "some data"}
+        {"Token": "some_unique_id", "Enabled": "true", "CustomUserData": "some data"}
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_get_missing_endpoint_attributes():
     conn = boto.connect_sns()
@@ -211,6 +219,7 @@ def test_get_missing_endpoint_attributes():
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_set_endpoint_attributes():
     conn = boto.connect_sns()
@@ -236,10 +245,11 @@ def test_set_endpoint_attributes():
         "GetEndpointAttributesResponse"
     ]["GetEndpointAttributesResult"]["Attributes"]
     attributes.should.equal(
-        {"Token": "some_unique_id", "Enabled": "False", "CustomUserData": "other data"}
+        {"Token": "some_unique_id", "Enabled": "false", "CustomUserData": "other data"}
     )
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_delete_endpoint():
     conn = boto.connect_sns()
@@ -282,6 +292,7 @@ def test_delete_endpoint():
     endpoint_list.should.have.length_of(0)
 
 
+# Has boto3 equivalent
 @mock_sns_deprecated
 def test_publish_to_platform_endpoint():
     conn = boto.connect_sns()

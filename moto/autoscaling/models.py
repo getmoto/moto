@@ -1,6 +1,6 @@
-from __future__ import unicode_literals
-
+import itertools
 import random
+from uuid import uuid4
 
 from moto.packages.boto.ec2.blockdevicemapping import (
     BlockDeviceType,
@@ -8,8 +8,8 @@ from moto.packages.boto.ec2.blockdevicemapping import (
 )
 from moto.ec2.exceptions import InvalidInstanceIdError
 
-from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from collections import OrderedDict
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
@@ -35,11 +35,32 @@ class InstanceState(object):
         lifecycle_state="InService",
         health_status="Healthy",
         protected_from_scale_in=False,
+        autoscaling_group=None,
     ):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
         self.health_status = health_status
         self.protected_from_scale_in = protected_from_scale_in
+        if not hasattr(self.instance, "autoscaling_group"):
+            self.instance.autoscaling_group = autoscaling_group
+
+
+class FakeLifeCycleHook(BaseModel):
+    def __init__(
+        self, name, as_name, transition, timeout, result,
+    ):
+        self.name = name
+        self.as_name = as_name
+        if transition:
+            self.transition = transition
+        if timeout:
+            self.timeout = timeout
+        else:
+            self.timeout = 3600
+        if result:
+            self.result = result
+        else:
+            self.result = "ABANDON"
 
 
 class FakeScalingPolicy(BaseModel):
@@ -51,6 +72,8 @@ class FakeScalingPolicy(BaseModel):
         as_name,
         scaling_adjustment,
         cooldown,
+        target_tracking_config,
+        step_adjustments,
         autoscaling_backend,
     ):
         self.name = name
@@ -62,7 +85,13 @@ class FakeScalingPolicy(BaseModel):
             self.cooldown = cooldown
         else:
             self.cooldown = DEFAULT_COOLDOWN
+        self.target_tracking_config = target_tracking_config
+        self.step_adjustments = step_adjustments
         self.autoscaling_backend = autoscaling_backend
+
+    @property
+    def arn(self):
+        return f"arn:aws:autoscaling:{self.autoscaling_backend.region}:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
 
     def execute(self):
         if self.adjustment_type == "ExactCapacity":
@@ -143,7 +172,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -255,6 +284,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.autoscaling_backend = autoscaling_backend
         self.ec2_backend = ec2_backend
         self.name = name
+        self._id = str(uuid4())
+        self.region = self.autoscaling_backend.region
 
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
@@ -281,8 +312,25 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.suspended_processes = []
         self.instance_states = []
-        self.tags = tags if tags else []
+        self.tags = tags or []
         self.set_desired_capacity(desired_capacity)
+
+    @property
+    def tags(self):
+        return self._tags
+
+    @tags.setter
+    def tags(self, tags):
+        for tag in tags:
+            if "resource_id" not in tag or not tag["resource_id"]:
+                tag["resource_id"] = self.name
+            if "resource_type" not in tag or not tag["resource_type"]:
+                tag["resource_type"] = "auto-scaling-group"
+        self._tags = tags
+
+    @property
+    def arn(self):
+        return f"arn:aws:autoscaling:{self.region}:{ACCOUNT_ID}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
 
     def active_instances(self):
         return [x for x in self.instance_states if x.lifecycle_state == "InService"]
@@ -365,7 +413,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -589,9 +637,11 @@ class AutoScalingBackend(BaseBackend):
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
         self.policies = {}
+        self.lifecycle_hooks = {}
         self.ec2_backend = ec2_backend
         self.elb_backend = elb_backend
         self.elbv2_backend = elbv2_backend
+        self.region = self.elbv2_backend.region_name
 
     def reset(self):
         ec2_backend = self.ec2_backend
@@ -599,6 +649,15 @@ class AutoScalingBackend(BaseBackend):
         elbv2_backend = self.elbv2_backend
         self.__dict__ = {}
         self.__init__(ec2_backend, elb_backend, elbv2_backend)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "autoscaling"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "autoscaling-plans"
+        )
 
     def create_launch_configuration(
         self,
@@ -616,7 +675,19 @@ class AutoScalingBackend(BaseBackend):
         ebs_optimized,
         associate_public_ip_address,
         block_device_mappings,
+        instance_id=None,
     ):
+        valid_requests = [
+            instance_id is not None,
+            image_id is not None and instance_type is not None,
+        ]
+        if not any(valid_requests):
+            raise ValidationError(
+                "Valid requests must contain either the InstanceID parameter or both the ImageId and InstanceType parameters."
+            )
+        if instance_id is not None:
+            # TODO: https://docs.aws.amazon.com/autoscaling/ec2/userguide/create-lc-with-instanceID.html
+            pass
         launch_configuration = FakeLaunchConfiguration(
             name=name,
             image_id=image_id,
@@ -809,6 +880,7 @@ class AutoScalingBackend(BaseBackend):
                 InstanceState(
                     self.ec2_backend.get_instance(x),
                     protected_from_scale_in=group.new_instances_protected_from_scale_in,
+                    autoscaling_group=group,
                 )
                 for x in instance_ids
             ]
@@ -881,8 +953,35 @@ class AutoScalingBackend(BaseBackend):
             desired_capacity = int(desired_capacity)
         self.set_desired_capacity(group_name, desired_capacity)
 
+    def create_lifecycle_hook(self, name, as_name, transition, timeout, result):
+        lifecycle_hook = FakeLifeCycleHook(name, as_name, transition, timeout, result,)
+
+        self.lifecycle_hooks["%s_%s" % (as_name, name)] = lifecycle_hook
+        return lifecycle_hook
+
+    def describe_lifecycle_hooks(self, as_name, lifecycle_hook_names=None):
+        return [
+            lifecycle_hook
+            for lifecycle_hook in self.lifecycle_hooks.values()
+            if (lifecycle_hook.as_name == as_name)
+            and (
+                not lifecycle_hook_names or lifecycle_hook.name in lifecycle_hook_names
+            )
+        ]
+
+    def delete_lifecycle_hook(self, as_name, name):
+        self.lifecycle_hooks.pop("%s_%s" % (as_name, name), None)
+
     def create_autoscaling_policy(
-        self, name, policy_type, adjustment_type, as_name, scaling_adjustment, cooldown
+        self,
+        name,
+        policy_type,
+        adjustment_type,
+        as_name,
+        scaling_adjustment,
+        cooldown,
+        target_tracking_config,
+        step_adjustments,
     ):
         policy = FakeScalingPolicy(
             name,
@@ -891,6 +990,8 @@ class AutoScalingBackend(BaseBackend):
             as_name,
             scaling_adjustment,
             cooldown,
+            target_tracking_config,
+            step_adjustments,
             self,
         )
 
@@ -934,10 +1035,10 @@ class AutoScalingBackend(BaseBackend):
         for elb in elbs:
             elb_instace_ids = set(elb.instance_ids)
             self.elb_backend.register_instances(
-                elb.name, group_instance_ids - elb_instace_ids
+                elb.name, group_instance_ids - elb_instace_ids, from_autoscaling=True,
             )
             self.elb_backend.deregister_instances(
-                elb.name, elb_instace_ids - group_instance_ids
+                elb.name, elb_instace_ids - group_instance_ids, from_autoscaling=True,
             )
 
     def update_attached_target_groups(self, group_name):
@@ -980,6 +1081,14 @@ class AutoScalingBackend(BaseBackend):
 
             group.tags = new_tags
 
+    def delete_tags(self, tags):
+        for tag_to_delete in tags:
+            group_name = tag_to_delete["resource_id"]
+            key_to_delete = tag_to_delete["key"]
+            group = self.autoscaling_groups[group_name]
+            old_tags = group.tags
+            group.tags = [x for x in old_tags if x["key"] != key_to_delete]
+
     def attach_load_balancers(self, group_name, load_balancer_names):
         group = self.autoscaling_groups[group_name]
         group.load_balancers.extend(
@@ -995,7 +1104,9 @@ class AutoScalingBackend(BaseBackend):
         group_instance_ids = set(state.instance.id for state in group.instance_states)
         elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
         for elb in elbs:
-            self.elb_backend.deregister_instances(elb.name, group_instance_ids)
+            self.elb_backend.deregister_instances(
+                elb.name, group_instance_ids, from_autoscaling=True
+            )
         group.load_balancers = [
             x for x in group.load_balancers if x not in load_balancer_names
         ]
@@ -1018,8 +1129,31 @@ class AutoScalingBackend(BaseBackend):
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
 
     def suspend_processes(self, group_name, scaling_processes):
+        all_proc_names = [
+            "Launch",
+            "Terminate",
+            "AddToLoadBalancer",
+            "AlarmNotification",
+            "AZRebalance",
+            "HealthCheck",
+            "InstanceRefresh",
+            "ReplaceUnhealthy",
+            "ScheduledActions",
+        ]
         group = self.autoscaling_groups[group_name]
-        group.suspended_processes = scaling_processes or []
+        set_to_add = set(scaling_processes or all_proc_names)
+        group.suspended_processes = list(
+            set(group.suspended_processes).union(set_to_add)
+        )
+
+    def resume_processes(self, group_name, scaling_processes):
+        group = self.autoscaling_groups[group_name]
+        if scaling_processes:
+            group.suspended_processes = list(
+                set(group.suspended_processes).difference(set(scaling_processes))
+            )
+        else:
+            group.suspended_processes = []
 
     def set_instance_protection(
         self, group_name, instance_ids, protected_from_scale_in
@@ -1090,6 +1224,25 @@ class AutoScalingBackend(BaseBackend):
         self.detach_instances(group.name, [instance.id], should_decrement)
         self.ec2_backend.terminate_instances([instance.id])
         return instance_state, original_size, group.desired_capacity
+
+    def describe_tags(self, filters):
+        """
+        Pagination is not yet implemented.
+        Only the `auto-scaling-group` and `propagate-at-launch` filters are implemented.
+        """
+        resources = self.autoscaling_groups.values()
+        tags = list(itertools.chain(*[r.tags for r in resources]))
+        for f in filters:
+            if f["Name"] == "auto-scaling-group":
+                tags = [t for t in tags if t["resource_id"] in f["Values"]]
+            if f["Name"] == "propagate-at-launch":
+                values = [v.lower() for v in f["Values"]]
+                tags = [
+                    t
+                    for t in tags
+                    if t.get("propagate_at_launch", "").lower() in values
+                ]
+        return tags
 
 
 autoscaling_backends = {}

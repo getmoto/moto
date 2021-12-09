@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
@@ -73,7 +72,10 @@ class ActivityTask(BaseModel):
     def first_timeout(self):
         if not self.open or not self.workflow_execution.open:
             return None
-        # TODO: handle the "NONE" case
+
+        if self.timeouts["heartbeatTimeout"] == "NONE":
+            return None
+
         heartbeat_timeout_at = self.last_heartbeat_timestamp + int(
             self.timeouts["heartbeatTimeout"]
         )

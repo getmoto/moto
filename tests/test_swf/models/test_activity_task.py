@@ -1,5 +1,5 @@
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import ActivityTask, ActivityType, Timeout
@@ -106,6 +106,24 @@ def test_activity_task_first_timeout():
         process_first_timeout(task)
         task.state.should.equal("TIMED_OUT")
         task.timeout_type.should.equal("HEARTBEAT")
+
+
+def test_activity_task_first_timeout_with_heartbeat_timeout_none():
+    wfe = make_workflow_execution()
+
+    activity_task_timeouts = ACTIVITY_TASK_TIMEOUTS.copy()
+    activity_task_timeouts["heartbeatTimeout"] = "NONE"
+
+    with freeze_time("2015-01-01 12:00:00"):
+        task = ActivityTask(
+            activity_id="my-activity-123",
+            activity_type="foo",
+            input="optional",
+            scheduled_event_id=117,
+            timeouts=activity_task_timeouts,
+            workflow_execution=wfe,
+        )
+        task.first_timeout().should.be.none
 
 
 def test_activity_task_cannot_timeout_on_closed_workflow_execution():

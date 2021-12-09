@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 import re
 from collections import defaultdict
@@ -6,7 +5,7 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
-from .exceptions import InvalidParameterValue
+from .exceptions import InvalidParameterValue, SNSNotFoundError
 from .utils import is_e164
 
 
@@ -171,6 +170,11 @@ class SNSResponse(BaseResponse):
             }
             if topic.kms_master_key_id:
                 attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+            if topic.fifo_topic == "true":
+                attributes["FifoTopic"] = topic.fifo_topic
+                attributes[
+                    "ContentBasedDeduplication"
+                ] = topic.content_based_deduplication
             response = {
                 "GetTopicAttributesResponse": {
                     "GetTopicAttributesResult": {"Attributes": attributes},
@@ -543,24 +547,28 @@ class SNSResponse(BaseResponse):
 
     def get_endpoint_attributes(self):
         arn = self._get_param("EndpointArn")
-        endpoint = self.backend.get_endpoint(arn)
+        try:
+            endpoint = self.backend.get_endpoint(arn)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "GetEndpointAttributesResponse": {
-                        "GetEndpointAttributesResult": {
-                            "Attributes": endpoint.attributes
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
-                        },
+            if self.request_json:
+                return json.dumps(
+                    {
+                        "GetEndpointAttributesResponse": {
+                            "GetEndpointAttributesResult": {
+                                "Attributes": endpoint.attributes
+                            },
+                            "ResponseMetadata": {
+                                "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
+                            },
+                        }
                     }
-                }
-            )
+                )
 
-        template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-        return template.render(endpoint=endpoint)
+            template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
+            return template.render(endpoint=endpoint)
+        except SNSNotFoundError:
+            error_response = self._error("NotFound", "Endpoint does not exist")
+            return error_response, dict(status=404)
 
     def set_endpoint_attributes(self):
         arn = self._get_param("EndpointArn")
@@ -831,6 +839,16 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
       <entry>
         <key>KmsMasterKeyId</key>
         <value>{{ topic.kms_master_key_id }}</value>
+      </entry>
+      {% endif %}
+      {% if topic.fifo_topic == 'true' %}
+      <entry>
+        <key>FifoTopic</key>
+        <value>{{ topic.fifo_topic }}</value>
+      </entry>
+      <entry>
+        <key>ContentBasedDeduplication</key>
+        <value>{{ topic.content_based_deduplication }}</value>
       </entry>
       {% endif %}
     </Attributes>

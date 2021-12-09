@@ -1,13 +1,19 @@
-from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
-import sure
+import boto3
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 from boto3 import Session
 
+from botocore.exceptions import ClientError
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
+from moto import mock_autoscaling, mock_ec2, mock_elb
 
 from moto.ec2 import ec2_backends
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
+from uuid import uuid4
+from .test_instances import retrieve_all_instances
 
 
 def test_use_boto_regions():
@@ -25,44 +31,93 @@ def test_use_boto_regions():
 
 def add_servers_to_region(ami_id, count, region):
     conn = boto.ec2.connect_to_region(region)
-    for index in range(count):
+    for _ in range(count):
         conn.run_instances(ami_id)
 
 
+def add_servers_to_region_boto3(ami_id, count, region):
+    ec2 = boto3.resource("ec2", region_name=region)
+    return ec2.create_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_add_servers_to_a_single_region():
     region = "ap-northeast-1"
-    add_servers_to_region("ami-1234abcd", 1, region)
-    add_servers_to_region("ami-5678efgh", 1, region)
+    add_servers_to_region(EXAMPLE_AMI_ID, 1, region)
+    add_servers_to_region(EXAMPLE_AMI_ID2, 1, region)
 
     conn = boto.ec2.connect_to_region(region)
-    reservations = conn.get_all_instances()
+    reservations = conn.get_all_reservations()
     len(reservations).should.equal(2)
-    reservations.sort(key=lambda x: x.instances[0].image_id)
 
-    reservations[0].instances[0].image_id.should.equal("ami-1234abcd")
-    reservations[1].instances[0].image_id.should.equal("ami-5678efgh")
+    image_ids = [r.instances[0].image_id for r in reservations]
+    image_ids.should.equal([EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2])
 
 
+@mock_ec2
+def test_add_servers_to_a_single_region_boto3():
+    region = "ap-northeast-1"
+    id_1 = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region)[0].id
+    id_2 = add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region)[0].id
+
+    client = boto3.client("ec2", region_name=region)
+    instances = retrieve_all_instances(client)
+
+    instance1 = [i for i in instances if i["InstanceId"] == id_1][0]
+    instance1["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    instance2 = [i for i in instances if i["InstanceId"] == id_2][0]
+    instance2["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+
+
+# Has boto3 equivalent
 @mock_ec2_deprecated
 def test_add_servers_to_multiple_regions():
     region1 = "us-east-1"
     region2 = "ap-northeast-1"
-    add_servers_to_region("ami-1234abcd", 1, region1)
-    add_servers_to_region("ami-5678efgh", 1, region2)
+    add_servers_to_region(EXAMPLE_AMI_ID, 1, region1)
+    add_servers_to_region(EXAMPLE_AMI_ID2, 1, region2)
 
     us_conn = boto.ec2.connect_to_region(region1)
     ap_conn = boto.ec2.connect_to_region(region2)
-    us_reservations = us_conn.get_all_instances()
-    ap_reservations = ap_conn.get_all_instances()
+    us_reservations = us_conn.get_all_reservations()
+    ap_reservations = ap_conn.get_all_reservations()
 
     len(us_reservations).should.equal(1)
     len(ap_reservations).should.equal(1)
 
-    us_reservations[0].instances[0].image_id.should.equal("ami-1234abcd")
-    ap_reservations[0].instances[0].image_id.should.equal("ami-5678efgh")
+    us_reservations[0].instances[0].image_id.should.equal(EXAMPLE_AMI_ID)
+    ap_reservations[0].instances[0].image_id.should.equal(EXAMPLE_AMI_ID2)
 
 
+@mock_ec2
+def test_add_servers_to_multiple_regions_boto3():
+    region1 = "us-east-1"
+    region2 = "ap-northeast-1"
+    us_id = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region1)[0].id
+    ap_id = add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region2)[0].id
+
+    us_client = boto3.client("ec2", region_name=region1)
+    ap_client = boto3.client("ec2", region_name=region2)
+    us_instances = retrieve_all_instances(us_client)
+    ap_instances = retrieve_all_instances(ap_client)
+
+    [r["InstanceId"] for r in us_instances].should.contain(us_id)
+    [r["InstanceId"] for r in us_instances].shouldnt.contain(ap_id)
+    [r["InstanceId"] for r in ap_instances].should.contain(ap_id)
+    [r["InstanceId"] for r in ap_instances].shouldnt.contain(us_id)
+
+    us_instance = us_client.describe_instances(InstanceIds=[us_id])["Reservations"][0][
+        "Instances"
+    ][0]
+    us_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    ap_instance = ap_client.describe_instances(InstanceIds=[ap_id])["Reservations"][0][
+        "Instances"
+    ][0]
+    ap_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+
+
+# Has boto3 equivalent
 @mock_autoscaling_deprecated
 @mock_elb_deprecated
 def test_create_autoscaling_group():
@@ -77,9 +132,9 @@ def test_create_autoscaling_group():
 
     us_conn = boto.ec2.autoscale.connect_to_region("us-east-1")
     config = boto.ec2.autoscale.LaunchConfiguration(
-        name="us_tester", image_id="ami-abcd1234", instance_type="m1.small"
+        name="us_tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
-    x = us_conn.create_launch_configuration(config)
+    us_conn.create_launch_configuration(config)
 
     us_subnet_id = list(ec2_backends["us-east-1"].subnets["us-east-1c"].keys())[0]
     ap_subnet_id = list(
@@ -104,7 +159,7 @@ def test_create_autoscaling_group():
 
     ap_conn = boto.ec2.autoscale.connect_to_region("ap-northeast-1")
     config = boto.ec2.autoscale.LaunchConfiguration(
-        name="ap_tester", image_id="ami-efgh5678", instance_type="m1.small"
+        name="ap_tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
     ap_conn.create_launch_configuration(config)
 
@@ -160,4 +215,85 @@ def test_create_autoscaling_group():
     ap_group.placement_group.should.equal("ap_test_placement")
     list(ap_group.termination_policies).should.equal(
         ["OldestInstance", "NewestInstance"]
+    )
+
+
+@mock_autoscaling
+@mock_elb
+@mock_ec2
+def test_create_autoscaling_group_boto3():
+    regions = [("us-east-1", "c"), ("ap-northeast-1", "a")]
+    for region, zone in regions:
+        a_zone = "{}{}".format(region, zone)
+        asg_name = "{}_tester_group_{}".format(region, str(uuid4())[0:6])
+        lb_name = "{}_lb_{}".format(region, str(uuid4())[0:6])
+        config_name = "{}_tester_{}".format(region, str(uuid4())[0:6])
+
+        elb_client = boto3.client("elb", region_name=region)
+        elb_client.create_load_balancer(
+            LoadBalancerName=lb_name,
+            Listeners=[
+                {"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}
+            ],
+            AvailabilityZones=[],
+        )
+
+        as_client = boto3.client("autoscaling", region_name=region)
+        as_client.create_launch_configuration(
+            LaunchConfigurationName=config_name,
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="m1.small",
+        )
+
+        ec2_client = boto3.client("ec2", region_name=region)
+        subnet_id = ec2_client.describe_subnets(
+            Filters=[{"Name": "availability-zone", "Values": [a_zone]}]
+        )["Subnets"][0]["SubnetId"]
+
+        as_client.create_auto_scaling_group(
+            AutoScalingGroupName=asg_name,
+            AvailabilityZones=[a_zone],
+            DefaultCooldown=60,
+            DesiredCapacity=2,
+            HealthCheckGracePeriod=100,
+            HealthCheckType="EC2",
+            LaunchConfigurationName=config_name,
+            LoadBalancerNames=[lb_name],
+            MinSize=2,
+            MaxSize=2,
+            PlacementGroup="us_test_placement",
+            VPCZoneIdentifier=subnet_id,
+            TerminationPolicies=["OldestInstance", "NewestInstance"],
+        )
+
+        groups = as_client.describe_auto_scaling_groups(
+            AutoScalingGroupNames=[asg_name]
+        )["AutoScalingGroups"]
+        groups.should.have.length_of(1)
+        group = groups[0]
+
+        group["AutoScalingGroupName"].should.equal(asg_name)
+        group["DesiredCapacity"].should.equal(2)
+        group["MaxSize"].should.equal(2)
+        group["MinSize"].should.equal(2)
+        group["VPCZoneIdentifier"].should.equal(subnet_id)
+        group["LaunchConfigurationName"].should.equal(config_name)
+        group["DefaultCooldown"].should.equal(60)
+        group["HealthCheckGracePeriod"].should.equal(100)
+        group["HealthCheckType"].should.equal("EC2")
+        group["LoadBalancerNames"].should.equal([lb_name])
+        group["PlacementGroup"].should.equal("us_test_placement")
+        group["TerminationPolicies"].should.equal(["OldestInstance", "NewestInstance"])
+
+
+@mock_ec2
+def test_describe_regions_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_regions(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeRegions operation: Request would have succeeded, but DryRun flag is set"
     )

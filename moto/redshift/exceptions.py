@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from werkzeug.exceptions import BadRequest
 
@@ -156,4 +154,12 @@ class UnknownSnapshotCopyRegionFaultError(RedshiftClientError):
     def __init__(self, message):
         super(UnknownSnapshotCopyRegionFaultError, self).__init__(
             "UnknownSnapshotCopyRegionFault", message
+        )
+
+
+class ClusterSecurityGroupNotFoundFaultError(RedshiftClientError):
+    def __init__(self):
+        super(ClusterSecurityGroupNotFoundFaultError, self).__init__(
+            "ClusterSecurityGroupNotFoundFault",
+            "The cluster security group name does not refer to an existing cluster security group.",
         )

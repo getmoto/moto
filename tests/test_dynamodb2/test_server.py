@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 
@@ -17,3 +16,4 @@ def test_table_list():
     headers = {"X-Amz-Target": "TestTable.ListTables"}
     res = test_client.get("/", headers=headers)
     res.data.should.contain(b"TableNames")
+    res.headers.should.have.key("X-Amz-Crc32")

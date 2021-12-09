@@ -1,21 +1,25 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2
 from moto import mock_elbv2
 from moto import mock_kms
+from moto import mock_rds2
 from moto import mock_resourcegroupstaggingapi
 from moto import mock_s3
+from moto import mock_lambda
+from moto import mock_iam
+from botocore.client import ClientError
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
+@mock_rds2
 @mock_ec2
 @mock_resourcegroupstaggingapi
 def test_get_resources_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     instances = client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -88,7 +92,7 @@ def test_get_tag_keys_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -123,7 +127,7 @@ def test_get_tag_values_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -142,7 +146,7 @@ def test_get_tag_values_ec2():
         ],
     )
     client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -322,7 +326,7 @@ def test_multiple_tag_filters():
     client = boto3.client("ec2", region_name="eu-central-1")
 
     resp = client.run_instances(
-        ImageId="ami-123",
+        ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -343,7 +347,7 @@ def test_multiple_tag_filters():
     instance_1_id = resp["Instances"][0]["InstanceId"]
 
     resp = client.run_instances(
-        ImageId="ami-456",
+        ImageId=EXAMPLE_AMI_ID2,
         MinCount=1,
         MaxCount=1,
         InstanceType="t2.micro",
@@ -373,3 +377,134 @@ def test_multiple_tag_filters():
     results.should.have.length_of(1)
     instance_1_id.should.be.within(results[0]["ResourceARN"])
     instance_2_id.shouldnt.be.within(results[0]["ResourceARN"])
+
+
+@mock_rds2
+@mock_resourcegroupstaggingapi
+def test_get_resources_rds():
+    client = boto3.client("rds", region_name="us-west-2")
+    resources_tagged = []
+    resources_untagged = []
+    for i in range(3):
+        database = client.create_db_instance(
+            DBInstanceIdentifier="db-instance-{}".format(i),
+            Engine="postgres",
+            DBInstanceClass="db.m1.small",
+            CopyTagsToSnapshot=True if i else False,
+            Tags=[{"Key": "test", "Value": "value-{}".format(i)}] if i else [],
+        ).get("DBInstance")
+        snapshot = client.create_db_snapshot(
+            DBInstanceIdentifier=database["DBInstanceIdentifier"],
+            DBSnapshotIdentifier="snapshot-{}".format(i),
+        ).get("DBSnapshot")
+        group = resources_tagged if i else resources_untagged
+        group.append(database["DBInstanceArn"])
+        group.append(snapshot["DBSnapshotArn"])
+
+    def assert_response(response, expected_count, resource_type=None):
+        results = response.get("ResourceTagMappingList", [])
+        results.should.have.length_of(expected_count)
+        for item in results:
+            arn = item["ResourceARN"]
+            arn.should.be.within(resources_tagged)
+            arn.should_not.be.within(resources_untagged)
+            if resource_type:
+                sure.this(":{}:".format(resource_type)).should.be.within(arn)
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    resp = rtapi.get_resources(ResourceTypeFilters=["rds"])
+    assert_response(resp, 4)
+    resp = rtapi.get_resources(ResourceTypeFilters=["rds:db"])
+    assert_response(resp, 2, resource_type="db")
+    resp = rtapi.get_resources(ResourceTypeFilters=["rds:snapshot"])
+    assert_response(resp, 2, resource_type="snapshot")
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
+    assert_response(resp, 2)
+
+
+@mock_lambda
+@mock_resourcegroupstaggingapi
+@mock_iam
+def test_get_resources_lambda():
+    def get_role_name():
+        with mock_iam():
+            iam = boto3.client("iam", region_name="us-west-2")
+            try:
+                return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+            except ClientError:
+                return iam.create_role(
+                    RoleName="my-role",
+                    AssumeRolePolicyDocument="some policy",
+                    Path="/my-path/",
+                )["Role"]["Arn"]
+
+    client = boto3.client("lambda", region_name="us-west-2")
+
+    zipfile = """
+              def lambda_handler(event, context):
+                  print("custom log event")
+                  return event
+              """
+
+    # create one lambda without tags
+    client.create_function(
+        FunctionName="lambda-no-tag",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # create second & third lambda with tags
+    circle_arn = client.create_function(
+        FunctionName="lambda-tag-value-1",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Tags={"Color": "green", "Shape": "circle"},
+    )["FunctionArn"]
+
+    rectangle_arn = client.create_function(
+        FunctionName="lambda-tag-value-2",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Tags={"Color": "green", "Shape": "rectangle"},
+    )["FunctionArn"]
+
+    def assert_response(response, expected_arns):
+        results = response.get("ResourceTagMappingList", [])
+        resultArns = []
+        for item in results:
+            resultArns.append(item["ResourceARN"])
+        for arn in resultArns:
+            arn.should.be.within(expected_arns)
+        for arn in expected_arns:
+            arn.should.be.within(resultArns)
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    resp = rtapi.get_resources(ResourceTypeFilters=["lambda"])
+    assert_response(resp, [circle_arn, rectangle_arn])
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Color", "Values": ["green"]}])
+    assert_response(resp, [circle_arn, rectangle_arn])
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["circle"]}])
+    assert_response(resp, [circle_arn])
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
+    assert_response(resp, [rectangle_arn])

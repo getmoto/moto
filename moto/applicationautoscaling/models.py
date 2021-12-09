@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ecs import ecs_backends
 from .exceptions import AWSValidationException
@@ -6,6 +5,11 @@ from collections import OrderedDict
 from enum import Enum, unique
 import time
 import uuid
+
+
+@unique
+class ResourceTypeExceptionValueSet(Enum):
+    RESOURCE_TYPE = "ResourceType"
 
 
 @unique
@@ -55,7 +59,7 @@ class ScalableDimensionValueSet(Enum):
 
 class ApplicationAutoscalingBackend(BaseBackend):
     def __init__(self, region, ecs):
-        super(ApplicationAutoscalingBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.ecs_backend = ecs
         self.targets = OrderedDict()
@@ -67,6 +71,13 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region, ecs)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "application-autoscaling"
+        )
+
     @property
     def applicationautoscaling_backend(self):
         return applicationautoscaling_backends[self.region]
@@ -74,7 +85,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
     def describe_scalable_targets(
         self, namespace, r_ids=None, dimension=None,
     ):
-        """ Describe scalable targets. """
+        """Describe scalable targets."""
         if r_ids is None:
             r_ids = []
         targets = self._flatten_scalable_targets(namespace)
@@ -85,7 +96,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return targets
 
     def _flatten_scalable_targets(self, namespace):
-        """ Flatten scalable targets for a given service namespace down to a list. """
+        """Flatten scalable targets for a given service namespace down to a list."""
         targets = []
         for dimension in self.targets.keys():
             for resource_id in self.targets[dimension].keys():
@@ -94,7 +105,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return targets
 
     def register_scalable_target(self, namespace, r_id, dimension, **kwargs):
-        """ Registers or updates a scalable target. """
+        """Registers or updates a scalable target."""
         _ = _target_params_are_valid(namespace, r_id, dimension)
         if namespace == ServiceNamespaceValueSet.ECS.value:
             _ = self._ecs_service_exists_for_target(r_id)
@@ -113,8 +124,8 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """Raises a ValidationException if an ECS service does not exist
         for the specified resource ID.
         """
-        resource_type, cluster, service = r_id.split("/")
-        result = self.ecs_backend.describe_services(cluster, [service])
+        _, cluster, service = r_id.split("/")
+        result, _ = self.ecs_backend.describe_services(cluster, [service])
         if len(result) != 1:
             raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
         return True
@@ -127,7 +138,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return target
 
     def deregister_scalable_target(self, namespace, r_id, dimension):
-        """ Registers or updates a scalable target. """
+        """Registers or updates a scalable target."""
         if self._scalable_target_exists(r_id, dimension):
             del self.targets[dimension][r_id]
         else:
@@ -150,7 +161,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             service_namespace, resource_id, scalable_dimension, policy_name
         )
         if policy_key in self.policies:
-            old_policy = self.policies[policy_name]
+            old_policy = self.policies[policy_key]
             policy = FakeApplicationAutoscalingPolicy(
                 region_name=self.region,
                 policy_name=policy_name,
@@ -222,7 +233,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
 
 def _target_params_are_valid(namespace, r_id, dimension):
-    """ Check whether namespace, resource_id and dimension are valid and consistent with each other. """
+    """Check whether namespace, resource_id and dimension are valid and consistent with each other."""
     is_valid = True
     valid_namespaces = [n.value for n in ServiceNamespaceValueSet]
     if namespace not in valid_namespaces:
@@ -230,8 +241,12 @@ def _target_params_are_valid(namespace, r_id, dimension):
     if dimension is not None:
         try:
             valid_dimensions = [d.value for d in ScalableDimensionValueSet]
-            d_namespace, d_resource_type, scaling_property = dimension.split(":")
-            resource_type = _get_resource_type_from_resource_id(r_id)
+            resource_type_exceptions = [r.value for r in ResourceTypeExceptionValueSet]
+            d_namespace, d_resource_type, _ = dimension.split(":")
+            if d_resource_type not in resource_type_exceptions:
+                resource_type = _get_resource_type_from_resource_id(r_id)
+            else:
+                resource_type = d_resource_type
             if (
                 dimension not in valid_dimensions
                 or d_namespace != namespace
@@ -311,7 +326,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.step_scaling_policy_configuration = None
         self.target_tracking_scaling_policy_configuration = None
 
-        if "policy_type" == "StepScaling":
+        if policy_type == "StepScaling":
             self.step_scaling_policy_configuration = policy_body
             self.target_tracking_scaling_policy_configuration = None
         elif policy_type == "TargetTrackingScaling":

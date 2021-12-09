@@ -1,13 +1,12 @@
-from __future__ import unicode_literals
-
 import copy
 import datetime
 
 from boto3 import Session
 
-from moto.compat import OrderedDict
+from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.utilities.utils import random_string
 from moto.ec2 import ec2_backends
 from .exceptions import (
     ClusterAlreadyExistsFaultError,
@@ -27,6 +26,7 @@ from .exceptions import (
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
     UnknownSnapshotCopyRegionFaultError,
+    ClusterSecurityGroupNotFoundFaultError,
 )
 
 
@@ -96,6 +96,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         iam_roles_arn=None,
         enhanced_vpc_routing=None,
         restored_from_snapshot=False,
+        kms_key_id=None,
     ):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
@@ -158,6 +159,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
         self.iam_roles_arn = iam_roles_arn or []
         self.restored_from_snapshot = restored_from_snapshot
+        self.kms_key_id = kms_key_id
 
     @staticmethod
     def cloudformation_name_type():
@@ -170,7 +172,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -206,8 +208,13 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             publicly_accessible=properties.get("PubliclyAccessible"),
             encrypted=properties.get("Encrypted"),
             region_name=region_name,
+            kms_key_id=properties.get("KmsKeyId"),
         )
         return cluster
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -299,6 +306,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
                 {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
                 for iam_role_arn in self.iam_roles_arn
             ],
+            "KmsKeyId": self.kms_key_id,
         }
         if self.restored_from_snapshot:
             json_response["RestoreStatus"] = {
@@ -365,7 +373,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -418,6 +426,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
         super(SecurityGroup, self).__init__(region_name, tags)
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
+        self.ingress_rules = []
 
     @property
     def resource_id(self):
@@ -461,7 +470,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -567,6 +576,15 @@ class RedshiftBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(ec2_backend, region_name)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "redshift"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "redshift-data", policy_supported=False
+        )
+
     def enable_snapshot_copy(self, **kwargs):
         cluster_identifier = kwargs["cluster_identifier"]
         cluster = self.clusters[cluster_identifier]
@@ -631,6 +649,20 @@ class RedshiftBackend(BaseBackend):
     def modify_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs.pop("cluster_identifier")
         new_cluster_identifier = cluster_kwargs.pop("new_cluster_identifier", None)
+
+        cluster_type = cluster_kwargs.get("cluster_type")
+        if cluster_type and cluster_type not in ["multi-node", "single-node"]:
+            raise InvalidParameterValueError(
+                "Invalid cluster type. Cluster type can be one of multi-node or single-node"
+            )
+        if cluster_type == "single-node":
+            # AWS will always silently override this value for single-node clusters.
+            cluster_kwargs["number_of_nodes"] = 1
+        elif cluster_type == "multi-node":
+            if cluster_kwargs.get("number_of_nodes", 0) < 2:
+                raise InvalidParameterCombinationError(
+                    "Number of nodes for cluster type multi-node must be greater than or equal to 2"
+                )
 
         cluster = self.describe_clusters(cluster_identifier)[0]
 
@@ -729,6 +761,16 @@ class RedshiftBackend(BaseBackend):
         if security_group_identifier in self.security_groups:
             return self.security_groups.pop(security_group_identifier)
         raise ClusterSecurityGroupNotFoundError(security_group_identifier)
+
+    def authorize_cluster_security_group_ingress(self, security_group_name, cidr_ip):
+        security_group = self.security_groups.get(security_group_name)
+        if not security_group:
+            raise ClusterSecurityGroupNotFoundFaultError()
+
+        # just adding the cidr_ip as ingress rule for now as there is no security rule
+        security_group.ingress_rules.append(cidr_ip)
+
+        return security_group
 
     def create_cluster_parameter_group(
         self,
@@ -926,6 +968,25 @@ class RedshiftBackend(BaseBackend):
     def delete_tags(self, resource_name, tag_keys):
         resource = self._get_resource_from_arn(resource_name)
         resource.delete_tags(tag_keys)
+
+    def get_cluster_credentials(
+        self, cluster_identifier, db_user, auto_create, duration_seconds
+    ):
+        if duration_seconds < 900 or duration_seconds > 3600:
+            raise InvalidParameterValueError(
+                "Token duration must be between 900 and 3600 seconds"
+            )
+        expiration = datetime.datetime.now() + datetime.timedelta(0, duration_seconds)
+        if cluster_identifier in self.clusters:
+            user_prefix = "IAM:" if auto_create is False else "IAMA:"
+            db_user = user_prefix + db_user
+            return {
+                "DbUser": db_user,
+                "DbPassword": random_string(32),
+                "Expiration": expiration,
+            }
+        else:
+            raise ClusterNotFoundError(cluster_identifier)
 
 
 redshift_backends = {}

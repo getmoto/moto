@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -208,6 +206,21 @@ class StepFunctionResponse(BaseResponse):
     @amzn_request_id
     def stop_execution(self):
         arn = self._get_param("executionArn")
-        execution = self.stepfunction_backend.stop_execution(arn)
-        response = {"stopDate": execution.stop_date}
-        return 200, {}, json.dumps(response)
+        try:
+            execution = self.stepfunction_backend.stop_execution(arn)
+            response = {"stopDate": execution.stop_date}
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def get_execution_history(self):
+        execution_arn = self._get_param("executionArn")
+        try:
+            execution_history = self.stepfunction_backend.get_execution_history(
+                execution_arn
+            )
+            response = {"events": execution_history}
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
