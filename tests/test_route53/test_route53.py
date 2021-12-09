@@ -1533,11 +1533,13 @@ def test_change_resource_record_sets_records_limit():
         "Changes": too_many_changes,
     }
 
-    with pytest.raises(botocore.exceptions.ClientError):
+    with pytest.raises(ClientError) as exc:
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id,
             ChangeBatch=create_1001_resource_records_payload,
         )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidChangeBatch")
 
     # Changes upserting exactly 500 resource records.
     changes = []
@@ -1584,7 +1586,10 @@ def test_change_resource_record_sets_records_limit():
         "Changes": too_many_changes,
     }
 
-    with pytest.raises(botocore.exceptions.ClientError):
+    with pytest.raises(ClientError) as exc:
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id, ChangeBatch=upsert_501_resource_records_payload
         )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidChangeBatch")
+    err["Message"].should.equal("Number of records limit of 1000 exceeded.")
