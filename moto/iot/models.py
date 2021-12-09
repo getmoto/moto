@@ -484,6 +484,62 @@ class FakeRule(BaseModel):
         }
 
 
+class FakeDomainConfiguration(BaseModel):
+    def __init__(
+        self,
+        region_name,
+        domain_configuration_name,
+        domain_name,
+        server_certificate_arns,
+        domain_configuration_status,
+        service_type,
+        authorizer_config,
+        domain_type,
+    ):
+        if service_type and service_type not in ["DATA", "CREDENTIAL_PROVIDER", "JOBS"]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
+                "operation: Service type %s not recognized." % service_type
+            )
+        self.domain_configuration_name = domain_configuration_name
+        self.domain_configuration_arn = "arn:aws:iot:%s:1:domainconfiguration/%s/%s" % (
+            region_name,
+            domain_configuration_name,
+            random_string(5),
+        )
+        self.domain_name = domain_name
+        self.server_certificates = []
+        if server_certificate_arns:
+            for sc in server_certificate_arns:
+                self.server_certificates.append(
+                    {"serverCertificateArn": sc, "serverCertificateStatus": "VALID"}
+                )
+        self.domain_configuration_status = domain_configuration_status
+        self.service_type = service_type
+        self.authorizer_config = authorizer_config
+        self.domain_type = domain_type
+        self.last_status_change_date = time.time()
+
+    def to_description_dict(self):
+        return {
+            "domainConfigurationName": self.domain_configuration_name,
+            "domainConfigurationArn": self.domain_configuration_arn,
+            "domainName": self.domain_name,
+            "serverCertificates": self.server_certificates,
+            "authorizerConfig": self.authorizer_config,
+            "domainConfigurationStatus": self.domain_configuration_status,
+            "serviceType": self.service_type,
+            "domainType": self.domain_type,
+            "lastStatusChangeDate": self.last_status_change_date,
+        }
+
+    def to_dict(self):
+        return {
+            "domainConfigurationName": self.domain_configuration_name,
+            "domainConfigurationArn": self.domain_configuration_arn,
+        }
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
@@ -499,6 +555,7 @@ class IoTBackend(BaseBackend):
         self.principal_things = OrderedDict()
         self.rules = OrderedDict()
         self.endpoint = None
+        self.domain_configurations = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -1407,6 +1464,64 @@ class IoTBackend(BaseBackend):
         if rule_name not in self.rules:
             raise ResourceNotFoundException()
         self.rules[rule_name].rule_disabled = True
+
+    def create_domain_configuration(
+        self,
+        domain_configuration_name,
+        domain_name,
+        server_certificate_arns,
+        validation_certificate_arn,
+        authorizer_config,
+        service_type,
+    ):
+        if domain_configuration_name in self.domain_configurations:
+            raise ResourceAlreadyExistsException(
+                "Domain configuration with given name already exists."
+            )
+        self.domain_configurations[domain_configuration_name] = FakeDomainConfiguration(
+            self.region_name,
+            domain_configuration_name,
+            domain_name,
+            server_certificate_arns,
+            "ENABLED",
+            service_type,
+            authorizer_config,
+            "CUSTOMER_MANAGED",
+        )
+        return self.domain_configurations[domain_configuration_name]
+
+    def delete_domain_configuration(self, domain_configuration_name):
+        if domain_configuration_name not in self.domain_configurations:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        del self.domain_configurations[domain_configuration_name]
+
+    def describe_domain_configuration(self, domain_configuration_name):
+        if domain_configuration_name not in self.domain_configurations:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        return self.domain_configurations[domain_configuration_name]
+
+    def list_domain_configurations(self):
+        return [_.to_dict() for _ in self.domain_configurations.values()]
+
+    def update_domain_configuration(
+        self,
+        domain_configuration_name,
+        authorizer_config,
+        domain_configuration_status,
+        remove_authorizer_config,
+    ):
+        if domain_configuration_name not in self.domain_configurations:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        domain_configuration = self.domain_configurations[domain_configuration_name]
+        if authorizer_config is not None:
+            domain_configuration.authorizer_config = authorizer_config
+        if domain_configuration_status is not None:
+            domain_configuration.domain_configuration_status = (
+                domain_configuration_status
+            )
+        if remove_authorizer_config is not None and remove_authorizer_config is True:
+            domain_configuration.authorizer_config = None
+        return domain_configuration
 
 
 iot_backends = {}
