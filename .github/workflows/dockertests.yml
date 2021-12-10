@@ -113,7 +113,7 @@ jobs:
       run: |
         python setup.py sdist
         docker network create -d bridge my-custom-network
-        docker run --rm -t -e TEST_SERVER_MODE=true -e MOTO_DOCKER_NETWORK_NAME=my-custom-network -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        docker run --rm -t -e TEST_SERVER_MODE=true -e MOTO_DOCKER_NETWORK_NAME=my-custom-network -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 --network my-custom-network -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
         python scripts/ci_wait_for_server.py
     - name: Get pip cache dir
       id: pip-cache
