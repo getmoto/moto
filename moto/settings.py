@@ -57,6 +57,10 @@ def moto_server_host():
         return "http://host.docker.internal"
 
 
+def moto_network_name():
+    return os.environ.get("MOTO_DOCKER_NETWORK_NAME")
+
+
 def moto_network_mode():
     return os.environ.get("MOTO_DOCKER_NETWORK_MODE")
 
@@ -74,7 +78,20 @@ def get_docker_host():
     try:
         cmd = "curl -s --unix-socket /run/docker.sock http://docker/containers/$HOSTNAME/json"
         container_info = os.popen(cmd).read()
-        _ip = json.loads(container_info)["NetworkSettings"]["IPAddress"]
+        network_settings = json.loads(container_info)["NetworkSettings"]
+        network_name = moto_network_name()
+        if network_name and network_name in network_settings["Networks"]:
+            _ip = network_settings["Networks"][network_name]["IPAddress"]
+        else:
+            _ip = network_settings["IPAddress"]
+            if network_name:
+                print(
+                    f"WARNING - Moto couldn't find network '{network_name}' - defaulting to {_ip}"
+                )
         return f"http://{_ip}"
-    except:  # noqa
+    except Exception as e:  # noqa
+        print(
+            "WARNING - Unable to parse Docker API response. Defaulting to 'host.docker.internal'"
+        )
+        print(f"{type(e)}::{e}")
         return "http://host.docker.internal"

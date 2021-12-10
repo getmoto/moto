@@ -577,8 +577,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
                     run_kwargs = dict()
+                    network_name = settings.moto_network_name()
                     network_mode = settings.moto_network_mode()
-                    if network_mode:
+                    if network_name:
+                        run_kwargs["network"] = network_name
+                    elif network_mode:
                         run_kwargs["network_mode"] = network_mode
                     elif settings.TEST_SERVER_MODE:
                         # AWSLambda can make HTTP requests to a Docker container called 'motoserver'
@@ -1130,18 +1133,26 @@ The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, whic
 
         ec2.do_whatever_inside_the_existing_moto_server()
 
-The Docker container uses the default network mode, `bridge`. It is possible to override this value. For example, when setting the network mode to `host`, Docker would use the network stack of the host. That means that AWSLambda can reach the MotoServer by using 'localhost'.
+Moto will run on port 5000 by default. This can be overwritten by setting an environment variable when starting Moto:
 
 .. sourcecode:: bash
 
-    MOTO_DOCKER_NETWORK_MODE=host moto_server -p 1234
+    # This env var will be propagated to the Docker containers
+    MOTO_PORT=5000 moto_server
 
-.. sourcecode:: python
+The Docker container uses the default network mode, `bridge`.
+The following environment variables are available for fine-grained control over the Docker connection options:
 
-    def lambda_handler(event, context):
-        ec2 = boto3.client('ec2', region_name='us-west-2', endpoint_url="http://localhost:1234")
+.. sourcecode:: bash
 
-        ec2.do_whatever_inside_the_existing_moto_server()
+    # Provide the name of a custom network to connect to
+    MOTO_DOCKER_NETWORK_NAME=mycustomnetwork moto_server
+
+    # Override the network mode
+    # For example, network_mode=host would use the network of the host machine
+    # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
+    MOTO_DOCKER_NETWORK_MODE=host moto_server
+
 
 .. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
