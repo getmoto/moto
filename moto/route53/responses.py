@@ -6,7 +6,7 @@ from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError
+from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -111,6 +111,23 @@ class Route53(BaseResponse):
                         "Changes"
                     ]["Change"]
                 ]
+
+            # Enforce quotas https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests-changeresourcerecordsets
+            #  - A request cannot contain more than 1,000 ResourceRecord elements. When the value of the Action element is UPSERT, each ResourceRecord element is counted twice.
+            effective_rr_count = 0
+            for value in change_list:
+                record_set = value["ResourceRecordSet"]
+                if (
+                    "ResourceRecords" not in record_set
+                    or not record_set["ResourceRecords"]
+                ):
+                    continue
+                resource_records = list(record_set["ResourceRecords"].values())[0]
+                effective_rr_count += len(resource_records)
+                if value["Action"] == "UPSERT":
+                    effective_rr_count += len(resource_records)
+            if effective_rr_count > 1000:
+                raise InvalidChangeBatch
 
             error_msg = route53_backend.change_resource_record_sets(zoneid, change_list)
             if error_msg:

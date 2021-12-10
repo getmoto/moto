@@ -72,3 +72,12 @@ class QueryLoggingConfigAlreadyExists(Route53ClientError):
     def __init__(self):
         message = "A query logging configuration already exists for this hosted zone"
         super().__init__("QueryLoggingConfigAlreadyExists", message)
+
+
+class InvalidChangeBatch(Route53ClientError):
+
+    code = 400
+
+    def __init__(self):
+        message = "Number of records limit of 1000 exceeded."
+        super().__init__("InvalidChangeBatch", message)

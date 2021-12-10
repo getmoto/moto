@@ -1472,3 +1472,124 @@ def test_get_change():
 
     response["ChangeInfo"]["Id"].should.equal(change_id)
     response["ChangeInfo"]["Status"].should.equal("INSYNC")
+
+
+@mock_route53
+def test_change_resource_record_sets_records_limit():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Changes creating exactly 1,000 resource records.
+    changes = []
+    for ci in range(4):
+        resourcerecords = []
+        for rri in range(250):
+            resourcerecords.append({"Value": "127.0.0.%d" % (rri)})
+        changes.append(
+            {
+                "Action": "CREATE",
+                "ResourceRecordSet": {
+                    "Name": "foo%d.db." % (ci),
+                    "Type": "A",
+                    "TTL": 10,
+                    "ResourceRecords": resourcerecords,
+                },
+            }
+        )
+    create_1000_resource_records_payload = {
+        "Comment": "Create four records with 250 resource records each",
+        "Changes": changes,
+    }
+
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=create_1000_resource_records_payload
+    )
+
+    # Changes creating over 1,000 resource records.
+    too_many_changes = create_1000_resource_records_payload["Changes"].copy()
+    too_many_changes.append(
+        {
+            "Action": "CREATE",
+            "ResourceRecordSet": {
+                "Name": "toomany.db.",
+                "Type": "A",
+                "TTL": 10,
+                "ResourceRecords": [{"Value": "127.0.0.1"}],
+            },
+        }
+    )
+
+    create_1001_resource_records_payload = {
+        "Comment": "Create four records with 250 resource records each, plus one more",
+        "Changes": too_many_changes,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id,
+            ChangeBatch=create_1001_resource_records_payload,
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidChangeBatch")
+
+    # Changes upserting exactly 500 resource records.
+    changes = []
+    for ci in range(2):
+        resourcerecords = []
+        for rri in range(250):
+            resourcerecords.append({"Value": "127.0.0.%d" % (rri)})
+        changes.append(
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "foo%d.db." % (ci),
+                    "Type": "A",
+                    "TTL": 10,
+                    "ResourceRecords": resourcerecords,
+                },
+            }
+        )
+    upsert_500_resource_records_payload = {
+        "Comment": "Upsert two records with 250 resource records each",
+        "Changes": changes,
+    }
+
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=upsert_500_resource_records_payload
+    )
+
+    # Changes upserting over 1,000 resource records.
+    too_many_changes = upsert_500_resource_records_payload["Changes"].copy()
+    too_many_changes.append(
+        {
+            "Action": "UPSERT",
+            "ResourceRecordSet": {
+                "Name": "toomany.db.",
+                "Type": "A",
+                "TTL": 10,
+                "ResourceRecords": [{"Value": "127.0.0.1"}],
+            },
+        }
+    )
+
+    upsert_501_resource_records_payload = {
+        "Comment": "Upsert two records with 250 resource records each, plus one more",
+        "Changes": too_many_changes,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id, ChangeBatch=upsert_501_resource_records_payload
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidChangeBatch")
+    err["Message"].should.equal("Number of records limit of 1000 exceeded.")
