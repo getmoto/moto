@@ -312,7 +312,6 @@ class Subscription(BaseModel):
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
-            "Subject": subject,
             "Message": message,
             "Timestamp": iso_8601_datetime_with_milliseconds(
                 datetime.datetime.utcnow()
@@ -324,6 +323,8 @@ class Subscription(BaseModel):
                 DEFAULT_ACCOUNT_ID
             ),
         }
+        if subject:
+            post_data["Subject"] = subject
         if message_attributes:
             post_data["MessageAttributes"] = message_attributes
         return post_data
