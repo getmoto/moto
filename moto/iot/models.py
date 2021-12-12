@@ -10,7 +10,7 @@ from datetime import datetime
 from .utils import PAGINATION_MODEL
 
 from boto3 import Session
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.utilities.utils import random_string
 from moto.utilities.paginator import paginate
 from .exceptions import (
@@ -31,7 +31,7 @@ class FakeThing(BaseModel):
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
-        self.arn = "arn:aws:iot:%s:1:thing/%s" % (self.region_name, thing_name)
+        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:thing/{thing_name}"
         self.version = 1
         # TODO: we need to handle "version"?
 
