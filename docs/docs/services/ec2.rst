@@ -34,6 +34,7 @@ ec2
 - [ ] advertise_byoip_cidr
 - [X] allocate_address
 - [ ] allocate_hosts
+- [ ] allocate_ipam_pool_cidr
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
 - [X] assign_private_ip_addresses
@@ -88,6 +89,9 @@ ec2
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
+- [ ] create_ipam
+- [ ] create_ipam_pool
+- [ ] create_ipam_scope
 - [X] create_key_pair
 - [X] create_launch_template
 - [ ] create_launch_template_version
@@ -97,10 +101,12 @@ ec2
 - [X] create_nat_gateway
 - [X] create_network_acl
 - [X] create_network_acl_entry
+- [ ] create_network_insights_access_scope
 - [ ] create_network_insights_path
 - [X] create_network_interface
 - [ ] create_network_interface_permission
 - [ ] create_placement_group
+- [ ] create_public_ipv4_pool
 - [ ] create_replace_root_volume_task
 - [ ] create_reserved_instances_listing
 - [ ] create_restore_image_task
@@ -147,6 +153,9 @@ ec2
 - [ ] delete_fpga_image
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
+- [ ] delete_ipam
+- [ ] delete_ipam_pool
+- [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [ ] delete_launch_template
 - [ ] delete_launch_template_versions
@@ -156,11 +165,14 @@ ec2
 - [X] delete_nat_gateway
 - [X] delete_network_acl
 - [X] delete_network_acl_entry
+- [ ] delete_network_insights_access_scope
+- [ ] delete_network_insights_access_scope_analysis
 - [ ] delete_network_insights_analysis
 - [ ] delete_network_insights_path
 - [X] delete_network_interface
 - [ ] delete_network_interface_permission
 - [ ] delete_placement_group
+- [ ] delete_public_ipv4_pool
 - [ ] delete_queued_reserved_instances
 - [X] delete_route
 - [X] delete_route_table
@@ -193,6 +205,8 @@ ec2
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
 - [ ] deprovision_byoip_cidr
+- [ ] deprovision_ipam_pool_cidr
+- [ ] deprovision_public_ipv4_pool_cidr
 - [X] deregister_image
 - [ ] deregister_instance_event_notification_attributes
 - [ ] deregister_transit_gateway_multicast_group_members
@@ -247,6 +261,9 @@ ec2
 - [X] describe_instance_types
 - [X] describe_instances
 - [X] describe_internet_gateways
+- [ ] describe_ipam_pools
+- [ ] describe_ipam_scopes
+- [ ] describe_ipams
 - [ ] describe_ipv6_pools
 - [X] describe_key_pairs
 - [ ] describe_launch_template_versions
@@ -261,6 +278,8 @@ ec2
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
 - [X] describe_network_acls
+- [ ] describe_network_insights_access_scope_analyses
+- [ ] describe_network_insights_access_scopes
 - [ ] describe_network_insights_analyses
 - [ ] describe_network_insights_paths
 - [ ] describe_network_interface_attribute
@@ -283,6 +302,7 @@ ec2
 - [ ] describe_security_group_rules
 - [X] describe_security_groups
 - [ ] describe_snapshot_attribute
+- [ ] describe_snapshot_tier_status
 - [X] describe_snapshots
 - [ ] describe_spot_datafeed_subscription
 - [X] describe_spot_fleet_instances
@@ -342,6 +362,7 @@ ec2
 - [ ] disable_ebs_encryption_by_default
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
+- [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
 - [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
@@ -361,6 +382,7 @@ ec2
 - [ ] enable_ebs_encryption_by_default
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
+- [ ] enable_ipam_organization_admin_account
 - [ ] enable_serial_console_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
@@ -384,9 +406,15 @@ ec2
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_ipam_address_history
+- [ ] get_ipam_pool_allocations
+- [ ] get_ipam_pool_cidrs
+- [ ] get_ipam_resource_cidrs
 - [ ] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
+- [ ] get_network_insights_access_scope_analysis_findings
+- [ ] get_network_insights_access_scope_content
 - [ ] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
@@ -405,6 +433,7 @@ ec2
 - [X] import_key_pair
 - [ ] import_snapshot
 - [ ] import_volume
+- [ ] list_snapshots_in_recycle_bin
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -425,6 +454,10 @@ ec2
 - [ ] modify_instance_event_window
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
+- [ ] modify_ipam
+- [ ] modify_ipam_pool
+- [ ] modify_ipam_resource_cidr
+- [ ] modify_ipam_scope
 - [ ] modify_launch_template
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
@@ -432,6 +465,7 @@ ec2
 - [ ] modify_reserved_instances
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute
+- [ ] modify_snapshot_tier
 - [X] modify_spot_fleet_request
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
@@ -455,7 +489,10 @@ ec2
 - [ ] modify_vpn_tunnel_options
 - [ ] monitor_instances
 - [ ] move_address_to_vpc
+- [ ] move_byoip_cidr_to_ipam
 - [ ] provision_byoip_cidr
+- [ ] provision_ipam_pool_cidr
+- [ ] provision_public_ipv4_pool_cidr
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -471,6 +508,7 @@ ec2
 - [X] reject_vpc_peering_connection
 - [X] release_address
 - [ ] release_hosts
+- [ ] release_ipam_pool_allocation
 - [X] replace_iam_instance_profile_association
 - [X] replace_network_acl_association
 - [X] replace_network_acl_entry
@@ -489,6 +527,8 @@ ec2
 - [ ] reset_snapshot_attribute
 - [ ] restore_address_to_classic
 - [ ] restore_managed_prefix_list_version
+- [ ] restore_snapshot_from_recycle_bin
+- [ ] restore_snapshot_tier
 - [ ] revoke_client_vpn_ingress
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
@@ -499,6 +539,7 @@ ec2
 - [X] search_transit_gateway_routes
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
+- [ ] start_network_insights_access_scope_analysis
 - [ ] start_network_insights_analysis
 - [ ] start_vpc_endpoint_service_private_dns_verification
 - [X] stop_instances

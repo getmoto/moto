@@ -53,4 +53,5 @@ kinesis
 - [ ] stop_stream_encryption
 - [ ] subscribe_to_shard
 - [ ] update_shard_count
+- [ ] update_stream_mode
 

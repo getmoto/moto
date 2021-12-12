@@ -1,6 +1,34 @@
 Moto Changelog
 ===================
 
+2.2.18
+------
+    New Services:
+        * ElastiCache:
+            * create_user()
+            * delete_user()
+            * describe_users()
+        * GuardDuty:
+            * create_detector()
+            * list_detectors()
+
+    New Methods:
+        * IAM:
+            * list_open_id_connect_provider_tags()
+            * tag_open_id_connect_provider()
+            * untag_open_id_connect_provider()
+            * update_open_id_connect_provider_thumbprint()
+        * IOT:
+            * create_domain_configuration()
+            * delete_domain_configuration()
+            * describe_domain_configuration()
+            * list_domain_configurations()
+            * update_domain_configuration()
+
+    Miscellaneous:
+        * ResourceGroupTaggingAPI now supports Lambda Functions
+        * SecretsManager:list_secrets() now supports negative filters
+
 2.2.17
 ------
     New Services:

@@ -120,7 +120,7 @@ iam
 - [ ] list_instance_profiles_for_role
 - [ ] list_mfa_device_tags
 - [X] list_mfa_devices
-- [ ] list_open_id_connect_provider_tags
+- [X] list_open_id_connect_provider_tags
 - [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
@@ -156,7 +156,7 @@ iam
 - [ ] simulate_principal_policy
 - [ ] tag_instance_profile
 - [ ] tag_mfa_device
-- [ ] tag_open_id_connect_provider
+- [X] tag_open_id_connect_provider
 - [X] tag_policy
 - [X] tag_role
 - [ ] tag_saml_provider
@@ -164,7 +164,7 @@ iam
 - [X] tag_user
 - [ ] untag_instance_profile
 - [ ] untag_mfa_device
-- [ ] untag_open_id_connect_provider
+- [X] untag_open_id_connect_provider
 - [X] untag_policy
 - [X] untag_role
 - [ ] untag_saml_provider
@@ -175,7 +175,7 @@ iam
 - [ ] update_assume_role_policy
 - [X] update_group
 - [X] update_login_profile
-- [ ] update_open_id_connect_provider_thumbprint
+- [X] update_open_id_connect_provider_thumbprint
 - [X] update_role
 - [X] update_role_description
 - [X] update_saml_provider

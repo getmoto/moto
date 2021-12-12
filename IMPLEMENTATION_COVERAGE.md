@@ -1185,7 +1185,7 @@
 
 ## ec2
 <details>
-<summary>36% implemented</summary>
+<summary>33% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -1196,6 +1196,7 @@
 - [ ] advertise_byoip_cidr
 - [X] allocate_address
 - [ ] allocate_hosts
+- [ ] allocate_ipam_pool_cidr
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
 - [X] assign_private_ip_addresses
@@ -1250,6 +1251,9 @@
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
+- [ ] create_ipam
+- [ ] create_ipam_pool
+- [ ] create_ipam_scope
 - [X] create_key_pair
 - [X] create_launch_template
 - [ ] create_launch_template_version
@@ -1259,10 +1263,12 @@
 - [X] create_nat_gateway
 - [X] create_network_acl
 - [X] create_network_acl_entry
+- [ ] create_network_insights_access_scope
 - [ ] create_network_insights_path
 - [X] create_network_interface
 - [ ] create_network_interface_permission
 - [ ] create_placement_group
+- [ ] create_public_ipv4_pool
 - [ ] create_replace_root_volume_task
 - [ ] create_reserved_instances_listing
 - [ ] create_restore_image_task
@@ -1309,6 +1315,9 @@
 - [ ] delete_fpga_image
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
+- [ ] delete_ipam
+- [ ] delete_ipam_pool
+- [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [ ] delete_launch_template
 - [ ] delete_launch_template_versions
@@ -1318,11 +1327,14 @@
 - [X] delete_nat_gateway
 - [X] delete_network_acl
 - [X] delete_network_acl_entry
+- [ ] delete_network_insights_access_scope
+- [ ] delete_network_insights_access_scope_analysis
 - [ ] delete_network_insights_analysis
 - [ ] delete_network_insights_path
 - [X] delete_network_interface
 - [ ] delete_network_interface_permission
 - [ ] delete_placement_group
+- [ ] delete_public_ipv4_pool
 - [ ] delete_queued_reserved_instances
 - [X] delete_route
 - [X] delete_route_table
@@ -1355,6 +1367,8 @@
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
 - [ ] deprovision_byoip_cidr
+- [ ] deprovision_ipam_pool_cidr
+- [ ] deprovision_public_ipv4_pool_cidr
 - [X] deregister_image
 - [ ] deregister_instance_event_notification_attributes
 - [ ] deregister_transit_gateway_multicast_group_members
@@ -1409,6 +1423,9 @@
 - [X] describe_instance_types
 - [X] describe_instances
 - [X] describe_internet_gateways
+- [ ] describe_ipam_pools
+- [ ] describe_ipam_scopes
+- [ ] describe_ipams
 - [ ] describe_ipv6_pools
 - [X] describe_key_pairs
 - [ ] describe_launch_template_versions
@@ -1423,6 +1440,8 @@
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
 - [X] describe_network_acls
+- [ ] describe_network_insights_access_scope_analyses
+- [ ] describe_network_insights_access_scopes
 - [ ] describe_network_insights_analyses
 - [ ] describe_network_insights_paths
 - [ ] describe_network_interface_attribute
@@ -1445,6 +1464,7 @@
 - [ ] describe_security_group_rules
 - [X] describe_security_groups
 - [ ] describe_snapshot_attribute
+- [ ] describe_snapshot_tier_status
 - [X] describe_snapshots
 - [ ] describe_spot_datafeed_subscription
 - [X] describe_spot_fleet_instances
@@ -1493,6 +1513,7 @@
 - [ ] disable_ebs_encryption_by_default
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
+- [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
 - [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
@@ -1512,6 +1533,7 @@
 - [ ] enable_ebs_encryption_by_default
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
+- [ ] enable_ipam_organization_admin_account
 - [ ] enable_serial_console_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
@@ -1535,9 +1557,15 @@
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_ipam_address_history
+- [ ] get_ipam_pool_allocations
+- [ ] get_ipam_pool_cidrs
+- [ ] get_ipam_resource_cidrs
 - [ ] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
+- [ ] get_network_insights_access_scope_analysis_findings
+- [ ] get_network_insights_access_scope_content
 - [ ] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
@@ -1556,6 +1584,7 @@
 - [X] import_key_pair
 - [ ] import_snapshot
 - [ ] import_volume
+- [ ] list_snapshots_in_recycle_bin
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -1576,6 +1605,10 @@
 - [ ] modify_instance_event_window
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
+- [ ] modify_ipam
+- [ ] modify_ipam_pool
+- [ ] modify_ipam_resource_cidr
+- [ ] modify_ipam_scope
 - [ ] modify_launch_template
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
@@ -1583,6 +1616,7 @@
 - [ ] modify_reserved_instances
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute
+- [ ] modify_snapshot_tier
 - [X] modify_spot_fleet_request
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
@@ -1606,7 +1640,10 @@
 - [ ] modify_vpn_tunnel_options
 - [ ] monitor_instances
 - [ ] move_address_to_vpc
+- [ ] move_byoip_cidr_to_ipam
 - [ ] provision_byoip_cidr
+- [ ] provision_ipam_pool_cidr
+- [ ] provision_public_ipv4_pool_cidr
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -1622,6 +1659,7 @@
 - [X] reject_vpc_peering_connection
 - [X] release_address
 - [ ] release_hosts
+- [ ] release_ipam_pool_allocation
 - [X] replace_iam_instance_profile_association
 - [X] replace_network_acl_association
 - [X] replace_network_acl_entry
@@ -1640,6 +1678,8 @@
 - [ ] reset_snapshot_attribute
 - [ ] restore_address_to_classic
 - [ ] restore_managed_prefix_list_version
+- [ ] restore_snapshot_from_recycle_bin
+- [ ] restore_snapshot_tier
 - [ ] revoke_client_vpn_ingress
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
@@ -1650,6 +1690,7 @@
 - [X] search_transit_gateway_routes
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
+- [ ] start_network_insights_access_scope_analysis
 - [ ] start_network_insights_analysis
 - [ ] start_vpc_endpoint_service_private_dns_verification
 - [X] stop_instances
@@ -1673,20 +1714,24 @@
 
 ## ecr
 <details>
-<summary>74% implemented</summary>
+<summary>63% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
+- [ ] batch_get_repository_scanning_configuration
 - [ ] complete_layer_upload
+- [ ] create_pull_through_cache_rule
 - [X] create_repository
 - [X] delete_lifecycle_policy
+- [ ] delete_pull_through_cache_rule
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
 - [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
+- [ ] describe_pull_through_cache_rules
 - [X] describe_registry
 - [X] describe_repositories
 - [ ] get_authorization_token
@@ -1694,6 +1739,7 @@
 - [X] get_lifecycle_policy
 - [ ] get_lifecycle_policy_preview
 - [X] get_registry_policy
+- [ ] get_registry_scanning_configuration
 - [X] get_repository_policy
 - [ ] initiate_layer_upload
 - [X] list_images
@@ -1703,6 +1749,7 @@
 - [X] put_image_tag_mutability
 - [X] put_lifecycle_policy
 - [X] put_registry_policy
+- [ ] put_registry_scanning_configuration
 - [X] put_replication_configuration
 - [X] set_repository_policy
 - [X] start_image_scan
@@ -2547,7 +2594,7 @@
 
 ## iam
 <details>
-<summary>67% implemented</summary>
+<summary>70% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -2640,7 +2687,7 @@
 - [ ] list_instance_profiles_for_role
 - [ ] list_mfa_device_tags
 - [X] list_mfa_devices
-- [ ] list_open_id_connect_provider_tags
+- [X] list_open_id_connect_provider_tags
 - [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
@@ -2676,7 +2723,7 @@
 - [ ] simulate_principal_policy
 - [ ] tag_instance_profile
 - [ ] tag_mfa_device
-- [ ] tag_open_id_connect_provider
+- [X] tag_open_id_connect_provider
 - [X] tag_policy
 - [X] tag_role
 - [ ] tag_saml_provider
@@ -2684,7 +2731,7 @@
 - [X] tag_user
 - [ ] untag_instance_profile
 - [ ] untag_mfa_device
-- [ ] untag_open_id_connect_provider
+- [X] untag_open_id_connect_provider
 - [X] untag_policy
 - [X] untag_role
 - [ ] untag_saml_provider
@@ -2695,7 +2742,7 @@
 - [ ] update_assume_role_policy
 - [X] update_group
 - [X] update_login_profile
-- [ ] update_open_id_connect_provider_thumbprint
+- [X] update_open_id_connect_provider_thumbprint
 - [X] update_role
 - [X] update_role_description
 - [X] update_saml_provider
@@ -2711,7 +2758,7 @@
 
 ## iot
 <details>
-<summary>29% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -2966,7 +3013,7 @@
 
 ## kinesis
 <details>
-<summary>60% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -2996,6 +3043,7 @@
 - [ ] stop_stream_encryption
 - [ ] subscribe_to_shard
 - [ ] update_shard_count
+- [ ] update_stream_mode
 </details>
 
 ## kinesis-video-archived-media
@@ -3882,7 +3930,7 @@
 
 ## route53
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -3933,7 +3981,7 @@
 - [X] list_hosted_zones_by_name
 - [ ] list_hosted_zones_by_vpc
 - [X] list_query_logging_configs
-- [ ] list_resource_record_sets
+- [X] list_resource_record_sets
 - [ ] list_reusable_delegation_sets
 - [X] list_tags_for_resource
 - [ ] list_tags_for_resources
@@ -4151,6 +4199,7 @@
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
+- [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
 - [X] create_model
 - [ ] create_model_bias_job_definition
@@ -4236,7 +4285,9 @@
 - [ ] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
+- [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
+- [ ] describe_lineage_group
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
 - [ ] describe_model_explainability_job_definition
@@ -4264,6 +4315,7 @@
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
 - [ ] get_device_fleet_report
+- [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
 - [ ] get_search_suggestions
@@ -4292,10 +4344,13 @@
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
+- [ ] list_lineage_groups
 - [ ] list_model_bias_job_definitions
 - [ ] list_model_explainability_job_definitions
+- [ ] list_model_metadata
 - [ ] list_model_package_groups
 - [ ] list_model_packages
 - [ ] list_model_quality_job_definitions
@@ -4322,6 +4377,7 @@
 - [ ] list_workforces
 - [ ] list_workteams
 - [ ] put_model_package_group_policy
+- [ ] query_lineage
 - [ ] register_devices
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
@@ -4335,6 +4391,7 @@
 - [ ] stop_compilation_job
 - [ ] stop_edge_packaging_job
 - [ ] stop_hyper_parameter_tuning_job
+- [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance
@@ -4936,6 +4993,7 @@
 - amp
 - amplify
 - amplifybackend
+- amplifyuibuilder
 - apigatewaymanagementapi
 - apigatewayv2
 - appconfig
@@ -4951,6 +5009,7 @@
 - auditmanager
 - autoscaling-plans
 - backup
+- backup-gateway
 - braket
 - ce
 - chime
@@ -4996,6 +5055,7 @@
 - ecr-public
 - elastic-inference
 - es
+- evidently
 - finspace
 - finspace-data
 - fis
@@ -5016,6 +5076,7 @@
 - imagebuilder
 - importexport
 - inspector
+- inspector2
 - iot-jobs-data
 - iot1click-devices
 - iot1click-projects
@@ -5027,6 +5088,7 @@
 - iotsecuretunneling
 - iotsitewise
 - iotthingsgraph
+- iottwinmaker
 - iotwireless
 - ivs
 - kafka
@@ -5087,6 +5149,7 @@
 - qldb
 - qldb-session
 - quicksight
+- rbin
 - rds-data
 - redshift-data
 - rekognition
@@ -5096,6 +5159,7 @@
 - route53-recovery-control-config
 - route53-recovery-readiness
 - route53domains
+- rum
 - s3control
 - s3outposts
 - sagemaker-a2i-runtime
@@ -5138,5 +5202,6 @@
 - workmail
 - workmailmessageflow
 - workspaces
+- workspaces-web
 - xray
 </details>
