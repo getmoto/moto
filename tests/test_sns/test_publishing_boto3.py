@@ -416,7 +416,7 @@ def test_publish_null_subject():
 
     acquired_message = json.loads(messages[0].body)
     acquired_message["Message"].should.equal(message)
-    acquired_message["Subject"].should.equal(None)
+    acquired_message.shouldnt.have.key("Subject")
 
 
 @mock_sns
