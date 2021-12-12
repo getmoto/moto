@@ -3,6 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 import boto3
 
 from moto import mock_iot, mock_cognitoidentity
+from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
 import pytest
 
@@ -395,10 +396,12 @@ def test_list_things_with_next_token():
     things.should.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("1")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/1")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/1"
+    )
     things["things"][-1]["thingName"].should.equal("50")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/50"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/50"
     )
 
     things = client.list_things(nextToken=things["nextToken"])
@@ -406,11 +409,11 @@ def test_list_things_with_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("51")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/51"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/51"
     )
     things["things"][-1]["thingName"].should.equal("100")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/100"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/100"
     )
 
     things = client.list_things(nextToken=things["nextToken"])
@@ -418,11 +421,11 @@ def test_list_things_with_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("101")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/101"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/101"
     )
     things["things"][-1]["thingName"].should.equal("150")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/150"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
     )
 
     things = client.list_things(nextToken=things["nextToken"])
@@ -430,11 +433,11 @@ def test_list_things_with_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("151")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/151"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/151"
     )
     things["things"][-1]["thingName"].should.equal("200")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/200"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/200"
     )
 
 
@@ -468,10 +471,12 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("2")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/2")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/2"
+    )
     things["things"][-1]["thingName"].should.equal("100")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/100"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/100"
     )
     all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
@@ -482,11 +487,11 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("102")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/102"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/102"
     )
     things["things"][-1]["thingName"].should.equal("200")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/200"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/200"
     )
     all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
@@ -495,10 +500,12 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("3")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/3")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/3"
+    )
     things["things"][-1]["thingName"].should.equal("150")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/150"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
     )
     all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
@@ -509,11 +516,11 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("things").which.should.have.length_of(16)
     things["things"][0]["thingName"].should.equal("153")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/153"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/153"
     )
     things["things"][-1]["thingName"].should.equal("198")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/198"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/198"
     )
     all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
@@ -524,10 +531,12 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should_not.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(33)
     things["things"][0]["thingName"].should.equal("6")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/6")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/6"
+    )
     things["things"][-1]["thingName"].should.equal("198")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/198"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/198"
     )
     all(
         item["attributes"] == {"foo": "bar"}
