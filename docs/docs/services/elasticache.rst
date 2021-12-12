@@ -71,7 +71,7 @@ elasticache
 - [ ] describe_user_groups
 - [X] describe_users
   
-        Only the `user_id` parameter is currently supported.  
+        Only the `user_id` parameter is currently supported.
         Pagination is not yet implemented.
         
 
