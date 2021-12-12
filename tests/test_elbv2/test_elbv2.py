@@ -634,6 +634,64 @@ def test_create_rule_priority_in_use():
 
 @mock_elbv2
 @mock_ec2
+def test_modify_rule_conditions():
+    response, _, _, _, _, elbv2 = create_load_balancer()
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    action = {
+        "Type": "redirect",
+        "RedirectConfig": {
+            "Protocol": "HTTPS",
+            "Port": "443",
+            "StatusCode": "HTTP_301",
+        },
+    }
+    condition = {
+        "Field": "path-pattern",
+        "PathPatternConfig": {"Values": [f"/sth*",]},
+    }
+
+    response = elbv2.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTP",
+        Port=80,
+        DefaultActions=[action],
+    )
+    http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
+
+    response = elbv2.create_rule(
+        ListenerArn=http_listener_arn, Priority=100, Conditions=[], Actions=[],
+    )
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 0
+    assert len(rule["Conditions"]) == 0
+
+    response = elbv2.modify_rule(RuleArn=rule["RuleArn"], Actions=[action],)
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 1
+    assert len(rule["Conditions"]) == 0
+
+    response = elbv2.modify_rule(RuleArn=rule["RuleArn"], Conditions=[condition])
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 1
+    assert len(rule["Conditions"]) == 1
+
+    response = elbv2.modify_rule(
+        RuleArn=rule["RuleArn"],
+        Conditions=[condition, condition],
+        Actions=[action, action],
+    )
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 2
+    assert len(rule["Conditions"]) == 2
+
+
+@mock_elbv2
+@mock_ec2
 def test_handle_listener_rules():
     response, vpc, _, _, _, conn = create_load_balancer()
 

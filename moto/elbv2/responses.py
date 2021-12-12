@@ -355,7 +355,7 @@ class ELBV2Response(BaseResponse):
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
-        conditions = params["Conditions"]
+        conditions = params.get("Conditions", [])
         actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
