@@ -147,7 +147,7 @@ class DBSnapshotBackend(BaseRDSBackend):
         snapshot.delete_events()
         return self.db_snapshots.pop(db_snapshot_identifier)
 
-    def describe_db_snapshots(self, db_instance_identifier=None, db_snapshot_identifier=None, snapshot_type=None):
+    def describe_db_snapshots(self, db_instance_identifier=None, db_snapshot_identifier=None, snapshot_type=None, **kwargs):
         if db_snapshot_identifier:
             return [self.get_db_snapshot(db_snapshot_identifier)]
         snapshot_types = ['automated', 'manual'] if snapshot_type is None else [snapshot_type]

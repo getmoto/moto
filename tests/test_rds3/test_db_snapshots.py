@@ -6,6 +6,17 @@ from sure import this  # noqa
 from . import mock_kms, mock_rds
 
 
+test_tags = [
+    {
+        'Key': 'foo',
+        'Value': 'bar',
+    },
+    {
+        'Key': 'foo1',
+        'Value': 'bar1',
+    },
+]
+
 @mock_rds
 def test_create_db_snapshot():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -31,6 +42,36 @@ def test_create_db_snapshot():
     snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
     snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
 
+@mock_rds
+def test_describe_db_snapshots_paginated():
+    client = boto3.client('rds', region_name='us-west-2')
+    client.create_db_instance(
+        DBInstanceIdentifier='instance-1',
+        DatabaseName='db_name',
+        Engine='postgres',
+        MasterUsername='root',
+        MasterUserPassword='password',
+        Port=1234,
+        Tags=test_tags)
+    auto_snapshots = client.describe_db_snapshots(MaxRecords=20).get('DBSnapshots')
+    custom_snap_start = len(auto_snapshots)
+    for i in range(custom_snap_start, 21):
+        client.create_db_snapshot(
+            DBSnapshotIdentifier='instance-snap-{}'.format(i),
+            DBClusterIdentifier='instance-1'
+        )
+
+    resp = client.describe_db_snapshots(MaxRecords=20)
+    snaps = resp.get('DBSnapshots')
+    snaps.should.have.length_of(20)
+    snaps[custom_snap_start]['DBSnapshotIdentifier'].should.equal('instance-snap-{}'.format(custom_snap_start))
+
+    resp2 = client.describe_db_snapshots(Marker=resp['Marker'])
+    resp2['DBSnapshots'].should.have.length_of(1)
+    resp2['DBSnapshots'][0]['DBSnapshotIdentifier'].should.equal('instance-snap-20')
+
+    resp3 = client.describe_db_snapshots()
+    resp3['DBSnapshots'].should.have.length_of(21)
 
 @mock_rds
 def test_copy_unencrypted_db_snapshot_to_encrypted_db_snapshot():
