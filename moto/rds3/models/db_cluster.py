@@ -17,28 +17,30 @@ from ..exceptions import (
 
 class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
 
-    resource_type = 'cluster'
+    resource_type = "cluster"
 
-    def __init__(self,
-                 backend,
-                 identifier,
-                 engine,
-                 engine_version,
-                 master_username,
-                 master_user_password,
-                 availability_zones,
-                 backup_retention_period=1,
-                 character_set_name=None,
-                 copy_tags_to_snapshot=False,
-                 database_name=None,
-                 db_cluster_parameter_group_name=None,
-                 db_subnet_group=None,
-                 port=123,
-                 preferred_backup_window=None,
-                 storage_encrypted=False,
-                 tags=None,
-                 vpc_security_group_ids=None,
-                 **kwargs):
+    def __init__(
+        self,
+        backend,
+        identifier,
+        engine,
+        engine_version,
+        master_username,
+        master_user_password,
+        availability_zones,
+        backup_retention_period=1,
+        character_set_name=None,
+        copy_tags_to_snapshot=False,
+        database_name=None,
+        db_cluster_parameter_group_name=None,
+        db_subnet_group=None,
+        port=123,
+        preferred_backup_window=None,
+        storage_encrypted=False,
+        tags=None,
+        vpc_security_group_ids=None,
+        **kwargs
+    ):
         super(DBCluster, self).__init__(backend)
         self.allocated_storage = 1
         self.availability_zones = availability_zones
@@ -53,9 +55,9 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.engine_version = engine_version
         self.master_user_password = master_user_password
         self.master_username = master_username
-        self.preferred_backup_window = preferred_backup_window or '05:30-06:00'
+        self.preferred_backup_window = preferred_backup_window or "05:30-06:00"
         self.port = port
-        self.storage_type = 'aurora'
+        self.storage_type = "aurora"
         self.storage_encrypted = storage_encrypted
         if self.storage_encrypted:
             self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
@@ -79,25 +81,39 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
 
     @property
     def endpoint(self):
-        return '{}.cluster-xxxxxxxx.{}.rds.amazonaws.com'.format(self.resource_id, self.backend.region)
+        return "{}.cluster-xxxxxxxx.{}.rds.amazonaws.com".format(
+            self.resource_id, self.backend.region
+        )
 
     @property
     def reader_endpoint(self):
-        return self.endpoint.replace('cluster-', 'cluster-ro-')
+        return self.endpoint.replace("cluster-", "cluster-ro-")
 
     @property
     def multi_az(self):
-        availability_zones = list(set([instance.availability_zone for instance in self._members]))
+        availability_zones = list(
+            set([instance.availability_zone for instance in self._members])
+        )
         return True if len(availability_zones) > 1 else False
 
     @property
     def _members(self):
-        return [db_instance for db_instance in self.backend.db_instances.values()
-                if db_instance.db_cluster_identifier == self.resource_id]
+        return [
+            db_instance
+            for db_instance in self.backend.db_instances.values()
+            if db_instance.db_cluster_identifier == self.resource_id
+        ]
 
     @property
     def writer(self):
-        return next((db_instance for db_instance in self._members if db_instance.is_cluster_writer), None)
+        return next(
+            (
+                db_instance
+                for db_instance in self._members
+                if db_instance.is_cluster_writer
+            ),
+            None,
+        )
 
     @writer.setter
     def writer(self, db_instance):
@@ -118,26 +134,25 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
 
     @property
     def status(self):
-        return 'available'
+        return "available"
 
     @property
     def db_cluster_members(self):
         return [
             {
-                'db_cluster_parameter_group_status': 'in-sync',
-                'db_instance_identifier': member.resource_id,
-                'is_cluster_writer': member.is_cluster_writer,
-                'promotion_tier': member.promotion_tier,
-            } for member in self.members
+                "db_cluster_parameter_group_status": "in-sync",
+                "db_instance_identifier": member.resource_id,
+                "is_cluster_writer": member.is_cluster_writer,
+                "promotion_tier": member.promotion_tier,
+            }
+            for member in self.members
         ]
 
     @property
     def vpc_security_groups(self):
         return [
-            {
-                'status': 'active',
-                'vpc_security_group_id': group_id
-            } for group_id in self.vpc_security_group_ids
+            {"status": "active", "vpc_security_group_id": group_id}
+            for group_id in self.vpc_security_group_ids
         ]
 
     def designate_writer(self):
@@ -154,8 +169,12 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.backend.delete_database(self.resource_id)
 
     def failover(self, target_member_identifier):
-        if target_member_identifier not in [member.resource_id for member in self.members]:
-            raise InvalidParameterValue('Cannot find target instance :{}.'.format(target_member_identifier))
+        if target_member_identifier not in [
+            member.resource_id for member in self.members
+        ]:
+            raise InvalidParameterValue(
+                "Cannot find target instance :{}.".format(target_member_identifier)
+            )
         target_instance = self.backend.get_db_instance(target_member_identifier)
         self.writer.is_cluster_writer = False
         self.writer = target_instance
@@ -167,7 +186,6 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
 
 
 class DBClusterBackend(BaseRDSBackend):
-
     def __init__(self):
         super(DBClusterBackend, self).__init__()
         self.db_clusters = OrderedDict()
@@ -181,11 +199,20 @@ class DBClusterBackend(BaseRDSBackend):
         cluster_kwargs = self._validate_create_cluster_args(kwargs)
         cluster = DBCluster(self, db_cluster_identifier, **cluster_kwargs)
         self.db_clusters[db_cluster_identifier] = cluster
-        snapshot_id = '{}-{}'.format(db_cluster_identifier, datetime.datetime.utcnow().strftime('%Y-%m-%d-%H-%M'))
-        self.create_db_cluster_snapshot(db_cluster_identifier, snapshot_id, snapshot_type='automated')
+        snapshot_id = "{}-{}".format(
+            db_cluster_identifier, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
+        )
+        self.create_db_cluster_snapshot(
+            db_cluster_identifier, snapshot_id, snapshot_type="automated"
+        )
         return cluster
 
-    def delete_db_cluster(self, db_cluster_identifier, skip_final_snapshot=False, final_db_snapshot_identifier=None):
+    def delete_db_cluster(
+        self,
+        db_cluster_identifier,
+        skip_final_snapshot=False,
+        final_db_snapshot_identifier=None,
+    ):
         cluster = self.get_db_cluster(db_cluster_identifier)
         if cluster.members:
             raise DBClusterToBeDeletedHasActiveMembers()
@@ -201,22 +228,28 @@ class DBClusterBackend(BaseRDSBackend):
         cluster = self.get_db_cluster(db_cluster_identifier)
         cluster.failover(target_db_instance_identifier)
 
-    def modify_db_cluster(self, db_cluster_identifier, new_db_cluster_identifier=None, **kwargs):
+    def modify_db_cluster(
+        self, db_cluster_identifier, new_db_cluster_identifier=None, **kwargs
+    ):
         cluster = self.get_db_cluster(db_cluster_identifier)
         if new_db_cluster_identifier is not None:
             del self.db_clusters[db_cluster_identifier]
-            db_cluster_identifier = kwargs['db_cluster_identifier'] = new_db_cluster_identifier
+            db_cluster_identifier = kwargs[
+                "db_cluster_identifier"
+            ] = new_db_cluster_identifier
             self.db_clusters[db_cluster_identifier] = cluster
         cluster.update(**kwargs)
         return cluster
 
-    def restore_db_cluster_from_snapshot(self, db_cluster_identifier, snapshot_identifier, **kwargs):
+    def restore_db_cluster_from_snapshot(
+        self, db_cluster_identifier, snapshot_identifier, **kwargs
+    ):
         # TODO: Snapshot can be name or arn for cluster snapshot or arn for db_instance snapshot.
         snapshot = self.get_db_cluster_snapshot(snapshot_identifier)
         cluster_args = dict(**snapshot.cluster.__dict__)
         # AWS restores the cluster with most of the original configuration,
         # but with the default security group.
-        cluster_args.pop('vpc_security_group_ids', None)
+        cluster_args.pop("vpc_security_group_ids", None)
         # Use our backend and update with any user-provided parameters.
         cluster_args.update(backend=self, **kwargs)
         cluster_args = self._validate_create_cluster_args(cluster_args)
@@ -224,12 +257,14 @@ class DBClusterBackend(BaseRDSBackend):
         self.db_clusters[db_cluster_identifier] = cluster
         return cluster
 
-    def restore_db_cluster_to_point_in_time(self, db_cluster_identifier, source_db_cluster_identifier, **kwargs):
+    def restore_db_cluster_to_point_in_time(
+        self, db_cluster_identifier, source_db_cluster_identifier, **kwargs
+    ):
         source = self.get_db_cluster(source_db_cluster_identifier)
         cluster_args = dict(**source.__dict__)
         # AWS restores the cluster with most of the original configuration,
         # but with the default security group.
-        cluster_args.pop('vpc_security_group_ids', None)
+        cluster_args.pop("vpc_security_group_ids", None)
         # Use our backend and update with any user-provided parameters.
         cluster_args.update(backend=self, **kwargs)
         cluster_args = self._validate_create_cluster_args(cluster_args)
@@ -238,26 +273,34 @@ class DBClusterBackend(BaseRDSBackend):
         return cluster
 
     def _validate_create_cluster_args(self, kwargs):
-        engine = kwargs.get('engine')
+        engine = kwargs.get("engine")
         if engine not in utils.VALID_DB_CLUSTER_ENGINES:
-            raise InvalidParameterValue('Invalid DB engine')
-        if 'engine_version' not in kwargs:
-            kwargs['engine_version'] = utils.default_engine_version(engine)
-        if kwargs['engine_version'] not in utils.valid_engine_versions(engine):
-            msg = 'Cannot find version {} for {}'.format(kwargs['engine_version'], engine)
+            raise InvalidParameterValue("Invalid DB engine")
+        if "engine_version" not in kwargs:
+            kwargs["engine_version"] = utils.default_engine_version(engine)
+        if kwargs["engine_version"] not in utils.valid_engine_versions(engine):
+            msg = "Cannot find version {} for {}".format(
+                kwargs["engine_version"], engine
+            )
             raise InvalidParameterValue(msg)
-        if 'db_cluster_parameter_group_name' not in kwargs:
-            kwargs['db_cluster_parameter_group_name'] = utils.default_db_cluster_parameter_group_name(engine)
+        if "db_cluster_parameter_group_name" not in kwargs:
+            kwargs[
+                "db_cluster_parameter_group_name"
+            ] = utils.default_db_cluster_parameter_group_name(engine)
         # This will raise an exception if the param group doesn't exist.
-        self.get_db_cluster_parameter_group(kwargs['db_cluster_parameter_group_name'])
-        availability_zones = [zone.name for zone in self.ec2.describe_availability_zones()]
-        if 'availability_zones' not in kwargs:
-            kwargs['availability_zones'] = availability_zones
-        if not set(kwargs['availability_zones']).issubset(set(availability_zones)):
-            invalid_zones = set(kwargs['availability_zones']) - set(availability_zones)
+        self.get_db_cluster_parameter_group(kwargs["db_cluster_parameter_group_name"])
+        availability_zones = [
+            zone.name for zone in self.ec2.describe_availability_zones()
+        ]
+        if "availability_zones" not in kwargs:
+            kwargs["availability_zones"] = availability_zones
+        if not set(kwargs["availability_zones"]).issubset(set(availability_zones)):
+            invalid_zones = set(kwargs["availability_zones"]) - set(availability_zones)
             raise InvalidAvailabilityZones(list(invalid_zones))
-        if 'db_subnet_group_name' in kwargs:
-            kwargs['db_subnet_group'] = self.get_db_subnet_group(kwargs['db_subnet_group_name'])
-        if 'port' not in kwargs:
-            kwargs['port'] = utils.default_engine_port(engine)
+        if "db_subnet_group_name" in kwargs:
+            kwargs["db_subnet_group"] = self.get_db_subnet_group(
+                kwargs["db_subnet_group_name"]
+            )
+        if "port" not in kwargs:
+            kwargs["port"] = utils.default_engine_port(engine)
         return kwargs

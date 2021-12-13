@@ -11,5 +11,5 @@ from moto.rds3 import utils
 
 
 def test_walk_parameters():
-    params = '' #utils.walk_parameters('CreateDBInstance')
+    params = ""  # utils.walk_parameters('CreateDBInstance')
     print(params)

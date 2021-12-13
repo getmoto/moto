@@ -10,5 +10,5 @@ def test_list_databases():
     test_client = backend.test_client()
     # TODO: Need to figure out how to call this with boto3.client (change url?)
     # or figure out how to put the request together properly with Flask client.
-    resp = test_client.action_data('DescribeDBInstances')
-    resp.should.contain('DescribeDBInstancesResponse')
+    resp = test_client.action_data("DescribeDBInstances")
+    resp.should.contain("DescribeDBInstancesResponse")

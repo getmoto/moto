@@ -8,5 +8,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': RDSResponse.dispatch,
+    "{0}/$": RDSResponse.dispatch,
 }

@@ -26,31 +26,33 @@ from .option_group import OptionGroupBackend
 from .tag import TagBackend
 
 
-class RDS3Backend(DBClusterBackend,
-                  DBClusterParameterGroupBackend,
-                  DBClusterSnapshotBackend,
-                  DBInstanceBackend,
-                  DBParameterGroupBackend,
-                  DBSecurityGroupBackend,
-                  DBSnapshotBackend,
-                  DBSubnetGroupBackend,
-                  EventBackend,
-                  LogBackend,
-                  OptionGroupBackend,
-                  TagBackend):
-
+class RDS3Backend(
+    DBClusterBackend,
+    DBClusterParameterGroupBackend,
+    DBClusterSnapshotBackend,
+    DBInstanceBackend,
+    DBParameterGroupBackend,
+    DBSecurityGroupBackend,
+    DBSnapshotBackend,
+    DBSubnetGroupBackend,
+    EventBackend,
+    LogBackend,
+    OptionGroupBackend,
+    TagBackend,
+):
     def __init__(self, region):
         super(RDS3Backend, self).__init__()
         self.region = region
         # Create RDS Alias
         rds_key = self.kms.create_key(
-            policy='',
-            key_usage='ENCRYPT_DECRYPT',
+            policy="",
+            key_usage="ENCRYPT_DECRYPT",
             customer_master_key_spec=None,
-            description='Default master key that protects my RDS database volumes when no other key is defined',
+            description="Default master key that protects my RDS database volumes when no other key is defined",
             tags=None,
-            region=self.region)
-        self.kms.add_alias(rds_key.id, 'alias/aws/rds')
+            region=self.region,
+        )
+        self.kms.add_alias(rds_key.id, "alias/aws/rds")
 
     def reset(self):
         region = self.region
@@ -58,4 +60,4 @@ class RDS3Backend(DBClusterBackend,
         self.__init__(region)
 
 
-rds3_backends = create_backends('rds', RDS3Backend)
+rds3_backends = create_backends("rds", RDS3Backend)

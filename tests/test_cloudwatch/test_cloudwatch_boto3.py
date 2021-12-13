@@ -862,8 +862,7 @@ def test_get_metric_data_for_multiple_metrics():
 def test_get_metric_statistics_with_units():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
 
-
-    db_instance_intentifier = 'db-1'
+    db_instance_intentifier = "db-1"
     conn.put_metric_data(
         Namespace="AWS/RDS",
         MetricData=[
@@ -886,17 +885,17 @@ def test_get_metric_statistics_with_units():
     )
 
     stats = conn.get_metric_statistics(
-            Namespace="AWS/RDS",
-            MetricName="DatabaseConnections",
-            Dimensions=[{"Name": "DBInstanceIdentifier", "Value": db_instance_intentifier}],
-            StartTime=datetime.utcnow() - timedelta(hours=1),
-            EndTime=datetime.utcnow(),
-            Period=120,
-            Statistics=["Average"],
-            Unit='Seconds',
-        )
+        Namespace="AWS/RDS",
+        MetricName="DatabaseConnections",
+        Dimensions=[{"Name": "DBInstanceIdentifier", "Value": db_instance_intentifier}],
+        StartTime=datetime.utcnow() - timedelta(hours=1),
+        EndTime=datetime.utcnow(),
+        Period=120,
+        Statistics=["Average"],
+        Unit="Seconds",
+    )
 
     stats["Datapoints"].should.have.length_of(1)
     datapoint = stats["Datapoints"][0]
     datapoint["Average"].should.equal(100)
-    datapoint["Unit"].should.equal('Seconds')
+    datapoint["Unit"].should.equal("Seconds")

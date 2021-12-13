@@ -13,14 +13,16 @@ from ..exceptions import (
 
 class DBClusterSnapshot(TaggableRDSResource, BaseRDSModel):
 
-    resource_type = 'cluster-snapshot'
+    resource_type = "cluster-snapshot"
 
-    def __init__(self, backend, identifier, db_cluster, snapshot_type='manual', tags=None):
+    def __init__(
+        self, backend, identifier, db_cluster, snapshot_type="manual", tags=None
+    ):
         super(DBClusterSnapshot, self).__init__(backend)
         self.db_cluster_snapshot_identifier = identifier
         self.snapshot_type = snapshot_type
         self.percent_progress = 100
-        self.status = 'available'
+        self.status = "available"
         if tags:
             self.add_tags(tags)
         self.cluster = copy.copy(db_cluster)
@@ -48,7 +50,6 @@ class DBClusterSnapshot(TaggableRDSResource, BaseRDSModel):
 
 
 class DBClusterSnapshotBackend(BaseRDSBackend):
-
     def __init__(self):
         super(DBClusterSnapshotBackend, self).__init__()
         self.db_cluster_snapshots = OrderedDict()
@@ -58,12 +59,19 @@ class DBClusterSnapshotBackend(BaseRDSBackend):
             return self.db_cluster_snapshots[db_cluster_snapshot_identifier]
         raise DBClusterSnapshotNotFound(db_cluster_snapshot_identifier)
 
-    def create_db_cluster_snapshot(self, db_cluster_identifier, db_cluster_snapshot_identifier, tags=None,
-                                   snapshot_type='manual'):
+    def create_db_cluster_snapshot(
+        self,
+        db_cluster_identifier,
+        db_cluster_snapshot_identifier,
+        tags=None,
+        snapshot_type="manual",
+    ):
         if db_cluster_snapshot_identifier in self.db_cluster_snapshots:
             raise DBClusterSnapshotAlreadyExists()
         db_cluster = self.get_db_cluster(db_cluster_identifier)
-        snapshot = DBClusterSnapshot(self, db_cluster_snapshot_identifier, db_cluster, snapshot_type, tags)
+        snapshot = DBClusterSnapshot(
+            self, db_cluster_snapshot_identifier, db_cluster, snapshot_type, tags
+        )
         self.db_cluster_snapshots[db_cluster_snapshot_identifier] = snapshot
         return snapshot
 
@@ -71,11 +79,18 @@ class DBClusterSnapshotBackend(BaseRDSBackend):
         snapshot = self.get_db_cluster_snapshot(db_cluster_snapshot_identifier)
         return self.db_cluster_snapshots.pop(snapshot.resource_id)
 
-    def describe_db_cluster_snapshots(self, db_cluster_identifier=None, db_cluster_snapshot_identifier=None,
-                                      snapshot_type=None, **kwargs):
+    def describe_db_cluster_snapshots(
+        self,
+        db_cluster_identifier=None,
+        db_cluster_snapshot_identifier=None,
+        snapshot_type=None,
+        **kwargs
+    ):
         if db_cluster_snapshot_identifier:
             return [self.get_db_cluster_snapshot(db_cluster_snapshot_identifier)]
-        snapshot_types = ['automated', 'manual'] if snapshot_type is None else [snapshot_type]
+        snapshot_types = (
+            ["automated", "manual"] if snapshot_type is None else [snapshot_type]
+        )
         if db_cluster_identifier:
             db_cluster_snapshots = []
             for snapshot in self.db_cluster_snapshots.values():

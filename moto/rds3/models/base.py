@@ -22,7 +22,7 @@ class BaseRDSModel(BaseModel):
 
     @property
     def resource_id(self):
-        raise NotImplementedError('Subclasses must implement resource_id property.')
+        raise NotImplementedError("Subclasses must implement resource_id property.")
 
     @property
     def region(self):
@@ -34,16 +34,19 @@ class BaseRDSModel(BaseModel):
             region=self.backend.region,
             account_id=ACCOUNT_ID,
             resource_type=self.resource_type,
-            resource_id=self.resource_id)
+            resource_id=self.resource_id,
+        )
 
     @staticmethod
     def get_regional_backend(region):
         from . import rds3_backends
+
         return rds3_backends[region]
 
     @staticmethod
     def get_regional_ec2_backend(region):
         from moto.ec2.models import ec2_backends
+
         return ec2_backends[region]
 
 
@@ -65,7 +68,7 @@ class BaseRDSBackend(BaseBackend):
         :return: IAM Backend
         :rtype: moto.iam.models.IAMBackend
         """
-        return iam_backends['global']
+        return iam_backends["global"]
 
     @property
     def kms(self):
@@ -74,6 +77,7 @@ class BaseRDSBackend(BaseBackend):
         :rtype: moto.kms.models.KMSBackend
         """
         from moto.kms.models import KmsBackend
+
         if self.region not in kms_backends:
             kms_backends[self.region] = KmsBackend()
         return kms_backends[self.region]
@@ -85,35 +89,47 @@ class BaseRDSBackend(BaseBackend):
         :rtype: moto.rds3.models.RDS3Backend
         """
         from . import rds3_backends
+
         return rds3_backends[region]
 
     # Basic interface, mainly to avoid unresolved ref errors from PyCharm
     def describe_db_instances(self, db_instance_identifier=None):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
     def get_db_cluster(self, db_cluster_identifier):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
     def get_db_instance(self, db_instance_identifier):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
     def get_db_snapshot(self, db_snapshot_identifier):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
-    def create_db_snapshot(self, db_instance_identifier, db_snapshot_identifier, tags=None, snapshot_type='manual'):
-        pass    # pragma: no cover
+    def create_db_snapshot(
+        self,
+        db_instance_identifier,
+        db_snapshot_identifier,
+        tags=None,
+        snapshot_type="manual",
+    ):
+        pass  # pragma: no cover
 
     def delete_db_snapshot(self, db_snapshot_identifier):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
-    def describe_db_snapshots(self, db_instance_identifier=None, db_snapshot_identifier=None, snapshot_type=None):
-        pass    # pragma: no cover
+    def describe_db_snapshots(
+        self,
+        db_instance_identifier=None,
+        db_snapshot_identifier=None,
+        snapshot_type=None,
+    ):
+        pass  # pragma: no cover
 
     def get_db_subnet_group(self, subnet_group_name):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
     def get_option_group(self, option_group_name):
-        pass    # pragma: no cover
+        pass  # pragma: no cover
 
     def get_db_parameter_group(self, db_parameter_group_name):
         pass  # pragma: no cover
@@ -124,5 +140,7 @@ class BaseRDSBackend(BaseBackend):
     def get_db_cluster_snapshot(self, db_cluster_snapshot_identifier):
         pass  # pragma: no cover
 
-    def create_db_cluster_snapshot(self, db_cluster_identifier, db_cluster_snapshot_identifier, tags, snapshot_type):
+    def create_db_cluster_snapshot(
+        self, db_cluster_identifier, db_cluster_snapshot_identifier, tags, snapshot_type
+    ):
         pass  # pragma: no cover

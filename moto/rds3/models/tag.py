@@ -24,7 +24,6 @@ class TaggableRDSResource(BaseRDSModel):
 
 
 class Tag(object):
-
     def __init__(self, key, value):
         self.key = key
         self.value = value
@@ -33,28 +32,28 @@ class Tag(object):
 def shape_tags(tags):
     shaped_tags = []
     if isinstance(tags, dict):
-        shaped_tags = [{'key': key, 'value': value} for key, value in tags.items()]
+        shaped_tags = [{"key": key, "value": value} for key, value in tags.items()]
     elif isinstance(tags, list):
         for tag in tags:
             if isinstance(tag, dict):
-                if 'key' in tag and 'value' in tag:
+                if "key" in tag and "value" in tag:
                     shaped_tags.append(tag)
             elif isinstance(tag, Tag):
-                shaped_tags.append({'key': tag.key, 'value': tag.value})
+                shaped_tags.append({"key": tag.key, "value": tag.value})
     return shaped_tags
 
 
 class TagBackend(BaseRDSBackend):
-
     def __init__(self):
         super(TagBackend, self).__init__()
         self.tags = defaultdict(dict)
         self.arn_match = re_compile(
-            r'^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|cluster-pg|ri|secgrp|snapshot|cluster-snapshot|subgrp):.*$')
+            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|cluster-pg|ri|secgrp|snapshot|cluster-snapshot|subgrp):.*$"
+        )
 
     def _verify_resource(self, arn):
         if not self.arn_match.match(arn):
-            raise InvalidParameterValue('Invalid resource name: {0}'.format(arn))
+            raise InvalidParameterValue("Invalid resource name: {0}".format(arn))
 
     def add_tags_to_resource(self, resource_name=None, tags=None):
         # TODO: Add check for null tags
@@ -62,11 +61,11 @@ class TagBackend(BaseRDSBackend):
         # TODO: Check if resource is valid...
         self._verify_resource(resource_name)
         for tag in shape_tags(tags):
-            self.tags[resource_name][tag['key']] = tag['value']
+            self.tags[resource_name][tag["key"]] = tag["value"]
 
     def list_tags_for_resource(self, resource_name=None):
         self._verify_resource(resource_name)
-        return [Tag(key, value)for key, value in self.tags[resource_name].items()]
+        return [Tag(key, value) for key, value in self.tags[resource_name].items()]
 
     def remove_tags_from_resource(self, resource_name=None, tag_keys=None):
         _tag_keys = tag_keys or []

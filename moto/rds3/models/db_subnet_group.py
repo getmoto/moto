@@ -10,7 +10,7 @@ from .. import utils
 
 class DBSubnetGroup(TaggableRDSResource, BaseRDSModel):
 
-    resource_type = 'subgrp'
+    resource_type = "subgrp"
 
     def __init__(self, backend, subnet_name, description, subnets, tags=None):
         super(DBSubnetGroup, self).__init__(backend)
@@ -34,21 +34,22 @@ class DBSubnetGroup(TaggableRDSResource, BaseRDSModel):
     def subnets(self):
         return [
             {
-                'subnet_identifier': subnet.id,
-                'subnet_availability_zone': {
-                    'name': subnet.availability_zone
-                },
-                'subnet_status': 'Active'
-            } for subnet in self._subnets
+                "subnet_identifier": subnet.id,
+                "subnet_availability_zone": {"name": subnet.availability_zone},
+                "subnet_status": "Active",
+            }
+            for subnet in self._subnets
         ]
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
-        if 'DBSubnetGroupName' not in properties:
-            properties['DBSubnetGroupName'] = resource_name.lower() + get_random_hex(12)
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        if "DBSubnetGroupName" not in properties:
+            properties["DBSubnetGroupName"] = resource_name.lower() + get_random_hex(12)
         backend = cls.get_regional_backend(region_name)
-        params = utils.parse_cf_properties('CreateDBSubnetGroup', properties)
+        params = utils.parse_cf_properties("CreateDBSubnetGroup", properties)
         subnet_group = backend.create_db_subnet_group(**params)
         return subnet_group
 
@@ -57,7 +58,6 @@ class DBSubnetGroup(TaggableRDSResource, BaseRDSModel):
 
 
 class DBSubnetGroupBackend(BaseRDSBackend):
-
     def __init__(self):
         super(DBSubnetGroupBackend, self).__init__()
         self.db_subnet_groups = OrderedDict()
@@ -67,9 +67,17 @@ class DBSubnetGroupBackend(BaseRDSBackend):
             raise DBSubnetGroupNotFound(db_subnet_group_name)
         return self.db_subnet_groups[db_subnet_group_name]
 
-    def create_db_subnet_group(self, db_subnet_group_name, db_subnet_group_description, subnet_ids=None, tags=None):
+    def create_db_subnet_group(
+        self,
+        db_subnet_group_name,
+        db_subnet_group_description,
+        subnet_ids=None,
+        tags=None,
+    ):
         subnets = [self.ec2.get_subnet(subnet_id) for subnet_id in subnet_ids]
-        subnet_group = DBSubnetGroup(self, db_subnet_group_name, db_subnet_group_description, subnets, tags)
+        subnet_group = DBSubnetGroup(
+            self, db_subnet_group_name, db_subnet_group_description, subnets, tags
+        )
         self.db_subnet_groups[db_subnet_group_name] = subnet_group
         return subnet_group
 

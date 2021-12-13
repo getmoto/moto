@@ -11,9 +11,11 @@ from .. import utils
 
 class DBSecurityGroup(TaggableRDSResource, BaseRDSModel):
 
-    resource_type = 'secgrp'
+    resource_type = "secgrp"
 
-    def __init__(self, backend, db_security_group_name, db_security_group_description, tags=None):
+    def __init__(
+        self, backend, db_security_group_name, db_security_group_description, tags=None
+    ):
         super(DBSecurityGroup, self).__init__(backend)
         self.db_security_group_name = db_security_group_name
         self.db_security_group_description = db_security_group_description
@@ -36,20 +38,18 @@ class DBSecurityGroup(TaggableRDSResource, BaseRDSModel):
     def ec2_security_groups(self):
         return [
             {
-                'status': 'authorized',
-                'ec2_security_group_name': security_group.name,
-                'ec2_security_group_id': security_group.id,
-                'ec2_security_group_owner_id': security_group.owner_id
-            } for security_group in self._ec2_security_groups
+                "status": "authorized",
+                "ec2_security_group_name": security_group.name,
+                "ec2_security_group_id": security_group.id,
+                "ec2_security_group_owner_id": security_group.owner_id,
+            }
+            for security_group in self._ec2_security_groups
         ]
 
     @property
     def ip_ranges(self):
         return [
-            {
-                'status': 'authorized',
-                'cidrip': ip_range
-            } for ip_range in self._ip_ranges
+            {"status": "authorized", "cidrip": ip_range} for ip_range in self._ip_ranges
         ]
 
     def authorize_cidr(self, cidr_ip):
@@ -59,15 +59,19 @@ class DBSecurityGroup(TaggableRDSResource, BaseRDSModel):
         self._ec2_security_groups.append(security_group)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
-        if 'DBSecurityGroupName' not in properties:
-            properties['DBSecurityGroupName'] = resource_name.lower() + get_random_hex(12)
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        if "DBSecurityGroupName" not in properties:
+            properties["DBSecurityGroupName"] = resource_name.lower() + get_random_hex(
+                12
+            )
         backend = cls.get_regional_backend(region_name)
-        params = utils.parse_cf_properties('CreateDBSecurityGroup', properties)
+        params = utils.parse_cf_properties("CreateDBSecurityGroup", properties)
         security_group = backend.create_db_security_group(**params)
         ec2_backend = cls.get_regional_ec2_backend(region_name)
-        for security_group_ingress in properties.get('DBSecurityGroupIngress', []):
+        for security_group_ingress in properties.get("DBSecurityGroupIngress", []):
             for ingress_type, ingress_value in security_group_ingress.items():
                 if ingress_type == "CIDRIP":
                     security_group.authorize_cidr(ingress_value)
@@ -84,7 +88,6 @@ class DBSecurityGroup(TaggableRDSResource, BaseRDSModel):
 
 
 class DBSecurityGroupBackend(BaseRDSBackend):
-
     def __init__(self):
         super(DBSecurityGroupBackend, self).__init__()
         self.db_security_groups = OrderedDict()
@@ -94,8 +97,12 @@ class DBSecurityGroupBackend(BaseRDSBackend):
             return self.db_security_groups[db_security_group_name]
         raise DBSecurityGroupNotFound(db_security_group_name)
 
-    def create_db_security_group(self, db_security_group_name, db_security_group_description, tags=None):
-        security_group = DBSecurityGroup(self, db_security_group_name, db_security_group_description, tags)
+    def create_db_security_group(
+        self, db_security_group_name, db_security_group_description, tags=None
+    ):
+        security_group = DBSecurityGroup(
+            self, db_security_group_name, db_security_group_description, tags
+        )
         self.db_security_groups[db_security_group_name] = security_group
         return security_group
 
