@@ -2110,6 +2110,23 @@ class RegionsAndZonesBackend(object):
                 zone_id="apse2-az2",
             ),
         ],
+        "ap-southeast-3": [
+            Zone(
+                region_name="ap-southeast-3",
+                name="ap-southeast-3a",
+                zone_id="apse3-az1",
+            ),
+            Zone(
+                region_name="ap-southeast-3",
+                name="ap-southeast-3b",
+                zone_id="apse3-az2",
+            ),
+            Zone(
+                region_name="ap-southeast-3",
+                name="ap-southeast-3c",
+                zone_id="apse3-az3",
+            ),
+        ],
         "eu-central-1": [
             Zone(region_name="eu-central-1", name="eu-central-1a", zone_id="euc1-az2"),
             Zone(region_name="eu-central-1", name="eu-central-1b", zone_id="euc1-az3"),
