@@ -54,6 +54,12 @@ def test_list_experiments():
 
     assert resp.get("NextToken") is None
 
+    resp = client.list_experiments(MaxResults=20, NextToken="3")
+
+    assert len(resp["ExperimentSummaries"]) == 7
+
+    assert resp.get("NextToken") is None
+
 
 @mock_sagemaker
 def test_delete_experiment():

@@ -61,6 +61,12 @@ def test_list_trials():
 
     assert resp.get("NextToken") is None
 
+    resp = client.list_trials(MaxResults=20, NextToken="3")
+
+    assert len(resp["TrialSummaries"]) == 7
+
+    assert resp.get("NextToken") is None
+
 
 @mock_sagemaker
 def test_list_trials_by_trial_component_name():

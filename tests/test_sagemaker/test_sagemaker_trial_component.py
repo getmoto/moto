@@ -58,6 +58,12 @@ def test_list_trial_components():
 
     assert resp.get("NextToken") is None
 
+    resp = client.list_trial_components(MaxResults=20, NextToken="3")
+
+    assert len(resp["TrialComponentSummaries"]) == 7
+
+    assert resp.get("NextToken") is None
+
 
 @mock_sagemaker
 def test_delete__trial_component():
