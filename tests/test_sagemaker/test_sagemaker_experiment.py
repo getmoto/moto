@@ -27,6 +27,35 @@ def test_create_experiment():
 
 
 @mock_sagemaker
+def test_list_experiments():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+
+    experiment_names = [f"some-experiment-name-{i}" for i in range(10)]
+
+    for experiment_name in experiment_names:
+        resp = client.create_experiment(ExperimentName=experiment_name)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    resp = client.list_experiments(MaxResults=1)
+
+    assert len(resp["ExperimentSummaries"]) == 1
+
+    assert resp["NextToken"] == "1"
+
+    resp = client.list_experiments(MaxResults=2, NextToken="1")
+
+    assert len(resp["ExperimentSummaries"]) == 2
+
+    assert resp["NextToken"] == "3"
+
+    resp = client.list_experiments(NextToken="3")
+
+    assert len(resp["ExperimentSummaries"]) == 7
+
+    assert resp.get("NextToken") is None
+
+
+@mock_sagemaker
 def test_delete_experiment():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
