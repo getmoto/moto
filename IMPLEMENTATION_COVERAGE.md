@@ -3770,7 +3770,7 @@
 
 ## redshift
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -3876,7 +3876,7 @@
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule
 - [ ] modify_usage_limit
-- [ ] pause_cluster
+- [X] pause_cluster
 - [ ] purchase_reserved_node_offering
 - [ ] reboot_cluster
 - [ ] reject_data_share
@@ -3884,7 +3884,7 @@
 - [ ] resize_cluster
 - [X] restore_from_cluster_snapshot
 - [ ] restore_table_from_cluster_snapshot
-- [ ] resume_cluster
+- [X] resume_cluster
 - [ ] revoke_cluster_security_group_ingress
 - [ ] revoke_endpoint_access
 - [ ] revoke_snapshot_access

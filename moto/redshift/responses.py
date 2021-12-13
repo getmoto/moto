@@ -159,6 +159,34 @@ class RedshiftResponse(BaseResponse):
             }
         )
 
+    def pause_cluster(self):
+        cluster_id = self._get_param("ClusterIdentifier")
+        cluster = self.redshift_backend.pause_cluster(cluster_id).to_json()
+        return self.get_response(
+            {
+                "PauseClusterResponse": {
+                    "PauseClusterResult": {"Cluster": cluster},
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
+    def resume_cluster(self):
+        cluster_id = self._get_param("ClusterIdentifier")
+        cluster = self.redshift_backend.resume_cluster(cluster_id).to_json()
+        return self.get_response(
+            {
+                "ResumeClusterResponse": {
+                    "ResumeClusterResult": {"Cluster": cluster},
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
     def restore_from_cluster_snapshot(self):
         enhanced_vpc_routing = self._get_bool_param("EnhancedVpcRouting")
         restore_kwargs = {
