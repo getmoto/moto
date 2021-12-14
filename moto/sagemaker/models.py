@@ -5,6 +5,7 @@ from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
+from moto.utilities.paginator import paginate
 from .exceptions import (
     MissingModel,
     ValidationError,
@@ -13,53 +14,29 @@ from .exceptions import (
 )
 
 
-def summary_pagination(summary_key):
-    def decorator(fn):
-        def wrapper(*args, **kw):
-            NextToken = kw.get("NextToken", None)
-            MaxResults = kw.get("MaxResults", None)
-
-            next_index = None
-
-            if MaxResults is None:
-                MaxResults = 10
-
-            if type(MaxResults) == str:
-                MaxResults = int(MaxResults)
-
-            if NextToken:
-                next_index = int(NextToken)
-
-            results = fn(
-                *args,
-                **{k: v for k, v in kw.items() if k not in ["NextToken", "MaxResults"]},
-            )
-
-            experiments_fetched = results[summary_key]
-
-            if MaxResults < len(experiments_fetched[next_index:]) or next_index:
-                if next_index is None:
-                    next_index = 0
-                experiments_fetched = experiments_fetched[
-                    next_index : next_index + MaxResults
-                ]
-                next_index = next_index + MaxResults
-
-            experiment_summaries = experiments_fetched
-
-            if len(experiment_summaries) >= MaxResults:
-                return {
-                    summary_key: experiment_summaries,
-                    "NextToken": str(next_index) if next_index is not None else None,
-                }
-
-            return {
-                summary_key: experiment_summaries,
-            }
-
-        return wrapper
-
-    return decorator
+PAGINATION_MODEL = {
+    "list_experiments": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 100,
+        "unique_attribute": "experiment_arn",
+        "fail_on_invalid_token": True,
+    },
+    "list_trials": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 100,
+        "unique_attribute": "trial_arn",
+        "fail_on_invalid_token": True,
+    },
+    "list_trial_components": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 100,
+        "unique_attribute": "trial_component_arn",
+        "fail_on_invalid_token": True,
+    },
+}
 
 
 class BaseObject(BaseModel):
@@ -1163,23 +1140,9 @@ class SageMakerModelBackend(BaseBackend):
             tag for tag in trial_component.tags if tag["Key"] not in tag_keys
         ]
 
-    @summary_pagination(summary_key="ExperimentSummaries")
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self):
-        experiments_fetched = list(self.experiments.values())
-
-        experiment_summaries = [
-            {
-                "ExperimentName": experiment_data.experiment_name,
-                "ExperimentArn": experiment_data.experiment_arn,
-                "CreationTime": experiment_data.creation_time,
-                "LastModifiedTime": experiment_data.last_modified_time,
-            }
-            for experiment_data in experiments_fetched
-        ]
-
-        return {
-            "ExperimentSummaries": experiment_summaries,
-        }
+        return list(self.experiments.values())
 
     def search(self, resource=None, search_expression=None):
         next_index = None
@@ -1380,7 +1343,7 @@ class SageMakerModelBackend(BaseBackend):
         except RESTError:
             return []
 
-    @summary_pagination(summary_key="TrialSummaries")
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(self, experiment_name=None, trial_component_name=None):
         trials_fetched = list(self.trials.values())
 
@@ -1395,20 +1358,11 @@ class SageMakerModelBackend(BaseBackend):
 
             return True
 
-        trial_summaries = [
-            {
-                "TrialName": trial_data.trial_name,
-                "TrialArn": trial_data.trial_arn,
-                "CreationTime": trial_data.creation_time,
-                "LastModifiedTime": trial_data.last_modified_time,
-            }
+        return [
+            trial_data
             for trial_data in trials_fetched
             if evaluate_filter_expression(trial_data)
         ]
-
-        return {
-            "TrialSummaries": trial_summaries,
-        }
 
     def create_trial_component(
         self, trial_component_name, trial_name,
@@ -1461,24 +1415,15 @@ class SageMakerModelBackend(BaseBackend):
     def _update_trial_component_details(self, trial_component_name, details_json):
         self.trial_components[trial_component_name].update(details_json)
 
-    @summary_pagination(summary_key="TrialComponentSummaries")
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trial_components(self, trial_name=None):
         trial_components_fetched = list(self.trial_components.values())
 
-        trial_component_summaries = [
-            {
-                "TrialComponentName": trial_component_data.trial_component_name,
-                "TrialComponentArn": trial_component_data.trial_component_arn,
-                "CreationTime": trial_component_data.creation_time,
-                "LastModifiedTime": trial_component_data.last_modified_time,
-            }
+        return [
+            trial_component_data
             for trial_component_data in trial_components_fetched
             if trial_name is None or trial_component_data.trial_name == trial_name
         ]
-
-        return {
-            "TrialComponentSummaries": trial_component_summaries,
-        }
 
     def associate_trial_component(self, params):
         trial_name = params["TrialName"]

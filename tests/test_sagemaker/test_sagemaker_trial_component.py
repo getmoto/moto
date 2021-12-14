@@ -44,21 +44,15 @@ def test_list_trial_components():
 
     assert len(resp["TrialComponentSummaries"]) == 1
 
-    assert resp["NextToken"] == "1"
+    next_token = resp["NextToken"]
 
-    resp = client.list_trial_components(MaxResults=2, NextToken="1")
+    resp = client.list_trial_components(MaxResults=2, NextToken=next_token)
 
     assert len(resp["TrialComponentSummaries"]) == 2
 
-    assert resp["NextToken"] == "3"
+    next_token = resp["NextToken"]
 
-    resp = client.list_trial_components(NextToken="3")
-
-    assert len(resp["TrialComponentSummaries"]) == 7
-
-    assert resp.get("NextToken") is None
-
-    resp = client.list_trial_components(MaxResults=20, NextToken="3")
+    resp = client.list_trial_components(NextToken=next_token)
 
     assert len(resp["TrialComponentSummaries"]) == 7
 

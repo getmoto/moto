@@ -347,9 +347,28 @@ class SageMakerResponse(BaseResponse):
     def list_experiments(self):
         MaxResults = self._get_param("MaxResults")
         NextToken = self._get_param("NextToken")
-        response = self.sagemaker_backend.list_experiments(
+
+        paged_results, next_token = self.sagemaker_backend.list_experiments(
             MaxResults=MaxResults, NextToken=NextToken,
         )
+
+        experiment_summaries = [
+            {
+                "ExperimentName": experiment_data.experiment_name,
+                "ExperimentArn": experiment_data.experiment_arn,
+                "CreationTime": experiment_data.creation_time,
+                "LastModifiedTime": experiment_data.last_modified_time,
+            }
+            for experiment_data in paged_results
+        ]
+
+        response = {
+            "ExperimentSummaries": experiment_summaries,
+        }
+
+        if next_token:
+            response["NextToken"] = next_token
+
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
@@ -375,12 +394,33 @@ class SageMakerResponse(BaseResponse):
 
     @amzn_request_id
     def list_trials(self):
-        response = self.sagemaker_backend.list_trials(
-            NextToken=self._get_param("NextToken"),
-            MaxResults=self._get_param("MaxResults"),
+        MaxResults = self._get_param("MaxResults")
+        NextToken = self._get_param("NextToken")
+
+        paged_results, next_token = self.sagemaker_backend.list_trials(
+            NextToken=NextToken,
+            MaxResults=MaxResults,
             experiment_name=self._get_param("ExperimentName"),
             trial_component_name=self._get_param("TrialComponentName"),
         )
+
+        trial_summaries = [
+            {
+                "TrialName": trial_data.trial_name,
+                "TrialArn": trial_data.trial_arn,
+                "CreationTime": trial_data.creation_time,
+                "LastModifiedTime": trial_data.last_modified_time,
+            }
+            for trial_data in paged_results
+        ]
+
+        response = {
+            "TrialSummaries": trial_summaries,
+        }
+
+        if next_token:
+            response["NextToken"] = next_token
+
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
@@ -396,11 +436,32 @@ class SageMakerResponse(BaseResponse):
 
     @amzn_request_id
     def list_trial_components(self):
-        response = self.sagemaker_backend.list_trial_components(
-            NextToken=self._get_param("NextToken"),
-            MaxResults=self._get_param("MaxResults"),
+        MaxResults = self._get_param("MaxResults")
+        NextToken = self._get_param("NextToken")
+
+        paged_results, next_token = self.sagemaker_backend.list_trial_components(
+            NextToken=NextToken,
+            MaxResults=MaxResults,
             trial_name=self._get_param("TrialName"),
         )
+
+        trial_component_summaries = [
+            {
+                "TrialComponentName": trial_component_data.trial_component_name,
+                "TrialComponentArn": trial_component_data.trial_component_arn,
+                "CreationTime": trial_component_data.creation_time,
+                "LastModifiedTime": trial_component_data.last_modified_time,
+            }
+            for trial_component_data in paged_results
+        ]
+
+        response = {
+            "TrialComponentSummaries": trial_component_summaries,
+        }
+
+        if next_token:
+            response["NextToken"] = next_token
+
         return 200, {}, json.dumps(response)
 
     @amzn_request_id

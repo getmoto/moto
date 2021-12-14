@@ -40,21 +40,15 @@ def test_list_experiments():
 
     assert len(resp["ExperimentSummaries"]) == 1
 
-    assert resp["NextToken"] == "1"
+    next_token = resp["NextToken"]
 
-    resp = client.list_experiments(MaxResults=2, NextToken="1")
+    resp = client.list_experiments(MaxResults=2, NextToken=next_token)
 
     assert len(resp["ExperimentSummaries"]) == 2
 
-    assert resp["NextToken"] == "3"
+    next_token = resp["NextToken"]
 
-    resp = client.list_experiments(NextToken="3")
-
-    assert len(resp["ExperimentSummaries"]) == 7
-
-    assert resp.get("NextToken") is None
-
-    resp = client.list_experiments(MaxResults=20, NextToken="3")
+    resp = client.list_experiments(NextToken=next_token)
 
     assert len(resp["ExperimentSummaries"]) == 7
 
