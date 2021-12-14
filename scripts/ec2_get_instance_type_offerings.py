@@ -55,9 +55,10 @@ def main():
                     next_token = offerings.get("NextToken", None)
                 for i in instances:
                     del i["LocationType"]  # This can be reproduced, no need to persist it
+                instances = sorted(instances, key=lambda i: (i['Location'], i["InstanceType"]))
                 print("Writing data to {0}".format(dest))
                 with open(dest, "w+") as open_file:
-                    json.dump(instances, open_file, sort_keys=True, indent=2)
+                    json.dump(instances, open_file, indent=1)
             except Exception as e:
                 print("Unable to write data to {0}".format(dest))
                 print(e)
