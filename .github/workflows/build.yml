@@ -258,6 +258,7 @@ jobs:
           flags: test_responses
 
   terraform:
+    if: ${{ false }}
     name: Terraform Tests
     runs-on: ubuntu-latest
     needs: terraformcache
