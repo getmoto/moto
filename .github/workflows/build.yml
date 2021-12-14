@@ -28,10 +28,10 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache3'
+        key: 'terraformcache_build'
     - name: Download
       env:
-        DOWNLOAD_TEST_BIN: 1
+        DOWNLOAD_TEST_BIN: 0
       if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
       run: |
         cd moto-terraform-tests
@@ -258,7 +258,6 @@ jobs:
           flags: test_responses
 
   terraform:
-    if: ${{ false }}
     name: Terraform Tests
     runs-on: ubuntu-latest
     needs: terraformcache
@@ -287,7 +286,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache3'
+        key: 'terraformcache_build'
     - name: Start MotoServer
       run: |
         python setup.py sdist
