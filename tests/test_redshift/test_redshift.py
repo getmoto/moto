@@ -2137,3 +2137,74 @@ def test_get_cluster_credentials():
     assert time.mktime(response["Expiration"].timetuple()) == pytest.approx(
         expected_expiration
     )
+
+
+@mock_redshift
+def test_pause_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+    response = client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+
+    response = client.pause_cluster(ClusterIdentifier="test")
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+    # Verify this call returns all properties
+    cluster["NodeType"].should.equal("ds2.xlarge")
+    cluster["ClusterStatus"].should.equal("paused")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["Endpoint"]["Port"].should.equal(5439)
+
+
+@mock_redshift
+def test_pause_unknown_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.pause_cluster(ClusterIdentifier="test")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ClusterNotFound")
+    err["Message"].should.equal("Cluster test not found.")
+
+
+@mock_redshift
+def test_resume_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    client.pause_cluster(ClusterIdentifier="test")
+    response = client.resume_cluster(ClusterIdentifier="test")
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+    # Verify this call returns all properties
+    cluster["NodeType"].should.equal("ds2.xlarge")
+    cluster["ClusterStatus"].should.equal("available")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["Endpoint"]["Port"].should.equal(5439)
+
+
+@mock_redshift
+def test_resume_unknown_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.resume_cluster(ClusterIdentifier="test")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ClusterNotFound")
+    err["Message"].should.equal("Cluster test not found.")

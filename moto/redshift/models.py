@@ -261,6 +261,12 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
     def resource_id(self):
         return self.cluster_identifier
 
+    def pause(self):
+        self.status = "paused"
+
+    def resume(self):
+        self.status = "available"
+
     def to_json(self):
         json_response = {
             "MasterUsername": self.master_username,
@@ -636,6 +642,18 @@ class RedshiftBackend(BaseBackend):
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
         return cluster
+
+    def pause_cluster(self, cluster_id):
+        if cluster_id not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier=cluster_id)
+        self.clusters[cluster_id].pause()
+        return self.clusters[cluster_id]
+
+    def resume_cluster(self, cluster_id):
+        if cluster_id not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier=cluster_id)
+        self.clusters[cluster_id].resume()
+        return self.clusters[cluster_id]
 
     def describe_clusters(self, cluster_identifier=None):
         clusters = self.clusters.values()
