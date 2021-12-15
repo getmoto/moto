@@ -32,6 +32,9 @@ from moto.dynamodb2.exceptions import InvalidTokenException, InvalidUpdateExpres
 from moto.dynamodb2.parsing.tokens import Token, ExpressionTokenizer
 
 
+logger = logging.getLogger(__name__)
+
+
 class NestableExpressionParserMixin(object):
     """
     For nodes that can be nested in themselves (recursive). Take for example UpdateExpression's grammar:
@@ -61,7 +64,7 @@ class NestableExpressionParserMixin(object):
         Returns:
 
         """
-        logging.debug(
+        logger.debug(
             "Move token pos {pos} to continue parsing with specific factory class {fc}".format(
                 pos=self.token_pos, fc=factory_class.__class__.__name__
             )
@@ -69,7 +72,7 @@ class NestableExpressionParserMixin(object):
         # noinspection PyProtectedMember
         ast, token_pos = factory_class(**self._initializer_args())._parse_with_pos()
         self.target_clauses.append(ast)
-        logging.debug(
+        logger.debug(
             "Continue where previous parsing ended {token_pos}".format(
                 token_pos=token_pos
             )
@@ -275,7 +278,7 @@ class ExpressionParser(metaclass=abc.ABCMeta):
                 self.token_pos += 1
         except IndexError:
             assert self.token_pos > 0, "We should always have positive indexes"
-            logging.debug("We are out of range so end is reached")
+            logger.debug("We are out of range so end is reached")
 
     def process_token_of_type(self, token_type):
         """
@@ -355,7 +358,7 @@ class NestableBinExpressionParser(ExpressionParser):
             **self._initializer_args()
         )._parse_with_pos()
         self.target_nodes.append(ast)
-        logging.debug(
+        logger.debug(
             "Continue where previous parsing ended {token_pos}".format(
                 token_pos=self.token_pos
             )
@@ -477,7 +480,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
         while True:
             self.skip_white_space()
             if self.is_at_end():
-                logging.debug("End reached")
+                logger.debug("End reached")
                 break
             elif self._parse_by_a_subfactory():
                 continue
@@ -556,7 +559,7 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
                 break
 
         if len(self.target_clauses) == 0:
-            logging.debug(
+            logger.debug(
                 "Didn't encounter a single {nc} in {nepc}.".format(
                     nc=self._nestable_class().__name__,
                     nepc=self._nested_expression_parser_class().__name__,
