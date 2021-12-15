@@ -1422,6 +1422,49 @@ def test_create_cluster_from_snapshot():
 
 
 @mock_redshift
+def test_create_cluster_with_node_type_from_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+    original_cluster_identifier = "original-cluster"
+    original_snapshot_identifier = "original-snapshot"
+    new_cluster_identifier = "new-cluster"
+
+    client.create_cluster(
+        ClusterIdentifier=original_cluster_identifier,
+        ClusterType="multi-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        EnhancedVpcRouting=True,
+        NumberOfNodes=2,
+    )
+
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=original_snapshot_identifier,
+        ClusterIdentifier=original_cluster_identifier,
+    )
+
+    client.restore_from_cluster_snapshot.when.called_with(
+        ClusterIdentifier=original_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+    ).should.throw(ClientError, "ClusterAlreadyExists")
+
+    response = client.restore_from_cluster_snapshot(
+        ClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+        NodeType="ra3.xlplus",
+        NumberOfNodes=3,
+    )
+    response["Cluster"]["ClusterStatus"].should.equal("creating")
+
+    response = client.describe_clusters(ClusterIdentifier=new_cluster_identifier)
+    new_cluster = response["Clusters"][0]
+    new_cluster["NodeType"].should.equal("ra3.xlplus")
+    new_cluster["NumberOfNodes"].should.equal(3)
+    new_cluster["MasterUsername"].should.equal("username")
+    new_cluster["EnhancedVpcRouting"].should.equal(True)
+
+
+@mock_redshift
 def test_create_cluster_from_snapshot_with_waiter():
     client = boto3.client("redshift", region_name="us-east-1")
     original_cluster_identifier = "original-cluster"

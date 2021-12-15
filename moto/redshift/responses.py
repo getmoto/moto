@@ -161,6 +161,8 @@ class RedshiftResponse(BaseResponse):
 
     def restore_from_cluster_snapshot(self):
         enhanced_vpc_routing = self._get_bool_param("EnhancedVpcRouting")
+        node_type = self._get_param("NodeType")
+        number_of_nodes = self._get_int_param("NumberOfNodes")
         restore_kwargs = {
             "snapshot_identifier": self._get_param("SnapshotIdentifier"),
             "cluster_identifier": self._get_param("ClusterIdentifier"),
@@ -185,6 +187,10 @@ class RedshiftResponse(BaseResponse):
         }
         if enhanced_vpc_routing is not None:
             restore_kwargs["enhanced_vpc_routing"] = enhanced_vpc_routing
+        if node_type is not None:
+            restore_kwargs["node_type"] = node_type
+        if number_of_nodes is not None:
+            restore_kwargs["number_of_nodes"] = number_of_nodes
         cluster = self.redshift_backend.restore_from_cluster_snapshot(
             **restore_kwargs
         ).to_json()
