@@ -1,6 +1,12 @@
 Moto Changelog
 ===================
 
+2.2.19
+-----
+    General:
+        * Support for ap-southeast-3
+
+
 2.2.18
 ------
     New Services:
