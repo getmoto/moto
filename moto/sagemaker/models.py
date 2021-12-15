@@ -5,12 +5,38 @@ from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
+from moto.utilities.paginator import paginate
 from .exceptions import (
     MissingModel,
     ValidationError,
     AWSValidationException,
     ResourceNotFound,
 )
+
+
+PAGINATION_MODEL = {
+    "list_experiments": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 100,
+        "unique_attribute": "experiment_arn",
+        "fail_on_invalid_token": True,
+    },
+    "list_trials": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 100,
+        "unique_attribute": "trial_arn",
+        "fail_on_invalid_token": True,
+    },
+    "list_trial_components": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 100,
+        "unique_attribute": "trial_component_arn",
+        "fail_on_invalid_token": True,
+    },
+}
 
 
 class BaseObject(BaseModel):
@@ -1114,25 +1140,9 @@ class SageMakerModelBackend(BaseBackend):
             tag for tag in trial_component.tags if tag["Key"] not in tag_keys
         ]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self):
-        next_index = None
-
-        experiments_fetched = list(self.experiments.values())
-
-        experiment_summaries = [
-            {
-                "ExperimentName": experiment_data.experiment_name,
-                "ExperimentArn": experiment_data.experiment_arn,
-                "CreationTime": experiment_data.creation_time,
-                "LastModifiedTime": experiment_data.last_modified_time,
-            }
-            for experiment_data in experiments_fetched
-        ]
-
-        return {
-            "ExperimentSummaries": experiment_summaries,
-            "NextToken": str(next_index) if next_index is not None else None,
-        }
+        return list(self.experiments.values())
 
     def search(self, resource=None, search_expression=None):
         next_index = None
@@ -1333,9 +1343,8 @@ class SageMakerModelBackend(BaseBackend):
         except RESTError:
             return []
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(self, experiment_name=None, trial_component_name=None):
-        next_index = None
-
         trials_fetched = list(self.trials.values())
 
         def evaluate_filter_expression(trial_data):
@@ -1349,21 +1358,11 @@ class SageMakerModelBackend(BaseBackend):
 
             return True
 
-        trial_summaries = [
-            {
-                "TrialName": trial_data.trial_name,
-                "TrialArn": trial_data.trial_arn,
-                "CreationTime": trial_data.creation_time,
-                "LastModifiedTime": trial_data.last_modified_time,
-            }
+        return [
+            trial_data
             for trial_data in trials_fetched
             if evaluate_filter_expression(trial_data)
         ]
-
-        return {
-            "TrialSummaries": trial_summaries,
-            "NextToken": str(next_index) if next_index is not None else None,
-        }
 
     def create_trial_component(
         self, trial_component_name, trial_name,
@@ -1416,26 +1415,15 @@ class SageMakerModelBackend(BaseBackend):
     def _update_trial_component_details(self, trial_component_name, details_json):
         self.trial_components[trial_component_name].update(details_json)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trial_components(self, trial_name=None):
-        next_index = None
-
         trial_components_fetched = list(self.trial_components.values())
 
-        trial_component_summaries = [
-            {
-                "TrialComponentName": trial_component_data.trial_component_name,
-                "TrialComponentArn": trial_component_data.trial_component_arn,
-                "CreationTime": trial_component_data.creation_time,
-                "LastModifiedTime": trial_component_data.last_modified_time,
-            }
+        return [
+            trial_component_data
             for trial_component_data in trial_components_fetched
             if trial_name is None or trial_component_data.trial_name == trial_name
         ]
-
-        return {
-            "TrialComponentSummaries": trial_component_summaries,
-            "NextToken": str(next_index) if next_index is not None else None,
-        }
 
     def associate_trial_component(self, params):
         trial_name = params["TrialName"]

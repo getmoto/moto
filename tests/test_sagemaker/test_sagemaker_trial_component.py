@@ -32,6 +32,34 @@ def test_create__trial_component():
 
 
 @mock_sagemaker
+def test_list_trial_components():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+
+    trial_component_names = [f"some-trial-component-name-{i}" for i in range(10)]
+
+    for trial_component_name in trial_component_names:
+        resp = client.create_trial_component(TrialComponentName=trial_component_name)
+
+    resp = client.list_trial_components(MaxResults=1)
+
+    assert len(resp["TrialComponentSummaries"]) == 1
+
+    next_token = resp["NextToken"]
+
+    resp = client.list_trial_components(MaxResults=2, NextToken=next_token)
+
+    assert len(resp["TrialComponentSummaries"]) == 2
+
+    next_token = resp["NextToken"]
+
+    resp = client.list_trial_components(NextToken=next_token)
+
+    assert len(resp["TrialComponentSummaries"]) == 7
+
+    assert resp.get("NextToken") is None
+
+
+@mock_sagemaker
 def test_delete__trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
