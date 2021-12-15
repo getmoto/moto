@@ -199,9 +199,10 @@ for location_type in listdir(root / offerings_path):
     INSTANCE_TYPE_OFFERINGS[location_type] = {}
     for _region in listdir(root / offerings_path / location_type):
         full_path = offerings_path + "/" + location_type + "/" + _region
-        INSTANCE_TYPE_OFFERINGS[location_type][
-            _region.replace(".json", "")
-        ] = load_resource(__name__, full_path)
+        res = load_resource(__name__, full_path)
+        for instance in res:
+            instance["LocationType"] = location_type
+        INSTANCE_TYPE_OFFERINGS[location_type][_region.replace(".json", "")] = res
 
 
 if "MOTO_AMIS_PATH" in environ:
@@ -1392,7 +1393,7 @@ class InstanceTypeOfferingBackend(object):
     def describe_instance_type_offerings(self, location_type=None, filters=None):
         location_type = location_type or "region"
         matches = INSTANCE_TYPE_OFFERINGS[location_type]
-        matches = matches[self.region_name]
+        matches = matches.get(self.region_name, [])
 
         def matches_filters(offering, filters):
             def matches_filter(key, values):
@@ -1412,7 +1413,7 @@ class InstanceTypeOfferingBackend(object):
 
             return all([matches_filter(key, values) for key, values in filters.items()])
 
-        matches = [o for o in matches if matches_filters(o, filters)]
+        matches = [o for o in matches if matches_filters(o, filters or {})]
         return matches
 
 
@@ -2221,10 +2222,11 @@ class RegionsAndZonesBackend(object):
         return ret
 
     def describe_availability_zones(self):
-        return self.zones[self.region_name]
+        # We might not have any zones for the current region, if it was introduced recently
+        return self.zones.get(self.region_name, [])
 
     def get_zone_by_name(self, name):
-        for zone in self.zones[self.region_name]:
+        for zone in self.describe_availability_zones():
             if zone.name == name:
                 return zone
 
@@ -6551,7 +6553,7 @@ class SpotFleetBackend(object):
 class SpotPriceBackend(object):
     def describe_spot_price_history(self, instance_types=None, filters=None):
         matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
-        matches = matches[self.region_name]
+        matches = matches.get(self.region_name, [])
 
         def matches_filters(offering, filters):
             def matches_filter(key, values):
