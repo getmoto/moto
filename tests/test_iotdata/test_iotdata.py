@@ -4,6 +4,8 @@ import sure  # noqa # pylint: disable=unused-import
 import pytest
 from botocore.exceptions import ClientError
 from moto import mock_iotdata, mock_iot
+from unittest.mock import patch, call
+
 
 
 @mock_iot
@@ -104,9 +106,15 @@ def test_update():
 
 
 @mock_iotdata
-def test_publish():
-    client = boto3.client("iot-data", region_name="ap-northeast-1")
+@patch("moto.iotdata.models.IoTDataPlaneBackend")
+def test_publish(mock_backend):
+    region_name="ap-northeast-1"
+    mock_iotdata.backends[region_name] = mock_backend
+    client = boto3.client("iot-data", region_name=region_name)
     client.publish(topic="test/topic", qos=1, payload=b"")
+    assert_that(mock_backend.method_calls, "We submitted data to IoT Data").is_equal_to([call.publish(
+            topic='iot%2Ftest-run-id%2Fout%2FDMC_SYMATIC%2Fx%2Fy%2Fx%2Fcommands', qos=None, payload=None)])
+
 
 
 @mock_iot
