@@ -112,8 +112,9 @@ def test_publish(mock_backend):
     mock_iotdata.backends[region_name] = mock_backend
     client = boto3.client("iot-data", region_name=region_name)
     client.publish(topic="test/topic", qos=1, payload=b"")
-    assert_that(mock_backend.method_calls, "We submitted data to IoT Data").is_equal_to([call.publish(
-            topic='iot%2Ftest-run-id%2Fout%2FDMC_SYMATIC%2Fx%2Fy%2Fx%2Fcommands', qos=None, payload=None)])
+    mock_backend.method_calls.should.equal([call.publish(
+        topic='test%2ftopic', qos=1, payload=b"")])
+
 
 
 
