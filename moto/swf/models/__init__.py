@@ -1,6 +1,5 @@
-from boto3 import Session
-
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
 
 from ..exceptions import (
     SWFUnknownResourceFault,
@@ -433,10 +432,4 @@ class SWFBackend(BaseBackend):
         wfe.signal(signal_name, input)
 
 
-swf_backends = {}
-for region in Session().get_available_regions("swf"):
-    swf_backends[region] = SWFBackend(region)
-for region in Session().get_available_regions("swf", partition_name="aws-us-gov"):
-    swf_backends[region] = SWFBackend(region)
-for region in Session().get_available_regions("swf", partition_name="aws-cn"):
-    swf_backends[region] = SWFBackend(region)
+swf_backends = BackendDict(SWFBackend, "swf")

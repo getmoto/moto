@@ -1,8 +1,8 @@
 """SimpleDBBackend class with methods for supported APIs."""
 import re
-from boto3 import Session
 from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from threading import Lock
 
 from .exceptions import InvalidDomainName, UnknownDomainName
@@ -98,12 +98,4 @@ class SimpleDBBackend(BaseBackend):
         domain.put(item_name, attributes)
 
 
-sdb_backends = {}
-for available_region in Session().get_available_regions("sdb"):
-    sdb_backends[available_region] = SimpleDBBackend(available_region)
-for available_region in Session().get_available_regions(
-    "sdb", partition_name="aws-us-gov"
-):
-    sdb_backends[available_region] = SimpleDBBackend(available_region)
-for available_region in Session().get_available_regions("sdb", partition_name="aws-cn"):
-    sdb_backends[available_region] = SimpleDBBackend(available_region)
+sdb_backends = BackendDict(SimpleDBBackend, "sdb")

@@ -1,11 +1,9 @@
 import copy
 import datetime
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.utilities.utils import random_string
 from moto.ec2 import ec2_backends
 from .exceptions import (
@@ -548,7 +546,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
 
 
 class RedshiftBackend(BaseBackend):
-    def __init__(self, ec2_backend, region_name):
+    def __init__(self, region_name):
         self.region = region_name
         self.clusters = {}
         self.subnet_groups = {}
@@ -565,7 +563,7 @@ class RedshiftBackend(BaseBackend):
                 self.region,
             )
         }
-        self.ec2_backend = ec2_backend
+        self.ec2_backend = ec2_backends[self.region]
         self.snapshots = OrderedDict()
         self.RESOURCE_TYPE_MAP = {
             "cluster": self.clusters,
@@ -577,10 +575,9 @@ class RedshiftBackend(BaseBackend):
         self.snapshot_copy_grants = {}
 
     def reset(self):
-        ec2_backend = self.ec2_backend
         region_name = self.region
         self.__dict__ = {}
-        self.__init__(ec2_backend, region_name)
+        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1007,10 +1004,4 @@ class RedshiftBackend(BaseBackend):
             raise ClusterNotFoundError(cluster_identifier)
 
 
-redshift_backends = {}
-for region in Session().get_available_regions("redshift"):
-    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
-for region in Session().get_available_regions("redshift", partition_name="aws-us-gov"):
-    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
-for region in Session().get_available_regions("redshift", partition_name="aws-cn"):
-    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
+redshift_backends = BackendDict(RedshiftBackend, "redshift")

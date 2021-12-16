@@ -6,11 +6,10 @@ import json
 import re
 import uuid
 
-from boto3 import Session
 from collections import OrderedDict
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis
+from moto.core.utils import unix_time, unix_time_millis, BackendDict
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
 from moto.dynamodb2.comparisons import get_expected
@@ -1127,7 +1126,6 @@ class DynamoDBBackend(BaseBackend):
 
     def reset(self):
         region_name = self.region_name
-
         self.__dict__ = {}
         self.__init__(region_name)
 
@@ -1762,10 +1760,4 @@ class DynamoDBBackend(BaseBackend):
         pass
 
 
-dynamodb_backends = {}
-for region in Session().get_available_regions("dynamodb"):
-    dynamodb_backends[region] = DynamoDBBackend(region)
-for region in Session().get_available_regions("dynamodb", partition_name="aws-us-gov"):
-    dynamodb_backends[region] = DynamoDBBackend(region)
-for region in Session().get_available_regions("dynamodb", partition_name="aws-cn"):
-    dynamodb_backends[region] = DynamoDBBackend(region)
+dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")

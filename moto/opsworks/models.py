@@ -1,6 +1,7 @@
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from moto.core import ACCOUNT_ID
+from moto.core.utils import BackendDict
 import uuid
 import datetime
 from random import choice
@@ -494,17 +495,18 @@ class App(BaseModel):
 
 
 class OpsWorksBackend(BaseBackend):
-    def __init__(self, ec2_backend):
+    def __init__(self, region):
         self.stacks = {}
         self.layers = {}
         self.apps = {}
         self.instances = {}
-        self.ec2_backend = ec2_backend
+        self.region_name = region
+        self.ec2_backend = ec2_backends[region]
 
     def reset(self):
-        ec2_backend = self.ec2_backend
+        region = self.region_name
         self.__dict__ = {}
-        self.__init__(ec2_backend)
+        self.__init__(region)
 
     def create_stack(self, **kwargs):
         stack = Stack(**kwargs)
@@ -671,6 +673,4 @@ class OpsWorksBackend(BaseBackend):
         self.instances[instance_id].start()
 
 
-opsworks_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    opsworks_backends[region] = OpsWorksBackend(ec2_backend)
+opsworks_backends = BackendDict(OpsWorksBackend, "ec2")

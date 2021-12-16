@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from datetime import datetime
 from uuid import uuid4
 
@@ -70,10 +70,4 @@ class Detector(BaseModel):
         self.tags = tags
 
 
-guardduty_backends = {}
-for region in Session().get_available_regions("guardduty"):
-    guardduty_backends[region] = GuardDutyBackend()
-for region in Session().get_available_regions("guardduty", partition_name="aws-us-gov"):
-    guardduty_backends[region] = GuardDutyBackend()
-for region in Session().get_available_regions("guardduty", partition_name="aws-cn"):
-    guardduty_backends[region] = GuardDutyBackend()
+guardduty_backends = BackendDict(GuardDutyBackend, "guardduty")

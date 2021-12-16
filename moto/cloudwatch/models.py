@@ -1,7 +1,5 @@
 import json
 
-from boto3 import Session
-
 from moto.core import (
     BaseBackend,
     BaseModel,
@@ -10,6 +8,7 @@ from moto.core import (
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
+    BackendDict,
 )
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
@@ -680,12 +679,4 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
 
-cloudwatch_backends = {}
-for region in Session().get_available_regions("cloudwatch"):
-    cloudwatch_backends[region] = CloudWatchBackend(region)
-for region in Session().get_available_regions(
-    "cloudwatch", partition_name="aws-us-gov"
-):
-    cloudwatch_backends[region] = CloudWatchBackend(region)
-for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
-    cloudwatch_backends[region] = CloudWatchBackend(region)
+cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

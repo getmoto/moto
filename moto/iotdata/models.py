@@ -1,10 +1,9 @@
 import json
 import time
 import jsondiff
-from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import merge_dicts
+from moto.core.utils import merge_dicts, BackendDict
 from moto.iot import iot_backends
 from .exceptions import (
     ConflictException,
@@ -204,10 +203,4 @@ class IoTDataPlaneBackend(BaseBackend):
         return None
 
 
-iotdata_backends = {}
-for region in Session().get_available_regions("iot-data"):
-    iotdata_backends[region] = IoTDataPlaneBackend(region)
-for region in Session().get_available_regions("iot-data", partition_name="aws-us-gov"):
-    iotdata_backends[region] = IoTDataPlaneBackend(region)
-for region in Session().get_available_regions("iot-data", partition_name="aws-cn"):
-    iotdata_backends[region] = IoTDataPlaneBackend(region)
+iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")

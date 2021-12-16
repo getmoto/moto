@@ -1,6 +1,5 @@
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import UserAlreadyExists, UserNotFound
 
@@ -93,14 +92,4 @@ class ElastiCacheBackend(BaseBackend):
         return self.users.values()
 
 
-elasticache_backends = {}
-for available_region in Session().get_available_regions("elasticache"):
-    elasticache_backends[available_region] = ElastiCacheBackend(available_region)
-for available_region in Session().get_available_regions(
-    "elasticache", partition_name="aws-us-gov"
-):
-    elasticache_backends[available_region] = ElastiCacheBackend(available_region)
-for available_region in Session().get_available_regions(
-    "elasticache", partition_name="aws-cn"
-):
-    elasticache_backends[available_region] = ElastiCacheBackend(available_region)
+elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

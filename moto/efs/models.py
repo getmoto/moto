@@ -9,13 +9,12 @@ import time
 from copy import deepcopy
 from hashlib import md5
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_hex,
     underscores_to_camelcase,
+    BackendDict,
 )
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
@@ -531,10 +530,4 @@ class EFSBackend(BaseBackend):
         return backup_policy
 
 
-efs_backends = {}
-for region in Session().get_available_regions("efs"):
-    efs_backends[region] = EFSBackend(region)
-for region in Session().get_available_regions("efs", partition_name="aws-us-gov"):
-    efs_backends[region] = EFSBackend(region)
-for region in Session().get_available_regions("efs", partition_name="aws-cn"):
-    efs_backends[region] = EFSBackend(region)
+efs_backends = BackendDict(EFSBackend, "efs")

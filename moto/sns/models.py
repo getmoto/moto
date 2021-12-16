@@ -5,13 +5,12 @@ import json
 import requests
 import re
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
+    BackendDict,
 )
 from moto.sqs import sqs_backends
 
@@ -819,13 +818,7 @@ class SNSBackend(BaseBackend):
             self.topics[resource_arn]._tags.pop(key, None)
 
 
-sns_backends = {}
-for region in Session().get_available_regions("sns"):
-    sns_backends[region] = SNSBackend(region)
-for region in Session().get_available_regions("sns", partition_name="aws-us-gov"):
-    sns_backends[region] = SNSBackend(region)
-for region in Session().get_available_regions("sns", partition_name="aws-cn"):
-    sns_backends[region] = SNSBackend(region)
+sns_backends = BackendDict(SNSBackend, "sns")
 
 
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = {

@@ -5,12 +5,16 @@ from datetime import datetime
 from random import random, randint
 
 import pytz
-from boto3 import Session
 
 from moto import settings
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
+from moto.core.utils import (
+    unix_time,
+    pascal_to_camelcase,
+    remap_nested_keys,
+    BackendDict,
+)
 from moto.ec2 import ec2_backends
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -1780,10 +1784,4 @@ class EC2ContainerServiceBackend(BaseBackend):
         return False
 
 
-ecs_backends = {}
-for region in Session().get_available_regions("ecs"):
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
-for region in Session().get_available_regions("ecs", partition_name="aws-us-gov"):
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
-for region in Session().get_available_regions("ecs", partition_name="aws-cn"):
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
+ecs_backends = BackendDict(EC2ContainerServiceBackend, "ecs")

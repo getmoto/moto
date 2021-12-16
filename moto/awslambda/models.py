@@ -22,14 +22,12 @@ import threading
 import weakref
 import requests.exceptions
 
-from boto3 import Session
-
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
@@ -1451,10 +1449,4 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-lambda_backends = {}
-for region in Session().get_available_regions("lambda"):
-    lambda_backends[region] = LambdaBackend(region)
-for region in Session().get_available_regions("lambda", partition_name="aws-us-gov"):
-    lambda_backends[region] = LambdaBackend(region)
-for region in Session().get_available_regions("lambda", partition_name="aws-cn"):
-    lambda_backends[region] = LambdaBackend(region)
+lambda_backends = BackendDict(LambdaBackend, "lambda")

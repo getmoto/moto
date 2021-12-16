@@ -1,10 +1,9 @@
 """EMRContainersBackend class with methods for supported APIs."""
 import re
 from datetime import datetime
-from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
 from .exceptions import ResourceNotFoundException
@@ -374,14 +373,4 @@ class EMRContainersBackend(BaseBackend):
         return self.jobs[id].to_dict()
 
 
-emrcontainers_backends = {}
-for available_region in Session().get_available_regions("emr-containers"):
-    emrcontainers_backends[available_region] = EMRContainersBackend(available_region)
-for available_region in Session().get_available_regions(
-    "emr-containers", partition_name="aws-us-gov"
-):
-    emrcontainers_backends[available_region] = EMRContainersBackend(available_region)
-for available_region in Session().get_available_regions(
-    "emr-containers", partition_name="aws-cn"
-):
-    emrcontainers_backends[available_region] = EMRContainersBackend(available_region)
+emrcontainers_backends = BackendDict(EMRContainersBackend, "emr-containers")

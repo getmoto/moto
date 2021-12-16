@@ -1,9 +1,8 @@
 from collections import OrderedDict
 from datetime import date
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import (
     ContainerNotFoundException,
     ResourceNotFoundException,
@@ -129,12 +128,4 @@ class MediaStoreBackend(BaseBackend):
         return metric_policy
 
 
-mediastore_backends = {}
-for region in Session().get_available_regions("mediastore"):
-    mediastore_backends[region] = MediaStoreBackend(region)
-for region in Session().get_available_regions(
-    "mediastore", partition_name="aws-us-gov"
-):
-    mediastore_backends[region] = MediaStoreBackend(region)
-for region in Session().get_available_regions("mediastore", partition_name="aws-cn"):
-    mediastore_backends[region] = MediaStoreBackend(region)
+mediastore_backends = BackendDict(MediaStoreBackend, "mediastore")

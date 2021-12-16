@@ -1,10 +1,8 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, BackendDict
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -510,12 +508,4 @@ class DirectoryServiceBackend(BaseBackend):
         return self.tagger.list_tags_for_resource(resource_id).get("Tags")
 
 
-ds_backends = {}
-for available_region in Session().get_available_regions("ds"):
-    ds_backends[available_region] = DirectoryServiceBackend(available_region)
-for available_region in Session().get_available_regions(
-    "ds", partition_name="aws-us-gov"
-):
-    ds_backends[available_region] = DirectoryServiceBackend(available_region)
-for available_region in Session().get_available_regions("ds", partition_name="aws-cn"):
-    ds_backends[available_region] = DirectoryServiceBackend(available_region)
+ds_backends = BackendDict(fn=DirectoryServiceBackend, service_name="ds")

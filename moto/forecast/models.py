@@ -1,10 +1,8 @@
 import re
 from datetime import datetime
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from .exceptions import (
     InvalidInputException,
     ResourceAlreadyExistsException,
@@ -167,6 +165,4 @@ class ForecastBackend(BaseBackend):
         self.__init__(region_name)
 
 
-forecast_backends = {}
-for region in Session().get_available_regions("forecast"):
-    forecast_backends[region] = ForecastBackend(region)
+forecast_backends = BackendDict(ForecastBackend, "forecast")

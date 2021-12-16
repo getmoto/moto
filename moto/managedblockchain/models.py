@@ -3,9 +3,8 @@ from __future__ import division
 import datetime
 import re
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import (
     BadRequestException,
@@ -1095,6 +1094,4 @@ class ManagedBlockchainBackend(BaseBackend):
         self.nodes.get(nodeid).update(logpublishingconfiguration)
 
 
-managedblockchain_backends = {}
-for region in Session().get_available_regions("managedblockchain"):
-    managedblockchain_backends[region] = ManagedBlockchainBackend(region)
+managedblockchain_backends = BackendDict(ManagedBlockchainBackend, "managedblockchain")

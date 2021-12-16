@@ -1,10 +1,9 @@
 import re
 import time
 
-from boto3 import Session
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from .exceptions import (
     S3BucketDoesNotExistException,
     InsufficientSnsTopicPolicyException,
@@ -261,14 +260,4 @@ class CloudTrailBackend(BaseBackend):
         self.__init__(region_name)
 
 
-cloudtrail_backends = {}
-for available_region in Session().get_available_regions("cloudtrail"):
-    cloudtrail_backends[available_region] = CloudTrailBackend(available_region)
-for available_region in Session().get_available_regions(
-    "cloudtrail", partition_name="aws-us-gov"
-):
-    cloudtrail_backends[available_region] = CloudTrailBackend(available_region)
-for available_region in Session().get_available_regions(
-    "cloudtrail", partition_name="aws-cn"
-):
-    cloudtrail_backends[available_region] = CloudTrailBackend(available_region)
+cloudtrail_backends = BackendDict(CloudTrailBackend, "cloudtrail")

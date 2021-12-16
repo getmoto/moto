@@ -1,10 +1,8 @@
 from datetime import datetime
 from uuid import uuid4
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from ..utilities.utils import random_string
 from .exceptions import (
@@ -715,10 +713,4 @@ def _validate_fargate_profile_selectors(selectors):
             raise_exception(message=FARGATE_PROFILE_TOO_MANY_LABELS)
 
 
-eks_backends = {}
-for region in Session().get_available_regions("eks"):
-    eks_backends[region] = EKSBackend(region)
-for region in Session().get_available_regions("eks", partition_name="aws-us-gov"):
-    eks_backends[region] = EKSBackend(region)
-for region in Session().get_available_regions("eks", partition_name="aws-cn"):
-    eks_backends[region] = EKSBackend(region)
+eks_backends = BackendDict(EKSBackend, "eks")
