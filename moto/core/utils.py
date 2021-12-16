@@ -8,6 +8,7 @@ import re
 import string
 from botocore.exceptions import ClientError
 from boto3 import Session
+from moto.settings import allow_unknown_region
 from urllib.parse import urlparse
 
 
@@ -439,5 +440,7 @@ class BackendDict(dict):
     def __getitem__(self, item):
         # Create the backend for a specific region
         if item in self.regions and item not in self.keys():
+            super().__setitem__(item, self.fn(item))
+        if item not in self.regions and allow_unknown_region():
             super().__setitem__(item, self.fn(item))
         return super().__getitem__(item)
