@@ -435,7 +435,7 @@ class BackendDict(dict):
         )
 
     def __contains__(self, item):
-        return item in self.regions
+        return item in self.regions or item in self.keys()
 
     def __getitem__(self, item):
         # Create the backend for a specific region
