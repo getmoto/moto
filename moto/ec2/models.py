@@ -1818,7 +1818,6 @@ class RegionsAndZonesBackend(object):
         "ap-south-1",
         "ap-southeast-1",
         "ap-southeast-2",
-        "ap-southeast-3",
         "ca-central-1",
         "eu-central-1",
         "eu-north-1",
@@ -1987,23 +1986,6 @@ class RegionsAndZonesBackend(object):
                 region_name="ap-southeast-2",
                 name="ap-southeast-2c",
                 zone_id="apse2-az2",
-            ),
-        ],
-        "ap-southeast-3": [
-            Zone(
-                region_name="ap-southeast-3",
-                name="ap-southeast-3a",
-                zone_id="apse3-az1",
-            ),
-            Zone(
-                region_name="ap-southeast-3",
-                name="ap-southeast-3b",
-                zone_id="apse3-az2",
-            ),
-            Zone(
-                region_name="ap-southeast-3",
-                name="ap-southeast-3c",
-                zone_id="apse3-az3",
             ),
         ],
         "eu-central-1": [
