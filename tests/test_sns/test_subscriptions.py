@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 import boto
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sns_deprecated
 from moto.sns.models import DEFAULT_PAGE_SIZE

@@ -1,6 +1,6 @@
 import boto3
 import io
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import zipfile
 from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
@@ -210,9 +210,6 @@ def test_event_source_mapping_update_from_cloudformation_json():
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
-    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"][
-        "FunctionArn"
-    ]
 
     original_template = event_source_mapping_template.substitute(
         {
@@ -266,9 +263,6 @@ def test_event_source_mapping_delete_from_cloudformation_json():
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
-    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"][
-        "FunctionArn"
-    ]
 
     original_template = event_source_mapping_template.substitute(
         {

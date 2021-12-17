@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
-
 from . import _get_clients, _setup
-import sure  # noqa
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, settings
 from uuid import uuid4
 
@@ -12,8 +11,8 @@ from uuid import uuid4
 @mock_iam
 @mock_batch
 def test_create_managed_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
@@ -61,8 +60,8 @@ def test_create_managed_compute_environment():
 @mock_iam
 @mock_batch
 def test_create_unmanaged_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
@@ -99,8 +98,8 @@ def test_create_unmanaged_compute_environment():
 @mock_iam
 @mock_batch
 def test_describe_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     compute_arn = (
@@ -132,8 +131,8 @@ def test_describe_compute_environment():
 @mock_iam
 @mock_batch
 def test_delete_unmanaged_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     batch_client.create_compute_environment(
@@ -162,8 +161,8 @@ def test_delete_unmanaged_compute_environment():
 @mock_iam
 @mock_batch
 def test_delete_managed_compute_environment():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     batch_client.create_compute_environment(
@@ -215,8 +214,8 @@ def test_delete_managed_compute_environment():
 @mock_iam
 @mock_batch
 def test_update_unmanaged_compute_environment_state():
-    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
-    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
     batch_client.create_compute_environment(
@@ -234,3 +233,38 @@ def test_update_unmanaged_compute_environment_state():
     our_envs = [e for e in all_envs if e["computeEnvironmentName"] == compute_name]
     our_envs.should.have.length_of(1)
     our_envs[0]["state"].should.equal("DISABLED")
+
+
+@pytest.mark.parametrize("compute_env_type", ["FARGATE", "FARGATE_SPOT"])
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_create_fargate_managed_compute_environment(compute_env_type):
+    ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = str(uuid4())
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="MANAGED",
+        state="ENABLED",
+        computeResources={
+            "type": compute_env_type,
+            "maxvCpus": 10,
+            "subnets": [subnet_id],
+            "securityGroupIds": [sg_id],
+        },
+        serviceRole=iam_arn,
+    )
+    resp.should.contain("computeEnvironmentArn")
+    resp["computeEnvironmentName"].should.equal(compute_name)
+
+    our_env = batch_client.describe_compute_environments(
+        computeEnvironments=[compute_name]
+    )["computeEnvironments"][0]
+
+    our_env["computeResources"]["type"].should.equal(compute_env_type)
+    # Should have created 1 ECS cluster
+    all_clusters = ecs_client.list_clusters()["clusterArns"]
+    all_clusters.should.contain(our_env["ecsClusterArn"])

@@ -16,7 +16,7 @@ Incomplete list of unfinished items:
   - put_record(), put_record_batch() always set "Encrypted" to False.
 """
 from base64 import b64decode, b64encode
-from datetime import datetime
+from datetime import datetime, timezone
 from gzip import GzipFile
 import io
 import json
@@ -154,11 +154,11 @@ class DeliveryStream(
         self.delivery_stream_status = "ACTIVE"
         self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
 
-        self.create_timestamp = datetime.utcnow().isoformat()
+        self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
 
         # I believe boto3 only adds this field after an update ...
-        self.last_update_timestamp = datetime.utcnow().isoformat()
+        self.last_update_timestamp = datetime.now(timezone.utc).isoformat()
 
 
 class FirehoseBackend(BaseBackend):
@@ -238,6 +238,13 @@ class FirehoseBackend(BaseBackend):
         errmsg = self.tagger.validate_tags(tags or [])
         if errmsg:
             raise ValidationException(errmsg)
+
+        if tags and len(tags) > MAX_TAGS_PER_DELIVERY_STREAM:
+            raise ValidationException(
+                f"1 validation error detected: Value '{tags}' at 'tags' "
+                f"failed to satisify contstraint: Member must have length "
+                f"less than or equal to {MAX_TAGS_PER_DELIVERY_STREAM}"
+            )
 
         # Create a DeliveryStream instance that will be stored and indexed
         # by delivery stream name.  This instance will update the state and
@@ -510,7 +517,7 @@ class FirehoseBackend(BaseBackend):
                 f"not found."
             )
 
-        if len(tags) >= MAX_TAGS_PER_DELIVERY_STREAM:
+        if len(tags) > MAX_TAGS_PER_DELIVERY_STREAM:
             raise ValidationException(
                 f"1 validation error detected: Value '{tags}' at 'tags' "
                 f"failed to satisify contstraint: Member must have length "
@@ -622,7 +629,7 @@ class FirehoseBackend(BaseBackend):
 
         # Increment version number and update the timestamp.
         delivery_stream.version_id = str(int(current_delivery_stream_version_id) + 1)
-        delivery_stream.last_update_timestamp = datetime.utcnow().isoformat()
+        delivery_stream.last_update_timestamp = datetime.now(timezone.utc).isoformat()
 
         # Unimplemented: processing of the "S3BackupMode" parameter.  Per the
         # documentation:  "You can update a delivery stream to enable Amazon

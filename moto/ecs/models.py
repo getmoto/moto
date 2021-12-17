@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 import uuid
 from copy import copy
@@ -9,17 +7,21 @@ from random import random, randint
 import pytz
 from boto3 import Session
 
+from moto import settings
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 from moto.ec2 import ec2_backends
+from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
+    EcsClientException,
     ServiceNotFoundException,
     TaskDefinitionNotFoundException,
     TaskSetNotFoundException,
     ClusterNotFoundException,
     InvalidParameterException,
     RevisionNotFoundException,
+    UnknownAccountSettingException,
 )
 
 
@@ -36,7 +38,9 @@ class BaseObject(BaseModel):
     def gen_response_object(self):
         response_object = copy(self.__dict__)
         for key, value in self.__dict__.items():
-            if "_" in key:
+            if key.startswith("_"):
+                del response_object[key]
+            elif "_" in key:
                 response_object[self.camelCase(key)] = value
                 del response_object[key]
         return response_object
@@ -44,6 +48,12 @@ class BaseObject(BaseModel):
     @property
     def response_object(self):
         return self.gen_response_object()
+
+
+class AccountSetting(BaseObject):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
 
 
 class Cluster(BaseObject, CloudFormationModel):
@@ -82,7 +92,7 @@ class Cluster(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_cluster(
@@ -106,6 +116,10 @@ class Cluster(BaseObject, CloudFormationModel):
         else:
             # no-op when nothing changed between old and new resources
             return original_resource
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -217,7 +231,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -270,14 +284,14 @@ class Task(BaseObject):
         task_definition,
         container_instance_arn,
         resource_requirements,
+        backend,
         overrides={},
         started_by="",
         tags=[],
     ):
+        self.id = str(uuid.uuid4())
+        self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
-        self.task_arn = "arn:aws:ecs:{0}:{1}:task/{2}".format(
-            cluster.region_name, ACCOUNT_ID, str(uuid.uuid4())
-        )
         self.container_instance_arn = container_instance_arn
         self.last_status = "RUNNING"
         self.desired_status = "RUNNING"
@@ -288,10 +302,21 @@ class Task(BaseObject):
         self.tags = tags
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
+        self.region_name = cluster.region_name
+        self._backend = backend
+
+    @property
+    def task_arn(self):
+        if self._backend.enable_long_arn_for_name(name="taskLongArnFormat"):
+            return f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:task/{self.cluster_name}/{self.id}"
+        return "arn:aws:ecs:{0}:{1}:task/{2}".format(
+            self.region_name, ACCOUNT_ID, self.id
+        )
 
     @property
     def response_object(self):
         response_object = self.gen_response_object()
+        response_object["taskArn"] = self.task_arn
         return response_object
 
 
@@ -307,12 +332,11 @@ class Service(BaseObject, CloudFormationModel):
         tags=None,
         deployment_controller=None,
         launch_type=None,
+        backend=None,
         service_registries=None,
     ):
+        self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
-        self.arn = "arn:aws:ecs:{0}:{1}:service/{2}".format(
-            cluster.region_name, ACCOUNT_ID, service_name
-        )
         self.name = service_name
         self.status = "ACTIVE"
         self.running_count = 0
@@ -348,6 +372,16 @@ class Service(BaseObject, CloudFormationModel):
         )
         self.tags = tags if tags is not None else []
         self.pending_count = 0
+        self.region_name = cluster.region_name
+        self._backend = backend
+
+    @property
+    def arn(self):
+        if self._backend.enable_long_arn_for_name(name="serviceLongArnFormat"):
+            return f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:service/{self.cluster_name}/{self.name}"
+        return "arn:aws:ecs:{0}:{1}:service/{2}".format(
+            self.region_name, ACCOUNT_ID, self.name
+        )
 
     @property
     def physical_resource_id(self):
@@ -356,7 +390,7 @@ class Service(BaseObject, CloudFormationModel):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        del response_object["name"], response_object["arn"], response_object["tags"]
+        del response_object["name"], response_object["tags"]
         response_object["serviceName"] = self.name
         response_object["serviceArn"] = self.arn
         response_object["schedulingStrategy"] = self.scheduling_strategy
@@ -391,7 +425,7 @@ class Service(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         if isinstance(properties["Cluster"], Cluster):
@@ -443,6 +477,10 @@ class Service(BaseObject, CloudFormationModel):
                 cluster_name, service_name, task_definition, desired_count
             )
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Name"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -452,7 +490,7 @@ class Service(BaseObject, CloudFormationModel):
 
 
 class ContainerInstance(BaseObject):
-    def __init__(self, ec2_instance_id, region_name):
+    def __init__(self, ec2_instance_id, region_name, cluster_name, backend):
         self.ec2_instance_id = ec2_instance_id
         self.agent_connected = True
         self.status = "ACTIVE"
@@ -488,9 +526,6 @@ class ContainerInstance(BaseObject):
                 "type": "STRINGSET",
             },
         ]
-        self.container_instance_arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
-            region_name, ACCOUNT_ID, str(uuid.uuid4())
-        )
         self.pending_tasks_count = 0
         self.remaining_resources = [
             {
@@ -541,10 +576,25 @@ class ContainerInstance(BaseObject):
             else "linux",  # options are windows and linux, linux is default
         }
         self.registered_at = datetime.now(pytz.utc)
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.cluster_name = cluster_name
+        self._backend = backend
+
+    @property
+    def container_instance_arn(self):
+        if self._backend.enable_long_arn_for_name(
+            name="containerInstanceLongArnFormat"
+        ):
+            return f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:container-instance/{self.cluster_name}/{self.id}"
+        return (
+            f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:container-instance/{self.id}"
+        )
 
     @property
     def response_object(self):
         response_object = self.gen_response_object()
+        response_object["containerInstanceArn"] = self.container_instance_arn
         response_object["attributes"] = [
             self._format_attribute(name, value)
             for name, value in response_object["attributes"].items()
@@ -662,6 +712,7 @@ class TaskSet(BaseObject):
 class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self, region_name):
         super(EC2ContainerServiceBackend, self).__init__()
+        self.account_settings = dict()
         self.clusters = {}
         self.task_definitions = {}
         self.tasks = {}
@@ -669,6 +720,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.container_instances = {}
         self.task_sets = {}
         self.region_name = region_name
+        self.tagger = TaggingService(
+            tag_name="tags", key_name="key", value_name="value"
+        )
 
     def reset(self):
         region_name = self.region_name
@@ -709,9 +763,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
-    def create_cluster(self, cluster_name):
+    def create_cluster(self, cluster_name, tags=None):
         cluster = Cluster(cluster_name, self.region_name)
         self.clusters[cluster_name] = cluster
+        if tags:
+            self.tagger.tag_resource(cluster.arn, tags)
         return cluster
 
     def list_clusters(self):
@@ -720,7 +776,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         """
         return [cluster.arn for cluster in self.clusters.values()]
 
-    def describe_clusters(self, list_clusters_name=None):
+    def describe_clusters(self, list_clusters_name=None, include=None):
+        """
+        Only include=TAGS is currently supported.
+        """
         list_clusters = []
         failures = []
         if list_clusters_name is None:
@@ -735,6 +794,14 @@ class EC2ContainerServiceBackend(BaseBackend):
                     failures.append(
                         ClusterFailure("MISSING", cluster_name, self.region_name)
                     )
+
+        if "TAGS" in (include or []):
+            for cluster in list_clusters:
+                cluster_arn = cluster["clusterArn"]
+                if self.tagger.has_tags(cluster_arn):
+                    cluster_tags = self.tagger.list_tags_for_resource(cluster_arn)
+                    cluster.update(cluster_tags)
+
         return list_clusters, failures
 
     def delete_cluster(self, cluster_str):
@@ -855,9 +922,10 @@ class EC2ContainerServiceBackend(BaseBackend):
                         task_definition,
                         container_instance_arn,
                         resource_requirements,
-                        overrides or {},
-                        started_by or "",
-                        tags or [],
+                        backend=self,
+                        overrides=overrides or {},
+                        started_by=started_by or "",
+                        tags=tags or [],
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
@@ -954,7 +1022,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.tasks[cluster.name] = {}
         tasks = []
         if not container_instances:
-            raise InvalidParameterException("Container Instances cannot be empty.")
+            raise EcsClientException("Container Instances cannot be empty.")
 
         container_instance_ids = [x.split("/")[-1] for x in container_instances]
         resource_requirements = self._calculate_task_resource_requirements(
@@ -969,8 +1037,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                 task_definition,
                 container_instance.container_instance_arn,
                 resource_requirements,
-                overrides or {},
-                started_by or "",
+                backend=self,
+                overrides=overrides or {},
+                started_by=started_by or "",
             )
             tasks.append(task)
             self.update_container_instance_resources(
@@ -1097,9 +1166,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         launch_type = launch_type if launch_type is not None else "EC2"
         if launch_type not in ["EC2", "FARGATE"]:
-            raise InvalidParameterException(
-                "launch type should be one of [EC2,FARGATE]"
-            )
+            raise EcsClientException("launch type should be one of [EC2,FARGATE]")
 
         service = Service(
             cluster,
@@ -1111,6 +1178,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             tags,
             deployment_controller,
             launch_type,
+            backend=self,
             service_registries=service_registries,
         )
         cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
@@ -1200,7 +1268,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name = cluster_str.split("/")[-1]
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
-        container_instance = ContainerInstance(ec2_instance_id, self.region_name)
+        container_instance = ContainerInstance(
+            ec2_instance_id, self.region_name, cluster_name, backend=self
+        )
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
         container_instance_id = container_instance.container_instance_arn.split("/")[-1]
@@ -1224,7 +1294,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster = self._get_cluster(cluster_str)
 
         if not list_container_instance_ids:
-            raise InvalidParameterException("Container Instances cannot be empty.")
+            raise EcsClientException("Container Instances cannot be empty.")
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
@@ -1515,7 +1585,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             for service in self.services.values():
                 if service.arn == resource_arn:
                     service.tags = self._merge_tags(service.tags, tags)
-                return {}
+                    return {}
             else:
                 raise ServiceNotFoundException
         raise NotImplementedError()
@@ -1541,7 +1611,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     service.tags = [
                         tag for tag in service.tags if tag["key"] not in tag_keys
                     ]
-                return {}
+                    return {}
             else:
                 raise ServiceNotFoundException
         raise NotImplementedError()
@@ -1564,9 +1634,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     ):
         launch_type = launch_type if launch_type is not None else "EC2"
         if launch_type not in ["EC2", "FARGATE"]:
-            raise InvalidParameterException(
-                "launch type should be one of [EC2,FARGATE]"
-            )
+            raise EcsClientException("launch type should be one of [EC2,FARGATE]")
 
         task_set = TaskSet(
             service,
@@ -1675,6 +1743,41 @@ class EC2ContainerServiceBackend(BaseBackend):
             else:
                 task_set.status = "ACTIVE"
         return task_set_obj
+
+    def list_account_settings(self, name=None, value=None):
+        expected_names = [
+            "serviceLongArnFormat",
+            "taskLongArnFormat",
+            "containerInstanceLongArnFormat",
+            "containerLongArnFormat",
+            "awsvpcTrunking",
+            "containerInsights",
+            "dualStackIPv6",
+        ]
+        if name and name not in expected_names:
+            raise UnknownAccountSettingException()
+        all_settings = self.account_settings.values()
+        return [
+            s
+            for s in all_settings
+            if (not name or s.name == name) and (not value or s.value == value)
+        ]
+
+    def put_account_setting(self, name, value):
+        account_setting = AccountSetting(name, value)
+        self.account_settings[name] = account_setting
+        return account_setting
+
+    def delete_account_setting(self, name):
+        self.account_settings.pop(name, None)
+
+    def enable_long_arn_for_name(self, name):
+        if settings.ecs_new_arn_format():
+            return True
+        account = self.account_settings.get(name, None)
+        if account and account.value == "enabled":
+            return True
+        return False
 
 
 ecs_backends = {}

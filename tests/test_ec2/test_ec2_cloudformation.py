@@ -14,8 +14,8 @@ import boto.cloudformation
 import boto.vpc
 import boto3
 import json
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 
 template_vpc = {

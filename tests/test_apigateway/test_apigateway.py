@@ -1,17 +1,12 @@
-from __future__ import unicode_literals
-
 import json
 
 import boto3
 from freezegun import freeze_time
-import requests
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_cognitoidp, settings
-from moto.apigateway.exceptions import NoIntegrationDefined
 from moto.core import ACCOUNT_ID
-from moto.core.models import responses_mock
 import pytest
 
 
@@ -1334,49 +1329,6 @@ def test_create_simple_deployment_with_post_method():
 
 
 @mock_apigateway
-# https://github.com/aws/aws-sdk-js/issues/2588
-def test_put_integration_response_requires_responseTemplate():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
-    )
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-    client.put_integration(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        type="HTTP",
-        uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="POST",
-    )
-
-    with pytest.raises(ClientError) as ex:
-        client.put_integration_response(
-            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-        )
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
-
-    # Works fine if responseTemplate is defined
-    client.put_integration_response(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        statusCode="200",
-        responseTemplates={},
-    )
-
-
-@mock_apigateway
 def test_put_integration_response_with_response_template():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1400,14 +1352,6 @@ def test_put_integration_response_with_response_template():
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
     )
-
-    with pytest.raises(ClientError) as ex:
-        client.put_integration_response(
-            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
 
     client.put_integration_response(
         restApiId=api_id,
@@ -1457,40 +1401,40 @@ def test_put_integration_validation():
     types_requiring_integration_method = http_types + aws_types
     types_not_requiring_integration_method = ["MOCK"]
 
-    for type in types_requiring_integration_method:
+    for _type in types_requiring_integration_method:
         # Ensure that integrations of these types fail if no integrationHttpMethod is provided
         with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="http://httpbin.org/robots.txt",
             )
         ex.value.response["Error"]["Code"].should.equal("BadRequestException")
         ex.value.response["Error"]["Message"].should.equal(
             "Enumeration value for HttpMethod must be non-empty"
         )
-    for type in types_not_requiring_integration_method:
+    for _type in types_not_requiring_integration_method:
         # Ensure that integrations of these types do not need the integrationHttpMethod
         client.put_integration(
             restApiId=api_id,
             resourceId=root_id,
             httpMethod="GET",
-            type=type,
+            type=_type,
             uri="http://httpbin.org/robots.txt",
         )
-    for type in http_types:
+    for _type in http_types:
         # Ensure that it works fine when providing the integrationHttpMethod-argument
         client.put_integration(
             restApiId=api_id,
             resourceId=root_id,
             httpMethod="GET",
-            type=type,
+            type=_type,
             uri="http://httpbin.org/robots.txt",
             integrationHttpMethod="POST",
         )
-    for type in ["AWS"]:
+    for _type in ["AWS"]:
         # Ensure that it works fine when providing the integrationHttpMethod + credentials
         client.put_integration(
             restApiId=api_id,
@@ -1499,21 +1443,21 @@ def test_put_integration_validation():
                 ACCOUNT_ID
             ),
             httpMethod="GET",
-            type=type,
+            type=_type,
             uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
             integrationHttpMethod="POST",
         )
-    for type in aws_types:
+    for _type in aws_types:
         # Ensure that credentials are not required when URI points to a Lambda stream
         client.put_integration(
             restApiId=api_id,
             resourceId=root_id,
             httpMethod="GET",
-            type=type,
+            type=_type,
             uri="arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:012345678901:function:MyLambda/invocations",
             integrationHttpMethod="POST",
         )
-    for type in ["AWS_PROXY"]:
+    for _type in ["AWS_PROXY"]:
         # Ensure that aws_proxy does not support S3
         with pytest.raises(ClientError) as ex:
             client.put_integration(
@@ -1523,7 +1467,7 @@ def test_put_integration_validation():
                     ACCOUNT_ID
                 ),
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
@@ -1531,7 +1475,7 @@ def test_put_integration_validation():
         ex.value.response["Error"]["Message"].should.equal(
             "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations."
         )
-    for type in aws_types:
+    for _type in aws_types:
         # Ensure that the Role ARN is for the current account
         with pytest.raises(ClientError) as ex:
             client.put_integration(
@@ -1539,7 +1483,7 @@ def test_put_integration_validation():
                 resourceId=root_id,
                 credentials="arn:aws:iam::000000000000:role/service-role/testrole",
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
@@ -1547,14 +1491,14 @@ def test_put_integration_validation():
         ex.value.response["Error"]["Message"].should.equal(
             "Cross-account pass role is not allowed."
         )
-    for type in ["AWS"]:
+    for _type in ["AWS"]:
         # Ensure that the Role ARN is specified for aws integrations
         with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
@@ -1562,14 +1506,14 @@ def test_put_integration_validation():
         ex.value.response["Error"]["Message"].should.equal(
             "Role ARN must be specified for AWS integrations"
         )
-    for type in http_types:
+    for _type in http_types:
         # Ensure that the URI is valid HTTP
         with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="non-valid-http",
                 integrationHttpMethod="POST",
             )
@@ -1577,14 +1521,14 @@ def test_put_integration_validation():
         ex.value.response["Error"]["Message"].should.equal(
             "Invalid HTTP endpoint specified for URI"
         )
-    for type in aws_types:
+    for _type in aws_types:
         # Ensure that the URI is an ARN
         with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="non-valid-arn",
                 integrationHttpMethod="POST",
             )
@@ -1592,14 +1536,14 @@ def test_put_integration_validation():
         ex.value.response["Error"]["Message"].should.equal(
             "Invalid ARN specified in the request"
         )
-    for type in aws_types:
+    for _type in aws_types:
         # Ensure that the URI is a valid ARN
         with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
                 httpMethod="GET",
-                type=type,
+                type=_type,
                 uri="arn:aws:iam::0000000000:role/service-role/asdf",
                 integrationHttpMethod="POST",
             )
@@ -1863,50 +1807,6 @@ def test_get_model_with_invalid_name():
         client.get_model(restApiId=rest_api_id, modelName="fake")
     ex.value.response["Error"]["Message"].should.equal("Invalid Model Name specified")
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-
-
-@mock_apigateway
-def test_http_proxying_integration():
-    responses_mock.add(
-        responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
-    )
-
-    region_name = "us-west-2"
-    client = boto3.client("apigateway", region_name=region_name)
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
-    )
-
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-
-    response = client.put_integration(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        type="HTTP",
-        uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="GET",
-    )
-
-    stage_name = "staging"
-    client.create_deployment(restApiId=api_id, stageName=stage_name)
-
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
-    )
-
-    if not settings.TEST_SERVER_MODE:
-        requests.get(deploy_url).content.should.equal(b"a fake response")
 
 
 @mock_apigateway
@@ -2265,7 +2165,7 @@ def test_get_usage_plans_using_key_id():
     # Create 2 Usage Plans
     # one will be attached to an API Key, the other will remain unattached
     attached_plan = client.create_usage_plan(name="Attached")
-    unattached_plan = client.create_usage_plan(name="Unattached")
+    client.create_usage_plan(name="Unattached")
 
     # Create an API key
     # to attach to the usage plan
@@ -2277,7 +2177,7 @@ def test_get_usage_plans_using_key_id():
     # Attached the Usage Plan and API Key
     key_type = "API_KEY"
     payload = {"usagePlanId": attached_plan["id"], "keyId": key_id, "keyType": key_type}
-    response = client.create_usage_plan_key(**payload)
+    client.create_usage_plan_key(**payload)
 
     # All usage plans should be returned when keyId is not included
     all_plans = client.get_usage_plans()
@@ -2403,3 +2303,352 @@ def test_delete_domain_name_unknown_domainname():
         "Invalid domain name identifier specified"
     )
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_create_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    response = client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response.should_not.have.key("stage")
+
+    response = client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+    response = client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name, basePath="v1"
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["basePath"].should.equal("v1")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_unknown_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId="none-exists-api"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid REST API identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_invalid_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, basePath="/v1"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
+        "To create a multi-level base path mapping, use API Gateway V2."
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_unknown_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, stage="unknown-stage"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid stage identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_create_base_path_mapping_with_duplicate_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    client.create_domain_name(
+        domainName=domain_name,
+        certificateName="test.certificate",
+        certificatePrivateKey="testPrivateKey",
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+    with pytest.raises(ClientError) as ex:
+        client.create_base_path_mapping(
+            domainName=domain_name, restApiId=api_id, basePath=base_path
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Base path already exists for this domain name"
+    )
+    ex.value.response["Error"]["Code"].should.equal("ConflictException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+
+
+@mock_apigateway
+def test_get_base_path_mappings():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v2", stage=stage_name
+    )
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    items = response["items"]
+
+    items[0]["basePath"].should.equal("(none)")
+    items[0]["restApiId"].should.equal(api_id)
+    items[0].should_not.have.key("stage")
+
+    items[1]["basePath"].should.equal("v1")
+    items[1]["restApiId"].should.equal(api_id)
+    items[1].should_not.have.key("stage")
+
+    items[2]["basePath"].should.equal("v2")
+    items[2]["restApiId"].should.equal(api_id)
+    items[2]["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_get_base_path_mappings_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mappings(domainName="unknown-domain")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_get_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name
+    )
+
+    response = client.get_base_path_mapping(domainName=domain_name, basePath="(none)")
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_get_base_path_mapping_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName="unknown-domain", basePath="v1")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_get_base_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName=domain_name, basePath="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_delete_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+
+    client.get_base_path_mapping(domainName=domain_name, basePath=base_path)
+    response = client.delete_base_path_mapping(
+        domainName=domain_name, basePath=base_path
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName=domain_name, basePath=base_path)
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_delete_base_path_mapping_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_base_path_mapping(domainName="unknown-domain", basePath="v1")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_delete_base_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_base_path_mapping(domainName=domain_name, basePath="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)

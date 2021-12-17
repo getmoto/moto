@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 import time
 from copy import deepcopy
 from datetime import datetime
@@ -7,7 +6,7 @@ from datetime import datetime
 import boto3
 import json
 import pytz
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -117,6 +116,7 @@ def test_describe_cluster():
     }
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
     args["SecurityConfiguration"] = "my-security-configuration"
+    args["AutoScalingRole"] = "EMR_AutoScaling_DefaultRole"
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
@@ -165,6 +165,7 @@ def test_describe_cluster():
     cl["SecurityConfiguration"].should.be.a(str)
     cl["SecurityConfiguration"].should.equal(args["SecurityConfiguration"])
     cl["ServiceRole"].should.equal(args["ServiceRole"])
+    cl["AutoScalingRole"].should.equal(args["AutoScalingRole"])
 
     status = cl["Status"]
     status["State"].should.equal("TERMINATED")
@@ -189,13 +190,10 @@ def test_describe_cluster():
 @mock_emr
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
-    raised = False
-    try:
-        cluster = conn.describe_cluster(ClusterId="DummyId")
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ResourceNotFoundException":
-            raised = True
-    raised.should.equal(True)
+    with pytest.raises(ClientError) as e:
+        conn.describe_cluster(ClusterId="DummyId")
+
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_emr
@@ -234,7 +232,7 @@ def test_describe_job_flows():
     resp = client.describe_job_flows()
     resp["JobFlows"].should.have.length_of(6)
 
-    for cluster_id, y in expected.items():
+    for cluster_id in expected:
         resp = client.describe_job_flows(JobFlowIds=[cluster_id])
         resp["JobFlows"].should.have.length_of(1)
         resp["JobFlows"][0]["JobFlowId"].should.equal(cluster_id)
@@ -556,7 +554,6 @@ def test_run_job_flow_with_instance_groups_with_autoscaling():
 @mock_emr
 def test_put_remove_auto_scaling_policy():
     region_name = "us-east-1"
-    input_groups = dict((g["Name"], g) for g in input_instance_groups)
     client = boto3.client("emr", region_name=region_name)
     args = deepcopy(run_job_flow_args)
     args["Instances"] = {"InstanceGroups": input_instance_groups}
@@ -993,7 +990,7 @@ def test_steps():
         # x['ExecutionStatusDetail'].should.have.key('LastStateChangeReason')
         # x['ExecutionStatusDetail'].should.have.key('StartDateTime')
         x["ExecutionStatusDetail"]["State"].should.equal(
-            "STARTING" if idx == 0 else "PENDING"
+            "RUNNING" if idx == 0 else "PENDING"
         )
         x["StepConfig"]["ActionOnFailure"].should.equal("TERMINATE_CLUSTER")
         x["StepConfig"]["HadoopJarStep"]["Args"].should.equal(
@@ -1023,7 +1020,7 @@ def test_steps():
         # Properties
         x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
-        x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
+        x["Status"]["State"].should.be.within(["RUNNING", "PENDING"])
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
@@ -1039,7 +1036,7 @@ def test_steps():
         # Properties
         x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
-        x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
+        x["Status"]["State"].should.be.within(["RUNNING", "PENDING"])
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
@@ -1050,7 +1047,7 @@ def test_steps():
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
 
-    steps = client.list_steps(ClusterId=cluster_id, StepStates=["STARTING"])["Steps"]
+    steps = client.list_steps(ClusterId=cluster_id, StepStates=["RUNNING"])["Steps"]
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
 

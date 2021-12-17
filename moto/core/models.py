@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+import botocore
+import boto3
 import functools
 import inspect
 import os
@@ -18,7 +19,6 @@ except ImportError:
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
-from distutils.version import LooseVersion
 from http.client import responses as http_responses
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
@@ -26,12 +26,14 @@ from werkzeug.wrappers import Request
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
+from moto.utilities.distutils_version import LooseVersion
 from unittest.mock import patch
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
+
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
@@ -287,10 +289,7 @@ responses_mock.add_passthru("http")
 
 
 def _find_first_match_legacy(self, request):
-    matches = []
-    for i, match in enumerate(self._matches):
-        if match.matches(request):
-            matches.append(match)
+    matches = [match for match in self._matches if match.matches(request)]
 
     # Look for implemented callbacks first
     implemented_matches = [
@@ -309,7 +308,7 @@ def _find_first_match_legacy(self, request):
 def _find_first_match(self, request):
     matches = []
     match_failed_reasons = []
-    for i, match in enumerate(self._matches):
+    for match in self._matches:
         match_result, reason = match.matches(request)
         if match_result:
             matches.append(match)
@@ -349,10 +348,10 @@ BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "P
 
 
 class MockRawResponse(BytesIO):
-    def __init__(self, input):
-        if isinstance(input, str):
-            input = input.encode("utf-8")
-        super(MockRawResponse, self).__init__(input)
+    def __init__(self, response_input):
+        if isinstance(response_input, str):
+            response_input = response_input.encode("utf-8")
+        super().__init__(response_input)
 
     def stream(self, **kwargs):
         contents = self.read()
@@ -408,6 +407,40 @@ botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
 
 
+def patch_client(client):
+    """
+    Explicitly patch a boto3-client
+    """
+    """
+    Adding the botocore_stubber to the BUILTIN_HANDLERS, as above, will mock everything as long as the import ordering is correct
+     - user:   start mock_service decorator
+     - system: imports core.model
+     - system: adds the stubber to the BUILTIN_HANDLERS
+     - user:   create a boto3 client - which will use the BUILTIN_HANDLERS
+
+    But, if for whatever reason the imports are wrong and the client is created first, it doesn't know about our stub yet
+    This method can be used to tell a client that it needs to be mocked, and append the botocore_stubber after creation
+    :param client:
+    :return:
+    """
+    if isinstance(client, botocore.client.BaseClient):
+        client.meta.events.register("before-send", botocore_stubber)
+    else:
+        raise Exception(f"Argument {client} should be of type boto3.client")
+
+
+def patch_resource(resource):
+    """
+    Explicitly patch a boto3-resource
+    """
+    if hasattr(resource, "meta") and isinstance(
+        resource.meta, boto3.resources.factory.ResourceMeta
+    ):
+        patch_client(resource.meta.client)
+    else:
+        raise Exception(f"Argument {resource} should be of type boto3.resource")
+
+
 def not_implemented_callback(request):
     status = 400
     headers = {}
@@ -443,7 +476,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             method=method,
                             url=re.compile(key),
                             callback=convert_flask_to_responses_response(value),
-                            stream=True,
                             match_querystring=False,
                         )
                     )
@@ -452,7 +484,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
                     match_querystring=False,
                 )
             )
@@ -461,7 +492,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
                     match_querystring=False,
                 )
             )
@@ -520,7 +550,7 @@ class ServerModeMockAWS(BaseMockAWS):
         if "region_name" in kwargs:
             return kwargs["region_name"]
         if type(args) == tuple and len(args) == 2:
-            service, region = args
+            _, region = args
             return region
         return None
 
@@ -532,7 +562,7 @@ class ServerModeMockAWS(BaseMockAWS):
 
 class Model(type):
     def __new__(self, clsname, bases, namespace):
-        cls = super(Model, self).__new__(self, clsname, bases, namespace)
+        cls = super().__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
         for name, value in namespace.items():
             model = getattr(value, "__returns_model__", False)
@@ -596,8 +626,15 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
+    def has_cfn_attr(cls, attr):
+        # Used for validation
+        # If a template creates an Output for an attribute that does not exist, an error should be thrown
+        return True
+
+    @classmethod
+    @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
@@ -628,12 +665,19 @@ class CloudFormationModel(BaseModel):
         # and delete the resource. Do not include a return statement.
         pass
 
+    @abstractmethod
+    def is_created(self):
+        # Verify whether the resource was created successfully
+        # Assume True after initialization
+        # Custom resources may need time after init before they are created successfully
+        return True
+
 
 class BaseBackend:
     def _reset_model_refs(self):
         # Remove all references to the models stored
-        for service, models in model_data.items():
-            for model_name, model in models.items():
+        for models in model_data.values():
+            for model in models.values():
                 model.instances = []
 
     def reset(self):
@@ -656,14 +700,19 @@ class BaseBackend:
         A dictionary of the urls to be mocked with this service and the handlers
         that should be called in their place
         """
-        url_bases = self._url_module.url_bases
+        url_bases = self.url_bases
         unformatted_paths = self._url_module.url_paths
 
         urls = {}
         for url_base in url_bases:
+            # The default URL_base will look like: http://service.[..].amazonaws.com/...
+            # This extension ensures support for the China regions
+            cn_url_base = re.sub(r"amazonaws\\?.com$", "amazonaws.com.cn", url_base)
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
+                cn_url = url_path.format(cn_url_base)
+                urls[cn_url] = handler
 
         return urls
 
@@ -902,9 +951,16 @@ class MotoAPIBackend(BaseBackend):
         for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
-            for region_name, backend in backends_.items():
+            for backend in backends_.values():
                 backend.reset()
         self.__init__()
+
+
+class CloudWatchMetricProvider(object):
+    @staticmethod
+    @abstractmethod
+    def get_cloudwatch_metrics():
+        pass
 
 
 moto_api_backend = MotoAPIBackend()

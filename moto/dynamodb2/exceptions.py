@@ -204,3 +204,17 @@ class UpdateHashRangeKeyException(MockValidationException):
 
     def __init__(self, key_name):
         super(UpdateHashRangeKeyException, self).__init__(self.msg.format(key_name))
+
+
+class InvalidAttributeTypeError(MockValidationException):
+    msg = "One or more parameter values were invalid: Type mismatch for key {} expected: {} actual: {}"
+
+    def __init__(self, name, expected_type, actual_type):
+        super().__init__(self.msg.format(name, expected_type, actual_type))
+
+
+class TooManyAddClauses(InvalidUpdateExpression):
+    msg = 'The "ADD" section can only be used once in an update expression;'
+
+    def __init__(self):
+        super(TooManyAddClauses, self).__init__(self.msg)

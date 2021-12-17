@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from urllib.parse import urlparse, parse_qs
 

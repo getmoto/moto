@@ -1,9 +1,6 @@
-from __future__ import unicode_literals
-
 import json
-from urllib.parse import urlencode
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 

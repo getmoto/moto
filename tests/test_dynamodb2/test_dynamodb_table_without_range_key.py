@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import boto
 import boto3
 from boto3.dynamodb.conditions import Key
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 from datetime import datetime
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
@@ -14,6 +12,7 @@ from tests.helpers import requires_boto_gte
 import botocore
 
 try:
+    from boto.dynamodb2.types import NUMBER
     from boto.dynamodb2.fields import HashKey
     from boto.dynamodb2.table import Table
     from boto.dynamodb2.table import Item
@@ -662,7 +661,7 @@ def test_get_missing_item():
 def test_get_special_item():
     table = Table.create(
         "messages",
-        schema=[HashKey("date-joined")],
+        schema=[HashKey("date-joined", data_type=NUMBER)],
         throughput={"read": 10, "write": 10},
     )
 
@@ -852,7 +851,7 @@ def test_boto3_create_table():
 def _create_user_table():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
@@ -1018,7 +1017,7 @@ def test_boto3_update_settype_item_with_conditions():
         """A set with predictable iteration order"""
 
         def __init__(self, values):
-            super(OrderedSet, self).__init__(values)
+            super().__init__(values)
             self.__ordered_values = values
 
         def __iter__(self):

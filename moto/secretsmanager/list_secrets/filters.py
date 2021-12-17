@@ -1,44 +1,44 @@
-def _matcher(pattern, str):
+def name(secret, names):
+    return _matcher(names, [secret.name])
+
+
+def description(secret, descriptions):
+    return _matcher(descriptions, [secret.description])
+
+
+def tag_key(secret, tag_keys):
+    return _matcher(tag_keys, [tag["Key"] for tag in secret.tags])
+
+
+def tag_value(secret, tag_values):
+    return _matcher(tag_values, [tag["Value"] for tag in secret.tags])
+
+
+def all(secret, values):
+    attributes = (
+        [secret.name, secret.description]
+        + [tag["Key"] for tag in secret.tags]
+        + [tag["Value"] for tag in secret.tags]
+    )
+
+    return _matcher(values, attributes)
+
+
+def _matcher(patterns, strings):
+    for pattern in [p for p in patterns if p.startswith("!")]:
+        for string in strings:
+            if _match_pattern(pattern[1:], string):
+                return False
+
+    for pattern in [p for p in patterns if not p.startswith("!")]:
+        for string in strings:
+            if _match_pattern(pattern, string):
+                return True
+    return False
+
+
+def _match_pattern(pattern, str):
     for word in pattern.split(" "):
         if word not in str:
             return False
     return True
-
-
-def name(secret, names):
-    for n in names:
-        if _matcher(n, secret.name):
-            return True
-    return False
-
-
-def description(secret, descriptions):
-    for d in descriptions:
-        if _matcher(d, secret.description):
-            return True
-    return False
-
-
-def tag_key(secret, tag_keys):
-    for k in tag_keys:
-        for tag in secret.tags:
-            if _matcher(k, tag["Key"]):
-                return True
-    return False
-
-
-def tag_value(secret, tag_values):
-    for v in tag_values:
-        for tag in secret.tags:
-            if _matcher(v, tag["Value"]):
-                return True
-    return False
-
-
-def all(secret, values):
-    return (
-        name(secret, values)
-        or description(secret, values)
-        or tag_key(secret, values)
-        or tag_value(secret, values)
-    )

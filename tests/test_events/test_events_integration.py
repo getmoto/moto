@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_events, mock_sqs, mock_logs
 from moto.core import ACCOUNT_ID
@@ -36,7 +36,7 @@ def test_send_to_cw_log_group():
     )
 
     # when
-    event_time = datetime(2021, 1, 1, 12, 23, 34)
+    event_time = datetime.utcnow()
     client_events.put_events(
         Entries=[
             {

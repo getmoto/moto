@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os
 import json
 
@@ -10,8 +8,8 @@ import boto.s3
 import boto.s3.key
 import boto.cloudformation
 from boto.exception import BotoServerError
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
-import sure  # noqa
 
 import pytest
 
@@ -211,6 +209,7 @@ def test_create_stack_with_notification_arn():
         message = queue.read(1)
 
     msg = json.loads(message.get_body())
+    msg["Subject"].should.equal("AWS CloudFormation Notification")
     msg["Message"].should.contain("StackId='{}'\n".format(stack.stack_id))
     msg["Message"].should.contain("Timestamp='2015-01-01T12:00:00.000Z'\n")
     msg["Message"].should.contain("LogicalResourceId='test_stack_with_notifications'\n")

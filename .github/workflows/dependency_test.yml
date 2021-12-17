@@ -1,6 +1,9 @@
 name: DependencyTest
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # every day at midnight
 
 jobs:
   runtest:

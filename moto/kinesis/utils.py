@@ -12,7 +12,18 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 10000,
-        "page_ending_range_keys": ["ShardId"],
+        "unique_attribute": "ShardId",
+        "fail_on_invalid_token": False,
+    },
+}
+
+
+PAGINATION_MODEL = {
+    "list_shards": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 10000,
+        "unique_attribute": "ShardId",
         "fail_on_invalid_token": False,
     },
 }

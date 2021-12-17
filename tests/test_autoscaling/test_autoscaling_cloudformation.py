@@ -1,6 +1,6 @@
 import boto3
+import sure  # noqa # pylint: disable=unused-import
 import json
-import sure  # noqa
 
 from moto import mock_autoscaling, mock_cloudformation, mock_ec2, mock_elb
 

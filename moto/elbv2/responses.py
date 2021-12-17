@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
@@ -165,12 +164,11 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def create_rule(self):
         params = self._get_params()
-        actions = self._get_list_prefix("Actions.member")
         rules = self.elbv2_backend.create_rule(
             listener_arn=params["ListenerArn"],
             conditions=params["Conditions"],
             priority=params["Priority"],
-            actions=actions,
+            actions=params["Actions"],
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
@@ -214,6 +212,7 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_listener(self):
+        params = self._get_params()
         load_balancer_arn = self._get_param("LoadBalancerArn")
         protocol = self._get_param("Protocol")
         port = self._get_param("Port")
@@ -223,7 +222,7 @@ class ELBV2Response(BaseResponse):
             certificate = certificates[0].get("certificate_arn")
         else:
             certificate = None
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = params.get("DefaultActions", [])
 
         listener = self.elbv2_backend.create_listener(
             load_balancer_arn=load_balancer_arn,
@@ -356,8 +355,8 @@ class ELBV2Response(BaseResponse):
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
-        conditions = params["Conditions"]
-        actions = self._get_list_prefix("Actions.member")
+        conditions = params.get("Conditions", [])
+        actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
         )
@@ -608,7 +607,7 @@ class ELBV2Response(BaseResponse):
         protocol = self._get_param("Protocol")
         ssl_policy = self._get_param("SslPolicy")
         certificates = self._get_list_prefix("Certificates.member")
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = self._get_params().get("DefaultActions", [])
 
         # Should really move SSL Policies to models
         if ssl_policy is not None and ssl_policy not in [
@@ -840,9 +839,15 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
@@ -1078,9 +1083,15 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>

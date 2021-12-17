@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 import datetime
 
@@ -174,7 +172,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -213,6 +211,10 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             kms_key_id=properties.get("KmsKeyId"),
         )
         return cluster
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -258,6 +260,12 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
     @property
     def resource_id(self):
         return self.cluster_identifier
+
+    def pause(self):
+        self.status = "paused"
+
+    def resume(self):
+        self.status = "available"
 
     def to_json(self):
         json_response = {
@@ -371,7 +379,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -468,7 +476,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         redshift_backend = redshift_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -634,6 +642,18 @@ class RedshiftBackend(BaseBackend):
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
         return cluster
+
+    def pause_cluster(self, cluster_id):
+        if cluster_id not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier=cluster_id)
+        self.clusters[cluster_id].pause()
+        return self.clusters[cluster_id]
+
+    def resume_cluster(self, cluster_id):
+        if cluster_id not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier=cluster_id)
+        self.clusters[cluster_id].resume()
+        return self.clusters[cluster_id]
 
     def describe_clusters(self, cluster_identifier=None):
         clusters = self.clusters.values()

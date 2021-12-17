@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 import boto
+import sure  # noqa # pylint: disable=unused-import
 import boto3
-import sure  # noqa
 import pytest
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
@@ -44,6 +43,19 @@ def test_describe_customer_gateways():
 
 
 @mock_ec2
+def test_describe_customer_gateways_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_customer_gateways(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeCustomerGateways operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
 def test_describe_customer_gateways_boto3():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -78,7 +90,7 @@ def test_delete_customer_gateways():
     customer_gateway.should_not.be.none
     cgws = conn.get_all_customer_gateways()
     cgws[0].id.should.match(customer_gateway.id)
-    deleted = conn.delete_customer_gateway(customer_gateway.id)
+    conn.delete_customer_gateway(customer_gateway.id)
     cgws = conn.get_all_customer_gateways()
     cgws[0].state.should.equal("deleted")
     cgws.should.have.length_of(1)
@@ -110,7 +122,7 @@ def test_delete_customer_gateways_boto3():
 @mock_ec2_deprecated
 def test_delete_customer_gateways_bad_id():
     conn = boto.connect_vpc("the_key", "the_secret")
-    with pytest.raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError):
         conn.delete_customer_gateway("cgw-0123abcd")
 
 

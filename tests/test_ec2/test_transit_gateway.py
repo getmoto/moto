@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
 from unittest import SkipTest
@@ -102,10 +102,10 @@ def test_delete_transit_gateway():
 @mock_ec2
 def test_describe_transit_gateway_by_id():
     ec2 = boto3.client("ec2", region_name="us-west-1")
-    g1 = ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
+    ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
     g2 = ec2.create_transit_gateway(Description="my second gatway")["TransitGateway"]
     g2_id = g2["TransitGatewayId"]
-    g3 = ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
+    ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
 
     my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g2_id])[
         "TransitGateways"
@@ -125,9 +125,7 @@ def test_modify_transit_gateway():
     ][0]
     my_gateway["Description"].should.equal("my first gatway")
 
-    resp = ec2.modify_transit_gateway(
-        TransitGatewayId=g_id, Description="my first gateway"
-    )
+    ec2.modify_transit_gateway(TransitGatewayId=g_id, Description="my first gateway")
 
     my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g_id])[
         "TransitGateways"

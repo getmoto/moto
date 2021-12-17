@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -28,9 +27,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def create_cluster(self):
         cluster_name = self._get_param("clusterName")
+        tags = self._get_param("tags")
         if cluster_name is None:
             cluster_name = "default"
-        cluster = self.ecs_backend.create_cluster(cluster_name)
+        cluster = self.ecs_backend.create_cluster(cluster_name, tags)
         return json.dumps({"cluster": cluster.response_object})
 
     def list_clusters(self):
@@ -43,8 +43,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def describe_clusters(self):
-        list_clusters_name = self._get_param("clusters")
-        clusters, failures = self.ecs_backend.describe_clusters(list_clusters_name)
+        names = self._get_param("clusters")
+        include = self._get_param("include")
+        clusters, failures = self.ecs_backend.describe_clusters(names, include)
         return json.dumps(
             {
                 "clusters": clusters,
@@ -450,3 +451,20 @@ class EC2ContainerServiceResponse(BaseResponse):
             cluster_str, service_str, primary_task_set
         )
         return json.dumps({"taskSet": task_set.response_object})
+
+    def put_account_setting(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_setting = self.ecs_backend.put_account_setting(name, value)
+        return json.dumps({"setting": account_setting.response_object})
+
+    def list_account_settings(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_settings = self.ecs_backend.list_account_settings(name, value)
+        return json.dumps({"settings": [s.response_object for s in account_settings]})
+
+    def delete_account_setting(self):
+        name = self._get_param("name")
+        self.ecs_backend.delete_account_setting(name)
+        return "{}"

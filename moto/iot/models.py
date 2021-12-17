@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import random
 import re
@@ -9,10 +7,12 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime
 
-from boto3 import Session
+from .utils import PAGINATION_MODEL
 
-from moto.core import BaseBackend, BaseModel
+from boto3 import Session
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.utilities.utils import random_string
+from moto.utilities.paginator import paginate
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
@@ -31,7 +31,7 @@ class FakeThing(BaseModel):
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
-        self.arn = "arn:aws:iot:%s:1:thing/%s" % (self.region_name, thing_name)
+        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:thing/{thing_name}"
         self.version = 1
         # TODO: we need to handle "version"?
 
@@ -484,6 +484,62 @@ class FakeRule(BaseModel):
         }
 
 
+class FakeDomainConfiguration(BaseModel):
+    def __init__(
+        self,
+        region_name,
+        domain_configuration_name,
+        domain_name,
+        server_certificate_arns,
+        domain_configuration_status,
+        service_type,
+        authorizer_config,
+        domain_type,
+    ):
+        if service_type and service_type not in ["DATA", "CREDENTIAL_PROVIDER", "JOBS"]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration "
+                "operation: Service type %s not recognized." % service_type
+            )
+        self.domain_configuration_name = domain_configuration_name
+        self.domain_configuration_arn = "arn:aws:iot:%s:1:domainconfiguration/%s/%s" % (
+            region_name,
+            domain_configuration_name,
+            random_string(5),
+        )
+        self.domain_name = domain_name
+        self.server_certificates = []
+        if server_certificate_arns:
+            for sc in server_certificate_arns:
+                self.server_certificates.append(
+                    {"serverCertificateArn": sc, "serverCertificateStatus": "VALID"}
+                )
+        self.domain_configuration_status = domain_configuration_status
+        self.service_type = service_type
+        self.authorizer_config = authorizer_config
+        self.domain_type = domain_type
+        self.last_status_change_date = time.time()
+
+    def to_description_dict(self):
+        return {
+            "domainConfigurationName": self.domain_configuration_name,
+            "domainConfigurationArn": self.domain_configuration_arn,
+            "domainName": self.domain_name,
+            "serverCertificates": self.server_certificates,
+            "authorizerConfig": self.authorizer_config,
+            "domainConfigurationStatus": self.domain_configuration_status,
+            "serviceType": self.service_type,
+            "domainType": self.domain_type,
+            "lastStatusChangeDate": self.last_status_change_date,
+        }
+
+    def to_dict(self):
+        return {
+            "domainConfigurationName": self.domain_configuration_name,
+            "domainConfigurationArn": self.domain_configuration_arn,
+        }
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
@@ -499,6 +555,7 @@ class IoTBackend(BaseBackend):
         self.principal_things = OrderedDict()
         self.rules = OrderedDict()
         self.endpoint = None
+        self.domain_configurations = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -913,9 +970,18 @@ class IoTBackend(BaseBackend):
                 raise ResourceNotFoundException()
             principal = certs[0]
             return principal
-        else:
-            # TODO: search for cognito_ids
-            pass
+        from moto.cognitoidentity import cognitoidentity_backends
+
+        cognito = cognitoidentity_backends[self.region_name]
+        identities = []
+        for identity_pool in cognito.identity_pools:
+            pool_identities = cognito.pools_identities.get(identity_pool, None)
+            identities.extend(
+                [pi["IdentityId"] for pi in pool_identities.get("Identities", [])]
+            )
+            if principal_arn in identities:
+                return {"IdentityId": principal_arn}
+
         raise ResourceNotFoundException()
 
     def attach_principal_policy(self, policy_name, principal_arn):
@@ -1340,9 +1406,8 @@ class IoTBackend(BaseBackend):
 
         return job_executions, next_token
 
-    def list_job_executions_for_thing(
-        self, thing_name, status, max_results, next_token
-    ):
+    @paginate(PAGINATION_MODEL)
+    def list_job_executions_for_thing(self, thing_name, status):
         job_executions = [
             self.job_executions[je].to_dict()
             for je in self.job_executions
@@ -1357,20 +1422,7 @@ class IoTBackend(BaseBackend):
                 )
             )
 
-        token = next_token
-        if token is None:
-            job_executions = job_executions[0:max_results]
-            next_token = str(max_results) if len(job_executions) > max_results else None
-        else:
-            token = int(token)
-            job_executions = job_executions[token : token + max_results]
-            next_token = (
-                str(token + max_results)
-                if len(job_executions) > token + max_results
-                else None
-            )
-
-        return job_executions, next_token
+        return job_executions
 
     def list_topic_rules(self):
         return [r.to_dict() for r in self.rules.values()]
@@ -1412,6 +1464,64 @@ class IoTBackend(BaseBackend):
         if rule_name not in self.rules:
             raise ResourceNotFoundException()
         self.rules[rule_name].rule_disabled = True
+
+    def create_domain_configuration(
+        self,
+        domain_configuration_name,
+        domain_name,
+        server_certificate_arns,
+        validation_certificate_arn,
+        authorizer_config,
+        service_type,
+    ):
+        if domain_configuration_name in self.domain_configurations:
+            raise ResourceAlreadyExistsException(
+                "Domain configuration with given name already exists."
+            )
+        self.domain_configurations[domain_configuration_name] = FakeDomainConfiguration(
+            self.region_name,
+            domain_configuration_name,
+            domain_name,
+            server_certificate_arns,
+            "ENABLED",
+            service_type,
+            authorizer_config,
+            "CUSTOMER_MANAGED",
+        )
+        return self.domain_configurations[domain_configuration_name]
+
+    def delete_domain_configuration(self, domain_configuration_name):
+        if domain_configuration_name not in self.domain_configurations:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        del self.domain_configurations[domain_configuration_name]
+
+    def describe_domain_configuration(self, domain_configuration_name):
+        if domain_configuration_name not in self.domain_configurations:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        return self.domain_configurations[domain_configuration_name]
+
+    def list_domain_configurations(self):
+        return [_.to_dict() for _ in self.domain_configurations.values()]
+
+    def update_domain_configuration(
+        self,
+        domain_configuration_name,
+        authorizer_config,
+        domain_configuration_status,
+        remove_authorizer_config,
+    ):
+        if domain_configuration_name not in self.domain_configurations:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        domain_configuration = self.domain_configurations[domain_configuration_name]
+        if authorizer_config is not None:
+            domain_configuration.authorizer_config = authorizer_config
+        if domain_configuration_status is not None:
+            domain_configuration.domain_configuration_status = (
+                domain_configuration_status
+            )
+        if remove_authorizer_config is not None and remove_authorizer_config is True:
+            domain_configuration.authorizer_config = None
+        return domain_configuration
 
 
 iot_backends = {}

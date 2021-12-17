@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import time
 from datetime import datetime
 
@@ -8,7 +7,7 @@ from boto.emr.bootstrap_action import BootstrapAction
 from boto.emr.instance_group import InstanceGroup
 from boto.emr.step import StreamingStep
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
@@ -144,7 +143,7 @@ def test_describe_jobflows():
     jobs = conn.describe_jobflows()
     jobs.should.have.length_of(6)
 
-    for cluster_id, y in expected.items():
+    for cluster_id in expected:
         resp = conn.describe_jobflows(jobflow_ids=[cluster_id])
         resp.should.have.length_of(1)
         resp[0].jobflowid.should.equal(cluster_id)
@@ -593,7 +592,7 @@ def test_steps():
         step.name.should.be.a(str)
         # step.readydatetime.should.be.a(str)
         # step.startdatetime.should.be.a(str)
-        step.state.should.be.within(["STARTING", "PENDING"])
+        step.state.should.be.within(["RUNNING", "PENDING"])
 
     expected = dict((s.name, s) for s in input_steps)
 
@@ -618,7 +617,7 @@ def test_steps():
         # properties
         x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
-        x.status.state.should.be.within(["STARTING", "PENDING"])
+        x.status.state.should.be.within(["RUNNING", "PENDING"])
         # x.status.statechangereason
         x.status.timeline.creationdatetime.should.be.a(str)
         # x.status.timeline.enddatetime.should.be.a(str)
@@ -642,7 +641,7 @@ def test_steps():
         # properties
         x.should.have.property("id").should.be.a(str)
         x.name.should.equal(y.name)
-        x.status.state.should.be.within(["STARTING", "PENDING"])
+        x.status.state.should.be.within(["RUNNING", "PENDING"])
         # x.status.statechangereason
         x.status.timeline.creationdatetime.should.be.a(str)
         # x.status.timeline.enddatetime.should.be.a(str)
@@ -654,7 +653,7 @@ def test_steps():
         # step_states argument.
         steps = conn.list_steps(cluster_id).steps
         step_id = steps[0].id
-        steps = conn.list_steps(cluster_id, step_states=["STARTING"]).steps
+        steps = conn.list_steps(cluster_id, step_states=["RUNNING"]).steps
         steps.should.have.length_of(1)
         steps[0].id.should.equal(step_id)
 

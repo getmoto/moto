@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
-
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import boto3
 
-from moto import mock_iot
+from moto import mock_iot, mock_cognitoidentity
+from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
 import pytest
 
@@ -55,6 +54,31 @@ def test_attach_policy():
     res = client.list_attached_policies(target=cert_arn)
     res.should.have.key("policies").which.should.have.length_of(1)
     res["policies"][0]["policyName"].should.equal("my-policy")
+
+
+@mock_iot
+@mock_cognitoidentity
+def test_attach_policy_to_identity():
+    region = "ap-northeast-1"
+
+    cognito_identity_client = boto3.client("cognito-identity", region_name=region)
+    identity_pool_name = "test_identity_pool"
+    identity_pool = cognito_identity_client.create_identity_pool(
+        IdentityPoolName=identity_pool_name, AllowUnauthenticatedIdentities=True
+    )
+    identity = cognito_identity_client.get_id(
+        AccountId="test", IdentityPoolId=identity_pool["IdentityPoolId"]
+    )
+
+    client = boto3.client("iot", region_name=region)
+    policy_name = "my-policy"
+    doc = "{}"
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=identity["IdentityId"])
+
+    res = client.list_attached_policies(target=identity["IdentityId"])
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal(policy_name)
 
 
 @mock_iot
@@ -372,10 +396,12 @@ def test_list_things_with_next_token():
     things.should.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("1")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/1")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/1"
+    )
     things["things"][-1]["thingName"].should.equal("50")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/50"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/50"
     )
 
     things = client.list_things(nextToken=things["nextToken"])
@@ -383,11 +409,11 @@ def test_list_things_with_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("51")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/51"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/51"
     )
     things["things"][-1]["thingName"].should.equal("100")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/100"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/100"
     )
 
     things = client.list_things(nextToken=things["nextToken"])
@@ -395,11 +421,11 @@ def test_list_things_with_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("101")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/101"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/101"
     )
     things["things"][-1]["thingName"].should.equal("150")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/150"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
     )
 
     things = client.list_things(nextToken=things["nextToken"])
@@ -407,11 +433,11 @@ def test_list_things_with_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("151")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/151"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/151"
     )
     things["things"][-1]["thingName"].should.equal("200")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/200"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/200"
     )
 
 
@@ -445,10 +471,12 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("2")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/2")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/2"
+    )
     things["things"][-1]["thingName"].should.equal("100")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/100"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/100"
     )
     all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
@@ -459,11 +487,11 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("102")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/102"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/102"
     )
     things["things"][-1]["thingName"].should.equal("200")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/200"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/200"
     )
     all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
@@ -472,10 +500,12 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(50)
     things["things"][0]["thingName"].should.equal("3")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/3")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/3"
+    )
     things["things"][-1]["thingName"].should.equal("150")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/150"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
     )
     all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
@@ -486,11 +516,11 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should.have.key("things").which.should.have.length_of(16)
     things["things"][0]["thingName"].should.equal("153")
     things["things"][0]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/153"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/153"
     )
     things["things"][-1]["thingName"].should.equal("198")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/198"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/198"
     )
     all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
@@ -501,10 +531,12 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     things.should_not.have.key("nextToken")
     things.should.have.key("things").which.should.have.length_of(33)
     things["things"][0]["thingName"].should.equal("6")
-    things["things"][0]["thingArn"].should.equal("arn:aws:iot:ap-northeast-1:1:thing/6")
+    things["things"][0]["thingArn"].should.equal(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/6"
+    )
     things["things"][-1]["thingName"].should.equal("198")
     things["things"][-1]["thingArn"].should.equal(
-        "arn:aws:iot:ap-northeast-1:1:thing/198"
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/198"
     )
     all(
         item["attributes"] == {"foo": "bar"}
@@ -890,7 +922,7 @@ def test_principal_policy_deprecated():
 def test_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"
-    thing = client.create_thing(thingName=thing_name)
+    client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
 
@@ -923,7 +955,7 @@ def test_principal_thing():
 def test_delete_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"
-    thing = client.create_thing(thingName=thing_name)
+    client.create_thing(thingName=thing_name)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
     cert_id = cert["certificateId"]
@@ -959,7 +991,7 @@ class TestListThingGroup:
     def test_should_list_all_groups(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups()
         resp.should.have.key("thingGroups")
@@ -969,7 +1001,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(recursive=False)
         resp.should.have.key("thingGroups")
@@ -979,7 +1011,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a)
         resp.should.have.key("thingGroups")
@@ -998,7 +1030,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
         resp.should.have.key("thingGroups")
@@ -1011,7 +1043,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
         resp.should.have.key("thingGroups")
@@ -1027,7 +1059,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-1", recursive=False
@@ -1044,7 +1076,7 @@ class TestListThingGroup:
     def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
-        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
@@ -1072,7 +1104,7 @@ def test_delete_thing_group():
     tree_dict = {
         group_name_1a: {group_name_2a: {},},
     }
-    group_catalog = generate_thing_group_tree(client, tree_dict)
+    generate_thing_group_tree(client, tree_dict)
 
     # delete group with child
     try:
@@ -2063,6 +2095,39 @@ def test_list_job_executions_for_thing():
     )
 
 
+@mock_iot
+def test_list_job_executions_for_thing_paginated():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    thing = client.create_thing(thingName=name)
+
+    for idx in range(0, 10):
+        client.create_job(
+            jobId=f"TestJob_{idx}",
+            targets=[thing["thingArn"]],
+            document=json.dumps({"field": "value"}),
+        )
+
+    res = client.list_job_executions_for_thing(thingName=name, maxResults=2)
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(2)
+    res.should.have.key("nextToken")
+
+    res = client.list_job_executions_for_thing(
+        thingName=name, maxResults=1, nextToken=res["nextToken"]
+    )
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(1)
+    res.should.have.key("nextToken")
+
+    res = client.list_job_executions_for_thing(
+        thingName=name, nextToken=res["nextToken"]
+    )
+    executions = res["executionSummaries"]
+    executions.should.have.length_of(7)
+    res.shouldnt.have.key("nextToken")
+
+
 class TestTopicRules:
     name = "my-rule"
     payload = {
@@ -2290,3 +2355,213 @@ class TestTopicRules:
             client.update_thing(
                 thingName=thing_name, thingTypeName=deprecated_thing_type_name
             )
+
+
+class TestDomainConfigurations:
+    @mock_iot
+    def test_create_domain_configuration_only_name(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationArn").which.should_not.be.none
+
+    @mock_iot
+    def test_create_duplicate_domain_configuration_fails(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationArn").which.should_not.be.none
+        with pytest.raises(client.exceptions.ResourceAlreadyExistsException) as exc:
+            client.create_domain_configuration(domainConfigurationName="testConfig")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceAlreadyExistsException")
+        err["Message"].should.equal(
+            "Domain configuration with given name already exists."
+        )
+
+    @mock_iot
+    def test_create_domain_configuration_full_params(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        domain_config = client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        domain_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        domain_config.should.have.key("domainConfigurationArn").which.should_not.be.none
+
+    @mock_iot
+    def test_create_domain_configuration_invalid_service_type(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.InvalidRequestException) as exc:
+            client.create_domain_configuration(
+                domainConfigurationName="testConfig", serviceType="INVALIDTYPE"
+            )
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("InvalidRequestException")
+        err["Message"].should.equal(
+            "An error occurred (InvalidRequestException) when calling the DescribeDomainConfiguration operation: Service type INVALIDTYPE not recognized."
+        )
+
+    @mock_iot
+    def test_describe_nonexistent_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+            client.describe_domain_configuration(domainConfigurationName="doesntExist")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceNotFoundException")
+        err["Message"].should.equal("The specified resource does not exist.")
+
+    @mock_iot
+    def test_describe_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+
+        client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        described_config = client.describe_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        described_config.should.have.key("domainConfigurationName").which.should.equal(
+            "testConfig"
+        )
+        described_config.should.have.key("domainConfigurationArn")
+        described_config.should.have.key("serverCertificates")
+        described_config.should.have.key("authorizerConfig")
+        described_config.should.have.key(
+            "domainConfigurationStatus"
+        ).which.should.equal("ENABLED")
+        described_config.should.have.key("serviceType").which.should.equal("DATA")
+        described_config.should.have.key("domainType")
+        described_config.should.have.key("lastStatusChangeDate")
+
+    @mock_iot
+    def test_update_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        client.update_domain_configuration(
+            domainConfigurationName="testConfig",
+            authorizerConfig={
+                "defaultAuthorizerName": "updatedName",
+                "allowAuthorizerOverride": False,
+            },
+            domainConfigurationStatus="DISABLED",
+        )
+        described_updated_config = client.describe_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        described_updated_config.should.have.key(
+            "authorizerConfig"
+        ).which.should.have.key("defaultAuthorizerName").which.should.equal(
+            "updatedName"
+        )
+        described_updated_config.should.have.key(
+            "authorizerConfig"
+        ).which.should.have.key("allowAuthorizerOverride").which.should.equal(False)
+        described_updated_config.should.have.key(
+            "domainConfigurationStatus"
+        ).which.should.equal("DISABLED")
+
+    @mock_iot
+    def test_update_domain_configuration_remove_authorizer_type(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        client.create_domain_configuration(
+            domainConfigurationName="testConfig",
+            domainName="example.com",
+            serverCertificateArns=["ARN1", "ARN2"],
+            validationCertificateArn="VARN",
+            authorizerConfig={
+                "defaultAuthorizerName": "name",
+                "allowAuthorizerOverride": True,
+            },
+            serviceType="DATA",
+        )
+        client.update_domain_configuration(
+            domainConfigurationName="testConfig", removeAuthorizerConfig=True
+        )
+        described_updated_config = client.describe_domain_configuration(
+            domainConfigurationName="testConfig"
+        )
+        described_updated_config.should_not.have.key("authorizerConfig")
+
+    @mock_iot
+    def test_update_nonexistent_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+            client.update_domain_configuration(domainConfigurationName="doesntExist")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceNotFoundException")
+        err["Message"].should.equal("The specified resource does not exist.")
+
+    @mock_iot
+    def test_list_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        client.create_domain_configuration(domainConfigurationName="testConfig1")
+        client.create_domain_configuration(domainConfigurationName="testConfig2")
+        domain_configs = client.list_domain_configurations()
+        domain_configs.should.have.key(
+            "domainConfigurations"
+        ).which.should.have.length_of(2)
+        domain_configs["domainConfigurations"][0].should.have.key(
+            "domainConfigurationName"
+        ).which.should.equal("testConfig1")
+        domain_configs["domainConfigurations"][1].should.have.key(
+            "domainConfigurationName"
+        ).which.should.equal("testConfig2")
+
+    @mock_iot
+    def test_delete_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        client.create_domain_configuration(domainConfigurationName="testConfig")
+        domain_configs = client.list_domain_configurations()
+        domain_configs.should.have.key(
+            "domainConfigurations"
+        ).which.should.have.length_of(1)
+        client.delete_domain_configuration(domainConfigurationName="testConfig")
+        domain_configs = client.list_domain_configurations()
+        domain_configs.should.have.key(
+            "domainConfigurations"
+        ).which.should.have.length_of(0)
+
+    @mock_iot
+    def test_delete_nonexistent_domain_configuration(self):
+        client = boto3.client("iot", region_name="us-east-1")
+        with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+            client.delete_domain_configuration(domainConfigurationName="doesntExist")
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("ResourceNotFoundException")
+        err["Message"].should.equal("The specified resource does not exist.")

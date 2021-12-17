@@ -1,14 +1,11 @@
-from __future__ import unicode_literals
-
 import pytest
-from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
 
 import boto3
 import boto
 from boto.exception import EC2ResponseError
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import random
 
 from moto import mock_ec2, mock_ec2_deprecated
@@ -186,7 +183,7 @@ def test_vpc_state_available_filter_boto3():
     [v["VpcId"] for v in available].should.contain(vpc2.id)
 
 
-def retrieve_all_vpcs(client, filters=[]):
+def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_vpcs(Filters=filters)
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")
@@ -1020,7 +1017,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
 
     vpc_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+        ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
@@ -1035,7 +1032,7 @@ def test_create_vpc_with_invalid_cidr_range():
 
     vpc_cidr_block = "10.1.0.0/29"
     with pytest.raises(ClientError) as ex:
-        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+        ec2.create_vpc(CidrBlock=vpc_cidr_block)
     str(ex.value).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
         "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block)
@@ -1203,7 +1200,7 @@ def test_describe_classic_link_dns_support_multiple():
 
 
 @mock_ec2
-def test_describe_vpc_end_points():
+def test_describe_vpc_gateway_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
 
@@ -1238,6 +1235,59 @@ def test_describe_vpc_end_points():
     endpoint_by_id["VpcEndpointType"].should.equal("gateway")
     endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
     endpoint_by_id["State"].should.equal("available")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidVpcEndpointId.NotFound")
+
+
+@mock_ec2
+def test_describe_vpc_interface_end_points():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = ec2.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    route_table = ec2.create_route_table(VpcId=vpc["VpcId"])["RouteTable"]
+    vpc_end_point = ec2.create_vpc_endpoint(
+        VpcId=vpc["VpcId"],
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet["SubnetId"]],
+    )["VpcEndpoint"]
+    our_id = vpc_end_point["VpcEndpointId"]
+
+    vpc_end_point["DnsEntries"].should.have.length_of(1)
+    vpc_end_point["DnsEntries"][0].should.have.key("DnsName").should.match(
+        r".*com\.tester\.my-test-endpoint$"
+    )
+    vpc_end_point["DnsEntries"][0].should.have.key("HostedZoneId")
+
+    all_endpoints = retrieve_all_endpoints(ec2)
+    [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
+    our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
+    vpc_end_point["PrivateDnsEnabled"].should.be.true
+    our_endpoint["PrivateDnsEnabled"].should.be.true
+
+    our_endpoint["VpcId"].should.equal(vpc["VpcId"])
+    our_endpoint.should_not.have.key("RouteTableIds")
+
+    our_endpoint["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
+
+    our_endpoint.should.have.key("VpcEndpointType").equal("interface")
+    our_endpoint.should.have.key("ServiceName").equal("com.tester.my-test-endpoint")
+    our_endpoint.should.have.key("State").equal("available")
+
+    endpoint_by_id = ec2.describe_vpc_endpoints(VpcEndpointIds=[our_id])[
+        "VpcEndpoints"
+    ][0]
+    endpoint_by_id["VpcEndpointId"].should.equal(our_id)
+    endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
+    endpoint_by_id.should_not.have.key("RouteTableIds")
+    endpoint_by_id["VpcEndpointType"].should.equal("interface")
+    endpoint_by_id["ServiceName"].should.equal("com.tester.my-test-endpoint")
+    endpoint_by_id["State"].should.equal("available")
+    endpoint_by_id["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
@@ -1296,3 +1346,16 @@ def test_delete_vpc_end_points():
         "VpcEndpoints"
     ][0]
     ep2["State"].should.equal("available")
+
+
+@mock_ec2
+def test_describe_vpcs_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_vpcs(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
+    )

@@ -1,14 +1,10 @@
-from __future__ import unicode_literals
-
 import pytest
 
-import time
-import json
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_ec2, mock_iam, mock_cloudformation
+from moto import mock_ec2, mock_iam
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 

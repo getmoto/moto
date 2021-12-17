@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import SQSResponse
 
 url_bases = [r"https?://(.*\.)?(queue|sqs)\.(.*\.)?amazonaws\.com"]

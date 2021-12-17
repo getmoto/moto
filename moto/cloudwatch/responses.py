@@ -55,7 +55,7 @@ class CloudWatchResponse(BaseResponse):
                     )
                 metric_data_queries.append(
                     MetricDataQuery(
-                        id=metric.get("Id"),
+                        query_id=metric.get("Id"),
                         label=metric.get("Label"),
                         period=metric.get("Period"),
                         return_data=metric.get("ReturnData"),
@@ -186,11 +186,9 @@ class CloudWatchResponse(BaseResponse):
         # Unsupported Parameters (To Be Implemented)
         unit = self._get_param("Unit")
         extended_statistics = self._get_param("ExtendedStatistics")
-        if extended_statistics:
-            raise NotImplementedError()
 
         # TODO: this should instead throw InvalidParameterCombination
-        if not statistics:
+        if not statistics and not extended_statistics:
             raise NotImplementedError(
                 "Must specify either Statistics or ExtendedStatistics"
             )
@@ -202,7 +200,7 @@ class CloudWatchResponse(BaseResponse):
             end_time,
             period,
             statistics,
-            unit,
+            unit=unit,
             dimensions=dimensions,
         )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
@@ -212,7 +210,7 @@ class CloudWatchResponse(BaseResponse):
     def list_metrics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
-        dimensions = self._get_multi_param("Dimensions.member")
+        dimensions = self._get_params().get("Dimensions", [])
         next_token = self._get_param("NextToken")
         next_token, metrics = self.cloudwatch_backend.list_metrics(
             next_token, namespace, metric_name, dimensions

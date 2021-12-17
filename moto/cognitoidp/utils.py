@@ -1,9 +1,14 @@
-from __future__ import unicode_literals
 import random
 import string
 import hashlib
 import hmac
 import base64
+import re
+
+FORMATS = {
+    "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+    "phone_number": r"\+\d{,15}",
+}
 
 
 PAGINATION_MODEL = {
@@ -11,25 +16,25 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 60,
-        "page_ending_range_keys": ["arn"],
+        "unique_attribute": "arn",
     },
     "list_user_pool_clients": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 60,
-        "page_ending_range_keys": ["id"],
+        "unique_attribute": "id",
     },
     "list_identity_providers": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 60,
-        "page_ending_range_keys": ["name"],
+        "unique_attribute": "name",
     },
     "list_users": {
         "input_token": "pagination_token",
         "limit_key": "limit",
         "limit_default": 60,
-        "page_ending_range_keys": ["id"],
+        "unique_attribute": "id",
     },
 }
 
@@ -46,3 +51,18 @@ def check_secret_hash(app_client_secret, app_client_id, username, secret_hash):
     new_digest = hmac.new(key, msg, hashlib.sha256).digest()
     SECRET_HASH = base64.b64encode(new_digest).decode()
     return SECRET_HASH == secret_hash
+
+
+def validate_username_format(username, _format="email"):
+    # if the value of the `_format` param other than `email` or `phone_number`,
+    # the default value for the regex will match nothing and the
+    # method will return None
+    return re.fullmatch(FORMATS.get(_format, r"a^"), username)
+
+
+def flatten_attrs(attrs):
+    return {attr["Name"]: attr["Value"] for attr in attrs}
+
+
+def expand_attrs(attrs):
+    return [{"Name": k, "Value": v} for k, v in attrs.items()]

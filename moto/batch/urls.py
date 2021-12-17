@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import BatchResponse
 
 url_bases = [r"https?://batch\.(.+)\.amazonaws.com"]

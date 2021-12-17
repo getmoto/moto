@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import functools
 from collections import defaultdict
 import datetime
@@ -84,7 +82,7 @@ class _TemplateEnvironmentMixin(object):
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
     def __init__(self):
-        super(_TemplateEnvironmentMixin, self).__init__()
+        super().__init__()
         self.loader = DynamicDictLoader({})
         self.environment = Environment(
             loader=self.loader, autoescape=self.should_autoescape
@@ -239,7 +237,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 target = request.headers.get("x-amz-target") or request.headers.get(
                     "X-Amz-Target"
                 )
-                service, method = target.split(".")
+                _, method = target.split(".")
                 input_spec = self.aws_service_spec.input_spec(method)
                 flat = flatten_json_request_body("", decoded, input_spec)
                 for key, value in flat.items():
@@ -802,7 +800,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def request_json(self):
         return "JSON" in self.querystring.get("ContentType", [])
 
-    def is_not_dryrun(self, action):
+    def error_on_dryrun(self):
+        self.is_not_dryrun()
+
+    def is_not_dryrun(self, action=None):
+        action = action or self._get_param("Action")
         if "true" in self.querystring.get("DryRun", ["false"]):
             message = (
                 "An error occurred (DryRunOperation) when calling the %s operation: Request would have succeeded, but DryRun flag is set"

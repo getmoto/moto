@@ -1,6 +1,310 @@
 Moto Changelog
 ===================
 
+2.2.19
+-----
+    General:
+        * Support for ap-southeast-3
+
+
+2.2.18
+------
+    New Services:
+        * ElastiCache:
+            * create_user()
+            * delete_user()
+            * describe_users()
+        * GuardDuty:
+            * create_detector()
+            * list_detectors()
+
+    New Methods:
+        * IAM:
+            * list_open_id_connect_provider_tags()
+            * tag_open_id_connect_provider()
+            * untag_open_id_connect_provider()
+            * update_open_id_connect_provider_thumbprint()
+        * IOT:
+            * create_domain_configuration()
+            * delete_domain_configuration()
+            * describe_domain_configuration()
+            * list_domain_configurations()
+            * update_domain_configuration()
+
+    Miscellaneous:
+        * ResourceGroupTaggingAPI now supports Lambda Functions
+        * SecretsManager:list_secrets() now supports negative filters
+
+2.2.17
+------
+    New Services:
+        * CloudFront:
+            * create_distribution()
+            * delete_distribution()
+            * get_distribution()
+            * list_distributions()
+
+    New Methods:
+        * Autoscaling:
+            * describe_tags()
+        * CloudFormation:
+            * get_stack_policy()
+            * set_stack_policy()
+        * DynamoDB:
+            * restore_table_to_point_in_time()
+        * Glue:
+            * delete_database()
+            * list_jobs()
+        * IAM:
+            * update_group()
+        * Route53 Resolver:
+            * associate_resolver_rule()
+            * create_resolver_rule()
+            * delete_resolver_rule()
+            * disassociate_resolver_rule()
+            * get_resolver_rule()
+            * get_resolver_rule_association()
+            * list_resolver_rules()
+            * list_resolver_rule_associations()
+
+    Miscellaneous:
+        * Batch: register_job_definition() now supports the timeout-parameter
+        * Batch: submit_job() now supports the timeout-parameter
+        * EC2: describe_network_interfaces() now supports the `attachment.instance-id` filter
+
+
+2.2.16
+------
+    New Services:
+        * SimpleDB:
+            * create_domain()
+            * delete_domain()
+            * get_attributes()
+            * list_domains()
+            * put_attributes()
+
+    New Methods:
+        * Glue:
+            * create_job
+        * Route53 Resolver:
+            * create_resolver_endpoint()
+            * delete_resolver_endpoint()
+            * get_resolver_endpoint()
+            * list_resolver_endpoints()
+            * list_resolver_endpoint_ip_addresses()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_resolver_endpoint()
+
+    Miscellaneous:
+        * Moto now supports mocking S3-equivalent libraries such as Ceph
+        * Cognito IDP now exposes the `cognito:groups`-attribute as part of the AccessToken
+
+2.2.15
+------
+    General:
+        * Fixed the dependency bug - `moto install[all]` now installs all required dependencies again.
+
+2.2.14
+------
+    Known bugs:
+        * Running `pip install moto[all]` will not install all required dependencies.
+
+    General:
+        * Improved documentation for both users and contributors:
+          http://docs.getmoto.org/en/latest/
+        * The `@mock_all`-decorator is now available to mock all services at the same time
+        * The `moto.core.patch_client`/`moto.core.patch_resource`-methods are now available to patch boto3-clients and -resources instantiated after the mock was started.
+          This provides a workaround when encountering InvalidAccessKeyId-errors.
+
+    New Methods:
+        * APIGateway:
+            * delete_base_path_mapping()
+        * EC2:
+            * assign_ipv6_addresses()
+            * assign_private_ip_addresses()
+            * unassign_ipv6_addresses()
+            * unassign_private_ip_addresses()
+        * SSM:
+            * create_maintenance_window()
+            * delete_maintenance_window()
+            * get_maintenance_window()
+
+    Miscellaneous:
+        * CloudFormation no longer throws errors when trying to update unsupported resources.
+        * CloudTrail:get_trail_status() now also supports ARN's as a parameter
+        * CognitoIDP:list_users() now supports the AttributesToGet-parameter
+        * IOT:attach_policy() now supports Cognito IdentityPools as a target
+        * IOT:list_job_executions_for_thing() now supports pagination
+        * Kinesis:split_shards() now behaves more like AWS, by closing the original shard and creating two new ones
+        * Logs:put_log_events() now enforces timestamp-validation
+        * S3:create_multipart_upload() now supports the Tagging-parameter
+        * SSM:get_parameters_by_path() now support filtering by label
+
+2.2.13
+-----
+    General:
+        * The mock_dynamodb and mock_rds-decorators have been deprecated, and will be repurposed in a later release.
+          Please see https://github.com/spulec/moto/issues/4526 for more information.
+
+    New Methods:
+        * API Gateway:
+            * get_base_path_mappings()
+        * Cognito Identity:
+            * list_identities()
+        * DirectoryService:
+            * disable_sso()
+            * enable_sso()
+            * connect_directory()
+            * create_alias()
+            * create_microsoft_ad()
+        * EMR Containers:
+            * cancel_job_run()
+            * describe_job_run()
+            * list_job_runs()
+            * start_job_run()
+        * IAM:
+            * list_policy_tags()
+            * tag_policy()
+            * untag_policy()
+        * Sagemaker:
+            * create_processing_job()
+            * describe_processing_job()
+            * list_processing_jobs()
+
+    Miscellaneous:
+        * CloudFormation: Now supports creation of Custom:: resources. Note that this only works in ServerMode.
+
+2.2.12
+-----
+    New Services:
+        * EMR Containers:
+            * create_virtual_cluster()
+            * delete_virtual_cluster()
+            * describe_virtual_cluster()
+            * list_virtual_clusters()
+        * DirectoryService:
+            * add_tags_to_resource()
+            * create_directory()
+            * delete_directory()
+            * describe_directories()
+            * get_directory_limits()
+            * list_tags_for_resource()
+            * remove_tags_for_resource()
+
+    New Methods:
+        * API Gateway:
+            * create_base_path_mapping()
+            * get_base_path_mappings()
+        * CognitoIDP:
+            * add_custom_attributes()
+            * admin_delete_user_attributes()
+        * Glue:
+            * start_crawler()
+            * stop_crawler()
+        * Sagemaker:
+            * add_tags()
+            * associate_trial_component()
+            * create_experiment()
+            * create_trial()
+            * create_trial_component()
+            * delete_experiment()
+            * delete_tags()
+            * delete_trial()
+            * delete_trial_component()
+            * describe_experiment()
+            * describe_trial()
+            * describe_trial_component()
+            * disassociate_trial_component()
+            * list_associations()
+            * list_experiments()
+            * list_trial_components()
+            * list_trials()
+            * search()
+        * SES:
+            * describe_receipt_rule_set()
+            * update_receipt_rule()
+
+    Miscellaneous:
+        * KMS: Now returns default AWS aliases (alias/aws/s3, etc)
+
+2.2.11
+-----
+    General:
+        * Support for AWS China regions
+        * ECS now has an option to enable long-format ARNs, by setting the environment variable MOTO_ECS_NEW_ARN=true
+          Alternatively, use the `put_account_setting` to enable long-format for the current user.
+
+    New Services:
+        * Timestream:
+            * create_database()
+            * create_table()
+            * delete_database()
+            * delete_table()
+            * describe_database()
+            * describe_endpoints()
+            * describe_table()
+            * list_databases()
+            * list_tables()
+            * update_database()
+            * update_table()
+            * write_records()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_confirm_sign_up()
+            * update_user_pool()
+        * ECS:
+            * delete_account_setting()
+            * list_account_settings()
+            * put_account_setting()
+        * Route53:
+            * create_query_logging_config()
+            * delete_query_logging_config()
+            * get_query_logging_config()
+            * list_query_logging_config()
+        * SES
+            * describe_receipt_rule()
+            * get_identity_notification_attributes()
+            * set_identity_feedback_forwarding_enabled()
+
+    Miscellaneous:
+        * CloudFormation: Support create/update/delete of resource AWS::Logs::ResourcePolicy
+        * CloudFormation:get_template_summary() now returns the Parameters-attribute
+        * CognitoIDP: Allow the UserAttributes email or phone_number to be used as username
+        * CognitoIDP: Improved behaviour for the ForgotPassword()-feature 
+
+
+2.2.10
+------
+    New Services:
+        * CloudTrail:
+            * create_trail()
+            * delete_trail()
+            * describe_trails()
+            * get_trail()
+            * get_trail_status()
+            * list_trails()
+            * start_logging()
+            * stop_logging()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_reset_user_password()
+        * S3:
+            * delete_bucket_replication()
+            * get_bucket_replication()
+            * put_bucket_replication()
+
+    Miscellaneous:
+        * ACM: describe_certificate(): the InUseBy-attribute will now show the appropriate Elastic Load Balancers 
+        * AWSLambda: If you're running Linux, 'host.docker.internal' is now added as an extra host in the Docker container used to invoke the function.
+                     This makes it easier for Lambda-functions to communicate with other servers running on the host-system.
+        * CloudFormation: Now supports update/deletion of type AWS::SNS::Topic
+        * CognitoIdentityProvider: list_users() now has improved support for the Filter-parameter
+        * Kinesis: describe_stream() now supports the Filter-parameter
+        * S3: list_object_versions() now supports the Delimiter and KeyMarker-parameter
 
 2.2.9
 -----
@@ -8,7 +312,7 @@ Moto Changelog
         * Moto is now compatible with Sure 2.x
 
     New Methods:
-        * Kinesis
+        * Kinesis:
             * list_shards()
         * RDS:
             * create_db_cluster()

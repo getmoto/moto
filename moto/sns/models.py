@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import uuid
 import json
@@ -55,6 +53,8 @@ class Topic(CloudFormationModel):
             sns_backend.region_name, self.account_id, name
         )
         self._tags = {}
+        self.fifo_topic = "false"
+        self.content_based_deduplication = "false"
 
     def publish(self, message, subject=None, message_attributes=None):
         message_id = str(uuid.uuid4())
@@ -67,6 +67,10 @@ class Topic(CloudFormationModel):
                 message_attributes=message_attributes,
             )
         return message_id
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["TopicName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -98,7 +102,7 @@ class Topic(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -109,6 +113,33 @@ class Topic(CloudFormationModel):
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]
             )
         return topic
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        sns_backend = sns_backends[region_name]
+        properties = cloudformation_json["Properties"]
+
+        topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
+        topic_arn = make_arn_for_topic(
+            DEFAULT_ACCOUNT_ID, topic_name, sns_backend.region_name
+        )
+        subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
+        for subscription in subscriptions:
+            sns_backend.unsubscribe(subscription.arn)
+        sns_backend.delete_topic(topic_arn)
 
     def _create_default_topic_policy(self, region_name, account_id, name):
         return {
@@ -281,7 +312,6 @@ class Subscription(BaseModel):
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
-            "Subject": subject or "my subject",
             "Message": message,
             "Timestamp": iso_8601_datetime_with_milliseconds(
                 datetime.datetime.utcnow()
@@ -293,6 +323,8 @@ class Subscription(BaseModel):
                 DEFAULT_ACCOUNT_ID
             ),
         }
+        if subject:
+            post_data["Subject"] = subject
         if message_attributes:
             post_data["MessageAttributes"] = message_attributes
         return post_data

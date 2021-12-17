@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError  # Boto3 will always throw this exception
 
 from moto import mock_mediapackage
@@ -11,10 +9,10 @@ region = "eu-west-1"
 
 
 def _create_channel_config(**kwargs):
-    id = kwargs.get("id", "channel-id")
+    channel_id = kwargs.get("id", "channel-id")
     description = kwargs.get("description", "Awesome channel!")
     tags = kwargs.get("tags", {"Customer": "moto"})
-    channel_config = dict(Description=description, Id=id, Tags=tags)
+    channel_config = dict(Description=description, Id=channel_id, Tags=tags)
     return channel_config
 
 
@@ -28,7 +26,7 @@ def _create_origin_endpoint_config(**kwargs):
     dash_package = kwargs.get("dash_package", {"AdTriggers": []})
     description = kwargs.get("description", "channel-description")
     hls_package = kwargs.get("hls_package", {"AdMarkers": "NONE"})
-    id = kwargs.get("id", "origin-endpoint-id")
+    endpoint_id = kwargs.get("id", "origin-endpoint-id")
     manifest_name = kwargs.get("manifest_name", "manifest-name")
     mss_package = kwargs.get("mss_package", {"ManifestWindowSeconds": 1})
     origination = kwargs.get("origination", "ALLOW")
@@ -43,7 +41,7 @@ def _create_origin_endpoint_config(**kwargs):
         DashPackage=dash_package,
         Description=description,
         HlsPackage=hls_package,
-        Id=id,
+        Id=endpoint_id,
         ManifestName=manifest_name,
         MssPackage=mss_package,
         Origination=origination,

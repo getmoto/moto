@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from botocore.exceptions import ClientError
 
 import pytest
@@ -13,7 +11,7 @@ import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
 from boto.exception import EC2ResponseError
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2_deprecated, mock_ec2, settings
 from moto.core import ACCOUNT_ID
@@ -27,7 +25,7 @@ decode_method = base64.decodebytes
 ################ Test Readme ###############
 def add_servers(ami_id, count):
     conn = boto.connect_ec2()
-    for index in range(count):
+    for _ in range(count):
         conn.run_instances(ami_id)
 
 
@@ -476,6 +474,7 @@ def test_get_paginated_instances():
     res1 = resp1["Reservations"]
     res1.should.have.length_of(5)
     next_token = resp1["NextToken"]
+
     next_token.should_not.be.none
 
     resp2 = client.describe_instances(InstanceIds=instance_ids, NextToken=next_token)
@@ -631,7 +630,7 @@ def test_get_instances_filtering_by_state_boto3():
 def test_get_instances_filtering_by_instance_id():
     conn = boto.connect_ec2()
     reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
+    instance1, instance2, _ = reservation.instances
 
     reservations = conn.get_all_reservations(filters={"instance-id": instance1.id})
     # get_all_reservations should return just instance1
@@ -653,9 +652,9 @@ def test_get_instances_filtering_by_instance_id_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
     reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
-    instance1, instance2, instance3 = reservation
+    instance1, instance2, _ = reservation
 
-    def filter(values, exists=True):
+    def _filter(values, exists=True):
         f = [{"Name": "instance-id", "Values": values}]
         r = client.describe_instances(Filters=f)["Reservations"]
         if exists:
@@ -665,9 +664,9 @@ def test_get_instances_filtering_by_instance_id_boto3():
         else:
             r.should.have.length_of(0)
 
-    filter(values=[instance1.id])
-    filter(values=[instance1.id, instance2.id])
-    filter(values=["non-existing-id"], exists=False)
+    _filter(values=[instance1.id])
+    _filter(values=[instance1.id, instance2.id])
+    _filter(values=["non-existing-id"], exists=False)
 
 
 # Has boto3 equivalent
@@ -924,8 +923,7 @@ def test_get_instances_filtering_by_vpc_id_boto3():
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_architecture():
     conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
-    instance = reservation.instances
+    conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
 
     reservations = conn.get_all_reservations(filters={"architecture": "x86_64"})
     # get_all_reservations should return the instance
@@ -3044,7 +3042,96 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     assert len(captured_warnings) == 0
 
 
-def retrieve_all_reservations(client, filters=[]):
+@mock_ec2
+def test_run_instance_and_associate_public_ip():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    # Do not pass AssociatePublicIpAddress-argument
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[{"DeviceIndex": 0}],
+        SubnetId=subnet.id,
+    )[0]
+    interfaces = instance.network_interfaces_attribute
+    addresses = interfaces[0]["PrivateIpAddresses"][0]
+    addresses.should.have.key("Primary").equal(True)
+    addresses.should.have.key("PrivateIpAddress")
+    addresses.shouldnt.have.key("Association")
+
+    # Pass AssociatePublicIpAddress=False
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[{"DeviceIndex": 0, "AssociatePublicIpAddress": False}],
+        SubnetId=subnet.id,
+    )[0]
+    interfaces = instance.network_interfaces_attribute
+    addresses = interfaces[0]["PrivateIpAddresses"][0]
+    addresses.should.have.key("Primary").equal(True)
+    addresses.should.have.key("PrivateIpAddress")
+    addresses.shouldnt.have.key("Association")
+
+    # Pass AssociatePublicIpAddress=True
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[{"DeviceIndex": 0, "AssociatePublicIpAddress": True}],
+        SubnetId=subnet.id,
+    )[0]
+    interfaces = instance.network_interfaces_attribute
+    addresses = interfaces[0]["PrivateIpAddresses"][0]
+    addresses.should.have.key("Primary").equal(True)
+    addresses.should.have.key("PrivateIpAddress")
+    addresses.should.have.key("Association")
+    # Only now should we have a PublicIp
+    addresses["Association"].should.have.key("IpOwnerId").equal(ACCOUNT_ID)
+    addresses["Association"].should.have.key("PublicIp")
+
+
+@mock_ec2
+def test_describe_instances_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_instances(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeInstances operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
+def test_describe_instances_filter_vpcid_via_networkinterface():
+    vpc_cidr_block = "10.26.0.0/16"
+    subnet_cidr_block = "10.26.1.0/24"
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
+    vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock=subnet_cidr_block, AvailabilityZone="eu-west-1a"
+    )
+    my_interface = {
+        "SubnetId": subnet.id,
+        "DeviceIndex": 0,
+        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"},],
+    }
+    instance = ec2.create_instances(
+        ImageId="myami", NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+    )[0]
+
+    _filter = [{"Name": "vpc-id", "Values": [vpc.id,]}]
+    found = list(ec2.instances.filter(Filters=_filter))
+    found.should.have.length_of(1)
+    found.should.equal([instance])
+
+
+def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_instances(Filters=filters)
     all_reservations = resp["Reservations"]
     next_token = resp.get("NextToken")
@@ -3055,6 +3142,6 @@ def retrieve_all_reservations(client, filters=[]):
     return all_reservations
 
 
-def retrieve_all_instances(client, filters=[]):
+def retrieve_all_instances(client, filters=[]):  # pylint: disable=W0102
     reservations = retrieve_all_reservations(client, filters)
     return [i for r in reservations for i in r["Instances"]]

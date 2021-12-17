@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError, JsonRESTError, AWSError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
@@ -36,3 +35,8 @@ class ValidationError(JsonRESTError):
 
 class AWSValidationException(AWSError):
     TYPE = "ValidationException"
+
+
+class ResourceNotFound(JsonRESTError):
+    def __init__(self, message, **kwargs):
+        super(ResourceNotFound, self).__init__(__class__.__name__, message, **kwargs)

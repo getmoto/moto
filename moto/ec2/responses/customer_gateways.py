@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -26,6 +25,7 @@ class CustomerGateways(BaseResponse):
         return template.render(delete_status=delete_status)
 
     def describe_customer_gateways(self):
+        self.error_on_dryrun()
         filters = filters_from_querystring(self.querystring)
         customer_gateway_ids = self._get_multi_param("CustomerGatewayId")
         customer_gateways = self.ec2_backend.get_all_customer_gateways(

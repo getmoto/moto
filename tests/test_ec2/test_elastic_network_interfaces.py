@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 import random
 
@@ -8,9 +6,11 @@ from botocore.exceptions import ClientError
 import boto
 import boto.ec2
 from boto.exception import EC2ResponseError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto.ec2.utils import random_private_ip
+from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
 
@@ -35,7 +35,7 @@ def test_elastic_network_interfaces():
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(1)
     eni = all_enis[0]
-    eni.groups.should.have.length_of(0)
+    eni.groups.should.have.length_of(1)
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.startswith("10.").should.be.true
 
@@ -82,7 +82,7 @@ def test_elastic_network_interfaces_boto3():
     ]
     my_enis.should.have.length_of(1)
     eni = my_enis[0]
-    eni["Groups"].should.have.length_of(0)
+    eni["Groups"].should.have.length_of(1)
     eni["PrivateIpAddresses"].should.have.length_of(1)
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.").should.be.true
 
@@ -152,7 +152,7 @@ def test_elastic_network_interfaces_with_private_ip():
     all_enis.should.have.length_of(1)
 
     eni = all_enis[0]
-    eni.groups.should.have.length_of(0)
+    eni.groups.should.have.length_of(1)
 
     eni.private_ip_addresses.should.have.length_of(1)
     eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
@@ -177,7 +177,7 @@ def test_elastic_network_interfaces_with_private_ip_boto3():
     ]
 
     eni = my_enis[0]
-    eni["Groups"].should.have.length_of(0)
+    eni["Groups"].should.have.length_of(1)
 
     eni["PrivateIpAddresses"].should.have.length_of(1)
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should.equal(private_ip)
@@ -640,6 +640,48 @@ def test_elastic_network_interfaces_get_by_description():
 
 
 @mock_ec2
+def test_elastic_network_interfaces_get_by_attachment_instance_id():
+    ec2_resource = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2_resource.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    security_group1 = ec2_resource.create_security_group(
+        GroupName=str(uuid4()), Description="desc"
+    )
+
+    create_instances_result = ec2_resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )
+    instance = create_instances_result[0]
+
+    # we should have one ENI attached to our ec2 instance by default
+    filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)
+    enis.get("NetworkInterfaces").should.have.length_of(1)
+
+    # attach another ENI to our existing instance, total should be 2
+    eni1 = ec2_resource.create_network_interface(
+        SubnetId=subnet.id, Groups=[security_group1.id]
+    )
+    ec2_client.attach_network_interface(
+        NetworkInterfaceId=eni1.id, InstanceId=instance.id, DeviceIndex=1
+    )
+
+    filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)
+    enis.get("NetworkInterfaces").should.have.length_of(2)
+
+    # we shouldn't find any ENIs that are attached to this fake instance ID
+    filters = [{"Name": "attachment.instance-id", "Values": ["this-doesnt-match-lol"]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)
+    enis.get("NetworkInterfaces").should.have.length_of(0)
+
+
+@mock_ec2
 def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -840,3 +882,251 @@ def test_elastic_network_interfaces_auto_create_securitygroup():
 
     found_sg[0]["GroupName"].should.equal("testgroup")
     found_sg[0]["Description"].should.equal("testgroup")
+
+
+@mock_ec2
+def test_assign_private_ip_addresses():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    private_ip = "54.0.0.1"
+    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("PrivateIpAddress").equals("54.0.0.1")
+    my_eni.should.have.key("PrivateIpAddresses").equals(
+        [{"Primary": True, "PrivateIpAddress": "54.0.0.1"}]
+    )
+
+    # Do not pass SecondaryPrivateIpAddressCount-parameter
+    client.assign_private_ip_addresses(NetworkInterfaceId=eni.id)
+
+    # Verify nothing changes
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("PrivateIpAddress").equals("54.0.0.1")
+    my_eni.should.have.key("PrivateIpAddresses").equals(
+        [{"Primary": True, "PrivateIpAddress": "54.0.0.1"}]
+    )
+
+
+@mock_ec2
+def test_assign_private_ip_addresses__with_secondary_count():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    private_ip = "54.0.0.1"
+    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+
+    client.assign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=2
+    )
+
+    # Verify second ip's are added
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+
+    my_eni.should.have.key("PrivateIpAddress").equals("54.0.0.1")
+    my_eni.should.have.key("PrivateIpAddresses").should.have.length_of(3)
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": True, "PrivateIpAddress": "54.0.0.1"}
+    )
+
+    # Not as ipv6 addresses though
+    my_eni.should.have.key("Ipv6Addresses").equals([])
+
+
+@mock_ec2
+def test_unassign_private_ip_addresses():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    private_ip = "54.0.0.1"
+    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+
+    client.assign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=2
+    )
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    ips_before = [addr["PrivateIpAddress"] for addr in my_eni["PrivateIpAddresses"]]
+
+    # Remove IP
+    resp = client.unassign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, PrivateIpAddresses=[ips_before[1]]
+    )
+
+    # Verify it's gone
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("PrivateIpAddresses").should.have.length_of(2)
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": True, "PrivateIpAddress": "54.0.0.1"}
+    )
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": False, "PrivateIpAddress": ips_before[2]}
+    )
+
+
+@mock_ec2
+def test_unassign_private_ip_addresses__multiple():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    private_ip = "54.0.0.1"
+    eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+
+    client.assign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=5
+    )
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    ips_before = [addr["PrivateIpAddress"] for addr in my_eni["PrivateIpAddresses"]]
+
+    # Remove IP
+    resp = client.unassign_private_ip_addresses(
+        NetworkInterfaceId=eni.id, PrivateIpAddresses=[ips_before[1], ips_before[2]]
+    )
+
+    # Verify it's gone
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("PrivateIpAddresses").should.have.length_of(4)
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": True, "PrivateIpAddress": "54.0.0.1"}
+    )
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": False, "PrivateIpAddress": ips_before[3]}
+    )
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": False, "PrivateIpAddress": ips_before[4]}
+    )
+    my_eni.should.have.key("PrivateIpAddresses").contain(
+        {"Primary": False, "PrivateIpAddress": ips_before[5]}
+    )
+
+
+@mock_ec2
+def test_assign_ipv6_addresses__by_address():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
+    ipv6_2 = random_private_ip("2001:db8::/101", ipv6=True)
+    ipv6_3 = random_private_ip("2001:db8::/101", ipv6=True)
+    eni = ec2.create_network_interface(
+        SubnetId=subnet.id, Ipv6Addresses=[{"Ipv6Address": ipv6_orig}]
+    )
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("Ipv6Addresses").equals([{"Ipv6Address": ipv6_orig}])
+
+    client.assign_ipv6_addresses(
+        NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2, ipv6_3]
+    )
+
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("Ipv6Addresses").length_of(3)
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_2})
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})
+
+
+@mock_ec2
+def test_assign_ipv6_addresses__by_count():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
+    )
+
+    ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
+    eni = ec2.create_network_interface(
+        SubnetId=subnet.id, Ipv6Addresses=[{"Ipv6Address": ipv6_orig}]
+    )
+
+    client.assign_ipv6_addresses(NetworkInterfaceId=eni.id, Ipv6AddressCount=3)
+
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("Ipv6Addresses").length_of(4)
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
+
+
+@mock_ec2
+def test_assign_ipv6_addresses__by_address_and_count():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
+    )
+
+    ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
+    ipv6_2 = random_private_ip("2001:db8::/101", ipv6=True)
+    ipv6_3 = random_private_ip("2001:db8::/101", ipv6=True)
+    eni = ec2.create_network_interface(
+        SubnetId=subnet.id, Ipv6Addresses=[{"Ipv6Address": ipv6_orig}]
+    )
+
+    client.assign_ipv6_addresses(
+        NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2, ipv6_3]
+    )
+    client.assign_ipv6_addresses(NetworkInterfaceId=eni.id, Ipv6AddressCount=2)
+
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("Ipv6Addresses").length_of(5)
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_2})
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})
+
+
+@mock_ec2
+def test_unassign_ipv6_addresses():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
+    )
+
+    ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
+    ipv6_2 = random_private_ip("2001:db8::/101", ipv6=True)
+    ipv6_3 = random_private_ip("2001:db8::/101", ipv6=True)
+    eni = ec2.create_network_interface(
+        SubnetId=subnet.id, Ipv6Addresses=[{"Ipv6Address": ipv6_orig}]
+    )
+
+    client.assign_ipv6_addresses(
+        NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2, ipv6_3]
+    )
+
+    client.unassign_ipv6_addresses(NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2])
+
+    resp = client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
+    my_eni = resp["NetworkInterfaces"][0]
+    my_eni.should.have.key("Ipv6Addresses").length_of(2)
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
+    my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import CognitoIdpResponse, CognitoIdpJsonWebKeyResponse
 
 url_bases = [r"https?://cognito-idp\.(.+)\.amazonaws.com"]

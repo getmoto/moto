@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import OpsWorksResponse
 
 # AWS OpsWorks has a single endpoint: opsworks.us-east-1.amazonaws.com

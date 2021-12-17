@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
-
 import boto3
 
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -249,3 +247,22 @@ def test_s3_copy_object_for_deep_archive_storage_class_restored():
     s3.head_object(Bucket="Bucket2", Key="Second_Object").should.not_have.property(
         "Restore"
     )
+
+
+@mock_s3
+def test_s3_get_object_from_glacier():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "tests3getobjectfromglacier"
+    s3.create_bucket(Bucket=bucket_name)
+
+    s3.put_object(
+        Bucket=bucket_name, Key="test.txt", Body="contents", StorageClass="GLACIER"
+    )
+    with pytest.raises(ClientError) as exc:
+        s3.get_object(Bucket=bucket_name, Key="test.txt")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidObjectState")
+    err["Message"].should.equal(
+        "The operation is not valid for the object's storage class"
+    )
+    err["StorageClass"].should.equal("GLACIER")

@@ -2,12 +2,15 @@ import json
 
 from boto3 import Session
 
+from moto.core import (
+    BaseBackend,
+    BaseModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
@@ -35,7 +38,9 @@ class Dimension(object):
 
     def __eq__(self, item):
         if isinstance(item, Dimension):
-            return self.name == item.name and self.value == item.value
+            return self.name == item.name and (
+                self.value is None or item.value is None or self.value == item.value
+            )
         return False
 
     def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
@@ -59,9 +64,9 @@ class MetricStat(object):
 
 class MetricDataQuery(object):
     def __init__(
-        self, id, label, period, return_data, expression=None, metric_stat=None
+        self, query_id, label, period, return_data, expression=None, metric_stat=None
     ):
-        self.id = id
+        self.id = query_id
         self.label = label
         self.period = period
         self.return_data = return_data
@@ -209,20 +214,21 @@ class MetricDatum(BaseModel):
         ]
         self.unit = unit
 
-    def filter(self, namespace, name, dimensions, already_present_metrics=[]):
+    def filter(self, namespace, name, dimensions, already_present_metrics=None):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
             return False
 
-        for metric in already_present_metrics:
+        for metric in already_present_metrics or []:
             if self.dimensions and are_dimensions_same(
                 metric.dimensions, self.dimensions
             ):
                 return False
 
         if dimensions and any(
-            Dimension(d["Name"], d["Value"]) not in self.dimensions for d in dimensions
+            Dimension(d["Name"], d.get("Value")) not in self.dimensions
+            for d in dimensions
         ):
             return False
         return True
@@ -256,6 +262,7 @@ class Statistics:
         self.timestamp = iso_8601_datetime_without_milliseconds(dt)
         self.values = []
         self.stats = stats
+        self.unit = None
 
     @property
     def sample_count(self):
@@ -263,10 +270,6 @@ class Statistics:
             return None
 
         return len(self.values)
-
-    @property
-    def unit(self):
-        return None
 
     @property
     def sum(self):
@@ -323,9 +326,10 @@ class CloudWatchBackend(BaseBackend):
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly
     def aws_metric_data(self):
+        providers = CloudWatchMetricProvider.__subclasses__()
         md = []
-        for name, service in metric_providers.items():
-            md.extend(service.get_cloudwatch_metrics())
+        for provider in providers:
+            md.extend(provider.get_cloudwatch_metrics())
         return md
 
     def put_metric_alarm(
@@ -438,6 +442,12 @@ class CloudWatchBackend(BaseBackend):
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
+        for i, metric in enumerate(metric_data):
+            if metric.get("Value") == "NaN":
+                raise InvalidParameterValue(
+                    f"The value NaN for parameter MetricData.member.{i + 1}.Value is invalid."
+                )
+
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
@@ -522,13 +532,14 @@ class CloudWatchBackend(BaseBackend):
         end_time,
         period,
         stats,
+        dimensions,
         unit=None,
-        dimensions=None,
     ):
         period_delta = timedelta(seconds=period)
+        # TODO: Also filter by unit and dimensions
         filtered_data = [
             md
-            for md in self.metric_data
+            for md in self.get_all_metrics()
             if md.namespace == namespace
             and md.name == metric_name
             and start_time <= md.timestamp <= end_time
@@ -558,6 +569,7 @@ class CloudWatchBackend(BaseBackend):
                 dt + period_delta
             ):
                 s.values.append(filtered_data[idx].value)
+                s.unit = filtered_data[idx].unit
                 idx += 1
 
             if not s.values:
@@ -668,33 +680,6 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
 
-class LogGroup(CloudFormationModel):
-    def __init__(self, spec):
-        # required
-        self.name = spec["LogGroupName"]
-        # optional
-        self.tags = spec.get("Tags", [])
-
-    @staticmethod
-    def cloudformation_name_type():
-        return "LogGroupName"
-
-    @staticmethod
-    def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
-        return "AWS::Logs::LogGroup"
-
-    @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-        properties = cloudformation_json["Properties"]
-        tags = properties.get("Tags", {})
-        return logs_backends[region_name].create_log_group(
-            resource_name, tags, **properties
-        )
-
-
 cloudwatch_backends = {}
 for region in Session().get_available_regions("cloudwatch"):
     cloudwatch_backends[region] = CloudWatchBackend(region)
@@ -704,8 +689,3 @@ for region in Session().get_available_regions(
     cloudwatch_backends[region] = CloudWatchBackend(region)
 for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
     cloudwatch_backends[region] = CloudWatchBackend(region)
-
-# List of services that provide OOTB CW metrics
-# See the S3Backend constructor for an example
-# TODO: We might have to separate this out per region for non-global services
-metric_providers = {}
