@@ -1484,6 +1484,24 @@ class KeyPairBackend(object):
         self.keypairs[key_name] = keypair
         return keypair
 
+class SettingsBackend(object):
+
+    def __init__(self):
+        self.ebs_encryption_by_default = False
+        super().__init__()
+
+    def disable_ebs_encryption_by_default(self):
+        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend.ebs_encryption_by_default = False
+
+    def enable_ebs_encryption_by_default(self):
+        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend.ebs_encryption_by_default = True
+
+    def get_ebs_encryption_by_default(self):
+        ec2_backend = ec2_backends[self.region_name]
+        return ec2_backend.ebs_encryption_by_default
+
 
 class TagBackend(object):
     VALID_TAG_FILTERS = ["key", "resource-id", "resource-type", "value"]
@@ -8626,6 +8644,7 @@ class EC2Backend(
     SpotPriceBackend,
     ElasticAddressBackend,
     KeyPairBackend,
+    SettingsBackend,
     DHCPOptionsSetBackend,
     NetworkAclBackend,
     VpnGatewayBackend,

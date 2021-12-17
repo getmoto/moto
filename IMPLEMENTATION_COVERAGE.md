@@ -1185,7 +1185,7 @@
 
 ## ec2
 <details>
-<summary>33% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -1510,7 +1510,7 @@
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
-- [ ] disable_ebs_encryption_by_default
+- [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -1530,7 +1530,7 @@
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
-- [ ] enable_ebs_encryption_by_default
+- [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -1552,7 +1552,7 @@
 - [ ] get_console_screenshot
 - [ ] get_default_credit_specification
 - [ ] get_ebs_default_kms_key_id
-- [ ] get_ebs_encryption_by_default
+- [X] get_ebs_encryption_by_default
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
