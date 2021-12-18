@@ -17,7 +17,7 @@ def test_disable_ebs_encryption_by_default():
     response.should.have.key("EbsEncryptionByDefault").equal(True)
 
     ec2.disable_ebs_encryption_by_default()
-    after_disable_response = boto3.client('ec2').get_ebs_encryption_by_default()
+    after_disable_response = boto3.client("ec2").get_ebs_encryption_by_default()
     after_disable_response.should.have.key("EbsEncryptionByDefault").equal(False)
 
 
@@ -40,12 +40,12 @@ def test_get_ebs_encryption_by_default():
 
 @mock_ec2
 def test_enable_ebs_encryption_by_default_region():
-    ec2_eu = boto3.client("ec2", 'eu-central-1')
+    ec2_eu = boto3.client("ec2", "eu-central-1")
     ec2_eu.enable_ebs_encryption_by_default()
 
     response = ec2_eu.get_ebs_encryption_by_default()
     response.should.have.key("EbsEncryptionByDefault").equal(True)
 
-    ec2_us = boto3.client("ec2", 'us-east-1')
+    ec2_us = boto3.client("ec2", "us-east-1")
     response = ec2_us.get_ebs_encryption_by_default()
     response.should.have.key("EbsEncryptionByDefault").equal(False)

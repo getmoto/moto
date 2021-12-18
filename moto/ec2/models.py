@@ -1,31 +1,21 @@
 import copy
-from datetime import datetime
-import itertools
 import ipaddress
+import itertools
 import json
-from operator import itemgetter
-from os import listdir
-from os import environ
 import pathlib
 import re
 import warnings
 import weakref
-
-from collections import defaultdict
 from collections import OrderedDict
+from collections import defaultdict
+from datetime import datetime
+from operator import itemgetter
+from os import environ
+from os import listdir
 
 from boto3 import Session
 
-from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
-from moto.packages.boto.ec2.blockdevicemapping import (
-    BlockDeviceMapping,
-    BlockDeviceType,
-)
-from moto.packages.boto.ec2.spotinstancerequest import (
-    SpotInstanceRequest as BotoSpotRequest,
-)
-from moto.packages.boto.ec2.launchspecification import LaunchSpecification
-
+from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -33,10 +23,17 @@ from moto.core.utils import (
     camelcase_to_underscores,
     aws_api_matches,
 )
-from moto.core import ACCOUNT_ID
 from moto.kms import kms_backends
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceMapping,
+    BlockDeviceType,
+)
+from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
+from moto.packages.boto.ec2.launchspecification import LaunchSpecification
+from moto.packages.boto.ec2.spotinstancerequest import (
+    SpotInstanceRequest as BotoSpotRequest,
+)
 from moto.utilities.utils import load_resource, merge_multiple_dicts, filter_resources
-
 from .exceptions import (
     CidrLimitExceeded,
     GenericInvalidParameterValueError,
@@ -203,7 +200,6 @@ for location_type in listdir(root / offerings_path):
         for instance in res:
             instance["LocationType"] = location_type
         INSTANCE_TYPE_OFFERINGS[location_type][_region.replace(".json", "")] = res
-
 
 if "MOTO_AMIS_PATH" in environ:
     with open(environ.get("MOTO_AMIS_PATH"), "r", encoding="utf-8") as f:
@@ -1486,7 +1482,6 @@ class KeyPairBackend(object):
 
 
 class SettingsBackend(object):
-
     def __init__(self):
         self.ebs_encryption_by_default = False
         super().__init__()
@@ -7390,7 +7385,6 @@ class VpnGatewayBackend(object):
         vpn_gateway = self.get_vpn_gateway(vpn_gateway_id)
         detached = vpn_gateway.attachments.get(vpc_id, None)
         if not detached:
-
             raise InvalidVpnGatewayAttachmentError(vpn_gateway.id, vpc_id)
         detached.state = "detached"
         return detached
@@ -7480,7 +7474,6 @@ class CustomerGatewayBackend(object):
 
 
 class TransitGateway(TaggedEC2Resource, CloudFormationModel):
-
     DEFAULT_OPTIONS = {
         "AmazonSideAsn": "64512",
         "AssociationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
@@ -7852,7 +7845,6 @@ class TransitGatewayAttachment(TaggedEC2Resource):
     def __init__(
         self, backend, resource_id, resource_type, transit_gateway_id, tags=None
     ):
-
         self.ec2_backend = backend
         self.association = {}
         self.propagation = {}
@@ -7882,7 +7874,6 @@ class TransitGatewayAttachment(TaggedEC2Resource):
 
 
 class TransitGatewayVpcAttachment(TransitGatewayAttachment):
-
     DEFAULT_OPTIONS = {
         "ApplianceModeSupport": "disable",
         "DnsSupport": "enable",
@@ -7892,7 +7883,6 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
     def __init__(
         self, backend, transit_gateway_id, vpc_id, subnet_ids, tags=None, options=None
     ):
-
         super().__init__(
             backend=backend,
             transit_gateway_id=transit_gateway_id,
@@ -7917,7 +7907,6 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
         tags=None,
         region_name=None,
     ):
-
         super().__init__(
             backend=backend,
             transit_gateway_id=transit_gateway_id,
