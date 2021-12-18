@@ -32,7 +32,7 @@ def test_enable_ebs_encryption_by_default():
 
 @mock_ec2
 def test_get_ebs_encryption_by_default():
-    ec2 = boto3.client("ec2", region_name="eu-central-1")
+    ec2 = boto3.client("ec2", region_name="eu-west-1")
 
     response = ec2.get_ebs_encryption_by_default()
     response.should.have.key("EbsEncryptionByDefault").equal(False)
