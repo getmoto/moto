@@ -20,6 +20,7 @@ from .placement_groups import PlacementGroups
 from .reserved_instances import ReservedInstances
 from .route_tables import RouteTables
 from .security_groups import SecurityGroups
+from .settings import Settings
 from .spot_fleets import SpotFleets
 from .spot_instances import SpotInstances
 from .subnets import Subnets
@@ -63,6 +64,7 @@ class EC2Response(
     ReservedInstances,
     RouteTables,
     SecurityGroups,
+    Settings,
     SpotFleets,
     SpotInstances,
     Subnets,
