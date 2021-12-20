@@ -821,6 +821,17 @@ class ELBv2Backend(BaseBackend):
                 "A 'QueryStringConfig' must be specified with 'query-string'"
             )
 
+    def _get_target_group_arns_from(self, action_data):
+        if "TargetGroupArn" in action_data:
+            return [action_data["TargetGroupArn"]]
+        elif "ForwardConfig" in action_data:
+            return [
+                tg["TargetGroupArn"]
+                for tg in action_data["ForwardConfig"].get("TargetGroups", [])
+            ]
+        else:
+            return []
+
     def _validate_actions(self, actions):
         # validate Actions
         target_group_arns = [
@@ -829,13 +840,9 @@ class ELBv2Backend(BaseBackend):
         for i, action in enumerate(actions):
             index = i + 1
             action_type = action.type
-            if action_type == "forward" and "TargetGroupArn" in action.data:
-                action_target_group_arn = action.data["TargetGroupArn"]
-                if action_target_group_arn not in target_group_arns:
-                    raise ActionTargetGroupNotFoundError(action_target_group_arn)
-            elif action_type == "forward" and "ForwardConfig" in action.data:
-                for tg_config in action.data["ForwardConfig"]["TargetGroups"]:
-                    target_group_arn = tg_config["TargetGroupArn"]
+            if action_type == "forward":
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for target_group_arn in found_arns:
                     if target_group_arn not in target_group_arns:
                         raise ActionTargetGroupNotFoundError(target_group_arn)
             elif action_type == "fixed-response":
@@ -1003,15 +1010,10 @@ Member must satisfy regular expression pattern: {}".format(
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
-                if "TargetGroupArn" in action.data:
-                    target_group = self.target_groups[action.data["TargetGroupArn"]]
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for arn in found_arns:
+                    target_group = self.target_groups[arn]
                     target_group.load_balancer_arns.append(load_balancer_arn)
-                elif "ForwardConfig" in action.data:
-                    for tg_config in action.data["ForwardConfig"].get(
-                        "TargetGroups", []
-                    ):
-                        target_group = self.target_groups[tg_config["TargetGroupArn"]]
-                        target_group.load_balancer_arns.append(load_balancer_arn)
 
         return listener
 
@@ -1444,13 +1446,11 @@ Member must satisfy regular expression pattern: {}".format(
             for listener in load_balancer.listeners.values():
                 for rule in listener.rules.values():
                     for action in rule.actions:
-                        if action.data.get("TargetGroupArn") == target_group_arn:
+                        found_arns = self._get_target_group_arns_from(
+                            action_data=action.data
+                        )
+                        if target_group_arn in found_arns:
                             return True
-                        for tg_config in action.data.get("ForwardConfig", {}).get(
-                            "TargetGroups", []
-                        ):
-                            if tg_config["TargetGroupArn"] == target_group_arn:
-                                return True
         return False
 
     def notify_terminate_instances(self, instance_ids):
