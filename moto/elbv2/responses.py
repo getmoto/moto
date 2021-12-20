@@ -187,7 +187,7 @@ class ELBV2Response(BaseResponse):
         healthcheck_enabled = self._get_param("HealthCheckEnabled")
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
-        matcher = self._get_param("Matcher")
+        matcher = self._get_params().get("Matcher")
         target_type = self._get_param("TargetType")
 
         target_group = self.elbv2_backend.create_target_group(

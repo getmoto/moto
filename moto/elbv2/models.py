@@ -833,6 +833,11 @@ class ELBv2Backend(BaseBackend):
                 action_target_group_arn = action.data["TargetGroupArn"]
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
+            elif action_type == "forward" and "ForwardConfig" in action.data:
+                for tg_config in action.data["ForwardConfig"]["TargetGroups"]:
+                    target_group_arn = tg_config["TargetGroupArn"]
+                    if target_group_arn not in target_group_arns:
+                        raise ActionTargetGroupNotFoundError(target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
             elif action_type in ["redirect", "authenticate-cognito"]:
@@ -998,8 +1003,15 @@ Member must satisfy regular expression pattern: {}".format(
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
-                target_group = self.target_groups[action.data["TargetGroupArn"]]
-                target_group.load_balancer_arns.append(load_balancer_arn)
+                if "TargetGroupArn" in action.data:
+                    target_group = self.target_groups[action.data["TargetGroupArn"]]
+                    target_group.load_balancer_arns.append(load_balancer_arn)
+                elif "ForwardConfig" in action.data:
+                    for tg_config in action.data["ForwardConfig"].get(
+                        "TargetGroups", []
+                    ):
+                        target_group = self.target_groups[tg_config["TargetGroupArn"]]
+                        target_group.load_balancer_arns.append(load_balancer_arn)
 
         return listener
 
@@ -1434,6 +1446,11 @@ Member must satisfy regular expression pattern: {}".format(
                     for action in rule.actions:
                         if action.data.get("TargetGroupArn") == target_group_arn:
                             return True
+                        for tg_config in action.data.get("ForwardConfig", {}).get(
+                            "TargetGroups", []
+                        ):
+                            if tg_config["TargetGroupArn"] == target_group_arn:
+                                return True
         return False
 
     def notify_terminate_instances(self, instance_ids):
