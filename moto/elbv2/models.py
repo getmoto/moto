@@ -821,6 +821,17 @@ class ELBv2Backend(BaseBackend):
                 "A 'QueryStringConfig' must be specified with 'query-string'"
             )
 
+    def _get_target_group_arns_from(self, action_data):
+        if "TargetGroupArn" in action_data:
+            return [action_data["TargetGroupArn"]]
+        elif "ForwardConfig" in action_data:
+            return [
+                tg["TargetGroupArn"]
+                for tg in action_data["ForwardConfig"].get("TargetGroups", [])
+            ]
+        else:
+            return []
+
     def _validate_actions(self, actions):
         # validate Actions
         target_group_arns = [
@@ -829,10 +840,11 @@ class ELBv2Backend(BaseBackend):
         for i, action in enumerate(actions):
             index = i + 1
             action_type = action.type
-            if action_type == "forward" and "TargetGroupArn" in action.data:
-                action_target_group_arn = action.data["TargetGroupArn"]
-                if action_target_group_arn not in target_group_arns:
-                    raise ActionTargetGroupNotFoundError(action_target_group_arn)
+            if action_type == "forward":
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for target_group_arn in found_arns:
+                    if target_group_arn not in target_group_arns:
+                        raise ActionTargetGroupNotFoundError(target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
             elif action_type in ["redirect", "authenticate-cognito"]:
@@ -998,8 +1010,10 @@ Member must satisfy regular expression pattern: {}".format(
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
-                target_group = self.target_groups[action.data["TargetGroupArn"]]
-                target_group.load_balancer_arns.append(load_balancer_arn)
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for arn in found_arns:
+                    target_group = self.target_groups[arn]
+                    target_group.load_balancer_arns.append(load_balancer_arn)
 
         return listener
 
@@ -1432,7 +1446,10 @@ Member must satisfy regular expression pattern: {}".format(
             for listener in load_balancer.listeners.values():
                 for rule in listener.rules.values():
                     for action in rule.actions:
-                        if action.data.get("TargetGroupArn") == target_group_arn:
+                        found_arns = self._get_target_group_arns_from(
+                            action_data=action.data
+                        )
+                        if target_group_arn in found_arns:
                             return True
         return False
 
