@@ -338,8 +338,7 @@ class Queue(CloudFormationModel):
         if attributes.get("RedrivePolicy", None) is not None:
             self._setup_dlq(attributes["RedrivePolicy"])
 
-        if attributes.get("Policy"):
-            self.policy = attributes["Policy"]
+        self.policy = attributes.get("Policy")
 
         self.last_modified_timestamp = now
 
