@@ -20,7 +20,7 @@ def test_certificate_id_generation_deterministic():
 
 
 @mock_iot
-def test_certs():
+def test_create_key_and_certificate():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert.should.have.key("certificateArn").which.should_not.be.none
@@ -29,6 +29,12 @@ def test_certs():
     cert.should.have.key("keyPair")
     cert["keyPair"].should.have.key("PublicKey").which.should_not.be.none
     cert["keyPair"].should.have.key("PrivateKey").which.should_not.be.none
+
+
+@mock_iot
+def test_describe_certificate_by_id():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
     cert_id = cert["certificateId"]
 
     cert = client.describe_certificate(certificateId=cert_id)
@@ -42,32 +48,15 @@ def test_certs():
     validity.should.have.key("notBefore").which.should_not.be.none
     validity.should.have.key("notAfter").which.should_not.be.none
     cert_desc.should.have.key("status").which.should.equal("ACTIVE")
-    cert_pem = cert_desc["certificatePem"]
 
-    res = client.list_certificates()
-    for cert in res["certificates"]:
-        cert.should.have.key("certificateArn").which.should_not.be.none
-        cert.should.have.key("certificateId").which.should_not.be.none
-        cert.should.have.key("status").which.should_not.be.none
-        cert.should.have.key("creationDate").which.should_not.be.none
 
-    client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
-    cert = client.describe_certificate(certificateId=cert_id)
-    cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("REVOKED")
-
-    client.delete_certificate(certificateId=cert_id)
-    res = client.list_certificates()
-    res.should.have.key("certificates")
-
-    # Test register_certificate flow
-    cert = client.register_certificate(certificatePem=cert_pem, setAsActive=True)
-    cert.should.have.key("certificateId").which.should_not.be.none
-    cert.should.have.key("certificateArn").which.should_not.be.none
+@mock_iot
+def test_list_certificates():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
     cert_id = cert["certificateId"]
 
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(1)
     for cert in res["certificates"]:
         cert.should.have.key("certificateArn").which.should_not.be.none
         cert.should.have.key("certificateId").which.should_not.be.none
@@ -79,9 +68,42 @@ def test_certs():
     cert_desc = cert["certificateDescription"]
     cert_desc.should.have.key("status").which.should.equal("REVOKED")
 
+
+@mock_iot
+def test_update_certificate():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_id = cert["certificateId"]
+
+    client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert_desc = cert["certificateDescription"]
+    cert_desc.should.have.key("status").which.should.equal("REVOKED")
+
+
+@mock_iot
+def test_delete_certificate():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_id = cert["certificateId"]
+
+    # Ensure certificate is REVOKED before we can delete
+    client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
+
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
-    res.should.have.key("certificates")
+    res.should.have.key("certificates").equals([])
+
+
+@mock_iot
+def test_register_certificate_without_ca():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_id = cert["certificateId"]
+    cert_pem = cert["certificatePem"]
+
+    client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
+    client.delete_certificate(certificateId=cert_id)
 
     # Test register_certificate without CA flow
     cert = client.register_certificate_without_ca(
