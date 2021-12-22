@@ -8,6 +8,21 @@ from moto.core import ACCOUNT_ID
 def test_create_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
+
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    res = client.list_things()
+    res.should.have.key("things").which.should.have.length_of(1)
+    res["things"][0].should.have.key("thingName").which.should_not.be.none
+    res["things"][0].should.have.key("thingArn").which.should_not.be.none
+
+
+@mock_iot
+def test_create_thing_with_type():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-thing"
     type_name = "my-type-name"
 
     client.create_thing_type(thingTypeName=type_name)
@@ -21,15 +36,16 @@ def test_create_thing():
     res["things"][0].should.have.key("thingName").which.should_not.be.none
     res["things"][0].should.have.key("thingArn").which.should_not.be.none
 
+    thing = client.describe_thing(thingName=name)
+    thing.should.have.key("thingTypeName").equals(type_name)
+
 
 @mock_iot
 def test_update_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
-    type_name = "my-type-name"
 
-    client.create_thing_type(thingTypeName=type_name)
-    client.create_thing(thingName=name, thingTypeName=type_name)
+    client.create_thing(thingName=name)
 
     client.update_thing(thingName=name, attributePayload={"attributes": {"k1": "v1"}})
     res = client.list_things()
@@ -43,17 +59,13 @@ def test_update_thing():
 def test_describe_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
-    type_name = "my-type-name"
 
-    client.create_thing_type(thingTypeName=type_name)
-
-    client.create_thing(thingName=name, thingTypeName=type_name)
+    client.create_thing(thingName=name)
     client.update_thing(thingName=name, attributePayload={"attributes": {"k1": "v1"}})
 
     thing = client.describe_thing(thingName=name)
     thing.should.have.key("thingName").which.should.equal(name)
     thing.should.have.key("defaultClientId")
-    thing.should.have.key("thingTypeName").equals(type_name)
     thing.should.have.key("attributes").equals({"k1": "v1"})
     thing.should.have.key("version").equals(1)
 
@@ -62,10 +74,8 @@ def test_describe_thing():
 def test_delete_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
-    type_name = "my-type-name"
 
-    client.create_thing_type(thingTypeName=type_name)
-    client.create_thing(thingName=name, thingTypeName=type_name)
+    client.create_thing(thingName=name)
 
     # delete thing
     client.delete_thing(thingName=name)
