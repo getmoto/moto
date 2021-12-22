@@ -609,7 +609,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 logs_stdout = [x for x in logs_stdout if len(x) > 0]
                 logs_stderr = [x for x in logs_stderr if len(x) > 0]
                 logs = []
-                prev_date = None
                 for line in logs_stdout + logs_stderr:
                     date, line = line.split(" ", 1)
                     date_obj = (
@@ -618,11 +617,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         .replace(tzinfo=None)
                     )
                     date = unix_time_millis(date_obj)
-                    # Guarantee that logs are in order
-                    if prev_date and prev_date > date:
-                        date = prev_date
-                    prev_date = date
                     logs.append({"timestamp": date, "message": line.strip()})
+                logs = sorted(logs, key=lambda l: l["timestamp"])
 
                 # Send to cloudwatch
                 log_group = "/aws/batch/job"
