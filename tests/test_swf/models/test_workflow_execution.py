@@ -1,7 +1,16 @@
+from threading import Timer as ThreadingTimer
+
 from freezegun import freeze_time
+from unittest.mock import Mock, patch
 import sure  # noqa # pylint: disable=unused-import
 
-from moto.swf.models import ActivityType, Timeout, WorkflowType, WorkflowExecution
+from moto.swf.models import (
+    ActivityType,
+    Timeout,
+    Timer,
+    WorkflowType,
+    WorkflowExecution,
+)
 from moto.swf.exceptions import SWFDefaultUndefinedFault
 from ..utils import (
     auto_start_decision_tasks,
@@ -541,3 +550,49 @@ def test_timeouts_are_processed_in_order_and_reevaluated():
                 "WorkflowExecutionTimedOut",
             ]
         )
+
+
+def test_record_marker():
+    wfe = make_workflow_execution()
+    MARKER_EVENT_ATTRIBUTES = {"markerName": "example_marker"}
+
+    wfe.record_marker(123, MARKER_EVENT_ATTRIBUTES)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("MarkerRecorded")
+    last_event.event_attributes["markerName"].should.equal("example_marker")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_create_timer():
+    # TODO this is golden path, test failure modes
+    # TODO also test a TimerFired
+    wfe = make_workflow_execution()
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
+    with patch("moto.swf.models.workflow_execution.ThreadingTimer"):
+
+        wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+
+        last_event = wfe.events()[-1]
+        last_event.event_type.should.equal("TimerStarted")
+        last_event.event_attributes["startToFireTimeout"].should.equal("10")
+        last_event.event_attributes["timerId"].should.equal("abc123")
+        last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_timer():
+    # TODO this is golden path, test failure modes
+    wfe = make_workflow_execution()
+    existing_timer = Mock(spec=ThreadingTimer)
+    existing_timer.is_alive.return_value = True
+    wfe._timers["abc123"] = Timer(existing_timer, 1)
+
+    wfe.cancel_timer(123, "abc123")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("TimerCancelled")
+    last_event.event_attributes["startedEventId"].should.equal(1)
+    last_event.event_attributes["timerId"].should.equal("abc123")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    existing_timer.cancel.assert_called_once()
+    assert not wfe._timers.get("abc123")

@@ -17,6 +17,7 @@ from .domain import Domain  # noqa
 from .generic_type import GenericType  # noqa
 from .history_event import HistoryEvent  # noqa
 from .timeout import Timeout  # noqa
+from .timer import Timer  # noqa
 from .workflow_type import WorkflowType  # noqa
 from .workflow_execution import WorkflowExecution  # noqa
 from time import sleep
