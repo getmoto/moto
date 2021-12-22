@@ -81,14 +81,15 @@ def test_update_certificate():
     cert_desc.should.have.key("status").which.should.equal("REVOKED")
 
 
+@pytest.mark.parametrize("status", ["REVOKED", "INACTIVE"])
 @mock_iot
-def test_delete_certificate():
+def test_delete_certificate_with_status(status):
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_id = cert["certificateId"]
 
-    # Ensure certificate is REVOKED before we can delete
-    client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
+    # Ensure certificate has the right status before we can delete
+    client.update_certificate(certificateId=cert_id, newStatus=status)
 
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
@@ -205,6 +206,37 @@ def test_delete_certificate_validation():
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(0)
+
+
+@mock_iot
+def test_delete_thing_with_certificate_validation():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_id = cert["certificateId"]
+    cert_arn = cert["certificateArn"]
+    thing_name = "thing-1"
+    client.create_thing(thingName=thing_name)
+    client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
+
+    client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
+
+    with pytest.raises(ClientError) as e:
+        client.delete_thing(thingName=thing_name)
+    err = e.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equals(
+        f"Cannot delete. Thing {thing_name} is still attached to one or more principals"
+    )
+
+    client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
+
+    client.delete_thing(thingName=thing_name)
+
+    # Certificate still exists
+    res = client.list_certificates()
+    res.should.have.key("certificates").which.should.have.length_of(1)
+    res["certificates"][0]["certificateArn"].should.equal(cert_arn)
+    res["certificates"][0]["status"].should.equal("REVOKED")
 
 
 @mock_iot

@@ -68,3 +68,12 @@ class VersionsLimitExceededException(IoTClientError):
             "VersionsLimitExceededException",
             "The policy %s already has the maximum number of versions (5)" % name,
         )
+
+
+class ThingStillAttached(IoTClientError):
+    def __init__(self, name):
+        self.code = 409
+        super().__init__(
+            "InvalidRequestException",
+            f"Cannot delete. Thing {name} is still attached to one or more principals",
+        )
