@@ -176,6 +176,7 @@ mock_sdb = lazy_load(".sdb", "mock_sdb")
 mock_elasticache = lazy_load(
     ".elasticache", "mock_elasticache", boto3_name="elasticache"
 )
+mock_s3control = lazy_load(".s3control", "mock_s3control", boto3_name="s3control")
 
 
 class MockAll(ContextDecorator):
@@ -205,7 +206,6 @@ mock_all = MockAll
 
 __title__ = "moto"
 __version__ = "2.2.20.dev"
-
 
 try:
     # Need to monkey-patch botocore requests back to underlying urllib3 classes
