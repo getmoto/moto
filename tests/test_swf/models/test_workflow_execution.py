@@ -1,5 +1,4 @@
 from threading import Timer as ThreadingTimer
-from time import sleep
 
 from freezegun import freeze_time
 from unittest.mock import Mock, patch
@@ -599,8 +598,9 @@ def test_start_timer_correctly_fires_timer_later():
     # Patch thread's event with one that immediately resolves
     with patch("threading.Event", new=MockEvent):
         wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
-        # TODO rethink this, will be flaky
-        sleep(0.5)
+        # TODO this feels weird, but need to wait until both events have popped
+        while len(wfe.events()) < 2:
+            pass
 
         last_event = wfe.events()[-1]
         last_event.event_type.should.equal("TimerFired")
