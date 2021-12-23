@@ -27,6 +27,9 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
     "MarkerRecorded",
     "TimerStarted",
     "TimerCancelled",
+    "TimerFired",
+    "CancelTimerFailed",
+    "StartTimerFailed",
 )
 
 

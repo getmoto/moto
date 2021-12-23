@@ -1,4 +1,5 @@
 from threading import Timer as ThreadingTimer
+from time import sleep
 
 from freezegun import freeze_time
 from unittest.mock import Mock, patch
@@ -564,9 +565,7 @@ def test_record_marker():
     last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
 
 
-def test_create_timer():
-    # TODO this is golden path, test failure modes
-    # TODO also test a TimerFired
+def test_start_timer():
     wfe = make_workflow_execution()
     START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
     with patch("moto.swf.models.workflow_execution.ThreadingTimer"):
@@ -580,8 +579,52 @@ def test_create_timer():
         last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
 
 
+def test_start_timer_correctly_fires_timer_later():
+    wfe = make_workflow_execution()
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "60", "timerId": "abc123"}
+
+    class MockEvent:
+        def __init__(self):
+            self._is_set = False
+
+        def wait(self, interval=None):
+            return
+
+        def is_set(self):
+            return self._is_set
+
+        def set(self):
+            self.is_set = True
+
+    # Patch thread's event with one that immediately resolves
+    with patch("threading.Event", new=MockEvent):
+        wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+        # TODO rethink this, will be flaky
+        sleep(0.5)
+
+        last_event = wfe.events()[-1]
+        last_event.event_type.should.equal("TimerFired")
+        last_event.event_attributes["timerId"].should.equal("abc123")
+        last_event.event_attributes["startedEventId"].should.equal(1)
+
+
+def test_start_timer_fails_if_timer_already_started():
+    wfe = make_workflow_execution()
+    existing_timer = Mock(spec=ThreadingTimer)
+    existing_timer.is_alive.return_value = True
+    wfe._timers["abc123"] = Timer(existing_timer, 1)
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
+
+    wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("StartTimerFailed")
+    last_event.event_attributes["cause"].should.equal("TIMER_ID_ALREADY_IN_USE")
+    last_event.event_attributes["timerId"].should.equal("abc123")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
 def test_cancel_timer():
-    # TODO this is golden path, test failure modes
     wfe = make_workflow_execution()
     existing_timer = Mock(spec=ThreadingTimer)
     existing_timer.is_alive.return_value = True
@@ -596,3 +639,14 @@ def test_cancel_timer():
     last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
     existing_timer.cancel.assert_called_once()
     assert not wfe._timers.get("abc123")
+
+
+def test_cancel_timer_fails_if_timer_not_found():
+    wfe = make_workflow_execution()
+
+    wfe.cancel_timer(123, "abc123")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("CancelTimerFailed")
+    last_event.event_attributes["cause"].should.equal("TIMER_ID_UNKNOWN")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)

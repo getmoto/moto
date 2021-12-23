@@ -673,7 +673,7 @@ class WorkflowExecution(BaseModel):
     def start_timer(self, event_id, attributes):
         timer_id = attributes["timerId"]
         existing_timer = self._timers.get(timer_id)
-        if existing_timer and existing_timer.is_active():
+        if existing_timer and existing_timer.is_alive():
             # TODO 4 fail states are possible
             # TIMER_ID_ALREADY_IN_USE | OPEN_TIMERS_LIMIT_EXCEEDED | TIMER_CREATION_RATE_EXCEEDED | OPERATION_NOT_PERMITTED
             self._add_event(
@@ -693,13 +693,13 @@ class WorkflowExecution(BaseModel):
             timer_id=timer_id,
         ).event_id
         background_timer = ThreadingTimer(
-            float(time_to_wait), self.fire_timer, args=(started_event_id, timer_id,)
+            float(time_to_wait), self._fire_timer, args=(started_event_id, timer_id,)
         )
         workflow_timer = Timer(background_timer, started_event_id)
         self._timers[timer_id] = workflow_timer
         workflow_timer.start()
 
-    def fire_timer(self, started_event_id, timer_id):
+    def _fire_timer(self, started_event_id, timer_id):
         self._add_event(
             "TimerFired", started_event_id=started_event_id, timer_id=timer_id
         )
