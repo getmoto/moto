@@ -49,6 +49,11 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
         )
 
 
+class InvalidParameterCombination(EC2ClientError):
+    def __init__(self, msg):
+        super().__init__("InvalidParameterCombination", msg)
+
+
 class MalformedDHCPOptionsIdError(EC2ClientError):
     def __init__(self, dhcp_options_id):
         super().__init__(

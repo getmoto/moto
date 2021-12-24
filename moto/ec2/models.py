@@ -677,6 +677,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.id = random_instance_id()
         self.lifecycle = kwargs.get("lifecycle")
 
+        nics = kwargs.get("nics", {})
+
         launch_template_arg = kwargs.get("launch_template", {})
         if launch_template_arg and not image_id:
             # the image id from the template should be used
@@ -703,6 +705,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
         self.subnet_id = kwargs.get("subnet_id")
+        if not self.subnet_id:
+            self.subnet_id = next(
+                (n["SubnetId"] for n in nics.values() if "SubnetId" in n), None
+            )
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
@@ -759,7 +765,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self._private_ips = set()
         self.prep_nics(
-            kwargs.get("nics", {}),
+            nics,
             private_ip=kwargs.get("private_ip"),
             associate_public_ip=self.associate_public_ip,
             security_groups=self.security_groups,
