@@ -22,6 +22,7 @@ from .exceptions import (
     VersionConflictException,
     ResourceAlreadyExistsException,
     VersionsLimitExceededException,
+    ThingStillAttached,
 )
 
 
@@ -694,10 +695,9 @@ class IoTBackend(BaseBackend):
         # can raise ResourceNotFoundError
         thing = self.describe_thing(thing_name)
 
-        # detach all principals
         for k in list(self.principal_things.keys()):
             if k[1] == thing_name:
-                del self.principal_things[k]
+                raise ThingStillAttached(thing_name)
 
         del self.things[thing.arn]
 

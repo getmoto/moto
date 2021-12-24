@@ -617,6 +617,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                     )
                     date = unix_time_millis(date_obj)
                     logs.append({"timestamp": date, "message": line.strip()})
+                logs = sorted(logs, key=lambda l: l["timestamp"])
 
                 # Send to cloudwatch
                 log_group = "/aws/batch/job"

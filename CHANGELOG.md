@@ -1,6 +1,32 @@
 Moto Changelog
 ===================
 
+2.2.20
+-----
+    New Services:
+        * ElasticsearchService:
+            * create_elasticsearch_domain()
+            * delete_elasticsearch_domain()
+            * describe_elasticsearch_domain()
+            * list_domain_names()
+
+    New Methods:
+        * EC2:
+            * disable_ebs_encryption_by_default()
+            * enable_ebs_encryption_by_default()
+            * get_ebs_encryption_by_default()
+        * Redshift:
+            * pause_cluster()
+            * resume_cluster()
+
+    Miscellanous:
+        * ELBv2: create_listener now supports the DefaultActions.ForwardConfig parameter
+        * Redshift: restore_from_cluster_snapshot() now supports the NodeType and NumberOfNodes-parameters
+        * Sagemaker: list_experiments() now supports pagination
+        * Sagemaker: list_trials() now supports pagination
+        * Sagemaker: list_trial_components() now supports pagination
+
+
 2.2.19
 -----
     General:

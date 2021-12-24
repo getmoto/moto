@@ -1,7 +1,7 @@
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.exceptions import MissingParameterError
+from moto.ec2.exceptions import MissingParameterError, InvalidParameterCombination
 from moto.ec2.utils import (
     filters_from_querystring,
     dict_from_querystring,
@@ -70,6 +70,10 @@ class InstanceResponse(BaseResponse):
             ),
             "launch_template": self._get_multi_param_dict("LaunchTemplate"),
         }
+        if len(kwargs["nics"]) and kwargs["subnet_id"]:
+            raise InvalidParameterCombination(
+                msg="Network interfaces and an instance-level subnet ID may not be specified on the same request"
+            )
 
         mappings = self._parse_block_device_mapping()
         if mappings:

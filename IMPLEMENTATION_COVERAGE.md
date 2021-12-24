@@ -1185,7 +1185,7 @@
 
 ## ec2
 <details>
-<summary>33% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -1510,7 +1510,7 @@
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
-- [ ] disable_ebs_encryption_by_default
+- [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -1530,7 +1530,7 @@
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
-- [ ] enable_ebs_encryption_by_default
+- [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -1552,7 +1552,7 @@
 - [ ] get_console_screenshot
 - [ ] get_default_credit_specification
 - [ ] get_ebs_default_kms_key_id
-- [ ] get_ebs_encryption_by_default
+- [X] get_ebs_encryption_by_default
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
@@ -2189,6 +2189,52 @@
 - [X] start_job_run
 - [ ] tag_resource
 - [ ] untag_resource
+</details>
+
+## es
+<details>
+<summary>10% implemented</summary>
+
+- [ ] accept_inbound_cross_cluster_search_connection
+- [ ] add_tags
+- [ ] associate_package
+- [ ] cancel_elasticsearch_service_software_update
+- [X] create_elasticsearch_domain
+- [ ] create_outbound_cross_cluster_search_connection
+- [ ] create_package
+- [X] delete_elasticsearch_domain
+- [ ] delete_elasticsearch_service_role
+- [ ] delete_inbound_cross_cluster_search_connection
+- [ ] delete_outbound_cross_cluster_search_connection
+- [ ] delete_package
+- [ ] describe_domain_auto_tunes
+- [X] describe_elasticsearch_domain
+- [ ] describe_elasticsearch_domain_config
+- [ ] describe_elasticsearch_domains
+- [ ] describe_elasticsearch_instance_type_limits
+- [ ] describe_inbound_cross_cluster_search_connections
+- [ ] describe_outbound_cross_cluster_search_connections
+- [ ] describe_packages
+- [ ] describe_reserved_elasticsearch_instance_offerings
+- [ ] describe_reserved_elasticsearch_instances
+- [ ] dissociate_package
+- [ ] get_compatible_elasticsearch_versions
+- [ ] get_package_version_history
+- [ ] get_upgrade_history
+- [ ] get_upgrade_status
+- [X] list_domain_names
+- [ ] list_domains_for_package
+- [ ] list_elasticsearch_instance_types
+- [ ] list_elasticsearch_versions
+- [ ] list_packages_for_domain
+- [ ] list_tags
+- [ ] purchase_reserved_elasticsearch_instance_offering
+- [ ] reject_inbound_cross_cluster_search_connection
+- [ ] remove_tags
+- [ ] start_elasticsearch_service_software_update
+- [ ] update_elasticsearch_domain_config
+- [ ] update_package
+- [ ] upgrade_elasticsearch_domain
 </details>
 
 ## events
@@ -5054,7 +5100,6 @@
 - ebs
 - ecr-public
 - elastic-inference
-- es
 - evidently
 - finspace
 - finspace-data
