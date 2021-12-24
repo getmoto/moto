@@ -1,7 +1,5 @@
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, BackendDict
 from .exceptions import DomainNotFound
 
 
@@ -149,12 +147,4 @@ class ElasticsearchServiceBackend(BaseBackend):
         return [{"DomainName": domain.domain_name} for domain in self.domains.values()]
 
 
-es_backends = {}
-for available_region in Session().get_available_regions("es"):
-    es_backends[available_region] = ElasticsearchServiceBackend(available_region)
-for available_region in Session().get_available_regions(
-    "es", partition_name="aws-us-gov"
-):
-    es_backends[available_region] = ElasticsearchServiceBackend(available_region)
-for available_region in Session().get_available_regions("es", partition_name="aws-cn"):
-    es_backends[available_region] = ElasticsearchServiceBackend(available_region)
+es_backends = BackendDict(ElasticsearchServiceBackend, "es")
