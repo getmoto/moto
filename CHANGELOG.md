@@ -1,6 +1,12 @@
 Moto Changelog
 ===================
 
+2.3.0
+-----
+    General:
+        * It is now possible to use a mocked region. This will throw an error by default, but can be enabled using the `MOTO_ALLOW_NONEXISTENT_REGION`-environment variable.
+        * Performance improvements - only the backend for the requested region is now loaded into memory, instead of (naively) loading a backend for every region.
+
 2.2.20
 -----
     New Services:
