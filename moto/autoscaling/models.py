@@ -10,7 +10,7 @@ from moto.ec2.exceptions import InvalidInstanceIdError
 
 from collections import OrderedDict
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, BackendDict
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
@@ -633,22 +633,20 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
 
 class AutoScalingBackend(BaseBackend):
-    def __init__(self, ec2_backend, elb_backend, elbv2_backend):
+    def __init__(self, region_name):
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
         self.policies = {}
         self.lifecycle_hooks = {}
-        self.ec2_backend = ec2_backend
-        self.elb_backend = elb_backend
-        self.elbv2_backend = elbv2_backend
-        self.region = self.elbv2_backend.region_name
+        self.ec2_backend = ec2_backends[region_name]
+        self.elb_backend = elb_backends[region_name]
+        self.elbv2_backend = elbv2_backends[region_name]
+        self.region = region_name
 
     def reset(self):
-        ec2_backend = self.ec2_backend
-        elb_backend = self.elb_backend
-        elbv2_backend = self.elbv2_backend
+        region = self.region
         self.__dict__ = {}
-        self.__init__(ec2_backend, elb_backend, elbv2_backend)
+        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1245,8 +1243,4 @@ class AutoScalingBackend(BaseBackend):
         return tags
 
 
-autoscaling_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    autoscaling_backends[region] = AutoScalingBackend(
-        ec2_backend, elb_backends[region], elbv2_backends[region]
-    )
+autoscaling_backends = BackendDict(AutoScalingBackend, "ec2")

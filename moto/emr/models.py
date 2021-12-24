@@ -4,9 +4,9 @@ from datetime import timedelta
 import warnings
 
 import pytz
-from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.emr.exceptions import (
     InvalidRequestException,
     ValidationException,
@@ -711,10 +711,4 @@ class ElasticMapReduceBackend(BaseBackend):
         del self.security_configurations[name]
 
 
-emr_backends = {}
-for region in Session().get_available_regions("emr"):
-    emr_backends[region] = ElasticMapReduceBackend(region)
-for region in Session().get_available_regions("emr", partition_name="aws-us-gov"):
-    emr_backends[region] = ElasticMapReduceBackend(region)
-for region in Session().get_available_regions("emr", partition_name="aws-cn"):
-    emr_backends[region] = ElasticMapReduceBackend(region)
+emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

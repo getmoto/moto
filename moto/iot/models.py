@@ -9,8 +9,8 @@ from datetime import datetime
 
 from .utils import PAGINATION_MODEL
 
-from boto3 import Session
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.utilities.utils import random_string
 from moto.utilities.paginator import paginate
 from .exceptions import (
@@ -1524,10 +1524,4 @@ class IoTBackend(BaseBackend):
         return domain_configuration
 
 
-iot_backends = {}
-for region in Session().get_available_regions("iot"):
-    iot_backends[region] = IoTBackend(region)
-for region in Session().get_available_regions("iot", partition_name="aws-us-gov"):
-    iot_backends[region] = IoTBackend(region)
-for region in Session().get_available_regions("iot", partition_name="aws-cn"):
-    iot_backends[region] = IoTBackend(region)
+iot_backends = BackendDict(IoTBackend, "iot")

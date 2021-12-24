@@ -7,6 +7,8 @@ import random
 import re
 import string
 from botocore.exceptions import ClientError
+from boto3 import Session
+from moto.settings import allow_unknown_region
 from urllib.parse import urlparse
 
 
@@ -418,3 +420,27 @@ def aws_api_matches(pattern, string):
         return True
     else:
         return False
+
+
+class BackendDict(dict):
+    def __init__(self, fn, service_name):
+        self.fn = fn
+        sess = Session()
+        self.regions = list(sess.get_available_regions(service_name))
+        self.regions.extend(
+            sess.get_available_regions(service_name, partition_name="aws-us-gov")
+        )
+        self.regions.extend(
+            sess.get_available_regions(service_name, partition_name="aws-cn")
+        )
+
+    def __contains__(self, item):
+        return item in self.regions or item in self.keys()
+
+    def __getitem__(self, item):
+        # Create the backend for a specific region
+        if item in self.regions and item not in self.keys():
+            super().__setitem__(item, self.fn(item))
+        if item not in self.regions and allow_unknown_region():
+            super().__setitem__(item, self.fn(item))
+        return super().__getitem__(item)

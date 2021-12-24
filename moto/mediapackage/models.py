@@ -1,8 +1,7 @@
 from collections import OrderedDict
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import ClientError
 
@@ -216,12 +215,4 @@ class MediaPackageBackend(BaseBackend):
         raise ClientError(error, "origin endpoint with id={} not found".format(id))
 
 
-mediapackage_backends = {}
-for region in Session().get_available_regions("mediapackage"):
-    mediapackage_backends[region] = MediaPackageBackend(region)
-for region in Session().get_available_regions(
-    "mediapackage", partition_name="aws-us-gov"
-):
-    mediapackage_backends[region] = MediaPackageBackend(region)
-for region in Session().get_available_regions("mediapackage", partition_name="aws-cn"):
-    mediapackage_backends[region] = MediaPackageBackend(region)
+mediapackage_backends = BackendDict(MediaPackageBackend, "mediapackage")

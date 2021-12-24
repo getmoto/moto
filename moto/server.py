@@ -283,7 +283,13 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters["regex"] = RegexConverter
-    backend = list(backends.get_backend(service).values())[0]
+
+    backend_dict = backends.get_backend(service)
+    if "us-east-1" in backend_dict:
+        backend = backend_dict["us-east-1"]
+    else:
+        backend = backend_dict["global"]
+
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_flask_to_httpretty_response(handler)
         if handler.__name__ == "dispatch":

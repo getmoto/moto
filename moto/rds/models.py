@@ -1,7 +1,7 @@
-from boto3 import Session
 from jinja2 import Template
 
 from moto.core import BaseBackend, CloudFormationModel
+from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
 from moto.rds.exceptions import UnformattedGetAttTemplateException
 from moto.rds2.models import rds2_backends
@@ -337,10 +337,4 @@ class RDSBackend(BaseBackend):
         return rds2_backends[self.region]
 
 
-rds_backends = {}
-for region in Session().get_available_regions("rds"):
-    rds_backends[region] = RDSBackend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-us-gov"):
-    rds_backends[region] = RDSBackend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-cn"):
-    rds_backends[region] = RDSBackend(region)
+rds_backends = BackendDict(RDSBackend, "rds")

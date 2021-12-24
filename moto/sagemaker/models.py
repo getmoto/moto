@@ -1,9 +1,9 @@
 import json
 import os
-from boto3 import Session
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import BackendDict
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
 from .exceptions import (
@@ -2114,10 +2114,4 @@ class FakeTrialComponent(BaseObject):
         )
 
 
-sagemaker_backends = {}
-for region in Session().get_available_regions("sagemaker"):
-    sagemaker_backends[region] = SageMakerModelBackend(region)
-for region in Session().get_available_regions("sagemaker", partition_name="aws-us-gov"):
-    sagemaker_backends[region] = SageMakerModelBackend(region)
-for region in Session().get_available_regions("sagemaker", partition_name="aws-cn"):
-    sagemaker_backends[region] = SageMakerModelBackend(region)
+sagemaker_backends = BackendDict(SageMakerModelBackend, "sagemaker")

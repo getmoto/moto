@@ -1,5 +1,5 @@
-from boto3 import Session
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 import random
 import string
 
@@ -122,14 +122,4 @@ class ElasticTranscoderBackend(BaseBackend):
         self.pipelines.pop(pipeline_id)
 
 
-elastictranscoder_backends = {}
-for region in Session().get_available_regions("elastictranscoder"):
-    elastictranscoder_backends[region] = ElasticTranscoderBackend(region)
-for region in Session().get_available_regions(
-    "elastictranscoder", partition_name="aws-us-gov"
-):
-    elastictranscoder_backends[region] = ElasticTranscoderBackend(region)
-for region in Session().get_available_regions(
-    "elastictranscoder", partition_name="aws-cn"
-):
-    elastictranscoder_backends[region] = ElasticTranscoderBackend(region)
+elastictranscoder_backends = BackendDict(ElasticTranscoderBackend, "elastictranscoder")

@@ -10,8 +10,7 @@ from typing import Dict, List
 from botocore.exceptions import ParamValidationError
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
-from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.ec2 import ec2_backends
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.ecr.exceptions import (
     ImageNotFoundException,
     RepositoryNotFoundException,
@@ -951,6 +950,4 @@ class ECRBackend(BaseBackend):
         }
 
 
-ecr_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    ecr_backends[region] = ECRBackend(region)
+ecr_backends = BackendDict(ECRBackend, "ec2")

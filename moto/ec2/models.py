@@ -22,6 +22,7 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
     aws_api_matches,
+    BackendDict,
 )
 from moto.kms import kms_backends
 from moto.packages.boto.ec2.blockdevicemapping import (
@@ -8760,6 +8761,4 @@ class EC2Backend(
         return True
 
 
-ec2_backends = {
-    region.name: EC2Backend(region.name) for region in RegionsAndZonesBackend.regions
-}
+ec2_backends = BackendDict(EC2Backend, "ec2")

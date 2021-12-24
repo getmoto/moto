@@ -4,11 +4,9 @@ from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, BackendDict
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
@@ -838,20 +836,4 @@ class Route53ResolverBackend(BaseBackend):
         return resolver_endpoint
 
 
-route53resolver_backends = {}
-for available_region in Session().get_available_regions("route53resolver"):
-    route53resolver_backends[available_region] = Route53ResolverBackend(
-        available_region
-    )
-for available_region in Session().get_available_regions(
-    "route53resolver", partition_name="aws-us-gov"
-):
-    route53resolver_backends[available_region] = Route53ResolverBackend(
-        available_region
-    )
-for available_region in Session().get_available_regions(
-    "route53resolver", partition_name="aws-cn"
-):
-    route53resolver_backends[available_region] = Route53ResolverBackend(
-        available_region
-    )
+route53resolver_backends = BackendDict(Route53ResolverBackend, "route53resolver")

@@ -7,7 +7,6 @@ import logging
 import docker
 import threading
 import dateutil.parser
-from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.iam import iam_backends
@@ -26,7 +25,7 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.docker_utilities import DockerModel
 from ..utilities.tagging_service import TaggingService
 
@@ -1476,10 +1475,4 @@ class BatchBackend(BaseBackend):
         job.terminate(reason)
 
 
-batch_backends = {}
-for region in Session().get_available_regions("batch"):
-    batch_backends[region] = BatchBackend(region)
-for region in Session().get_available_regions("batch", partition_name="aws-us-gov"):
-    batch_backends[region] = BatchBackend(region)
-for region in Session().get_available_regions("batch", partition_name="aws-cn"):
-    batch_backends[region] = BatchBackend(region)
+batch_backends = BackendDict(BatchBackend, "batch")

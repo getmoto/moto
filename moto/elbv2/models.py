@@ -8,6 +8,7 @@ from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     get_random_hex,
+    BackendDict,
 )
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -1458,6 +1459,4 @@ Member must satisfy regular expression pattern: {}".format(
             target_group.deregister_terminated_instances(instance_ids)
 
 
-elbv2_backends = {}
-for region in ec2_backends.keys():
-    elbv2_backends[region] = ELBv2Backend(region)
+elbv2_backends = BackendDict(ELBv2Backend, "ec2")

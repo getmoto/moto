@@ -8,8 +8,6 @@ from copy import copy
 
 import time
 
-from boto3.session import Session
-
 try:
     from urlparse import urlparse
 except ImportError:
@@ -17,7 +15,7 @@ except ImportError:
 import responses
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
-from moto.core.utils import path_url
+from moto.core.utils import path_url, BackendDict
 from .integration_parsers.aws_parser import TypeAwsParser
 from .integration_parsers.http_parser import TypeHttpParser
 from .integration_parsers.unknown_parser import TypeUnknownParser
@@ -1819,14 +1817,4 @@ class APIGatewayBackend(BaseBackend):
         self.base_path_mappings[domain_name].pop(base_path)
 
 
-apigateway_backends = {}
-for region_name in Session().get_available_regions("apigateway"):
-    apigateway_backends[region_name] = APIGatewayBackend(region_name)
-for region_name in Session().get_available_regions(
-    "apigateway", partition_name="aws-us-gov"
-):
-    apigateway_backends[region_name] = APIGatewayBackend(region_name)
-for region_name in Session().get_available_regions(
-    "apigateway", partition_name="aws-cn"
-):
-    apigateway_backends[region_name] = APIGatewayBackend(region_name)
+apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")
