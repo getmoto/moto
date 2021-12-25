@@ -231,6 +231,25 @@ def test_elastic_network_interfaces_with_groups_boto3():
     )
 
 
+@mock_ec2
+def test_elastic_network_interfaces_without_group():
+    # ENI should use the default SecurityGroup if not provided
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    my_eni = subnet.create_network_interface()
+
+    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(my_eni.id)
+
+    my_eni = [eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id][0]
+    my_eni["Groups"].should.have.length_of(1)
+    my_eni["Groups"][0]["GroupName"].should.equal("default")
+
+
 # Has boto3 equivalent
 @requires_boto_gte("2.12.0")
 @mock_ec2_deprecated
