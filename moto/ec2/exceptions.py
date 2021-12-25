@@ -275,6 +275,14 @@ class InvalidSnapshotIdError(EC2ClientError):
         )  # Note: AWS returns empty message for this, as of 2014.08.22.
 
 
+class InvalidSnapshotInUse(EC2ClientError):
+    def __init__(self, snapshot_id, ami_id):
+        super().__init__(
+            "InvalidSnapshot.InUse",
+            f"The snapshot {snapshot_id} is currently in use by {ami_id}",
+        )
+
+
 class InvalidVolumeIdError(EC2ClientError):
     def __init__(self, volume_id):
         super().__init__(

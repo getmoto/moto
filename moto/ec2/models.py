@@ -84,6 +84,7 @@ from .exceptions import (
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidSnapshotIdError,
+    InvalidSnapshotInUse,
     InvalidSubnetConflictError,
     InvalidSubnetIdError,
     InvalidSubnetRangeError,
@@ -1668,6 +1669,7 @@ class Ami(TaggedEC2Resource):
         root_device_name="/dev/sda1",
         sriov="simple",
         region_name="us-east-1a",
+        snapshot_description=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
@@ -1721,8 +1723,11 @@ class Ami(TaggedEC2Resource):
 
         # AWS auto-creates these, we should reflect the same.
         volume = self.ec2_backend.create_volume(size=15, zone_name=region_name)
+        snapshot_description = (
+            snapshot_description or "Auto-created snapshot for AMI %s" % self.id
+        )
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
-            volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id
+            volume.id, snapshot_description, owner_id, from_ami=ami_id
         )
         self.ec2_backend.delete_volume(volume.id)
 
@@ -1802,6 +1807,7 @@ class AmiBackend(object):
             name=name,
             description=description,
             owner_id=OWNER_ID,
+            snapshot_description=f"Created by CreateImage({instance_id}) for {ami_id}",
         )
         for tag in tags:
             ami.add_tag(tag["Key"], tag["Value"])
@@ -3470,6 +3476,7 @@ class Snapshot(TaggedEC2Resource):
         description,
         encrypted=False,
         owner_id=OWNER_ID,
+        from_ami=None,
     ):
         self.id = snapshot_id
         self.volume = volume
@@ -3481,6 +3488,7 @@ class Snapshot(TaggedEC2Resource):
         self.status = "completed"
         self.encrypted = encrypted
         self.owner_id = owner_id
+        self.from_ami = from_ami
 
     def get_filter_value(self, filter_name):
         if filter_name == "description":
@@ -3609,12 +3617,14 @@ class EBSBackend(object):
         volume.attachment = None
         return old_attachment
 
-    def create_snapshot(self, volume_id, description, owner_id=None):
+    def create_snapshot(self, volume_id, description, owner_id=None, from_ami=None):
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
         params = [self, snapshot_id, volume, description, volume.encrypted]
         if owner_id:
             params.append(owner_id)
+        if from_ami:
+            params.append(from_ami)
         snapshot = Snapshot(*params)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
@@ -3653,6 +3663,9 @@ class EBSBackend(object):
 
     def delete_snapshot(self, snapshot_id):
         if snapshot_id in self.snapshots:
+            snapshot = self.snapshots[snapshot_id]
+            if snapshot.from_ami and snapshot.from_ami in self.amis:
+                raise InvalidSnapshotInUse(snapshot_id, snapshot.from_ami)
             return self.snapshots.pop(snapshot_id)
         raise InvalidSnapshotIdError(snapshot_id)
 
