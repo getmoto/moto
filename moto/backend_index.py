@@ -26,6 +26,7 @@ backend_url_patterns = [
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
     ("datapipeline", re.compile("https?://datapipeline\\.(.+)\\.amazonaws\\.com")),
     ("datasync", re.compile("https?://(.*\\.)?(datasync)\\.(.+)\\.amazonaws.com")),
+    ("dax", re.compile("https?://dax\\.(.+)\\.amazonaws\\.com")),
     ("dms", re.compile("https?://dms\\.(.+)\\.amazonaws\\.com")),
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
     ("dynamodb", re.compile("https?://dynamodb\\.(.+)\\.amazonaws\\.com")),
