@@ -30,6 +30,8 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
     "TimerFired",
     "CancelTimerFailed",
     "StartTimerFailed",
+    "WorkflowExecutionCanceled",
+    "CancelWorkflowExecutionFailed",
 )
 
 

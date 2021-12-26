@@ -1,4 +1,5 @@
 from threading import Timer as ThreadingTimer
+from time import sleep
 
 from freezegun import freeze_time
 from unittest.mock import Mock, patch
@@ -582,25 +583,11 @@ def test_start_timer_correctly_fires_timer_later():
     wfe = make_workflow_execution()
     START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "60", "timerId": "abc123"}
 
-    class MockEvent:
-        def __init__(self):
-            self._is_set = False
-
-        def wait(self, interval=None):
-            return
-
-        def is_set(self):
-            return self._is_set
-
-        def set(self):
-            self.is_set = True
-
     # Patch thread's event with one that immediately resolves
-    with patch("threading.Event", new=MockEvent):
+    with patch("threading.Event.wait"):
         wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
-        # TODO this feels weird, but need to wait until both events have popped
-        while len(wfe.events()) < 2:
-            pass
+        # Small wait to let both events populate
+        sleep(0.5)
 
         last_event = wfe.events()[-1]
         last_event.event_type.should.equal("TimerFired")
@@ -649,4 +636,28 @@ def test_cancel_timer_fails_if_timer_not_found():
     last_event = wfe.events()[-1]
     last_event.event_type.should.equal("CancelTimerFailed")
     last_event.event_attributes["cause"].should.equal("TIMER_ID_UNKNOWN")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_workflow():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"] = 1
+
+    wfe.cancel(123, "I want to cancel")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("WorkflowExecutionCanceled")
+    last_event.event_attributes["details"].should.equal("I want to cancel")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_workflow_fails_if_open_decision():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"] = 2
+
+    wfe.cancel(123, "I want to cancel")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("CancelWorkflowExecutionFailed")
+    last_event.event_attributes["cause"].should.equal("UNHANDLED_DECISION")
     last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)

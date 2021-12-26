@@ -241,7 +241,7 @@ class WorkflowExecution(BaseModel):
 
     def _add_event(self, *args, **kwargs):
         # lock here because the fire_timer function is called
-        # async, and want to gauntee uniqueness in event ids
+        # async, and want to ensure uniqueness in event ids
         with self.threading_lock:
             evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
             self._events.append(evt)
@@ -420,8 +420,9 @@ class WorkflowExecution(BaseModel):
                 self.start_timer(event_id, attributes)
             elif decision_type == "CancelTimer":
                 self.cancel_timer(event_id, attributes["timerId"])
+            elif decision_type == "CancelWorkflowExecution":
+                self.cancel(event_id, attributes.get("details"))
             else:
-                # TODO: implement Decision type: CancelWorkflowExecution
                 # TODO: implement Decision type: ContinueAsNewWorkflowExecution
                 # TODO: implement Decision type: RequestCancelActivityTask
                 # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
@@ -455,6 +456,27 @@ class WorkflowExecution(BaseModel):
             decision_task_completed_event_id=event_id,
             details=details,
             reason=reason,
+        )
+
+    def cancel(self, event_id, details=None):
+        # TODO: implement length constraints on details
+        self.cancel_requested = True
+        # Can only cancel if there are no other pending desicion tasks
+        if self.open_counts["openDecisionTasks"] != 1:
+            # TODO OPERATION_NOT_PERMITTED is a valid failure state
+            self._add_event(
+                "CancelWorkflowExecutionFailed",
+                decision_task_completed_event_id=event_id,
+                cause="UNHANDLED_DECISION",
+            )
+            return
+        self.execution_status = "CLOSED"
+        self.close_status = "CANCELED"
+        self.close_timestamp = unix_time()
+        self._add_event(
+            "WorkflowExecutionCanceled",
+            decision_task_completed_event_id=event_id,
+            details=details,
         )
 
     def schedule_activity_task(self, event_id, attributes):
