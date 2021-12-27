@@ -5237,6 +5237,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.id = route_table_id
         self.vpc_id = vpc_id
         self.main = main
+        self.main_association = random_subnet_association_id()
         self.associations = {}
         self.routes = {}
 
