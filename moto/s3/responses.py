@@ -1347,7 +1347,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 max_parts=max_parts,
             )
             next_part_number_marker = parts[-1].name if parts else 0
-            is_truncated = parts and self.backend.is_truncated(
+            is_truncated = len(parts) != 0 and self.backend.is_truncated(
                 bucket_name, upload_id, next_part_number_marker
             )
 
