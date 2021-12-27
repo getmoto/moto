@@ -1335,6 +1335,8 @@ class CognitoIdpBackend(BaseBackend):
         self.admin_get_user(user_pool_id, username)
 
         for token, token_tuple in list(user_pool.refresh_tokens.items()):
+            if token_tuple is None:
+                continue
             _, username = token_tuple
             if username == username:
                 user_pool.refresh_tokens[token] = None
