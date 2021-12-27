@@ -2,6 +2,7 @@ import json
 import os
 
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
+TEST_SERVER_MODE_ENDPOINT = os.environ.get("TEST_SERVER_MODE_ENDPOINT", "http://localhost:5000")
 INITIAL_NO_AUTH_ACTION_COUNT = float(
     os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", float("inf"))
 )

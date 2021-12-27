@@ -522,7 +522,9 @@ class ServerModeMockAWS(BaseMockAWS):
         if not call_reset_api or call_reset_api.lower() != "false":
             import requests
 
-            requests.post("http://localhost:5000/moto-api/reset")
+            requests.post("{test_server_endpoint}/moto-api/reset".format(
+                test_server_endpoint=settings.TEST_SERVER_MODE_ENDPOINT
+            ))
 
     def enable_patching(self):
         if self.__class__.nested_count == 1:
@@ -540,12 +542,12 @@ class ServerModeMockAWS(BaseMockAWS):
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = settings.TEST_SERVER_MODE_ENDPOINT
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args, **kwargs):
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = settings.TEST_SERVER_MODE_ENDPOINT
             return real_boto3_resource(*args, **kwargs)
 
         self._client_patcher = patch("boto3.client", fake_boto3_client)
