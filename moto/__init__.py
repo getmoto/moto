@@ -63,6 +63,7 @@ mock_datapipeline_deprecated = lazy_load(
     ".datapipeline", "mock_datapipeline_deprecated"
 )
 mock_datasync = lazy_load(".datasync", "mock_datasync")
+mock_dax = lazy_load(".dax", "mock_dax")
 mock_dms = lazy_load(".dms", "mock_dms")
 mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
 mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)

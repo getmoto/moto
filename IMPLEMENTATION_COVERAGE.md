@@ -987,6 +987,33 @@
 - [ ] update_task_execution
 </details>
 
+## dax
+<details>
+<summary>28% implemented</summary>
+
+- [X] create_cluster
+- [ ] create_parameter_group
+- [ ] create_subnet_group
+- [X] decrease_replication_factor
+- [X] delete_cluster
+- [ ] delete_parameter_group
+- [ ] delete_subnet_group
+- [X] describe_clusters
+- [ ] describe_default_parameters
+- [ ] describe_events
+- [ ] describe_parameter_groups
+- [ ] describe_parameters
+- [ ] describe_subnet_groups
+- [X] increase_replication_factor
+- [X] list_tags
+- [ ] reboot_node
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_cluster
+- [ ] update_parameter_group
+- [ ] update_subnet_group
+</details>
+
 ## dms
 <details>
 <summary>9% implemented</summary>
@@ -5088,7 +5115,6 @@
 - customer-profiles
 - databrew
 - dataexchange
-- dax
 - detective
 - devicefarm
 - devops-guru
