@@ -2908,6 +2908,33 @@ def test_admin_user_global_sign_out():
 
 
 @mock_cognitoidp
+def test_admin_user_global_sign_out_twice():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result["user_pool_id"], Username=result["username"],
+    )
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result["user_pool_id"], Username=result["username"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="REFRESH_TOKEN",
+            AuthParameters={
+                "REFRESH_TOKEN": result["refresh_token"],
+                "SECRET_HASH": result["secret_hash"],
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Refresh Token has been revoked")
+
+
+@mock_cognitoidp
 def test_admin_user_global_sign_out_unknown_userpool():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
