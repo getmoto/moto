@@ -284,7 +284,7 @@ class InstanceResponse(BaseResponse):
 
     def _security_grp_instance_attribute_handler(self):
         new_security_grp_list = []
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "GroupId." in key:
                 new_security_grp_list.append(self.querystring.get(key)[0])
 

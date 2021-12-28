@@ -63,7 +63,7 @@ class LimitedSizeDict(dict):
         # We'll set the limit to something in between to be safe
         if (current_item_size + new_item_size) > 405000:
             raise ItemSizeTooLarge
-        super(LimitedSizeDict, self).__setitem__(key, value)
+        super().__setitem__(key, value)
 
 
 class Item(BaseModel):
@@ -559,13 +559,9 @@ class Table(CloudFormationModel):
         return results
 
     def __len__(self):
-        count = 0
-        for key, value in self.items.items():
-            if self.has_range_key:
-                count += len(value)
-            else:
-                count += 1
-        return count
+        return sum(
+            [(len(value) if self.has_range_key else 1) for value in self.items.values()]
+        )
 
     @property
     def hash_key_names(self):
@@ -990,7 +986,7 @@ class Table(CloudFormationModel):
 class RestoredTable(Table):
     def __init__(self, name, backup):
         params = self._parse_params_from_backup(backup)
-        super(RestoredTable, self).__init__(name, **params)
+        super().__init__(name, **params)
         self.indexes = copy.deepcopy(backup.table.indexes)
         self.global_indexes = copy.deepcopy(backup.table.global_indexes)
         self.items = copy.deepcopy(backup.table.items)
@@ -1009,7 +1005,7 @@ class RestoredTable(Table):
         return params
 
     def describe(self, base_key="TableDescription"):
-        result = super(RestoredTable, self).describe(base_key=base_key)
+        result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceBackupArn": self.source_backup_arn,
             "SourceTableArn": self.source_table_arn,
@@ -1022,7 +1018,7 @@ class RestoredTable(Table):
 class RestoredPITTable(Table):
     def __init__(self, name, source):
         params = self._parse_params_from_table(source)
-        super(RestoredPITTable, self).__init__(name, **params)
+        super().__init__(name, **params)
         self.indexes = copy.deepcopy(source.indexes)
         self.global_indexes = copy.deepcopy(source.global_indexes)
         self.items = copy.deepcopy(source.items)
@@ -1040,7 +1036,7 @@ class RestoredPITTable(Table):
         return params
 
     def describe(self, base_key="TableDescription"):
-        result = super(RestoredPITTable, self).describe(base_key=base_key)
+        result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceTableArn": self.source_table_arn,
             "RestoreDateTime": unix_time(self.restore_date_time),

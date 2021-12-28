@@ -255,7 +255,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster", "default")
         container_instance_str = self._get_param("containerInstance")
         force = self._get_param("force")
-        container_instance, failures = self.ecs_backend.deregister_container_instance(
+        container_instance = self.ecs_backend.deregister_container_instance(
             cluster_str, container_instance_str, force
         )
         return json.dumps({"containerInstance": container_instance.response_object})

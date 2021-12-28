@@ -193,7 +193,7 @@ class VPCs(BaseResponse):
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
-            type=endpoint_type,
+            endpoint_type=endpoint_type,
             policy_document=policy_document,
             route_table_ids=route_table_ids,
             subnet_ids=subnet_ids,

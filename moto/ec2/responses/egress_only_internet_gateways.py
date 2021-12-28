@@ -25,7 +25,9 @@ class EgressOnlyInternetGateway(BaseResponse):
 
     def delete_egress_only_internet_gateway(self):
         egress_only_igw_id = self._get_param("EgressOnlyInternetGatewayId")
-        self.ec2_backend.delete_egress_only_internet_gateway(id=egress_only_igw_id)
+        self.ec2_backend.delete_egress_only_internet_gateway(
+            gateway_id=egress_only_igw_id
+        )
         template = self.response_template(DELETE_EGRESS_ONLY_IGW_RESPONSE)
         return template.render()
 

@@ -93,7 +93,6 @@ class DaxCluster(BaseModel):
             {"SecurityGroupIdentifier": f"sg-{get_random_hex(10)}", "Status": "active"}
         ]
         self.sse_specification = sse_specification
-        print(sse_specification)
 
         # Internal counter to keep track of when this cluster is available/deleted
         # Used in conjunction with `advance()`

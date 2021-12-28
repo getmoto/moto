@@ -16,9 +16,7 @@ class InvalidUpdateExpressionInvalidDocumentPath(MockValidationException):
     )
 
     def __init__(self):
-        super(InvalidUpdateExpressionInvalidDocumentPath, self).__init__(
-            self.invalid_update_expression_msg
-        )
+        super().__init__(self.invalid_update_expression_msg)
 
 
 class InvalidUpdateExpression(MockValidationException):
@@ -26,7 +24,7 @@ class InvalidUpdateExpression(MockValidationException):
 
     def __init__(self, update_expression_error):
         self.update_expression_error = update_expression_error
-        super(InvalidUpdateExpression, self).__init__(
+        super().__init__(
             self.invalid_update_expr_msg.format(
                 update_expression_error=update_expression_error
             )
@@ -39,7 +37,7 @@ class AttributeDoesNotExist(MockValidationException):
     )
 
     def __init__(self):
-        super(AttributeDoesNotExist, self).__init__(self.attr_does_not_exist_msg)
+        super().__init__(self.attr_does_not_exist_msg)
 
 
 class ProvidedKeyDoesNotExist(MockValidationException):
@@ -48,9 +46,7 @@ class ProvidedKeyDoesNotExist(MockValidationException):
     )
 
     def __init__(self):
-        super(ProvidedKeyDoesNotExist, self).__init__(
-            self.provided_key_does_not_exist_msg
-        )
+        super().__init__(self.provided_key_does_not_exist_msg)
 
 
 class ExpressionAttributeNameNotDefined(InvalidUpdateExpression):
@@ -58,9 +54,7 @@ class ExpressionAttributeNameNotDefined(InvalidUpdateExpression):
 
     def __init__(self, attribute_name):
         self.not_defined_attribute_name = attribute_name
-        super(ExpressionAttributeNameNotDefined, self).__init__(
-            self.name_not_defined_msg.format(n=attribute_name)
-        )
+        super().__init__(self.name_not_defined_msg.format(n=attribute_name))
 
 
 class AttributeIsReservedKeyword(InvalidUpdateExpression):
@@ -70,9 +64,7 @@ class AttributeIsReservedKeyword(InvalidUpdateExpression):
 
     def __init__(self, keyword):
         self.keyword = keyword
-        super(AttributeIsReservedKeyword, self).__init__(
-            self.attribute_is_keyword_msg.format(keyword=keyword)
-        )
+        super().__init__(self.attribute_is_keyword_msg.format(keyword=keyword))
 
 
 class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
@@ -80,7 +72,7 @@ class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
 
     def __init__(self, attribute_value):
         self.attribute_value = attribute_value
-        super(ExpressionAttributeValueNotDefined, self).__init__(
+        super().__init__(
             self.attr_value_not_defined_msg.format(attribute_value=attribute_value)
         )
 
@@ -90,7 +82,7 @@ class UpdateExprSyntaxError(InvalidUpdateExpression):
 
     def __init__(self, error_detail):
         self.error_detail = error_detail
-        super(UpdateExprSyntaxError, self).__init__(
+        super().__init__(
             self.update_expr_syntax_error_msg.format(error_detail=error_detail)
         )
 
@@ -101,9 +93,7 @@ class InvalidTokenException(UpdateExprSyntaxError):
     def __init__(self, token, near):
         self.token = token
         self.near = near
-        super(InvalidTokenException, self).__init__(
-            self.token_detail_msg.format(token=token, near=near)
-        )
+        super().__init__(self.token_detail_msg.format(token=token, near=near))
 
 
 class InvalidExpressionAttributeNameKey(MockValidationException):
@@ -113,16 +103,14 @@ class InvalidExpressionAttributeNameKey(MockValidationException):
 
     def __init__(self, key):
         self.key = key
-        super(InvalidExpressionAttributeNameKey, self).__init__(
-            self.invalid_expr_attr_name_msg.format(key=key)
-        )
+        super().__init__(self.invalid_expr_attr_name_msg.format(key=key))
 
 
 class ItemSizeTooLarge(MockValidationException):
     item_size_too_large_msg = "Item size has exceeded the maximum allowed size"
 
     def __init__(self):
-        super(ItemSizeTooLarge, self).__init__(self.item_size_too_large_msg)
+        super().__init__(self.item_size_too_large_msg)
 
 
 class ItemSizeToUpdateTooLarge(MockValidationException):
@@ -131,9 +119,7 @@ class ItemSizeToUpdateTooLarge(MockValidationException):
     )
 
     def __init__(self):
-        super(ItemSizeToUpdateTooLarge, self).__init__(
-            self.item_size_to_update_too_large_msg
-        )
+        super().__init__(self.item_size_to_update_too_large_msg)
 
 
 class HashKeyTooLong(MockValidationException):
@@ -143,7 +129,7 @@ class HashKeyTooLong(MockValidationException):
     )
 
     def __init__(self):
-        super(HashKeyTooLong, self).__init__(self.key_too_large_msg)
+        super().__init__(self.key_too_large_msg)
 
 
 class RangeKeyTooLong(MockValidationException):
@@ -152,7 +138,7 @@ class RangeKeyTooLong(MockValidationException):
     )
 
     def __init__(self):
-        super(RangeKeyTooLong, self).__init__(self.key_too_large_msg)
+        super().__init__(self.key_too_large_msg)
 
 
 class IncorrectOperandType(InvalidUpdateExpression):
@@ -161,7 +147,7 @@ class IncorrectOperandType(InvalidUpdateExpression):
     def __init__(self, operator_or_function, operand_type):
         self.operator_or_function = operator_or_function
         self.operand_type = operand_type
-        super(IncorrectOperandType, self).__init__(
+        super().__init__(
             self.inv_operand_msg.format(f=operator_or_function, t=operand_type)
         )
 
@@ -170,14 +156,14 @@ class IncorrectDataType(MockValidationException):
     inc_data_type_msg = "An operand in the update expression has an incorrect data type"
 
     def __init__(self):
-        super(IncorrectDataType, self).__init__(self.inc_data_type_msg)
+        super().__init__(self.inc_data_type_msg)
 
 
 class ConditionalCheckFailed(ValueError):
     msg = "The conditional request failed"
 
     def __init__(self):
-        super(ConditionalCheckFailed, self).__init__(self.msg)
+        super().__init__(self.msg)
 
 
 class TransactionCanceledException(ValueError):
@@ -185,7 +171,7 @@ class TransactionCanceledException(ValueError):
 
     def __init__(self, errors):
         msg = self.cancel_reason_msg.format(", ".join([str(err) for err in errors]))
-        super(TransactionCanceledException, self).__init__(msg)
+        super().__init__(msg)
 
 
 class EmptyKeyAttributeException(MockValidationException):
@@ -194,16 +180,14 @@ class EmptyKeyAttributeException(MockValidationException):
     empty_index_msg = "One or more parameter values are not valid. The update expression attempted to update a secondary index key to a value that is not supported. The AttributeValue for a key attribute cannot contain an empty string value."
 
     def __init__(self, key_in_index=False):
-        super(EmptyKeyAttributeException, self).__init__(
-            self.empty_index_msg if key_in_index else self.empty_str_msg
-        )
+        super().__init__(self.empty_index_msg if key_in_index else self.empty_str_msg)
 
 
 class UpdateHashRangeKeyException(MockValidationException):
     msg = "One or more parameter values were invalid: Cannot update attribute {}. This attribute is part of the key"
 
     def __init__(self, key_name):
-        super(UpdateHashRangeKeyException, self).__init__(self.msg.format(key_name))
+        super().__init__(self.msg.format(key_name))
 
 
 class InvalidAttributeTypeError(MockValidationException):
@@ -217,4 +201,4 @@ class TooManyAddClauses(InvalidUpdateExpression):
     msg = 'The "ADD" section can only be used once in an update expression;'
 
     def __init__(self):
-        super(TooManyAddClauses, self).__init__(self.msg)
+        super().__init__(self.msg)

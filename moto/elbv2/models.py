@@ -1395,10 +1395,6 @@ Member must satisfy regular expression pattern: {}".format(
         listener = load_balancer.listeners[arn]
 
         if port is not None:
-            for listener_arn, current_listener in load_balancer.listeners.items():
-                if listener_arn == arn:
-                    continue
-
             listener.port = port
 
         if protocol is not None:
