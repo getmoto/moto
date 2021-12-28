@@ -415,6 +415,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.all_jobs = all_jobs
 
         self.stop = False
+        self.exit_code = None
 
         self.daemon = True
         self.name = "MOTO-BATCH-" + self.job_id
@@ -422,18 +423,28 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self._log_backend = log_backend
         self.log_stream_name = None
 
-    def describe(self):
+    def describe_short(self):
         result = {
-            "jobDefinition": self.job_definition.arn,
             "jobId": self.job_id,
             "jobName": self.job_name,
-            "jobQueue": self.job_queue.arn,
-            "status": self.job_state,
-            "dependsOn": self.depends_on if self.depends_on else [],
             "createdAt": datetime2int_milliseconds(self.job_created_at),
+            "status": self.job_state,
+            "jobDefinition": self.job_definition.arn,
         }
+        if self.job_stopped_reason is not None:
+            result["statusReason"] = self.job_stopped_reason
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
             result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
+        if self.job_stopped:
+            result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
+            if self.exit_code is not None:
+                result["container"] = {"exitCode": self.exit_code}
+        return result
+
+    def describe(self):
+        result = self.describe_short()
+        result["jobQueue"] = self.job_queue.arn
+        result["dependsOn"] = self.depends_on if self.depends_on else []
         if self.job_stopped:
             result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
             result["container"] = {}
@@ -452,8 +463,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 "environment", []
             )
             result["container"]["logStreamName"] = self.log_stream_name
-        if self.job_stopped_reason is not None:
-            result["statusReason"] = self.job_stopped_reason
         if self.timeout:
             result["timeout"] = self.timeout
         return result
@@ -630,7 +639,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
                 result = container.wait() or {}
-                job_failed = self.stop or result.get("StatusCode", 0) > 0
+                self.exit_code = result.get("StatusCode", 0)
+                job_failed = self.stop or self.exit_code > 0
                 self._mark_stopped(success=not job_failed)
 
             except Exception as err:
