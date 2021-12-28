@@ -160,6 +160,14 @@ def test_list_jobs():
     )
     job_id2 = resp["jobId"]
 
+    all_jobs = batch_client.list_jobs(jobQueue=queue_arn)["jobSummaryList"]
+    all_jobs.should.have.length_of(2)
+    for job in all_jobs:
+        job.should.have.key("createdAt")
+        job.should.have.key("jobDefinition")
+        job.should.have.key("jobName")
+        job.should.have.key("status").equals("STARTING")
+
     batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
         "jobSummaryList"
     ].should.have.length_of(0)
@@ -168,9 +176,17 @@ def test_list_jobs():
     for job_id in [job_id1, job_id2]:
         _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
-    batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
+    succeeded_jobs = batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
         "jobSummaryList"
-    ].should.have.length_of(2)
+    ]
+    succeeded_jobs.should.have.length_of(2)
+    for job in succeeded_jobs:
+        job.should.have.key("createdAt")
+        job.should.have.key("jobDefinition")
+        job.should.have.key("jobName")
+        job.should.have.key("status").equals("SUCCEEDED")
+        job.should.have.key("stoppedAt")
+        job.should.have.key("container").should.have.key("exitCode").equals(0)
 
 
 @mock_logs
