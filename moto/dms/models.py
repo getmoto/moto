@@ -14,7 +14,7 @@ from .utils import filter_tasks
 
 class DatabaseMigrationServiceBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(DatabaseMigrationServiceBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.replication_tasks = {}
 

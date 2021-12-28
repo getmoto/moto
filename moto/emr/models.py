@@ -40,9 +40,9 @@ class FakeBootstrapAction(BaseModel):
 
 class FakeInstance(BaseModel):
     def __init__(
-        self, ec2_instance_id, instance_group, instance_fleet_id=None, id=None,
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None,
     ):
-        self.id = id or random_instance_group_id()
+        self.id = instance_id or random_instance_group_id()
         self.ec2_instance_id = ec2_instance_id
         self.instance_group = instance_group
         self.instance_fleet_id = instance_fleet_id
@@ -57,12 +57,12 @@ class FakeInstanceGroup(BaseModel):
         instance_type,
         market="ON_DEMAND",
         name=None,
-        id=None,
+        instance_group_id=None,
         bid_price=None,
         ebs_configuration=None,
         auto_scaling_policy=None,
     ):
-        self.id = id or random_instance_group_id()
+        self.id = instance_group_id or random_instance_group_id()
         self.cluster_id = cluster_id
 
         self.bid_price = bid_price
@@ -391,7 +391,7 @@ class FakeSecurityConfiguration(BaseModel):
 
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name):
-        super(ElasticMapReduceBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.clusters = {}
         self.instance_groups = {}
