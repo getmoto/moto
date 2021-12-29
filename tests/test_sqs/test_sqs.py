@@ -3455,3 +3455,16 @@ def test_receive_message_again_preserves_attributes():
     assert len(second_messages[0]["MessageAttributes"]) == 2
     assert second_messages[0]["MessageAttributes"].get("Custom1") is not None
     assert second_messages[0]["MessageAttributes"].get("Custom2") is not None
+
+
+@mock_sqs
+def test_message_has_windows_return():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName=f"{str(uuid4())[0:6]}")
+
+    message = "content:\rmessage_with line"
+    queue.send_message(MessageBody=message)
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    messages[0].body.should.match(message)
