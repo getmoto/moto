@@ -150,7 +150,7 @@ class Message(BaseModel):
 
     @property
     def body(self):
-        return escape(self._body)
+        return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
 
     def mark_sent(self, delay_seconds=None):
         self.sent_timestamp = int(unix_time_millis())
