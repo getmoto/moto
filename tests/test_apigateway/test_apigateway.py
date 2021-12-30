@@ -2778,3 +2778,65 @@ def test_update_path_mapping_to_same_base_path():
     items[0]["basePath"].should.equal("v2")
     items[0]["restApiId"].should.equal(api_id_1)
     items[0].should_not.have.key("stage")
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName=domain_name,
+            basePath=base_path,
+            patchOperations=[
+                {"op": "replace", "path": "/restapiId", "value": "unknown"},
+            ],
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid REST API identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName=domain_name,
+            basePath=base_path,
+            patchOperations=[{"op": "replace", "path": "/stage", "value": "unknown"},],
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid stage identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)

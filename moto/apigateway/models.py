@@ -1846,9 +1846,35 @@ class APIGatewayBackend(BaseBackend):
 
         base_path_mapping = self.get_base_path_mapping(domain_name, base_path)
 
-        base_path_mapping.apply_patch_operations(patch_operations)
+        rest_api_ids = [
+            op["value"] for op in patch_operations if op["path"] == "/restapiId"
+        ]
+        if len(rest_api_ids) == 0:
+            modified_rest_api_id = base_path_mapping["restApiId"]
+        else:
+            modified_rest_api_id = rest_api_ids[-1]
 
-        modified_base_path = base_path_mapping["basePath"]
+        stages = [op["value"] for op in patch_operations if op["path"] == "/stage"]
+        if len(stages) == 0:
+            modified_stage = base_path_mapping.get("stage")
+        else:
+            modified_stage = stages[-1]
+
+        base_paths = [
+            op["value"] for op in patch_operations if op["path"] == "/basePath"
+        ]
+        if len(base_paths) == 0:
+            modified_base_path = base_path_mapping["basePath"]
+        else:
+            modified_base_path = base_paths[-1]
+
+        rest_api = self.apis.get(modified_rest_api_id)
+        if rest_api is None:
+            raise InvalidRestApiIdForBasePathMappingException()
+        if modified_stage and rest_api.stages.get(modified_stage) is None:
+            raise InvalidStageException()
+
+        base_path_mapping.apply_patch_operations(patch_operations)
 
         if base_path != modified_base_path:
             self.base_path_mappings[domain_name].pop(base_path)
