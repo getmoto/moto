@@ -2652,3 +2652,129 @@ def test_delete_base_path_mapping_with_unknown_base_path():
     )
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_update_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    stage_name = "dev"
+
+    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+
+    response = client.create_rest_api(
+        name="new_my_api", description="this is new my api"
+    )
+    new_api_id = response["id"]
+    create_method_integration(client, new_api_id)
+    client.create_deployment(
+        restApiId=new_api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    base_path = "v1"
+    patch_operations = [
+        {"op": "replace", "path": "/stage", "value": stage_name},
+        {"op": "replace", "path": "/basePath", "value": base_path},
+        {"op": "replace", "path": "/restapiId", "value": new_api_id},
+    ]
+    response = client.update_base_path_mapping(
+        domainName=domain_name, basePath="(none)", patchOperations=patch_operations
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal(base_path)
+    response["restApiId"].should.equal(new_api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_domain():
+
+    client = boto3.client("apigateway", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName="unknown-domain", basePath="(none)", patchOperations=[]
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName=domain_name, basePath="unknown", patchOperations=[]
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_update_path_mapping_to_same_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id_1 = response["id"]
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id_2 = response["id"]
+
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id_1, basePath="v1"
+    )
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id_2, basePath="v2"
+    )
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    items = response["items"]
+    len(items).should.equal(2)
+
+    patch_operations = [
+        {"op": "replace", "path": "/basePath", "value": "v2"},
+    ]
+    response = client.update_base_path_mapping(
+        domainName=domain_name, basePath="v1", patchOperations=patch_operations
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal("v2")
+    response["restApiId"].should.equal(api_id_1)
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    items = response["items"]
+    len(items).should.equal(1)
+    items[0]["basePath"].should.equal("v2")
+    items[0]["restApiId"].should.equal(api_id_1)
+    items[0].should_not.have.key("stage")

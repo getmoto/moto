@@ -1092,6 +1092,13 @@ class Model(BaseModel, dict):
 
 
 class BasePathMapping(BaseModel, dict):
+
+    # operations
+    OPERATION_REPLACE = "replace"
+    OPERATION_PATH = "path"
+    OPERATION_VALUE = "value"
+    OPERATION_OP = "op"
+
     def __init__(self, domain_name, rest_api_id, **kwargs):
         super().__init__()
         self["domain_name"] = domain_name
@@ -1100,9 +1107,22 @@ class BasePathMapping(BaseModel, dict):
             self["basePath"] = kwargs.get("basePath")
         else:
             self["basePath"] = "(none)"
-
         if kwargs.get("stage"):
             self["stage"] = kwargs.get("stage")
+
+    def apply_patch_operations(self, patch_operations):
+
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            operation = op["op"]
+            if operation == self.OPERATION_REPLACE:
+                if "/basePath" in path:
+                    self["basePath"] = value
+                if "/restapiId" in path:
+                    self["restApiId"] = value
+                if "/stage" in path:
+                    self["stage"] = value
 
 
 class APIGatewayBackend(BaseBackend):
@@ -1815,6 +1835,26 @@ class APIGatewayBackend(BaseBackend):
             raise BasePathNotFoundException()
 
         self.base_path_mappings[domain_name].pop(base_path)
+
+    def update_base_path_mapping(self, domain_name, base_path, patch_operations):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path not in self.base_path_mappings[domain_name]:
+            raise BasePathNotFoundException()
+
+        base_path_mapping = self.get_base_path_mapping(domain_name, base_path)
+
+        base_path_mapping.apply_patch_operations(patch_operations)
+
+        modified_base_path = base_path_mapping["basePath"]
+
+        if base_path != modified_base_path:
+            self.base_path_mappings[domain_name].pop(base_path)
+            self.base_path_mappings[domain_name][modified_base_path] = base_path_mapping
+
+        return base_path_mapping
 
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")
