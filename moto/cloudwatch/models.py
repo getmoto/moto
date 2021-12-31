@@ -220,9 +220,14 @@ class MetricDatum(BaseModel):
             return False
 
         for metric in already_present_metrics or []:
-            if self.dimensions and are_dimensions_same(
-                metric.dimensions, self.dimensions
-            ):
+            if (
+                (
+                    self.dimensions
+                    and are_dimensions_same(metric.dimensions, self.dimensions)
+                )
+                and self.name == metric.name
+                and self.namespace == metric.namespace
+            ):  # should be considered as already present only when name, namespace and dimensions all three are same
                 return False
 
         if dimensions and any(
