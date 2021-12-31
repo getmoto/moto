@@ -118,8 +118,15 @@ class EC2ContainerServiceResponse(BaseResponse):
         count = self._get_int_param("count")
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
+        launch_type = self._get_param("launchType")
         tasks = self.ecs_backend.run_task(
-            cluster_str, task_definition_str, count, overrides, started_by, tags
+            cluster_str,
+            task_definition_str,
+            count,
+            overrides,
+            started_by,
+            tags,
+            launch_type,
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}

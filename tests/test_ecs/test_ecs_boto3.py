@@ -1611,7 +1611,7 @@ def test_run_task_default_cluster():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -1639,6 +1639,7 @@ def test_run_task_default_cluster():
         startedBy="moto",
     )
     len(response["tasks"]).should.equal(2)
+    response["tasks"][0].should.have.key("launchType").equals("FARGATE")
     response["tasks"][0]["taskArn"].should.match(
         "arn:aws:ecs:us-east-1:{}:task/[a-z0-9-]+$".format(ACCOUNT_ID)
     )
@@ -1744,7 +1745,7 @@ def test_start_task():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -1913,7 +1914,7 @@ def test_describe_tasks():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
