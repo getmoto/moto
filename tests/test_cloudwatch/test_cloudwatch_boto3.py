@@ -400,6 +400,53 @@ def test_list_metrics_without_value():
     results[0]["Dimensions"].should.equal([{"Name": "D1", "Value": "V1"}])
 
 
+@mock_cloudwatch
+def test_list_metrics_with_same_dimensions_different_metric_name():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # create metrics with same namespace and dimensions but different metric names
+    cloudwatch.put_metric_data(
+        Namespace="unique/",
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Dimensions": [{"Name": "D1", "Value": "V1"}],
+                "Unit": "Seconds",
+            }
+        ],
+    )
+
+    cloudwatch.put_metric_data(
+        Namespace="unique/",
+        MetricData=[
+            {
+                "MetricName": "metric2",
+                "Dimensions": [{"Name": "D1", "Value": "V1"}],
+                "Unit": "Seconds",
+            }
+        ],
+    )
+
+    results = cloudwatch.list_metrics()["Metrics"]
+    results.should.have.length_of(2)
+
+    # duplicating existing metric
+    cloudwatch.put_metric_data(
+        Namespace="unique/",
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Dimensions": [{"Name": "D1", "Value": "V1"}],
+                "Unit": "Seconds",
+            }
+        ],
+    )
+
+    # asserting only unique values are returned
+    results = cloudwatch.list_metrics()["Metrics"]
+    results.should.have.length_of(2)
+
+
 def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
     for i in range(0, metrics):
         metric_name = "metric" + str(i)
