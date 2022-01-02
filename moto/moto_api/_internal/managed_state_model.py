@@ -41,4 +41,6 @@ class ManagedState:
         self._status = value
 
     def _get_next_status(self, previous):
-        return next((nxt for prev, nxt in self._transitions if previous == prev), previous)
+        return next(
+            (nxt for prev, nxt in self._transitions if previous == prev), previous
+        )

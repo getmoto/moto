@@ -40,8 +40,3 @@ Updating this configuration can be done in ServerMode as well.
 
     requests.get("http://localhost:5000/moto-api/state-manager/get-transition?feature=dax::cluster")
 
-
-TODO:  this fixes:
-
-# 380
-# 4423

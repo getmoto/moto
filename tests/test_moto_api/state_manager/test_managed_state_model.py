@@ -6,7 +6,9 @@ from moto.moto_api import state_manager
 
 class ExampleModel(ManagedState):
     def __init__(self):
-        super().__init__(model_name="example::model", transitions=[("frist_status", "second_status")])
+        super().__init__(
+            model_name="example::model", transitions=[("frist_status", "second_status")]
+        )
 
 
 def test_initial_state():
@@ -22,7 +24,9 @@ def test_advancing_without_specifying_configuration_does_nothing():
 
 def test_advance_x_times():
     model = ExampleModel()
-    state_manager.set_transition(feature="example::model", transition={"progression": "manual", "times": 3})
+    state_manager.set_transition(
+        feature="example::model", transition={"progression": "manual", "times": 3}
+    )
     for _ in range(2):
         model.advance()
         model.status.should.equal("frist_status")
@@ -41,8 +45,15 @@ def test_advance_x_times():
 
 def test_advance_multiple_stages():
     model = ExampleModel()
-    model._transitions = [("frist_status", "second"), ("second", "third"), ("third", "fourth"), ("fourth", "fifth")]
-    state_manager.set_transition(feature="example::model", transition={"progression": "manual", "times": 1})
+    model._transitions = [
+        ("frist_status", "second"),
+        ("second", "third"),
+        ("third", "fourth"),
+        ("fourth", "fifth"),
+    ]
+    state_manager.set_transition(
+        feature="example::model", transition={"progression": "manual", "times": 1}
+    )
 
     model.status.should.equal("frist_status")
     model.status.should.equal("frist_status")
@@ -64,7 +75,9 @@ def test_override_status():
     model = ExampleModel()
     model.status = "creating"
     model._transitions = [("creating", "ready"), ("updating", "ready")]
-    state_manager.set_transition(feature="example::model", transition={"progression": "manual", "times": 1})
+    state_manager.set_transition(
+        feature="example::model", transition={"progression": "manual", "times": 1}
+    )
 
     model.status.should.equal("creating")
     model.advance()

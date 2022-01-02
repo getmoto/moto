@@ -77,7 +77,10 @@ class DaxCluster(BaseModel, ManagedState):
         sse_specification,
     ):
         # Configure ManagedState
-        super().__init__(model_name="dax::cluster", transitions=[("creating", "available"), ("deleting", "deleted")])
+        super().__init__(
+            model_name="dax::cluster",
+            transitions=[("creating", "available"), ("deleting", "deleted")],
+        )
         # Set internal properties
         self.name = name
         self.description = description
@@ -153,7 +156,9 @@ class DAXBackend(BaseBackend):
         self._clusters = dict()
         self._tagger = TaggingService()
 
-        state_manager.set_transition(feature="dax::cluster", transition={"progression": "manual", "times": 4})
+        state_manager.set_transition(
+            feature="dax::cluster", transition={"progression": "manual", "times": 4}
+        )
 
     @property
     def clusters(self):

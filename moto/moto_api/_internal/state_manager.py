@@ -2,7 +2,6 @@ DEFAULT_TRANSITION = {"progression": "immediate"}
 
 
 class StateManager:
-
     def __init__(self):
         self._transitions = dict()
 

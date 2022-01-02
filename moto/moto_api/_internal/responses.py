@@ -69,7 +69,9 @@ class MotoAPIResponse(BaseResponse):
     def get_transition(self, request, full_url, headers):
         from .models import moto_api_backend
 
-        qs_dict = dict(x.split("=") for x in request.query_string.decode("utf-8").split("&"))
+        qs_dict = dict(
+            x.split("=") for x in request.query_string.decode("utf-8").split("&")
+        )
         feature = qs_dict["feature"]
 
         resp = moto_api_backend.get_transition(feature=feature)

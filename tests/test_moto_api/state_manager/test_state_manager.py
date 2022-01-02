@@ -12,7 +12,9 @@ def test_public_api():
 def test_set_transition():
     manager = StateManager()
 
-    manager.set_transition(feature="dax::cluster", transition={"progression": "waiter", "wait_times": 3})
+    manager.set_transition(
+        feature="dax::cluster", transition={"progression": "waiter", "wait_times": 3}
+    )
 
     actual = manager.get_transition(feature="dax::cluster")
     actual.should.equal({"progression": "waiter", "wait_times": 3})
@@ -22,4 +24,4 @@ def test_get_default_transition():
     manager = StateManager()
 
     actual = manager.get_transition(feature="unknown")
-    actual.should.equal({'progression': 'immediate'})
+    actual.should.equal({"progression": "immediate"})
