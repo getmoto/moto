@@ -23,16 +23,18 @@ There are three possibilities:
  - Status progresses after x seconds
 
 .. sourcecode:: python
-    from moto.moto_api import state_master
 
-    state_master.set_transition(feature="support::case", transition={"progression": "time", "duration": 3})
-    state_master.set_transition(feature="support::check", transition={"progression": "immediate"})
-    state_master.set_transition(feature="dax::cluster", transition={"progression": "manual", "times": 3})
+    from moto.moto_api import state_manager
+
+    state_manager.set_transition(feature="support::case", transition={"progression": "time", "duration": 3})
+    state_manager.set_transition(feature="support::check", transition={"progression": "immediate"})
+    state_manager.set_transition(feature="dax::cluster", transition={"progression": "manual", "times": 3})
 
 
 Updating this configuration can be done in ServerMode as well.
 
 .. sourcecode:: python
+
     post_body = dict(feature="dax::cluster", transition={"progression": "waiter", "wait_times": 3})
     resp = requests.post("http://localhost:5000/moto-api/state-manager/set-transition", data=json.dumps(post_body))
 
