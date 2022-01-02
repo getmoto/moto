@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime, timedelta
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.sts.models import ACCOUNT_ID
 from .exceptions import ConflictException, BadRequestException
 
@@ -197,16 +199,21 @@ class FakeTranscriptionJob(BaseObject):
             self.transcript = {"TranscriptFileUri": transcript_file_uri}
 
 
-class FakeVocabulary(BaseObject):
+class FakeVocabulary(BaseObject, ManagedState):
     def __init__(
         self, region_name, vocabulary_name, language_code, phrases, vocabulary_file_uri
     ):
+        # Configured ManagedState
+        super().__init__(
+            "transcribe::vocabulary",
+            transitions=[(None, "PENDING"), ("PENDING", "READY")],
+        )
+        # Configure internal properties
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name
         self.language_code = language_code
         self.phrases = phrases
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.vocabulary_state = None
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod/{1}/{2}/{3}/input.txt".format(  # noqa: E501
@@ -239,20 +246,19 @@ class FakeVocabulary(BaseObject):
         }
         response_fields = response_field_dict[response_type]
         response_object = self.gen_response_object()
+        response_object["VocabularyState"] = self.status
         return {
             k: v
             for k, v in response_object.items()
             if k in response_fields and v is not None and v != [None]
         }
 
-    def advance_job_status(self):
-        # On each call advances the fake job status
+    def advance(self):
+        old_status = self.status
+        super().advance()
+        new_status = self.status
 
-        if not self.vocabulary_state:
-            self.vocabulary_state = "PENDING"
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        elif self.vocabulary_state == "PENDING":
-            self.vocabulary_state = "READY"
+        if old_status != new_status:
             self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -379,62 +385,27 @@ class FakeMedicalTranscriptionJob(BaseObject):
             }
 
 
-class FakeMedicalVocabulary(BaseObject):
+class FakeMedicalVocabulary(FakeVocabulary):
     def __init__(
         self, region_name, vocabulary_name, language_code, vocabulary_file_uri
     ):
+        super().__init__(
+            region_name,
+            vocabulary_name,
+            language_code=language_code,
+            phrases=None,
+            vocabulary_file_uri=vocabulary_file_uri,
+        )
+        self.model_name = "transcribe::medicalvocabulary"
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name
         self.language_code = language_code
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.vocabulary_state = None
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{}-prod/{}/medical/{}/{}/input.txt".format(  # noqa: E501
             region_name, ACCOUNT_ID, self.vocabulary_name, uuid.uuid4()
         )
-
-    def response_object(self, response_type):
-        response_field_dict = {
-            "CREATE": [
-                "VocabularyName",
-                "LanguageCode",
-                "VocabularyState",
-                "LastModifiedTime",
-                "FailureReason",
-            ],
-            "GET": [
-                "VocabularyName",
-                "LanguageCode",
-                "VocabularyState",
-                "LastModifiedTime",
-                "FailureReason",
-                "DownloadUri",
-            ],
-            "LIST": [
-                "VocabularyName",
-                "LanguageCode",
-                "LastModifiedTime",
-                "VocabularyState",
-            ],
-        }
-        response_fields = response_field_dict[response_type]
-        response_object = self.gen_response_object()
-        return {
-            k: v
-            for k, v in response_object.items()
-            if k in response_fields and v is not None and v != [None]
-        }
-
-    def advance_job_status(self):
-        # On each call advances the fake job status
-
-        if not self.vocabulary_state:
-            self.vocabulary_state = "PENDING"
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        elif self.vocabulary_state == "PENDING":
-            self.vocabulary_state = "READY"
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TranscribeBackend(BaseBackend):
@@ -444,6 +415,14 @@ class TranscribeBackend(BaseBackend):
         self.medical_vocabularies = {}
         self.vocabularies = {}
         self.region_name = region_name
+
+        state_manager.set_transition(
+            "transcribe::vocabulary", transition={"progression": "manual", "times": 1}
+        )
+        state_manager.set_transition(
+            "transcribe::medicalvocabulary",
+            transition={"progression": "manual", "times": 1},
+        )
 
     def reset(self):
         region_name = self.region_name
@@ -698,7 +677,7 @@ class TranscribeBackend(BaseBackend):
     def get_vocabulary(self, vocabulary_name):
         try:
             job = self.vocabularies[vocabulary_name]
-            job.advance_job_status()  # Fakes advancement through statuses.
+            job.advance()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
@@ -709,7 +688,7 @@ class TranscribeBackend(BaseBackend):
     def get_medical_vocabulary(self, vocabulary_name):
         try:
             job = self.medical_vocabularies[vocabulary_name]
-            job.advance_job_status()  # Fakes advancement through statuses.
+            job.advance()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
@@ -740,7 +719,7 @@ class TranscribeBackend(BaseBackend):
             vocabularies = [
                 vocabulary
                 for vocabulary in vocabularies
-                if vocabulary.vocabulary_state == state_equals
+                if vocabulary.status == state_equals
             ]
 
         if name_contains:
@@ -777,7 +756,7 @@ class TranscribeBackend(BaseBackend):
             vocabularies = [
                 vocabulary
                 for vocabulary in vocabularies
-                if vocabulary.vocabulary_state == state_equals
+                if vocabulary.status == state_equals
             ]
 
         if name_contains:
