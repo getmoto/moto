@@ -12,5 +12,14 @@ class MotoAPIBackend(BaseBackend):
                 backend.reset()
         self.__init__()
 
+    def get_transition(self, feature):
+        from moto.moto_api import state_manager
+
+        return state_manager.get_transition(feature)
+
+    def set_transition(self, feature, transition):
+        from moto.moto_api import state_manager
+
+        state_manager.set_transition(feature, transition)
 
 moto_api_backend = MotoAPIBackend()

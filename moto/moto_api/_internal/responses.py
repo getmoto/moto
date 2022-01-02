@@ -65,3 +65,25 @@ class MotoAPIResponse(BaseResponse):
         from flask import render_template
 
         return render_template("dashboard.html")
+
+    def get_transition(self, request, full_url, headers):
+        from .models import moto_api_backend
+
+        qs_dict = dict(x.split("=") for x in request.query_string.decode("utf-8").split("&"))
+        feature = qs_dict["feature"]
+
+        resp = moto_api_backend.get_transition(feature=feature)
+
+        return 200, {}, json.dumps(resp)
+
+    def set_transition(self, request, full_url, headers):
+        from .models import moto_api_backend
+
+        request_body_size = int(headers["Content-Length"])
+        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+        body = json.loads(body)
+        feature = body["feature"]
+        transition = body["transition"]
+
+        moto_api_backend.set_transition(feature, transition)
+        return 201, {}, ""

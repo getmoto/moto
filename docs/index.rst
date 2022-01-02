@@ -38,6 +38,12 @@ Additional Resources
 
 .. toctree::
   :maxdepth: 1
+  :caption: Configuration
+
+  docs/configuration/index
+
+.. toctree::
+  :maxdepth: 1
   :hidden:
   :caption: Implemented Services
 
