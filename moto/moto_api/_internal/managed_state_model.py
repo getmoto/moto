@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from moto.moto_api import state_manager
 
 
@@ -16,6 +17,9 @@ class ManagedState:
         # Internal counter that keeps track of how often this model has been described
         # Used for transition-type=manual
         self._tick = 0
+        # Time when the status was last progressed to this model
+        # Used for transition-type=time
+        self._time_progressed = datetime.now()
         # Name of this model. This will be used in the API
         self.model_name = model_name
 
@@ -33,6 +37,14 @@ class ManagedState:
             if self._tick >= transition_config["times"]:
                 self._status = target_status
                 self._tick = 0
+
+        if transition_config["progression"] == "time":
+            next_transition_at = self._time_progressed + timedelta(
+                seconds=transition_config["seconds"]
+            )
+            if datetime.now() > next_transition_at:
+                self._status = target_status
+                self._time_progressed = datetime.now()
 
         return self._status
 

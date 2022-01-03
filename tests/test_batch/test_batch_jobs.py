@@ -160,8 +160,8 @@ def test_list_jobs():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
-    job_def_name = "sleep5"
-    commands = ["sleep", "5"]
+    job_def_name = "sleep2"
+    commands = ["sleep", "2"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
@@ -179,7 +179,8 @@ def test_list_jobs():
         job.should.have.key("createdAt")
         job.should.have.key("jobDefinition")
         job.should.have.key("jobName")
-        job.should.have.key("status").which.should.be.within(["STARTING", "RUNNABLE"])
+        # This is async, so we can't be sure where we are in the process
+        job.should.have.key("status").within(["SUBMITTED", "PENDING", "STARTING", "RUNNABLE"])
 
     batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
         "jobSummaryList"

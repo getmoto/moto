@@ -95,3 +95,30 @@ def test_override_status():
     model.status.should.equal("ready")
     model.advance()
     model.status.should.equal("ready")
+
+
+class SlowModel(ManagedState):
+    def __init__(self):
+        super().__init__(
+            model_name="example::slowmodel", transitions=[("first", "second")]
+        )
+
+
+def test_realworld_delay():
+    model = SlowModel()
+    state_manager.set_transition(
+        feature="example::slowmodel", transition={"progression": "time", "seconds": 2}
+    )
+
+    model.status.should.equal("first")
+    # The status will stick to 'first' for a long time
+    # Advancing the model doesn't do anything, really
+    for _ in range(10):
+        model.advance()
+        model.status.should.equal("first")
+
+    import time
+
+    time.sleep(2)
+    # Status has only progressed after 2 seconds have passed
+    model.status.should.equal("second")
