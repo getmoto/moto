@@ -174,7 +174,7 @@ class CloudFrontBackend(BaseBackend):
     def __init__(self):
         self.distributions = dict()
 
-        state_manager.set_transition(
+        state_manager.set_default_transition(
             "cloudfront::distribution", transition={"progression": "manual", "times": 1}
         )
 

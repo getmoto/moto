@@ -32,7 +32,7 @@ def test_cancel_pending_job():
     job_id = resp["jobId"]
 
     batch_client.cancel_job(jobId=job_id, reason="test_cancel")
-    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=5)
+    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=20)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")

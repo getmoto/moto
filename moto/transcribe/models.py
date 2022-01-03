@@ -416,10 +416,10 @@ class TranscribeBackend(BaseBackend):
         self.vocabularies = {}
         self.region_name = region_name
 
-        state_manager.set_transition(
+        state_manager.set_default_transition(
             "transcribe::vocabulary", transition={"progression": "manual", "times": 1}
         )
-        state_manager.set_transition(
+        state_manager.set_default_transition(
             "transcribe::medicalvocabulary",
             transition={"progression": "manual", "times": 1},
         )
