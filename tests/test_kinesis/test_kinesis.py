@@ -226,7 +226,8 @@ def test_put_records():
         InvalidArgumentException
     )
 
-    conn.put_record(stream_name, data, partition_key)
+    response = conn.put_record(stream_name, data, partition_key)
+    response["SequenceNumber"].should.equal("1")
 
     response = conn.describe_stream(stream_name)
     shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
@@ -256,7 +257,10 @@ def test_put_records_boto3():
     data = b"hello world"
     partition_key = "1234"
 
-    client.put_record(StreamName=stream_name, Data=data, PartitionKey=partition_key)
+    response = client.put_record(
+        StreamName=stream_name, Data=data, PartitionKey=partition_key
+    )
+    response["SequenceNumber"].should.equal("1")
 
     resp = client.get_shard_iterator(
         StreamName=stream_name, ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"
