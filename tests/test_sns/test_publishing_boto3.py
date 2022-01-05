@@ -460,7 +460,9 @@ def test_publish_fifo_needs_group_id():
         Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(
+        ClientError, match="The request must contain the parameter MessageGroupId"
+    ):
         topic.publish(Message="message")
 
     # message group included - OK
@@ -473,7 +475,10 @@ def test_publish_group_id_to_non_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="topic")
 
-    with pytest.raises(ClientError):
+    with pytest.raises(
+        ClientError,
+        match="The request include parameter that is not valid for this queue type",
+    ):
         topic.publish(Message="message", MessageGroupId="message_group_id")
 
     # message group not included - OK
