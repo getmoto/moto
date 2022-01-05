@@ -13,6 +13,7 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.sqs import sqs_backends
+from moto.sqs.exceptions import MissingParameter
 
 from .exceptions import (
     SNSNotFoundError,
@@ -55,7 +56,7 @@ class Topic(CloudFormationModel):
         self.fifo_topic = "false"
         self.content_based_deduplication = "false"
 
-    def publish(self, message, subject=None, message_attributes=None):
+    def publish(self, message, subject=None, message_attributes=None, group_id=None):
         message_id = str(uuid.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
@@ -64,6 +65,7 @@ class Topic(CloudFormationModel):
                 message_id,
                 subject=subject,
                 message_attributes=message_attributes,
+                group_id=group_id,
             )
         return message_id
 
@@ -177,7 +179,9 @@ class Subscription(BaseModel):
         self._filter_policy = None  # filter policy as a dict, not json.
         self.confirmed = False
 
-    def publish(self, message, message_id, subject=None, message_attributes=None):
+    def publish(
+        self, message, message_id, subject=None, message_attributes=None, group_id=None
+    ):
         if not self._matches_filter_policy(message_attributes):
             return
 
@@ -198,6 +202,7 @@ class Subscription(BaseModel):
                         indent=2,
                         separators=(",", ": "),
                     ),
+                    group_id=group_id,
                 )
             else:
                 raw_message_attributes = {}
@@ -215,7 +220,10 @@ class Subscription(BaseModel):
                     }
 
                 sqs_backends[region].send_message(
-                    queue_name, message, message_attributes=raw_message_attributes
+                    queue_name,
+                    message,
+                    message_attributes=raw_message_attributes,
+                    group_id=group_id,
                 )
         elif self.protocol in ["http", "https"]:
             post_data = self.get_post_data(message, message_id, subject)
@@ -568,6 +576,7 @@ class SNSBackend(BaseBackend):
         phone_number=None,
         subject=None,
         message_attributes=None,
+        group_id=None,
     ):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
@@ -587,10 +596,29 @@ class SNSBackend(BaseBackend):
                 "An error occurred (InvalidParameter) when calling the Publish operation: Invalid parameter: Message too long"
             )
 
+        topic = self.get_topic(arn=arn)
+
+        fifo_topic = topic.fifo_topic == "true"
+        if group_id is None:
+            # MessageGroupId is a mandatory parameter for all
+            # messages in a fifo queue
+            if fifo_topic:
+                raise MissingParameter("MessageGroupId")
+        else:
+            if not fifo_topic:
+                msg = (
+                    "Value {} for parameter MessageGroupId is invalid. "
+                    "Reason: The request include parameter that is not valid for this queue type."
+                ).format(group_id)
+                raise InvalidParameterValue(msg)
+
         try:
             topic = self.get_topic(arn)
             message_id = topic.publish(
-                message, subject=subject, message_attributes=message_attributes
+                message,
+                subject=subject,
+                message_attributes=message_attributes,
+                group_id=group_id,
             )
         except SNSNotFoundError:
             endpoint = self.get_endpoint(arn)

@@ -1,4 +1,5 @@
 import json
+from json.encoder import py_encode_basestring
 import re
 from collections import defaultdict
 
@@ -328,6 +329,7 @@ class SNSResponse(BaseResponse):
         topic_arn = self._get_param("TopicArn")
         phone_number = self._get_param("PhoneNumber")
         subject = self._get_param("Subject")
+        message_group_id = self._get_param("MessageGroupId")
 
         message_attributes = self._parse_message_attributes()
 
@@ -355,6 +357,7 @@ class SNSResponse(BaseResponse):
                 phone_number=phone_number,
                 subject=subject,
                 message_attributes=message_attributes,
+                group_id=message_group_id,
             )
         except ValueError as err:
             error_response = self._error("InvalidParameter", str(err))
