@@ -28,7 +28,7 @@ An example model could look like this:
                                   # A unique name should be chosen to uniquely identify this model
                                   # Any name is acceptable - a typical format would be 'API:type'
                                   # Examples: 'S3::bucket', 'APIGateway::Method', 'DynamoDB::Table'
-                                  feature="new::model",
+                                  model_name="new::model",
                                   # List all the possible status-transitions here
                                   transitions=[("initializing", "starting"),
                                                ("starting", "ready")])
@@ -48,9 +48,9 @@ An example model could look like this:
         def __init__():
             # This is how we register the model, and specify the default transition-behaviour
             # Typically this is done when constructing the Backend-class
-            state_manager.set_default_transition(
+            state_manager.register_default_transition(
                 # This name should be the same as the name used in NewModel
-                feature="new::model",
+                model_name="new::model",
                 # Any transition-config is possible - this is a good default option though
                 transition={"progression": "manual", "times": 1},
             )

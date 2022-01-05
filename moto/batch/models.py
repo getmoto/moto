@@ -829,7 +829,7 @@ class BatchBackend(BaseBackend):
         self._job_definitions = {}
         self._jobs = {}
 
-        state_manager.set_default_transition(
+        state_manager.register_default_transition(
             "batch::job", transition={"progression": "manual", "times": 1}
         )
 

@@ -25,7 +25,7 @@ def test_advancing_without_specifying_configuration_does_nothing():
 def test_advance_x_times():
     model = ExampleModel()
     state_manager.set_transition(
-        feature="example::model", transition={"progression": "manual", "times": 3}
+        model_name="example::model", transition={"progression": "manual", "times": 3}
     )
     for _ in range(2):
         model.advance()
@@ -52,7 +52,7 @@ def test_advance_multiple_stages():
         ("fourth", "fifth"),
     ]
     state_manager.set_transition(
-        feature="example::model", transition={"progression": "manual", "times": 1}
+        model_name="example::model", transition={"progression": "manual", "times": 1}
     )
 
     model.status.should.equal("frist_status")
@@ -76,7 +76,7 @@ def test_override_status():
     model.status = "creating"
     model._transitions = [("creating", "ready"), ("updating", "ready")]
     state_manager.set_transition(
-        feature="example::model", transition={"progression": "manual", "times": 1}
+        model_name="example::model", transition={"progression": "manual", "times": 1}
     )
 
     model.status.should.equal("creating")
@@ -107,7 +107,8 @@ class SlowModel(ManagedState):
 def test_realworld_delay():
     model = SlowModel()
     state_manager.set_transition(
-        feature="example::slowmodel", transition={"progression": "time", "seconds": 2}
+        model_name="example::slowmodel",
+        transition={"progression": "time", "seconds": 2},
     )
 
     model.status.should.equal("first")

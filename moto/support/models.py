@@ -67,8 +67,8 @@ class SupportBackend(BaseBackend):
         self.check_status = {}
         self.cases = {}
 
-        state_manager.set_default_transition(
-            feature="support::case", transition={"progression": "manual", "times": 1}
+        state_manager.register_default_transition(
+            model_name="support::case", transition={"progression": "manual", "times": 1}
         )
 
     def reset(self):

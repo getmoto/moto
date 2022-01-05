@@ -156,8 +156,8 @@ class DAXBackend(BaseBackend):
         self._clusters = dict()
         self._tagger = TaggingService()
 
-        state_manager.set_default_transition(
-            feature="dax::cluster", transition={"progression": "manual", "times": 4}
+        state_manager.register_default_transition(
+            model_name="dax::cluster", transition={"progression": "manual", "times": 4}
         )
 
     @property
