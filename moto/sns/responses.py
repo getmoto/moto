@@ -1,5 +1,4 @@
 import json
-from json.encoder import py_encode_basestring
 import re
 from collections import defaultdict
 
