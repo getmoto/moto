@@ -377,6 +377,18 @@ class SNSResponse(BaseResponse):
         template = self.response_template(PUBLISH_TEMPLATE)
         return template.render(message_id=message_id)
 
+    def publish_batch(self):
+        topic_arn = self._get_param("TopicArn")
+        publish_batch_request_entries = self._get_multi_param(
+            "PublishBatchRequestEntries.member"
+        )
+        successful, failed = self.backend.publish_batch(
+            topic_arn=topic_arn,
+            publish_batch_request_entries=publish_batch_request_entries,
+        )
+        template = self.response_template(PUBLISH_BATCH_TEMPLATE)
+        return template.render(successful=successful, failed=failed)
+
     def create_platform_application(self):
         name = self._get_param("Name")
         platform = self._get_param("Platform")
@@ -1191,3 +1203,29 @@ UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://sns.amazonaws.
         <RequestId>14eb7b1a-4cbd-5a56-80db-2d06412df769</RequestId>
     </ResponseMetadata>
 </UntagResourceResponse>"""
+
+PUBLISH_BATCH_TEMPLATE = """<PublishBatchResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <PublishBatchResult>
+    <Successful>
+{% for successful in successful %}
+      <member>
+        <Id>{{ successful["Id"] }}</Id>
+        <MessageId>{{ successful["MessageId"] }}</MessageId>
+      </member>
+{% endfor %}
+    </Successful>
+    <Failed>
+{% for failed in failed %}
+      <member>
+        <Id>{{ failed["Id"] }}</Id>
+        <Code>{{ failed["Code"] }}</Code>
+        <Message>{{ failed["Message"] }}</Message>
+        <SenderFault>{{'true' if failed["SenderFault"] else 'false'}}</SenderFault>
+      </member>
+{% endfor %}
+    </Failed>
+  </PublishBatchResult>
+</PublishBatchResponse>"""

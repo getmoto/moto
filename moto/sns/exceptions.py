@@ -8,6 +8,11 @@ class SNSNotFoundError(RESTError):
         super().__init__("NotFound", message, **kwargs)
 
 
+class TopicNotFound(SNSNotFoundError):
+    def __init__(self):
+        super().__init__(message="Topic does not exist")
+
+
 class ResourceNotFoundError(RESTError):
     code = 404
 
@@ -60,3 +65,23 @@ class InternalError(RESTError):
 
     def __init__(self, message):
         super(InternalError, self).__init__("InternalFailure", message)
+
+
+class TooManyEntriesInBatchRequest(RESTError):
+    code = 400
+
+    def __init__(self):
+        super().__init__(
+            "TooManyEntriesInBatchRequest",
+            "The batch request contains more entries than permissible.",
+        )
+
+
+class BatchEntryIdsNotDistinct(RESTError):
+    code = 400
+
+    def __init__(self):
+        super().__init__(
+            "BatchEntryIdsNotDistinct",
+            "Two or more batch entries in the request have the same Id.",
+        )
