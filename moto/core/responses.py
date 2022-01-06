@@ -484,7 +484,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         def is_tracked(name_param):
             for prefix_loop in tracked_prefixes:
-                if name_param.startswith(prefix_loop):
+                if name_param == prefix_loop:
                     return True
             return False
 
