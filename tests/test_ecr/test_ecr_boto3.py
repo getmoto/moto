@@ -117,6 +117,37 @@ def test_create_repository_with_non_default_config():
 
 
 @mock_ecr
+def test_create_repository_in_different_account():
+    # given
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+
+    # when passing in a custom registry ID
+    response = client.create_repository(
+        registryId="222222222222", repositoryName=repo_name
+    )
+
+    # then we should persist this ID
+    repo = response["repository"]
+    repo.should.have.key("registryId").equals("222222222222")
+    repo.should.have.key("repositoryArn").equals(
+        "arn:aws:ecr:us-east-1:222222222222:repository/test-repo"
+    )
+
+    # then this repo should be returned with the correct ID
+    repo = client.describe_repositories()["repositories"][0]
+    repo.should.have.key("registryId").equals("222222222222")
+
+    # then we can search for repos with this ID
+    response = client.describe_repositories(registryId="222222222222")
+    response.should.have.key("repositories").length_of(1)
+
+    # then this repo is not found when searching for a different ID
+    response = client.describe_repositories(registryId=ACCOUNT_ID)
+    response.should.have.key("repositories").length_of(0)
+
+
+@mock_ecr
 def test_create_repository_with_aws_managed_kms():
     # given
     region_name = "eu-central-1"
