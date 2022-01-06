@@ -596,24 +596,22 @@ class SNSBackend(BaseBackend):
                 "An error occurred (InvalidParameter) when calling the Publish operation: Invalid parameter: Message too long"
             )
 
-        topic = self.get_topic(arn=arn)
-
-        fifo_topic = topic.fifo_topic == "true"
-        if group_id is None:
-            # MessageGroupId is a mandatory parameter for all
-            # messages in a fifo queue
-            if fifo_topic:
-                raise MissingParameter("MessageGroupId")
-        else:
-            if not fifo_topic:
-                msg = (
-                    "Value {} for parameter MessageGroupId is invalid. "
-                    "Reason: The request include parameter that is not valid for this queue type."
-                ).format(group_id)
-                raise InvalidParameterValue(msg)
-
         try:
             topic = self.get_topic(arn)
+
+            fifo_topic = topic.fifo_topic == "true"
+            if group_id is None:
+                # MessageGroupId is a mandatory parameter for all
+                # messages in a fifo queue
+                if fifo_topic:
+                    raise MissingParameter("MessageGroupId")
+            else:
+                if not fifo_topic:
+                    msg = (
+                        "Value {} for parameter MessageGroupId is invalid. "
+                        "Reason: The request include parameter that is not valid for this queue type."
+                    ).format(group_id)
+                    raise InvalidParameterValue(msg)
             message_id = topic.publish(
                 message,
                 subject=subject,
