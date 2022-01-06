@@ -482,14 +482,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             tracked_prefixes or set()
         )  # prefixes which have already been processed
 
-        def is_tracked(name_param):
-            for prefix_loop in tracked_prefixes:
-                if name_param == prefix_loop:
-                    return True
-            return False
-
         for name, value in self.querystring.items():
-            if is_tracked(name) or not name.startswith(param_prefix):
+            if not name.startswith(param_prefix):
                 continue
 
             if len(name) > len(param_prefix) and not name[
