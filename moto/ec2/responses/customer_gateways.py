@@ -5,7 +5,7 @@ from moto.ec2.utils import filters_from_querystring
 class CustomerGateways(BaseResponse):
     def create_customer_gateway(self):
         # raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
-        type = self._get_param("Type")
+        gateway_type = self._get_param("Type")
         ip_address = self._get_param("IpAddress")
         bgp_asn = self._get_param("BgpAsn")
         tags = self._get_multi_param("TagSpecification")
@@ -13,7 +13,7 @@ class CustomerGateways(BaseResponse):
         tags = (tags or {}).get("Tag", [])
         tags = {t["Key"]: t["Value"] for t in tags}
         customer_gateway = self.ec2_backend.create_customer_gateway(
-            type, ip_address=ip_address, bgp_asn=bgp_asn, tags=tags
+            gateway_type, ip_address=ip_address, bgp_asn=bgp_asn, tags=tags
         )
         template = self.response_template(CREATE_CUSTOMER_GATEWAY_RESPONSE)
         return template.render(customer_gateway=customer_gateway)

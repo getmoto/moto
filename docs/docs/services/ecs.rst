@@ -39,6 +39,10 @@ ecs
 - [X] deregister_task_definition
 - [ ] describe_capacity_providers
 - [X] describe_clusters
+  
+        Only include=TAGS is currently supported.
+        
+
 - [X] describe_container_instances
 - [X] describe_services
 - [X] describe_task_definition

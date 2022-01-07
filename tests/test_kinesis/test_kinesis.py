@@ -138,7 +138,10 @@ def test_put_records_boto3():
     data = b"hello world"
     partition_key = "1234"
 
-    client.put_record(StreamName=stream_name, Data=data, PartitionKey=partition_key)
+    response = client.put_record(
+        StreamName=stream_name, Data=data, PartitionKey=partition_key
+    )
+    response["SequenceNumber"].should.equal("1")
 
     resp = client.get_shard_iterator(
         StreamName=stream_name, ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"

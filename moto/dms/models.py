@@ -1,8 +1,8 @@
 import json
 
-from boto3 import Session
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import (
     InvalidResourceStateFault,
@@ -14,7 +14,7 @@ from .utils import filter_tasks
 
 class DatabaseMigrationServiceBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(DatabaseMigrationServiceBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.replication_tasks = {}
 
@@ -195,10 +195,4 @@ class FakeReplicationTask(BaseModel):
         return self
 
 
-dms_backends = {}
-for region in Session().get_available_regions("dms"):
-    dms_backends[region] = DatabaseMigrationServiceBackend()
-for region in Session().get_available_regions("dms", partition_name="aws-us-gov"):
-    dms_backends[region] = DatabaseMigrationServiceBackend()
-for region in Session().get_available_regions("dms", partition_name="aws-cn"):
-    dms_backends[region] = DatabaseMigrationServiceBackend()
+dms_backends = BackendDict(DatabaseMigrationServiceBackend, "dms")

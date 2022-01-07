@@ -156,15 +156,9 @@ class Route53ResolverResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults", 10)
         validate_args([("maxResults", max_results)])
-        try:
-            (
-                endpoints,
-                next_token,
-            ) = self.route53resolver_backend.list_resolver_endpoints(
-                filters, next_token=next_token, max_results=max_results
-            )
-        except InvalidToken as exc:
-            raise InvalidNextTokenException() from exc
+        endpoints, next_token = self.route53resolver_backend.list_resolver_endpoints(
+            filters, next_token=next_token, max_results=max_results
+        )
 
         response = {
             "ResolverEndpoints": [x.description() for x in endpoints],
@@ -224,14 +218,9 @@ class Route53ResolverResponse(BaseResponse):
         resource_arn = self._get_param("ResourceArn")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
-        try:
-            (tags, next_token) = self.route53resolver_backend.list_tags_for_resource(
-                resource_arn=resource_arn,
-                next_token=next_token,
-                max_results=max_results,
-            )
-        except InvalidToken as exc:
-            raise InvalidNextTokenException() from exc
+        tags, next_token = self.route53resolver_backend.list_tags_for_resource(
+            resource_arn=resource_arn, next_token=next_token, max_results=max_results,
+        )
 
         response = {"Tags": tags}
         if next_token:

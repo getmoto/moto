@@ -47,7 +47,7 @@ iot
 - [ ] create_certificate_from_csr
 - [ ] create_custom_metric
 - [ ] create_dimension
-- [ ] create_domain_configuration
+- [X] create_domain_configuration
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
@@ -77,7 +77,7 @@ iot
 - [X] delete_certificate
 - [ ] delete_custom_metric
 - [ ] delete_dimension
-- [ ] delete_domain_configuration
+- [X] delete_domain_configuration
 - [ ] delete_dynamic_thing_group
 - [ ] delete_fleet_metric
 - [X] delete_job
@@ -114,7 +114,7 @@ iot
 - [ ] describe_default_authorizer
 - [ ] describe_detect_mitigation_actions_task
 - [ ] describe_dimension
-- [ ] describe_domain_configuration
+- [X] describe_domain_configuration
 - [X] describe_endpoint
 - [ ] describe_event_configurations
 - [ ] describe_fleet_metric
@@ -122,6 +122,7 @@ iot
 - [X] describe_job
 - [X] describe_job_execution
 - [ ] describe_job_template
+- [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
@@ -171,13 +172,14 @@ iot
 - [ ] list_detect_mitigation_actions_executions
 - [ ] list_detect_mitigation_actions_tasks
 - [ ] list_dimensions
-- [ ] list_domain_configurations
+- [X] list_domain_configurations
 - [ ] list_fleet_metrics
 - [ ] list_indices
 - [X] list_job_executions_for_job
 - [X] list_job_executions_for_thing
 - [ ] list_job_templates
 - [X] list_jobs
+- [ ] list_managed_job_templates
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
@@ -242,7 +244,7 @@ iot
 - [X] update_certificate
 - [ ] update_custom_metric
 - [ ] update_dimension
-- [ ] update_domain_configuration
+- [X] update_domain_configuration
 - [ ] update_dynamic_thing_group
 - [ ] update_event_configurations
 - [ ] update_fleet_metric

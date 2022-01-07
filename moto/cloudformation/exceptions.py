@@ -15,14 +15,14 @@ class ValidationError(BadRequest):
             message = "Stack with id {0} does not exist".format(name_or_id)
 
         template = Template(ERROR_RESPONSE)
-        super(ValidationError, self).__init__()
+        super().__init__()
         self.description = template.render(code="ValidationError", message=message)
 
 
 class MissingParameterError(BadRequest):
     def __init__(self, parameter_name):
         template = Template(ERROR_RESPONSE)
-        super(MissingParameterError, self).__init__()
+        super().__init__()
         self.description = template.render(
             code="Missing Parameter",
             message="Missing parameter {0}".format(parameter_name),
@@ -34,7 +34,7 @@ class ExportNotFound(BadRequest):
 
     def __init__(self, export_name):
         template = Template(ERROR_RESPONSE)
-        super(ExportNotFound, self).__init__()
+        super().__init__()
         self.description = template.render(
             code="ExportNotFound",
             message="No export named {0} found.".format(export_name),
@@ -44,7 +44,7 @@ class ExportNotFound(BadRequest):
 class UnsupportedAttribute(ValidationError):
     def __init__(self, resource, attr):
         template = Template(ERROR_RESPONSE)
-        super(UnsupportedAttribute, self).__init__()
+        super().__init__()
         self.description = template.render(
             code="ValidationError",
             message=f"Template error: resource {resource} does not support attribute type {attr} in Fn::GetAtt",

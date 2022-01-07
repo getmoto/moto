@@ -1298,7 +1298,6 @@ def test_run_instance_with_nic_preexisting_boto3():
         MinCount=1,
         MaxCount=1,
         NetworkInterfaces=[{"DeviceIndex": 0, "NetworkInterfaceId": eni.id,}],
-        SubnetId=subnet.id,
         SecurityGroupIds=[security_group2.group_id],
     )[0]
 
@@ -2029,8 +2028,7 @@ def test_run_instance_and_associate_public_ip():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        NetworkInterfaces=[{"DeviceIndex": 0}],
-        SubnetId=subnet.id,
+        NetworkInterfaces=[{"DeviceIndex": 0, "SubnetId": subnet.id}],
     )[0]
     interfaces = instance.network_interfaces_attribute
     addresses = interfaces[0]["PrivateIpAddresses"][0]
@@ -2043,8 +2041,9 @@ def test_run_instance_and_associate_public_ip():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        NetworkInterfaces=[{"DeviceIndex": 0, "AssociatePublicIpAddress": False}],
-        SubnetId=subnet.id,
+        NetworkInterfaces=[
+            {"DeviceIndex": 0, "SubnetId": subnet.id, "AssociatePublicIpAddress": False}
+        ],
     )[0]
     interfaces = instance.network_interfaces_attribute
     addresses = interfaces[0]["PrivateIpAddresses"][0]
@@ -2057,8 +2056,9 @@ def test_run_instance_and_associate_public_ip():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        NetworkInterfaces=[{"DeviceIndex": 0, "AssociatePublicIpAddress": True}],
-        SubnetId=subnet.id,
+        NetworkInterfaces=[
+            {"DeviceIndex": 0, "SubnetId": subnet.id, "AssociatePublicIpAddress": True}
+        ],
     )[0]
     interfaces = instance.network_interfaces_attribute
     addresses = interfaces[0]["PrivateIpAddresses"][0]
@@ -2068,6 +2068,27 @@ def test_run_instance_and_associate_public_ip():
     # Only now should we have a PublicIp
     addresses["Association"].should.have.key("IpOwnerId").equal(ACCOUNT_ID)
     addresses["Association"].should.have.key("PublicIp")
+
+
+@mock_ec2
+def test_run_instance_cannot_have_subnet_and_networkinterface_parameter():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    with pytest.raises(ClientError) as exc:
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            MinCount=1,
+            MaxCount=1,
+            SubnetId=subnet.id,
+            NetworkInterfaces=[{"DeviceIndex": 0}],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterCombination")
+    err["Message"].should.equal(
+        "Network interfaces and an instance-level subnet ID may not be specified on the same request"
+    )
 
 
 @mock_ec2

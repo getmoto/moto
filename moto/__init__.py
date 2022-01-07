@@ -37,6 +37,7 @@ mock_lambda = lazy_load(
 mock_batch = lazy_load(".batch", "mock_batch")
 mock_budgets = lazy_load(".budgets", "mock_budgets")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
+mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
@@ -48,6 +49,7 @@ mock_cognitoidp = lazy_load(".cognitoidp", "mock_cognitoidp", boto3_name="cognit
 mock_config = lazy_load(".config", "mock_config")
 mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
 mock_datasync = lazy_load(".datasync", "mock_datasync")
+mock_dax = lazy_load(".dax", "mock_dax")
 mock_dms = lazy_load(".dms", "mock_dms")
 mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
 mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
@@ -67,11 +69,13 @@ mock_emr = lazy_load(".emr", "mock_emr")
 mock_emrcontainers = lazy_load(
     ".emrcontainers", "mock_emrcontainers", boto3_name="emr-containers"
 )
+mock_es = lazy_load(".es", "mock_es")
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glue = lazy_load(".glue", "mock_glue")
+mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
 mock_iam = lazy_load(".iam", "mock_iam")
 mock_iot = lazy_load(".iot", "mock_iot")
 mock_iotdata = lazy_load(".iotdata", "mock_iotdata", boto3_name="iot-data")
@@ -133,6 +137,9 @@ mock_mediastoredata = lazy_load(
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_sdb = lazy_load(".sdb", "mock_sdb")
+mock_elasticache = lazy_load(
+    ".elasticache", "mock_elasticache", boto3_name="elasticache"
+)
 
 
 class MockAll(ContextDecorator):
@@ -157,12 +164,11 @@ class MockAll(ContextDecorator):
 
 mock_all = MockAll
 
-
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.17.dev"
+__version__ = "2.3.1.dev"
 
 
 try:

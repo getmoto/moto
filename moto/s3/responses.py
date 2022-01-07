@@ -1335,7 +1335,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 max_parts=max_parts,
             )
             next_part_number_marker = parts[-1].name if parts else 0
-            is_truncated = parts and self.backend.is_truncated(
+            is_truncated = len(parts) != 0 and self.backend.is_truncated(
                 bucket_name, upload_id, next_part_number_marker
             )
 
@@ -1608,6 +1608,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         response_headers = {}
         version_id = query.get("versionId", [None])[0]
+        if version_id and not self.backend.get_bucket(bucket_name).is_versioned:
+            return 400, response_headers, ""
+
         part_number = query.get("partNumber", [None])[0]
         if part_number:
             part_number = int(part_number)
@@ -2060,6 +2063,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
             key = self.backend.get_object(bucket_name, key_name)
+            if key.storage_class not in ["GLACIER", "DEEP_ARCHIVE"]:
+                raise InvalidObjectState(storage_class=key.storage_class)
             r = 202
             if key.expiry_date is not None:
                 r = 200

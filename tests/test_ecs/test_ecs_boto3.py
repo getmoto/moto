@@ -56,6 +56,37 @@ def test_list_clusters():
 @mock_ecs
 def test_describe_clusters():
     client = boto3.client("ecs", region_name="us-east-1")
+    tag_list = [{"key": "tagName", "value": "TagValue"}]
+    _ = client.create_cluster(clusterName="c_with_tags", tags=tag_list)
+    _ = client.create_cluster(clusterName="c_without")
+    clusters = client.describe_clusters(clusters=["c_with_tags"], include=["TAGS",])[
+        "clusters"
+    ]
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster["clusterName"].should.equal("c_with_tags")
+    cluster.should.have.key("tags")
+    cluster["tags"].should.equal(tag_list)
+
+    clusters = client.describe_clusters(clusters=["c_without"], include=["TAGS",])[
+        "clusters"
+    ]
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster["clusterName"].should.equal("c_without")
+    cluster.shouldnt.have.key("tags")
+
+    clusters = client.describe_clusters(clusters=["c_with_tags", "c_without"])[
+        "clusters"
+    ]
+    clusters.should.have.length_of(2)
+    clusters[0].shouldnt.have.key("tags")
+    clusters[1].shouldnt.have.key("tags")
+
+
+@mock_ecs
+def test_describe_clusters_missing():
+    client = boto3.client("ecs", region_name="us-east-1")
     response = client.describe_clusters(clusters=["some-cluster"])
     response["failures"].should.contain(
         {
@@ -1580,7 +1611,7 @@ def test_run_task_default_cluster():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -1608,6 +1639,7 @@ def test_run_task_default_cluster():
         startedBy="moto",
     )
     len(response["tasks"]).should.equal(2)
+    response["tasks"][0].should.have.key("launchType").equals("FARGATE")
     response["tasks"][0]["taskArn"].should.match(
         "arn:aws:ecs:us-east-1:{}:task/[a-z0-9-]+$".format(ACCOUNT_ID)
     )
@@ -1713,7 +1745,7 @@ def test_start_task():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -1882,7 +1914,7 @@ def test_describe_tasks():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -2766,25 +2798,49 @@ def test_ecs_service_tag_resource():
             }
         ],
     )
-    response = client.create_service(
+    create_response2 = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service_2",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+    )
+    create_response = client.create_service(
         cluster="test_ecs_cluster",
         serviceName="test_ecs_service",
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
+
     client.tag_resource(
-        resourceArn=response["service"]["serviceArn"],
+        resourceArn=create_response["service"]["serviceArn"],
         tags=[
             {"key": "createdBy", "value": "moto-unittest"},
             {"key": "foo", "value": "bar"},
         ],
     )
+    client.tag_resource(
+        resourceArn=create_response2["service"]["serviceArn"],
+        tags=[
+            {"key": "createdBy-2", "value": "moto-unittest-2"},
+            {"key": "foo-2", "value": "bar-2"},
+        ],
+    )
     response = client.list_tags_for_resource(
-        resourceArn=response["service"]["serviceArn"]
+        resourceArn=create_response["service"]["serviceArn"]
     )
     type(response["tags"]).should.be(list)
     response["tags"].should.equal(
         [{"key": "createdBy", "value": "moto-unittest"}, {"key": "foo", "value": "bar"}]
+    )
+    response2 = client.list_tags_for_resource(
+        resourceArn=create_response2["service"]["serviceArn"]
+    )
+    type(response2["tags"]).should.be(list)
+    response2["tags"].should.equal(
+        [
+            {"key": "createdBy-2", "value": "moto-unittest-2"},
+            {"key": "foo-2", "value": "bar-2"},
+        ]
     )
 
 

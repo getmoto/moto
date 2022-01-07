@@ -24,6 +24,8 @@ from .exceptions import (
     NoIntegrationResponseDefined,
     NotFoundException,
     ConflictException,
+    InvalidRestApiIdForBasePathMappingException,
+    InvalidStageException,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -289,9 +291,9 @@ class APIGatewayResponse(BaseResponse):
                 )
 
             authorizer_response = self.backend.create_authorizer(
-                restapi_id,
-                name,
-                authorizer_type,
+                restapi_id=restapi_id,
+                name=name,
+                authorizer_type=authorizer_type,
                 provider_arns=provider_arns,
                 auth_type=auth_type,
                 authorizer_uri=authorizer_uri,
@@ -895,5 +897,15 @@ class APIGatewayResponse(BaseResponse):
             elif self.method == "DELETE":
                 self.backend.delete_base_path_mapping(domain_name, base_path)
                 return 202, {}, ""
+            elif self.method == "PATCH":
+                patch_operations = self._get_param("patchOperations")
+                base_path_mapping = self.backend.update_base_path_mapping(
+                    domain_name, base_path, patch_operations
+                )
+            return 200, {}, json.dumps(base_path_mapping)
         except NotFoundException as e:
             return self.error("NotFoundException", e.message, 404)
+        except InvalidRestApiIdForBasePathMappingException as e:
+            return self.error("BadRequestException", e.message)
+        except InvalidStageException as e:
+            return self.error("BadRequestException", e.message)

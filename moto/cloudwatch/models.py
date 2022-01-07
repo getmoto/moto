@@ -1,7 +1,5 @@
 import json
 
-from boto3 import Session
-
 from moto.core import (
     BaseBackend,
     BaseModel,
@@ -10,6 +8,7 @@ from moto.core import (
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
+    BackendDict,
 )
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
@@ -64,9 +63,9 @@ class MetricStat(object):
 
 class MetricDataQuery(object):
     def __init__(
-        self, id, label, period, return_data, expression=None, metric_stat=None
+        self, query_id, label, period, return_data, expression=None, metric_stat=None
     ):
-        self.id = id
+        self.id = query_id
         self.label = label
         self.period = period
         self.return_data = return_data
@@ -214,16 +213,21 @@ class MetricDatum(BaseModel):
         ]
         self.unit = unit
 
-    def filter(self, namespace, name, dimensions, already_present_metrics=[]):
+    def filter(self, namespace, name, dimensions, already_present_metrics=None):
         if namespace and namespace != self.namespace:
             return False
         if name and name != self.name:
             return False
 
-        for metric in already_present_metrics:
-            if self.dimensions and are_dimensions_same(
-                metric.dimensions, self.dimensions
-            ):
+        for metric in already_present_metrics or []:
+            if (
+                (
+                    self.dimensions
+                    and are_dimensions_same(metric.dimensions, self.dimensions)
+                )
+                and self.name == metric.name
+                and self.namespace == metric.namespace
+            ):  # should be considered as already present only when name, namespace and dimensions all three are same
                 return False
 
         if dimensions and any(
@@ -680,12 +684,4 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
 
-cloudwatch_backends = {}
-for region in Session().get_available_regions("cloudwatch"):
-    cloudwatch_backends[region] = CloudWatchBackend(region)
-for region in Session().get_available_regions(
-    "cloudwatch", partition_name="aws-us-gov"
-):
-    cloudwatch_backends[region] = CloudWatchBackend(region)
-for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
-    cloudwatch_backends[region] = CloudWatchBackend(region)
+cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

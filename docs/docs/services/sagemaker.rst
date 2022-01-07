@@ -51,6 +51,7 @@ sagemaker
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
+- [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
 - [X] create_model
 - [ ] create_model_bias_job_definition
@@ -136,7 +137,9 @@ sagemaker
 - [ ] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
+- [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
+- [ ] describe_lineage_group
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
 - [ ] describe_model_explainability_job_definition
@@ -164,6 +167,7 @@ sagemaker
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
 - [ ] get_device_fleet_report
+- [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
 - [ ] get_search_suggestions
@@ -192,10 +196,13 @@ sagemaker
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
+- [ ] list_lineage_groups
 - [ ] list_model_bias_job_definitions
 - [ ] list_model_explainability_job_definitions
+- [ ] list_model_metadata
 - [ ] list_model_package_groups
 - [ ] list_model_packages
 - [ ] list_model_quality_job_definitions
@@ -222,6 +229,7 @@ sagemaker
 - [ ] list_workforces
 - [ ] list_workteams
 - [ ] put_model_package_group_policy
+- [ ] query_lineage
 - [ ] register_devices
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
@@ -235,6 +243,7 @@ sagemaker
 - [ ] stop_compilation_job
 - [ ] stop_edge_packaging_job
 - [ ] stop_hyper_parameter_tuning_job
+- [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance

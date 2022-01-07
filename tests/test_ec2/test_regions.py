@@ -1,6 +1,7 @@
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
+
 from botocore.exceptions import ClientError
 from moto import mock_autoscaling, mock_ec2, mock_elb
 

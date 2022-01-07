@@ -1,6 +1,110 @@
 Moto Changelog
 ===================
 
+2.3.0
+-----
+    General:
+        * It is now possible to use a mocked region. This will throw an error by default, but can be enabled using the `MOTO_ALLOW_NONEXISTENT_REGION`-environment variable.
+        * Performance improvements - only the backend for the requested region is now loaded into memory, instead of (naively) loading a backend for every region.
+
+2.2.20
+-----
+    New Services:
+        * ElasticsearchService:
+            * create_elasticsearch_domain()
+            * delete_elasticsearch_domain()
+            * describe_elasticsearch_domain()
+            * list_domain_names()
+
+    New Methods:
+        * EC2:
+            * disable_ebs_encryption_by_default()
+            * enable_ebs_encryption_by_default()
+            * get_ebs_encryption_by_default()
+        * Redshift:
+            * pause_cluster()
+            * resume_cluster()
+
+    Miscellanous:
+        * ELBv2: create_listener now supports the DefaultActions.ForwardConfig parameter
+        * Redshift: restore_from_cluster_snapshot() now supports the NodeType and NumberOfNodes-parameters
+        * Sagemaker: list_experiments() now supports pagination
+        * Sagemaker: list_trials() now supports pagination
+        * Sagemaker: list_trial_components() now supports pagination
+
+
+2.2.19
+-----
+    General:
+        * Support for ap-southeast-3
+
+
+2.2.18
+------
+    New Services:
+        * ElastiCache:
+            * create_user()
+            * delete_user()
+            * describe_users()
+        * GuardDuty:
+            * create_detector()
+            * list_detectors()
+
+    New Methods:
+        * IAM:
+            * list_open_id_connect_provider_tags()
+            * tag_open_id_connect_provider()
+            * untag_open_id_connect_provider()
+            * update_open_id_connect_provider_thumbprint()
+        * IOT:
+            * create_domain_configuration()
+            * delete_domain_configuration()
+            * describe_domain_configuration()
+            * list_domain_configurations()
+            * update_domain_configuration()
+
+    Miscellaneous:
+        * ResourceGroupTaggingAPI now supports Lambda Functions
+        * SecretsManager:list_secrets() now supports negative filters
+
+2.2.17
+------
+    New Services:
+        * CloudFront:
+            * create_distribution()
+            * delete_distribution()
+            * get_distribution()
+            * list_distributions()
+
+    New Methods:
+        * Autoscaling:
+            * describe_tags()
+        * CloudFormation:
+            * get_stack_policy()
+            * set_stack_policy()
+        * DynamoDB:
+            * restore_table_to_point_in_time()
+        * Glue:
+            * delete_database()
+            * list_jobs()
+        * IAM:
+            * update_group()
+        * Route53 Resolver:
+            * associate_resolver_rule()
+            * create_resolver_rule()
+            * delete_resolver_rule()
+            * disassociate_resolver_rule()
+            * get_resolver_rule()
+            * get_resolver_rule_association()
+            * list_resolver_rules()
+            * list_resolver_rule_associations()
+
+    Miscellaneous:
+        * Batch: register_job_definition() now supports the timeout-parameter
+        * Batch: submit_job() now supports the timeout-parameter
+        * EC2: describe_network_interfaces() now supports the `attachment.instance-id` filter
+
+
 2.2.16
 ------
     New Services:

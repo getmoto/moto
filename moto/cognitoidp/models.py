@@ -6,11 +6,11 @@ import time
 import uuid
 import enum
 import random
-from boto3 import Session
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
     NotAuthorizedError,
@@ -421,7 +421,7 @@ class CognitoIdpUserPool(BaseModel):
         return self.users.get(username)
 
     def create_jwt(
-        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data=None
     ):
         now = int(time.time())
         payload = {
@@ -435,7 +435,7 @@ class CognitoIdpUserPool(BaseModel):
             "exp": now + expires_in,
             "email": flatten_attrs(self._get_user(username).attributes).get("email"),
         }
-        payload.update(extra_data)
+        payload.update(extra_data or {})
         headers = {"kid": "dummy"}  # KID as present in jwks-public.json
 
         return (
@@ -517,12 +517,12 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
     def _distribution_name(self):
         if self.custom_domain_config and "CertificateArn" in self.custom_domain_config:
-            hash = hashlib.md5(
+            unique_hash = hashlib.md5(
                 self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
-            return "{hash}.cloudfront.net".format(hash=hash[:16])
-        hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
-        return "{hash}.amazoncognito.com".format(hash=hash[:16])
+            return f"{unique_hash[:16]}.cloudfront.net"
+        unique_hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
+        return f"{unique_hash[:16]}.amazoncognito.com"
 
     def to_json(self, extended=True):
         distribution = self._distribution_name()
@@ -730,7 +730,7 @@ class CognitoResourceServer(BaseModel):
 
 class CognitoIdpBackend(BaseBackend):
     def __init__(self, region):
-        super(CognitoIdpBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.user_pools = OrderedDict()
         self.user_pool_domains = OrderedDict()
@@ -767,7 +767,7 @@ class CognitoIdpBackend(BaseBackend):
         }
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_user_pools(self, max_results=None, next_token=None):
+    def list_user_pools(self):
         return list(self.user_pools.values())
 
     def describe_user_pool(self, user_pool_id):
@@ -827,7 +827,7 @@ class CognitoIdpBackend(BaseBackend):
         return user_pool_client
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
+    def list_user_pool_clients(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.clients.values())
@@ -868,7 +868,7 @@ class CognitoIdpBackend(BaseBackend):
         return identity_provider
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
+    def list_identity_providers(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.identity_providers.values())
@@ -1071,7 +1071,7 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError("Invalid token")
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_users(self, user_pool_id, pagination_token=None, limit=None):
+    def list_users(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.users.values())
@@ -1335,6 +1335,8 @@ class CognitoIdpBackend(BaseBackend):
         self.admin_get_user(user_pool_id, username)
 
         for token, token_tuple in list(user_pool.refresh_tokens.items()):
+            if token_tuple is None:
+                continue
             _, username = token_tuple
             if username == username:
                 user_pool.refresh_tokens[token] = None
@@ -1592,15 +1594,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.add_custom_attributes(custom_attributes)
 
 
-cognitoidp_backends = {}
-for region in Session().get_available_regions("cognito-idp"):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
-for region in Session().get_available_regions(
-    "cognito-idp", partition_name="aws-us-gov"
-):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
-for region in Session().get_available_regions("cognito-idp", partition_name="aws-cn"):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
+cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't

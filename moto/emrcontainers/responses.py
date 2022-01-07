@@ -34,15 +34,19 @@ class EMRContainersResponse(BaseResponse):
         return 200, {}, json.dumps(dict(virtual_cluster))
 
     def delete_virtual_cluster(self):
-        id = self._get_param("virtualClusterId")
+        cluster_id = self._get_param("virtualClusterId")
 
-        virtual_cluster = self.emrcontainers_backend.delete_virtual_cluster(id=id)
+        virtual_cluster = self.emrcontainers_backend.delete_virtual_cluster(
+            cluster_id=cluster_id
+        )
         return 200, {}, json.dumps(dict(virtual_cluster))
 
     def describe_virtual_cluster(self):
-        id = self._get_param("virtualClusterId")
+        cluster_id = self._get_param("virtualClusterId")
 
-        virtual_cluster = self.emrcontainers_backend.describe_virtual_cluster(id=id)
+        virtual_cluster = self.emrcontainers_backend.describe_virtual_cluster(
+            cluster_id=cluster_id
+        )
         response = {"virtualCluster": virtual_cluster}
         return 200, {}, json.dumps(response)
 
@@ -93,11 +97,11 @@ class EMRContainersResponse(BaseResponse):
         return 200, {}, json.dumps(dict(job))
 
     def cancel_job_run(self):
-        id = self._get_param("jobRunId")
+        job_id = self._get_param("jobRunId")
         virtual_cluster_id = self._get_param("virtualClusterId")
 
         job = self.emrcontainers_backend.cancel_job_run(
-            id=id, virtual_cluster_id=virtual_cluster_id,
+            job_id=job_id, virtual_cluster_id=virtual_cluster_id,
         )
         return 200, {}, json.dumps(dict(job))
 
@@ -124,11 +128,11 @@ class EMRContainersResponse(BaseResponse):
         return 200, {}, json.dumps(response)
 
     def describe_job_run(self):
-        id = self._get_param("jobRunId")
+        job_id = self._get_param("jobRunId")
         virtual_cluster_id = self._get_param("virtualClusterId")
 
         job_run = self.emrcontainers_backend.describe_job_run(
-            id=id, virtual_cluster_id=virtual_cluster_id,
+            job_id=job_id, virtual_cluster_id=virtual_cluster_id,
         )
 
         response = {"jobRun": job_run}

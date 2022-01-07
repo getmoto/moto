@@ -62,6 +62,11 @@ dynamodb
 - [X] query
 - [X] restore_table_from_backup
 - [X] restore_table_to_point_in_time
+  
+        Currently this only accepts the source and target table elements, and will
+        copy all items from the source without respect to other arguments.
+        
+
 - [X] scan
 - [X] tag_resource
 - [X] transact_get_items

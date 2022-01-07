@@ -108,6 +108,21 @@ def test_multipart_upload_should_return_part_10000():
 
 
 @mock_s3
+def test_multipart_upload_without_parts():
+    bucket = "dummybucket"
+    s3_client = boto3.client("s3", "us-east-1")
+
+    key = "test_file"
+    s3_client.create_bucket(Bucket=bucket)
+
+    mpu = s3_client.create_multipart_upload(Bucket=bucket, Key=key)
+    mpu_id = mpu["UploadId"]
+
+    list_parts_result = s3_client.list_parts(Bucket=bucket, Key=key, UploadId=mpu_id)
+    list_parts_result["IsTruncated"].should.equal(False)
+
+
+@mock_s3
 @pytest.mark.parametrize("part_nr", [10001, 10002, 20000])
 def test_s3_multipart_upload_cannot_upload_part_over_10000(part_nr):
     bucket = "dummy"

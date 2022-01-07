@@ -94,6 +94,7 @@ redshift
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
 - [ ] describe_resize
@@ -110,6 +111,7 @@ redshift
 - [ ] enable_logging
 - [X] enable_snapshot_copy
 - [X] get_cluster_credentials
+- [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
@@ -127,7 +129,7 @@ redshift
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule
 - [ ] modify_usage_limit
-- [ ] pause_cluster
+- [X] pause_cluster
 - [ ] purchase_reserved_node_offering
 - [ ] reboot_cluster
 - [ ] reject_data_share
@@ -135,7 +137,7 @@ redshift
 - [ ] resize_cluster
 - [X] restore_from_cluster_snapshot
 - [ ] restore_table_from_cluster_snapshot
-- [ ] resume_cluster
+- [X] resume_cluster
 - [ ] revoke_cluster_security_group_ingress
 - [ ] revoke_endpoint_access
 - [ ] revoke_snapshot_access

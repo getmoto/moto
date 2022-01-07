@@ -4,11 +4,9 @@ from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, BackendDict
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
@@ -690,9 +688,7 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_rule_associations[resolver_rule_association_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_endpoint_ip_addresses(
-        self, resolver_endpoint_id, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_endpoint_ip_addresses(self, resolver_endpoint_id):
         """List IP endresses for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
@@ -752,9 +748,7 @@ class Route53ResolverBackend(BaseBackend):
         return True
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_endpoints(
-        self, filters, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_endpoints(self, filters):
         """List all resolver endpoints, using filters if specified."""
         if not filters:
             filters = []
@@ -769,9 +763,7 @@ class Route53ResolverBackend(BaseBackend):
         return endpoints
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_rules(
-        self, filters, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_rules(self, filters):
         """List all resolver rules, using filters if specified."""
         if not filters:
             filters = []
@@ -786,9 +778,7 @@ class Route53ResolverBackend(BaseBackend):
         return rules
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_resolver_rule_associations(
-        self, filters, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_resolver_rule_associations(self, filters):
         """List all resolver rule associations, using filters if specified."""
         if not filters:
             filters = []
@@ -817,9 +807,7 @@ class Route53ResolverBackend(BaseBackend):
         )
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tags_for_resource(
-        self, resource_arn, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_tags_for_resource(self, resource_arn):
         """List all tags for the given resource."""
         self._matched_arn(resource_arn)
         return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
@@ -848,20 +836,4 @@ class Route53ResolverBackend(BaseBackend):
         return resolver_endpoint
 
 
-route53resolver_backends = {}
-for available_region in Session().get_available_regions("route53resolver"):
-    route53resolver_backends[available_region] = Route53ResolverBackend(
-        available_region
-    )
-for available_region in Session().get_available_regions(
-    "route53resolver", partition_name="aws-us-gov"
-):
-    route53resolver_backends[available_region] = Route53ResolverBackend(
-        available_region
-    )
-for available_region in Session().get_available_regions(
-    "route53resolver", partition_name="aws-cn"
-):
-    route53resolver_backends[available_region] = Route53ResolverBackend(
-        available_region
-    )
+route53resolver_backends = BackendDict(Route53ResolverBackend, "route53resolver")

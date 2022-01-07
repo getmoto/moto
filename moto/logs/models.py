@@ -1,12 +1,11 @@
 import uuid
 
-from boto3 import Session
 from datetime import datetime, timedelta
 
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import CloudFormationModel
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
@@ -672,9 +671,7 @@ class LogsBackend(BaseBackend):
         del self.groups[log_group_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def describe_log_groups(
-        self, log_group_name_prefix=None, limit=None, next_token=None
-    ):
+    def describe_log_groups(self, log_group_name_prefix=None):
         if log_group_name_prefix is None:
             log_group_name_prefix = ""
 
@@ -986,14 +983,4 @@ class LogsBackend(BaseBackend):
         return query_id
 
 
-logs_backends = {}
-for available_region in Session().get_available_regions("logs"):
-    logs_backends[available_region] = LogsBackend(available_region)
-for available_region in Session().get_available_regions(
-    "logs", partition_name="aws-us-gov"
-):
-    logs_backends[available_region] = LogsBackend(available_region)
-for available_region in Session().get_available_regions(
-    "logs", partition_name="aws-cn"
-):
-    logs_backends[available_region] = LogsBackend(available_region)
+logs_backends = BackendDict(LogsBackend, "logs")

@@ -607,6 +607,27 @@ def test_set_metadata_boto3():
 
 
 @mock_s3
+def test_copy_key_with_metadata_boto3():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="foobar")
+
+    key = s3.Object("foobar", "the-key")
+    metadata = {"md": "Metadatastring"}
+    content_type = "application/json"
+    initial = key.put(Body=b"{}", Metadata=metadata, ContentType=content_type)
+
+    client.copy_object(
+        Bucket="foobar", CopySource="foobar/the-key", Key="new-key",
+    )
+
+    resp = client.get_object(Bucket="foobar", Key="new-key")
+    resp["Metadata"].should.equal(metadata)
+    resp["ContentType"].should.equal(content_type)
+    resp["ETag"].should.equal(initial["ETag"])
+
+
+@mock_s3
 def test_copy_key_replace_metadata_boto3():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -990,7 +1011,7 @@ def test_restore_key_boto3():
     bucket = s3.Bucket("foobar")
     bucket.create()
 
-    key = bucket.put_object(Key="the-key", Body=b"somedata")
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
     key.restore.should.be.none
     key.restore_object(RestoreRequest={"Days": 1})
     if settings.TEST_SERVER_MODE:
@@ -1008,6 +1029,24 @@ def test_restore_key_boto3():
         key.restore.should.equal(
             'ongoing-request="false", expiry-date="Tue, 03 Jan 2012 12:00:00 GMT"'
         )
+
+
+@mock_s3
+def test_cannot_restore_standard_class_object_boto3():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3.Bucket("foobar")
+    bucket.create()
+
+    key = bucket.put_object(Key="the-key", Body=b"somedata")
+    with pytest.raises(Exception) as err:
+        key.restore_object(RestoreRequest={"Days": 1})
+
+    err = err.value.response["Error"]
+    err["Code"].should.equal("InvalidObjectState")
+    err["StorageClass"].should.equal("STANDARD")
+    err["Message"].should.equal(
+        "The operation is not valid for the object's storage class"
+    )
 
 
 @mock_s3
@@ -5593,3 +5632,17 @@ def test_boto3_copy_object_with_kms_encryption():
     result = client.head_object(Bucket="blah", Key="test2")
     assert result["SSEKMSKeyId"] == kms_key
     assert result["ServerSideEncryption"] == "aws:kms"
+
+
+@mock_s3
+def test_head_versioned_key_in_not_versioned_bucket():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="simple-bucked")
+
+    with pytest.raises(ClientError) as ex:
+        client.head_object(
+            Bucket="simple-bucked", Key="file.txt", VersionId="noVersion"
+        )
+
+    response = ex.value.response
+    assert response["Error"]["Code"] == "400"

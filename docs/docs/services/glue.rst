@@ -65,7 +65,7 @@ glue
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
 - [X] delete_crawler
-- [ ] delete_database
+- [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
@@ -140,7 +140,7 @@ glue
 - [ ] list_blueprints
 - [ ] list_crawlers
 - [ ] list_dev_endpoints
-- [ ] list_jobs
+- [X] list_jobs
 - [ ] list_ml_transforms
 - [ ] list_registries
 - [ ] list_schema_versions

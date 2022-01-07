@@ -19,13 +19,13 @@ except ImportError:
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
-from distutils.version import LooseVersion
 from http.client import responses as http_responses
 from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
 from moto import settings
 import responses
+from moto.utilities.distutils_version import LooseVersion
 from unittest.mock import patch
 from .utils import (
     convert_regex_to_flask_path,
@@ -51,7 +51,14 @@ class BaseMockAWS:
             "instance_metadata": instance_metadata_backend,
             "moto_api": moto_api_backend,
         }
-        self.backends_for_urls.update(self.backends)
+        if "us-east-1" in self.backends:
+            # We only need to know the URL for a single region
+            # They will be the same everywhere
+            self.backends_for_urls["us-east-1"] = self.backends["us-east-1"]
+        else:
+            # If us-east-1 is not available, it's probably a global service
+            # Global services will only have a single region anyway
+            self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
 
         self.FAKE_KEYS = {
@@ -265,10 +272,7 @@ responses_mock.add_passthru("http")
 
 
 def _find_first_match_legacy(self, request):
-    matches = []
-    for i, match in enumerate(self._matches):
-        if match.matches(request):
-            matches.append(match)
+    matches = [match for match in self._matches if match.matches(request)]
 
     # Look for implemented callbacks first
     implemented_matches = [
@@ -287,7 +291,7 @@ def _find_first_match_legacy(self, request):
 def _find_first_match(self, request):
     matches = []
     match_failed_reasons = []
-    for i, match in enumerate(self._matches):
+    for match in self._matches:
         match_result, reason = match.matches(request)
         if match_result:
             matches.append(match)
@@ -327,10 +331,10 @@ BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "P
 
 
 class MockRawResponse(BytesIO):
-    def __init__(self, input):
-        if isinstance(input, str):
-            input = input.encode("utf-8")
-        super(MockRawResponse, self).__init__(input)
+    def __init__(self, response_input):
+        if isinstance(response_input, str):
+            response_input = response_input.encode("utf-8")
+        super().__init__(response_input)
 
     def stream(self, **kwargs):
         contents = self.read()
@@ -529,7 +533,7 @@ class ServerModeMockAWS(BaseMockAWS):
         if "region_name" in kwargs:
             return kwargs["region_name"]
         if type(args) == tuple and len(args) == 2:
-            service, region = args
+            _, region = args
             return region
         return None
 
@@ -541,7 +545,7 @@ class ServerModeMockAWS(BaseMockAWS):
 
 class Model(type):
     def __new__(self, clsname, bases, namespace):
-        cls = super(Model, self).__new__(self, clsname, bases, namespace)
+        cls = super().__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
         for name, value in namespace.items():
             model = getattr(value, "__returns_model__", False)
@@ -655,8 +659,8 @@ class CloudFormationModel(BaseModel):
 class BaseBackend:
     def _reset_model_refs(self):
         # Remove all references to the models stored
-        for service, models in model_data.items():
-            for model_name, model in models.items():
+        for models in model_data.values():
+            for model in models.values():
                 model.instances = []
 
     def reset(self):
@@ -920,7 +924,7 @@ class MotoAPIBackend(BaseBackend):
         for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
-            for region_name, backend in backends_.items():
+            for backend in backends_.values():
                 backend.reset()
         self.__init__()
 

@@ -6,11 +6,10 @@ import json
 import re
 import uuid
 
-from boto3 import Session
 from collections import OrderedDict
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis
+from moto.core.utils import unix_time, unix_time_millis, BackendDict
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
 from moto.dynamodb2.comparisons import get_expected
@@ -64,7 +63,7 @@ class LimitedSizeDict(dict):
         # We'll set the limit to something in between to be safe
         if (current_item_size + new_item_size) > 405000:
             raise ItemSizeTooLarge
-        super(LimitedSizeDict, self).__setitem__(key, value)
+        super().__setitem__(key, value)
 
 
 class Item(BaseModel):
@@ -560,13 +559,9 @@ class Table(CloudFormationModel):
         return results
 
     def __len__(self):
-        count = 0
-        for key, value in self.items.items():
-            if self.has_range_key:
-                count += len(value)
-            else:
-                count += 1
-        return count
+        return sum(
+            [(len(value) if self.has_range_key else 1) for value in self.items.values()]
+        )
 
     @property
     def hash_key_names(self):
@@ -991,7 +986,7 @@ class Table(CloudFormationModel):
 class RestoredTable(Table):
     def __init__(self, name, backup):
         params = self._parse_params_from_backup(backup)
-        super(RestoredTable, self).__init__(name, **params)
+        super().__init__(name, **params)
         self.indexes = copy.deepcopy(backup.table.indexes)
         self.global_indexes = copy.deepcopy(backup.table.global_indexes)
         self.items = copy.deepcopy(backup.table.items)
@@ -1010,7 +1005,7 @@ class RestoredTable(Table):
         return params
 
     def describe(self, base_key="TableDescription"):
-        result = super(RestoredTable, self).describe(base_key=base_key)
+        result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceBackupArn": self.source_backup_arn,
             "SourceTableArn": self.source_table_arn,
@@ -1023,7 +1018,7 @@ class RestoredTable(Table):
 class RestoredPITTable(Table):
     def __init__(self, name, source):
         params = self._parse_params_from_table(source)
-        super(RestoredPITTable, self).__init__(name, **params)
+        super().__init__(name, **params)
         self.indexes = copy.deepcopy(source.indexes)
         self.global_indexes = copy.deepcopy(source.global_indexes)
         self.items = copy.deepcopy(source.items)
@@ -1041,7 +1036,7 @@ class RestoredPITTable(Table):
         return params
 
     def describe(self, base_key="TableDescription"):
-        result = super(RestoredPITTable, self).describe(base_key=base_key)
+        result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceTableArn": self.source_table_arn,
             "RestoreDateTime": unix_time(self.restore_date_time),
@@ -1127,7 +1122,6 @@ class DynamoDBBackend(BaseBackend):
 
     def reset(self):
         region_name = self.region_name
-
         self.__dict__ = {}
         self.__init__(region_name)
 
@@ -1730,12 +1724,12 @@ class DynamoDBBackend(BaseBackend):
         self.tables[target_table_name] = new_table
         return new_table
 
-    """
-    Currently this only accepts the source and target table elements, and will
-    copy all items from the source without respect to other arguments.
-    """
-
     def restore_table_to_point_in_time(self, target_table_name, source_table_name):
+        """
+        Currently this only accepts the source and target table elements, and will
+        copy all items from the source without respect to other arguments.
+        """
+
         source = self.get_table(source_table_name)
         if source is None:
             raise KeyError()
@@ -1762,10 +1756,4 @@ class DynamoDBBackend(BaseBackend):
         pass
 
 
-dynamodb_backends = {}
-for region in Session().get_available_regions("dynamodb"):
-    dynamodb_backends[region] = DynamoDBBackend(region)
-for region in Session().get_available_regions("dynamodb", partition_name="aws-us-gov"):
-    dynamodb_backends[region] = DynamoDBBackend(region)
-for region in Session().get_available_regions("dynamodb", partition_name="aws-cn"):
-    dynamodb_backends[region] = DynamoDBBackend(region)
+dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")

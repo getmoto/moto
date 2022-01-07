@@ -244,3 +244,21 @@ def test_with_filter_with_value_with_multiple_words():
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert secret_names == ["foo", "bar"]
+
+
+@mock_secretsmanager
+def test_with_filter_with_negation():
+    conn = boto_client()
+
+    conn.create_secret(Name="foo", SecretString="secret", Description="one two")
+    conn.create_secret(Name="bar", SecretString="secret", Description="one and two")
+    conn.create_secret(Name="baz", SecretString="secret", Description="one")
+    conn.create_secret(Name="qux", SecretString="secret", Description="two")
+    conn.create_secret(Name="none", SecretString="secret", Description="unrelated")
+
+    secrets = conn.list_secrets(
+        Filters=[{"Key": "description", "Values": ["one", "!two"]}]
+    )
+
+    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    assert secret_names == ["baz"]

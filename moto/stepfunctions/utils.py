@@ -3,13 +3,13 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "page_ending_range_keys": ["start_date", "execution_arn"],
+        "unique_attribute": ["start_date", "execution_arn"],
     },
     "list_state_machines": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "page_ending_range_keys": ["creation_date", "arn"],
+        "unique_attribute": ["creation_date", "arn"],
     },
 }
 

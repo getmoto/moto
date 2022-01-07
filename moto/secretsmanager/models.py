@@ -3,10 +3,10 @@ import json
 import uuid
 import datetime
 
-from boto3 import Session
 from typing import List, Tuple
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import (
     SecretNotFoundException,
     SecretHasNoValueException,
@@ -796,14 +796,4 @@ class SecretsManagerBackend(BaseBackend):
         )
 
 
-secretsmanager_backends = {}
-for region in Session().get_available_regions("secretsmanager"):
-    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
-for region in Session().get_available_regions(
-    "secretsmanager", partition_name="aws-us-gov"
-):
-    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
-for region in Session().get_available_regions(
-    "secretsmanager", partition_name="aws-cn"
-):
-    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
+secretsmanager_backends = BackendDict(SecretsManagerBackend, "secretsmanager")

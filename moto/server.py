@@ -119,8 +119,8 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
-        if service == "budgets":
-            # Budgets is global
+        if service in ["budgets", "cloudfront"]:
+            # Global Services - they do not have/expect a region
             host = f"{service}.amazonaws.com"
         elif service == "mediastore" and not target:
             # All MediaStore API calls have a target header
@@ -283,7 +283,13 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters["regex"] = RegexConverter
-    backend = list(backends.get_backend(service).values())[0]
+
+    backend_dict = backends.get_backend(service)
+    if "us-east-1" in backend_dict:
+        backend = backend_dict["us-east-1"]
+    else:
+        backend = backend_dict["global"]
+
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
@@ -317,7 +323,7 @@ def create_backend_app(service):
 
 def signal_handler(reset_server_port, signum, frame):
     if reset_server_port:
-        del os.environ["MOTO_SERVER_PORT"]
+        del os.environ["MOTO_PORT"]
     sys.exit(0)
 
 
@@ -335,7 +341,11 @@ def main(argv=sys.argv[1:]):
         "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"
     )
     parser.add_argument(
-        "-p", "--port", type=int, help="Port number to use for connection", default=5000
+        "-p",
+        "--port",
+        type=int,
+        help="Port number to use for connection",
+        default=int(os.environ.get("MOTO_PORT", 5000)),
     )
     parser.add_argument(
         "-r",
@@ -361,9 +371,9 @@ def main(argv=sys.argv[1:]):
     args = parser.parse_args(argv)
 
     reset_server_port = False
-    if "MOTO_SERVER_PORT" not in os.environ:
+    if "MOTO_PORT" not in os.environ:
         reset_server_port = True
-        os.environ["MOTO_SERVER_PORT"] = f"{args.port}"
+        os.environ["MOTO_PORT"] = f"{args.port}"
 
     try:
         signal.signal(signal.SIGINT, partial(signal_handler, reset_server_port))

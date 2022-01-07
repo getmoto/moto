@@ -128,10 +128,10 @@ class RecordSet(CloudFormationModel):
     def __init__(self, kwargs):
         self.name = kwargs.get("Name")
         self.type_ = kwargs.get("Type")
-        self.ttl = kwargs.get("TTL")
+        self.ttl = kwargs.get("TTL", 0)
         self.records = kwargs.get("ResourceRecords", [])
         self.set_identifier = kwargs.get("SetIdentifier")
-        self.weight = kwargs.get("Weight")
+        self.weight = kwargs.get("Weight", 0)
         self.region = kwargs.get("Region")
         self.health_check = kwargs.get("HealthCheckId")
         self.hosted_zone_name = kwargs.get("HostedZoneName")
@@ -196,55 +196,6 @@ class RecordSet(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
-
-    def to_xml(self):
-        template = Template(
-            """<ResourceRecordSet>
-                <Name>{{ record_set.name }}</Name>
-                <Type>{{ record_set.type_ }}</Type>
-                {% if record_set.set_identifier %}
-                    <SetIdentifier>{{ record_set.set_identifier }}</SetIdentifier>
-                {% endif %}
-                {% if record_set.weight %}
-                    <Weight>{{ record_set.weight }}</Weight>
-                {% endif %}
-                {% if record_set.region %}
-                    <Region>{{ record_set.region }}</Region>
-                {% endif %}
-                {% if record_set.ttl %}
-                    <TTL>{{ record_set.ttl }}</TTL>
-                {% endif %}
-                {% if record_set.failover %}
-                    <Failover>{{ record_set.failover }}</Failover>
-                {% endif %}
-                {% if record_set.geo_location %}
-                <GeoLocation>
-                {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
-                  {% if record_set.geo_location[geo_key] %}<{{ geo_key }}>{{ record_set.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
-                {% endfor %}
-                </GeoLocation>
-                {% endif %}
-                {% if record_set.alias_target %}
-                <AliasTarget>
-                    <HostedZoneId>{{ record_set.alias_target['HostedZoneId'] }}</HostedZoneId>
-                    <DNSName>{{ record_set.alias_target['DNSName'] }}</DNSName>
-                    <EvaluateTargetHealth>{{ record_set.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
-                </AliasTarget>
-                {% else %}
-                <ResourceRecords>
-                    {% for record in record_set.records %}
-                    <ResourceRecord>
-                        <Value>{{ record|e }}</Value>
-                    </ResourceRecord>
-                    {% endfor %}
-                </ResourceRecords>
-                {% endif %}
-                {% if record_set.health_check %}
-                    <HealthCheckId>{{ record_set.health_check }}</HealthCheckId>
-                {% endif %}
-            </ResourceRecordSet>"""
-        )
-        return template.render(record_set=self)
 
     def delete(self, *args, **kwargs):
         """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
@@ -441,7 +392,12 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def change_resource_record_sets(self, the_zone, change_list):
+    def list_resource_record_sets(self, zone_id, start_type, start_name):
+        the_zone = self.get_hosted_zone(zone_id)
+        return the_zone.get_record_sets(start_type, start_name)
+
+    def change_resource_record_sets(self, zoneid, change_list):
+        the_zone = self.get_hosted_zone(zoneid)
         for value in change_list:
             action = value["Action"]
             record_set = value["ResourceRecordSet"]
@@ -504,7 +460,10 @@ class Route53Backend(BaseBackend):
         return dnsname, zones
 
     def get_hosted_zone(self, id_):
-        return self.zones.get(id_.replace("/hostedzone/", ""))
+        the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
+        if not the_zone:
+            raise NoSuchHostedZone(id_)
+        return the_zone
 
     def get_hosted_zone_by_name(self, name):
         for zone in self.list_hosted_zones():
@@ -513,6 +472,8 @@ class Route53Backend(BaseBackend):
         return None
 
     def delete_hosted_zone(self, id_):
+        # Verify it exists
+        self.get_hosted_zone(id_)
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
     def create_health_check(self, caller_reference, health_check_args):
@@ -598,9 +559,7 @@ class Route53Backend(BaseBackend):
         return self.query_logging_configs[query_logging_config_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_query_logging_configs(
-        self, hosted_zone_id=None, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_query_logging_configs(self, hosted_zone_id=None):
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
