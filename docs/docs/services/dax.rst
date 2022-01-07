@@ -27,7 +27,7 @@ dax
 
 - [X] create_cluster
   
-        The following parameters are not yet processed:  
+        The following parameters are not yet processed:
         AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName, ClusterEndpointEncryptionType
         
 

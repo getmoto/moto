@@ -232,6 +232,10 @@ ec2
 - [ ] describe_customer_gateways
 - [X] describe_dhcp_options
 - [X] describe_egress_only_internet_gateways
+  
+        The Filters-argument is not yet supported
+        
+
 - [ ] describe_elastic_gpus
 - [ ] describe_export_image_tasks
 - [ ] describe_export_tasks
@@ -480,6 +484,7 @@ ec2
 - [ ] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [ ] modify_vpc_endpoint_service_configuration
+- [ ] modify_vpc_endpoint_service_payer_responsibility
 - [ ] modify_vpc_endpoint_service_permissions
 - [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
