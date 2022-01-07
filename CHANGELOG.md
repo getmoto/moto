@@ -1,6 +1,32 @@
 Moto Changelog
 ===================
 
+2.3.1
+-----
+    New Services:
+        * DAX:
+            * create_cluster()
+            * decrease_replication_factor()
+            * delete_cluster()
+            * describe_clusters()
+            * increase_replication_factor()
+            * list_tags()
+        * SSO-Admin:
+            * create_account_assignment()
+            * delete_account_assignment()
+            * list_account_assignments()
+
+    New Methods:
+        * APIGateway:
+            * update_base_path_mapping()
+        * SNS:
+            * publish_batch()
+
+    Miscellaneous:
+        * ECS: run_task() now supports the launchType-parameter
+        * SNS: publish() now supports FIFO-topics
+        * SWF: respond_decision_task_completed() now supports RecordMarker/StartTimer/CancelTimer/CancelWorkflowExecution decisions
+
 2.3.0
 -----
     General:
