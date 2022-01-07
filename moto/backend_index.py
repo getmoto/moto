@@ -123,6 +123,7 @@ backend_url_patterns = [
     ("sqs", re.compile("https?://(.*\\.)?(queue|sqs)\\.(.*\\.)?amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com\\.cn")),
+    ("sso-admin", re.compile("https?://sso\\.(.+)\\.amazonaws\\.com")),
     ("stepfunctions", re.compile("https?://states\\.(.+)\\.amazonaws.com")),
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),

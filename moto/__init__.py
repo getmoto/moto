@@ -142,6 +142,7 @@ mock_sns_deprecated = lazy_load(".sns", "mock_sns_deprecated")
 mock_sqs = lazy_load(".sqs", "mock_sqs")
 mock_sqs_deprecated = lazy_load(".sqs", "mock_sqs_deprecated")
 mock_ssm = lazy_load(".ssm", "mock_ssm")
+mock_ssoadmin = lazy_load(".ssoadmin", "mock_ssoadmin", boto3_name="sso-admin")
 mock_stepfunctions = lazy_load(
     ".stepfunctions", "mock_stepfunctions", backend="stepfunction_backends"
 )
