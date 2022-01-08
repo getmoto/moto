@@ -50,7 +50,6 @@ from moto.s3.exceptions import (
     CrossLocationLoggingProhibitted,
     NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
-    WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
     InvalidTagError,
@@ -1340,7 +1339,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def __init__(self):
         self.buckets = {}
-        self.account_public_access_block = None
         self.tagger = TaggingService()
 
     @property
@@ -1582,16 +1580,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return bucket.public_access_block
 
-    def get_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not self.account_public_access_block:
-            raise NoSuchPublicAccessBlockConfiguration()
-
-        return self.account_public_access_block
-
     def put_object(
         self,
         bucket_name,
@@ -1783,13 +1771,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         bucket.public_access_block = None
 
-    def delete_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        self.account_public_access_block = None
-
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -1812,21 +1793,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise InvalidPublicAccessBlockConfiguration()
 
         bucket.public_access_block = PublicAccessBlock(
-            pub_block_config.get("BlockPublicAcls"),
-            pub_block_config.get("IgnorePublicAcls"),
-            pub_block_config.get("BlockPublicPolicy"),
-            pub_block_config.get("RestrictPublicBuckets"),
-        )
-
-    def put_account_public_access_block(self, account_id, pub_block_config):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not pub_block_config:
-            raise InvalidPublicAccessBlockConfiguration()
-
-        self.account_public_access_block = PublicAccessBlock(
             pub_block_config.get("BlockPublicAcls"),
             pub_block_config.get("IgnorePublicAcls"),
             pub_block_config.get("BlockPublicPolicy"),

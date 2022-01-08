@@ -132,6 +132,7 @@ mock_route53resolver = lazy_load(
     ".route53resolver", "mock_route53resolver", boto3_name="route53resolver"
 )
 mock_s3 = lazy_load(".s3", "mock_s3")
+mock_s3control = lazy_load(".s3control", "mock_s3control")
 mock_s3_deprecated = lazy_load(".s3", "mock_s3_deprecated")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
 mock_secretsmanager = lazy_load(".secretsmanager", "mock_secretsmanager")

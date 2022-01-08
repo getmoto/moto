@@ -3,8 +3,6 @@ import os
 import re
 from typing import List, Union
 
-from botocore.awsrequest import AWSPreparedRequest
-
 from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
 from urllib.parse import (
     parse_qs,
@@ -263,7 +261,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Depending on which calling format the client is using, we don't know
         # if this is a bucket or key request so we have to check
         if self.subdomain_based_buckets(request):
-            return self.key_or_control_response(request, full_url, headers)
+            return self.key_response(request, full_url, headers)
         else:
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
@@ -1104,7 +1102,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return bytes(new_body)
 
     @amzn_request_id
-    def key_or_control_response(self, request, full_url, headers):
+    def key_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
@@ -1115,11 +1113,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         response_headers = {}
 
         try:
-            # Is this an S3 control response?
-            if isinstance(request, AWSPreparedRequest) and "s3-control" in request.url:
-                response = self._control_response(request, full_url, headers)
-            else:
-                response = self._key_response(request, full_url, self.headers)
+            response = self._key_response(request, full_url, self.headers)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
@@ -1141,94 +1135,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             except S3ClientError as s3error:
                 return s3error.code, {}, s3error.description
         return status_code, response_headers, response_content
-
-    def _control_response(self, request, full_url, headers):
-        parsed_url = urlparse(full_url)
-        query = parse_qs(parsed_url.query, keep_blank_values=True)
-        method = request.method
-
-        if hasattr(request, "body"):
-            # Boto
-            body = request.body
-            if hasattr(body, "read"):
-                body = body.read()
-        else:
-            # Flask server
-            body = request.data
-        if body is None:
-            body = b""
-
-        if method == "GET":
-            return self._control_response_get(request, query, headers)
-        elif method == "PUT":
-            return self._control_response_put(request, body, query, headers)
-        elif method == "DELETE":
-            return self._control_response_delete(request, query, headers)
-        else:
-            raise NotImplementedError(
-                "Method {0} has not been implemented in the S3 backend yet".format(
-                    method
-                )
-            )
-
-    def _control_response_get(self, request, query, headers):
-        action = self.path.split("?")[0].split("/")[
-            -1
-        ]  # Gets the action out of the URL sans query params.
-        self._set_action("CONTROL", "GET", action)
-        self._authenticate_and_authorize_s3_action()
-
-        response_headers = {}
-        if "publicAccessBlock" in action:
-            public_block_config = self.backend.get_account_public_access_block(
-                headers["x-amz-account-id"]
-            )
-            template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
-            return (
-                200,
-                response_headers,
-                template.render(public_block_config=public_block_config),
-            )
-
-        raise NotImplementedError(
-            "Method {0} has not been implemented in the S3 backend yet".format(action)
-        )
-
-    def _control_response_put(self, request, body, query, headers):
-        action = self.path.split("?")[0].split("/")[
-            -1
-        ]  # Gets the action out of the URL sans query params.
-        self._set_action("CONTROL", "PUT", action)
-        self._authenticate_and_authorize_s3_action()
-
-        response_headers = {}
-        if "publicAccessBlock" in action:
-            pab_config = self._parse_pab_config(body)
-            self.backend.put_account_public_access_block(
-                headers["x-amz-account-id"],
-                pab_config["PublicAccessBlockConfiguration"],
-            )
-            return 200, response_headers, ""
-
-        raise NotImplementedError(
-            "Method {0} has not been implemented in the S3 backend yet".format(action)
-        )
-
-    def _control_response_delete(self, request, query, headers):
-        action = self.path.split("?")[0].split("/")[
-            -1
-        ]  # Gets the action out of the URL sans query params.
-        self._set_action("CONTROL", "DELETE", action)
-        self._authenticate_and_authorize_s3_action()
-
-        response_headers = {}
-        if "publicAccessBlock" in action:
-            self.backend.delete_account_public_access_block(headers["x-amz-account-id"])
-            return 200, response_headers, ""
-
-        raise NotImplementedError(
-            "Method {0} has not been implemented in the S3 backend yet".format(action)
-        )
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
