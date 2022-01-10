@@ -583,7 +583,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
                     ip = socket.gethostbyname(socket.gethostname()) # TODO: make me work outside docker
                     s3_bucket_names = [bucket.name for bucket in s3_backend.list_buckets()]
-                    run_kwargs["extra_hosts"] = { f"{bucket_name}.{ip}" : ip  for bucket_name in s3_bucket_names }
+                    run_kwargs["extra_hosts"] = { f"{bucket_name}.host.docker.internal" : "host-gateway"  for bucket_name in s3_bucket_names }
 
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
                     #   for communication with other mock AWS services running on localhost

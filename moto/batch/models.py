@@ -549,7 +549,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             ip = socket.gethostbyname(socket.gethostname()) # TODO: make me work outside docker
             s3_bucket_names = [bucket.name for bucket in s3_backend.list_buckets()]
-            extra_hosts = { f"{bucket_name}.{ip}" : ip  for bucket_name in s3_bucket_names }
+            extra_hosts = { f"{bucket_name}.host.docker.internal" : "host-gateway"  for bucket_name in s3_bucket_names }
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
