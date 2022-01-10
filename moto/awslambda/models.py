@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 import copy
 import datetime
+import socket
 from gzip import GzipFile
 from sys import platform
 
@@ -579,12 +580,15 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         if settings.TEST_SERVER_MODE
                         else {}
                     )
+
+                    ip = socket.gethostbyname(socket.gethostname()) # TODO: make me work outside docker
+                    s3_bucket_names = [bucket.name for bucket in s3_backend.list_buckets()]
+                    run_kwargs["extra_hosts"] = { f"{bucket_name}.{ip}" : ip  for bucket_name in s3_bucket_names }
+
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
                     #   for communication with other mock AWS services running on localhost
                     if platform == "linux" or platform == "linux2":
-                        run_kwargs["extra_hosts"] = {
-                            "host.docker.internal": "host-gateway"
-                        }
+                        run_kwargs["extra_hosts"]["host.docker.internal"] = "host-gateway"
 
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
