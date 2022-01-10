@@ -1,5 +1,7 @@
 TestAccAWSAccessKey
 TestAccAWSAvailabilityZones
+TestAccAWSAppsyncApiKey
+TestAccAWSAppsyncGraphqlApi
 TestAccAWSBillingServiceAccount
 TestAccAWSCallerIdentity
 TestAccAWSCloudTrailServiceAccount

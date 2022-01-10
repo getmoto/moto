@@ -49,6 +49,7 @@ _dep_python_jose_ecdsa_pin = (
 )
 _dep_dataclasses = "dataclasses; python_version < '3.7'"
 _dep_docker = "docker>=2.5.1"
+_dep_graphql = "graphql-core"
 _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<4,>=2.5"
@@ -61,6 +62,7 @@ all_extra_deps = [
     _dep_python_jose,
     _dep_python_jose_ecdsa_pin,
     _dep_docker,
+    _dep_graphql,
     _dep_jsondiff,
     _dep_aws_xray_sdk,
     _dep_idna,
@@ -80,6 +82,7 @@ for service_name in [
 extras_per_service.update(
     {
         "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "appsync": [_dep_graphql],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],
         "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
