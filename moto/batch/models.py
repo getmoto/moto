@@ -29,7 +29,6 @@ from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis
 from moto.utilities.docker_utilities import DockerModel
-from moto.s3.models import s3_backend
 from ..utilities.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)

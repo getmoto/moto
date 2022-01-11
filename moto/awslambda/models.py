@@ -30,6 +30,7 @@ from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
+from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
