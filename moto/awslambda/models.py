@@ -3,7 +3,6 @@ import time
 from collections import defaultdict
 import copy
 import datetime
-import socket
 from gzip import GzipFile
 from sys import platform
 
@@ -31,7 +30,6 @@ from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
-from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
@@ -581,14 +579,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         else {}
                     )
 
-                    ip = socket.gethostbyname(socket.gethostname()) # TODO: make me work outside docker
-                    s3_bucket_names = [bucket.name for bucket in s3_backend.list_buckets()]
-                    run_kwargs["extra_hosts"] = { f"{bucket_name}.host.docker.internal" : "host-gateway"  for bucket_name in s3_bucket_names }
-
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
                     #   for communication with other mock AWS services running on localhost
                     if platform == "linux" or platform == "linux2":
-                        run_kwargs["extra_hosts"]["host.docker.internal"] = "host-gateway"
+                        run_kwargs["extra_hosts"] = {"host.docker.internal": "host-gateway"}
 
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
