@@ -43,7 +43,8 @@ def get_s3_default_key_buffer_size():
 
 
 def ecs_new_arn_format():
-    return os.environ.get("MOTO_ECS_NEW_ARN", "false").lower() == "true"
+    # True by default - only the value 'false' will return false
+    return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"
 
 
 def allow_unknown_region():

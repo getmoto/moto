@@ -716,6 +716,14 @@ class TaskSet(BaseObject):
 
 
 class EC2ContainerServiceBackend(BaseBackend):
+    """
+    ECS resources use the new ARN format by default.
+    Use the following environment variable to revert back to the old/short ARN format:
+    `MOTO_ECS_NEW_ARN=false`
+
+    AWS reference: https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/
+    """
+
     def __init__(self, region_name):
         super().__init__()
         self.account_settings = dict()
@@ -1558,9 +1566,15 @@ class EC2ContainerServiceBackend(BaseBackend):
     @staticmethod
     def _parse_resource_arn(resource_arn):
         match = re.match(
-            "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<id>.*)$",
+            "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<cluster_id>[^:]+)/(?P<id>.*)$",
             resource_arn,
         )
+        if not match:
+            # maybe a short-format ARN
+            match = re.match(
+                "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<id>.*)$",
+                resource_arn,
+            )
         if not match:
             raise JsonRESTError(
                 "InvalidParameterException", "The ARN provided is invalid."
@@ -1784,12 +1798,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.account_settings.pop(name, None)
 
     def enable_long_arn_for_name(self, name):
-        if settings.ecs_new_arn_format():
-            return True
         account = self.account_settings.get(name, None)
-        if account and account.value == "enabled":
-            return True
-        return False
+        if account and account.value == "disabled":
+            return False
+        return settings.ecs_new_arn_format()
 
 
 ecs_backends = BackendDict(EC2ContainerServiceBackend, "ecs")
