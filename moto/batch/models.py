@@ -1,4 +1,5 @@
 import re
+import sys
 from itertools import cycle
 import datetime
 import time
@@ -556,7 +557,14 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
             #   for communication with other mock AWS services running on localhost
-            extra_hosts = {"host.docker.internal": "host-gateway"} if platform == "linux" or platform == "linux2" else {}
+            extra_hosts = (
+                {
+                    "swipe-test.host.docker.internal": "host-gateway",
+                    "host.docker.internal": "host-gateway",
+                }
+                if platform == "linux" or platform == "linux2"
+                else {}
+            )
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
@@ -618,6 +626,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
                     .decode()
                     .split("\n")
                 )
+
+                for log in logs_stdout:
+                    sys.stderr.write(f"STDOUT: {log}\n")
+
+                for log in logs_stderr:
+                    sys.stderr.write(f"STDERR: {log}\n")
 
                 # Process logs
                 logs_stdout = [x for x in logs_stdout if len(x) > 0]
