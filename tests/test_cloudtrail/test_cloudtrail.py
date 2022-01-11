@@ -331,20 +331,28 @@ def test_list_trails():
 
     all_trails = client.list_trails()["Trails"]
     all_trails.should.have.length_of(3)
-    for trail in all_trails:
-        set(trail.keys()).should.equal({"TrailARN", "Name", "HomeRegion"})
 
-    all_trails[0]["TrailARN"].should.equal(trail2["TrailARN"])
-    all_trails[0]["Name"].should.equal(trail2["Name"])
-    all_trails[0]["HomeRegion"].should.equal("ap-southeast-2")
-
-    all_trails[1]["TrailARN"].should.equal(trail3["TrailARN"])
-    all_trails[1]["Name"].should.equal(trail3["Name"])
-    all_trails[1]["HomeRegion"].should.equal("eu-west-1")
-
-    all_trails[2]["TrailARN"].should.equal(trail1["TrailARN"])
-    all_trails[2]["Name"].should.equal(trail1["Name"])
-    all_trails[2]["HomeRegion"].should.equal("us-east-1")
+    all_trails.should.contain(
+        {
+            "TrailARN": trail1["TrailARN"],
+            "Name": trail1["Name"],
+            "HomeRegion": "us-east-1",
+        }
+    )
+    all_trails.should.contain(
+        {
+            "TrailARN": trail2["TrailARN"],
+            "Name": trail2["Name"],
+            "HomeRegion": "ap-southeast-2",
+        }
+    )
+    all_trails.should.contain(
+        {
+            "TrailARN": trail3["TrailARN"],
+            "Name": trail3["Name"],
+            "HomeRegion": "eu-west-1",
+        }
+    )
 
 
 @mock_cloudtrail

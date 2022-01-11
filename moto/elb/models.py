@@ -12,6 +12,7 @@ from moto.packages.boto.ec2.elb.attributes import (
 from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     BadHealthCheckDefinition,
@@ -542,6 +543,5 @@ class ELBBackend(BaseBackend):
             raise CertificateNotFoundException()
 
 
-elb_backends = {}
-for region in ec2_backends.keys():
-    elb_backends[region] = ELBBackend(region)
+# Use the same regions as EC2
+elb_backends = BackendDict(ELBBackend, "ec2")

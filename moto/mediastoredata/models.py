@@ -1,9 +1,8 @@
 import hashlib
 from collections import OrderedDict
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import ClientError
 
 
@@ -75,14 +74,4 @@ class MediaStoreDataBackend(BaseBackend):
         return response_items
 
 
-mediastoredata_backends = {}
-for region in Session().get_available_regions("mediastore-data"):
-    mediastoredata_backends[region] = MediaStoreDataBackend(region)
-for region in Session().get_available_regions(
-    "mediastore-data", partition_name="aws-us-gov"
-):
-    mediastoredata_backends[region] = MediaStoreDataBackend(region)
-for region in Session().get_available_regions(
-    "mediastore-data", partition_name="aws-cn"
-):
-    mediastoredata_backends[region] = MediaStoreDataBackend(region)
+mediastoredata_backends = BackendDict(MediaStoreDataBackend, "mediastore-data")

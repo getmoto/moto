@@ -1,6 +1,64 @@
 Moto Changelog
 ===================
 
+2.3.1
+-----
+    New Services:
+        * DAX:
+            * create_cluster()
+            * decrease_replication_factor()
+            * delete_cluster()
+            * describe_clusters()
+            * increase_replication_factor()
+            * list_tags()
+        * SSO-Admin:
+            * create_account_assignment()
+            * delete_account_assignment()
+            * list_account_assignments()
+
+    New Methods:
+        * APIGateway:
+            * update_base_path_mapping()
+        * SNS:
+            * publish_batch()
+
+    Miscellaneous:
+        * ECS: run_task() now supports the launchType-parameter
+        * SNS: publish() now supports FIFO-topics
+        * SWF: respond_decision_task_completed() now supports RecordMarker/StartTimer/CancelTimer/CancelWorkflowExecution decisions
+
+2.3.0
+-----
+    General:
+        * It is now possible to use a mocked region. This will throw an error by default, but can be enabled using the `MOTO_ALLOW_NONEXISTENT_REGION`-environment variable.
+        * Performance improvements - only the backend for the requested region is now loaded into memory, instead of (naively) loading a backend for every region.
+
+2.2.20
+-----
+    New Services:
+        * ElasticsearchService:
+            * create_elasticsearch_domain()
+            * delete_elasticsearch_domain()
+            * describe_elasticsearch_domain()
+            * list_domain_names()
+
+    New Methods:
+        * EC2:
+            * disable_ebs_encryption_by_default()
+            * enable_ebs_encryption_by_default()
+            * get_ebs_encryption_by_default()
+        * Redshift:
+            * pause_cluster()
+            * resume_cluster()
+
+    Miscellanous:
+        * ELBv2: create_listener now supports the DefaultActions.ForwardConfig parameter
+        * Redshift: restore_from_cluster_snapshot() now supports the NodeType and NumberOfNodes-parameters
+        * Sagemaker: list_experiments() now supports pagination
+        * Sagemaker: list_trials() now supports pagination
+        * Sagemaker: list_trial_components() now supports pagination
+
+
 2.2.19
 -----
     General:

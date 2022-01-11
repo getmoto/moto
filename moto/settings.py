@@ -46,6 +46,10 @@ def ecs_new_arn_format():
     return os.environ.get("MOTO_ECS_NEW_ARN", "false").lower() == "true"
 
 
+def allow_unknown_region():
+    return os.environ.get("MOTO_ALLOW_NONEXISTENT_REGION", "false").lower() == "true"
+
+
 def moto_server_port():
     return os.environ.get("MOTO_PORT") or "5000"
 

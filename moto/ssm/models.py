@@ -2,11 +2,11 @@ import re
 from dataclasses import dataclass
 from typing import Dict
 
-from boto3 import Session
 from collections import defaultdict
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
 
 import datetime
@@ -718,7 +718,7 @@ class FakeMaintenanceWindow:
 
 
 class SimpleSystemManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
+    def __init__(self, region):
         super(SimpleSystemManagerBackend, self).__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
@@ -731,7 +731,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
 
-        self._region = region_name
+        self._region = region
 
     def reset(self):
         region_name = self._region
@@ -1843,10 +1843,4 @@ class SimpleSystemManagerBackend(BaseBackend):
         del self.windows[window_id]
 
 
-ssm_backends = {}
-for region in Session().get_available_regions("ssm"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
-for region in Session().get_available_regions("ssm", partition_name="aws-us-gov"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
-for region in Session().get_available_regions("ssm", partition_name="aws-cn"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
+ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

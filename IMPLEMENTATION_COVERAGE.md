@@ -125,7 +125,7 @@
 - [ ] update_account
 - [X] update_api_key
 - [X] update_authorizer
-- [ ] update_base_path_mapping
+- [X] update_base_path_mapping
 - [ ] update_client_certificate
 - [ ] update_deployment
 - [ ] update_documentation_part
@@ -498,25 +498,36 @@
 
 ## cloudtrail
 <details>
-<summary>44% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] add_tags
+- [ ] cancel_query
+- [ ] create_event_data_store
 - [X] create_trail
+- [ ] delete_event_data_store
 - [X] delete_trail
+- [ ] describe_query
 - [X] describe_trails
+- [ ] get_event_data_store
 - [ ] get_event_selectors
 - [ ] get_insight_selectors
+- [ ] get_query_results
 - [X] get_trail
 - [X] get_trail_status
+- [ ] list_event_data_stores
 - [ ] list_public_keys
+- [ ] list_queries
 - [ ] list_tags
 - [X] list_trails
 - [ ] lookup_events
 - [ ] put_event_selectors
 - [ ] put_insight_selectors
 - [ ] remove_tags
+- [ ] restore_event_data_store
 - [X] start_logging
+- [ ] start_query
 - [X] stop_logging
+- [ ] update_event_data_store
 - [ ] update_trail
 </details>
 
@@ -950,6 +961,7 @@
 - [X] cancel_task_execution
 - [ ] create_agent
 - [ ] create_location_efs
+- [ ] create_location_fsx_lustre
 - [ ] create_location_fsx_windows
 - [ ] create_location_hdfs
 - [ ] create_location_nfs
@@ -962,6 +974,7 @@
 - [X] delete_task
 - [ ] describe_agent
 - [ ] describe_location_efs
+- [ ] describe_location_fsx_lustre
 - [ ] describe_location_fsx_windows
 - [ ] describe_location_hdfs
 - [ ] describe_location_nfs
@@ -985,6 +998,33 @@
 - [ ] update_location_smb
 - [X] update_task
 - [ ] update_task_execution
+</details>
+
+## dax
+<details>
+<summary>28% implemented</summary>
+
+- [X] create_cluster
+- [ ] create_parameter_group
+- [ ] create_subnet_group
+- [X] decrease_replication_factor
+- [X] delete_cluster
+- [ ] delete_parameter_group
+- [ ] delete_subnet_group
+- [X] describe_clusters
+- [ ] describe_default_parameters
+- [ ] describe_events
+- [ ] describe_parameter_groups
+- [ ] describe_parameters
+- [ ] describe_subnet_groups
+- [X] increase_replication_factor
+- [X] list_tags
+- [ ] reboot_node
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_cluster
+- [ ] update_parameter_group
+- [ ] update_subnet_group
 </details>
 
 ## dms
@@ -1631,6 +1671,7 @@
 - [ ] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [ ] modify_vpc_endpoint_service_configuration
+- [ ] modify_vpc_endpoint_service_payer_responsibility
 - [ ] modify_vpc_endpoint_service_permissions
 - [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
@@ -2511,6 +2552,9 @@
 - [ ] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
+- [ ] get_unfiltered_partition_metadata
+- [ ] get_unfiltered_partitions_metadata
+- [ ] get_unfiltered_table_metadata
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -4595,7 +4639,7 @@
 
 ## sns
 <details>
-<summary>52% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
@@ -4625,7 +4669,7 @@
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
-- [ ] publish_batch
+- [X] publish_batch
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes
@@ -4804,6 +4848,43 @@
 - [ ] update_patch_baseline
 - [ ] update_resource_data_sync
 - [ ] update_service_setting
+</details>
+
+## sso-admin
+<details>
+<summary>9% implemented</summary>
+
+- [ ] attach_managed_policy_to_permission_set
+- [X] create_account_assignment
+- [ ] create_instance_access_control_attribute_configuration
+- [ ] create_permission_set
+- [X] delete_account_assignment
+- [ ] delete_inline_policy_from_permission_set
+- [ ] delete_instance_access_control_attribute_configuration
+- [ ] delete_permission_set
+- [ ] describe_account_assignment_creation_status
+- [ ] describe_account_assignment_deletion_status
+- [ ] describe_instance_access_control_attribute_configuration
+- [ ] describe_permission_set
+- [ ] describe_permission_set_provisioning_status
+- [ ] detach_managed_policy_from_permission_set
+- [ ] get_inline_policy_for_permission_set
+- [ ] list_account_assignment_creation_status
+- [ ] list_account_assignment_deletion_status
+- [X] list_account_assignments
+- [ ] list_accounts_for_provisioned_permission_set
+- [ ] list_instances
+- [ ] list_managed_policies_in_permission_set
+- [ ] list_permission_set_provisioning_status
+- [ ] list_permission_sets
+- [ ] list_permission_sets_provisioned_to_account
+- [ ] list_tags_for_resource
+- [ ] provision_permission_set
+- [ ] put_inline_policy_to_permission_set
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_instance_access_control_attribute_configuration
+- [ ] update_permission_set
 </details>
 
 ## stepfunctions
@@ -5088,7 +5169,6 @@
 - customer-profiles
 - databrew
 - dataexchange
-- dax
 - detective
 - devicefarm
 - devops-guru
@@ -5229,7 +5309,6 @@
 - ssm-contacts
 - ssm-incidents
 - sso
-- sso-admin
 - sso-oidc
 - storagegateway
 - synthetics

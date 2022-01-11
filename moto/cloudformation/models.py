@@ -3,7 +3,6 @@ import json
 import yaml
 import uuid
 
-from boto3 import Session
 from collections import OrderedDict
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
@@ -13,6 +12,7 @@ from moto.core.models import ACCOUNT_ID
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
+    BackendDict,
 )
 from moto.sns.models import sns_backends
 
@@ -518,7 +518,7 @@ def filter_stacks(all_stacks, status_filter):
 
 
 class CloudFormationBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.stacks = OrderedDict()
         self.stacksets = OrderedDict()
         self.deleted_stacks = {}
@@ -896,14 +896,4 @@ class CloudFormationBackend(BaseBackend):
             )
 
 
-cloudformation_backends = {}
-for region in Session().get_available_regions("cloudformation"):
-    cloudformation_backends[region] = CloudFormationBackend()
-for region in Session().get_available_regions(
-    "cloudformation", partition_name="aws-us-gov"
-):
-    cloudformation_backends[region] = CloudFormationBackend()
-for region in Session().get_available_regions(
-    "cloudformation", partition_name="aws-cn"
-):
-    cloudformation_backends[region] = CloudFormationBackend()
+cloudformation_backends = BackendDict(CloudFormationBackend, "cloudformation")

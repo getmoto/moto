@@ -1,4 +1,5 @@
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.ecs import ecs_backends
 from .exceptions import AWSValidationException
 from collections import OrderedDict
@@ -58,18 +59,17 @@ class ScalableDimensionValueSet(Enum):
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
-    def __init__(self, region, ecs):
+    def __init__(self, region):
         super().__init__()
         self.region = region
-        self.ecs_backend = ecs
+        self.ecs_backend = ecs_backends[region]
         self.targets = OrderedDict()
         self.policies = {}
 
     def reset(self):
         region = self.region
-        ecs = self.ecs_backend
         self.__dict__ = {}
-        self.__init__(region, ecs)
+        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -356,8 +356,4 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         )
 
 
-applicationautoscaling_backends = {}
-for region_name, ecs_backend in ecs_backends.items():
-    applicationautoscaling_backends[region_name] = ApplicationAutoscalingBackend(
-        region_name, ecs_backend
-    )
+applicationautoscaling_backends = BackendDict(ApplicationAutoscalingBackend, "ec2")

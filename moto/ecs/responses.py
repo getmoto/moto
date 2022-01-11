@@ -118,8 +118,15 @@ class EC2ContainerServiceResponse(BaseResponse):
         count = self._get_int_param("count")
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
+        launch_type = self._get_param("launchType")
         tasks = self.ecs_backend.run_task(
-            cluster_str, task_definition_str, count, overrides, started_by, tags
+            cluster_str,
+            task_definition_str,
+            count,
+            overrides,
+            started_by,
+            tags,
+            launch_type,
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}
@@ -255,7 +262,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster", "default")
         container_instance_str = self._get_param("containerInstance")
         force = self._get_param("force")
-        container_instance, failures = self.ecs_backend.deregister_container_instance(
+        container_instance = self.ecs_backend.deregister_container_instance(
             cluster_str, container_instance_str, force
         )
         return json.dumps({"containerInstance": container_instance.response_object})

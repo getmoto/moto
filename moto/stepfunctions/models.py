@@ -3,10 +3,8 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from uuid import uuid4
 from .exceptions import (
     ExecutionAlreadyExists,
@@ -617,12 +615,4 @@ class StepFunctionBackend(BaseBackend):
         return ACCOUNT_ID
 
 
-stepfunction_backends = {}
-for region in Session().get_available_regions("stepfunctions"):
-    stepfunction_backends[region] = StepFunctionBackend(region)
-for region in Session().get_available_regions(
-    "stepfunctions", partition_name="aws-us-gov"
-):
-    stepfunction_backends[region] = StepFunctionBackend(region)
-for region in Session().get_available_regions("stepfunctions", partition_name="aws-cn"):
-    stepfunction_backends[region] = StepFunctionBackend(region)
+stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

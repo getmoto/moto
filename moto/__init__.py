@@ -63,6 +63,7 @@ mock_datapipeline_deprecated = lazy_load(
     ".datapipeline", "mock_datapipeline_deprecated"
 )
 mock_datasync = lazy_load(".datasync", "mock_datasync")
+mock_dax = lazy_load(".dax", "mock_dax")
 mock_dms = lazy_load(".dms", "mock_dms")
 mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
 mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
@@ -141,6 +142,7 @@ mock_sns_deprecated = lazy_load(".sns", "mock_sns_deprecated")
 mock_sqs = lazy_load(".sqs", "mock_sqs")
 mock_sqs_deprecated = lazy_load(".sqs", "mock_sqs_deprecated")
 mock_ssm = lazy_load(".ssm", "mock_ssm")
+mock_ssoadmin = lazy_load(".ssoadmin", "mock_ssoadmin", boto3_name="sso-admin")
 mock_stepfunctions = lazy_load(
     ".stepfunctions", "mock_stepfunctions", backend="stepfunction_backends"
 )
@@ -204,7 +206,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.20.dev"
+__version__ = "2.3.2.dev"
 
 
 try:

@@ -117,7 +117,7 @@ class ElasticTranscoderResponse(BaseResponse):
         if err:
             return err
         pipeline, warnings = self.elastictranscoder_backend.update_pipeline(
-            id=_id,
+            pipeline_id=_id,
             name=name,
             input_bucket=input_bucket,
             role=role,

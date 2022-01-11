@@ -2,11 +2,9 @@ import datetime
 import json
 import re
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
@@ -190,14 +188,4 @@ class CognitoIdentityBackend(BaseBackend):
         return response
 
 
-cognitoidentity_backends = {}
-for region in Session().get_available_regions("cognito-identity"):
-    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
-for region in Session().get_available_regions(
-    "cognito-identity", partition_name="aws-us-gov"
-):
-    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
-for region in Session().get_available_regions(
-    "cognito-identity", partition_name="aws-cn"
-):
-    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
+cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

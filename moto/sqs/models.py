@@ -10,8 +10,6 @@ from copy import deepcopy
 from typing import Dict
 from xml.sax.saxutils import escape
 
-from boto3 import Session
-
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
@@ -20,6 +18,7 @@ from moto.core.utils import (
     unix_time,
     unix_time_millis,
     tags_from_cloudformation_tags_list,
+    BackendDict,
 )
 from .utils import generate_receipt_handle
 from .exceptions import (
@@ -151,7 +150,7 @@ class Message(BaseModel):
 
     @property
     def body(self):
-        return escape(self._body)
+        return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
 
     def mark_sent(self, delay_seconds=None):
         self.sent_timestamp = int(unix_time_millis())
@@ -1108,10 +1107,4 @@ class SQSBackend(BaseBackend):
         return True
 
 
-sqs_backends = {}
-for region in Session().get_available_regions("sqs"):
-    sqs_backends[region] = SQSBackend(region)
-for region in Session().get_available_regions("sqs", partition_name="aws-us-gov"):
-    sqs_backends[region] = SQSBackend(region)
-for region in Session().get_available_regions("sqs", partition_name="aws-cn"):
-    sqs_backends[region] = SQSBackend(region)
+sqs_backends = BackendDict(SQSBackend, "sqs")

@@ -5,13 +5,12 @@ import random
 import string
 
 from collections import defaultdict
-from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     RDSClientError,
@@ -1817,10 +1816,4 @@ class DBParameterGroup(CloudFormationModel):
         return db_parameter_group
 
 
-rds2_backends = {}
-for region in Session().get_available_regions("rds"):
-    rds2_backends[region] = RDS2Backend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-us-gov"):
-    rds2_backends[region] = RDS2Backend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-cn"):
-    rds2_backends[region] = RDS2Backend(region)
+rds2_backends = BackendDict(RDS2Backend, "rds")

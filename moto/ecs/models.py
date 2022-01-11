@@ -5,12 +5,16 @@ from datetime import datetime
 from random import random, randint
 
 import pytz
-from boto3 import Session
 
 from moto import settings
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
+from moto.core.utils import (
+    unix_time,
+    pascal_to_camelcase,
+    remap_nested_keys,
+    BackendDict,
+)
 from moto.ec2 import ec2_backends
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -285,9 +289,10 @@ class Task(BaseObject):
         container_instance_arn,
         resource_requirements,
         backend,
-        overrides={},
+        launch_type="",
+        overrides=None,
         started_by="",
-        tags=[],
+        tags=None,
     ):
         self.id = str(uuid.uuid4())
         self.cluster_name = cluster.name
@@ -296,10 +301,11 @@ class Task(BaseObject):
         self.last_status = "RUNNING"
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
-        self.overrides = overrides
+        self.overrides = overrides or {}
         self.containers = []
         self.started_by = started_by
-        self.tags = tags
+        self.tags = tags or []
+        self.launch_type = launch_type
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
         self.region_name = cluster.region_name
@@ -711,7 +717,7 @@ class TaskSet(BaseObject):
 
 class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self, region_name):
-        super(EC2ContainerServiceBackend, self).__init__()
+        super().__init__()
         self.account_settings = dict()
         self.clusters = {}
         self.task_definitions = {}
@@ -883,7 +889,14 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise TaskDefinitionNotFoundException
 
     def run_task(
-        self, cluster_str, task_definition_str, count, overrides, started_by, tags
+        self,
+        cluster_str,
+        task_definition_str,
+        count,
+        overrides,
+        started_by,
+        tags,
+        launch_type,
     ):
         cluster = self._get_cluster(cluster_str)
 
@@ -913,7 +926,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             container_instance_arn = container_instance.container_instance_arn
             try_to_place = True
             while try_to_place:
-                can_be_placed, message = self._can_be_placed(
+                can_be_placed = self._can_be_placed(
                     container_instance, resource_requirements
                 )
                 if can_be_placed:
@@ -926,6 +939,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         overrides=overrides or {},
                         started_by=started_by or "",
                         tags=tags or [],
+                        launch_type=launch_type or "",
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
@@ -998,14 +1012,14 @@ class EC2ContainerServiceBackend(BaseBackend):
             elif resource.get("name") == "PORTS":
                 reserved_ports = resource.get("stringSetValue")
         if task_resource_requirements.get("CPU") > remaining_cpu:
-            return False, "Not enough CPU credits"
+            return False
         if task_resource_requirements.get("MEMORY") > remaining_memory:
-            return False, "Not enough memory"
+            return False
         ports_needed = task_resource_requirements.get("PORTS")
         for port in ports_needed:
             if str(port) in reserved_ports:
-                return False, "Port clash"
-        return True, "Can be placed"
+                return False
+        return True
 
     def start_task(
         self,
@@ -1054,7 +1068,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         if not tasks:
             raise InvalidParameterException("Tasks cannot be empty.")
         response = []
-        for cluster, cluster_tasks in self.tasks.items():
+        for cluster_tasks in self.tasks.values():
             for task_arn, task in cluster_tasks.items():
                 task_id = task_arn.split("/")[-1]
                 if (
@@ -1076,7 +1090,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     ):
         filtered_tasks = []
         for cluster, tasks in self.tasks.items():
-            for arn, task in tasks.items():
+            for task in tasks.values():
                 filtered_tasks.append(task)
         if cluster_str:
             cluster = self._get_cluster(cluster_str)
@@ -1189,9 +1203,8 @@ class EC2ContainerServiceBackend(BaseBackend):
     def list_services(self, cluster_str, scheduling_strategy=None):
         cluster_name = cluster_str.split("/")[-1]
         service_arns = []
-        for key, value in self.services.items():
+        for key, service in self.services.items():
             if cluster_name + ":" in key:
-                service = self.services[key]
                 if (
                     scheduling_strategy is None
                     or service.scheduling_strategy == scheduling_strategy
@@ -1370,7 +1383,6 @@ class EC2ContainerServiceBackend(BaseBackend):
     def deregister_container_instance(self, cluster_str, container_instance_str, force):
         cluster = self._get_cluster(cluster_str)
 
-        failures = []
         container_instance_id = container_instance_str.split("/")[-1]
         container_instance = self.container_instances[cluster.name].get(
             container_instance_id
@@ -1389,7 +1401,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             ] = container_instance
         del self.container_instances[cluster.name][container_instance_id]
         self._respond_to_cluster_state_update(cluster_str)
-        return container_instance, failures
+        return container_instance
 
     def _respond_to_cluster_state_update(self, cluster_str):
         self._get_cluster(cluster_str)
@@ -1780,10 +1792,4 @@ class EC2ContainerServiceBackend(BaseBackend):
         return False
 
 
-ecs_backends = {}
-for region in Session().get_available_regions("ecs"):
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
-for region in Session().get_available_regions("ecs", partition_name="aws-us-gov"):
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
-for region in Session().get_available_regions("ecs", partition_name="aws-cn"):
-    ecs_backends[region] = EC2ContainerServiceBackend(region)
+ecs_backends = BackendDict(EC2ContainerServiceBackend, "ecs")

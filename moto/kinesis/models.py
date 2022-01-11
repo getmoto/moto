@@ -6,10 +6,8 @@ import itertools
 from operator import attrgetter
 from hashlib import md5
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 from moto.core import ACCOUNT_ID
 from moto.utilities.paginator import paginate
 from .exceptions import (
@@ -88,7 +86,7 @@ class Shard(BaseModel):
         self.records[sequence_number] = Record(
             partition_key, data, sequence_number, explicit_hash_key
         )
-        return sequence_number
+        return str(sequence_number)
 
     def get_min_sequence_number(self):
         if self.records:
@@ -123,16 +121,16 @@ class Shard(BaseModel):
                 "StartingHashKey": str(self.starting_hash),
             },
             "SequenceNumberRange": {
-                "StartingSequenceNumber": self.get_min_sequence_number(),
+                "StartingSequenceNumber": str(self.get_min_sequence_number()),
             },
             "ShardId": self.shard_id,
         }
         if self.parent:
             response["ParentShardId"] = self.parent
         if not self.is_open:
-            response["SequenceNumberRange"][
-                "EndingSequenceNumber"
-            ] = self.get_max_sequence_number()
+            response["SequenceNumberRange"]["EndingSequenceNumber"] = str(
+                self.get_max_sequence_number()
+            )
         return response
 
 
@@ -337,7 +335,7 @@ class Stream(CloudFormationModel):
 
 
 class KinesisBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.streams = OrderedDict()
 
     @staticmethod
@@ -597,10 +595,4 @@ class KinesisBackend(BaseBackend):
                 del stream.tags[key]
 
 
-kinesis_backends = {}
-for region in Session().get_available_regions("kinesis"):
-    kinesis_backends[region] = KinesisBackend()
-for region in Session().get_available_regions("kinesis", partition_name="aws-us-gov"):
-    kinesis_backends[region] = KinesisBackend()
-for region in Session().get_available_regions("kinesis", partition_name="aws-cn"):
-    kinesis_backends[region] = KinesisBackend()
+kinesis_backends = BackendDict(KinesisBackend, "kinesis")
