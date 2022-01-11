@@ -583,7 +583,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # add host.docker.internal host on linux to emulate Mac + Windows behavior
                     #   for communication with other mock AWS services running on localhost
                     if platform == "linux" or platform == "linux2":
-                        run_kwargs["extra_hosts"] = {"host.docker.internal": "host-gateway"}
+                        run_kwargs["extra_hosts"] = {
+                            "host.docker.internal": "host-gateway"
+                        }
 
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
