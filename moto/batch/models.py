@@ -559,7 +559,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
             #   for communication with other mock AWS services running on localhost
             extra_hosts = (
                 {
-                    "swipe-test.host.docker.internal": "host-gateway",
                     "host.docker.internal": "host-gateway",
                 }
                 if platform == "linux" or platform == "linux2"
