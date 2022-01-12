@@ -221,6 +221,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     strategy:
+      fail-fast: false
       matrix:
         python-version: [ 3.8 ]
         responses-version: [0.11.0, 0.12.0, 0.12.1, 0.13.0, 0.15.0, 0.17.0]
@@ -251,7 +252,7 @@ jobs:
           pip install "coverage<=4.5.4"
       - name: Test core-logic with responses==${{ matrix.responses-version }}
         run: |
-          pytest -sv --cov=moto --cov-report xml ./tests/test_core
+          pytest -sv --cov=moto --cov-report xml ./tests/test_core ./tests/test_apigateway/test_apigateway_integration.py
       - name: "Upload coverage to Codecov"
         if: ${{ github.repository == 'spulec/moto'}}
         uses: codecov/codecov-action@v1

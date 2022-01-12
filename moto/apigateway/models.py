@@ -918,7 +918,6 @@ class RestAPI(CloudFormationModel):
                         method=http_method,
                         callback=self.resource_callback,
                         content_type="text/plain",
-                        match_querystring=False,
                     )
                     responses_mock.add(callback_response)
 
