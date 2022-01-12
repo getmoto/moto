@@ -22,6 +22,7 @@ from .custom_responses_mock import (
     get_response_mock,
     CallbackResponse,
     not_implemented_callback,
+    reset_responses_mock,
 )
 from .utils import (
     convert_httpretty_response,
@@ -317,7 +318,7 @@ def patch_resource(resource):
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self):
         botocore_stubber.reset()
-        responses_mock.calls.reset()
+        reset_responses_mock(responses_mock)
 
     def enable_patching(self):
         botocore_stubber.enabled = True

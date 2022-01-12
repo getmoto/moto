@@ -13,6 +13,9 @@ except ImportError:
     from importlib_metadata import version
 
 
+RESPONSES_VERSION = version("responses")
+
+
 class CallbackResponse(responses.CallbackResponse):
     """
     Need to subclass so we can change a couple things
@@ -151,7 +154,6 @@ def get_response_mock():
     """
     responses_mock = None
 
-    RESPONSES_VERSION = version("responses")
     if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
         responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         responses_mock._find_match = types.MethodType(
@@ -169,3 +171,17 @@ def get_response_mock():
 
     responses_mock.add_passthru("http")
     return responses_mock
+
+
+def reset_responses_mock(responses_mock):
+    if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
+        responses_mock.reset()
+    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+        from .responses_custom_registry import CustomRegistry
+
+        responses_mock.reset()
+        # No way to set the registry directly (yet..)
+        responses_mock._set_registry(CustomRegistry)
+        responses_mock.add_passthru("http")
+    else:
+        responses_mock.reset()
