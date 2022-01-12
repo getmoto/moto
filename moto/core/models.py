@@ -341,7 +341,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             method=method,
                             url=re.compile(key),
                             callback=convert_flask_to_responses_response(value),
-                            match_querystring=False,
                         )
                     )
             responses_mock.add(
@@ -349,7 +348,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    match_querystring=False,
                 )
             )
             botocore_mock.add(
@@ -357,7 +355,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    match_querystring=False,
                 )
             )
 

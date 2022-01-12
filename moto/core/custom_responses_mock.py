@@ -71,7 +71,7 @@ class CallbackResponse(responses.CallbackResponse):
         if not match_querystring:
             other = other.split("?", 1)[0]
 
-        if responses._is_string(url):
+        if isinstance(url, str):
             if responses._has_unicode(url):
                 url = responses._clean_unicode(url)
                 if not isinstance(other, str):
