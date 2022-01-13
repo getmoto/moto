@@ -556,7 +556,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             run_kwargs = {}
             if "MOTO_DOCKER_NETWORK" in os.environ:
-                kwargs["network"] = os.environ["MOTO_DOCKER_NETWORK"]
+                run_kwargs["network"] = os.environ["MOTO_DOCKER_NETWORK"]
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
