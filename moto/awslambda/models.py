@@ -584,6 +584,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             "host.docker.internal": "host-gateway"
                         }
 
+                    networks = os.environ["MOTO_DOCKER_NETWORKS"].split() if "MOTO_DOCKER_NETWORKS" in os.environ else []
+
                     image_ref = "lambci/lambda:{}".format(self.run_time)
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
@@ -595,6 +597,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         environment=env_vars,
                         detach=True,
                         log_config=log_config,
+                        networks=networks,
                         **run_kwargs
                     )
                 finally:
