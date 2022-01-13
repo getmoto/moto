@@ -557,9 +557,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
             #   for communication with other mock AWS services running on localhost
             extra_hosts = (
-                {
-                    "host.docker.internal": "host-gateway",
-                }
+                {"host.docker.internal": "host-gateway",}
                 if platform == "linux" or platform == "linux2"
                 else {}
             )
