@@ -7,6 +7,7 @@ import logging
 import docker
 import threading
 import dateutil.parser
+from sys import platform
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.iam import iam_backends
@@ -553,6 +554,14 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             self.job_started_at = datetime.datetime.now()
 
+            # add host.docker.internal host on linux to emulate Mac + Windows behavior
+            #   for communication with other mock AWS services running on localhost
+            extra_hosts = (
+                {"host.docker.internal": "host-gateway",}
+                if platform == "linux" or platform == "linux2"
+                else {}
+            )
+
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
             container = self.docker_client.containers.run(
@@ -564,6 +573,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 environment=environment,
                 mounts=mounts,
                 privileged=privileged,
+                extra_hosts=extra_hosts,
             )
             self.job_state = "RUNNING"
             try:
