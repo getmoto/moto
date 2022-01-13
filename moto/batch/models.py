@@ -554,7 +554,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             self.job_started_at = datetime.datetime.now()
 
-            networks = os.environ["MOTO_DOCKER_NETWORKS"].split() if "MOTO_DOCKER_NETWORKS" in os.environ else []
+            networks = (
+                os.environ["MOTO_DOCKER_NETWORKS"].split()
+                if "MOTO_DOCKER_NETWORKS" in os.environ
+                else []
+            )
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
