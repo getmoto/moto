@@ -39,7 +39,7 @@ class Container(BaseModel):
 
 class MediaStoreBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaStoreBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._containers = OrderedDict()
 

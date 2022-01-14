@@ -76,7 +76,7 @@ class SQSResponse(BaseResponse):
     @amz_crc32  # crc last as request_id can edit XML
     @amzn_request_id
     def call_action(self):
-        status_code, headers, body = super(SQSResponse, self).call_action()
+        status_code, headers, body = super().call_action()
         if status_code == 404:
             queue_name = self.querystring.get("QueueName", [""])[0]
             template = self.response_template(ERROR_INEXISTENT_QUEUE)

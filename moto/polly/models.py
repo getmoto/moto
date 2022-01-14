@@ -65,7 +65,7 @@ class Lexicon(BaseModel):
 
 class PollyBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(PollyBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
         self._lexicons = {}

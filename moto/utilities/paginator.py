@@ -107,7 +107,7 @@ class Paginator(object):
             if isinstance(self._fail_on_invalid_token, type):
                 # we need to raise a custom exception
                 func_info = inspect.getfullargspec(self._fail_on_invalid_token)
-                arg_names, _, _, _, kwarg_names, _, _ = func_info
+                arg_names, _, _, _, _, _, _ = func_info
                 # arg_names == [self] or [self, token_argument_that_can_have_any_name]
                 requires_token_arg = len(arg_names) > 1
                 if requires_token_arg:
@@ -146,7 +146,7 @@ class Paginator(object):
         if self._param_checksum:
             token_dict["parameterChecksum"] = self._param_checksum
         range_keys = []
-        for (index, attr) in enumerate(self._unique_attributes):
+        for attr in self._unique_attributes:
             if type(next_item) == dict:
                 range_keys.append(next_item[attr])
             else:

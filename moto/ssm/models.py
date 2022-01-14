@@ -51,7 +51,7 @@ class Parameter(BaseModel):
         self,
         name,
         value,
-        type,
+        parameter_type,
         description,
         allowed_pattern,
         keyid,
@@ -61,7 +61,7 @@ class Parameter(BaseModel):
         tags=None,
     ):
         self.name = name
-        self.type = type
+        self.type = parameter_type
         self.description = description
         self.allowed_pattern = allowed_pattern
         self.keyid = keyid
@@ -612,50 +612,50 @@ def _validate_document_info(content, name, document_type, document_format, stric
         raise ValidationException("Invalid document type " + str(document_type))
 
 
-def _document_filter_equal_comparator(keyed_value, filter):
-    for v in filter["Values"]:
+def _document_filter_equal_comparator(keyed_value, _filter):
+    for v in _filter["Values"]:
         if keyed_value == v:
             return True
     return False
 
 
-def _document_filter_list_includes_comparator(keyed_value_list, filter):
-    for v in filter["Values"]:
+def _document_filter_list_includes_comparator(keyed_value_list, _filter):
+    for v in _filter["Values"]:
         if v in keyed_value_list:
             return True
     return False
 
 
 def _document_filter_match(filters, ssm_doc):
-    for filter in filters:
-        if filter["Key"] == "Name" and not _document_filter_equal_comparator(
-            ssm_doc.name, filter
+    for _filter in filters:
+        if _filter["Key"] == "Name" and not _document_filter_equal_comparator(
+            ssm_doc.name, _filter
         ):
             return False
 
-        elif filter["Key"] == "Owner":
-            if len(filter["Values"]) != 1:
+        elif _filter["Key"] == "Owner":
+            if len(_filter["Values"]) != 1:
                 raise ValidationException("Owner filter can only have one value.")
-            if filter["Values"][0] == "Self":
+            if _filter["Values"][0] == "Self":
                 # Update to running account ID
-                filter["Values"][0] = ACCOUNT_ID
-            if not _document_filter_equal_comparator(ssm_doc.owner, filter):
+                _filter["Values"][0] = ACCOUNT_ID
+            if not _document_filter_equal_comparator(ssm_doc.owner, _filter):
                 return False
 
-        elif filter[
+        elif _filter[
             "Key"
         ] == "PlatformTypes" and not _document_filter_list_includes_comparator(
-            ssm_doc.platform_types, filter
+            ssm_doc.platform_types, _filter
         ):
             return False
 
-        elif filter["Key"] == "DocumentType" and not _document_filter_equal_comparator(
-            ssm_doc.document_type, filter
+        elif _filter["Key"] == "DocumentType" and not _document_filter_equal_comparator(
+            ssm_doc.document_type, _filter
         ):
             return False
 
-        elif filter["Key"] == "TargetType" and not _document_filter_equal_comparator(
-            ssm_doc.target_type, filter
+        elif _filter["Key"] == "TargetType" and not _document_filter_equal_comparator(
+            ssm_doc.target_type, _filter
         ):
             return False
 
@@ -719,7 +719,7 @@ class FakeMaintenanceWindow:
 
 class SimpleSystemManagerBackend(BaseBackend):
     def __init__(self, region):
-        super(SimpleSystemManagerBackend, self).__init__()
+        super().__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         self._parameters = defaultdict(list)
@@ -965,7 +965,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             document_version=new_version,
         )
 
-        for doc_version, document in documents.versions.items():
+        for document in documents.versions.values():
             if document.content == new_ssm_document.content:
                 if not target_type or target_type == document.target_type:
                     raise DuplicateDocumentContent(
@@ -994,7 +994,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         results = []
         dummy_token_tracker = 0
         # Sort to maintain next token adjacency
-        for document_name, documents in sorted(self._documents.items()):
+        for _, documents in sorted(self._documents.items()):
             if len(results) == max_results:
                 # There's still more to go so we need a next token
                 return results, str(next_token + len(results))
@@ -1109,23 +1109,23 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
 
             if filters:
-                for filter in filters:
-                    if filter["Key"] == "Name":
+                for _filter in filters:
+                    if _filter["Key"] == "Name":
                         k = ssm_parameter.name
-                        for v in filter["Values"]:
+                        for v in _filter["Values"]:
                             if k.startswith(v):
                                 result.append(ssm_parameter)
                                 break
-                    elif filter["Key"] == "Type":
+                    elif _filter["Key"] == "Type":
                         k = ssm_parameter.type
-                        for v in filter["Values"]:
+                        for v in _filter["Values"]:
                             if k == v:
                                 result.append(ssm_parameter)
                                 break
-                    elif filter["Key"] == "KeyId":
+                    elif _filter["Key"] == "KeyId":
                         k = ssm_parameter.keyid
                         if k:
-                            for v in filter["Values"]:
+                            for v in _filter["Values"]:
                                 if k == v:
                                     result.append(ssm_parameter)
                                     break
@@ -1595,7 +1595,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         name,
         description,
         value,
-        type,
+        parameter_type,
         allowed_pattern,
         keyid,
         overwrite,
@@ -1659,7 +1659,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             Parameter(
                 name=name,
                 value=value,
-                type=type,
+                parameter_type=parameter_type,
                 description=description,
                 allowed_pattern=allowed_pattern,
                 keyid=keyid,
@@ -1758,9 +1758,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         return {"Commands": [command.response_object() for command in commands]}
 
-    def get_command_by_id(self, id):
+    def get_command_by_id(self, command_id):
         command = next(
-            (command for command in self._commands if command.command_id == id), None
+            (command for command in self._commands if command.command_id == command_id),
+            None,
         )
 
         if command is None:

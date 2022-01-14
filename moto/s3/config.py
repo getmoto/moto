@@ -148,8 +148,8 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
 
         # If a resource ID was passed in, then filter accordingly:
         if resource_ids:
-            for id in resource_ids:
-                if account_id == id:
+            for resource_id in resource_ids:
+                if account_id == resource_id:
                     pab = self.backends["global"].account_public_access_block
                     break
 
