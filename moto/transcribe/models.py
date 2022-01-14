@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from moto.core import BaseBackend, BaseModel
-from moto.ec2 import ec2_backends
+from moto.core.utils import BackendDict
 from moto.sts.models import ACCOUNT_ID
 from .exceptions import ConflictException, BadRequestException
 
@@ -806,6 +806,4 @@ class TranscribeBackend(BaseBackend):
         return response
 
 
-transcribe_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    transcribe_backends[region] = TranscribeBackend(region_name=region)
+transcribe_backends = BackendDict(TranscribeBackend, "transcribe")

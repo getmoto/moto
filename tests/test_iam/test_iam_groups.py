@@ -355,3 +355,73 @@ def test_delete_unknown_group():
     err.value.response["Error"]["Message"].should.equal(
         "The group with name unknown-group cannot be found."
     )
+
+
+@mock_iam
+def test_update_group_name():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    initial_group = conn.get_group(GroupName="my-group")["Group"]
+
+    conn.update_group(GroupName="my-group", NewGroupName="new-group")
+
+    # The old group-name should no longer exist
+    with pytest.raises(ClientError) as exc:
+        conn.get_group(GroupName="my-group")
+    exc.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+
+    result = conn.get_group(GroupName="new-group")["Group"]
+    result["Path"].should.equal("/")
+    result["GroupName"].should.equal("new-group")
+    result["GroupId"].should.equal(initial_group["GroupId"])
+    result["Arn"].should.match(":group/new-group")
+
+
+@mock_iam
+def test_update_group_name_that_has_a_path():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group", Path="/path")
+
+    conn.update_group(GroupName="my-group", NewGroupName="new-group")
+
+    # Verify the path hasn't changed
+    new = conn.get_group(GroupName="new-group")["Group"]
+    new["Path"].should.equal("/path")
+
+
+@mock_iam
+def test_update_group_path():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group", Path="/path")
+
+    conn.update_group(
+        GroupName="my-group", NewGroupName="new-group", NewPath="/new-path"
+    )
+
+    # Verify the path has changed
+    new = conn.get_group(GroupName="new-group")["Group"]
+    new["Path"].should.equal("/new-path")
+
+
+@mock_iam
+def test_update_group_that_does_not_exist():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        conn.update_group(GroupName="nonexisting", NewGroupName="..")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.equal("The group with name nonexisting cannot be found.")
+
+
+@mock_iam
+def test_update_group_with_existing_name():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="existing1")
+    conn.create_group(GroupName="existing2")
+
+    with pytest.raises(ClientError) as exc:
+        conn.update_group(GroupName="existing1", NewGroupName="existing2")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("Conflict")
+    err["Message"].should.equal("Group existing2 already exists")

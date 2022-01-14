@@ -12,12 +12,7 @@
 efs
 ===
 
-The backend manager of EFS resources.
-
-    This is the state-machine for each region, tracking the file systems, mount targets,
-    and eventually access points that are deployed. Creating, updating, and destroying
-    such resources should always go through this class.
-    
+.. autoclass:: moto.efs.models.EFSBackend
 
 |start-h3| Example usage |end-h3|
 

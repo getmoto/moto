@@ -1,7 +1,7 @@
 """{{ service_class }}Backend class with methods for supported APIs."""
-from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 
 class {{ service_class }}Backend(BaseBackend):
@@ -19,14 +19,4 @@ class {{ service_class }}Backend(BaseBackend):
     # add methods from here
 
 
-{{ escaped_service }}_backends = {}
-for available_region in Session().get_available_regions("{{ service }}"):
-    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend(available_region)
-for available_region in Session().get_available_regions(
-    "{{ service }}", partition_name="aws-us-gov"
-):
-    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend(available_region)
-for available_region in Session().get_available_regions(
-    "{{ service }}", partition_name="aws-cn"
-):
-    {{ escaped_service }}_backends[available_region] = {{ service_class }}Backend(available_region)
+{{ escaped_service }}_backends = BackendDict({{ service_class }}Backend, "{{ service }}")

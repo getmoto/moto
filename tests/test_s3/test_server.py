@@ -16,7 +16,7 @@ class AuthenticatedClient(FlaskClient):
         kwargs["headers"] = kwargs.get("headers", {})
         kwargs["headers"]["Authorization"] = "Any authorization header"
         kwargs["content_length"] = 0  # Fixes content-length complaints.
-        return super(AuthenticatedClient, self).open(*args, **kwargs)
+        return super().open(*args, **kwargs)
 
 
 def authenticated_client():
@@ -55,7 +55,7 @@ def test_s3_server_bucket_create():
 
 
 def test_s3_server_ignore_subdomain_for_bucketnames():
-    with patch("moto.s3.responses.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
+    with patch("moto.settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
         test_client = authenticated_client()
 
         res = test_client.put("/mybucket", "http://foobaz.localhost:5000/")

@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>51% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -113,10 +113,10 @@
 - [ ] import_documentation_parts
 - [ ] import_rest_api
 - [ ] put_gateway_response
-- [ ] put_integration
-- [ ] put_integration_response
-- [ ] put_method
-- [ ] put_method_response
+- [X] put_integration
+- [X] put_integration_response
+- [X] put_method
+- [X] put_method_response
 - [ ] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
@@ -125,7 +125,7 @@
 - [ ] update_account
 - [X] update_api_key
 - [X] update_authorizer
-- [ ] update_base_path_mapping
+- [X] update_base_path_mapping
 - [ ] update_client_certificate
 - [ ] update_deployment
 - [ ] update_documentation_part
@@ -204,7 +204,7 @@
 
 ## autoscaling
 <details>
-<summary>45% implemented</summary>
+<summary>47% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -241,7 +241,7 @@
 - [ ] describe_scaling_activities
 - [ ] describe_scaling_process_types
 - [ ] describe_scheduled_actions
-- [ ] describe_tags
+- [X] describe_tags
 - [ ] describe_termination_policy_types
 - [ ] describe_warm_pool
 - [X] detach_instances
@@ -271,19 +271,23 @@
 
 ## batch
 <details>
-<summary>84% implemented</summary>
+<summary>66% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
+- [ ] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
+- [ ] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
+- [ ] describe_scheduling_policies
 - [X] list_jobs
+- [ ] list_scheduling_policies
 - [ ] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -292,11 +296,40 @@
 - [ ] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
+- [ ] update_scheduling_policy
+</details>
+
+## budgets
+<details>
+<summary>31% implemented</summary>
+
+- [X] create_budget
+- [ ] create_budget_action
+- [X] create_notification
+- [ ] create_subscriber
+- [X] delete_budget
+- [ ] delete_budget_action
+- [X] delete_notification
+- [ ] delete_subscriber
+- [X] describe_budget
+- [ ] describe_budget_action
+- [ ] describe_budget_action_histories
+- [ ] describe_budget_actions_for_account
+- [ ] describe_budget_actions_for_budget
+- [ ] describe_budget_performance_history
+- [X] describe_budgets
+- [X] describe_notifications_for_budget
+- [ ] describe_subscribers_for_notification
+- [ ] execute_budget_action
+- [ ] update_budget
+- [ ] update_budget_action
+- [ ] update_notification
+- [ ] update_subscriber
 </details>
 
 ## cloudformation
 <details>
-<summary>27% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] activate_type
 - [ ] batch_describe_type_configurations
@@ -331,7 +364,7 @@
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
-- [ ] get_stack_policy
+- [X] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
 - [ ] import_stacks_to_stack_set
@@ -352,7 +385,7 @@
 - [ ] register_publisher
 - [ ] register_type
 - [ ] rollback_stack
-- [ ] set_stack_policy
+- [X] set_stack_policy
 - [ ] set_type_configuration
 - [ ] set_type_default_version
 - [ ] signal_resource
@@ -365,27 +398,136 @@
 - [X] validate_template
 </details>
 
+## cloudfront
+<details>
+<summary>4% implemented</summary>
+
+- [ ] associate_alias
+- [ ] create_cache_policy
+- [ ] create_cloud_front_origin_access_identity
+- [X] create_distribution
+- [ ] create_distribution_with_tags
+- [ ] create_field_level_encryption_config
+- [ ] create_field_level_encryption_profile
+- [ ] create_function
+- [ ] create_invalidation
+- [ ] create_key_group
+- [ ] create_monitoring_subscription
+- [ ] create_origin_request_policy
+- [ ] create_public_key
+- [ ] create_realtime_log_config
+- [ ] create_response_headers_policy
+- [ ] create_streaming_distribution
+- [ ] create_streaming_distribution_with_tags
+- [ ] delete_cache_policy
+- [ ] delete_cloud_front_origin_access_identity
+- [X] delete_distribution
+- [ ] delete_field_level_encryption_config
+- [ ] delete_field_level_encryption_profile
+- [ ] delete_function
+- [ ] delete_key_group
+- [ ] delete_monitoring_subscription
+- [ ] delete_origin_request_policy
+- [ ] delete_public_key
+- [ ] delete_realtime_log_config
+- [ ] delete_response_headers_policy
+- [ ] delete_streaming_distribution
+- [ ] describe_function
+- [ ] get_cache_policy
+- [ ] get_cache_policy_config
+- [ ] get_cloud_front_origin_access_identity
+- [ ] get_cloud_front_origin_access_identity_config
+- [X] get_distribution
+- [ ] get_distribution_config
+- [ ] get_field_level_encryption
+- [ ] get_field_level_encryption_config
+- [ ] get_field_level_encryption_profile
+- [ ] get_field_level_encryption_profile_config
+- [ ] get_function
+- [ ] get_invalidation
+- [ ] get_key_group
+- [ ] get_key_group_config
+- [ ] get_monitoring_subscription
+- [ ] get_origin_request_policy
+- [ ] get_origin_request_policy_config
+- [ ] get_public_key
+- [ ] get_public_key_config
+- [ ] get_realtime_log_config
+- [ ] get_response_headers_policy
+- [ ] get_response_headers_policy_config
+- [ ] get_streaming_distribution
+- [ ] get_streaming_distribution_config
+- [ ] list_cache_policies
+- [ ] list_cloud_front_origin_access_identities
+- [ ] list_conflicting_aliases
+- [X] list_distributions
+- [ ] list_distributions_by_cache_policy_id
+- [ ] list_distributions_by_key_group
+- [ ] list_distributions_by_origin_request_policy_id
+- [ ] list_distributions_by_realtime_log_config
+- [ ] list_distributions_by_response_headers_policy_id
+- [ ] list_distributions_by_web_acl_id
+- [ ] list_field_level_encryption_configs
+- [ ] list_field_level_encryption_profiles
+- [ ] list_functions
+- [ ] list_invalidations
+- [ ] list_key_groups
+- [ ] list_origin_request_policies
+- [ ] list_public_keys
+- [ ] list_realtime_log_configs
+- [ ] list_response_headers_policies
+- [ ] list_streaming_distributions
+- [ ] list_tags_for_resource
+- [ ] publish_function
+- [ ] tag_resource
+- [ ] test_function
+- [ ] untag_resource
+- [ ] update_cache_policy
+- [ ] update_cloud_front_origin_access_identity
+- [ ] update_distribution
+- [ ] update_field_level_encryption_config
+- [ ] update_field_level_encryption_profile
+- [ ] update_function
+- [ ] update_key_group
+- [ ] update_origin_request_policy
+- [ ] update_public_key
+- [ ] update_realtime_log_config
+- [ ] update_response_headers_policy
+- [ ] update_streaming_distribution
+</details>
+
 ## cloudtrail
 <details>
-<summary>44% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] add_tags
+- [ ] cancel_query
+- [ ] create_event_data_store
 - [X] create_trail
+- [ ] delete_event_data_store
 - [X] delete_trail
+- [ ] describe_query
 - [X] describe_trails
+- [ ] get_event_data_store
 - [ ] get_event_selectors
 - [ ] get_insight_selectors
+- [ ] get_query_results
 - [X] get_trail
 - [X] get_trail_status
+- [ ] list_event_data_stores
 - [ ] list_public_keys
+- [ ] list_queries
 - [ ] list_tags
 - [X] list_trails
 - [ ] lookup_events
 - [ ] put_event_selectors
 - [ ] put_insight_selectors
 - [ ] remove_tags
+- [ ] restore_event_data_store
 - [X] start_logging
+- [ ] start_query
 - [X] stop_logging
+- [ ] update_event_data_store
 - [ ] update_trail
 </details>
 
@@ -819,6 +961,7 @@
 - [X] cancel_task_execution
 - [ ] create_agent
 - [ ] create_location_efs
+- [ ] create_location_fsx_lustre
 - [ ] create_location_fsx_windows
 - [ ] create_location_hdfs
 - [ ] create_location_nfs
@@ -831,6 +974,7 @@
 - [X] delete_task
 - [ ] describe_agent
 - [ ] describe_location_efs
+- [ ] describe_location_fsx_lustre
 - [ ] describe_location_fsx_windows
 - [ ] describe_location_hdfs
 - [ ] describe_location_nfs
@@ -854,6 +998,33 @@
 - [ ] update_location_smb
 - [X] update_task
 - [ ] update_task_execution
+</details>
+
+## dax
+<details>
+<summary>28% implemented</summary>
+
+- [X] create_cluster
+- [ ] create_parameter_group
+- [ ] create_subnet_group
+- [X] decrease_replication_factor
+- [X] delete_cluster
+- [ ] delete_parameter_group
+- [ ] delete_subnet_group
+- [X] describe_clusters
+- [ ] describe_default_parameters
+- [ ] describe_events
+- [ ] describe_parameter_groups
+- [ ] describe_parameters
+- [ ] describe_subnet_groups
+- [X] increase_replication_factor
+- [X] list_tags
+- [ ] reboot_node
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_cluster
+- [ ] update_parameter_group
+- [ ] update_subnet_group
 </details>
 
 ## dms
@@ -988,7 +1159,7 @@
 
 ## dynamodb
 <details>
-<summary>56% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] batch_execute_statement
 - [X] batch_get_item
@@ -1026,7 +1197,7 @@
 - [X] put_item
 - [X] query
 - [X] restore_table_from_backup
-- [ ] restore_table_to_point_in_time
+- [X] restore_table_to_point_in_time
 - [X] scan
 - [X] tag_resource
 - [X] transact_get_items
@@ -1054,7 +1225,7 @@
 
 ## ec2
 <details>
-<summary>36% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -1065,6 +1236,7 @@
 - [ ] advertise_byoip_cidr
 - [X] allocate_address
 - [ ] allocate_hosts
+- [ ] allocate_ipam_pool_cidr
 - [ ] apply_security_groups_to_client_vpn_target_network
 - [X] assign_ipv6_addresses
 - [X] assign_private_ip_addresses
@@ -1119,6 +1291,9 @@
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
+- [ ] create_ipam
+- [ ] create_ipam_pool
+- [ ] create_ipam_scope
 - [X] create_key_pair
 - [X] create_launch_template
 - [ ] create_launch_template_version
@@ -1128,10 +1303,12 @@
 - [X] create_nat_gateway
 - [X] create_network_acl
 - [X] create_network_acl_entry
+- [ ] create_network_insights_access_scope
 - [ ] create_network_insights_path
 - [X] create_network_interface
 - [ ] create_network_interface_permission
 - [ ] create_placement_group
+- [ ] create_public_ipv4_pool
 - [ ] create_replace_root_volume_task
 - [ ] create_reserved_instances_listing
 - [ ] create_restore_image_task
@@ -1178,6 +1355,9 @@
 - [ ] delete_fpga_image
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
+- [ ] delete_ipam
+- [ ] delete_ipam_pool
+- [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [ ] delete_launch_template
 - [ ] delete_launch_template_versions
@@ -1187,11 +1367,14 @@
 - [X] delete_nat_gateway
 - [X] delete_network_acl
 - [X] delete_network_acl_entry
+- [ ] delete_network_insights_access_scope
+- [ ] delete_network_insights_access_scope_analysis
 - [ ] delete_network_insights_analysis
 - [ ] delete_network_insights_path
 - [X] delete_network_interface
 - [ ] delete_network_interface_permission
 - [ ] delete_placement_group
+- [ ] delete_public_ipv4_pool
 - [ ] delete_queued_reserved_instances
 - [X] delete_route
 - [X] delete_route_table
@@ -1224,6 +1407,8 @@
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
 - [ ] deprovision_byoip_cidr
+- [ ] deprovision_ipam_pool_cidr
+- [ ] deprovision_public_ipv4_pool_cidr
 - [X] deregister_image
 - [ ] deregister_instance_event_notification_attributes
 - [ ] deregister_transit_gateway_multicast_group_members
@@ -1278,6 +1463,9 @@
 - [X] describe_instance_types
 - [X] describe_instances
 - [X] describe_internet_gateways
+- [ ] describe_ipam_pools
+- [ ] describe_ipam_scopes
+- [ ] describe_ipams
 - [ ] describe_ipv6_pools
 - [X] describe_key_pairs
 - [ ] describe_launch_template_versions
@@ -1292,6 +1480,8 @@
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
 - [X] describe_network_acls
+- [ ] describe_network_insights_access_scope_analyses
+- [ ] describe_network_insights_access_scopes
 - [ ] describe_network_insights_analyses
 - [ ] describe_network_insights_paths
 - [ ] describe_network_interface_attribute
@@ -1314,6 +1504,7 @@
 - [ ] describe_security_group_rules
 - [X] describe_security_groups
 - [ ] describe_snapshot_attribute
+- [ ] describe_snapshot_tier_status
 - [X] describe_snapshots
 - [ ] describe_spot_datafeed_subscription
 - [X] describe_spot_fleet_instances
@@ -1359,9 +1550,10 @@
 - [X] detach_network_interface
 - [X] detach_volume
 - [X] detach_vpn_gateway
-- [ ] disable_ebs_encryption_by_default
+- [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
+- [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
 - [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
@@ -1378,9 +1570,10 @@
 - [X] disassociate_transit_gateway_route_table
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
-- [ ] enable_ebs_encryption_by_default
+- [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
+- [ ] enable_ipam_organization_admin_account
 - [ ] enable_serial_console_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
@@ -1399,14 +1592,20 @@
 - [ ] get_console_screenshot
 - [ ] get_default_credit_specification
 - [ ] get_ebs_default_kms_key_id
-- [ ] get_ebs_encryption_by_default
+- [X] get_ebs_encryption_by_default
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_ipam_address_history
+- [ ] get_ipam_pool_allocations
+- [ ] get_ipam_pool_cidrs
+- [ ] get_ipam_resource_cidrs
 - [ ] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
 - [X] get_managed_prefix_list_entries
+- [ ] get_network_insights_access_scope_analysis_findings
+- [ ] get_network_insights_access_scope_content
 - [ ] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_serial_console_access_status
@@ -1425,6 +1624,7 @@
 - [X] import_key_pair
 - [ ] import_snapshot
 - [ ] import_volume
+- [ ] list_snapshots_in_recycle_bin
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -1445,12 +1645,18 @@
 - [ ] modify_instance_event_window
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
+- [ ] modify_ipam
+- [ ] modify_ipam_pool
+- [ ] modify_ipam_resource_cidr
+- [ ] modify_ipam_scope
 - [ ] modify_launch_template
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
+- [ ] modify_private_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute
+- [ ] modify_snapshot_tier
 - [X] modify_spot_fleet_request
 - [X] modify_subnet_attribute
 - [ ] modify_traffic_mirror_filter_network_services
@@ -1465,6 +1671,7 @@
 - [ ] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [ ] modify_vpc_endpoint_service_configuration
+- [ ] modify_vpc_endpoint_service_payer_responsibility
 - [ ] modify_vpc_endpoint_service_permissions
 - [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
@@ -1474,7 +1681,10 @@
 - [ ] modify_vpn_tunnel_options
 - [ ] monitor_instances
 - [ ] move_address_to_vpc
+- [ ] move_byoip_cidr_to_ipam
 - [ ] provision_byoip_cidr
+- [ ] provision_ipam_pool_cidr
+- [ ] provision_public_ipv4_pool_cidr
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -1490,6 +1700,7 @@
 - [X] reject_vpc_peering_connection
 - [X] release_address
 - [ ] release_hosts
+- [ ] release_ipam_pool_allocation
 - [X] replace_iam_instance_profile_association
 - [X] replace_network_acl_association
 - [X] replace_network_acl_entry
@@ -1508,6 +1719,8 @@
 - [ ] reset_snapshot_attribute
 - [ ] restore_address_to_classic
 - [ ] restore_managed_prefix_list_version
+- [ ] restore_snapshot_from_recycle_bin
+- [ ] restore_snapshot_tier
 - [ ] revoke_client_vpn_ingress
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
@@ -1518,6 +1731,7 @@
 - [X] search_transit_gateway_routes
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
+- [ ] start_network_insights_access_scope_analysis
 - [ ] start_network_insights_analysis
 - [ ] start_vpc_endpoint_service_private_dns_verification
 - [X] stop_instances
@@ -1541,20 +1755,24 @@
 
 ## ecr
 <details>
-<summary>74% implemented</summary>
+<summary>63% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
+- [ ] batch_get_repository_scanning_configuration
 - [ ] complete_layer_upload
+- [ ] create_pull_through_cache_rule
 - [X] create_repository
 - [X] delete_lifecycle_policy
+- [ ] delete_pull_through_cache_rule
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
 - [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
+- [ ] describe_pull_through_cache_rules
 - [X] describe_registry
 - [X] describe_repositories
 - [ ] get_authorization_token
@@ -1562,6 +1780,7 @@
 - [X] get_lifecycle_policy
 - [ ] get_lifecycle_policy_preview
 - [X] get_registry_policy
+- [ ] get_registry_scanning_configuration
 - [X] get_repository_policy
 - [ ] initiate_layer_upload
 - [X] list_images
@@ -1571,6 +1790,7 @@
 - [X] put_image_tag_mutability
 - [X] put_lifecycle_policy
 - [X] put_registry_policy
+- [ ] put_registry_scanning_configuration
 - [X] put_replication_configuration
 - [X] set_repository_policy
 - [X] start_image_scan
@@ -1709,6 +1929,77 @@
 - [ ] update_cluster_version
 - [ ] update_nodegroup_config
 - [ ] update_nodegroup_version
+</details>
+
+## elasticache
+<details>
+<summary>4% implemented</summary>
+
+- [ ] add_tags_to_resource
+- [ ] authorize_cache_security_group_ingress
+- [ ] batch_apply_update_action
+- [ ] batch_stop_update_action
+- [ ] complete_migration
+- [ ] copy_snapshot
+- [ ] create_cache_cluster
+- [ ] create_cache_parameter_group
+- [ ] create_cache_security_group
+- [ ] create_cache_subnet_group
+- [ ] create_global_replication_group
+- [ ] create_replication_group
+- [ ] create_snapshot
+- [X] create_user
+- [ ] create_user_group
+- [ ] decrease_node_groups_in_global_replication_group
+- [ ] decrease_replica_count
+- [ ] delete_cache_cluster
+- [ ] delete_cache_parameter_group
+- [ ] delete_cache_security_group
+- [ ] delete_cache_subnet_group
+- [ ] delete_global_replication_group
+- [ ] delete_replication_group
+- [ ] delete_snapshot
+- [X] delete_user
+- [ ] delete_user_group
+- [ ] describe_cache_clusters
+- [ ] describe_cache_engine_versions
+- [ ] describe_cache_parameter_groups
+- [ ] describe_cache_parameters
+- [ ] describe_cache_security_groups
+- [ ] describe_cache_subnet_groups
+- [ ] describe_engine_default_parameters
+- [ ] describe_events
+- [ ] describe_global_replication_groups
+- [ ] describe_replication_groups
+- [ ] describe_reserved_cache_nodes
+- [ ] describe_reserved_cache_nodes_offerings
+- [ ] describe_service_updates
+- [ ] describe_snapshots
+- [ ] describe_update_actions
+- [ ] describe_user_groups
+- [X] describe_users
+- [ ] disassociate_global_replication_group
+- [ ] failover_global_replication_group
+- [ ] increase_node_groups_in_global_replication_group
+- [ ] increase_replica_count
+- [ ] list_allowed_node_type_modifications
+- [ ] list_tags_for_resource
+- [ ] modify_cache_cluster
+- [ ] modify_cache_parameter_group
+- [ ] modify_cache_subnet_group
+- [ ] modify_global_replication_group
+- [ ] modify_replication_group
+- [ ] modify_replication_group_shard_configuration
+- [ ] modify_user
+- [ ] modify_user_group
+- [ ] purchase_reserved_cache_nodes_offering
+- [ ] rebalance_slots_in_global_replication_group
+- [ ] reboot_cache_cluster
+- [ ] remove_tags_from_resource
+- [ ] reset_cache_parameter_group
+- [ ] revoke_cache_security_group_ingress
+- [ ] start_migration
+- [ ] test_failover
 </details>
 
 ## elasticbeanstalk
@@ -1941,6 +2232,52 @@
 - [ ] untag_resource
 </details>
 
+## es
+<details>
+<summary>10% implemented</summary>
+
+- [ ] accept_inbound_cross_cluster_search_connection
+- [ ] add_tags
+- [ ] associate_package
+- [ ] cancel_elasticsearch_service_software_update
+- [X] create_elasticsearch_domain
+- [ ] create_outbound_cross_cluster_search_connection
+- [ ] create_package
+- [X] delete_elasticsearch_domain
+- [ ] delete_elasticsearch_service_role
+- [ ] delete_inbound_cross_cluster_search_connection
+- [ ] delete_outbound_cross_cluster_search_connection
+- [ ] delete_package
+- [ ] describe_domain_auto_tunes
+- [X] describe_elasticsearch_domain
+- [ ] describe_elasticsearch_domain_config
+- [ ] describe_elasticsearch_domains
+- [ ] describe_elasticsearch_instance_type_limits
+- [ ] describe_inbound_cross_cluster_search_connections
+- [ ] describe_outbound_cross_cluster_search_connections
+- [ ] describe_packages
+- [ ] describe_reserved_elasticsearch_instance_offerings
+- [ ] describe_reserved_elasticsearch_instances
+- [ ] dissociate_package
+- [ ] get_compatible_elasticsearch_versions
+- [ ] get_package_version_history
+- [ ] get_upgrade_history
+- [ ] get_upgrade_status
+- [X] list_domain_names
+- [ ] list_domains_for_package
+- [ ] list_elasticsearch_instance_types
+- [ ] list_elasticsearch_versions
+- [ ] list_packages_for_domain
+- [ ] list_tags
+- [ ] purchase_reserved_elasticsearch_instance_offering
+- [ ] reject_inbound_cross_cluster_search_connection
+- [ ] remove_tags
+- [ ] start_elasticsearch_service_software_update
+- [ ] update_elasticsearch_domain_config
+- [ ] update_package
+- [ ] upgrade_elasticsearch_domain
+</details>
+
 ## events
 <details>
 <summary>78% implemented</summary>
@@ -2018,11 +2355,14 @@
 
 ## forecast
 <details>
-<summary>14% implemented</summary>
+<summary>11% implemented</summary>
 
+- [ ] create_auto_predictor
 - [ ] create_dataset
 - [X] create_dataset_group
 - [ ] create_dataset_import_job
+- [ ] create_explainability
+- [ ] create_explainability_export
 - [ ] create_forecast
 - [ ] create_forecast_export_job
 - [ ] create_predictor
@@ -2030,14 +2370,19 @@
 - [ ] delete_dataset
 - [X] delete_dataset_group
 - [ ] delete_dataset_import_job
+- [ ] delete_explainability
+- [ ] delete_explainability_export
 - [ ] delete_forecast
 - [ ] delete_forecast_export_job
 - [ ] delete_predictor
 - [ ] delete_predictor_backtest_export_job
 - [ ] delete_resource_tree
+- [ ] describe_auto_predictor
 - [ ] describe_dataset
 - [X] describe_dataset_group
 - [ ] describe_dataset_import_job
+- [ ] describe_explainability
+- [ ] describe_explainability_export
 - [ ] describe_forecast
 - [ ] describe_forecast_export_job
 - [ ] describe_predictor
@@ -2046,6 +2391,8 @@
 - [X] list_dataset_groups
 - [ ] list_dataset_import_jobs
 - [ ] list_datasets
+- [ ] list_explainabilities
+- [ ] list_explainability_exports
 - [ ] list_forecast_export_jobs
 - [ ] list_forecasts
 - [ ] list_predictor_backtest_export_jobs
@@ -2098,7 +2445,7 @@
 
 ## glue
 <details>
-<summary>7% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2122,7 +2469,7 @@
 - [X] create_crawler
 - [X] create_database
 - [ ] create_dev_endpoint
-- [ ] create_job
+- [X] create_job
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
@@ -2140,7 +2487,7 @@
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
 - [X] delete_crawler
-- [ ] delete_database
+- [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
@@ -2205,6 +2552,9 @@
 - [ ] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
+- [ ] get_unfiltered_partition_metadata
+- [ ] get_unfiltered_partitions_metadata
+- [ ] get_unfiltered_table_metadata
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -2215,7 +2565,7 @@
 - [ ] list_blueprints
 - [ ] list_crawlers
 - [ ] list_dev_endpoints
-- [ ] list_jobs
+- [X] list_jobs
 - [ ] list_ml_transforms
 - [ ] list_registries
 - [ ] list_schema_versions
@@ -2268,9 +2618,73 @@
 - [ ] update_workflow
 </details>
 
+## guardduty
+<details>
+<summary>3% implemented</summary>
+
+- [ ] accept_invitation
+- [ ] archive_findings
+- [X] create_detector
+- [ ] create_filter
+- [ ] create_ip_set
+- [ ] create_members
+- [ ] create_publishing_destination
+- [ ] create_sample_findings
+- [ ] create_threat_intel_set
+- [ ] decline_invitations
+- [ ] delete_detector
+- [ ] delete_filter
+- [ ] delete_invitations
+- [ ] delete_ip_set
+- [ ] delete_members
+- [ ] delete_publishing_destination
+- [ ] delete_threat_intel_set
+- [ ] describe_organization_configuration
+- [ ] describe_publishing_destination
+- [ ] disable_organization_admin_account
+- [ ] disassociate_from_master_account
+- [ ] disassociate_members
+- [ ] enable_organization_admin_account
+- [ ] get_detector
+- [ ] get_filter
+- [ ] get_findings
+- [ ] get_findings_statistics
+- [ ] get_invitations_count
+- [ ] get_ip_set
+- [ ] get_master_account
+- [ ] get_member_detectors
+- [ ] get_members
+- [ ] get_threat_intel_set
+- [ ] get_usage_statistics
+- [ ] invite_members
+- [X] list_detectors
+- [ ] list_filters
+- [ ] list_findings
+- [ ] list_invitations
+- [ ] list_ip_sets
+- [ ] list_members
+- [ ] list_organization_admin_accounts
+- [ ] list_publishing_destinations
+- [ ] list_tags_for_resource
+- [ ] list_threat_intel_sets
+- [ ] start_monitoring_members
+- [ ] stop_monitoring_members
+- [ ] tag_resource
+- [ ] unarchive_findings
+- [ ] untag_resource
+- [ ] update_detector
+- [ ] update_filter
+- [ ] update_findings_feedback
+- [ ] update_ip_set
+- [ ] update_member_detectors
+- [ ] update_organization_configuration
+- [ ] update_publishing_destination
+- [ ] update_threat_intel_set
+</details>
+
 ## iam
 <details>
-<summary>67% implemented</summary>
+<summary>70% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -2363,7 +2777,7 @@
 - [ ] list_instance_profiles_for_role
 - [ ] list_mfa_device_tags
 - [X] list_mfa_devices
-- [ ] list_open_id_connect_provider_tags
+- [X] list_open_id_connect_provider_tags
 - [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
@@ -2399,7 +2813,7 @@
 - [ ] simulate_principal_policy
 - [ ] tag_instance_profile
 - [ ] tag_mfa_device
-- [ ] tag_open_id_connect_provider
+- [X] tag_open_id_connect_provider
 - [X] tag_policy
 - [X] tag_role
 - [ ] tag_saml_provider
@@ -2407,7 +2821,7 @@
 - [X] tag_user
 - [ ] untag_instance_profile
 - [ ] untag_mfa_device
-- [ ] untag_open_id_connect_provider
+- [X] untag_open_id_connect_provider
 - [X] untag_policy
 - [X] untag_role
 - [ ] untag_saml_provider
@@ -2416,9 +2830,9 @@
 - [X] update_access_key
 - [X] update_account_password_policy
 - [ ] update_assume_role_policy
-- [ ] update_group
+- [X] update_group
 - [X] update_login_profile
-- [ ] update_open_id_connect_provider_thumbprint
+- [X] update_open_id_connect_provider_thumbprint
 - [X] update_role
 - [X] update_role_description
 - [X] update_saml_provider
@@ -2434,7 +2848,7 @@
 
 ## iot
 <details>
-<summary>28% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -2458,7 +2872,7 @@
 - [ ] create_certificate_from_csr
 - [ ] create_custom_metric
 - [ ] create_dimension
-- [ ] create_domain_configuration
+- [X] create_domain_configuration
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
@@ -2488,7 +2902,7 @@
 - [X] delete_certificate
 - [ ] delete_custom_metric
 - [ ] delete_dimension
-- [ ] delete_domain_configuration
+- [X] delete_domain_configuration
 - [ ] delete_dynamic_thing_group
 - [ ] delete_fleet_metric
 - [X] delete_job
@@ -2525,7 +2939,7 @@
 - [ ] describe_default_authorizer
 - [ ] describe_detect_mitigation_actions_task
 - [ ] describe_dimension
-- [ ] describe_domain_configuration
+- [X] describe_domain_configuration
 - [X] describe_endpoint
 - [ ] describe_event_configurations
 - [ ] describe_fleet_metric
@@ -2533,6 +2947,7 @@
 - [X] describe_job
 - [X] describe_job_execution
 - [ ] describe_job_template
+- [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
@@ -2582,13 +2997,14 @@
 - [ ] list_detect_mitigation_actions_executions
 - [ ] list_detect_mitigation_actions_tasks
 - [ ] list_dimensions
-- [ ] list_domain_configurations
+- [X] list_domain_configurations
 - [ ] list_fleet_metrics
 - [ ] list_indices
 - [X] list_job_executions_for_job
 - [X] list_job_executions_for_thing
 - [ ] list_job_templates
 - [X] list_jobs
+- [ ] list_managed_job_templates
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
@@ -2653,7 +3069,7 @@
 - [X] update_certificate
 - [ ] update_custom_metric
 - [ ] update_dimension
-- [ ] update_domain_configuration
+- [X] update_domain_configuration
 - [ ] update_dynamic_thing_group
 - [ ] update_event_configurations
 - [ ] update_fleet_metric
@@ -2687,7 +3103,7 @@
 
 ## kinesis
 <details>
-<summary>60% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -2717,6 +3133,7 @@
 - [ ] stop_stream_encryption
 - [ ] subscribe_to_shard
 - [ ] update_shard_count
+- [ ] update_stream_mode
 </details>
 
 ## kinesis-video-archived-media
@@ -3413,6 +3830,7 @@
 - [ ] promote_read_replica
 - [ ] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
+- [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] register_db_proxy_targets
 - [ ] remove_from_global_cluster
@@ -3442,7 +3860,7 @@
 
 ## redshift
 <details>
-<summary>24% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -3513,6 +3931,7 @@
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
 - [ ] describe_resize
@@ -3529,6 +3948,7 @@
 - [ ] enable_logging
 - [X] enable_snapshot_copy
 - [X] get_cluster_credentials
+- [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
@@ -3546,7 +3966,7 @@
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule
 - [ ] modify_usage_limit
-- [ ] pause_cluster
+- [X] pause_cluster
 - [ ] purchase_reserved_node_offering
 - [ ] reboot_cluster
 - [ ] reject_data_share
@@ -3554,7 +3974,7 @@
 - [ ] resize_cluster
 - [X] restore_from_cluster_snapshot
 - [ ] restore_table_from_cluster_snapshot
-- [ ] resume_cluster
+- [X] resume_cluster
 - [ ] revoke_cluster_security_group_ingress
 - [ ] revoke_endpoint_access
 - [ ] revoke_snapshot_access
@@ -3600,7 +4020,7 @@
 
 ## route53
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -3651,7 +4071,7 @@
 - [X] list_hosted_zones_by_name
 - [ ] list_hosted_zones_by_vpc
 - [X] list_query_logging_configs
-- [ ] list_resource_record_sets
+- [X] list_resource_record_sets
 - [ ] list_reusable_delegation_sets
 - [X] list_tags_for_resource
 - [ ] list_tags_for_resources
@@ -3666,6 +4086,75 @@
 - [ ] update_hosted_zone_comment
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
+</details>
+
+## route53resolver
+<details>
+<summary>26% implemented</summary>
+
+- [ ] associate_firewall_rule_group
+- [ ] associate_resolver_endpoint_ip_address
+- [ ] associate_resolver_query_log_config
+- [X] associate_resolver_rule
+- [ ] create_firewall_domain_list
+- [ ] create_firewall_rule
+- [ ] create_firewall_rule_group
+- [X] create_resolver_endpoint
+- [ ] create_resolver_query_log_config
+- [X] create_resolver_rule
+- [ ] delete_firewall_domain_list
+- [ ] delete_firewall_rule
+- [ ] delete_firewall_rule_group
+- [X] delete_resolver_endpoint
+- [ ] delete_resolver_query_log_config
+- [X] delete_resolver_rule
+- [ ] disassociate_firewall_rule_group
+- [ ] disassociate_resolver_endpoint_ip_address
+- [ ] disassociate_resolver_query_log_config
+- [X] disassociate_resolver_rule
+- [ ] get_firewall_config
+- [ ] get_firewall_domain_list
+- [ ] get_firewall_rule_group
+- [ ] get_firewall_rule_group_association
+- [ ] get_firewall_rule_group_policy
+- [ ] get_resolver_config
+- [ ] get_resolver_dnssec_config
+- [X] get_resolver_endpoint
+- [ ] get_resolver_query_log_config
+- [ ] get_resolver_query_log_config_association
+- [ ] get_resolver_query_log_config_policy
+- [X] get_resolver_rule
+- [X] get_resolver_rule_association
+- [ ] get_resolver_rule_policy
+- [ ] import_firewall_domains
+- [ ] list_firewall_configs
+- [ ] list_firewall_domain_lists
+- [ ] list_firewall_domains
+- [ ] list_firewall_rule_group_associations
+- [ ] list_firewall_rule_groups
+- [ ] list_firewall_rules
+- [ ] list_resolver_configs
+- [ ] list_resolver_dnssec_configs
+- [X] list_resolver_endpoint_ip_addresses
+- [X] list_resolver_endpoints
+- [ ] list_resolver_query_log_config_associations
+- [ ] list_resolver_query_log_configs
+- [X] list_resolver_rule_associations
+- [X] list_resolver_rules
+- [X] list_tags_for_resource
+- [ ] put_firewall_rule_group_policy
+- [ ] put_resolver_query_log_config_policy
+- [ ] put_resolver_rule_policy
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_firewall_config
+- [ ] update_firewall_domains
+- [ ] update_firewall_rule
+- [ ] update_firewall_rule_group_association
+- [ ] update_resolver_config
+- [ ] update_resolver_dnssec_config
+- [X] update_resolver_endpoint
+- [ ] update_resolver_rule
 </details>
 
 ## s3
@@ -3800,6 +4289,7 @@
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
+- [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
 - [X] create_model
 - [ ] create_model_bias_job_definition
@@ -3885,7 +4375,9 @@
 - [ ] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
+- [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
+- [ ] describe_lineage_group
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
 - [ ] describe_model_explainability_job_definition
@@ -3913,6 +4405,7 @@
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
 - [ ] get_device_fleet_report
+- [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
 - [ ] get_search_suggestions
@@ -3941,10 +4434,13 @@
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_recommendations_jobs
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
+- [ ] list_lineage_groups
 - [ ] list_model_bias_job_definitions
 - [ ] list_model_explainability_job_definitions
+- [ ] list_model_metadata
 - [ ] list_model_package_groups
 - [ ] list_model_packages
 - [ ] list_model_quality_job_definitions
@@ -3971,6 +4467,7 @@
 - [ ] list_workforces
 - [ ] list_workteams
 - [ ] put_model_package_group_policy
+- [ ] query_lineage
 - [ ] register_devices
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
@@ -3984,6 +4481,7 @@
 - [ ] stop_compilation_job
 - [ ] stop_edge_packaging_job
 - [ ] stop_hyper_parameter_tuning_job
+- [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance
@@ -4016,6 +4514,22 @@
 - [ ] update_user_profile
 - [ ] update_workforce
 - [ ] update_workteam
+</details>
+
+## sdb
+<details>
+<summary>50% implemented</summary>
+
+- [ ] batch_delete_attributes
+- [ ] batch_put_attributes
+- [X] create_domain
+- [ ] delete_attributes
+- [X] delete_domain
+- [ ] domain_metadata
+- [X] get_attributes
+- [X] list_domains
+- [X] put_attributes
+- [ ] select
 </details>
 
 ## secretsmanager
@@ -4125,7 +4639,7 @@
 
 ## sns
 <details>
-<summary>53% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
@@ -4155,6 +4669,7 @@
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
+- [X] publish_batch
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes
@@ -4333,6 +4848,43 @@
 - [ ] update_patch_baseline
 - [ ] update_resource_data_sync
 - [ ] update_service_setting
+</details>
+
+## sso-admin
+<details>
+<summary>9% implemented</summary>
+
+- [ ] attach_managed_policy_to_permission_set
+- [X] create_account_assignment
+- [ ] create_instance_access_control_attribute_configuration
+- [ ] create_permission_set
+- [X] delete_account_assignment
+- [ ] delete_inline_policy_from_permission_set
+- [ ] delete_instance_access_control_attribute_configuration
+- [ ] delete_permission_set
+- [ ] describe_account_assignment_creation_status
+- [ ] describe_account_assignment_deletion_status
+- [ ] describe_instance_access_control_attribute_configuration
+- [ ] describe_permission_set
+- [ ] describe_permission_set_provisioning_status
+- [ ] detach_managed_policy_from_permission_set
+- [ ] get_inline_policy_for_permission_set
+- [ ] list_account_assignment_creation_status
+- [ ] list_account_assignment_deletion_status
+- [X] list_account_assignments
+- [ ] list_accounts_for_provisioned_permission_set
+- [ ] list_instances
+- [ ] list_managed_policies_in_permission_set
+- [ ] list_permission_set_provisioning_status
+- [ ] list_permission_sets
+- [ ] list_permission_sets_provisioned_to_account
+- [ ] list_tags_for_resource
+- [ ] provision_permission_set
+- [ ] put_inline_policy_to_permission_set
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_instance_access_control_attribute_configuration
+- [ ] update_permission_set
 </details>
 
 ## stepfunctions
@@ -4568,9 +5120,11 @@
 - amp
 - amplify
 - amplifybackend
+- amplifyuibuilder
 - apigatewaymanagementapi
 - apigatewayv2
 - appconfig
+- appconfigdata
 - appflow
 - appintegrations
 - application-insights
@@ -4582,8 +5136,8 @@
 - auditmanager
 - autoscaling-plans
 - backup
+- backup-gateway
 - braket
-- budgets
 - ce
 - chime
 - chime-sdk-identity
@@ -4592,7 +5146,6 @@
 - cloud9
 - cloudcontrol
 - clouddirectory
-- cloudfront
 - cloudhsm
 - cloudhsmv2
 - cloudsearch
@@ -4616,7 +5169,6 @@
 - customer-profiles
 - databrew
 - dataexchange
-- dax
 - detective
 - devicefarm
 - devops-guru
@@ -4624,11 +5176,11 @@
 - discovery
 - dlm
 - docdb
+- drs
 - ebs
 - ecr-public
 - elastic-inference
-- elasticache
-- es
+- evidently
 - finspace
 - finspace-data
 - fis
@@ -4642,7 +5194,6 @@
 - greengrass
 - greengrassv2
 - groundstation
-- guardduty
 - health
 - healthlake
 - honeycode
@@ -4650,6 +5201,7 @@
 - imagebuilder
 - importexport
 - inspector
+- inspector2
 - iot-jobs-data
 - iot1click-devices
 - iot1click-projects
@@ -4661,6 +5213,7 @@
 - iotsecuretunneling
 - iotsitewise
 - iotthingsgraph
+- iottwinmaker
 - iotwireless
 - ivs
 - kafka
@@ -4694,7 +5247,9 @@
 - meteringmarketplace
 - mgh
 - mgn
+- migration-hub-refactor-spaces
 - migrationhub-config
+- migrationhubstrategy
 - mobile
 - mq
 - mturk
@@ -4719,15 +5274,17 @@
 - qldb
 - qldb-session
 - quicksight
+- rbin
 - rds-data
 - redshift-data
 - rekognition
+- resiliencehub
 - robomaker
 - route53-recovery-cluster
 - route53-recovery-control-config
 - route53-recovery-readiness
 - route53domains
-- route53resolver
+- rum
 - s3control
 - s3outposts
 - sagemaker-a2i-runtime
@@ -4736,7 +5293,6 @@
 - sagemaker-runtime
 - savingsplans
 - schemas
-- sdb
 - securityhub
 - serverlessrepo
 - service-quotas
@@ -4753,7 +5309,6 @@
 - ssm-contacts
 - ssm-incidents
 - sso
-- sso-admin
 - sso-oidc
 - storagegateway
 - synthetics
@@ -4771,5 +5326,6 @@
 - workmail
 - workmailmessageflow
 - workspaces
+- workspaces-web
 - xray
 </details>

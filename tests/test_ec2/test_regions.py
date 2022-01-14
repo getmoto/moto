@@ -4,7 +4,6 @@ import boto.ec2.elb
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from boto3 import Session
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
@@ -14,19 +13,6 @@ from moto.ec2 import ec2_backends
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from uuid import uuid4
 from .test_instances import retrieve_all_instances
-
-
-def test_use_boto_regions():
-    boto_regions = set()
-    for region in Session().get_available_regions("ec2"):
-        boto_regions.add(region)
-    for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
-        boto_regions.add(region)
-    for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
-        boto_regions.add(region)
-    moto_regions = set(ec2_backends)
-
-    moto_regions.should.equal(boto_regions)
 
 
 def add_servers_to_region(ami_id, count, region):

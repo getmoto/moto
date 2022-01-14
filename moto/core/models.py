@@ -6,33 +6,30 @@ import os
 import random
 import re
 import string
-import types
 from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
 
-try:
-    from importlib.metadata import version
-except ImportError:
-    from importlib_metadata import version
-
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
-from distutils.version import LooseVersion
-from http.client import responses as http_responses
-from urllib.parse import urlparse
-from werkzeug.wrappers import Request
 
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
 from unittest.mock import patch
+from .custom_responses_mock import (
+    get_response_mock,
+    CallbackResponse,
+    not_implemented_callback,
+    reset_responses_mock,
+)
 from .utils import (
     convert_httpretty_response,
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
+
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
@@ -52,7 +49,14 @@ class BaseMockAWS:
             "instance_metadata": instance_metadata_backend,
             "moto_api": moto_api_backend,
         }
-        self.backends_for_urls.update(self.backends)
+        if "us-east-1" in self.backends:
+            # We only need to know the URL for a single region
+            # They will be the same everywhere
+            self.backends_for_urls["us-east-1"] = self.backends["us-east-1"]
+        else:
+            # If us-east-1 is not available, it's probably a global service
+            # Global services will only have a single region anyway
+            self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
 
         self.FAKE_KEYS = {
@@ -206,154 +210,22 @@ RESPONSES_METHODS = [
 ]
 
 
-class CallbackResponse(responses.CallbackResponse):
-    """
-    Need to subclass so we can change a couple things
-    """
-
-    def get_response(self, request):
-        """
-        Need to override this so we can pass decode_content=False
-        """
-        if not isinstance(request, Request):
-            url = urlparse(request.url)
-            if request.body is None:
-                body = None
-            elif isinstance(request.body, str):
-                body = BytesIO(request.body.encode("UTF-8"))
-            elif hasattr(request.body, "read"):
-                body = BytesIO(request.body.read())
-            else:
-                body = BytesIO(request.body)
-            req = Request.from_values(
-                path="?".join([url.path, url.query]),
-                input_stream=body,
-                content_length=request.headers.get("Content-Length"),
-                content_type=request.headers.get("Content-Type"),
-                method=request.method,
-                base_url="{scheme}://{netloc}".format(
-                    scheme=url.scheme, netloc=url.netloc
-                ),
-                headers=[(k, v) for k, v in request.headers.items()],
-            )
-            request = req
-        headers = self.get_headers()
-
-        result = self.callback(request)
-        if isinstance(result, Exception):
-            raise result
-
-        status, r_headers, body = result
-        body = responses._handle_body(body)
-        headers.update(r_headers)
-
-        return responses.HTTPResponse(
-            status=status,
-            reason=http_responses.get(status),
-            body=body,
-            headers=headers,
-            preload_content=False,
-            # Need to not decode_content to mimic requests
-            decode_content=False,
-        )
-
-    def _url_matches(self, url, other, match_querystring=False):
-        """
-        Need to override this so we can fix querystrings breaking regex matching
-        """
-        if not match_querystring:
-            other = other.split("?", 1)[0]
-
-        if responses._is_string(url):
-            if responses._has_unicode(url):
-                url = responses._clean_unicode(url)
-                if not isinstance(other, str):
-                    other = other.encode("ascii").decode("utf8")
-            return self._url_matches_strict(url, other)
-        elif isinstance(url, responses.Pattern) and url.match(other):
-            return True
-        else:
-            return False
-
-
 botocore_mock = responses.RequestsMock(
     assert_all_requests_are_fired=False,
     target="botocore.vendored.requests.adapters.HTTPAdapter.send",
 )
 
-responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-# Add passthrough to allow any other requests to work
-# Since this uses .startswith, it applies to http and https requests.
-responses_mock.add_passthru("http")
-
-
-def _find_first_match_legacy(self, request):
-    matches = []
-    for i, match in enumerate(self._matches):
-        if match.matches(request):
-            matches.append(match)
-
-    # Look for implemented callbacks first
-    implemented_matches = [
-        m
-        for m in matches
-        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
-    ]
-    if implemented_matches:
-        return implemented_matches[0]
-    elif matches:
-        # We had matches, but all were of type not_implemented_callback
-        return matches[0]
-    return None
-
-
-def _find_first_match(self, request):
-    matches = []
-    match_failed_reasons = []
-    for i, match in enumerate(self._matches):
-        match_result, reason = match.matches(request)
-        if match_result:
-            matches.append(match)
-        else:
-            match_failed_reasons.append(reason)
-
-    # Look for implemented callbacks first
-    implemented_matches = [
-        m
-        for m in matches
-        if type(m) is not CallbackResponse or m.callback != not_implemented_callback
-    ]
-    if implemented_matches:
-        return implemented_matches[0], []
-    elif matches:
-        # We had matches, but all were of type not_implemented_callback
-        return matches[0], match_failed_reasons
-
-    return None, match_failed_reasons
-
-
-# Modify behaviour of the matcher to only/always return the first match
-# Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/spulec/moto/issues/2567
-#  - First request matches on the appropriate S3 URL
-#  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
-# Fix: Always return the first match
-RESPONSES_VERSION = version("responses")
-if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
-    responses_mock._find_match = types.MethodType(
-        _find_first_match_legacy, responses_mock
-    )
-else:
-    responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
+responses_mock = get_response_mock()
 
 
 BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
 
 
 class MockRawResponse(BytesIO):
-    def __init__(self, input):
-        if isinstance(input, str):
-            input = input.encode("utf-8")
-        super(MockRawResponse, self).__init__(input)
+    def __init__(self, response_input):
+        if isinstance(response_input, str):
+            response_input = response_input.encode("utf-8")
+        super().__init__(response_input)
 
     def stream(self, **kwargs):
         contents = self.read()
@@ -443,18 +315,10 @@ def patch_resource(resource):
         raise Exception(f"Argument {resource} should be of type boto3.resource")
 
 
-def not_implemented_callback(request):
-    status = 400
-    headers = {}
-    response = "The method is not implemented"
-
-    return status, headers, response
-
-
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self):
         botocore_stubber.reset()
-        responses_mock.reset()
+        reset_responses_mock(responses_mock)
 
     def enable_patching(self):
         botocore_stubber.enabled = True
@@ -478,7 +342,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             method=method,
                             url=re.compile(key),
                             callback=convert_flask_to_responses_response(value),
-                            match_querystring=False,
                         )
                     )
             responses_mock.add(
@@ -486,7 +349,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    match_querystring=False,
                 )
             )
             botocore_mock.add(
@@ -494,7 +356,6 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     method=method,
                     url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    match_querystring=False,
                 )
             )
 
@@ -552,7 +413,7 @@ class ServerModeMockAWS(BaseMockAWS):
         if "region_name" in kwargs:
             return kwargs["region_name"]
         if type(args) == tuple and len(args) == 2:
-            service, region = args
+            _, region = args
             return region
         return None
 
@@ -564,7 +425,7 @@ class ServerModeMockAWS(BaseMockAWS):
 
 class Model(type):
     def __new__(self, clsname, bases, namespace):
-        cls = super(Model, self).__new__(self, clsname, bases, namespace)
+        cls = super().__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
         for name, value in namespace.items():
             model = getattr(value, "__returns_model__", False)
@@ -678,8 +539,8 @@ class CloudFormationModel(BaseModel):
 class BaseBackend:
     def _reset_model_refs(self):
         # Remove all references to the models stored
-        for service, models in model_data.items():
-            for model_name, model in models.items():
+        for models in model_data.values():
+            for model in models.values():
                 model.instances = []
 
     def reset(self):
@@ -702,7 +563,7 @@ class BaseBackend:
         A dictionary of the urls to be mocked with this service and the handlers
         that should be called in their place
         """
-        url_bases = self._url_module.url_bases
+        url_bases = self.url_bases
         unformatted_paths = self._url_module.url_paths
 
         urls = {}
@@ -953,7 +814,7 @@ class MotoAPIBackend(BaseBackend):
         for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
-            for region_name, backend in backends_.items():
+            for backend in backends_.values():
                 backend.reset()
         self.__init__()
 

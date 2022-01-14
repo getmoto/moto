@@ -22,14 +22,12 @@ import threading
 import weakref
 import requests.exceptions
 
-from boto3 import Session
-
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
@@ -374,7 +372,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, ACCOUNT_ID, self.function_name
         )
 
-        self.tags = dict()
+        if spec.get("Tags"):
+            self.tags = spec.get("Tags")
+        else:
+            self.tags = dict()
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
@@ -948,8 +949,10 @@ class LambdaStorage(object):
     def get_arn(self, arn):
         return self._arns.get(arn, None)
 
-    def get_function_by_name_or_arn(self, input, qualifier=None):
-        return self.get_function_by_name(input, qualifier) or self.get_arn(input)
+    def get_function_by_name_or_arn(self, name_or_arn, qualifier=None):
+        return self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
+            name_or_arn
+        )
 
     def put_function(self, fn):
         """
@@ -1226,7 +1229,7 @@ class LambdaBackend(BaseBackend):
         if not esm:
             return False
 
-        for key, value in spec.items():
+        for key in spec.keys():
             if key == "FunctionName":
                 func = self._lambdas.get_function_by_name_or_arn(spec[key])
                 esm.function_arn = func.function_arn
@@ -1446,10 +1449,4 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-lambda_backends = {}
-for region in Session().get_available_regions("lambda"):
-    lambda_backends[region] = LambdaBackend(region)
-for region in Session().get_available_regions("lambda", partition_name="aws-us-gov"):
-    lambda_backends[region] = LambdaBackend(region)
-for region in Session().get_available_regions("lambda", partition_name="aws-cn"):
-    lambda_backends[region] = LambdaBackend(region)
+lambda_backends = BackendDict(LambdaBackend, "lambda")

@@ -6,6 +6,9 @@ from moto import mock_kms
 from moto import mock_rds2
 from moto import mock_resourcegroupstaggingapi
 from moto import mock_s3
+from moto import mock_lambda
+from moto import mock_iam
+from botocore.client import ClientError
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
@@ -417,3 +420,91 @@ def test_get_resources_rds():
     assert_response(resp, 2, resource_type="snapshot")
     resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
     assert_response(resp, 2)
+
+
+@mock_lambda
+@mock_resourcegroupstaggingapi
+@mock_iam
+def test_get_resources_lambda():
+    def get_role_name():
+        with mock_iam():
+            iam = boto3.client("iam", region_name="us-west-2")
+            try:
+                return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+            except ClientError:
+                return iam.create_role(
+                    RoleName="my-role",
+                    AssumeRolePolicyDocument="some policy",
+                    Path="/my-path/",
+                )["Role"]["Arn"]
+
+    client = boto3.client("lambda", region_name="us-west-2")
+
+    zipfile = """
+              def lambda_handler(event, context):
+                  print("custom log event")
+                  return event
+              """
+
+    # create one lambda without tags
+    client.create_function(
+        FunctionName="lambda-no-tag",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # create second & third lambda with tags
+    circle_arn = client.create_function(
+        FunctionName="lambda-tag-value-1",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Tags={"Color": "green", "Shape": "circle"},
+    )["FunctionArn"]
+
+    rectangle_arn = client.create_function(
+        FunctionName="lambda-tag-value-2",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Tags={"Color": "green", "Shape": "rectangle"},
+    )["FunctionArn"]
+
+    def assert_response(response, expected_arns):
+        results = response.get("ResourceTagMappingList", [])
+        resultArns = []
+        for item in results:
+            resultArns.append(item["ResourceARN"])
+        for arn in resultArns:
+            arn.should.be.within(expected_arns)
+        for arn in expected_arns:
+            arn.should.be.within(resultArns)
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    resp = rtapi.get_resources(ResourceTypeFilters=["lambda"])
+    assert_response(resp, [circle_arn, rectangle_arn])
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Color", "Values": ["green"]}])
+    assert_response(resp, [circle_arn, rectangle_arn])
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["circle"]}])
+    assert_response(resp, [circle_arn])
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
+    assert_response(resp, [rectangle_arn])

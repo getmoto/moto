@@ -31,6 +31,38 @@ def test_create_trial():
 
 
 @mock_sagemaker
+def test_list_trials():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+
+    experiment_name = "some-experiment-name"
+
+    resp = client.create_experiment(ExperimentName=experiment_name)
+
+    trial_names = [f"some-trial-name-{i}" for i in range(10)]
+
+    for trial_name in trial_names:
+        resp = client.create_trial(ExperimentName=experiment_name, TrialName=trial_name)
+
+    resp = client.list_trials(MaxResults=1)
+
+    assert len(resp["TrialSummaries"]) == 1
+
+    next_token = resp["NextToken"]
+
+    resp = client.list_trials(MaxResults=2, NextToken=next_token)
+
+    assert len(resp["TrialSummaries"]) == 2
+
+    next_token = resp["NextToken"]
+
+    resp = client.list_trials(NextToken=next_token)
+
+    assert len(resp["TrialSummaries"]) == 7
+
+    assert resp.get("NextToken") is None
+
+
+@mock_sagemaker
 def test_list_trials_by_trial_component_name():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 

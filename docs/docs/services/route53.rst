@@ -12,8 +12,6 @@
 route53
 =======
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -84,7 +82,7 @@ route53
 - [X] list_query_logging_configs
   Return a list of query logging configs.
 
-- [ ] list_resource_record_sets
+- [X] list_resource_record_sets
 - [ ] list_reusable_delegation_sets
 - [X] list_tags_for_resource
 - [ ] list_tags_for_resources

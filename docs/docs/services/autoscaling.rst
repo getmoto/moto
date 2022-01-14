@@ -12,8 +12,6 @@
 autoscaling
 ===========
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -62,7 +60,12 @@ autoscaling
 - [ ] describe_scaling_activities
 - [ ] describe_scaling_process_types
 - [ ] describe_scheduled_actions
-- [ ] describe_tags
+- [X] describe_tags
+  
+        Pagination is not yet implemented.
+        Only the `auto-scaling-group` and `propagate-at-launch` filters are implemented.
+        
+
 - [ ] describe_termination_policy_types
 - [ ] describe_warm_pool
 - [X] detach_instances

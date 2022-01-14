@@ -187,7 +187,7 @@ class ELBV2Response(BaseResponse):
         healthcheck_enabled = self._get_param("HealthCheckEnabled")
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
-        matcher = self._get_param("Matcher")
+        matcher = self._get_params().get("Matcher")
         target_type = self._get_param("TargetType")
 
         target_group = self.elbv2_backend.create_target_group(
@@ -355,7 +355,7 @@ class ELBV2Response(BaseResponse):
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
-        conditions = params["Conditions"]
+        conditions = params.get("Conditions", [])
         actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
@@ -607,7 +607,7 @@ class ELBV2Response(BaseResponse):
         protocol = self._get_param("Protocol")
         ssl_policy = self._get_param("SslPolicy")
         certificates = self._get_list_prefix("Certificates.member")
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = self._get_params().get("DefaultActions", [])
 
         # Should really move SSL Policies to models
         if ssl_policy is not None and ssl_policy not in [

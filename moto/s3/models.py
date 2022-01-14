@@ -16,6 +16,7 @@ import time
 import uuid
 
 from bisect import insort
+from importlib import reload
 from moto.core import (
     ACCOUNT_ID,
     BaseBackend,
@@ -385,10 +386,9 @@ class FakeMultipart(BaseModel):
         return key
 
     def list_parts(self, part_number_marker, max_parts):
-        for part_id in self.partlist:
-            part = self.parts[part_id]
-            if part_number_marker <= part.name < part_number_marker + max_parts:
-                yield part
+        max_marker = part_number_marker + max_parts
+        for part_id in self.partlist[part_number_marker:max_marker]:
+            yield self.parts[part_id]
 
 
 class FakeGrantee(BaseModel):
@@ -1321,10 +1321,36 @@ class FakeBucket(CloudFormationModel):
 
 
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
+    """
+    Moto implementation for S3.
+
+    Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
+    Example usage:
+
+    .. sourcecode:: python
+
+        os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
+        @mock_s3
+        def test_my_custom_endpoint():
+            boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
+            ...
+
+    Note that this only works if the environment variable is set **before** the mock is initialized.
+    """
+
     def __init__(self):
         self.buckets = {}
         self.account_public_access_block = None
         self.tagger = TaggingService()
+
+    @property
+    def _url_module(self):
+        # The urls-property can be different depending on env variables
+        # Force a reload, to retrieve the correct set of URLs
+        import moto.s3.urls as backend_urls_module
+
+        reload(backend_urls_module)
+        return backend_urls_module
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1847,7 +1873,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def is_truncated(self, bucket_name, multipart_id, next_part_number_marker):
         bucket = self.get_bucket(bucket_name)
-        return len(bucket.multiparts[multipart_id].parts) >= next_part_number_marker
+        return len(bucket.multiparts[multipart_id].parts) > next_part_number_marker
 
     def create_multipart_upload(
         self, bucket_name, key_name, metadata, storage_type, tags
@@ -2021,6 +2047,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         storage=None,
         acl=None,
         src_version_id=None,
+        encryption=None,
+        kms_key_id=None,
     ):
         key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
@@ -2030,14 +2058,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             value=key.value,
             storage=storage or key.storage_class,
             multipart=key.multipart,
-            encryption=key.encryption,
-            kms_key_id=key.kms_key_id,
+            encryption=encryption or key.encryption,
+            kms_key_id=kms_key_id or key.kms_key_id,
             bucket_key_enabled=key.bucket_key_enabled,
             lock_mode=key.lock_mode,
             lock_legal_status=key.lock_legal_status,
             lock_until=key.lock_until,
         )
         self.tagger.copy_tags(key.arn, new_key.arn)
+        new_key.set_metadata(key.metadata)
 
         if acl is not None:
             new_key.set_acl(acl)

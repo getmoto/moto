@@ -12,8 +12,6 @@
 kinesis
 =======
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -55,4 +53,5 @@ kinesis
 - [ ] stop_stream_encryption
 - [ ] subscribe_to_shard
 - [ ] update_shard_count
+- [ ] update_stream_mode
 

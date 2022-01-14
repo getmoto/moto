@@ -26,10 +26,9 @@ import warnings
 
 import requests
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID
+from moto.core.utils import BackendDict
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
     InvalidArgumentException,
@@ -672,14 +671,4 @@ class FirehoseBackend(BaseBackend):
         )
 
 
-firehose_backends = {}
-for available_region in Session().get_available_regions("firehose"):
-    firehose_backends[available_region] = FirehoseBackend()
-for available_region in Session().get_available_regions(
-    "firehose", partition_name="aws-us-gov"
-):
-    firehose_backends[available_region] = FirehoseBackend()
-for available_region in Session().get_available_regions(
-    "firehose", partition_name="aws-cn"
-):
-    firehose_backends[available_region] = FirehoseBackend()
+firehose_backends = BackendDict(FirehoseBackend, "firehose")

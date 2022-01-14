@@ -1,21 +1,11 @@
 import os
 import time
 
-try:
-    # py2
-    import urllib2 as urllib
-    from urllib2 import URLError
-    import socket
-    import httplib
+import urllib.request as urllib
+from urllib.error import URLError
+import socket
 
-    EXCEPTIONS = (URLError, socket.error, httplib.BadStatusLine)
-except ImportError:
-    # py3
-    import urllib.request as urllib
-    from urllib.error import URLError
-    import socket
-
-    EXCEPTIONS = (URLError, socket.timeout, ConnectionResetError)
+EXCEPTIONS = (URLError, socket.timeout, ConnectionResetError)
 
 
 start_ts = time.time()

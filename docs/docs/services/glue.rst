@@ -12,8 +12,6 @@
 glue
 ====
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -49,7 +47,7 @@ glue
 - [X] create_crawler
 - [X] create_database
 - [ ] create_dev_endpoint
-- [ ] create_job
+- [X] create_job
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
@@ -67,7 +65,7 @@ glue
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
 - [X] delete_crawler
-- [ ] delete_database
+- [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
 - [ ] delete_ml_transform
@@ -132,6 +130,9 @@ glue
 - [ ] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
+- [ ] get_unfiltered_partition_metadata
+- [ ] get_unfiltered_partitions_metadata
+- [ ] get_unfiltered_table_metadata
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -142,7 +143,7 @@ glue
 - [ ] list_blueprints
 - [ ] list_crawlers
 - [ ] list_dev_endpoints
-- [ ] list_jobs
+- [X] list_jobs
 - [ ] list_ml_transforms
 - [ ] list_registries
 - [ ] list_schema_versions

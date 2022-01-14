@@ -10,6 +10,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_ec2_deprecated, settings
 from moto.ec2.utils import random_private_ip
+from tests import EXAMPLE_AMI_ID
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
 
@@ -228,6 +229,25 @@ def test_elastic_network_interfaces_with_groups_boto3():
     set([group["GroupId"] for group in my_eni["Groups"]]).should.equal(
         set([sec_group1.id, sec_group2.id])
     )
+
+
+@mock_ec2
+def test_elastic_network_interfaces_without_group():
+    # ENI should use the default SecurityGroup if not provided
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+
+    my_eni = subnet.create_network_interface()
+
+    all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
+    [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(my_eni.id)
+
+    my_eni = [eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id][0]
+    my_eni["Groups"].should.have.length_of(1)
+    my_eni["Groups"][0]["GroupName"].should.equal("default")
 
 
 # Has boto3 equivalent
@@ -636,6 +656,48 @@ def test_elastic_network_interfaces_get_by_description():
     filters = [{"Name": "description", "Values": ["bad description"]}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(0)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_get_by_attachment_instance_id():
+    ec2_resource = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2_resource.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    security_group1 = ec2_resource.create_security_group(
+        GroupName=str(uuid4()), Description="desc"
+    )
+
+    create_instances_result = ec2_resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )
+    instance = create_instances_result[0]
+
+    # we should have one ENI attached to our ec2 instance by default
+    filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)
+    enis.get("NetworkInterfaces").should.have.length_of(1)
+
+    # attach another ENI to our existing instance, total should be 2
+    eni1 = ec2_resource.create_network_interface(
+        SubnetId=subnet.id, Groups=[security_group1.id]
+    )
+    ec2_client.attach_network_interface(
+        NetworkInterfaceId=eni1.id, InstanceId=instance.id, DeviceIndex=1
+    )
+
+    filters = [{"Name": "attachment.instance-id", "Values": [instance.id]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)
+    enis.get("NetworkInterfaces").should.have.length_of(2)
+
+    # we shouldn't find any ENIs that are attached to this fake instance ID
+    filters = [{"Name": "attachment.instance-id", "Values": ["this-doesnt-match-lol"]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)
+    enis.get("NetworkInterfaces").should.have.length_of(0)
 
 
 @mock_ec2

@@ -120,6 +120,7 @@ def test_create_db_cluster__verify_default_properties():
     cluster.should.have.key("HttpEndpointEnabled").equal(False)
     cluster.should.have.key("CopyTagsToSnapshot").equal(False)
     cluster.should.have.key("CrossAccountClone").equal(False)
+    cluster.should.have.key("DeletionProtection").equal(False)
     cluster.should.have.key("DomainMemberships").equal([])
     cluster.should.have.key("TagList").equal([])
     cluster.should.have.key("ClusterCreateTime")
@@ -155,6 +156,7 @@ def test_create_db_cluster_additional_parameters():
         MasterUsername="root",
         MasterUserPassword="hunter2_",
         Port=1234,
+        DeletionProtection=True,
     )
 
     cluster = resp["DBCluster"]
@@ -164,6 +166,7 @@ def test_create_db_cluster_additional_parameters():
     cluster.should.have.key("EngineVersion").equal("5.6.mysql_aurora.1.19.2")
     cluster.should.have.key("EngineMode").equal("serverless")
     cluster.should.have.key("Port").equal(1234)
+    cluster.should.have.key("DeletionProtection").equal(True)
 
 
 @mock_rds2
@@ -205,6 +208,35 @@ def test_delete_db_cluster():
     client.delete_db_cluster(DBClusterIdentifier="cluster-id")
 
     client.describe_db_clusters()["DBClusters"].should.have.length_of(0)
+
+
+@mock_rds2
+def test_delete_db_cluster_that_is_protected():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        DeletionProtection=True,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_cluster(DBClusterIdentifier="cluster-id")
+    err = exc.value.response["Error"]
+    err["Message"].should.equal("Can't delete Cluster with protection enabled")
+
+
+@mock_rds2
+def test_delete_db_cluster_unknown_cluster():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_db_cluster(DBClusterIdentifier="cluster-unknown")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DBClusterNotFoundFault")
+    err["Message"].should.equal("DBCluster cluster-unknown not found.")
 
 
 @mock_rds2

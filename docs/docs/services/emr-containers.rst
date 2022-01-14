@@ -12,7 +12,7 @@
 emr-containers
 ==============
 
-Implementation of EMRContainers APIs.
+.. autoclass:: moto.emrcontainers.models.EMRContainersBackend
 
 |start-h3| Example usage |end-h3|
 

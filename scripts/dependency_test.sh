@@ -33,7 +33,7 @@ valid_service() {
   # Verify whether this is a valid service
   # We'll ignore metadata folders, and folders that test generic Moto behaviour
   # We'll also ignore CloudFormation, as it will always depend on other services
-  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation packages utilities s3bucket_path"
+  local ignore_moto_folders="core instance_metadata __pycache__ templates cloudformation resourcegroupstaggingapi packages utilities s3bucket_path"
   if echo $ignore_moto_folders | grep -q "$1"; then
     return 1
   else
@@ -92,3 +92,7 @@ do
     ITER=$(expr $ITER + 1)
 done
 wait
+
+nr_of_failed_services=$(ls -1q test_results*.log 2>/dev/null | wc -l)
+echo "Nr of failed services: ${nr_of_failed_services}"
+exit $((nr_of_failed_services))

@@ -22,7 +22,7 @@ class DsValidationException(JsonRESTError):
         )
         msgs = []
         for arg_name, arg_value, constraint in error_tuples:
-            value = "at" if arg_name == "password" else f"'{arg_value}' at"
+            value = "at" if "assword" in arg_name else f"'{arg_value}' at"
             msgs.append(
                 f"Value {value} '{arg_name}' failed to satisfy constraint: "
                 f"Member must {constraint}"

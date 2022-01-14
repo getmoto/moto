@@ -1,9 +1,8 @@
 from collections import OrderedDict
 from uuid import uuid4
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 
 class Input(BaseModel):
@@ -291,10 +290,4 @@ class MediaLiveBackend(BaseBackend):
         return a_input
 
 
-medialive_backends = {}
-for region in Session().get_available_regions("medialive"):
-    medialive_backends[region] = MediaLiveBackend()
-for region in Session().get_available_regions("medialive", partition_name="aws-us-gov"):
-    medialive_backends[region] = MediaLiveBackend()
-for region in Session().get_available_regions("medialive", partition_name="aws-cn"):
-    medialive_backends[region] = MediaLiveBackend()
+medialive_backends = BackendDict(MediaLiveBackend, "medialive")

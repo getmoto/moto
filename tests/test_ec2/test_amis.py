@@ -64,9 +64,7 @@ def test_ami_create_and_delete():
     )
     [s.id for s in snapshots].should.contain(retrieved_image_snapshot_id)
     snapshot = [s for s in snapshots if s.id == retrieved_image_snapshot_id][0]
-    snapshot.description.should.equal(
-        "Auto-created snapshot for AMI {0}".format(retrieved_image.id)
-    )
+    snapshot.description.should.match("Created by CreateImage")
 
     # root device should be in AMI's block device mappings
     root_mapping = retrieved_image.block_device_mapping.get(
@@ -167,8 +165,9 @@ def test_ami_create_and_delete_boto3():
     snapshot = [s for s in snapshots if s["SnapshotId"] == retrieved_image_snapshot_id][
         0
     ]
+    image_id = retrieved_image["ImageId"]
     snapshot["Description"].should.equal(
-        "Auto-created snapshot for AMI {0}".format(retrieved_image["ImageId"])
+        f"Created by CreateImage({instance_id}) for {image_id}"
     )
 
     # root device should be in AMI's block device mappings
@@ -1794,3 +1793,39 @@ def test_describe_images_dryrun():
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DescribeImages operation: Request would have succeeded, but DryRun flag is set"
     )
+
+
+@mock_ec2
+def test_delete_snapshot_from_create_image():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    resp = ec2_client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+    ami = ec2_client.create_image(InstanceId=instance_id, Name="test")
+    ami_id = ami["ImageId"]
+
+    snapshots = ec2_client.describe_snapshots(
+        Filters=[
+            {
+                "Name": "description",
+                "Values": ["Created by CreateImage(" + instance_id + "*"],
+            }
+        ]
+    )["Snapshots"]
+    snapshot_id = snapshots[0]["SnapshotId"]
+    with pytest.raises(ClientError) as exc:
+        ec2_client.delete_snapshot(SnapshotId=snapshot_id)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidSnapshot.InUse")
+    err["Message"].should.equal(
+        f"The snapshot {snapshot_id} is currently in use by {ami_id}"
+    )
+
+    # Deregister the Ami first
+    ec2_client.deregister_image(ImageId=ami_id)
+
+    # Now we can delete the snapshot without problems
+    ec2_client.delete_snapshot(SnapshotId=snapshot_id)
+
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_snapshots(SnapshotIds=[snapshot_id])
+    exc.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")

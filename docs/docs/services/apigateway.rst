@@ -12,7 +12,7 @@
 apigateway
 ==========
 
-
+.. autoclass:: moto.apigateway.models.APIGatewayBackend
 
 |start-h3| Example usage |end-h3|
 
@@ -116,10 +116,10 @@ apigateway
 - [ ] import_documentation_parts
 - [ ] import_rest_api
 - [ ] put_gateway_response
-- [ ] put_integration
-- [ ] put_integration_response
-- [ ] put_method
-- [ ] put_method_response
+- [X] put_integration
+- [X] put_integration_response
+- [X] put_method
+- [X] put_method_response
 - [ ] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
@@ -128,7 +128,7 @@ apigateway
 - [ ] update_account
 - [X] update_api_key
 - [X] update_authorizer
-- [ ] update_base_path_mapping
+- [X] update_base_path_mapping
 - [ ] update_client_certificate
 - [ ] update_deployment
 - [ ] update_documentation_part

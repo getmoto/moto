@@ -12,8 +12,6 @@
 rds
 ===
 
-
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -142,6 +140,7 @@ rds
 - [ ] promote_read_replica
 - [ ] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
+- [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] register_db_proxy_targets
 - [ ] remove_from_global_cluster

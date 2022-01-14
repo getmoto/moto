@@ -1422,6 +1422,49 @@ def test_create_cluster_from_snapshot():
 
 
 @mock_redshift
+def test_create_cluster_with_node_type_from_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+    original_cluster_identifier = "original-cluster"
+    original_snapshot_identifier = "original-snapshot"
+    new_cluster_identifier = "new-cluster"
+
+    client.create_cluster(
+        ClusterIdentifier=original_cluster_identifier,
+        ClusterType="multi-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        EnhancedVpcRouting=True,
+        NumberOfNodes=2,
+    )
+
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=original_snapshot_identifier,
+        ClusterIdentifier=original_cluster_identifier,
+    )
+
+    client.restore_from_cluster_snapshot.when.called_with(
+        ClusterIdentifier=original_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+    ).should.throw(ClientError, "ClusterAlreadyExists")
+
+    response = client.restore_from_cluster_snapshot(
+        ClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+        NodeType="ra3.xlplus",
+        NumberOfNodes=3,
+    )
+    response["Cluster"]["ClusterStatus"].should.equal("creating")
+
+    response = client.describe_clusters(ClusterIdentifier=new_cluster_identifier)
+    new_cluster = response["Clusters"][0]
+    new_cluster["NodeType"].should.equal("ra3.xlplus")
+    new_cluster["NumberOfNodes"].should.equal(3)
+    new_cluster["MasterUsername"].should.equal("username")
+    new_cluster["EnhancedVpcRouting"].should.equal(True)
+
+
+@mock_redshift
 def test_create_cluster_from_snapshot_with_waiter():
     client = boto3.client("redshift", region_name="us-east-1")
     original_cluster_identifier = "original-cluster"
@@ -2094,3 +2137,74 @@ def test_get_cluster_credentials():
     assert time.mktime(response["Expiration"].timetuple()) == pytest.approx(
         expected_expiration
     )
+
+
+@mock_redshift
+def test_pause_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+    response = client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+
+    response = client.pause_cluster(ClusterIdentifier="test")
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+    # Verify this call returns all properties
+    cluster["NodeType"].should.equal("ds2.xlarge")
+    cluster["ClusterStatus"].should.equal("paused")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["Endpoint"]["Port"].should.equal(5439)
+
+
+@mock_redshift
+def test_pause_unknown_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.pause_cluster(ClusterIdentifier="test")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ClusterNotFound")
+    err["Message"].should.equal("Cluster test not found.")
+
+
+@mock_redshift
+def test_resume_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    client.pause_cluster(ClusterIdentifier="test")
+    response = client.resume_cluster(ClusterIdentifier="test")
+    cluster = response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal("test")
+    # Verify this call returns all properties
+    cluster["NodeType"].should.equal("ds2.xlarge")
+    cluster["ClusterStatus"].should.equal("available")
+    cluster["ClusterVersion"].should.equal("1.0")
+    cluster["AllowVersionUpgrade"].should.equal(True)
+    cluster["Endpoint"]["Port"].should.equal(5439)
+
+
+@mock_redshift
+def test_resume_unknown_cluster():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.resume_cluster(ClusterIdentifier="test")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ClusterNotFound")
+    err["Message"].should.equal("Cluster test not found.")

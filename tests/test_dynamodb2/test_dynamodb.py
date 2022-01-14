@@ -17,7 +17,6 @@ from tests.helpers import requires_boto_gte
 
 import moto.dynamodb2.comparisons
 import moto.dynamodb2.models
-from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 import pytest
 
@@ -382,251 +381,6 @@ def test_update_item_with_empty_string_attr_no_exception():
         Key={"forum_name": {"S": "LOLCat Forum"}},
         UpdateExpression="set Body=:Body",
         ExpressionAttributeValues={":Body": {"S": ""}},
-    )
-
-
-@mock_dynamodb2
-def test_item_add_long_string_hash_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.put_item(
-            TableName=name,
-            Item={
-                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
-                "subject": {"S": "Check this out!"},
-                "Body": {"S": "http://url_to_lolcat.gif"},
-                "SentBy": {"S": "test"},
-                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-            },
-        )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
-    )
-
-
-@mock_dynamodb2
-def test_item_add_long_string_nonascii_hash_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    emoji_b = b"\xf0\x9f\x98\x83"  # smile emoji
-    emoji = emoji_b.decode("utf-8")  # 1 character, but 4 bytes
-    short_enough = emoji * int(HASH_KEY_MAX_LENGTH / len(emoji.encode("utf-8")))
-    too_long = "x" + short_enough
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": short_enough},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.put_item(
-            TableName=name,
-            Item={
-                "forum_name": {"S": too_long},
-                "subject": {"S": "Check this out!"},
-                "Body": {"S": "http://url_to_lolcat.gif"},
-                "SentBy": {"S": "test"},
-                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-            },
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
-    )
-
-
-@mock_dynamodb2
-def test_item_add_long_string_range_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.put_item(
-        TableName=name,
-        Item={
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "someone@somewhere.edu"},
-            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
-        },
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.put_item(
-            TableName=name,
-            Item={
-                "forum_name": {"S": "LOLCat Forum"},
-                "subject": {"S": "Check this out!"},
-                "Body": {"S": "http://url_to_lolcat.gif"},
-                "SentBy": {"S": "someone@somewhere.edu"},
-                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
-            },
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
-    )
-
-
-@mock_dynamodb2
-def test_update_item_with_long_string_hash_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-
-    conn.update_item(
-        TableName=name,
-        Key={
-            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
-        UpdateExpression="set body=:New",
-        ExpressionAttributeValues={":New": {"S": "hello"}},
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.update_item(
-            TableName=name,
-            Key={
-                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
-                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-            },
-            UpdateExpression="set body=:New",
-            ExpressionAttributeValues={":New": {"S": "hello"}},
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
-    )
-
-
-@mock_dynamodb2
-def test_update_item_with_long_string_range_key_exception():
-    name = "TestTable"
-    conn = boto3.client(
-        "dynamodb",
-        region_name="us-west-2",
-        aws_access_key_id="ak",
-        aws_secret_access_key="sk",
-    )
-    conn.create_table(
-        TableName=name,
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "ReceivedTime", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "ReceivedTime", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    conn.update_item(
-        TableName=name,
-        Key={
-            "forum_name": {"S": "Lolcat Forum"},
-            "ReceivedTime": {"S": "x" * RANGE_KEY_MAX_LENGTH},
-        },
-        UpdateExpression="set body=:New",
-        ExpressionAttributeValues={":New": {"S": "hello"}},
-    )
-
-    with pytest.raises(ClientError) as ex:
-        conn.update_item(
-            TableName=name,
-            Key={
-                "forum_name": {"S": "Lolcat Forum"},
-                "ReceivedTime": {"S": "x" * (RANGE_KEY_MAX_LENGTH + 1)},
-            },
-            UpdateExpression="set body=:New",
-            ExpressionAttributeValues={":New": {"S": "hello"}},
-        )
-
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
 
 
@@ -3486,36 +3240,6 @@ def assert_failure_due_to_item_size_to_update(func, **kwargs):
 
 
 @mock_dynamodb2
-# https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
-def test_hash_key_cannot_use_begins_with_operations():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-    )
-
-    items = [
-        {"key": "prefix-$LATEST", "value": "$LATEST"},
-        {"key": "prefix-DEV", "value": "DEV"},
-        {"key": "prefix-PROD", "value": "PROD"},
-    ]
-
-    with table.batch_writer() as batch:
-        for item in items:
-            batch.put_item(Item=item)
-
-    table = dynamodb.Table("test-table")
-    with pytest.raises(ClientError) as ex:
-        table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Query key condition not supported"
-    )
-
-
-@mock_dynamodb2
 def test_update_supports_complex_expression_attribute_values():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -5798,6 +5522,76 @@ def test_restore_table_from_backup():
     summary.should.have.key("SourceTableArn").should.equal(table["TableArn"])
     summary.should.have.key("RestoreDateTime").should.be.a(datetime)
     summary.should.have.key("RestoreInProgress").should.equal(False)
+
+
+@mock_dynamodb2
+def test_restore_table_to_point_in_time():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = "test-table"
+    resp = client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = resp.get("TableDescription")
+    for i in range(5):
+        client.put_item(TableName=table_name, Item={"id": {"S": "item %d" % i}})
+
+    restored_table_name = "restored-from-pit"
+    restored = client.restore_table_to_point_in_time(
+        TargetTableName=restored_table_name, SourceTableName=table_name
+    ).get("TableDescription")
+    restored.should.have.key("TableName").should.equal(restored_table_name)
+    restored.should.have.key("KeySchema").should.equal(table["KeySchema"])
+    restored.should.have.key("TableStatus")
+    restored.should.have.key("ItemCount").should.equal(5)
+    restored.should.have.key("TableArn").should.contain(restored_table_name)
+    restored.should.have.key("RestoreSummary").should.be.a(dict)
+    summary = restored.get("RestoreSummary")
+    summary.should.have.key("SourceTableArn").should.equal(table["TableArn"])
+    summary.should.have.key("RestoreDateTime").should.be.a(datetime)
+    summary.should.have.key("RestoreInProgress").should.equal(False)
+
+
+@mock_dynamodb2
+def test_restore_table_to_point_in_time_raises_error_when_source_not_exist():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = "test-table"
+    restored_table_name = "restored-from-pit"
+    with pytest.raises(ClientError) as ex:
+        client.restore_table_to_point_in_time(
+            TargetTableName=restored_table_name, SourceTableName=table_name
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("SourceTableNotFoundException")
+    error["Message"].should.equal("Source table not found: %s" % table_name)
+
+
+@mock_dynamodb2
+def test_restore_table_to_point_in_time_raises_error_when_dest_exist():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = "test-table"
+    restored_table_name = "restored-from-pit"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.create_table(
+        TableName=restored_table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    with pytest.raises(ClientError) as ex:
+        client.restore_table_to_point_in_time(
+            TargetTableName=restored_table_name, SourceTableName=table_name
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("TableAlreadyExistsException")
+    error["Message"].should.equal("Table already exists: %s" % restored_table_name)
 
 
 @mock_dynamodb2

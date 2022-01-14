@@ -284,7 +284,7 @@ def test_route_tables_filters_associations():
     )
     association1_route_tables.should.have.length_of(1)
     association1_route_tables[0].id.should.equal(route_table1.id)
-    association1_route_tables[0].associations.should.have.length_of(2)
+    association1_route_tables[0].associations.should.have.length_of(3)
 
     # Filter by route table ID
     route_table2_route_tables = conn.get_all_route_tables(
@@ -292,7 +292,7 @@ def test_route_tables_filters_associations():
     )
     route_table2_route_tables.should.have.length_of(1)
     route_table2_route_tables[0].id.should.equal(route_table2.id)
-    route_table2_route_tables[0].associations.should.have.length_of(1)
+    route_table2_route_tables[0].associations.should.have.length_of(2)
 
     # Filter by subnet ID
     subnet_route_tables = conn.get_all_route_tables(
@@ -300,7 +300,7 @@ def test_route_tables_filters_associations():
     )
     subnet_route_tables.should.have.length_of(1)
     subnet_route_tables[0].id.should.equal(route_table1.id)
-    association1_route_tables[0].associations.should.have.length_of(2)
+    association1_route_tables[0].associations.should.have.length_of(3)
 
 
 @mock_ec2
@@ -332,7 +332,7 @@ def test_route_tables_filters_associations_boto3():
     )["RouteTables"]
     association1_route_tables.should.have.length_of(1)
     association1_route_tables[0]["RouteTableId"].should.equal(route_table1.id)
-    association1_route_tables[0]["Associations"].should.have.length_of(2)
+    association1_route_tables[0]["Associations"].should.have.length_of(3)
 
     # Filter by route table ID
     route_table2_route_tables = client.describe_route_tables(
@@ -340,7 +340,7 @@ def test_route_tables_filters_associations_boto3():
     )["RouteTables"]
     route_table2_route_tables.should.have.length_of(1)
     route_table2_route_tables[0]["RouteTableId"].should.equal(route_table2.id)
-    route_table2_route_tables[0]["Associations"].should.have.length_of(1)
+    route_table2_route_tables[0]["Associations"].should.have.length_of(2)
 
     # Filter by subnet ID
     subnet_route_tables = client.describe_route_tables(
@@ -348,7 +348,7 @@ def test_route_tables_filters_associations_boto3():
     )["RouteTables"]
     subnet_route_tables.should.have.length_of(1)
     subnet_route_tables[0]["RouteTableId"].should.equal(route_table1.id)
-    subnet_route_tables[0]["Associations"].should.have.length_of(2)
+    subnet_route_tables[0]["Associations"].should.have.length_of(3)
 
 
 # Has boto3 equivalent
@@ -364,19 +364,19 @@ def test_route_table_associations():
 
     # Refresh
     route_table = conn.get_all_route_tables(route_table.id)[0]
-    route_table.associations.should.have.length_of(0)
+    route_table.associations.should.have.length_of(1)
 
     # Associate
     association_id = conn.associate_route_table(route_table.id, subnet.id)
 
     # Refresh
     route_table = conn.get_all_route_tables(route_table.id)[0]
-    route_table.associations.should.have.length_of(1)
+    route_table.associations.should.have.length_of(2)
 
-    route_table.associations[0].id.should.equal(association_id)
-    route_table.associations[0].main.should.equal(True)
-    route_table.associations[0].route_table_id.should.equal(route_table.id)
-    route_table.associations[0].subnet_id.should.equal(subnet.id)
+    route_table.associations[1].id.should.equal(association_id)
+    route_table.associations[1].main.should.equal(False)
+    route_table.associations[1].route_table_id.should.equal(route_table.id)
+    route_table.associations[1].subnet_id.should.equal(subnet.id)
 
     # Associate is idempotent
     association_id_idempotent = conn.associate_route_table(route_table.id, subnet.id)
@@ -394,7 +394,7 @@ def test_route_table_associations():
 
     # Refresh
     route_table = conn.get_all_route_tables(route_table.id)[0]
-    route_table.associations.should.have.length_of(0)
+    route_table.associations.should.have.length_of(1)
 
     # Error: Disassociate with invalid association ID
     with pytest.raises(EC2ResponseError) as cm:
@@ -429,7 +429,8 @@ def test_route_table_associations_boto3():
 
     # Refresh
     r = client.describe_route_tables(RouteTableIds=[route_table.id])["RouteTables"][0]
-    r["Associations"].should.have.length_of(0)
+    r["Associations"].should.have.length_of(1)
+    print(r)
 
     # Associate
     association_id = client.associate_route_table(
@@ -438,12 +439,12 @@ def test_route_table_associations_boto3():
 
     # Refresh
     r = client.describe_route_tables(RouteTableIds=[route_table.id])["RouteTables"][0]
-    r["Associations"].should.have.length_of(1)
+    r["Associations"].should.have.length_of(2)
 
-    r["Associations"][0]["RouteTableAssociationId"].should.equal(association_id)
-    r["Associations"][0]["Main"].should.equal(True)
-    r["Associations"][0]["RouteTableId"].should.equal(route_table.id)
-    r["Associations"][0]["SubnetId"].should.equal(subnet.id)
+    r["Associations"][1]["RouteTableAssociationId"].should.equal(association_id)
+    r["Associations"][1]["Main"].should.equal(False)
+    r["Associations"][1]["RouteTableId"].should.equal(route_table.id)
+    r["Associations"][1]["SubnetId"].should.equal(subnet.id)
 
     # Associate is idempotent
     association_id_idempotent = client.associate_route_table(
@@ -461,9 +462,16 @@ def test_route_table_associations_boto3():
     # Disassociate
     client.disassociate_route_table(AssociationId=association_id)
 
-    # Refresh
+    # Refresh - The default (main) route should be there
     r = client.describe_route_tables(RouteTableIds=[route_table.id])["RouteTables"][0]
-    r["Associations"].should.have.length_of(0)
+    r["Associations"].should.have.length_of(1)
+    r["Associations"][0].should.have.key("Main").equal(True)
+    r["Associations"][0].should.have.key("RouteTableAssociationId")
+    r["Associations"][0].should.have.key("RouteTableId").equals(route_table.id)
+    r["Associations"][0].should.have.key("AssociationState").equals(
+        {"State": "associated"}
+    )
+    r["Associations"][0].shouldnt.have.key("SubnetId")
 
     # Error: Disassociate with invalid association ID
     with pytest.raises(ClientError) as ex:
@@ -508,7 +516,7 @@ def test_route_table_replace_route_table_association():
 
     # Refresh
     route_table1 = conn.get_all_route_tables(route_table1.id)[0]
-    route_table1.associations.should.have.length_of(0)
+    route_table1.associations.should.have.length_of(1)
 
     # Associate
     association_id1 = conn.associate_route_table(route_table1.id, subnet.id)
@@ -518,13 +526,13 @@ def test_route_table_replace_route_table_association():
     route_table2 = conn.get_all_route_tables(route_table2.id)[0]
 
     # Validate
-    route_table1.associations.should.have.length_of(1)
-    route_table2.associations.should.have.length_of(0)
+    route_table1.associations.should.have.length_of(2)
+    route_table2.associations.should.have.length_of(1)
 
-    route_table1.associations[0].id.should.equal(association_id1)
-    route_table1.associations[0].main.should.equal(True)
-    route_table1.associations[0].route_table_id.should.equal(route_table1.id)
-    route_table1.associations[0].subnet_id.should.equal(subnet.id)
+    route_table1.associations[1].id.should.equal(association_id1)
+    route_table1.associations[1].main.should.equal(False)
+    route_table1.associations[1].route_table_id.should.equal(route_table1.id)
+    route_table1.associations[1].subnet_id.should.equal(subnet.id)
 
     # Replace Association
     association_id2 = conn.replace_route_table_association_with_assoc(
@@ -536,13 +544,13 @@ def test_route_table_replace_route_table_association():
     route_table2 = conn.get_all_route_tables(route_table2.id)[0]
 
     # Validate
-    route_table1.associations.should.have.length_of(0)
-    route_table2.associations.should.have.length_of(1)
+    route_table1.associations.should.have.length_of(1)
+    route_table2.associations.should.have.length_of(2)
 
-    route_table2.associations[0].id.should.equal(association_id2)
-    route_table2.associations[0].main.should.equal(True)
-    route_table2.associations[0].route_table_id.should.equal(route_table2.id)
-    route_table2.associations[0].subnet_id.should.equal(subnet.id)
+    route_table2.associations[1].id.should.equal(association_id2)
+    route_table2.associations[1].main.should.equal(False)
+    route_table2.associations[1].route_table_id.should.equal(route_table2.id)
+    route_table2.associations[1].subnet_id.should.equal(subnet.id)
 
     # Replace Association is idempotent
     association_id_idempotent = conn.replace_route_table_association_with_assoc(
@@ -586,7 +594,7 @@ def test_route_table_replace_route_table_association_boto3():
     route_table1 = client.describe_route_tables(RouteTableIds=[route_table1_id])[
         "RouteTables"
     ][0]
-    route_table1["Associations"].should.have.length_of(0)
+    route_table1["Associations"].should.have.length_of(1)
 
     # Associate
     association_id1 = client.associate_route_table(
@@ -602,15 +610,15 @@ def test_route_table_replace_route_table_association_boto3():
     ][0]
 
     # Validate
-    route_table1["Associations"].should.have.length_of(1)
-    route_table2["Associations"].should.have.length_of(0)
+    route_table1["Associations"].should.have.length_of(2)
+    route_table2["Associations"].should.have.length_of(1)
 
-    route_table1["Associations"][0]["RouteTableAssociationId"].should.equal(
+    route_table1["Associations"][1]["RouteTableAssociationId"].should.equal(
         association_id1
     )
-    route_table1["Associations"][0]["Main"].should.equal(True)
-    route_table1["Associations"][0]["RouteTableId"].should.equal(route_table1_id)
-    route_table1["Associations"][0]["SubnetId"].should.equal(subnet.id)
+    route_table1["Associations"][1]["Main"].should.equal(False)
+    route_table1["Associations"][1]["RouteTableId"].should.equal(route_table1_id)
+    route_table1["Associations"][1]["SubnetId"].should.equal(subnet.id)
 
     # Replace Association
     association_id2 = client.replace_route_table_association(
@@ -626,15 +634,15 @@ def test_route_table_replace_route_table_association_boto3():
     ][0]
 
     # Validate
-    route_table1["Associations"].should.have.length_of(0)
-    route_table2["Associations"].should.have.length_of(1)
+    route_table1["Associations"].should.have.length_of(1)
+    route_table2["Associations"].should.have.length_of(2)
 
-    route_table2["Associations"][0]["RouteTableAssociationId"].should.equal(
+    route_table2["Associations"][1]["RouteTableAssociationId"].should.equal(
         association_id2
     )
-    route_table2["Associations"][0]["Main"].should.equal(True)
-    route_table2["Associations"][0]["RouteTableId"].should.equal(route_table2_id)
-    route_table2["Associations"][0]["SubnetId"].should.equal(subnet.id)
+    route_table2["Associations"][1]["Main"].should.equal(False)
+    route_table2["Associations"][1]["RouteTableId"].should.equal(route_table2_id)
+    route_table2["Associations"][1]["SubnetId"].should.equal(subnet.id)
 
     # Replace Association is idempotent
     association_id_idempotent = client.replace_route_table_association(
@@ -1418,7 +1426,15 @@ def test_associate_route_table_by_gateway():
             {"Name": "association.route-table-association-id", "Values": [assoc_id]}
         ]
     )["RouteTables"]
-    verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)
+
+    # First assocation is the main
+    verify[0]["Associations"][0]["Main"].should.equal(True)
+
+    # Second is our Gateway
+    verify[0]["Associations"][1]["Main"].should.equal(False)
+    verify[0]["Associations"][1]["GatewayId"].should.equal(igw_id)
+    verify[0]["Associations"][1]["RouteTableAssociationId"].should.equal(assoc_id)
+    verify[0]["Associations"][1].doesnt.have.key("SubnetId")
 
 
 @mock_ec2
@@ -1437,4 +1453,13 @@ def test_associate_route_table_by_subnet():
             {"Name": "association.route-table-association-id", "Values": [assoc_id]}
         ]
     )["RouteTables"]
-    verify[0]["Associations"][0]["RouteTableAssociationId"].should.equal(assoc_id)
+    print(verify[0]["Associations"])
+
+    # First assocation is the main
+    verify[0]["Associations"][0].should.have.key("Main").equals(True)
+
+    # Second is our Gateway
+    verify[0]["Associations"][1]["Main"].should.equal(False)
+    verify[0]["Associations"][1]["SubnetId"].should.equals(subnet_id)
+    verify[0]["Associations"][1]["RouteTableAssociationId"].should.equal(assoc_id)
+    verify[0]["Associations"][1].doesnt.have.key("GatewayId")

@@ -3,14 +3,16 @@ import json
 import yaml
 import uuid
 
-from boto3 import Session
-
 from collections import OrderedDict
+from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
+from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
+
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import ACCOUNT_ID
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
+    BackendDict,
 )
 from moto.sns.models import sns_backends
 
@@ -54,7 +56,11 @@ class FakeStackSet(BaseModel):
         self.stack_instances = self.instances.stack_instances
         self.operations = []
 
-    def _create_operation(self, operation_id, action, status, accounts=[], regions=[]):
+    def _create_operation(
+        self, operation_id, action, status, accounts=None, regions=None
+    ):
+        accounts = accounts or []
+        regions = regions or []
         operation = {
             "OperationId": str(operation_id),
             "Action": action,
@@ -234,6 +240,7 @@ class FakeStack(BaseModel):
         self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events = []
+        self.policy = ""
 
         self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
@@ -308,7 +315,7 @@ class FakeStack(BaseModel):
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        except (ParserError, ScannerError):
             self.template_dict = json.loads(self.template)
 
     @property
@@ -417,7 +424,7 @@ class FakeChangeSet(BaseModel):
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        except (ParserError, ScannerError):
             self.template_dict = json.loads(self.template)
 
     @property
@@ -511,7 +518,7 @@ def filter_stacks(all_stacks, status_filter):
 
 
 class CloudFormationBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.stacks = OrderedDict()
         self.stacksets = OrderedDict()
         self.deleted_stacks = {}
@@ -828,6 +835,23 @@ class CloudFormationBackend(BaseBackend):
         stack.update(template, role_arn, parameters=resolved_parameters, tags=tags)
         return stack
 
+    def get_stack_policy(self, stack_name):
+        try:
+            stack = self.get_stack(stack_name)
+        except ValidationError:
+            raise ValidationError(message=f"Stack: {stack_name} does not exist")
+        return stack.policy
+
+    def set_stack_policy(self, stack_name, policy_body):
+        """
+        Note that Moto does no validation/parsing/enforcement of this policy - we simply persist it.
+        """
+        try:
+            stack = self.get_stack(stack_name)
+        except ValidationError:
+            raise ValidationError(message=f"Stack: {stack_name} does not exist")
+        stack.policy = policy_body
+
     def list_stack_resources(self, stack_name_or_id):
         stack = self.get_stack(stack_name_or_id)
         return stack.stack_resources
@@ -872,14 +896,4 @@ class CloudFormationBackend(BaseBackend):
             )
 
 
-cloudformation_backends = {}
-for region in Session().get_available_regions("cloudformation"):
-    cloudformation_backends[region] = CloudFormationBackend()
-for region in Session().get_available_regions(
-    "cloudformation", partition_name="aws-us-gov"
-):
-    cloudformation_backends[region] = CloudFormationBackend()
-for region in Session().get_available_regions(
-    "cloudformation", partition_name="aws-cn"
-):
-    cloudformation_backends[region] = CloudFormationBackend()
+cloudformation_backends = BackendDict(CloudFormationBackend, "cloudformation")

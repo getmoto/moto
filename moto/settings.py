@@ -24,6 +24,13 @@ def get_sf_execution_history_type():
     return os.environ.get("SF_EXECUTION_HISTORY_TYPE", "SUCCESS")
 
 
+def get_s3_custom_endpoints():
+    endpoints = os.environ.get("MOTO_S3_CUSTOM_ENDPOINTS")
+    if endpoints:
+        return endpoints.split(",")
+    return []
+
+
 S3_UPLOAD_PART_MIN_SIZE = 5242880
 
 
@@ -39,8 +46,12 @@ def ecs_new_arn_format():
     return os.environ.get("MOTO_ECS_NEW_ARN", "false").lower() == "true"
 
 
+def allow_unknown_region():
+    return os.environ.get("MOTO_ALLOW_NONEXISTENT_REGION", "false").lower() == "true"
+
+
 def moto_server_port():
-    return os.environ.get("MOTO_SERVER_PORT") or "5000"
+    return os.environ.get("MOTO_PORT") or "5000"
 
 
 def moto_server_host():

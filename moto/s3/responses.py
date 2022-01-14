@@ -17,11 +17,11 @@ from urllib.parse import (
 
 import xmltodict
 
+from moto import settings
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
 from moto.core import ACCOUNT_ID
-from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -40,6 +40,8 @@ from .exceptions import (
     MissingKey,
     MissingVersion,
     InvalidMaxPartArgument,
+    InvalidMaxPartNumberArgument,
+    NotAnIntegerException,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -188,11 +190,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return template.render(buckets=all_buckets)
 
     def subdomain_based_buckets(self, request):
-        if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
+        if settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME:
             return False
         host = request.headers.get("host", request.headers.get("Host"))
         if not host:
             host = urlparse(request.url).netloc
+
+        custom_endpoints = settings.get_s3_custom_endpoints()
+        if (
+            host
+            and custom_endpoints
+            and any([host in endpoint for endpoint in custom_endpoints])
+        ):
+            # Default to path-based buckets for S3-compatible SDKs (Ceph, DigitalOcean Spaces, etc)
+            return False
 
         if (
             not host
@@ -1315,11 +1326,17 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
             # 0 <= PartNumberMarker <= 2,147,483,647
             part_number_marker = int(query.get("part-number-marker", [0])[0])
+            if part_number_marker > 2147483647:
+                raise NotAnIntegerException(
+                    name="part-number-marker", value=part_number_marker
+                )
             if not (0 <= part_number_marker <= 2147483647):
                 raise InvalidMaxPartArgument("part-number-marker", 0, 2147483647)
 
             # 0 <= MaxParts <= 2,147,483,647 (default is 1,000)
             max_parts = int(query.get("max-parts", [1000])[0])
+            if max_parts > 2147483647:
+                raise NotAnIntegerException(name="max-parts", value=max_parts)
             if not (0 <= max_parts <= 2147483647):
                 raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
 
@@ -1329,8 +1346,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 part_number_marker=part_number_marker,
                 max_parts=max_parts,
             )
-            next_part_number_marker = parts[-1].name + 1 if parts else 0
-            is_truncated = parts and self.backend.is_truncated(
+            next_part_number_marker = parts[-1].name if parts else 0
+            is_truncated = len(parts) != 0 and self.backend.is_truncated(
                 bucket_name, upload_id, next_part_number_marker
             )
 
@@ -1440,6 +1457,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
             else:
+                if part_number > 10000:
+                    raise InvalidMaxPartNumberArgument(part_number)
                 key = self.backend.upload_part(
                     bucket_name, upload_id, part_number, body
                 )
@@ -1550,6 +1569,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     storage=storage_class,
                     acl=acl,
                     src_version_id=src_version_id,
+                    kms_key_id=kms_key_id,
+                    encryption=encryption,
                 )
             else:
                 raise MissingKey(key=src_key)
@@ -1609,6 +1630,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         response_headers = {}
         version_id = query.get("versionId", [None])[0]
+        if version_id and not self.backend.get_bucket(bucket_name).is_versioned:
+            return 400, response_headers, ""
+
         part_number = query.get("partNumber", [None])[0]
         if part_number:
             part_number = int(part_number)
@@ -2061,6 +2085,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
             key = self.backend.get_object(bucket_name, key_name)
+            if key.storage_class not in ["GLACIER", "DEEP_ARCHIVE"]:
+                raise InvalidObjectState(storage_class=key.storage_class)
             r = 202
             if key.expiry_date is not None:
                 r = 200

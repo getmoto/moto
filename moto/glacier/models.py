@@ -2,9 +2,8 @@ import hashlib
 
 import datetime
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .utils import get_job_id
 
@@ -234,10 +233,4 @@ class GlacierBackend(BaseBackend):
         return vault.create_archive(body, description)
 
 
-glacier_backends = {}
-for region in Session().get_available_regions("glacier"):
-    glacier_backends[region] = GlacierBackend(region)
-for region in Session().get_available_regions("glacier", partition_name="aws-us-gov"):
-    glacier_backends[region] = GlacierBackend(region)
-for region in Session().get_available_regions("glacier", partition_name="aws-cn"):
-    glacier_backends[region] = GlacierBackend(region)
+glacier_backends = BackendDict(GlacierBackend, "glacier")

@@ -18,7 +18,7 @@ init:
 lint:
 	flake8 moto
 	black --check moto/ tests/
-	pylint -j 0 tests
+	pylint -j 0 moto/a* moto/b* moto/c* moto/d* moto/e* tests
 
 format:
 	black moto/ tests/

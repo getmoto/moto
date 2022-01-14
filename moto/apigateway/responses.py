@@ -24,6 +24,8 @@ from .exceptions import (
     NoIntegrationResponseDefined,
     NotFoundException,
     ConflictException,
+    InvalidRestApiIdForBasePathMappingException,
+    InvalidStageException,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -193,7 +195,7 @@ class APIGatewayResponse(BaseResponse):
             authorizer_id = self._get_param("authorizerId")
             authorization_scopes = self._get_param("authorizationScopes")
             request_validator_id = self._get_param("requestValidatorId")
-            method = self.backend.create_method(
+            method = self.backend.put_method(
                 function_id,
                 resource_id,
                 method_type,
@@ -234,7 +236,7 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == "PUT":
             response_models = self._get_param("responseModels")
             response_parameters = self._get_param("responseParameters")
-            method_response = self.backend.create_method_response(
+            method_response = self.backend.put_method_response(
                 function_id,
                 resource_id,
                 method_type,
@@ -289,9 +291,9 @@ class APIGatewayResponse(BaseResponse):
                 )
 
             authorizer_response = self.backend.create_authorizer(
-                restapi_id,
-                name,
-                authorizer_type,
+                restapi_id=restapi_id,
+                name=name,
+                authorizer_type=authorizer_type,
                 provider_arns=provider_arns,
                 auth_type=auth_type,
                 authorizer_uri=authorizer_uri,
@@ -482,7 +484,7 @@ class APIGatewayResponse(BaseResponse):
                     "httpMethod"
                 )  # default removed because it's a required parameter
 
-                integration_response = self.backend.create_integration(
+                integration_response = self.backend.put_integration(
                     function_id,
                     resource_id,
                     method_type,
@@ -526,7 +528,7 @@ class APIGatewayResponse(BaseResponse):
                 selection_pattern = self._get_param("selectionPattern")
                 response_templates = self._get_param("responseTemplates")
                 content_handling = self._get_param("contentHandling")
-                integration_response = self.backend.create_integration_response(
+                integration_response = self.backend.put_integration_response(
                     function_id,
                     resource_id,
                     method_type,
@@ -895,5 +897,15 @@ class APIGatewayResponse(BaseResponse):
             elif self.method == "DELETE":
                 self.backend.delete_base_path_mapping(domain_name, base_path)
                 return 202, {}, ""
+            elif self.method == "PATCH":
+                patch_operations = self._get_param("patchOperations")
+                base_path_mapping = self.backend.update_base_path_mapping(
+                    domain_name, base_path, patch_operations
+                )
+            return 200, {}, json.dumps(base_path_mapping)
         except NotFoundException as e:
             return self.error("NotFoundException", e.message, 404)
+        except InvalidRestApiIdForBasePathMappingException as e:
+            return self.error("BadRequestException", e.message)
+        except InvalidStageException as e:
+            return self.error("BadRequestException", e.message)

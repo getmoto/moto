@@ -252,11 +252,19 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
             {% endfor %}
           </routeSet>
           <associationSet>
+              <item>
+                <routeTableAssociationId>{{ route_table.main_association }}</routeTableAssociationId>
+                <routeTableId>{{ route_table.id }}</routeTableId>
+                <main>true</main>
+                <associationState>
+                  <state>associated</state>
+                </associationState>
+              </item>
             {% for association_id,subnet_id in route_table.associations.items() %}
               <item>
                 <routeTableAssociationId>{{ association_id }}</routeTableAssociationId>
                 <routeTableId>{{ route_table.id }}</routeTableId>
-                <main>true</main>
+                <main>false</main>
                 {% if subnet_id.startswith("igw") %}
                 <gatewayId>{{ subnet_id }}</gatewayId>
                 {% endif %}

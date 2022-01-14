@@ -3,10 +3,8 @@ from builtins import str
 import json
 import re
 
-from boto3 import Session
-
-from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import BadRequestException
 
 
@@ -372,14 +370,4 @@ class ResourceGroupsBackend(BaseBackend):
         return self.groups.by_name[group_name]
 
 
-resourcegroups_backends = {}
-for region in Session().get_available_regions("resource-groups"):
-    resourcegroups_backends[region] = ResourceGroupsBackend(region)
-for region in Session().get_available_regions(
-    "resource-groups", partition_name="aws-us-gov"
-):
-    resourcegroups_backends[region] = ResourceGroupsBackend(region)
-for region in Session().get_available_regions(
-    "resource-groups", partition_name="aws-cn"
-):
-    resourcegroups_backends[region] = ResourceGroupsBackend(region)
+resourcegroups_backends = BackendDict(ResourceGroupsBackend, "resource-groups")

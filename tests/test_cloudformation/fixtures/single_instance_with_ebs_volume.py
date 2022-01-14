@@ -225,6 +225,11 @@ template = {
                 "32": EXAMPLE_AMI_ID,
                 "64": EXAMPLE_AMI_ID2,
             },
+            "ap-southeast-3": {
+                "64HVM": "NOT_YET_SUPPORTED",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
+            },
             "us-west-2": {
                 "64HVM": "NOT_YET_SUPPORTED",
                 "32": EXAMPLE_AMI_ID,
