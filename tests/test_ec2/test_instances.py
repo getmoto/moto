@@ -919,6 +919,40 @@ def test_get_instances_filtering_by_vpc_id_boto3():
     res2[0]["Instances"][0]["SubnetId"].should.equal(subnet2.id)
 
 
+@mock_ec2
+def test_get_instances_filtering_by_dns_name():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    client = boto3.client("ec2", "us-west-1")
+    vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc1.id, CidrBlock="10.0.0.0/27")
+    client.modify_subnet_attribute(
+        SubnetId=subnet.id, MapPublicIpOnLaunch={"Value": True}
+    )
+    reservation1 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SubnetId=subnet.id
+    )
+    instance1 = reservation1[0]
+
+    reservation2 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SubnetId=subnet.id
+    )
+    instance2 = reservation2[0]
+
+    res1 = client.describe_instances(
+        Filters=[{"Name": "dns-name", "Values": [instance1.public_dns_name]}]
+    )["Reservations"]
+    res1.should.have.length_of(1)
+    res1[0]["Instances"].should.have.length_of(1)
+    res1[0]["Instances"][0]["InstanceId"].should.equal(instance1.id)
+
+    res2 = client.describe_instances(
+        Filters=[{"Name": "dns-name", "Values": [instance2.public_dns_name]}]
+    )["Reservations"]
+    res2.should.have.length_of(1)
+    res2[0]["Instances"].should.have.length_of(1)
+    res2[0]["Instances"][0]["InstanceId"].should.equal(instance2.id)
+
+
 # Has boto3 equivalent
 @mock_ec2_deprecated
 def test_get_instances_filtering_by_architecture():
