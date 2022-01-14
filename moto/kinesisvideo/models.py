@@ -64,7 +64,7 @@ class Stream(BaseModel):
 
 class KinesisVideoBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(KinesisVideoBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.streams = {}
 

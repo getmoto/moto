@@ -73,7 +73,7 @@ class Resource(BaseModel):
 
 class MediaConnectBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaConnectBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._flows = OrderedDict()
         self._resources = OrderedDict()

@@ -5,23 +5,21 @@ class InvalidParameterException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super(InvalidParameterException, self).__init__(
-            "InvalidParameterException", message
-        )
+        super().__init__("InvalidParameterException", message)
 
 
 class MalformedArnException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super(MalformedArnException, self).__init__("MalformedArnException", message)
+        super().__init__("MalformedArnException", message)
 
 
 class OperationNotPermittedException(JsonRESTError):
     code = 400
 
     def __init__(self):
-        super(OperationNotPermittedException, self).__init__(
+        super().__init__(
             "OperationNotPermittedException",
             "Unable to enable sharing with AWS Organizations. "
             "Received AccessDeniedException from AWSOrganizations with the following error message: "
@@ -33,6 +31,4 @@ class UnknownResourceException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super(UnknownResourceException, self).__init__(
-            "UnknownResourceException", message
-        )
+        super().__init__("UnknownResourceException", message)

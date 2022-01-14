@@ -185,7 +185,7 @@ class Layer(BaseModel):
     def __init__(
         self,
         stack_id,
-        type,
+        layer_type,
         name,
         shortname,
         attributes=None,
@@ -203,7 +203,7 @@ class Layer(BaseModel):
         lifecycle_event_configuration=None,
     ):
         self.stack_id = stack_id
-        self.type = type
+        self.type = layer_type
         self.name = name
         self.shortname = shortname
 
@@ -425,7 +425,7 @@ class App(BaseModel):
         self,
         stack_id,
         name,
-        type,
+        app_type,
         shortname=None,
         description=None,
         datasources=None,
@@ -438,7 +438,7 @@ class App(BaseModel):
     ):
         self.stack_id = stack_id
         self.name = name
-        self.type = type
+        self.type = app_type
         self.shortname = shortname
         self.description = description
 

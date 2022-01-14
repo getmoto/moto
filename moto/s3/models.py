@@ -392,8 +392,8 @@ class FakeMultipart(BaseModel):
 
 
 class FakeGrantee(BaseModel):
-    def __init__(self, id="", uri="", display_name=""):
-        self.id = id
+    def __init__(self, grantee_id="", uri="", display_name=""):
+        self.id = grantee_id
         self.uri = uri
         self.display_name = display_name
 
@@ -512,7 +512,7 @@ class FakeAcl(BaseModel):
 
 
 def get_canned_acl(acl):
-    owner_grantee = FakeGrantee(id=OWNER)
+    owner_grantee = FakeGrantee(grantee_id=OWNER)
     grants = [FakeGrant([owner_grantee], [PERMISSION_FULL_CONTROL])]
     if acl == "private":
         pass  # no other permissions
@@ -590,7 +590,7 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleRule(BaseModel):
     def __init__(
         self,
-        id=None,
+        rule_id=None,
         prefix=None,
         lc_filter=None,
         status=None,
@@ -605,7 +605,7 @@ class LifecycleRule(BaseModel):
         nvt_storage_class=None,
         aimu_days=None,
     ):
-        self.id = id
+        self.id = rule_id
         self.prefix = prefix
         self.filter = lc_filter
         self.status = status
@@ -689,13 +689,9 @@ class CorsRule(BaseModel):
 
 
 class Notification(BaseModel):
-    def __init__(self, arn, events, filters=None, id=None):
-        self.id = (
-            id
-            if id
-            else "".join(
-                random.choice(string.ascii_letters + string.digits) for _ in range(50)
-            )
+    def __init__(self, arn, events, filters=None, notification_id=None):
+        self.id = notification_id or "".join(
+            random.choice(string.ascii_letters + string.digits) for _ in range(50)
         )
         self.arn = arn
         self.events = events
@@ -730,7 +726,10 @@ class NotificationConfiguration(BaseModel):
         self.topic = (
             [
                 Notification(
-                    t["Topic"], t["Event"], filters=t.get("Filter"), id=t.get("Id")
+                    t["Topic"],
+                    t["Event"],
+                    filters=t.get("Filter"),
+                    notification_id=t.get("Id"),
                 )
                 for t in topic
             ]
@@ -740,7 +739,10 @@ class NotificationConfiguration(BaseModel):
         self.queue = (
             [
                 Notification(
-                    q["Queue"], q["Event"], filters=q.get("Filter"), id=q.get("Id")
+                    q["Queue"],
+                    q["Event"],
+                    filters=q.get("Filter"),
+                    notification_id=q.get("Id"),
                 )
                 for q in queue
             ]
@@ -753,7 +755,7 @@ class NotificationConfiguration(BaseModel):
                     c["CloudFunction"],
                     c["Event"],
                     filters=c.get("Filter"),
-                    id=c.get("Id"),
+                    notification_id=c.get("Id"),
                 )
                 for c in cloud_function
             ]
@@ -972,7 +974,7 @@ class FakeBucket(CloudFormationModel):
 
             self.rules.append(
                 LifecycleRule(
-                    id=rule.get("ID"),
+                    rule_id=rule.get("ID"),
                     prefix=top_level_prefix,
                     lc_filter=lc_filter,
                     status=rule["Status"],

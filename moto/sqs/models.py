@@ -66,7 +66,7 @@ DEDUPLICATION_TIME_IN_SECONDS = 300
 
 
 class Message(BaseModel):
-    def __init__(self, message_id, body, system_attributes={}):
+    def __init__(self, message_id, body, system_attributes=None):
         self.id = message_id
         self._body = body
         self.message_attributes = {}
@@ -81,7 +81,7 @@ class Message(BaseModel):
         self.sequence_number = None
         self.visible_at = 0
         self.delayed_until = 0
-        self.system_attributes = system_attributes
+        self.system_attributes = system_attributes or {}
 
     @property
     def body_md5(self):
@@ -630,7 +630,7 @@ class SQSBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.queues: Dict[str, Queue] = {}
-        super(SQSBackend, self).__init__()
+        super().__init__()
 
     def reset(self):
         region_name = self.region_name
@@ -828,7 +828,7 @@ class SQSBackend(BaseBackend):
             raise TooManyEntriesInBatchRequest(len(entries))
 
         messages = []
-        for index, entry in entries.items():
+        for entry in entries.values():
             # Loop through looking for messages
             message = self.send_message(
                 queue_name,
@@ -846,10 +846,10 @@ class SQSBackend(BaseBackend):
 
     def _get_first_duplicate_id(self, ids):
         unique_ids = set()
-        for id in ids:
-            if id in unique_ids:
-                return id
-            unique_ids.add(id)
+        for _id in ids:
+            if _id in unique_ids:
+                return _id
+            unique_ids.add(_id)
         return None
 
     def receive_messages(

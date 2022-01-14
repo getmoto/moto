@@ -6071,7 +6071,7 @@ def test_s3_acl_to_config_dict():
                 [FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")],
                 "READ_ACP",
             ),
-            FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL"),
+            FakeGrant([FakeGrantee(grantee_id=OWNER)], "FULL_CONTROL"),
         ]
     )
     s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
@@ -6096,8 +6096,8 @@ def test_s3_acl_to_config_dict():
     # Give the owner less than full_control permissions:
     log_acls = FakeAcl(
         [
-            FakeGrant([FakeGrantee(id=OWNER)], "READ_ACP"),
-            FakeGrant([FakeGrantee(id=OWNER)], "WRITE_ACP"),
+            FakeGrant([FakeGrantee(grantee_id=OWNER)], "READ_ACP"),
+            FakeGrant([FakeGrantee(grantee_id=OWNER)], "WRITE_ACP"),
         ]
     )
     s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
@@ -6143,7 +6143,7 @@ def test_s3_config_dict():
                 [FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")],
                 "READ_ACP",
             ),
-            FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL"),
+            FakeGrant([FakeGrantee(grantee_id=OWNER)], "FULL_CONTROL"),
         ]
     )
 

@@ -70,7 +70,7 @@ class WorkflowExecution(BaseModel):
         self._set_from_kwargs_or_workflow_type(kwargs, "task_list", "task_list")
         self._set_from_kwargs_or_workflow_type(kwargs, "task_start_to_close_timeout")
         self._set_from_kwargs_or_workflow_type(kwargs, "child_policy")
-        self.input = kwargs.get("input")
+        self.input = kwargs.get("workflow_input")
         # counters
         self.open_counts = {
             "openTimers": 0,
@@ -563,7 +563,7 @@ class WorkflowExecution(BaseModel):
         task = ActivityTask(
             activity_id=attributes["activityId"],
             activity_type=activity_type,
-            input=attributes.get("input"),
+            workflow_input=attributes.get("input"),
             scheduled_event_id=evt.event_id,
             workflow_execution=self,
             timeouts=timeouts,
@@ -632,9 +632,9 @@ class WorkflowExecution(BaseModel):
         self.close_status = "TERMINATED"
         self.close_cause = "OPERATOR_INITIATED"
 
-    def signal(self, signal_name, input):
+    def signal(self, signal_name, workflow_input):
         self._add_event(
-            "WorkflowExecutionSignaled", signal_name=signal_name, input=input
+            "WorkflowExecutionSignaled", signal_name=signal_name, input=workflow_input
         )
         self.schedule_decision_task()
 

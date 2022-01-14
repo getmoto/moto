@@ -210,16 +210,16 @@ class Subscription(BaseModel):
             else:
                 raw_message_attributes = {}
                 for key, value in message_attributes.items():
-                    type = "string_value"
+                    attr_type = "string_value"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):
-                        type = "binary_value"
+                        attr_type = "binary_value"
                     elif value["Type"].startswith("Number"):
                         type_value = "{0:g}".format(value["Value"])
 
                     raw_message_attributes[key] = {
                         "data_type": value["Type"],
-                        type: type_value,
+                        attr_type: type_value,
                     }
 
                 sqs_backends[region].send_message(
@@ -405,7 +405,7 @@ class PlatformEndpoint(BaseModel):
 
 class SNSBackend(BaseBackend):
     def __init__(self, region_name):
-        super(SNSBackend, self).__init__()
+        super().__init__()
         self.topics = OrderedDict()
         self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
@@ -737,7 +737,7 @@ class SNSBackend(BaseBackend):
                 "Invalid parameter: FilterPolicy: Filter policy is too complex"
             )
 
-        for field, rules in value.items():
+        for rules in value.values():
             for rule in rules:
                 if rule is None:
                     continue

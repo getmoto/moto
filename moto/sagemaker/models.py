@@ -42,7 +42,7 @@ PAGINATION_MODEL = {
 class BaseObject(BaseModel):
     def camelCase(self, key):
         words = []
-        for i, word in enumerate(key.split("_")):
+        for word in key.split("_"):
             words.append(word.title())
         return "".join(words)
 
@@ -541,13 +541,13 @@ class Model(BaseObject, CloudFormationModel):
         execution_role_arn,
         primary_container,
         vpc_config,
-        containers=[],
-        tags=[],
+        containers=None,
+        tags=None,
     ):
         self.model_name = model_name
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.containers = containers
-        self.tags = tags
+        self.containers = containers or []
+        self.tags = tags or []
         self.enable_network_isolation = False
         self.vpc_config = vpc_config
         self.primary_container = primary_container
