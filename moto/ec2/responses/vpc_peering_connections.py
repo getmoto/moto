@@ -13,9 +13,9 @@ class VPCPeeringConnections(BaseResponse):
         if peer_region == self.region or peer_region is None:
             peer_vpc = self.ec2_backend.get_vpc(self._get_param("PeerVpcId"))
         else:
-            peer_vpc = self.ec2_backend.get_cross_vpc(
-                self._get_param("PeerVpcId"), peer_region
-            )
+            from moto.ec2.models import ec2_backends
+
+            peer_vpc = ec2_backends[peer_region].get_vpc(self._get_param("PeerVpcId"))
         vpc = self.ec2_backend.get_vpc(self._get_param("VpcId"))
         vpc_pcx = self.ec2_backend.create_vpc_peering_connection(vpc, peer_vpc, tags)
         template = self.response_template(CREATE_VPC_PEERING_CONNECTION_RESPONSE)
