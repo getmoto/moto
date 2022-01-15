@@ -28,6 +28,14 @@ mediastore-data
 - [X] delete_object
 - [ ] describe_object
 - [X] get_object
+  
+        The Range-parameter is not yet supported.
+        
+
 - [X] list_items
+  
+        The Path- and MaxResults-parameters are not yet supported.
+        
+
 - [X] put_object
 
