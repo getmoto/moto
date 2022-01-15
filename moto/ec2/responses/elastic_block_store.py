@@ -39,6 +39,20 @@ class ElasticBlockStore(BaseResponse):
             template = self.response_template(CREATE_SNAPSHOT_RESPONSE)
             return template.render(snapshot=snapshot)
 
+    def create_snapshots(self):
+        params = self._get_params()
+        instance_spec = params.get("InstanceSpecification")
+        description = params.get("Description", "")
+        tags = self._parse_tag_specification("TagSpecification")
+        snapshot_tags = tags.get("snapshot", {})
+
+        if self.is_not_dryrun("CreateSnapshots"):
+            snapshots = self.ec2_backend.create_snapshots(
+                instance_spec, description, snapshot_tags
+            )
+            template = self.response_template(CREATE_SNAPSHOTS_RESPONSE)
+            return template.render(snapshots=snapshots)
+
     def create_volume(self):
         size = self._get_param("Size")
         zone = self._get_param("AvailabilityZone")
@@ -285,6 +299,35 @@ CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaw
     {% endfor %}
   </tagSet>
 </CreateSnapshotResponse>"""
+
+CREATE_SNAPSHOTS_RESPONSE = """<CreateSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotSet>
+      {% for snapshot in snapshots %}
+      <item>
+          <snapshotId>{{ snapshot.id }}</snapshotId>
+          <volumeId>{{ snapshot.volume.id }}</volumeId>
+          <status>pending</status>
+          <startTime>{{ snapshot.start_time}}</startTime>
+          <progress>60%</progress>
+          <ownerId>{{ snapshot.owner_id }}</ownerId>
+          <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+          <description>{{ snapshot.description }}</description>
+          <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
+          <tagSet>
+            {% for tag in snapshot.get_tags() %}
+              <item>
+              <resourceId>{{ tag.resource_id }}</resourceId>
+              <resourceType>{{ tag.resource_type }}</resourceType>
+              <key>{{ tag.key }}</key>
+              <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
+      </item>
+      {% endfor %}
+  </snapshotSet>
+</CreateSnapshotsResponse>"""
 
 COPY_SNAPSHOT_RESPONSE = """<CopySnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
