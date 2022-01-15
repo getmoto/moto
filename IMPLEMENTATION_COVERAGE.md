@@ -1492,6 +1492,7 @@
 - [ ] describe_elastic_gpus
 - [ ] describe_export_image_tasks
 - [ ] describe_export_tasks
+- [ ] describe_fast_launch_images
 - [ ] describe_fast_snapshot_restores
 - [ ] describe_fleet_history
 - [ ] describe_fleet_instances
@@ -1606,6 +1607,7 @@
 - [X] detach_volume
 - [X] detach_vpn_gateway
 - [X] disable_ebs_encryption_by_default
+- [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -1626,6 +1628,7 @@
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
 - [X] enable_ebs_encryption_by_default
+- [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -3754,6 +3757,7 @@
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources
+- [ ] list_permission_versions
 - [ ] list_permissions
 - [ ] list_principals
 - [ ] list_resource_share_permissions
