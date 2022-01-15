@@ -2264,6 +2264,46 @@ def test_delete_message_batch_with_duplicates():
 
 
 @mock_sqs
+def test_delete_message_batch_with_invalid_receipt_id():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName=str(uuid4())[0:6])
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
+    assert messages, "at least one msg"
+
+    # Try to delete the message from SQS but also include two invalid delete requests
+    entries = [
+        {"Id": "fake-receipt-handle-1", "ReceiptHandle": "fake-receipt-handle-1"},
+        {"Id": messages[0]["MessageId"], "ReceiptHandle": messages[0]["ReceiptHandle"]},
+        {"Id": "fake-receipt-handle-2", "ReceiptHandle": "fake-receipt-handle-2"},
+    ]
+    response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+
+    assert response["Successful"] == [
+        {"Id": messages[0]["MessageId"]}
+    ], "delete ok for real message"
+
+    assert response["Failed"] == [
+        {
+            "Id": "fake-receipt-handle-1",
+            "SenderFault": True,
+            "Code": "ReceiptHandleIsInvalid",
+            "Message": 'The input receipt handle "fake-receipt-handle-1" is not a valid receipt handle.',
+        },
+        {
+            "Id": "fake-receipt-handle-2",
+            "SenderFault": True,
+            "Code": "ReceiptHandleIsInvalid",
+            "Message": 'The input receipt handle "fake-receipt-handle-2" is not a valid receipt handle.',
+        },
+    ]
+
+
+@mock_sqs
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
