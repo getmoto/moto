@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.responses import BaseResponse
 from moto.secretsmanager.exceptions import (
     InvalidRequestException,

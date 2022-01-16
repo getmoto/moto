@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 import json
 import email
@@ -20,6 +18,7 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidRenderingParameterException,
     TemplateDoesNotExist,
+    RuleDoesNotExist,
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
     RuleAlreadyExists,
@@ -44,6 +43,8 @@ class SESFeedback(BaseModel):
     FEEDBACK_SUCCESS_MSG = {"test": "success"}
     FEEDBACK_BOUNCE_MSG = {"test": "bounce"}
     FEEDBACK_COMPLAINT_MSG = {"test": "complaint"}
+
+    FORWARDING_ENABLED = "feedback_forwarding_enabled"
 
     @staticmethod
     def generate_message(msg_type):
@@ -125,7 +126,7 @@ class SESBackend(BaseBackend):
             return True
         if address in self.email_addresses:
             return True
-        user, host = address.split("@", 1)
+        _, host = address.split("@", 1)
         return host in self.domains
 
     def verify_email_identity(self, address):
@@ -270,6 +271,17 @@ class SESBackend(BaseBackend):
     def get_send_quota(self):
         return SESQuota(self.sent_message_count)
 
+    def get_identity_notification_attributes(self, identities):
+        response = {}
+        for identity in identities:
+            response[identity] = self.sns_topics.get(identity, {})
+        return response
+
+    def set_identity_feedback_forwarding_enabled(self, identity, enabled):
+        identity_sns_topics = self.sns_topics.get(identity, {})
+        identity_sns_topics[SESFeedback.FORWARDING_ENABLED] = enabled
+        self.sns_topics[identity] = identity_sns_topics
+
     def set_identity_notification_topic(self, identity, notification_type, sns_topic):
         identity_sns_topics = self.sns_topics.get(identity, {})
         if sns_topic is None:
@@ -402,7 +414,7 @@ class SESBackend(BaseBackend):
 
     def create_receipt_rule_set(self, rule_set_name):
         if self.receipt_rule_set.get(rule_set_name) is not None:
-            raise RuleSetNameAlreadyExists("Duplicate receipt rule set Name.")
+            raise RuleSetNameAlreadyExists("Duplicate Receipt Rule Set Name.")
         self.receipt_rule_set[rule_set_name] = []
 
     def create_receipt_rule(self, rule_set_name, rule):
@@ -413,6 +425,39 @@ class SESBackend(BaseBackend):
             raise RuleAlreadyExists("Duplicate Rule Name.")
         rule_set.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
+
+    def describe_receipt_rule_set(self, rule_set_name):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+
+        return rule_set
+
+    def describe_receipt_rule(self, rule_set_name, rule_name):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+
+        for receipt_rule in rule_set:
+            if receipt_rule["name"] == rule_name:
+                return receipt_rule
+        else:
+            raise RuleDoesNotExist("Invalid Rule Name.")
+
+    def update_receipt_rule(self, rule_set_name, rule):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+
+        for i, receipt_rule in enumerate(rule_set):
+            if receipt_rule["name"] == rule["name"]:
+                rule_set[i] = rule
+                break
+        else:
+            raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
 
 
 ses_backend = SESBackend()

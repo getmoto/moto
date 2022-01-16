@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
 from .models import elastictranscoder_backends
@@ -118,7 +117,7 @@ class ElasticTranscoderResponse(BaseResponse):
         if err:
             return err
         pipeline, warnings = self.elastictranscoder_backend.update_pipeline(
-            id=_id,
+            pipeline_id=_id,
             name=name,
             input_bucket=input_bucket,
             role=role,

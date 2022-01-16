@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
@@ -74,6 +74,34 @@ def test_describe_managed_prefix_lists_with_prefix():
     lists_by_id.should.have.length_of(1)
     if not settings.TEST_SERVER_MODE:
         lists_by_id[0]["OwnerId"].should.equal("aws")
+
+
+@mock_ec2
+def test_describe_managed_prefix_lists_with_tags():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+
+    untagged_prefix_list = ec2.create_managed_prefix_list(
+        PrefixListName="examplelist", MaxEntries=2, AddressFamily="?"
+    )
+    untagged_pl_id = untagged_prefix_list["PrefixList"]["PrefixListId"]
+    tagged_prefix_list = ec2.create_managed_prefix_list(
+        PrefixListName="examplelist",
+        MaxEntries=2,
+        AddressFamily="?",
+        TagSpecifications=[
+            {
+                "ResourceType": "prefix-list",
+                "Tags": [{"Key": "key", "Value": "value"},],
+            },
+        ],
+    )
+    tagged_pl_id = tagged_prefix_list["PrefixList"]["PrefixListId"]
+
+    tagged_lists = ec2.describe_managed_prefix_lists(
+        Filters=[{"Name": "tag:key", "Values": ["value"]}]
+    )["PrefixLists"]
+    [pl["PrefixListId"] for pl in tagged_lists].should.contain(tagged_pl_id)
+    [pl["PrefixListId"] for pl in tagged_lists].should_not.contain(untagged_pl_id)
 
 
 @mock_ec2

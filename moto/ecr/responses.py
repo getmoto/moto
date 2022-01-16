@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 from base64 import b64encode
 from datetime import datetime
@@ -25,6 +24,7 @@ class ECRResponse(BaseResponse):
 
     def create_repository(self):
         repository_name = self._get_param("repositoryName")
+        registry_id = self._get_param("registryId")
         encryption_config = self._get_param("encryptionConfiguration")
         image_scan_config = self._get_param("imageScanningConfiguration")
         image_tag_mutablility = self._get_param("imageTagMutability")
@@ -32,6 +32,7 @@ class ECRResponse(BaseResponse):
 
         repository = self.ecr_backend.create_repository(
             repository_name=repository_name,
+            registry_id=registry_id,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
             image_tag_mutablility=image_tag_mutablility,

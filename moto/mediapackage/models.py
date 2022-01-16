@@ -1,10 +1,7 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import ClientError
 
@@ -38,7 +35,7 @@ class OriginEndpoint(BaseModel):
         self.dash_package = kwargs.get("dash_package")
         self.description = kwargs.get("description")
         self.hls_package = kwargs.get("hls_package")
-        self.id = kwargs.get("id")
+        self.id = kwargs.get("endpoint_id")
         self.manifest_name = kwargs.get("manifest_name")
         self.mss_package = kwargs.get("mss_package")
         self.origination = kwargs.get("origination")
@@ -72,7 +69,7 @@ class OriginEndpoint(BaseModel):
 
 class MediaPackageBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaPackageBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._channels = OrderedDict()
         self._origin_endpoints = OrderedDict()
@@ -82,18 +79,18 @@ class MediaPackageBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_channel(self, description, id, tags):
-        arn = "arn:aws:mediapackage:channel:{}".format(id)
+    def create_channel(self, description, channel_id, tags):
+        arn = "arn:aws:mediapackage:channel:{}".format(channel_id)
         channel = Channel(
             arn=arn,
             description=description,
             egress_access_logs={},
             hls_ingest={},
-            channel_id=id,
+            channel_id=channel_id,
             ingress_access_logs={},
             tags=tags,
         )
-        self._channels[id] = channel
+        self._channels[channel_id] = channel
         return channel
 
     def list_channels(self):
@@ -101,23 +98,23 @@ class MediaPackageBackend(BaseBackend):
         response_channels = [c.to_dict() for c in channels]
         return response_channels
 
-    def describe_channel(self, id):
+    def describe_channel(self, channel_id):
         try:
-            channel = self._channels[id]
+            channel = self._channels[channel_id]
             return channel.to_dict()
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, "channel with id={} not found".format(id))
+            raise ClientError(error, "channel with id={} not found".format(channel_id))
 
-    def delete_channel(self, id):
+    def delete_channel(self, channel_id):
         try:
-            channel = self._channels[id]
-            del self._channels[id]
+            channel = self._channels[channel_id]
+            del self._channels[channel_id]
             return channel.to_dict()
 
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, "channel with id={} not found".format(id))
+            raise ClientError(error, "channel with id={} not found".format(channel_id))
 
     def create_origin_endpoint(
         self,
@@ -127,7 +124,7 @@ class MediaPackageBackend(BaseBackend):
         dash_package,
         description,
         hls_package,
-        id,
+        endpoint_id,
         manifest_name,
         mss_package,
         origination,
@@ -136,9 +133,9 @@ class MediaPackageBackend(BaseBackend):
         time_delay_seconds,
         whitelist,
     ):
-        arn = "arn:aws:mediapackage:origin_endpoint:{}".format(id)
+        arn = "arn:aws:mediapackage:origin_endpoint:{}".format(endpoint_id)
         url = "https://origin-endpoint.mediapackage.{}.amazonaws.com/{}".format(
-            self.region_name, id
+            self.region_name, endpoint_id
         )
         origin_endpoint = OriginEndpoint(
             arn=arn,
@@ -148,7 +145,7 @@ class MediaPackageBackend(BaseBackend):
             dash_package=dash_package,
             description=description,
             hls_package=hls_package,
-            id=id,
+            endpoint_id=endpoint_id,
             manifest_name=manifest_name,
             mss_package=mss_package,
             origination=origination,
@@ -158,30 +155,34 @@ class MediaPackageBackend(BaseBackend):
             url=url,
             whitelist=whitelist,
         )
-        self._origin_endpoints[id] = origin_endpoint
+        self._origin_endpoints[endpoint_id] = origin_endpoint
         return origin_endpoint
 
-    def describe_origin_endpoint(self, id):
+    def describe_origin_endpoint(self, endpoint_id):
         try:
-            origin_endpoint = self._origin_endpoints[id]
+            origin_endpoint = self._origin_endpoints[endpoint_id]
             return origin_endpoint.to_dict()
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, "origin endpoint with id={} not found".format(id))
+            raise ClientError(
+                error, "origin endpoint with id={} not found".format(endpoint_id)
+            )
 
     def list_origin_endpoints(self):
         origin_endpoints = list(self._origin_endpoints.values())
         response_origin_endpoints = [o.to_dict() for o in origin_endpoints]
         return response_origin_endpoints
 
-    def delete_origin_endpoint(self, id):
+    def delete_origin_endpoint(self, endpoint_id):
         try:
-            origin_endpoint = self._origin_endpoints[id]
-            del self._origin_endpoints[id]
+            origin_endpoint = self._origin_endpoints[endpoint_id]
+            del self._origin_endpoints[endpoint_id]
             return origin_endpoint.to_dict()
         except KeyError:
             error = "NotFoundException"
-            raise ClientError(error, "origin endpoint with id={} not found".format(id))
+            raise ClientError(
+                error, "origin endpoint with id={} not found".format(endpoint_id)
+            )
 
     def update_origin_endpoint(
         self,
@@ -190,7 +191,7 @@ class MediaPackageBackend(BaseBackend):
         dash_package,
         description,
         hls_package,
-        id,
+        endpoint_id,
         manifest_name,
         mss_package,
         origination,
@@ -199,7 +200,7 @@ class MediaPackageBackend(BaseBackend):
         whitelist,
     ):
         try:
-            origin_endpoint = self._origin_endpoints[id]
+            origin_endpoint = self._origin_endpoints[endpoint_id]
             origin_endpoint.authorization = authorization
             origin_endpoint.cmaf_package = cmaf_package
             origin_endpoint.dash_package = dash_package
@@ -215,15 +216,9 @@ class MediaPackageBackend(BaseBackend):
 
         except KeyError:
             error = "NotFoundException"
-        raise ClientError(error, "origin endpoint with id={} not found".format(id))
+        raise ClientError(
+            error, "origin endpoint with id={} not found".format(endpoint_id)
+        )
 
 
-mediapackage_backends = {}
-for region in Session().get_available_regions("mediapackage"):
-    mediapackage_backends[region] = MediaPackageBackend(region)
-for region in Session().get_available_regions(
-    "mediapackage", partition_name="aws-us-gov"
-):
-    mediapackage_backends[region] = MediaPackageBackend(region)
-for region in Session().get_available_regions("mediapackage", partition_name="aws-cn"):
-    mediapackage_backends[region] = MediaPackageBackend(region)
+mediapackage_backends = BackendDict(MediaPackageBackend, "mediapackage")

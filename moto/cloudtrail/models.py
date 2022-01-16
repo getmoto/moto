@@ -1,10 +1,9 @@
 import re
 import time
 
-from boto3 import Session
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from .exceptions import (
     S3BucketDoesNotExistException,
     InsufficientSnsTopicPolicyException,
@@ -215,11 +214,19 @@ class CloudTrailBackend(BaseBackend):
     def get_trail_status(self, name):
         if len(name) < 3:
             raise TrailNameTooShort(actual_length=len(name))
-        if name not in self.trails:
+        trail_name = next(
+            (
+                trail.trail_name
+                for trail in self.trails.values()
+                if trail.trail_name == name or trail.arn == name
+            ),
+            None,
+        )
+        if not trail_name:
             # This particular method returns the ARN as part of the error message
             arn = f"arn:aws:cloudtrail:{self.region_name}:{ACCOUNT_ID}:trail/{name}"
             raise TrailNotFoundException(name=arn)
-        trail = self.trails[name]
+        trail = self.trails[trail_name]
         return trail.status
 
     def describe_trails(self, include_shadow_trails):
@@ -253,14 +260,4 @@ class CloudTrailBackend(BaseBackend):
         self.__init__(region_name)
 
 
-cloudtrail_backends = {}
-for available_region in Session().get_available_regions("cloudtrail"):
-    cloudtrail_backends[available_region] = CloudTrailBackend(available_region)
-for available_region in Session().get_available_regions(
-    "cloudtrail", partition_name="aws-us-gov"
-):
-    cloudtrail_backends[available_region] = CloudTrailBackend(available_region)
-for available_region in Session().get_available_regions(
-    "cloudtrail", partition_name="aws-cn"
-):
-    cloudtrail_backends[available_region] = CloudTrailBackend(available_region)
+cloudtrail_backends = BackendDict(CloudTrailBackend, "cloudtrail")

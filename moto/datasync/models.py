@@ -1,7 +1,6 @@
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import InvalidRequestException
 
@@ -233,10 +232,4 @@ class DataSyncBackend(BaseBackend):
         )
 
 
-datasync_backends = {}
-for region in Session().get_available_regions("datasync"):
-    datasync_backends[region] = DataSyncBackend(region)
-for region in Session().get_available_regions("datasync", partition_name="aws-us-gov"):
-    datasync_backends[region] = DataSyncBackend(region)
-for region in Session().get_available_regions("datasync", partition_name="aws-cn"):
-    datasync_backends[region] = DataSyncBackend(region)
+datasync_backends = BackendDict(DataSyncBackend, "datasync")

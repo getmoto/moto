@@ -125,10 +125,12 @@ def test_tag_delivery_stream():
     ) in err["Message"]
 
     # Successful addition of tags.
-    added_tags = [{"Key": f"{x}", "Value": f"{x}"} for x in range(10)]
+    added_tags = [
+        {"Key": f"{x}", "Value": f"{x}"} for x in range(MAX_TAGS_PER_DELIVERY_STREAM)
+    ]
     client.tag_delivery_stream(DeliveryStreamName=stream_name, Tags=added_tags)
     results = client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name)
-    assert len(results["Tags"]) == 10
+    assert len(results["Tags"]) == MAX_TAGS_PER_DELIVERY_STREAM
     assert results["Tags"] == added_tags
 
 

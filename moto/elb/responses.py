@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.packages.boto.ec2.elb.attributes import (
     ConnectionSettingAttribute,
     ConnectionDrainingAttribute,
@@ -310,7 +309,7 @@ class ELBResponse(BaseResponse):
         return template.render()
 
     def remove_tags(self):
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
                 load_balancer_name = self._get_param(
@@ -320,7 +319,6 @@ class ELBResponse(BaseResponse):
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
 
-                key = "Tag.member.{0}.Key".format(number)
                 for t_key, t_val in self.querystring.items():
                     if t_key.startswith("Tags.member."):
                         if t_key.split(".")[3] == "Key":
@@ -331,7 +329,7 @@ class ELBResponse(BaseResponse):
 
     def describe_tags(self):
         elbs = []
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
                 load_balancer_name = self._get_param(

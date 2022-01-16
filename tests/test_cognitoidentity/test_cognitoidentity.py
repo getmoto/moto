@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -9,6 +7,32 @@ from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import ACCOUNT_ID
 from uuid import UUID
+
+
+@mock_cognitoidentity
+@pytest.mark.parametrize("name", ["pool#name", "with!excl", "with?quest"])
+def test_create_identity_pool_invalid_name(name):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_identity_pool(
+            IdentityPoolName=name, AllowUnauthenticatedIdentities=False
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"1 validation error detected: Value '{name}' at 'identityPoolName' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w\\s+=,.@-]+"
+    )
+
+
+@mock_cognitoidentity
+@pytest.mark.parametrize("name", ["x", "pool-", "pool_name", "with space"])
+def test_create_identity_pool_valid_name(name):
+    conn = boto3.client("cognito-identity", "us-west-2")
+
+    conn.create_identity_pool(
+        IdentityPoolName=name, AllowUnauthenticatedIdentities=False
+    )
 
 
 @mock_cognitoidentity
@@ -123,18 +147,21 @@ def test_describe_identity_pool_with_invalid_id_raises_error():
 # testing a helper function
 def test_get_random_identity_id():
     identity_id = get_random_identity_id("us-west-2")
-    region, id = identity_id.split(":")
+    region, identity_id = identity_id.split(":")
     region.should.equal("us-west-2")
-    UUID(id, version=4)  # Will throw an error if it's not a valid UUID
+    UUID(identity_id, version=4)  # Will throw an error if it's not a valid UUID
 
 
 @mock_cognitoidentity
 def test_get_id():
     # These two do NOT work in server mode. They just don't return the data from the model.
     conn = boto3.client("cognito-identity", "us-west-2")
+    identity_pool_data = conn.create_identity_pool(
+        IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True
+    )
     result = conn.get_id(
         AccountId="someaccount",
-        IdentityPoolId="us-west-2:12345",
+        IdentityPoolId=identity_pool_data["IdentityPoolId"],
         Logins={"someurl": "12345"},
     )
     assert (
@@ -188,3 +215,21 @@ def test_get_open_id_token():
     result = conn.get_open_id_token(IdentityId="12345", Logins={"someurl": "12345"})
     assert len(result["Token"]) > 0
     assert result["IdentityId"] == "12345"
+
+
+@mock_cognitoidentity
+def test_list_identities():
+    conn = boto3.client("cognito-identity", "us-west-2")
+    identity_pool_data = conn.create_identity_pool(
+        IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True
+    )
+    identity_pool_id = identity_pool_data["IdentityPoolId"]
+    identity_data = conn.get_id(
+        AccountId="someaccount",
+        IdentityPoolId=identity_pool_id,
+        Logins={"someurl": "12345"},
+    )
+    identity_id = identity_data["IdentityId"]
+    identities = conn.list_identities(IdentityPoolId=identity_pool_id, MaxResults=123)
+    assert "IdentityPoolId" in identities and "Identities" in identities
+    assert identity_id in [x["IdentityId"] for x in identities["Identities"]]

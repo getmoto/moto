@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .responses import ResourceAccessManagerResponse
 
 url_bases = [r"https?://ram\.(.+)\.amazonaws.com"]

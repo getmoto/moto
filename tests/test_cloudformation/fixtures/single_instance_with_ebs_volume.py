@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 template = {
@@ -223,6 +221,11 @@ template = {
                 "64": EXAMPLE_AMI_ID2,
             },
             "ap-southeast-2": {
+                "64HVM": "NOT_YET_SUPPORTED",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
+            },
+            "ap-southeast-3": {
                 "64HVM": "NOT_YET_SUPPORTED",
                 "32": EXAMPLE_AMI_ID,
                 "64": EXAMPLE_AMI_ID2,

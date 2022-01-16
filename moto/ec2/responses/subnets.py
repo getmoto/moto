@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import random
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -39,6 +38,7 @@ class Subnets(BaseResponse):
         return template.render(subnet=subnet)
 
     def describe_subnets(self):
+        self.error_on_dryrun()
         subnet_ids = self._get_multi_param("SubnetId")
         filters = filters_from_querystring(self.querystring)
         subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import boto
 import boto.ec2
 import boto3
@@ -7,8 +5,8 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
 import pytest
+import sure  # noqa # pylint: disable=unused-import
 import random
-import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
@@ -31,9 +29,7 @@ def test_ami_create_and_delete():
     instance = reservation.instances[0]
 
     with pytest.raises(EC2ResponseError) as ex:
-        image_id = conn.create_image(
-            instance.id, "test-ami", "this is a test ami", dry_run=True
-        )
+        conn.create_image(instance.id, "test-ami", "this is a test ami", dry_run=True)
     ex.value.error_code.should.equal("DryRunOperation")
     ex.value.status.should.equal(412)
     ex.value.message.should.equal(
@@ -68,9 +64,7 @@ def test_ami_create_and_delete():
     )
     [s.id for s in snapshots].should.contain(retrieved_image_snapshot_id)
     snapshot = [s for s in snapshots if s.id == retrieved_image_snapshot_id][0]
-    snapshot.description.should.equal(
-        "Auto-created snapshot for AMI {0}".format(retrieved_image.id)
-    )
+    snapshot.description.should.match("Created by CreateImage")
 
     # root device should be in AMI's block device mappings
     root_mapping = retrieved_image.block_device_mapping.get(
@@ -142,7 +136,6 @@ def test_ami_create_and_delete_boto3():
     set([i["ImageId"] for i in all_images]).should.contain(image_id)
 
     retrieved_image = [i for i in all_images if i["ImageId"] == image_id][0]
-    created_snapshot_id = retrieved_image["BlockDeviceMappings"][0]["Ebs"]["SnapshotId"]
 
     retrieved_image.should.have.key("ImageId").equal(image_id)
     retrieved_image.should.have.key("VirtualizationType").equal(
@@ -172,8 +165,9 @@ def test_ami_create_and_delete_boto3():
     snapshot = [s for s in snapshots if s["SnapshotId"] == retrieved_image_snapshot_id][
         0
     ]
+    image_id = retrieved_image["ImageId"]
     snapshot["Description"].should.equal(
-        "Auto-created snapshot for AMI {0}".format(retrieved_image["ImageId"])
+        f"Created by CreateImage({instance_id}) for {image_id}"
     )
 
     # root device should be in AMI's block device mappings
@@ -1344,6 +1338,31 @@ def test_ami_attribute_user_and_group_permissions_boto3():
     image.public.should.equal(False)
 
 
+@mock_ec2
+def test_filter_description():
+    # https://github.com/spulec/moto/issues/4460
+    client = boto3.client("ec2", region_name="us-west-2")
+
+    # Search for partial description
+    resp = client.describe_images(
+        Owners=["amazon"],
+        Filters=[{"Name": "description", "Values": ["Amazon Linux AMI*"]}],
+    )["Images"]
+    resp.should.have.length_of(4)
+
+    # Search for full description
+    resp = client.describe_images(
+        Owners=["amazon"],
+        Filters=[
+            {
+                "Name": "description",
+                "Values": ["Amazon Linux AMI 2018.03.0.20210721.0 x86_64 VPC HVM ebs"],
+            }
+        ],
+    )["Images"]
+    resp.should.have.length_of(1)
+
+
 # Has boto3 equivalent
 @mock_ec2_deprecated
 def test_ami_attribute_error_cases():
@@ -1761,3 +1780,52 @@ def test_ami_filter_by_unknown_ownerid():
         Filters=[{"Name": "owner-alias", "Values": ["unknown",]},]
     )["Images"]
     images.should.have.length_of(0)
+
+
+@mock_ec2
+def test_describe_images_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_images(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeImages operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
+def test_delete_snapshot_from_create_image():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    resp = ec2_client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+    ami = ec2_client.create_image(InstanceId=instance_id, Name="test")
+    ami_id = ami["ImageId"]
+
+    snapshots = ec2_client.describe_snapshots(
+        Filters=[
+            {
+                "Name": "description",
+                "Values": ["Created by CreateImage(" + instance_id + "*"],
+            }
+        ]
+    )["Snapshots"]
+    snapshot_id = snapshots[0]["SnapshotId"]
+    with pytest.raises(ClientError) as exc:
+        ec2_client.delete_snapshot(SnapshotId=snapshot_id)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidSnapshot.InUse")
+    err["Message"].should.equal(
+        f"The snapshot {snapshot_id} is currently in use by {ami_id}"
+    )
+
+    # Deregister the Ami first
+    ec2_client.deregister_image(ImageId=ami_id)
+
+    # Now we can delete the snapshot without problems
+    ec2_client.delete_snapshot(SnapshotId=snapshot_id)
+
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_snapshots(SnapshotIds=[snapshot_id])
+    exc.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")

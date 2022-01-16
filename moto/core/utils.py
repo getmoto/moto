@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from functools import wraps
 
 import binascii
@@ -8,6 +7,8 @@ import random
 import re
 import string
 from botocore.exceptions import ClientError
+from boto3 import Session
+from moto.settings import allow_unknown_region
 from urllib.parse import urlparse
 
 
@@ -145,7 +146,7 @@ class convert_flask_to_httpretty_response(object):
         from flask import request, Response
 
         try:
-            result = self.callback(request, request.url, {})
+            result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
@@ -208,8 +209,8 @@ def rfc_1123_datetime(datetime):
     return datetime.strftime(RFC1123)
 
 
-def str_to_rfc_1123_datetime(str):
-    return datetime.datetime.strptime(str, RFC1123)
+def str_to_rfc_1123_datetime(value):
+    return datetime.datetime.strptime(value, RFC1123)
 
 
 def unix_time(dt=None):
@@ -317,35 +318,11 @@ def path_url(url):
     return path
 
 
-def py2_strip_unicode_keys(blob):
-    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
-    if type(blob) == unicode:  # noqa
-        return str(blob)
-
-    elif type(blob) == dict:
-        for key in list(blob.keys()):
-            value = blob.pop(key)
-            blob[str(key)] = py2_strip_unicode_keys(value)
-
-    elif type(blob) == list:
-        for i in range(0, len(blob)):
-            blob[i] = py2_strip_unicode_keys(blob[i])
-
-    elif type(blob) == set:
-        new_set = set()
-        for value in blob:
-            new_set.add(py2_strip_unicode_keys(value))
-
-        blob = new_set
-
-    return blob
-
-
 def tags_from_query_string(
     querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
 ):
     response_values = {}
-    for key, value in querystring_dict.items():
+    for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
@@ -424,13 +401,46 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
                 dict1.pop(key)
 
 
-def glob_matches(pattern, string):
-    """AWS API-style globbing regexes"""
-    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
-    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+def aws_api_matches(pattern, string):
+    """
+        AWS API can match a value based on a glob, or an exact match
+    """
+    # use a negative lookback regex to match stars that are not prefixed with a backslash
+    # and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
+    pattern, _ = re.subn(r"(?<!\\)\*", r".*", pattern)
 
-    pattern = ".*" + pattern + ".*"
+    # ? in the AWS glob form becomes .? in regex
+    # also, don't substitute it if it is prefixed w/ a backslash
+    pattern, _ = re.subn(r"(?<!\\)\?", r".?", pattern)
 
-    if re.match(pattern, str(string)):
+    # aws api seems to anchor
+    anchored_pattern = f"^{pattern}$"
+
+    if re.match(anchored_pattern, str(string)):
         return True
-    return False
+    else:
+        return False
+
+
+class BackendDict(dict):
+    def __init__(self, fn, service_name):
+        self.fn = fn
+        sess = Session()
+        self.regions = list(sess.get_available_regions(service_name))
+        self.regions.extend(
+            sess.get_available_regions(service_name, partition_name="aws-us-gov")
+        )
+        self.regions.extend(
+            sess.get_available_regions(service_name, partition_name="aws-cn")
+        )
+
+    def __contains__(self, item):
+        return item in self.regions or item in self.keys()
+
+    def __getitem__(self, item):
+        # Create the backend for a specific region
+        if item in self.regions and item not in self.keys():
+            super().__setitem__(item, self.fn(item))
+        if item not in self.regions and allow_unknown_region():
+            super().__setitem__(item, self.fn(item))
+        return super().__getitem__(item)

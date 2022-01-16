@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 
@@ -59,7 +57,7 @@ def test_describe_instance_type_offering_filter_by_zone():
     offerings.should.have.key("InstanceTypeOfferings")
     offerings = offerings["InstanceTypeOfferings"]
     offerings.should_not.be.empty
-    offerings.should.have.length_of(391)
+    offerings.should.have.length_of(448)
     assert all([o["LocationType"] == "availability-zone" for o in offerings])
     assert all([o["Location"] == "us-east-1c" for o in offerings])
     assert any([o["InstanceType"] == "a1.2xlarge" for o in offerings])

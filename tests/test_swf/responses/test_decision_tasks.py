@@ -2,8 +2,9 @@ from boto.swf.exceptions import SWFResponseError
 from botocore.exceptions import ClientError
 from datetime import datetime
 from freezegun import freeze_time
+from time import sleep
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_swf_deprecated, mock_swf, settings
 from moto.swf import swf_backend
@@ -815,3 +816,130 @@ def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
     if not settings.TEST_SERVER_MODE:
         ts = resp["latestActivityTaskTimestamp"].strftime("%Y-%m-%d %H:%M:%S")
         ts.should.equal("2015-01-01 12:00:00")
+
+
+@mock_swf
+def test_record_marker_decision():
+    client = setup_workflow_boto3()
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    task_token = resp["taskToken"]
+
+    decisions = [
+        {
+            "decisionType": "RecordMarker",
+            "recordMarkerDecisionAttributes": {"markerName": "TheMarker",},
+        }
+    ]
+    client.respond_decision_task_completed(taskToken=task_token, decisions=decisions)
+
+    resp = client.get_workflow_execution_history(
+        domain="test-domain",
+        execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
+    )
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(
+        [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "DecisionTaskCompleted",
+            "MarkerRecorded",
+        ]
+    )
+    resp["events"][-1]["markerRecordedEventAttributes"].should.equal(
+        {"decisionTaskCompletedEventId": 4, "markerName": "TheMarker"}
+    )
+
+
+@mock_swf
+def test_start_and_fire_timer_decision():
+    client = setup_workflow_boto3()
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    task_token = resp["taskToken"]
+
+    decisions = [
+        {
+            "decisionType": "StartTimer",
+            "startTimerDecisionAttributes": {
+                "startToFireTimeout": "1",
+                "timerId": "timer1",
+            },
+        }
+    ]
+    client.respond_decision_task_completed(taskToken=task_token, decisions=decisions)
+    sleep(1.1)
+
+    resp = client.get_workflow_execution_history(
+        domain="test-domain",
+        execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
+    )
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(
+        [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "DecisionTaskCompleted",
+            "TimerStarted",
+            "TimerFired",
+        ]
+    )
+    resp["events"][-2]["timerStartedEventAttributes"].should.equal(
+        {
+            "decisionTaskCompletedEventId": 4,
+            "startToFireTimeout": "1",
+            "timerId": "timer1",
+        }
+    )
+    resp["events"][-1]["timerFiredEventAttributes"].should.equal(
+        {"startedEventId": 5, "timerId": "timer1"}
+    )
+
+
+@mock_swf
+def test_cancel_workflow_decision():
+    client = setup_workflow_boto3()
+    resp = client.poll_for_decision_task(
+        domain="test-domain", taskList={"name": "queue"}
+    )
+    task_token = resp["taskToken"]
+
+    decisions = [
+        {
+            "decisionType": "CancelWorkflowExecution",
+            "cancelWorkflowExecutionDecisionAttributes": {
+                "details": "decide to cancel"
+            },
+        }
+    ]
+    client.respond_decision_task_completed(taskToken=task_token, decisions=decisions)
+
+    resp = client.get_workflow_execution_history(
+        domain="test-domain",
+        execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
+    )
+    types = [evt["eventType"] for evt in resp["events"]]
+    types.should.equal(
+        [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "DecisionTaskCompleted",
+            "WorkflowExecutionCanceled",
+        ]
+    )
+    resp["events"][-1]["workflowExecutionCanceledEventAttributes"].should.equal(
+        {"decisionTaskCompletedEventId": 4, "details": "decide to cancel"}
+    )
+    workflow_result = client.describe_workflow_execution(
+        domain="test-domain",
+        execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
+    )["executionInfo"]
+    workflow_result.should.contain("closeTimestamp")
+    workflow_result["executionStatus"].should.equal("CLOSED")
+    workflow_result["closeStatus"].should.equal("CANCELED")
+    workflow_result["cancelRequested"].should.equal(True)

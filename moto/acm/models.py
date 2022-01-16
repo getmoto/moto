@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import base64
 import re
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
-from moto.ec2 import ec2_backends
+from moto.core.utils import BackendDict
 from moto import settings
 
 from .utils import make_arn_for_certificate
@@ -144,6 +142,7 @@ class CertBundle(BaseModel):
         self._chain = None
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
+        self.in_use_by = []
 
         # AWS always returns your chain + root CA
         if self.chain is None:
@@ -361,7 +360,7 @@ class CertBundle(BaseModel):
             "Certificate": {
                 "CertificateArn": self.arn,
                 "DomainName": self.common_name,
-                "InUseBy": [],
+                "InUseBy": self.in_use_by,
                 "Issuer": self._cert.issuer.get_attributes_for_oid(
                     cryptography.x509.OID_COMMON_NAME
                 )[0].value,
@@ -406,7 +405,7 @@ class CertBundle(BaseModel):
 
 class AWSCertificateManagerBackend(BaseBackend):
     def __init__(self, region):
-        super(AWSCertificateManagerBackend, self).__init__()
+        super().__init__()
         self.region = region
         self._certificates = {}
         self._idempotency_tokens = {}
@@ -429,6 +428,13 @@ class AWSCertificateManagerBackend(BaseBackend):
             arn, DEFAULT_ACCOUNT_ID
         )
         return AWSResourceNotFoundException(msg)
+
+    def set_certificate_in_use_by(self, arn, load_balancer_name):
+        if arn not in self._certificates:
+            raise self._arn_not_found(arn)
+
+        cert_bundle = self._certificates[arn]
+        cert_bundle.in_use_by.append(load_balancer_name)
 
     def _get_arn_from_idempotency_token(self, token):
         """
@@ -553,6 +559,4 @@ class AWSCertificateManagerBackend(BaseBackend):
         return certificate, certificate_chain, private_key
 
 
-acm_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    acm_backends[region] = AWSCertificateManagerBackend(region)
+acm_backends = BackendDict(AWSCertificateManagerBackend, "ec2")

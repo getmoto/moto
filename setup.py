@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import unicode_literals
 from io import open
 import os
 import re
@@ -40,20 +39,20 @@ install_requires = [
     "responses>=0.9.0",
     "MarkupSafe!=2.0.0a1",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
     "Jinja2>=2.10.1",
-    "more-itertools",
-    "importlib_metadata ; python_version < '3.8'"
+    "importlib_metadata ; python_version < '3.8'",
 ]
 
 _dep_PyYAML = "PyYAML>=5.1"
 _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
 _dep_python_jose_ecdsa_pin = (
-    "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
+    "ecdsa!=0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
 )
 _dep_dataclasses = "dataclasses; python_version < '3.7'"
 _dep_docker = "docker>=2.5.1"
+_dep_graphql = "graphql-core"
 _dep_jsondiff = "jsondiff>=1.1.2"
 _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
-_dep_idna = "idna<3,>=2.5"
+_dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
 _setuptools = "setuptools"
@@ -63,6 +62,7 @@ all_extra_deps = [
     _dep_python_jose,
     _dep_python_jose_ecdsa_pin,
     _dep_docker,
+    _dep_graphql,
     _dep_jsondiff,
     _dep_aws_xray_sdk,
     _dep_idna,
@@ -73,31 +73,42 @@ all_extra_deps = [
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
 
 extras_per_service = {}
-for service_name in [service[5:] for service in dir(service_list) if service.startswith("mock_")]:
+for service_name in [
+    service[5:]
+    for service in dir(service_list)
+    if service.startswith("mock_") and not service == "mock_all"
+]:
     extras_per_service[service_name] = []
 extras_per_service.update(
-{
-    "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "awslambda": [_dep_docker],
-    "batch": [_dep_docker],
-    "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
-    "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "ec2": [_dep_sshpubkeys],
-    "iotdata": [_dep_jsondiff],
-    "s3": [_dep_PyYAML],
-    "ses": [],
-    "sns": [],
-    "sqs": [],
-    "ssm": [_dep_PyYAML, _dep_dataclasses],
-    # XRay module uses pkg_resources, but doesn't have an explicit dependency listed
-    # This should be fixed in the next version: https://github.com/aws/aws-xray-sdk-python/issues/305
-    "xray": [_dep_aws_xray_sdk, _setuptools],
-})
+    {
+        "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "appsync": [_dep_graphql],
+        "awslambda": [_dep_docker],
+        "batch": [_dep_docker],
+        "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
+        "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "ec2": [_dep_sshpubkeys],
+        "iotdata": [_dep_jsondiff],
+        "s3": [_dep_PyYAML],
+        "ses": [],
+        "sns": [],
+        "sqs": [],
+        "ssm": [_dep_PyYAML, _dep_dataclasses],
+        # XRay module uses pkg_resources, but doesn't have an explicit
+        # dependency listed.  This should be fixed in the next version:
+        # https://github.com/aws/aws-xray-sdk-python/issues/305
+        "xray": [_dep_aws_xray_sdk, _setuptools],
+    }
+)
+
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
 extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
+# DirectoryService needs EC2 to verify VPCs and subnets.
+extras_per_service["ds"] = extras_per_service["ec2"]
+extras_per_service["route53resolver"] = extras_per_service["ec2"]
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,
@@ -116,11 +127,7 @@ setup(
     author="Steve Pulec",
     author_email="spulec@gmail.com",
     url="https://github.com/spulec/moto",
-    entry_points={
-        "console_scripts": [
-            "moto_server = moto.server:main",
-        ],
-    },
+    entry_points={"console_scripts": ["moto_server = moto.server:main"]},
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,
@@ -137,7 +144,5 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
-    project_urls={
-        "Documentation": "http://docs.getmoto.org/en/latest/",
-    },
+    project_urls={"Documentation": "http://docs.getmoto.org/en/latest/"},
 )

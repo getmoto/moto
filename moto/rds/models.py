@@ -1,15 +1,17 @@
-from __future__ import unicode_literals
-
-from boto3 import Session
 from jinja2 import Template
 
 from moto.core import BaseBackend, CloudFormationModel
+from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
 from moto.rds.exceptions import UnformattedGetAttTemplateException
 from moto.rds2.models import rds2_backends
 
 
 class Database(CloudFormationModel):
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
+
     def get_cfn_attribute(self, attribute_name):
         if attribute_name == "Endpoint.Address":
             return self.address
@@ -28,7 +30,7 @@ class Database(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -222,7 +224,7 @@ class SecurityGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         group_name = resource_name.lower()
@@ -296,7 +298,7 @@ class SubnetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         subnet_name = resource_name.lower()
@@ -335,10 +337,4 @@ class RDSBackend(BaseBackend):
         return rds2_backends[self.region]
 
 
-rds_backends = {}
-for region in Session().get_available_regions("rds"):
-    rds_backends[region] = RDSBackend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-us-gov"):
-    rds_backends[region] = RDSBackend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-cn"):
-    rds_backends[region] = RDSBackend(region)
+rds_backends = BackendDict(RDSBackend, "rds")

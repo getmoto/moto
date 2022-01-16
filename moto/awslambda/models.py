@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import time
 from collections import defaultdict
@@ -24,14 +22,12 @@ import threading
 import weakref
 import requests.exceptions
 
-from boto3 import Session
-
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
@@ -203,7 +199,7 @@ class Permission(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         backend = lambda_backends[region_name]
@@ -272,7 +268,7 @@ class LayerVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -376,7 +372,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, ACCOUNT_ID, self.function_name
         )
 
-        self.tags = dict()
+        if spec.get("Tags"):
+            self.tags = spec.get("Tags")
+        else:
+            self.tags = dict()
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
@@ -651,6 +650,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         if body:
             body = json.loads(body)
+        else:
+            body = "{}"
 
         # Get the invocation type:
         res, errored, logs = self._invoke_lambda(code=self.code, event=body)
@@ -677,7 +678,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -717,6 +718,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         fn = backend.create_function(spec)
         return fn
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -737,7 +742,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
         zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
-        zip_file.writestr("lambda_function.zip", code)
+        zip_file.writestr("index.py", code)
+        # This should really be part of the 'lambci' docker image
+        from moto.packages.cfnresponse import cfnresponse
+
+        with open(cfnresponse.__file__) as cfn:
+            zip_file.writestr("cfnresponse.py", cfn.read())
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
@@ -834,7 +844,7 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         lambda_backend = lambda_backends[region_name]
@@ -887,7 +897,7 @@ class LambdaVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
@@ -939,8 +949,10 @@ class LambdaStorage(object):
     def get_arn(self, arn):
         return self._arns.get(arn, None)
 
-    def get_function_by_name_or_arn(self, input, qualifier=None):
-        return self.get_function_by_name(input, qualifier) or self.get_arn(input)
+    def get_function_by_name_or_arn(self, name_or_arn, qualifier=None):
+        return self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
+            name_or_arn
+        )
 
     def put_function(self, fn):
         """
@@ -1217,7 +1229,7 @@ class LambdaBackend(BaseBackend):
         if not esm:
             return False
 
-        for key, value in spec.items():
+        for key in spec.keys():
             if key == "FunctionName":
                 func = self._lambdas.get_function_by_name_or_arn(spec[key])
                 esm.function_arn = func.function_arn
@@ -1437,10 +1449,4 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-lambda_backends = {}
-for region in Session().get_available_regions("lambda"):
-    lambda_backends[region] = LambdaBackend(region)
-for region in Session().get_available_regions("lambda", partition_name="aws-us-gov"):
-    lambda_backends[region] = LambdaBackend(region)
-for region in Session().get_available_regions("lambda", partition_name="aws-cn"):
-    lambda_backends[region] = LambdaBackend(region)
+lambda_backends = BackendDict(LambdaBackend, "lambda")

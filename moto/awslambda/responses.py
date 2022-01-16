@@ -1,6 +1,5 @@
-from __future__ import unicode_literals
-
 import json
+import sys
 
 try:
     from urllib import unquote
@@ -209,6 +208,16 @@ class LambdaResponse(BaseResponse):
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
+            if request.headers.get("X-Amz-Invocation-Type") != "Event":
+                if sys.getsizeof(payload) > 6000000:
+                    response_headers["Content-Length"] = "142"
+                    response_headers["x-amz-function-error"] = "Unhandled"
+                    error_dict = {
+                        "errorMessage": "Response payload size exceeded maximum allowed payload size (6291556 bytes).",
+                        "errorType": "Function.ResponseSizeTooLarge",
+                    }
+                    payload = json.dumps(error_dict).encode("utf-8")
+
             response_headers["content-type"] = "application/json"
             if request.headers.get("X-Amz-Invocation-Type") == "Event":
                 status_code = 202

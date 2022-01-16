@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ "3.7", "3.9" ]
-        responses-version: [ "0.12.0", "0.13.0" ]
+        responses-version: ["0.11.0", "0.12.0", "0.12.1", "0.13.0", "0.15.0", "0.17.0" ]
         mock-version: [ "3.0.5", "4.0.0", "4.0.3" ]
 
     steps:
@@ -35,4 +35,4 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest -sv tests/test_core
+        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py

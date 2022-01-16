@@ -1,19 +1,16 @@
-from __future__ import unicode_literals
-
 import hashlib
 import json
 import re
 import uuid
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timezone
 from random import random
 from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
-from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.ec2 import ec2_backends
+from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.ecr.exceptions import (
     ImageNotFoundException,
     RepositoryNotFoundException,
@@ -69,12 +66,13 @@ class Repository(BaseObject, CloudFormationModel):
         self,
         region_name,
         repository_name,
+        registry_id,
         encryption_config,
         image_scan_config,
         image_tag_mutablility,
     ):
         self.region_name = region_name
-        self.registry_id = DEFAULT_REGISTRY_ID
+        self.registry_id = registry_id or DEFAULT_REGISTRY_ID
         self.arn = (
             f"arn:aws:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
         )
@@ -154,6 +152,10 @@ class Repository(BaseObject, CloudFormationModel):
         ecr_backend = ecr_backends[region_name]
         ecr_backend.delete_repository(self.name)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "RepositoryUri"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -175,7 +177,7 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         ecr_backend = ecr_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -189,6 +191,7 @@ class Repository(BaseObject, CloudFormationModel):
             # RepositoryName is optional in CloudFormation, thus create a random
             # name if necessary
             repository_name=resource_name,
+            registry_id=None,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
             image_tag_mutablility=image_tag_mutablility,
@@ -237,7 +240,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id
         self.image_digest = digest
-        self.image_pushed_at = str(datetime.utcnow().isoformat())
+        self.image_pushed_at = str(datetime.now(timezone.utc).isoformat())
         self.last_scan = None
 
     def _create_digest(self):
@@ -405,6 +408,7 @@ class ECRBackend(BaseBackend):
     def create_repository(
         self,
         repository_name,
+        registry_id,
         encryption_config,
         image_scan_config,
         image_tag_mutablility,
@@ -416,6 +420,7 @@ class ECRBackend(BaseBackend):
         repository = Repository(
             region_name=self.region_name,
             repository_name=repository_name,
+            registry_id=registry_id,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
             image_tag_mutablility=image_tag_mutablility,
@@ -949,6 +954,4 @@ class ECRBackend(BaseBackend):
         }
 
 
-ecr_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    ecr_backends[region] = ECRBackend(region)
+ecr_backends = BackendDict(ECRBackend, "ec2")

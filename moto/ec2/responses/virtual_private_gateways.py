@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -12,7 +11,7 @@ class VirtualPrivateGateways(BaseResponse):
         return template.render(attachment=attachment)
 
     def create_vpn_gateway(self):
-        type = self._get_param("Type")
+        gateway_type = self._get_param("Type")
         amazon_side_asn = self._get_param("AmazonSideAsn")
         availability_zone = self._get_param("AvailabilityZone")
         tags = self._get_multi_param("TagSpecification")
@@ -20,7 +19,7 @@ class VirtualPrivateGateways(BaseResponse):
         tags = (tags or {}).get("Tag", [])
         tags = {t["Key"]: t["Value"] for t in tags}
         vpn_gateway = self.ec2_backend.create_vpn_gateway(
-            type=type,
+            gateway_type=gateway_type,
             amazon_side_asn=amazon_side_asn,
             availability_zone=availability_zone,
             tags=tags,

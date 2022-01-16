@@ -1,15 +1,17 @@
 import base64
 from io import BytesIO
 import json
+import sure  # noqa # pylint: disable=unused-import
 import time
 from zipfile import ZipFile, ZIP_DEFLATED
 import zlib
 
 import boto3
 from botocore.exceptions import ClientError
+from datetime import datetime
 from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
+from moto.core.utils import unix_time_millis
 import pytest
-import sure  # noqa
 
 
 @mock_lambda
@@ -48,14 +50,14 @@ def test_put_subscription_filter_update():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    creation_time = filter["creationTime"]
+    sub_filter = response["subscriptionFilters"][0]
+    creation_time = sub_filter["creationTime"]
     creation_time.should.be.a(int)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = ""
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = ""
 
     # when
     # to update an existing subscription filter the 'filerName' must be identical
@@ -69,13 +71,13 @@ def test_put_subscription_filter_update():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.equal(creation_time)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = "[]"
+    sub_filter = response["subscriptionFilters"][0]
+    sub_filter["creationTime"].should.equal(creation_time)
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = "[]"
 
     # when
     # only one subscription filter can be associated with a log group
@@ -132,21 +134,23 @@ def test_put_subscription_filter_with_lambda():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.be.a(int)
-    filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/test"
-    filter["filterName"] = "test"
-    filter["filterPattern"] = ""
+    sub_filter = response["subscriptionFilters"][0]
+    sub_filter["creationTime"].should.be.a(int)
+    sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
+    sub_filter["distribution"] = "ByLogStream"
+    sub_filter["logGroupName"] = "/test"
+    sub_filter["filterName"] = "test"
+    sub_filter["filterPattern"] = ""
 
     # when
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         logEvents=[
-            {"timestamp": 0, "message": "test"},
-            {"timestamp": 0, "message": "test 2"},
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
         ],
     )
 
@@ -171,10 +175,10 @@ def test_put_subscription_filter_with_lambda():
     log_events.should.have.length_of(2)
     log_events[0]["id"].should.be.a(int)
     log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(0)
+    log_events[0]["timestamp"].should.equal(ts_0)
     log_events[1]["id"].should.be.a(int)
     log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(0)
+    log_events[1]["timestamp"].should.equal(ts_1)
 
 
 @mock_s3
@@ -224,21 +228,23 @@ def test_put_subscription_filter_with_firehose():
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
     response["subscriptionFilters"].should.have.length_of(1)
-    filter = response["subscriptionFilters"][0]
-    filter["creationTime"].should.be.a(int)
-    filter["destinationArn"] = firehose_arn
-    filter["distribution"] = "ByLogStream"
-    filter["logGroupName"] = "/firehose-test"
-    filter["filterName"] = "firehose-test"
-    filter["filterPattern"] = ""
+    _filter = response["subscriptionFilters"][0]
+    _filter["creationTime"].should.be.a(int)
+    _filter["destinationArn"] = firehose_arn
+    _filter["distribution"] = "ByLogStream"
+    _filter["logGroupName"] = "/firehose-test"
+    _filter["filterName"] = "firehose-test"
+    _filter["filterPattern"] = ""
 
     # when
+    ts_0 = int(unix_time_millis(datetime.utcnow()))
+    ts_1 = int(unix_time_millis(datetime.utcnow()))
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         logEvents=[
-            {"timestamp": 0, "message": "test"},
-            {"timestamp": 0, "message": "test 2"},
+            {"timestamp": ts_0, "message": "test"},
+            {"timestamp": ts_1, "message": "test 2"},
         ],
     )
 
@@ -260,10 +266,10 @@ def test_put_subscription_filter_with_firehose():
     log_events.should.have.length_of(2)
     log_events[0]["id"].should.be.a(int)
     log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(0)
+    log_events[0]["timestamp"].should.equal(ts_0)
     log_events[1]["id"].should.be.a(int)
     log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(0)
+    log_events[1]["timestamp"].should.equal(ts_1)
 
 
 @mock_lambda

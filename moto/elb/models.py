@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 
 import pytz
@@ -14,6 +12,7 @@ from moto.packages.boto.ec2.elb.attributes import (
 from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     BadHealthCheckDefinition,
@@ -23,6 +22,7 @@ from .exceptions import (
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
     TooManyTagsError,
+    CertificateNotFoundException,
 )
 
 
@@ -79,6 +79,7 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id=None,
         subnets=None,
         security_groups=None,
+        elb_backend=None,
     ):
         self.name = name
         self.health_check = None
@@ -111,6 +112,11 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
+            if listener.ssl_certificate_id:
+                elb_backend._register_certificate(
+                    listener.ssl_certificate_id, self.dns_name
+                )
+
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -136,7 +142,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -206,6 +212,16 @@ class FakeLoadBalancer(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "CanonicalHostedZoneName",
+            "CanonicalHostedZoneNameID",
+            "DNSName",
+            "SourceSecurityGroup.GroupName",
+            "SourceSecurityGroup.OwnerAlias",
+        ]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -310,6 +326,7 @@ class ELBBackend(BaseBackend):
             subnets=subnets,
             security_groups=security_groups,
             vpc_id=vpc_id,
+            elb_backend=self,
         )
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
@@ -332,6 +349,10 @@ class ELBBackend(BaseBackend):
                             raise DuplicateListenerError(name, lb_port)
                         break
                 else:
+                    if ssl_certificate_id:
+                        self._register_certificate(
+                            ssl_certificate_id, balancer.dns_name
+                        )
                     balancer.listeners.append(
                         FakeListener(
                             lb_port, instance_port, protocol, ssl_certificate_id
@@ -406,7 +427,10 @@ class ELBBackend(BaseBackend):
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
-
+                    if ssl_certificate_id:
+                        self._register_certificate(
+                            ssl_certificate_id, balancer.dns_name
+                        )
         return balancer
 
     def register_instances(
@@ -509,7 +533,15 @@ class ELBBackend(BaseBackend):
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
+    def _register_certificate(self, ssl_certificate_id, dns_name):
+        from moto.acm.models import acm_backends, AWSResourceNotFoundException
 
-elb_backends = {}
-for region in ec2_backends.keys():
-    elb_backends[region] = ELBBackend(region)
+        acm_backend = acm_backends[self.region_name]
+        try:
+            acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
+        except AWSResourceNotFoundException:
+            raise CertificateNotFoundException()
+
+
+# Use the same regions as EC2
+elb_backends = BackendDict(ELBBackend, "ec2")

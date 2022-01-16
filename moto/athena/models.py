@@ -1,8 +1,7 @@
-from __future__ import unicode_literals
 import time
 
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core.utils import BackendDict
 
 from uuid import uuid4
 
@@ -40,9 +39,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
 
     def __init__(self, athena_backend, name, configuration, description, tags):
         self.region_name = athena_backend.region_name
-        super(WorkGroup, self).__init__(
-            self.region_name, "workgroup/{}".format(name), tags
-        )
+        super().__init__(self.region_name, "workgroup/{}".format(name), tags)
         self.athena_backend = athena_backend
         self.name = name
         self.description = description
@@ -146,10 +143,4 @@ class AthenaBackend(BaseBackend):
         return self.named_queries[query_id] if query_id in self.named_queries else None
 
 
-athena_backends = {}
-for region in Session().get_available_regions("athena"):
-    athena_backends[region] = AthenaBackend(region)
-for region in Session().get_available_regions("athena", partition_name="aws-us-gov"):
-    athena_backends[region] = AthenaBackend(region)
-for region in Session().get_available_regions("athena", partition_name="aws-cn"):
-    athena_backends[region] = AthenaBackend(region)
+athena_backends = BackendDict(AthenaBackend, "athena")

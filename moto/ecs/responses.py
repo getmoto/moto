@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -28,9 +27,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def create_cluster(self):
         cluster_name = self._get_param("clusterName")
+        tags = self._get_param("tags")
         if cluster_name is None:
             cluster_name = "default"
-        cluster = self.ecs_backend.create_cluster(cluster_name)
+        cluster = self.ecs_backend.create_cluster(cluster_name, tags)
         return json.dumps({"cluster": cluster.response_object})
 
     def list_clusters(self):
@@ -43,8 +43,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def describe_clusters(self):
-        list_clusters_name = self._get_param("clusters")
-        clusters, failures = self.ecs_backend.describe_clusters(list_clusters_name)
+        names = self._get_param("clusters")
+        include = self._get_param("include")
+        clusters, failures = self.ecs_backend.describe_clusters(names, include)
         return json.dumps(
             {
                 "clusters": clusters,
@@ -117,8 +118,15 @@ class EC2ContainerServiceResponse(BaseResponse):
         count = self._get_int_param("count")
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
+        launch_type = self._get_param("launchType")
         tasks = self.ecs_backend.run_task(
-            cluster_str, task_definition_str, count, overrides, started_by, tags
+            cluster_str,
+            task_definition_str,
+            count,
+            overrides,
+            started_by,
+            tags,
+            launch_type,
         )
         return json.dumps(
             {"tasks": [task.response_object for task in tasks], "failures": []}
@@ -254,7 +262,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster", "default")
         container_instance_str = self._get_param("containerInstance")
         force = self._get_param("force")
-        container_instance, failures = self.ecs_backend.deregister_container_instance(
+        container_instance = self.ecs_backend.deregister_container_instance(
             cluster_str, container_instance_str, force
         )
         return json.dumps({"containerInstance": container_instance.response_object})
@@ -450,3 +458,20 @@ class EC2ContainerServiceResponse(BaseResponse):
             cluster_str, service_str, primary_task_set
         )
         return json.dumps({"taskSet": task_set.response_object})
+
+    def put_account_setting(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_setting = self.ecs_backend.put_account_setting(name, value)
+        return json.dumps({"setting": account_setting.response_object})
+
+    def list_account_settings(self):
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_settings = self.ecs_backend.list_account_settings(name, value)
+        return json.dumps({"settings": [s.response_object for s in account_settings]})
+
+    def delete_account_setting(self):
+        name = self._get_param("name")
+        self.ecs_backend.delete_account_setting(name)
+        return "{}"

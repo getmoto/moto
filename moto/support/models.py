@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-from boto3 import Session
 from moto.core import BaseBackend
 from moto.utilities.utils import load_resource
 import datetime
@@ -51,7 +49,7 @@ class SupportCase(object):
 
 class SupportBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(SupportBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.check_status = {}
         self.cases = {}
@@ -236,9 +234,3 @@ support_backends = {}
 
 # Only currently supported in us-east-1
 support_backends["us-east-1"] = SupportBackend("us-east-1")
-for region in Session().get_available_regions("support"):
-    support_backends[region] = SupportBackend(region)
-for region in Session().get_available_regions("support", partition_name="aws-us-gov"):
-    support_backends[region] = SupportBackend(region)
-for region in Session().get_available_regions("support", partition_name="aws-cn"):
-    support_backends[region] = SupportBackend(region)

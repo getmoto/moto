@@ -1,5 +1,5 @@
-from __future__ import unicode_literals
 import uuid
+from threading import Timer as ThreadingTimer, Lock
 
 from moto.core import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
@@ -16,6 +16,7 @@ from .activity_type import ActivityType
 from .decision_task import DecisionTask
 from .history_event import HistoryEvent
 from .timeout import Timeout
+from .timer import Timer
 
 
 # TODO: extract decision related logic into a Decision class
@@ -69,7 +70,7 @@ class WorkflowExecution(BaseModel):
         self._set_from_kwargs_or_workflow_type(kwargs, "task_list", "task_list")
         self._set_from_kwargs_or_workflow_type(kwargs, "task_start_to_close_timeout")
         self._set_from_kwargs_or_workflow_type(kwargs, "child_policy")
-        self.input = kwargs.get("input")
+        self.input = kwargs.get("workflow_input")
         # counters
         self.open_counts = {
             "openTimers": 0,
@@ -83,6 +84,9 @@ class WorkflowExecution(BaseModel):
         # child workflows
         self.child_workflow_executions = []
         self._previous_started_event_id = None
+        # timers/thread utils
+        self.threading_lock = Lock()
+        self._timers = {}
 
     def __repr__(self):
         return "WorkflowExecution(run_id: {0})".format(self.run_id)
@@ -236,9 +240,12 @@ class WorkflowExecution(BaseModel):
         return max(event_ids or [0]) + 1
 
     def _add_event(self, *args, **kwargs):
-        evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
-        self._events.append(evt)
-        return evt
+        # lock here because the fire_timer function is called
+        # async, and want to ensure uniqueness in event ids
+        with self.threading_lock:
+            evt = HistoryEvent(self.next_event_id(), *args, **kwargs)
+            self._events.append(evt)
+            return evt
 
     def start(self):
         self.start_timestamp = unix_time()
@@ -407,17 +414,21 @@ class WorkflowExecution(BaseModel):
                 self.fail(event_id, attributes.get("details"), attributes.get("reason"))
             elif decision_type == "ScheduleActivityTask":
                 self.schedule_activity_task(event_id, attributes)
+            elif decision_type == "RecordMarker":
+                self.record_marker(event_id, attributes)
+            elif decision_type == "StartTimer":
+                self.start_timer(event_id, attributes)
+            elif decision_type == "CancelTimer":
+                self.cancel_timer(event_id, attributes["timerId"])
+            elif decision_type == "CancelWorkflowExecution":
+                self.cancel(event_id, attributes.get("details"))
             else:
-                # TODO: implement Decision type: CancelTimer
-                # TODO: implement Decision type: CancelWorkflowExecution
                 # TODO: implement Decision type: ContinueAsNewWorkflowExecution
-                # TODO: implement Decision type: RecordMarker
                 # TODO: implement Decision type: RequestCancelActivityTask
                 # TODO: implement Decision type: RequestCancelExternalWorkflowExecution
                 # TODO: implement Decision type: ScheduleLambdaFunction
                 # TODO: implement Decision type: SignalExternalWorkflowExecution
                 # TODO: implement Decision type: StartChildWorkflowExecution
-                # TODO: implement Decision type: StartTimer
                 raise NotImplementedError(
                     "Cannot handle decision: {0}".format(decision_type)
                 )
@@ -445,6 +456,27 @@ class WorkflowExecution(BaseModel):
             decision_task_completed_event_id=event_id,
             details=details,
             reason=reason,
+        )
+
+    def cancel(self, event_id, details=None):
+        # TODO: implement length constraints on details
+        self.cancel_requested = True
+        # Can only cancel if there are no other pending desicion tasks
+        if self.open_counts["openDecisionTasks"] != 1:
+            # TODO OPERATION_NOT_PERMITTED is a valid failure state
+            self._add_event(
+                "CancelWorkflowExecutionFailed",
+                decision_task_completed_event_id=event_id,
+                cause="UNHANDLED_DECISION",
+            )
+            return
+        self.execution_status = "CLOSED"
+        self.close_status = "CANCELED"
+        self.close_timestamp = unix_time()
+        self._add_event(
+            "WorkflowExecutionCanceled",
+            decision_task_completed_event_id=event_id,
+            details=details,
         )
 
     def schedule_activity_task(self, event_id, attributes):
@@ -531,7 +563,7 @@ class WorkflowExecution(BaseModel):
         task = ActivityTask(
             activity_id=attributes["activityId"],
             activity_type=activity_type,
-            input=attributes.get("input"),
+            workflow_input=attributes.get("input"),
             scheduled_event_id=evt.event_id,
             workflow_execution=self,
             timeouts=timeouts,
@@ -600,9 +632,9 @@ class WorkflowExecution(BaseModel):
         self.close_status = "TERMINATED"
         self.close_cause = "OPERATOR_INITIATED"
 
-    def signal(self, signal_name, input):
+    def signal(self, signal_name, workflow_input):
         self._add_event(
-            "WorkflowExecutionSignaled", signal_name=signal_name, input=input
+            "WorkflowExecutionSignaled", signal_name=signal_name, input=workflow_input
         )
         self.schedule_decision_task()
 
@@ -650,6 +682,70 @@ class WorkflowExecution(BaseModel):
             scheduled_event_id=task.scheduled_event_id,
             started_event_id=task.started_event_id,
             timeout_type=task.timeout_type,
+        )
+
+    def record_marker(self, event_id, attributes):
+        self._add_event(
+            "MarkerRecorded",
+            decision_task_completed_event_id=event_id,
+            details=attributes.get("details"),
+            marker_name=attributes["markerName"],
+        )
+
+    def start_timer(self, event_id, attributes):
+        timer_id = attributes["timerId"]
+        existing_timer = self._timers.get(timer_id)
+        if existing_timer and existing_timer.is_alive():
+            # TODO 4 fail states are possible
+            # TIMER_ID_ALREADY_IN_USE | OPEN_TIMERS_LIMIT_EXCEEDED | TIMER_CREATION_RATE_EXCEEDED | OPERATION_NOT_PERMITTED
+            self._add_event(
+                "StartTimerFailed",
+                cause="TIMER_ID_ALREADY_IN_USE",
+                decision_task_completed_event_id=event_id,
+                timer_id=timer_id,
+            )
+            return
+
+        time_to_wait = attributes["startToFireTimeout"]
+        started_event_id = self._add_event(
+            "TimerStarted",
+            control=attributes.get("control"),
+            decision_task_completed_event_id=event_id,
+            start_to_fire_timeout=time_to_wait,
+            timer_id=timer_id,
+        ).event_id
+        background_timer = ThreadingTimer(
+            float(time_to_wait), self._fire_timer, args=(started_event_id, timer_id,)
+        )
+        workflow_timer = Timer(background_timer, started_event_id)
+        self._timers[timer_id] = workflow_timer
+        workflow_timer.start()
+
+    def _fire_timer(self, started_event_id, timer_id):
+        self._add_event(
+            "TimerFired", started_event_id=started_event_id, timer_id=timer_id
+        )
+        self._timers.pop(timer_id)
+
+    def cancel_timer(self, event_id, timer_id):
+        requested_timer = self._timers.get(timer_id)
+        if not requested_timer or not requested_timer.is_alive():
+            # TODO there are 2 failure states
+            # TIMER_ID_UNKNOWN | OPERATION_NOT_PERMITTED
+            self._add_event(
+                "CancelTimerFailed",
+                cause="TIMER_ID_UNKNOWN",
+                decision_task_completed_event_id=event_id,
+            )
+            return
+
+        requested_timer.cancel()
+        self._timers.pop(timer_id)
+        self._add_event(
+            "TimerCancelled",
+            decision_task_completed_event_id=event_id,
+            started_event_id=requested_timer.started_event_id,
+            timer_id=timer_id,
         )
 
     @property

@@ -43,10 +43,10 @@ class AthenaResponse(BaseResponse):
         workgroup = self._get_param("WorkGroup")
         if workgroup and not self.athena_backend.get_work_group(workgroup):
             return self.error("WorkGroup does not exist", 400)
-        id = self.athena_backend.start_query_execution(
+        q_exec_id = self.athena_backend.start_query_execution(
             query=query, context=context, config=config, workgroup=workgroup
         )
-        return json.dumps({"QueryExecutionId": id})
+        return json.dumps({"QueryExecutionId": q_exec_id})
 
     def get_query_execution(self):
         exec_id = self._get_param("QueryExecutionId")

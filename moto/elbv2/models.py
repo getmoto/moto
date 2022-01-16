@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import re
 from jinja2 import Template
@@ -10,6 +8,7 @@ from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     get_random_hex,
+    BackendDict,
 )
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -160,7 +159,7 @@ class FakeTargetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -255,7 +254,7 @@ class FakeListener(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -319,7 +318,7 @@ class FakeListenerRule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         elbv2_backend = elbv2_backends[region_name]
@@ -427,6 +426,8 @@ class FakeLoadBalancer(CloudFormationModel):
         "access_logs.s3.prefix",
         "deletion_protection.enabled",
         "idle_timeout.timeout_seconds",
+        "routing.http2.enabled",
+        "routing.http.drop_invalid_header_fields.enabled",
     }
 
     def __init__(
@@ -498,7 +499,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -512,6 +513,16 @@ class FakeLoadBalancer(CloudFormationModel):
             resource_name, security_groups, subnet_ids, scheme=scheme
         )
         return load_balancer
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "DNSName",
+            "LoadBalancerName",
+            "CanonicalHostedZoneID",
+            "LoadBalancerFullName",
+            "SecurityGroups",
+        ]
 
     def get_cfn_attribute(self, attribute_name):
         """
@@ -811,6 +822,17 @@ class ELBv2Backend(BaseBackend):
                 "A 'QueryStringConfig' must be specified with 'query-string'"
             )
 
+    def _get_target_group_arns_from(self, action_data):
+        if "TargetGroupArn" in action_data:
+            return [action_data["TargetGroupArn"]]
+        elif "ForwardConfig" in action_data:
+            return [
+                tg["TargetGroupArn"]
+                for tg in action_data["ForwardConfig"].get("TargetGroups", [])
+            ]
+        else:
+            return []
+
     def _validate_actions(self, actions):
         # validate Actions
         target_group_arns = [
@@ -819,10 +841,11 @@ class ELBv2Backend(BaseBackend):
         for i, action in enumerate(actions):
             index = i + 1
             action_type = action.type
-            if action_type == "forward" and "TargetGroupArn" in action.data:
-                action_target_group_arn = action.data["TargetGroupArn"]
-                if action_target_group_arn not in target_group_arns:
-                    raise ActionTargetGroupNotFoundError(action_target_group_arn)
+            if action_type == "forward":
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for target_group_arn in found_arns:
+                    if target_group_arn not in target_group_arns:
+                        raise ActionTargetGroupNotFoundError(target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
             elif action_type in ["redirect", "authenticate-cognito"]:
@@ -988,8 +1011,10 @@ Member must satisfy regular expression pattern: {}".format(
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
-                target_group = self.target_groups[action.data["TargetGroupArn"]]
-                target_group.load_balancer_arns.append(load_balancer_arn)
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for arn in found_arns:
+                    target_group = self.target_groups[arn]
+                    target_group.load_balancer_arns.append(load_balancer_arn)
 
         return listener
 
@@ -1370,10 +1395,6 @@ Member must satisfy regular expression pattern: {}".format(
         listener = load_balancer.listeners[arn]
 
         if port is not None:
-            for listener_arn, current_listener in load_balancer.listeners.items():
-                if listener_arn == arn:
-                    continue
-
             listener.port = port
 
         if protocol is not None:
@@ -1413,6 +1434,7 @@ Member must satisfy regular expression pattern: {}".format(
         if default_actions is not None and default_actions != []:
             # Is currently not validated
             listener.default_actions = default_actions
+            listener._default_rule[0].actions = default_actions
 
         return listener
 
@@ -1421,7 +1443,10 @@ Member must satisfy regular expression pattern: {}".format(
             for listener in load_balancer.listeners.values():
                 for rule in listener.rules.values():
                     for action in rule.actions:
-                        if action.data.get("TargetGroupArn") == target_group_arn:
+                        found_arns = self._get_target_group_arns_from(
+                            action_data=action.data
+                        )
+                        if target_group_arn in found_arns:
                             return True
         return False
 
@@ -1430,6 +1455,4 @@ Member must satisfy regular expression pattern: {}".format(
             target_group.deregister_terminated_instances(instance_ids)
 
 
-elbv2_backends = {}
-for region in ec2_backends.keys():
-    elbv2_backends[region] = ELBv2Backend(region)
+elbv2_backends = BackendDict(ELBv2Backend, "ec2")

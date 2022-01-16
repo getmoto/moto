@@ -1,13 +1,10 @@
-from __future__ import unicode_literals
 from builtins import str
 
 import json
 import re
 
-from boto3 import Session
-
-from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import BadRequestException
 
 
@@ -225,7 +222,7 @@ class ResourceGroups:
 
 class ResourceGroupsBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(ResourceGroupsBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.groups = ResourceGroups()
 
@@ -233,7 +230,7 @@ class ResourceGroupsBackend(BaseBackend):
     def _validate_resource_query(resource_query):
         if not resource_query:
             return
-        type = resource_query["Type"]
+        query_type = resource_query["Type"]
         query = json.loads(resource_query["Query"])
         query_keys = set(query.keys())
         invalid_json_exception = BadRequestException(
@@ -241,7 +238,7 @@ class ResourceGroupsBackend(BaseBackend):
         )
         if not isinstance(query["ResourceTypeFilters"], list):
             raise invalid_json_exception
-        if type == "CLOUDFORMATION_STACK_1_0":
+        if query_type == "CLOUDFORMATION_STACK_1_0":
             if query_keys != {"ResourceTypeFilters", "StackIdentifier"}:
                 raise invalid_json_exception
             stack_identifier = query["StackIdentifier"]
@@ -257,7 +254,7 @@ class ResourceGroupsBackend(BaseBackend):
             # Once checking other resources is implemented.
             # if stack_identifier not in self.cloudformation_backend.stacks:
             #   raise BadRequestException("Invalid query: The specified CloudFormation stack doesn't exist.")
-        if type == "TAG_FILTERS_1_0":
+        if query_type == "TAG_FILTERS_1_0":
             if query_keys != {"ResourceTypeFilters", "TagFilters"}:
                 raise invalid_json_exception
             tag_filters = query["TagFilters"]
@@ -373,14 +370,4 @@ class ResourceGroupsBackend(BaseBackend):
         return self.groups.by_name[group_name]
 
 
-resourcegroups_backends = {}
-for region in Session().get_available_regions("resource-groups"):
-    resourcegroups_backends[region] = ResourceGroupsBackend(region)
-for region in Session().get_available_regions(
-    "resource-groups", partition_name="aws-us-gov"
-):
-    resourcegroups_backends[region] = ResourceGroupsBackend(region)
-for region in Session().get_available_regions(
-    "resource-groups", partition_name="aws-cn"
-):
-    resourcegroups_backends[region] = ResourceGroupsBackend(region)
+resourcegroups_backends = BackendDict(ResourceGroupsBackend, "resource-groups")

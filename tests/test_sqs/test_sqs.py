@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import base64
 import json
 import time
@@ -10,7 +7,7 @@ import hashlib
 import boto
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
@@ -23,6 +20,7 @@ import pytest
 from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
 from moto.sqs.models import (
+    Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     MAXIMUM_MESSAGE_LENGTH,
@@ -280,6 +278,46 @@ def test_set_queue_attribute_empty_policy_removes_attr():
         "Attributes"
     ]
     response.shouldnt.have.key("Policy")
+
+
+def test_is_empty_redrive_policy_returns_true_for_empty_and_falsy_values():
+    assert Queue._is_empty_redrive_policy("")
+    assert Queue._is_empty_redrive_policy("{}")
+
+
+def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
+    test_dlq_arn = "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue"
+    assert not Queue._is_empty_redrive_policy(
+        json.dumps({"deadLetterTargetArn": test_dlq_arn, "maxReceiveCount": 5})
+    )
+    assert not Queue._is_empty_redrive_policy(json.dumps({"maxReceiveCount": 5}))
+
+
+@mock_sqs
+def test_set_queue_attribute_empty_redrive_removes_attr():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    dlq_resp = client.create_queue(QueueName="test-dlr-queue")
+    dlq_arn1 = client.get_queue_attributes(
+        QueueUrl=dlq_resp["QueueUrl"], AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+    q_name = str(uuid4())[0:6]
+    response = client.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 5}
+            ),
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    no_redrive = {"RedrivePolicy": ""}
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=no_redrive)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    response.shouldnt.have.key("RedrivePolicy")
 
 
 @mock_sqs
@@ -542,7 +580,7 @@ def test_send_message_with_message_group_id():
         QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
     )
 
-    sent = queue.send_message(
+    queue.send_message(
         MessageBody="mydata",
         MessageDeduplicationId="dedupe_id_1",
         MessageGroupId="group_id_1",
@@ -561,12 +599,30 @@ def test_send_message_with_message_group_id():
 
 
 @mock_sqs
+def test_send_message_with_message_group_id_standard_queue():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
+
+    with pytest.raises(ClientError) as ex:
+        queue.send_message(
+            MessageBody="mydata", MessageGroupId="group_id_1",
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "Value group_id_1 for parameter MessageGroupId is invalid. "
+        "Reason: The request include parameter that is not valid for this queue type."
+    )
+
+
+@mock_sqs
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
-    msg = queue.send_message(MessageBody=body_one)
+    queue.send_message(MessageBody=body_one)
 
     messages = queue.receive_messages()
     message_body = messages[0].body
@@ -1520,9 +1576,9 @@ def test_message_becomes_inflight_when_received():
 
 @mock_sqs
 def test_message_becomes_inflight_when_received_boto3():
-    sqs = boto3.resource("sqs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
     )
 
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
@@ -1540,7 +1596,7 @@ def test_message_becomes_inflight_when_received_boto3():
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
 
     # Wait
-    time.sleep(2)
+    time.sleep(3)
 
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
@@ -1660,6 +1716,23 @@ def test_change_message_visibility_boto3():
     messages[0].delete()
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+
+
+@mock_sqs
+def test_change_message_visibility_on_unknown_receipt_handle():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "2"}
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.change_message_visibility(
+            QueueUrl=queue.url, ReceiptHandle="unknown-stuff", VisibilityTimeout=432,
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ReceiptHandleIsInvalid")
+    err["Message"].should.equal("The input receipt handle is invalid.")
 
 
 # Has boto3 equivalent
@@ -1872,39 +1945,11 @@ def test_queue_attributes():
     attribute_names.should.contain("QueueArn")
 
 
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_change_message_visibility_on_invalid_receipt():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=1)
-    queue.set_message_class(RawMessage)
-
-    queue.write(queue.new_message("this is another test message"))
-    queue.count().should.equal(1)
-    messages = conn.receive_message(queue, number_messages=1)
-
-    assert len(messages) == 1
-
-    original_message = messages[0]
-
-    queue.count().should.equal(0)
-
-    time.sleep(2)
-
-    queue.count().should.equal(1)
-
-    messages = conn.receive_message(queue, number_messages=1)
-
-    assert len(messages) == 1
-
-    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
-
-
 @mock_sqs
-def test_change_message_visibility_on_invalid_receipt_boto3():
+def test_change_message_visibility_on_old_message_boto3():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
     )
 
     queue.send_message(MessageBody="test message 1")
@@ -1927,62 +1972,43 @@ def test_change_message_visibility_on_invalid_receipt_boto3():
 
     messages.should.have.length_of(1)
 
-    with pytest.raises(ClientError) as ex:
-        original_message.change_visibility(VisibilityTimeout=100)
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("ReceiptHandleIsInvalid")
-    err["Message"].should.equal("The input receipt handle is invalid.")
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_change_message_visibility_on_visible_message():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=1)
-    queue.set_message_class(RawMessage)
-
-    queue.write(queue.new_message("this is another test message"))
-    queue.count().should.equal(1)
-    messages = conn.receive_message(queue, number_messages=1)
-
-    assert len(messages) == 1
-
-    original_message = messages[0]
-
-    queue.count().should.equal(0)
+    # Docs indicate this should throw an ReceiptHandleIsInvalid, but this is allowed in AWS
+    original_message.change_visibility(VisibilityTimeout=100)
+    # Docs indicate this should throw a MessageNotInflight, but this is allowed in AWS
+    original_message.change_visibility(VisibilityTimeout=100)
 
     time.sleep(2)
 
-    queue.count().should.equal(1)
-
-    original_message.change_visibility.when.called_with(100).should.throw(SQSError)
+    # Message is not yet available, because of the visibility-timeout
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages.should.have.length_of(0)
 
 
 @mock_sqs
 def test_change_message_visibility_on_visible_message_boto3():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
     )
 
     queue.send_message(MessageBody="test message")
     messages = queue.receive_messages(MaxNumberOfMessages=1)
     messages.should.have.length_of(1)
 
-    original_message = messages[0]
-
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
 
     time.sleep(2)
 
-    queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages.should.have.length_of(1)
 
-    # TODO: We should catch a ClientError here, but Moto throws an error in the wrong format
-    with pytest.raises(Exception) as ex:
-        original_message.change_visibility(VisibilityTimeout=100)
-    str(ex).should.match("Invalid request: The message referred to is not in flight.")
+    messages[0].change_visibility(VisibilityTimeout=100)
+
+    time.sleep(2)
+
+    queue.reload()
+    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
 
 
 # Has boto3 equivalent
@@ -2014,7 +2040,7 @@ def test_purge_queue_before_delete_message():
         MessageDeduplicationId="first_message",
         MessageBody="first_message",
     )
-    receive_resp1 = client.receive_message(QueueUrl=queue_url)
+    client.receive_message(QueueUrl=queue_url)
 
     # purge before call delete_message
     client.purge_queue(QueueUrl=queue_url)
@@ -2098,9 +2124,53 @@ def test_delete_message_errors():
 
 
 @mock_sqs
-def test_send_message_batch():
+def test_delete_message_twice_using_same_receipt_handle():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
+    queue_url = response["QueueUrl"]
+
+    client.send_message(QueueUrl=queue_url, MessageBody="body")
+    response = client.receive_message(QueueUrl=queue_url)
+    receipt_handle = response["Messages"][0]["ReceiptHandle"]
+
+    client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+    client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+
+
+@mock_sqs
+def test_delete_message_using_old_receipt_handle():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "0"}
+    )
+    queue_url = response["QueueUrl"]
+
+    client.send_message(QueueUrl=queue_url, MessageBody="body")
+    response = client.receive_message(QueueUrl=queue_url)
+    receipt_1 = response["Messages"][0]["ReceiptHandle"]
+
+    response = client.receive_message(QueueUrl=queue_url)
+    receipt_2 = response["Messages"][0]["ReceiptHandle"]
+
+    receipt_1.shouldnt.equal(receipt_2)
+
+    # Can use an old receipt_handle to delete a message
+    client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_1)
+    # Sanity check the message really is gone
+    client.receive_message(QueueUrl=queue_url).shouldnt.have.key("Messages")
+    # We can delete it again
+    client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_1)
+
+    # Can use the second receipt handle to delete it 'again' - succeeds, as it is idempotent against the message
+    client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_2)
+
+
+@mock_sqs
+def test_send_message_batch():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"},
+    )
     queue_url = response["QueueUrl"]
 
     response = client.send_message_batch(
@@ -2191,6 +2261,46 @@ def test_delete_message_batch_with_duplicates():
         "Messages", []
     )
     assert messages, "message still in the queue"
+
+
+@mock_sqs
+def test_delete_message_batch_with_invalid_receipt_id():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName=str(uuid4())[0:6])
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
+    assert messages, "at least one msg"
+
+    # Try to delete the message from SQS but also include two invalid delete requests
+    entries = [
+        {"Id": "fake-receipt-handle-1", "ReceiptHandle": "fake-receipt-handle-1"},
+        {"Id": messages[0]["MessageId"], "ReceiptHandle": messages[0]["ReceiptHandle"]},
+        {"Id": "fake-receipt-handle-2", "ReceiptHandle": "fake-receipt-handle-2"},
+    ]
+    response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+
+    assert response["Successful"] == [
+        {"Id": messages[0]["MessageId"]}
+    ], "delete ok for real message"
+
+    assert response["Failed"] == [
+        {
+            "Id": "fake-receipt-handle-1",
+            "SenderFault": True,
+            "Code": "ReceiptHandleIsInvalid",
+            "Message": 'The input receipt handle "fake-receipt-handle-1" is not a valid receipt handle.',
+        },
+        {
+            "Id": "fake-receipt-handle-2",
+            "SenderFault": True,
+            "Code": "ReceiptHandleIsInvalid",
+            "Message": 'The input receipt handle "fake-receipt-handle-2" is not a valid receipt handle.',
+        },
+    ]
 
 
 @mock_sqs
@@ -2402,6 +2512,38 @@ def test_batch_change_message_visibility():
     with freeze_time("2015-01-02 12:00:00"):
         resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
         len(resp["Messages"]).should.equal(3)
+
+
+@mock_sqs
+def test_batch_change_message_visibility_on_old_message():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
+    )
+
+    queue.send_message(MessageBody="test message 1")
+
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+
+    messages.should.have.length_of(1)
+
+    original_message = messages[0]
+
+    time.sleep(2)
+
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages[0].receipt_handle.shouldnt.equal(original_message.receipt_handle)
+
+    entries = [
+        {
+            "Id": str(uuid.uuid4()),
+            "ReceiptHandle": original_message.receipt_handle,
+            "VisibilityTimeout": 4,
+        }
+    ]
+
+    resp = queue.change_message_visibility_batch(Entries=entries)
+    resp["Successful"].should.have.length_of(1)
 
 
 @mock_sqs
@@ -3272,9 +3414,10 @@ def test_receive_message_should_not_accept_invalid_urls():
     conn = boto3.client("sqs", region_name="us-east-1")
     name = str(uuid4())[0:6]
     q_response = conn.create_queue(QueueName=name)
-    working_url = q_response[
-        "QueueUrl"
-    ]  # https://queue.amazonaws.com/486285699788/test-queue
+    working_url = q_response["QueueUrl"]
+    # https://queue.amazonaws.com/012341234/test-queue
+    # http://localhost:5000/012341234/test-queue in ServerMode
+    working_url.should.match(f"/{ACCOUNT_ID}/{name}")
 
     queue = sqs.Queue(name)
     with pytest.raises(ClientError) as e:
@@ -3317,3 +3460,51 @@ def test_message_attributes_contains_trace_header():
         messages[0]["Attributes"]["AWSTraceHeader"]
         == "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1"
     )
+
+
+@mock_sqs
+def test_receive_message_again_preserves_attributes():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    q_name = str(uuid4())[0:6]
+    q_resp = conn.create_queue(QueueName=q_name)
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "Custom1": {"StringValue": "Custom_Value_1", "DataType": "String"},
+            "Custom2": {"StringValue": "Custom_Value_2", "DataType": "String"},
+        },
+    )
+
+    first_messages = conn.receive_message(
+        QueueUrl=queue.url,
+        MaxNumberOfMessages=2,
+        MessageAttributeNames=["Custom1"],
+        VisibilityTimeout=0,
+    )["Messages"]
+    assert len(first_messages[0]["MessageAttributes"]) == 1
+    assert first_messages[0]["MessageAttributes"].get("Custom1") is not None
+    assert first_messages[0]["MessageAttributes"].get("Custom2") is None
+
+    second_messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"],
+    )["Messages"]
+    assert len(second_messages[0]["MessageAttributes"]) == 2
+    assert second_messages[0]["MessageAttributes"].get("Custom1") is not None
+    assert second_messages[0]["MessageAttributes"].get("Custom2") is not None
+
+
+@mock_sqs
+def test_message_has_windows_return():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName=f"{str(uuid4())[0:6]}")
+
+    message = "content:\rmessage_with line"
+    queue.send_message(MessageBody=message)
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    messages[0].body.should.match(message)

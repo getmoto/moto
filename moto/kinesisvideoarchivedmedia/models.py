@@ -1,13 +1,12 @@
-from __future__ import unicode_literals
-from boto3 import Session
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
 from moto.kinesisvideo import kinesisvideo_backends
 from moto.sts.utils import random_session_token
 
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(KinesisVideoArchivedMediaBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
     def reset(self):
@@ -69,20 +68,6 @@ class KinesisVideoArchivedMediaBackend(BaseBackend):
         return content_type, payload
 
 
-kinesisvideoarchivedmedia_backends = {}
-for region in Session().get_available_regions("kinesis-video-archived-media"):
-    kinesisvideoarchivedmedia_backends[region] = KinesisVideoArchivedMediaBackend(
-        region
-    )
-for region in Session().get_available_regions(
-    "kinesis-video-archived-media", partition_name="aws-us-gov"
-):
-    kinesisvideoarchivedmedia_backends[region] = KinesisVideoArchivedMediaBackend(
-        region
-    )
-for region in Session().get_available_regions(
-    "kinesis-video-archived-media", partition_name="aws-cn"
-):
-    kinesisvideoarchivedmedia_backends[region] = KinesisVideoArchivedMediaBackend(
-        region
-    )
+kinesisvideoarchivedmedia_backends = BackendDict(
+    KinesisVideoArchivedMediaBackend, "kinesis-video-archived-media"
+)

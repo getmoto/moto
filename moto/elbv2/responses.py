@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
@@ -188,7 +187,7 @@ class ELBV2Response(BaseResponse):
         healthcheck_enabled = self._get_param("HealthCheckEnabled")
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
-        matcher = self._get_param("Matcher")
+        matcher = self._get_params().get("Matcher")
         target_type = self._get_param("TargetType")
 
         target_group = self.elbv2_backend.create_target_group(
@@ -356,7 +355,7 @@ class ELBV2Response(BaseResponse):
     def modify_rule(self):
         rule_arn = self._get_param("RuleArn")
         params = self._get_params()
-        conditions = params["Conditions"]
+        conditions = params.get("Conditions", [])
         actions = params.get("Actions", [])
         rules = self.elbv2_backend.modify_rule(
             rule_arn=rule_arn, conditions=conditions, actions=actions
@@ -608,7 +607,7 @@ class ELBV2Response(BaseResponse):
         protocol = self._get_param("Protocol")
         ssl_policy = self._get_param("SslPolicy")
         certificates = self._get_list_prefix("Certificates.member")
-        default_actions = self._get_list_prefix("DefaultActions.member")
+        default_actions = self._get_params().get("DefaultActions", [])
 
         # Should really move SSL Policies to models
         if ssl_policy is not None and ssl_policy not in [
@@ -840,9 +839,15 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.health_check_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
@@ -1078,9 +1083,15 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
       <member>
         <TargetGroupArn>{{ target_group.arn }}</TargetGroupArn>
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
+        {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% endif %}
+        {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
+        {% endif %}
+        {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
+        {% endif %}
         <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         <HealthCheckPort>{{ target_group.healthcheck_port or '' }}</HealthCheckPort>
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>

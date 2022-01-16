@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 import boto.glacier
 import boto3
+import sure  # noqa # pylint: disable=unused-import
 import pytest
-import sure  # noqa
 
 from moto import mock_glacier_deprecated, mock_glacier
 from moto.core import ACCOUNT_ID

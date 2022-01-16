@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -203,7 +202,7 @@ class DynamoHandler(BaseResponse):
             range_comparison = None
             range_values = []
 
-        items, last_page = dynamodb_backend.query(
+        items, _ = dynamodb_backend.query(
             name, hash_key, range_comparison, range_values
         )
 
@@ -237,7 +236,7 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
-        items, scanned_count, last_page = dynamodb_backend.scan(name, filters)
+        items, scanned_count, _ = dynamodb_backend.scan(name, filters)
 
         if items is None:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
@@ -282,7 +281,6 @@ class DynamoHandler(BaseResponse):
         hash_key = key["HashKeyElement"]
         range_key = key.get("RangeKeyElement")
         updates = self.body["AttributeUpdates"]
-        return_values = self.body.get("ReturnValues", "")  # noqa
 
         item = dynamodb_backend.update_item(name, hash_key, range_key, updates)
 

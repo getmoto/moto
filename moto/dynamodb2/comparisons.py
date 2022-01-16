@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import re
 from collections import deque
 from collections import namedtuple
@@ -954,7 +953,7 @@ class OpNot(Op):
     OP = "NOT"
 
     def __init__(self, lhs):
-        super(OpNot, self).__init__(lhs, None)
+        super().__init__(lhs, None)
 
     def expr(self, item):
         lhs = self.lhs.expr(item)
@@ -1074,7 +1073,7 @@ class FuncAttrExists(Func):
 
     def __init__(self, attribute):
         self.attr = attribute
-        super(FuncAttrExists, self).__init__(attribute)
+        super().__init__(attribute)
 
     def expr(self, item):
         return self.attr.get_type(item) is not None
@@ -1090,7 +1089,7 @@ class FuncAttrType(Func):
     def __init__(self, attribute, _type):
         self.attr = attribute
         self.type = _type
-        super(FuncAttrType, self).__init__(attribute, _type)
+        super().__init__(attribute, _type)
 
     def expr(self, item):
         return self.attr.get_type(item) == self.type.expr(item)
@@ -1102,7 +1101,7 @@ class FuncBeginsWith(Func):
     def __init__(self, attribute, substr):
         self.attr = attribute
         self.substr = substr
-        super(FuncBeginsWith, self).__init__(attribute, substr)
+        super().__init__(attribute, substr)
 
     def expr(self, item):
         if self.attr.get_type(item) != "S":
@@ -1118,7 +1117,7 @@ class FuncContains(Func):
     def __init__(self, attribute, operand):
         self.attr = attribute
         self.operand = operand
-        super(FuncContains, self).__init__(attribute, operand)
+        super().__init__(attribute, operand)
 
     def expr(self, item):
         if self.attr.get_type(item) in ("S", "SS", "NS", "BS", "L"):
@@ -1138,7 +1137,7 @@ class FuncSize(Func):
 
     def __init__(self, attribute):
         self.attr = attribute
-        super(FuncSize, self).__init__(attribute)
+        super().__init__(attribute)
 
     def expr(self, item):
         if self.attr.get_type(item) is None:
@@ -1156,14 +1155,18 @@ class FuncBetween(Func):
         self.attr = attribute
         self.start = start
         self.end = end
-        super(FuncBetween, self).__init__(attribute, start, end)
+        super().__init__(attribute, start, end)
 
     def expr(self, item):
         # In python3 None is not a valid comparator when using < or > so must be handled specially
         start = self.start.expr(item)
         attr = self.attr.expr(item)
         end = self.end.expr(item)
-        if start and attr and end:
+        # Need to verify whether start has a valid value
+        # Can't just check  'if start', because start could be 0, which is a valid integer
+        start_has_value = start is not None and (isinstance(start, int) or start)
+        end_has_value = end is not None and (isinstance(end, int) or end)
+        if start_has_value and attr and end_has_value:
             return start <= attr <= end
         elif start is None and attr is None:
             # None is between None and None as well as None is between None and any number
@@ -1180,7 +1183,7 @@ class FuncIn(Func):
     def __init__(self, attribute, *possible_values):
         self.attr = attribute
         self.possible_values = possible_values
-        super(FuncIn, self).__init__(attribute, *possible_values)
+        super().__init__(attribute, *possible_values)
 
     def expr(self, item):
         for possible_value in self.possible_values:

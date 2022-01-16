@@ -1,11 +1,10 @@
-from __future__ import unicode_literals, division
+from __future__ import division
 
 import datetime
 import re
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import (
     BadRequestException,
@@ -55,7 +54,7 @@ VOTEVALUES = ["YES", "NO"]
 class ManagedBlockchainNetwork(BaseModel):
     def __init__(
         self,
-        id,
+        network_id,
         name,
         framework,
         frameworkversion,
@@ -66,7 +65,7 @@ class ManagedBlockchainNetwork(BaseModel):
         description=None,
     ):
         self.creationdate = datetime.datetime.utcnow()
-        self.id = id
+        self.id = network_id
         self.name = name
         self.description = description
         self.framework = framework
@@ -160,7 +159,7 @@ class ManagedBlockchainNetwork(BaseModel):
 class ManagedBlockchainProposal(BaseModel):
     def __init__(
         self,
-        id,
+        proposal_id,
         networkid,
         memberid,
         membername,
@@ -173,7 +172,7 @@ class ManagedBlockchainProposal(BaseModel):
     ):
         # In general, passing all values instead of creating
         # an apparatus to look them up
-        self.id = id
+        self.id = proposal_id
         self.networkid = networkid
         self.memberid = memberid
         self.membername = membername
@@ -290,7 +289,7 @@ class ManagedBlockchainProposal(BaseModel):
 class ManagedBlockchainInvitation(BaseModel):
     def __init__(
         self,
-        id,
+        invitation_id,
         networkid,
         networkname,
         networkframework,
@@ -299,7 +298,7 @@ class ManagedBlockchainInvitation(BaseModel):
         region,
         networkdescription=None,
     ):
-        self.id = id
+        self.id = invitation_id
         self.networkid = networkid
         self.networkname = networkname
         self.networkdescription = networkdescription
@@ -352,10 +351,10 @@ class ManagedBlockchainInvitation(BaseModel):
 
 class ManagedBlockchainMember(BaseModel):
     def __init__(
-        self, id, networkid, member_configuration, region,
+        self, member_id, networkid, member_configuration, region,
     ):
         self.creationdate = datetime.datetime.utcnow()
-        self.id = id
+        self.id = member_id
         self.networkid = networkid
         self.member_configuration = member_configuration
         self.status = "AVAILABLE"
@@ -427,7 +426,7 @@ class ManagedBlockchainMember(BaseModel):
 class ManagedBlockchainNode(BaseModel):
     def __init__(
         self,
-        id,
+        node_id,
         networkid,
         memberid,
         availabilityzone,
@@ -436,7 +435,7 @@ class ManagedBlockchainNode(BaseModel):
         region,
     ):
         self.creationdate = datetime.datetime.utcnow()
-        self.id = id
+        self.id = node_id
         self.instancetype = instancetype
         self.networkid = networkid
         self.memberid = memberid
@@ -550,14 +549,14 @@ class ManagedBlockchainBackend(BaseBackend):
         # Generate memberid ID and initial member
         member_id = get_member_id()
         self.members[member_id] = ManagedBlockchainMember(
-            id=member_id,
+            member_id=member_id,
             networkid=network_id,
             member_configuration=member_configuration,
             region=self.region_name,
         )
 
         self.networks[network_id] = ManagedBlockchainNetwork(
-            id=network_id,
+            network_id=network_id,
             name=name,
             framework=framework,
             frameworkversion=frameworkversion,
@@ -619,7 +618,7 @@ class ManagedBlockchainBackend(BaseBackend):
         proposal_id = get_proposal_id()
 
         self.proposals[proposal_id] = ManagedBlockchainProposal(
-            id=proposal_id,
+            proposal_id=proposal_id,
             networkid=networkid,
             memberid=memberid,
             membername=self.members.get(memberid).name,
@@ -725,12 +724,10 @@ class ManagedBlockchainBackend(BaseBackend):
 
         if self.proposals.get(proposalid).proposal_status == "APPROVED":
             # Generate invitations
-            for propinvitation in self.proposals.get(proposalid).proposal_actions(
-                "Invitations"
-            ):
+            for _ in self.proposals.get(proposalid).proposal_actions("Invitations"):
                 invitation_id = get_invitation_id()
                 self.invitations[invitation_id] = ManagedBlockchainInvitation(
-                    id=invitation_id,
+                    invitation_id=invitation_id,
                     networkid=networkid,
                     networkname=self.networks.get(networkid).network_name,
                     networkframework=self.networks.get(networkid).network_framework,
@@ -834,7 +831,7 @@ class ManagedBlockchainBackend(BaseBackend):
 
         member_id = get_member_id()
         self.members[member_id] = ManagedBlockchainMember(
-            id=member_id,
+            member_id=member_id,
             networkid=networkid,
             member_configuration=member_configuration,
             region=self.region_name,
@@ -993,7 +990,7 @@ class ManagedBlockchainBackend(BaseBackend):
 
         node_id = get_node_id()
         self.nodes[node_id] = ManagedBlockchainNode(
-            id=node_id,
+            node_id=node_id,
             networkid=networkid,
             memberid=memberid,
             availabilityzone=availabilityzone,
@@ -1095,6 +1092,4 @@ class ManagedBlockchainBackend(BaseBackend):
         self.nodes.get(nodeid).update(logpublishingconfiguration)
 
 
-managedblockchain_backends = {}
-for region in Session().get_available_regions("managedblockchain"):
-    managedblockchain_backends[region] = ManagedBlockchainBackend(region)
+managedblockchain_backends = BackendDict(ManagedBlockchainBackend, "managedblockchain")

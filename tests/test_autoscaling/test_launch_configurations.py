@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 
 import boto
@@ -9,7 +7,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from botocore.exceptions import ClientError
 
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_autoscaling_deprecated
 from moto import mock_autoscaling

@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 from uuid import uuid4
 
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
 
 
@@ -75,7 +73,7 @@ class Resource(BaseModel):
 
 class MediaConnectBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaConnectBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._flows = OrderedDict()
         self._resources = OrderedDict()
@@ -236,12 +234,4 @@ class MediaConnectBackend(BaseBackend):
     # add methods from here
 
 
-mediaconnect_backends = {}
-for region in Session().get_available_regions("mediaconnect"):
-    mediaconnect_backends[region] = MediaConnectBackend()
-for region in Session().get_available_regions(
-    "mediaconnect", partition_name="aws-us-gov"
-):
-    mediaconnect_backends[region] = MediaConnectBackend()
-for region in Session().get_available_regions("mediaconnect", partition_name="aws-cn"):
-    mediaconnect_backends[region] = MediaConnectBackend()
+mediaconnect_backends = BackendDict(MediaConnectBackend, "mediaconnect")

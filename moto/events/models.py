@@ -10,12 +10,15 @@ from enum import Enum, unique
 from json import JSONDecodeError
 from operator import lt, le, eq, ge, gt
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
-from moto.core.utils import unix_time, iso_8601_datetime_without_milliseconds
+from moto.core.utils import (
+    unix_time,
+    unix_time_millis,
+    iso_8601_datetime_without_milliseconds,
+    BackendDict,
+)
 from moto.events.exceptions import (
     ValidationException,
     ResourceNotFoundException,
@@ -176,7 +179,7 @@ class Rule(CloudFormationModel):
         log_stream_name = str(uuid4())
         log_events = [
             {
-                "timestamp": unix_time(datetime.utcnow()),
+                "timestamp": unix_time_millis(datetime.utcnow()),
                 "message": json.dumps(event_copy),
             }
         ]
@@ -217,6 +220,10 @@ class Rule(CloudFormationModel):
             group_id=group_id,
         )
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -236,7 +243,7 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
@@ -332,6 +339,10 @@ class EventBus(CloudFormationModel):
         event_backend = events_backends[region_name]
         event_backend.delete_event_bus(name=self.name)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "Name", "Policy"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -355,7 +366,7 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
@@ -530,6 +541,10 @@ class Archive(CloudFormationModel):
         event_backend = events_backends[region_name]
         event_backend.archives.pop(self.name)
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn", "ArchiveName"]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -551,7 +566,7 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
@@ -826,12 +841,13 @@ class EventPattern:
     def _does_item_match_filters(self, item, filters):
         allowed_values = [value for value in filters if isinstance(value, str)]
         allowed_values_match = item in allowed_values if allowed_values else True
+        full_match = isinstance(item, list) and item == allowed_values
         named_filter_matches = [
             self._does_item_match_named_filter(item, pattern)
             for pattern in filters
             if isinstance(pattern, dict)
         ]
-        return allowed_values_match and all(named_filter_matches)
+        return (full_match or allowed_values_match) and all(named_filter_matches)
 
     @staticmethod
     def _does_item_match_named_filter(item, pattern):
@@ -1053,7 +1069,7 @@ class EventsBackend(BaseBackend):
         return False
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rule_names_by_target(self, target_arn, next_token=None, limit=None):
+    def list_rule_names_by_target(self, target_arn):
         matching_rules = []
 
         for _, rule in self.rules.items():
@@ -1064,7 +1080,7 @@ class EventsBackend(BaseBackend):
         return matching_rules
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rules(self, prefix=None, next_token=None, limit=None):
+    def list_rules(self, prefix=None):
         match_string = ".*"
         if prefix is not None:
             match_string = "^" + prefix + match_string
@@ -1789,10 +1805,4 @@ class EventsBackend(BaseBackend):
         return {}
 
 
-events_backends = {}
-for region in Session().get_available_regions("events"):
-    events_backends[region] = EventsBackend(region)
-for region in Session().get_available_regions("events", partition_name="aws-us-gov"):
-    events_backends[region] = EventsBackend(region)
-for region in Session().get_available_regions("events", partition_name="aws-cn"):
-    events_backends[region] = EventsBackend(region)
+events_backends = BackendDict(EventsBackend, "events")

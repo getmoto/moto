@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import medialive_backends
 import json
@@ -103,7 +102,7 @@ class MediaLiveResponse(BaseResponse):
         role_arn = self._get_param("roleArn")
         sources = self._get_param("sources")
         tags = self._get_param("tags")
-        type = self._get_param("type")
+        input_type = self._get_param("type")
         vpc = self._get_param("vpc")
         a_input = self.medialive_backend.create_input(
             destinations=destinations,
@@ -115,7 +114,7 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             sources=sources,
             tags=tags,
-            type=type,
+            input_type=input_type,
             vpc=vpc,
         )
         return json.dumps({"input": a_input.to_dict()})

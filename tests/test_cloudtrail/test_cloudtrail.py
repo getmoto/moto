@@ -1,7 +1,7 @@
 """Unit tests for cloudtrail-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from datetime import datetime
@@ -201,7 +201,7 @@ def test_get_trail_unknown():
 def test_get_trail():
     test_create_trail_simple()
     client = boto3.client("cloudtrail", region_name="us-east-1")
-    _, trail1, name = create_trail_simple()
+    _, _, name = create_trail_simple()
     trail = client.get_trail(Name=name)["Trail"]
     trail.should.have.key("Name").equal(name)
     trail.should.have.key("IncludeGlobalServiceEvents").equal(True)
@@ -241,6 +241,22 @@ def test_get_trail_status_inactive():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, _, trail_name = create_trail_simple()
     status = client.get_trail_status(Name=trail_name)
+    status.should.have.key("IsLogging").equal(False)
+    status.should.have.key("LatestDeliveryAttemptTime").equal("")
+    status.should.have.key("LatestNotificationAttemptTime").equal("")
+    status.should.have.key("LatestNotificationAttemptSucceeded").equal("")
+    status.should.have.key("LatestDeliveryAttemptSucceeded").equal("")
+    status.should.have.key("TimeLoggingStarted").equal("")
+    status.should.have.key("TimeLoggingStopped").equal("")
+    status.shouldnt.have.key("StartLoggingTime")
+
+
+@mock_cloudtrail
+@mock_s3
+def test_get_trail_status_arn_inactive():
+    client = boto3.client("cloudtrail", region_name="us-east-1")
+    _, resp, _ = create_trail_simple()
+    status = client.get_trail_status(Name=resp["TrailARN"])
     status.should.have.key("IsLogging").equal(False)
     status.should.have.key("LatestDeliveryAttemptTime").equal("")
     status.should.have.key("LatestNotificationAttemptTime").equal("")
@@ -315,20 +331,28 @@ def test_list_trails():
 
     all_trails = client.list_trails()["Trails"]
     all_trails.should.have.length_of(3)
-    for trail in all_trails:
-        set(trail.keys()).should.equal({"TrailARN", "Name", "HomeRegion"})
 
-    all_trails[0]["TrailARN"].should.equal(trail2["TrailARN"])
-    all_trails[0]["Name"].should.equal(trail2["Name"])
-    all_trails[0]["HomeRegion"].should.equal("ap-southeast-2")
-
-    all_trails[1]["TrailARN"].should.equal(trail3["TrailARN"])
-    all_trails[1]["Name"].should.equal(trail3["Name"])
-    all_trails[1]["HomeRegion"].should.equal("eu-west-1")
-
-    all_trails[2]["TrailARN"].should.equal(trail1["TrailARN"])
-    all_trails[2]["Name"].should.equal(trail1["Name"])
-    all_trails[2]["HomeRegion"].should.equal("us-east-1")
+    all_trails.should.contain(
+        {
+            "TrailARN": trail1["TrailARN"],
+            "Name": trail1["Name"],
+            "HomeRegion": "us-east-1",
+        }
+    )
+    all_trails.should.contain(
+        {
+            "TrailARN": trail2["TrailARN"],
+            "Name": trail2["Name"],
+            "HomeRegion": "ap-southeast-2",
+        }
+    )
+    all_trails.should.contain(
+        {
+            "TrailARN": trail3["TrailARN"],
+            "Name": trail3["Name"],
+            "HomeRegion": "eu-west-1",
+        }
+    )
 
 
 @mock_cloudtrail
@@ -392,9 +416,9 @@ def test_describe_trails_without_shadowtrails():
 def test_describe_trails_with_shadowtrails_true():
     # Same behaviour as if shadowtrails-parameter was not supplied
     client = boto3.client("cloudtrail", region_name="us-east-1")
-    _, trail1, _ = create_trail_simple()
-    _, trail2, _, _ = create_trail_advanced()
-    _, trail3, _ = create_trail_simple(region_name="eu-west-1")
+    create_trail_simple()
+    create_trail_advanced()
+    create_trail_simple(region_name="eu-west-1")
 
     trails = client.describe_trails(includeShadowTrails=True)["trailList"]
     trails.should.have.length_of(3)

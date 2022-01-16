@@ -1,10 +1,19 @@
-from __future__ import unicode_literals
-
 import importlib
+import sys
+from contextlib import ContextDecorator
 
 
-def lazy_load(module_name, element, boto3_name=None, backend=None):
+def lazy_load(
+    module_name, element, boto3_name=None, backend=None, warn_repurpose=False
+):
     def f(*args, **kwargs):
+        if warn_repurpose:
+            import warnings
+
+            warnings.warn(
+                f"Module {element} has been deprecated, and will be repurposed in a later release. "
+                "Please see https://github.com/spulec/moto/issues/4526 for more information."
+            )
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
 
@@ -18,6 +27,7 @@ def lazy_load(module_name, element, boto3_name=None, backend=None):
 mock_acm = lazy_load(".acm", "mock_acm")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
 mock_apigateway_deprecated = lazy_load(".apigateway", "mock_apigateway_deprecated")
+mock_appsync = lazy_load(".appsync", "mock_appsync", boto3_name="appsync")
 mock_athena = lazy_load(".athena", "mock_athena")
 mock_applicationautoscaling = lazy_load(
     ".applicationautoscaling", "mock_applicationautoscaling"
@@ -29,11 +39,12 @@ mock_lambda = lazy_load(
 )
 mock_lambda_deprecated = lazy_load(".awslambda", "mock_lambda_deprecated")
 mock_batch = lazy_load(".batch", "mock_batch")
-mock_batch = lazy_load(".batch", "mock_batch")
+mock_budgets = lazy_load(".budgets", "mock_budgets")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudformation_deprecated = lazy_load(
     ".cloudformation", "mock_cloudformation_deprecated"
 )
+mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_cloudwatch_deprecated = lazy_load(".cloudwatch", "mock_cloudwatch_deprecated")
@@ -53,8 +64,10 @@ mock_datapipeline_deprecated = lazy_load(
     ".datapipeline", "mock_datapipeline_deprecated"
 )
 mock_datasync = lazy_load(".datasync", "mock_datasync")
+mock_dax = lazy_load(".dax", "mock_dax")
 mock_dms = lazy_load(".dms", "mock_dms")
-mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb")
+mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
+mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
 mock_dynamodb_deprecated = lazy_load(".dynamodb", "mock_dynamodb_deprecated")
 mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2", backend="dynamodb_backends2")
 mock_dynamodb2_deprecated = lazy_load(".dynamodb2", "mock_dynamodb2_deprecated")
@@ -75,12 +88,17 @@ mock_elb_deprecated = lazy_load(".elb", "mock_elb_deprecated")
 mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
 mock_emr = lazy_load(".emr", "mock_emr")
 mock_emr_deprecated = lazy_load(".emr", "mock_emr_deprecated")
+mock_emrcontainers = lazy_load(
+    ".emrcontainers", "mock_emrcontainers", boto3_name="emr-containers"
+)
+mock_es = lazy_load(".es", "mock_es")
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glacier_deprecated = lazy_load(".glacier", "mock_glacier_deprecated")
 mock_glue = lazy_load(".glue", "mock_glue")
+mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
 mock_iam = lazy_load(".iam", "mock_iam")
 mock_iam_deprecated = lazy_load(".iam", "mock_iam_deprecated")
 mock_iot = lazy_load(".iot", "mock_iot")
@@ -97,7 +115,7 @@ mock_opsworks_deprecated = lazy_load(".opsworks", "mock_opsworks_deprecated")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_polly = lazy_load(".polly", "mock_polly")
 mock_ram = lazy_load(".ram", "mock_ram")
-mock_rds = lazy_load(".rds", "mock_rds")
+mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
 mock_rds_deprecated = lazy_load(".rds", "mock_rds_deprecated")
 mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
 mock_rds2_deprecated = lazy_load(".rds2", "mock_rds2_deprecated")
@@ -111,6 +129,9 @@ mock_resourcegroupstaggingapi = lazy_load(
 )
 mock_route53 = lazy_load(".route53", "mock_route53")
 mock_route53_deprecated = lazy_load(".route53", "mock_route53_deprecated")
+mock_route53resolver = lazy_load(
+    ".route53resolver", "mock_route53resolver", boto3_name="route53resolver"
+)
 mock_s3 = lazy_load(".s3", "mock_s3")
 mock_s3_deprecated = lazy_load(".s3", "mock_s3_deprecated")
 mock_sagemaker = lazy_load(".sagemaker", "mock_sagemaker")
@@ -122,6 +143,7 @@ mock_sns_deprecated = lazy_load(".sns", "mock_sns_deprecated")
 mock_sqs = lazy_load(".sqs", "mock_sqs")
 mock_sqs_deprecated = lazy_load(".sqs", "mock_sqs_deprecated")
 mock_ssm = lazy_load(".ssm", "mock_ssm")
+mock_ssoadmin = lazy_load(".ssoadmin", "mock_ssoadmin", boto3_name="sso-admin")
 mock_stepfunctions = lazy_load(
     ".stepfunctions", "mock_stepfunctions", backend="stepfunction_backends"
 )
@@ -129,6 +151,9 @@ mock_sts = lazy_load(".sts", "mock_sts")
 mock_sts_deprecated = lazy_load(".sts", "mock_sts_deprecated")
 mock_swf = lazy_load(".swf", "mock_swf")
 mock_swf_deprecated = lazy_load(".swf", "mock_swf_deprecated")
+mock_timestreamwrite = lazy_load(
+    ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
+)
 mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
 XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
@@ -150,12 +175,39 @@ mock_mediastoredata = lazy_load(
 )
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
+mock_sdb = lazy_load(".sdb", "mock_sdb")
+mock_elasticache = lazy_load(
+    ".elasticache", "mock_elasticache", boto3_name="elasticache"
+)
+
+
+class MockAll(ContextDecorator):
+    def __init__(self):
+        self.mocks = []
+        for mock in dir(sys.modules["moto"]):
+            if (
+                mock.startswith("mock_")
+                and not mock.endswith("_deprecated")
+                and not mock == ("mock_all")
+            ):
+                self.mocks.append(globals()[mock]())
+
+    def __enter__(self):
+        for mock in self.mocks:
+            mock.start()
+
+    def __exit__(self, *exc):
+        for mock in self.mocks:
+            mock.stop()
+
+
+mock_all = MockAll
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.2.10.dev"
+__version__ = "2.3.2.dev"
 
 
 try:

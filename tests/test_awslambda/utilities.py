@@ -66,6 +66,15 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
+def get_test_zip_largeresponse():
+    pfunc = """
+def lambda_handler(event, context):
+    x = ["xxx" for x in range(10 ** 6)]
+    return {"statusCode": 200, "body": x}
+"""
+    return _process_lambda(pfunc)
+
+
 def get_zip_with_multiple_files():
     pfunc = """
 from utilities import util_function
@@ -126,8 +135,11 @@ def wait_for_log_msg(expected_msg, log_group):
     received_messages = []
     start = time.time()
     while (time.time() - start) < 30:
-        result = logs_conn.describe_log_streams(logGroupName=log_group)
-        log_streams = result.get("logStreams")
+        try:
+            result = logs_conn.describe_log_streams(logGroupName=log_group)
+            log_streams = result.get("logStreams")
+        except ClientError:
+            log_streams = None  # LogGroupName does not yet exist
         if not log_streams:
             time.sleep(1)
             continue
@@ -139,7 +151,8 @@ def wait_for_log_msg(expected_msg, log_group):
             received_messages.extend(
                 [event["message"] for event in result.get("events")]
             )
-        if expected_msg in received_messages:
-            return True, received_messages
+        for line in received_messages:
+            if expected_msg in line:
+                return True, set(received_messages)
         time.sleep(1)
-    return False, received_messages
+    return False, set(received_messages)

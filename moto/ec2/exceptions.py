@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
@@ -48,6 +47,11 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
             "InvalidDhcpOptionID.NotFound",
             "DhcpOptionID {0} does not exist.".format(dhcp_options_id),
         )
+
+
+class InvalidParameterCombination(EC2ClientError):
+    def __init__(self, msg):
+        super().__init__("InvalidParameterCombination", msg)
 
 
 class MalformedDHCPOptionsIdError(EC2ClientError):
@@ -269,6 +273,14 @@ class InvalidSnapshotIdError(EC2ClientError):
         super().__init__(
             "InvalidSnapshot.NotFound", ""
         )  # Note: AWS returns empty message for this, as of 2014.08.22.
+
+
+class InvalidSnapshotInUse(EC2ClientError):
+    def __init__(self, snapshot_id, ami_id):
+        super().__init__(
+            "InvalidSnapshot.InUse",
+            f"The snapshot {snapshot_id} is currently in use by {ami_id}",
+        )
 
 
 class InvalidVolumeIdError(EC2ClientError):

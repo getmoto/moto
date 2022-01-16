@@ -1,6 +1,6 @@
 import boto3
 import json
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_dynamodb2
 

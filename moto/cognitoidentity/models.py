@@ -1,20 +1,21 @@
-from __future__ import unicode_literals
-
 import datetime
 import json
-
-from boto3 import Session
+import re
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
-from .exceptions import ResourceNotFoundError
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
 
 class CognitoIdentity(BaseModel):
     def __init__(self, region, identity_pool_name, **kwargs):
         self.identity_pool_name = identity_pool_name
+
+        if not re.fullmatch(r"[\w\s+=,.@-]+", identity_pool_name):
+            raise InvalidNameException(identity_pool_name)
+
         self.allow_unauthenticated_identities = kwargs.get(
             "allow_unauthenticated_identities", ""
         )
@@ -48,9 +49,10 @@ class CognitoIdentity(BaseModel):
 
 class CognitoIdentityBackend(BaseBackend):
     def __init__(self, region):
-        super(CognitoIdentityBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.identity_pools = OrderedDict()
+        self.pools_identities = {}
 
     def reset(self):
         region = self.region
@@ -102,7 +104,14 @@ class CognitoIdentityBackend(BaseBackend):
             tags=tags,
         )
         self.identity_pools[new_identity.identity_pool_id] = new_identity
-
+        self.pools_identities.update(
+            {
+                new_identity.identity_pool_id: {
+                    "IdentityPoolId": new_identity.identity_pool_id,
+                    "Identities": [],
+                }
+            }
+        )
         response = new_identity.to_json()
         return response
 
@@ -139,8 +148,9 @@ class CognitoIdentityBackend(BaseBackend):
         response = pool.to_json()
         return response
 
-    def get_id(self):
+    def get_id(self, identity_pool_id: str):
         identity_id = {"IdentityId": get_random_identity_id(self.region)}
+        self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)
 
     def get_credentials_for_identity(self, identity_id):
@@ -173,15 +183,9 @@ class CognitoIdentityBackend(BaseBackend):
         )
         return response
 
+    def list_identities(self, identity_pool_id, max_results=123):
+        response = json.dumps(self.pools_identities[identity_pool_id])
+        return response
 
-cognitoidentity_backends = {}
-for region in Session().get_available_regions("cognito-identity"):
-    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
-for region in Session().get_available_regions(
-    "cognito-identity", partition_name="aws-us-gov"
-):
-    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
-for region in Session().get_available_regions(
-    "cognito-identity", partition_name="aws-cn"
-):
-    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
+
+cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from collections import defaultdict
 import datetime
 import json
@@ -152,7 +151,7 @@ class Table(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         key_attr = [
@@ -175,13 +174,9 @@ class Table(CloudFormationModel):
         return Table(**spec)
 
     def __len__(self):
-        count = 0
-        for key, value in self.items.items():
-            if self.has_range_key:
-                count += len(value)
-            else:
-                count += 1
-        return count
+        return sum(
+            [(len(value) if self.has_range_key else 1) for value in self.items.values()]
+        )
 
     def __nonzero__(self):
         return True
@@ -300,6 +295,10 @@ class Table(CloudFormationModel):
             if update["Action"] == "ADD":
                 item.attrs[attr].add(DynamoType(update["Value"]))
         return item
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["StreamArn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

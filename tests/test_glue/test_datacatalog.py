@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import re
 import pytest
 import json
@@ -90,6 +88,33 @@ def test_get_databases_several_items():
     database_list.should.have.length_of(2)
     database_list[0]["Name"].should.equal(database_name_1)
     database_list[1]["Name"].should.equal(database_name_2)
+
+
+@mock_glue
+def test_delete_database():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name_1, database_name_2 = "firstdatabase", "seconddatabase"
+
+    helpers.create_database(client, database_name_1, {"Name": database_name_1})
+    helpers.create_database(client, database_name_2, {"Name": database_name_2})
+
+    client.delete_database(Name=database_name_1)
+
+    database_list = sorted(
+        client.get_databases()["DatabaseList"], key=lambda x: x["Name"]
+    )
+    [db["Name"] for db in database_list].should.equal([database_name_2])
+
+
+@mock_glue
+def test_delete_unknown_database():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_database(Name="x")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.equal("Database x not found.")
 
 
 @mock_glue
@@ -1117,6 +1142,60 @@ def test_get_crawlers_several_items():
     crawlers.should.have.length_of(2)
     crawlers[0].get("Name").should.equal(name_1)
     crawlers[1].get("Name").should.equal(name_2)
+
+
+@mock_glue
+def test_start_crawler():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+
+    response = client.get_crawler(Name=name)
+    crawler = response["Crawler"]
+
+    crawler.get("State").should.equal("RUNNING")
+
+
+@mock_glue
+def test_start_crawler_should_raise_exception_if_already_running():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+    with pytest.raises(ClientError) as exc:
+        client.start_crawler(Name=name)
+
+    exc.value.response["Error"]["Code"].should.equal("CrawlerRunningException")
+
+
+@mock_glue
+def test_stop_crawler():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+    client.start_crawler(Name=name)
+
+    client.stop_crawler(Name=name)
+
+    response = client.get_crawler(Name=name)
+    crawler = response["Crawler"]
+
+    crawler.get("State").should.equal("STOPPING")
+
+
+@mock_glue
+def test_stop_crawler_should_raise_exception_if_not_running():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    with pytest.raises(ClientError) as exc:
+        client.stop_crawler(Name=name)
+
+    exc.value.response["Error"]["Code"].should.equal("CrawlerNotRunningException")
 
 
 @mock_glue

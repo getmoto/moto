@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import copy
 import datetime
 import os
@@ -7,13 +5,12 @@ import random
 import string
 
 from collections import defaultdict
-from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.ec2.models import ec2_backends
 from .exceptions import (
     RDSClientError,
@@ -39,6 +36,7 @@ class Cluster:
     def __init__(self, **kwargs):
         self.db_name = kwargs.get("db_name")
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
+        self.deletion_protection = kwargs.get("deletion_protection")
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version")
         if not self.engine_version:
@@ -135,7 +133,7 @@ class Cluster:
               <AssociatedRoles></AssociatedRoles>
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
-              <DeletionProtection>false</DeletionProtection>
+              <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>false</HttpEndpointEnabled>
               <CopyTagsToSnapshot>false</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
@@ -266,6 +264,7 @@ class Database(CloudFormationModel):
         )
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get("tags", [])
+        self.deletion_protection = kwargs.get("deletion_protection", False)
 
     @property
     def db_instance_arn(self):
@@ -427,6 +426,7 @@ class Database(CloudFormationModel):
                 </Tag>
               {%- endfor -%}
               </TagList>
+              <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
             </DBInstance>"""
         )
         return template.render(database=self)
@@ -451,6 +451,10 @@ class Database(CloudFormationModel):
         for key, value in db_kwargs.items():
             if value is not None:
                 setattr(self, key, value)
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Endpoint.Address", "Endpoint.Port"]
 
     def get_cfn_attribute(self, attribute_name):
         # Local import to avoid circular dependency with cloudformation.parsing
@@ -513,7 +517,7 @@ class Database(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -803,7 +807,7 @@ class SecurityGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         group_name = resource_name.lower()
@@ -911,7 +915,7 @@ class SubnetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1118,6 +1122,10 @@ class RDS2Backend(BaseBackend):
 
     def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
+            if self.databases[db_instance_identifier].deletion_protection:
+                raise InvalidParameterValue(
+                    "Can't delete Instance with protection enabled"
+                )
             if db_snapshot_name:
                 self.create_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
@@ -1262,7 +1270,7 @@ class RDS2Backend(BaseBackend):
         else:
             max_records = 100
 
-        for option_group_name, option_group in self.option_groups.items():
+        for option_group in self.option_groups.values():
             if (
                 option_group_kwargs["name"]
                 and option_group.name != option_group_kwargs["name"]
@@ -1393,10 +1401,7 @@ class RDS2Backend(BaseBackend):
         else:
             max_records = 100
 
-        for (
-            db_parameter_group_name,
-            db_parameter_group,
-        ) in self.db_parameter_groups.items():
+        for db_parameter_group in self.db_parameter_groups.values():
             if not db_parameter_group_kwargs.get(
                 "name"
             ) or db_parameter_group.name == db_parameter_group_kwargs.get("name"):
@@ -1431,7 +1436,13 @@ class RDS2Backend(BaseBackend):
         return self.clusters.values()
 
     def delete_db_cluster(self, cluster_identifier):
-        return self.clusters.pop(cluster_identifier)
+        if cluster_identifier in self.clusters:
+            if self.clusters[cluster_identifier].deletion_protection:
+                raise InvalidParameterValue(
+                    "Can't delete Cluster with protection enabled"
+                )
+            return self.clusters.pop(cluster_identifier)
+        raise DBClusterNotFoundError(cluster_identifier)
 
     def start_db_cluster(self, cluster_identifier):
         if cluster_identifier not in self.clusters:
@@ -1776,7 +1787,7 @@ class DBParameterGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1802,10 +1813,4 @@ class DBParameterGroup(CloudFormationModel):
         return db_parameter_group
 
 
-rds2_backends = {}
-for region in Session().get_available_regions("rds"):
-    rds2_backends[region] = RDS2Backend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-us-gov"):
-    rds2_backends[region] = RDS2Backend(region)
-for region in Session().get_available_regions("rds", partition_name="aws-cn"):
-    rds2_backends[region] = RDS2Backend(region)
+rds2_backends = BackendDict(RDS2Backend, "rds")

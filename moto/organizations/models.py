@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import re
 import json
@@ -138,7 +136,7 @@ class FakeRoot(FakeOrganizationalUnit):
     ]
 
     def __init__(self, organization, **kwargs):
-        super(FakeRoot, self).__init__(organization, **kwargs)
+        super().__init__(organization, **kwargs)
         self.type = "ROOT"
         self.id = organization.root_id
         self.name = "Root"
@@ -631,7 +629,7 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def list_policies_for_target(self, **kwargs):
-        filter = kwargs["Filter"]
+        _filter = kwargs["Filter"]
 
         if re.match(utils.ROOT_ID_REGEX, kwargs["TargetId"]):
             obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
@@ -651,19 +649,19 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-        if not FakePolicy.supported_policy_type(filter):
+        if not FakePolicy.supported_policy_type(_filter):
             raise InvalidInputException("You specified an invalid value.")
 
-        if filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
+        if _filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
             raise NotImplementedError(
-                "The {0} policy type has not been implemented".format(filter)
+                "The {0} policy type has not been implemented".format(_filter)
             )
 
         return dict(
             Policies=[
                 p.describe()["Policy"]["PolicySummary"]
                 for p in obj.attached_policies
-                if p.type == filter
+                if p.type == _filter
             ]
         )
 

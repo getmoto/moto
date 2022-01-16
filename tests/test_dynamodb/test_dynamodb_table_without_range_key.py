@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import boto
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
 
 from moto import mock_dynamodb_deprecated

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import json
 from datetime import datetime
@@ -10,7 +8,7 @@ import os
 from random import random
 
 import re
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 import boto3
 from botocore.exceptions import ClientError
@@ -116,6 +114,37 @@ def test_create_repository_with_non_default_config():
     repo["encryptionConfiguration"].should.equal(
         {"encryptionType": "KMS", "kmsKey": kms_key}
     )
+
+
+@mock_ecr
+def test_create_repository_in_different_account():
+    # given
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+
+    # when passing in a custom registry ID
+    response = client.create_repository(
+        registryId="222222222222", repositoryName=repo_name
+    )
+
+    # then we should persist this ID
+    repo = response["repository"]
+    repo.should.have.key("registryId").equals("222222222222")
+    repo.should.have.key("repositoryArn").equals(
+        "arn:aws:ecr:us-east-1:222222222222:repository/test-repo"
+    )
+
+    # then this repo should be returned with the correct ID
+    repo = client.describe_repositories()["repositories"][0]
+    repo.should.have.key("registryId").equals("222222222222")
+
+    # then we can search for repos with this ID
+    response = client.describe_repositories(registryId="222222222222")
+    response.should.have.key("repositories").length_of(1)
+
+    # then this repo is not found when searching for a different ID
+    response = client.describe_repositories(registryId=ACCOUNT_ID)
+    response.should.have.key("repositories").length_of(0)
 
 
 @mock_ecr
@@ -363,7 +392,7 @@ def test_put_image_with_push_date():
     _ = client.create_repository(repositoryName="test_repository")
 
     with freeze_time("2018-08-28 00:00:00"):
-        image1_date = datetime.now()
+        image1_date = datetime.now(tzlocal())
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -371,7 +400,7 @@ def test_put_image_with_push_date():
         )
 
     with freeze_time("2019-05-31 00:00:00"):
-        image2_date = datetime.now()
+        image2_date = datetime.now(tzlocal())
         _ = client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(_create_image_manifest()),
@@ -2263,11 +2292,11 @@ def test_start_image_scan_error_daily_limit():
     repo_name = "test-repo"
     client.create_repository(repositoryName=repo_name)
     image_tag = "latest"
-    image_digest = client.put_image(
+    client.put_image(
         repositoryName=repo_name,
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag="latest",
-    )["image"]["imageId"]["imageDigest"]
+    )
     client.start_image_scan(repositoryName=repo_name, imageId={"imageTag": image_tag})
 
     # when

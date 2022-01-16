@@ -1,16 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from moto.core.exceptions import JsonRESTError
-
-from re import M
-from moto.core import responses
-from os import O_DSYNC, scandir
-import pytest
 import boto3
 from botocore.exceptions import ClientError
 import datetime
-from botocore.configloader import raw_config_parse
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_sagemaker
 from moto.sts.models import ACCOUNT_ID

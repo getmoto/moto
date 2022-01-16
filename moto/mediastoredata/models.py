@@ -1,11 +1,8 @@
-from __future__ import unicode_literals
-
 import hashlib
 from collections import OrderedDict
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import ClientError
 
 
@@ -33,7 +30,7 @@ class Object(BaseModel):
 
 class MediaStoreDataBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaStoreDataBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._objects = OrderedDict()
 
@@ -64,7 +61,10 @@ class MediaStoreDataBackend(BaseBackend):
         del self._objects[path]
         return {}
 
-    def get_object(self, path, range=None):
+    def get_object(self, path, object_range=None):
+        """
+        The Range-parameter is not yet supported.
+        """
         objects_found = [item for item in self._objects.values() if item.path == path]
         if len(objects_found) == 0:
             error = "ObjectNotFoundException"
@@ -72,19 +72,12 @@ class MediaStoreDataBackend(BaseBackend):
         return objects_found[0]
 
     def list_items(self, path, max_results=1000, next_token=None):
+        """
+        The Path- and MaxResults-parameters are not yet supported.
+        """
         items = self._objects.values()
         response_items = [c.to_dict() for c in items]
         return response_items
 
 
-mediastoredata_backends = {}
-for region in Session().get_available_regions("mediastore-data"):
-    mediastoredata_backends[region] = MediaStoreDataBackend(region)
-for region in Session().get_available_regions(
-    "mediastore-data", partition_name="aws-us-gov"
-):
-    mediastoredata_backends[region] = MediaStoreDataBackend(region)
-for region in Session().get_available_regions(
-    "mediastore-data", partition_name="aws-cn"
-):
-    mediastoredata_backends[region] = MediaStoreDataBackend(region)
+mediastoredata_backends = BackendDict(MediaStoreDataBackend, "mediastore-data")

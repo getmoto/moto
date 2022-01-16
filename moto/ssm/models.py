@@ -1,14 +1,12 @@
-from __future__ import unicode_literals
-
 import re
 from dataclasses import dataclass
 from typing import Dict
 
-from boto3 import Session
 from collections import defaultdict
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
 
 import datetime
@@ -17,6 +15,7 @@ import uuid
 import json
 import yaml
 import hashlib
+import random
 
 from .utils import parameter_arn
 from .exceptions import (
@@ -52,7 +51,7 @@ class Parameter(BaseModel):
         self,
         name,
         value,
-        type,
+        parameter_type,
         description,
         allowed_pattern,
         keyid,
@@ -62,7 +61,7 @@ class Parameter(BaseModel):
         tags=None,
     ):
         self.name = name
-        self.type = type
+        self.type = parameter_type
         self.description = description
         self.allowed_pattern = allowed_pattern
         self.keyid = keyid
@@ -613,50 +612,50 @@ def _validate_document_info(content, name, document_type, document_format, stric
         raise ValidationException("Invalid document type " + str(document_type))
 
 
-def _document_filter_equal_comparator(keyed_value, filter):
-    for v in filter["Values"]:
+def _document_filter_equal_comparator(keyed_value, _filter):
+    for v in _filter["Values"]:
         if keyed_value == v:
             return True
     return False
 
 
-def _document_filter_list_includes_comparator(keyed_value_list, filter):
-    for v in filter["Values"]:
+def _document_filter_list_includes_comparator(keyed_value_list, _filter):
+    for v in _filter["Values"]:
         if v in keyed_value_list:
             return True
     return False
 
 
 def _document_filter_match(filters, ssm_doc):
-    for filter in filters:
-        if filter["Key"] == "Name" and not _document_filter_equal_comparator(
-            ssm_doc.name, filter
+    for _filter in filters:
+        if _filter["Key"] == "Name" and not _document_filter_equal_comparator(
+            ssm_doc.name, _filter
         ):
             return False
 
-        elif filter["Key"] == "Owner":
-            if len(filter["Values"]) != 1:
+        elif _filter["Key"] == "Owner":
+            if len(_filter["Values"]) != 1:
                 raise ValidationException("Owner filter can only have one value.")
-            if filter["Values"][0] == "Self":
+            if _filter["Values"][0] == "Self":
                 # Update to running account ID
-                filter["Values"][0] = ACCOUNT_ID
-            if not _document_filter_equal_comparator(ssm_doc.owner, filter):
+                _filter["Values"][0] = ACCOUNT_ID
+            if not _document_filter_equal_comparator(ssm_doc.owner, _filter):
                 return False
 
-        elif filter[
+        elif _filter[
             "Key"
         ] == "PlatformTypes" and not _document_filter_list_includes_comparator(
-            ssm_doc.platform_types, filter
+            ssm_doc.platform_types, _filter
         ):
             return False
 
-        elif filter["Key"] == "DocumentType" and not _document_filter_equal_comparator(
-            ssm_doc.document_type, filter
+        elif _filter["Key"] == "DocumentType" and not _document_filter_equal_comparator(
+            ssm_doc.document_type, _filter
         ):
             return False
 
-        elif filter["Key"] == "TargetType" and not _document_filter_equal_comparator(
-            ssm_doc.target_type, filter
+        elif _filter["Key"] == "TargetType" and not _document_filter_equal_comparator(
+            ssm_doc.target_type, _filter
         ):
             return False
 
@@ -671,9 +670,56 @@ def _valid_parameter_data_type(data_type):
     return data_type in ("text", "aws:ec2:image")
 
 
+class FakeMaintenanceWindow:
+    def __init__(
+        self,
+        name,
+        description,
+        enabled,
+        duration,
+        cutoff,
+        schedule,
+        schedule_timezone,
+        schedule_offset,
+        start_date,
+        end_date,
+    ):
+        self.id = FakeMaintenanceWindow.generate_id()
+        self.name = name
+        self.description = description
+        self.enabled = enabled
+        self.duration = duration
+        self.cutoff = cutoff
+        self.schedule = schedule
+        self.schedule_timezone = schedule_timezone
+        self.schedule_offset = schedule_offset
+        self.start_date = start_date
+        self.end_date = end_date
+
+    def to_json(self):
+        return {
+            "WindowId": self.id,
+            "Name": self.name,
+            "Description": self.description,
+            "Enabled": self.enabled,
+            "Duration": self.duration,
+            "Cutoff": self.cutoff,
+            "Schedule": self.schedule,
+            "ScheduleTimezone": self.schedule_timezone,
+            "ScheduleOffset": self.schedule_offset,
+            "StartDate": self.start_date,
+            "EndDate": self.end_date,
+        }
+
+    @staticmethod
+    def generate_id():
+        chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
+        return "mw-" + "".join(str(random.choice(chars)) for _ in range(17))
+
+
 class SimpleSystemManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super(SimpleSystemManagerBackend, self).__init__()
+    def __init__(self, region):
+        super().__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         self._parameters = defaultdict(list)
@@ -683,7 +729,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._errors = []
         self._documents: Dict[str, Documents] = {}
 
-        self._region = region_name
+        self.windows: Dict[str, FakeMaintenanceWindow] = dict()
+
+        self._region = region
 
     def reset(self):
         region_name = self._region
@@ -917,7 +965,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             document_version=new_version,
         )
 
-        for doc_version, document in documents.versions.items():
+        for document in documents.versions.values():
             if document.content == new_ssm_document.content:
                 if not target_type or target_type == document.target_type:
                     raise DuplicateDocumentContent(
@@ -946,7 +994,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         results = []
         dummy_token_tracker = 0
         # Sort to maintain next token adjacency
-        for document_name, documents in sorted(self._documents.items()):
+        for _, documents in sorted(self._documents.items()):
             if len(results) == max_results:
                 # There's still more to go so we need a next token
                 return results, str(next_token + len(results))
@@ -1061,23 +1109,23 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
 
             if filters:
-                for filter in filters:
-                    if filter["Key"] == "Name":
+                for _filter in filters:
+                    if _filter["Key"] == "Name":
                         k = ssm_parameter.name
-                        for v in filter["Values"]:
+                        for v in _filter["Values"]:
                             if k.startswith(v):
                                 result.append(ssm_parameter)
                                 break
-                    elif filter["Key"] == "Type":
+                    elif _filter["Key"] == "Type":
                         k = ssm_parameter.type
-                        for v in filter["Values"]:
+                        for v in _filter["Values"]:
                             if k == v:
                                 result.append(ssm_parameter)
                                 break
-                    elif filter["Key"] == "KeyId":
+                    elif _filter["Key"] == "KeyId":
                         k = ssm_parameter.keyid
                         if k:
-                            for v in filter["Values"]:
+                            for v in _filter["Values"]:
                                 if k == v:
                                     result.append(ssm_parameter)
                                     break
@@ -1390,6 +1438,13 @@ class SimpleSystemManagerBackend(BaseBackend):
                 values = ["/" + value.strip("/") for value in values]
             elif key == "Type":
                 what = parameter.type
+            elif key == "Label":
+                what = parameter.labels
+                # Label filter can only have option="Equals" (also valid implicitly)
+                if len(what) == 0 or not all(label in values for label in what):
+                    return False
+                else:
+                    continue
             elif key.startswith("tag:"):
                 what = key[4:] or None
                 for tag in parameter.tags:
@@ -1540,7 +1595,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         name,
         description,
         value,
-        type,
+        parameter_type,
         allowed_pattern,
         keyid,
         overwrite,
@@ -1604,7 +1659,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             Parameter(
                 name=name,
                 value=value,
-                type=type,
+                parameter_type=parameter_type,
                 description=description,
                 allowed_pattern=allowed_pattern,
                 keyid=keyid,
@@ -1703,9 +1758,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         return {"Commands": [command.response_object() for command in commands]}
 
-    def get_command_by_id(self, id):
+    def get_command_by_id(self, command_id):
         command = next(
-            (command for command in self._commands if command.command_id == id), None
+            (command for command in self._commands if command.command_id == command_id),
+            None,
         )
 
         if command is None:
@@ -1730,11 +1786,62 @@ class SimpleSystemManagerBackend(BaseBackend):
         command = self.get_command_by_id(command_id)
         return command.get_invocation(instance_id, plugin_name)
 
+    def create_maintenance_window(
+        self,
+        name,
+        description,
+        enabled,
+        duration,
+        cutoff,
+        schedule,
+        schedule_timezone,
+        schedule_offset,
+        start_date,
+        end_date,
+    ):
+        """
+        Creates a maintenance window. No error handling or input validation has been implemented yet.
+        """
+        window = FakeMaintenanceWindow(
+            name,
+            description,
+            enabled,
+            duration,
+            cutoff,
+            schedule,
+            schedule_timezone,
+            schedule_offset,
+            start_date,
+            end_date,
+        )
+        self.windows[window.id] = window
+        return window.id
 
-ssm_backends = {}
-for region in Session().get_available_regions("ssm"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
-for region in Session().get_available_regions("ssm", partition_name="aws-us-gov"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
-for region in Session().get_available_regions("ssm", partition_name="aws-cn"):
-    ssm_backends[region] = SimpleSystemManagerBackend(region)
+    def get_maintenance_window(self, window_id):
+        """
+        The window is assumed to exist - no error handling has been implemented yet.
+        The NextExecutionTime-field is not returned.
+        """
+        return self.windows[window_id]
+
+    def describe_maintenance_windows(self, filters):
+        """
+        Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
+        The NextExecutionTime-field is not returned.
+
+        """
+        res = [window for window in self.windows.values()]
+        if filters:
+            for f in filters:
+                if f["Key"] == "Name":
+                    res = [w for w in res if w.name in f["Values"]]
+        return res
+
+    def delete_maintenance_window(self, window_id):
+        """
+        Assumes the provided WindowId exists. No error handling has been implemented yet.
+        """
+        del self.windows[window_id]
+
+
+ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

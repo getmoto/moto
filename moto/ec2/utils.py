@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 import fnmatch
 import random
 import re
+import ipaddress
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -229,7 +228,18 @@ def random_public_ip():
     return "54.214.{0}.{1}".format(random.choice(range(255)), random.choice(range(255)))
 
 
-def random_private_ip():
+def random_private_ip(cidr=None, ipv6=False):
+    # prefix - ula.prefixlen : get number of remaing length for the IP.
+    #                          prefix will be 32 for IPv4 and 128 for IPv6.
+    #  random.getrandbits() will generate remaining bits for IPv6 or Ipv4 in decimal format
+    if cidr:
+        if ipv6:
+            ula = ipaddress.IPv6Network(cidr)
+            return str(ula.network_address + (random.getrandbits(128 - ula.prefixlen)))
+        ula = ipaddress.IPv4Network(cidr)
+        return str(ula.network_address + (random.getrandbits(32 - ula.prefixlen)))
+    if ipv6:
+        return "2001::cafe:%x/64" % random.getrandbits(16)
     return "10.{0}.{1}.{2}".format(
         random.choice(range(255)), random.choice(range(255)), random.choice(range(255))
     )
@@ -238,6 +248,13 @@ def random_private_ip():
 def random_ip():
     return "127.{0}.{1}.{2}".format(
         random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+    )
+
+
+def generate_dns_from_ip(ip, dns_type="internal"):
+    splits = ip.split("/")[0].split(".") if "/" in ip else ip.split(".")
+    return "ip-{}-{}-{}-{}.ec2.{}".format(
+        splits[0], splits[1], splits[2], splits[3], dns_type
     )
 
 
@@ -254,7 +271,7 @@ def randor_ipv4_cidr():
 
 
 def random_ipv6_cidr():
-    return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
+    return "2400:6500:{}:{}00::/56".format(random_resource_id(4), random_resource_id(2))
 
 
 def generate_route_id(
@@ -359,6 +376,16 @@ def dict_from_querystring(parameter, querystring_dict):
     return use_dict
 
 
+def get_attribute_value(parameter, querystring_dict):
+    for key, value in querystring_dict.items():
+        match = re.search(r"{0}.Value".format(parameter), key)
+        if match:
+            if value[0].lower() in ["true", "false"]:
+                return True if value[0].lower() in ["true"] else False
+            return value[0]
+    return None
+
+
 def get_object_value(obj, attr):
     keys = attr.split(".")
     val = obj
@@ -450,6 +477,7 @@ filter_dict_attribute_mapping = {
     "private-dns-name": "private_dns",
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
+    "dns-name": "public_dns",
 }
 
 
@@ -526,8 +554,8 @@ def filter_internet_gateways(igws, filter_dict):
     return result
 
 
-def is_filter_matching(obj, filter, filter_value):
-    value = obj.get_filter_value(filter)
+def is_filter_matching(obj, _filter, filter_value):
+    value = obj.get_filter_value(_filter)
 
     if filter_value is None:
         return False
@@ -589,7 +617,7 @@ def random_key_pair():
 
 
 def get_prefix(resource_id):
-    resource_id_prefix, separator, after = resource_id.partition("-")
+    resource_id_prefix, _, after = resource_id.partition("-")
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["transit-gateway"]:
         if after.startswith("rtb"):
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"]

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 from urllib.parse import urlparse, parse_qs
 
@@ -18,7 +16,7 @@ from .utils import (
 
 class ManagedBlockchainResponse(BaseResponse):
     def __init__(self, backend):
-        super(ManagedBlockchainResponse, self).__init__()
+        super().__init__()
         self.backend = backend
 
     @classmethod

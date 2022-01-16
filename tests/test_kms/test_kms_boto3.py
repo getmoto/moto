@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json
 from datetime import datetime
 from dateutil.tz import tzutc
@@ -9,8 +6,8 @@ import os
 
 import boto3
 import botocore.exceptions
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
-import sure  # noqa
 from freezegun import freeze_time
 import pytest
 
@@ -41,6 +38,19 @@ def test_create_key_without_description():
     metadata.should.have.key("KeyId")
     metadata.should.have.key("Arn")
     metadata.should.have.key("Description").equal("")
+
+
+@mock_kms
+def test_create_key_with_empty_content():
+    client_kms = boto3.client("kms", region_name="ap-northeast-1")
+    metadata = client_kms.create_key(Policy="my policy")["KeyMetadata"]
+    with pytest.raises(ClientError) as exc:
+        client_kms.encrypt(KeyId=metadata["KeyId"], Plaintext="")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    )
 
 
 @mock_kms
@@ -198,15 +208,16 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
 
 @mock_kms
 def test_list_aliases():
-    client = boto3.client("kms", region_name="us-east-1")
+    region = "us-west-1"
+    client = boto3.client("kms", region_name=region)
     client.create_key(Description="my key")
 
     aliases = client.list_aliases()["Aliases"]
-    aliases.should.have.length_of(4)
+    aliases.should.have.length_of(14)
     default_alias_names = ["aws/ebs", "aws/s3", "aws/redshift", "aws/rds"]
     for name in default_alias_names:
         full_name = "alias/{}".format(name)
-        arn = "arn:aws:kms:us-east-1:{}:{}".format(ACCOUNT_ID, full_name)
+        arn = "arn:aws:kms:{}:{}:{}".format(region, ACCOUNT_ID, full_name)
         aliases.should.contain({"AliasName": full_name, "AliasArn": arn})
 
 
@@ -849,7 +860,7 @@ def test_put_key_policy(id_or_arn):
     key = client.create_key(Description="key1", Policy="initial policy")
     key_id = key["KeyMetadata"][id_or_arn]
 
-    r = client.put_key_policy(KeyId=key_id, PolicyName="default", Policy="policy 2.0")
+    client.put_key_policy(KeyId=key_id, PolicyName="default", Policy="policy 2.0")
 
     response = client.get_key_policy(KeyId=key_id, PolicyName="default")
     response["Policy"].should.equal("policy 2.0")

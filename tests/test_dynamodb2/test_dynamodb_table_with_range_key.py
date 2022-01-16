@@ -1,13 +1,11 @@
-from __future__ import unicode_literals
-
 from decimal import Decimal
 
 import boto
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
-import sure  # noqa
 from freezegun import freeze_time
 import pytest
 
@@ -54,7 +52,7 @@ def create_table_with_local_indexes():
 
 
 def iterate_results(res):
-    for i in res:
+    for _ in res:
         pass
 
 
@@ -402,8 +400,8 @@ def test_get_item_without_range_key():
         throughput={"read": 10, "write": 10},
     )
 
-    hash_key = 3241526475
-    range_key = 1234567890987
+    hash_key = "3241526475"
+    range_key = "1234567890987"
     table.put_item(data={"test_hash": hash_key, "test_range": range_key})
     table.get_item.when.called_with(test_hash=hash_key).should.throw(
         ValidationException
@@ -426,8 +424,8 @@ def test_get_item_without_range_key_boto3():
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
     )
 
-    hash_key = 3241526475
-    range_key = 1234567890987
+    hash_key = "3241526475"
+    range_key = "1234567890987"
     table.put_item(Item={"id": hash_key, "subject": range_key})
 
     with pytest.raises(ClientError) as ex:
@@ -1059,7 +1057,7 @@ def test_query_non_hash_range_key():
 # Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_reverse_query():
-    conn = boto.dynamodb2.layer1.DynamoDBConnection()
+    boto.dynamodb2.layer1.DynamoDBConnection()
 
     table = Table.create(
         "messages", schema=[HashKey("subject"), RangeKey("created_at", data_type="N")]
@@ -1077,11 +1075,12 @@ def test_reverse_query():
 # Has boto3 equivalent
 @mock_dynamodb2_deprecated
 def test_lookup():
-    from decimal import Decimal
-
     table = Table.create(
         "messages",
-        schema=[HashKey("test_hash"), RangeKey("test_range")],
+        schema=[
+            HashKey("test_hash", data_type=NUMBER),
+            RangeKey("test_range", data_type=NUMBER),
+        ],
         throughput={"read": 10, "write": 10},
     )
 
@@ -1406,7 +1405,7 @@ def _create_table_with_range_key():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},

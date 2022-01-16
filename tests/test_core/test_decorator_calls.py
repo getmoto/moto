@@ -1,9 +1,8 @@
-from __future__ import unicode_literals
 import boto
 import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import unittest
 
 import pytest

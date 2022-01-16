@@ -1,11 +1,8 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 from uuid import uuid4
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 
 class Input(BaseModel):
@@ -117,7 +114,7 @@ class Channel(BaseModel):
 
 class MediaLiveBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaLiveBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._channels = OrderedDict()
         self._inputs = OrderedDict()
@@ -232,7 +229,7 @@ class MediaLiveBackend(BaseBackend):
         role_arn,
         sources,
         tags,
-        type,
+        input_type,
         vpc,
     ):
         input_id = uuid4().hex
@@ -248,7 +245,7 @@ class MediaLiveBackend(BaseBackend):
             role_arn=role_arn,
             sources=sources,
             tags=tags,
-            input_type=type,
+            input_type=input_type,
             state="CREATING",
         )
         self._inputs[input_id] = a_input
@@ -293,10 +290,4 @@ class MediaLiveBackend(BaseBackend):
         return a_input
 
 
-medialive_backends = {}
-for region in Session().get_available_regions("medialive"):
-    medialive_backends[region] = MediaLiveBackend()
-for region in Session().get_available_regions("medialive", partition_name="aws-us-gov"):
-    medialive_backends[region] = MediaLiveBackend()
-for region in Session().get_available_regions("medialive", partition_name="aws-cn"):
-    medialive_backends[region] = MediaLiveBackend()
+medialive_backends = BackendDict(MediaLiveBackend, "medialive")

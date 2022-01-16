@@ -1,11 +1,11 @@
-from __future__ import unicode_literals
 import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 import boto3
-import sure
-from boto3 import Session
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
 from moto import mock_autoscaling, mock_ec2, mock_elb
 
@@ -15,22 +15,9 @@ from uuid import uuid4
 from .test_instances import retrieve_all_instances
 
 
-def test_use_boto_regions():
-    boto_regions = set()
-    for region in Session().get_available_regions("ec2"):
-        boto_regions.add(region)
-    for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
-        boto_regions.add(region)
-    for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
-        boto_regions.add(region)
-    moto_regions = set(ec2_backends)
-
-    moto_regions.should.equal(boto_regions)
-
-
 def add_servers_to_region(ami_id, count, region):
     conn = boto.ec2.connect_to_region(region)
-    for index in range(count):
+    for _ in range(count):
         conn.run_instances(ami_id)
 
 
@@ -133,7 +120,7 @@ def test_create_autoscaling_group():
     config = boto.ec2.autoscale.LaunchConfiguration(
         name="us_tester", image_id=EXAMPLE_AMI_ID, instance_type="m1.small"
     )
-    x = us_conn.create_launch_configuration(config)
+    us_conn.create_launch_configuration(config)
 
     us_subnet_id = list(ec2_backends["us-east-1"].subnets["us-east-1c"].keys())[0]
     ap_subnet_id = list(
@@ -283,3 +270,16 @@ def test_create_autoscaling_group_boto3():
         group["LoadBalancerNames"].should.equal([lb_name])
         group["PlacementGroup"].should.equal("us_test_placement")
         group["TerminationPolicies"].should.equal(["OldestInstance", "NewestInstance"])
+
+
+@mock_ec2
+def test_describe_regions_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_regions(DryRun=True)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeRegions operation: Request would have succeeded, but DryRun flag is set"
+    )

@@ -1,8 +1,5 @@
-from __future__ import unicode_literals
-
-from boto3 import Session
-
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
 
 from ..exceptions import (
     SWFUnknownResourceFault,
@@ -19,6 +16,7 @@ from .domain import Domain  # noqa
 from .generic_type import GenericType  # noqa
 from .history_event import HistoryEvent  # noqa
 from .timeout import Timeout  # noqa
+from .timer import Timer  # noqa
 from .workflow_type import WorkflowType  # noqa
 from .workflow_execution import WorkflowExecution  # noqa
 from time import sleep
@@ -30,7 +28,7 @@ class SWFBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.domains = []
-        super(SWFBackend, self).__init__()
+        super().__init__()
 
     def reset(self):
         region_name = self.region_name
@@ -177,7 +175,7 @@ class SWFBackend(BaseBackend):
         workflow_name,
         workflow_version,
         tag_list=None,
-        input=None,
+        workflow_input=None,
         **kwargs
     ):
         domain = self._get_domain(domain_name)
@@ -185,7 +183,12 @@ class SWFBackend(BaseBackend):
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
         wfe = WorkflowExecution(
-            domain, wf_type, workflow_id, tag_list=tag_list, input=input, **kwargs
+            domain,
+            wf_type,
+            workflow_id,
+            tag_list=tag_list,
+            workflow_input=workflow_input,
+            **kwargs
         )
         domain.add_workflow_execution(wfe)
         wfe.start()
@@ -424,7 +427,7 @@ class SWFBackend(BaseBackend):
             activity_task.details = details
 
     def signal_workflow_execution(
-        self, domain_name, signal_name, workflow_id, input=None, run_id=None
+        self, domain_name, signal_name, workflow_id, workflow_input=None, run_id=None
     ):
         # process timeouts on all objects
         self._process_timeouts()
@@ -432,13 +435,7 @@ class SWFBackend(BaseBackend):
         wfe = domain.get_workflow_execution(
             workflow_id, run_id=run_id, raise_if_closed=True
         )
-        wfe.signal(signal_name, input)
+        wfe.signal(signal_name, workflow_input)
 
 
-swf_backends = {}
-for region in Session().get_available_regions("swf"):
-    swf_backends[region] = SWFBackend(region)
-for region in Session().get_available_regions("swf", partition_name="aws-us-gov"):
-    swf_backends[region] = SWFBackend(region)
-for region in Session().get_available_regions("swf", partition_name="aws-cn"):
-    swf_backends[region] = SWFBackend(region)
+swf_backends = BackendDict(SWFBackend, "swf")

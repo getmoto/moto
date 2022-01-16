@@ -1,7 +1,7 @@
 import boto3
 import json
 import yaml
-import sure  # noqa
+import sure  # pylint: disable=unused-import
 
 import pytest
 from botocore.exceptions import ClientError
@@ -257,12 +257,12 @@ Resources:
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
 
     cf_client.delete_stack(StackName=stack_name)
 
     with pytest.raises(ClientError) as e:
-        user = iam_client.get_user(UserName=user_name)
+        iam_client.get_user(UserName=user_name)
     e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
@@ -287,12 +287,12 @@ Resources:
     user_name = provisioned_resource["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
 
     cf_client.delete_stack(StackName=stack_name)
 
     with pytest.raises(ClientError) as e:
-        user = iam_client.get_user(UserName=user_name)
+        iam_client.get_user(UserName=user_name)
     e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
@@ -587,7 +587,7 @@ def test_iam_cloudformation_create_user_policy():
 
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
-    bucket = s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -726,7 +726,7 @@ def test_iam_cloudformation_delete_user_policy_having_generated_name():
 
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
-    bucket = s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
 
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -1356,7 +1356,7 @@ Resources:
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
 
@@ -1413,7 +1413,7 @@ Resources:
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    user = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
 
@@ -1456,7 +1456,6 @@ def test_iam_cloudformation_create_role():
     ]
     role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
     role["LogicalResourceId"].should.equal("RootRole")
-    role_name = role["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     iam_client.list_roles()["Roles"].should.have.length_of(1)

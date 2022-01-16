@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import string
 
 import boto3
 import botocore.exceptions
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 import datetime
 import uuid
 
@@ -226,6 +224,14 @@ def test_get_parameters_by_path():
         "The following filter key is not valid: Tier. "
         "Valid filter keys include: [Type, KeyId].",
     )
+
+    # Label filter in get_parameters_by_path
+    client.label_parameter_version(Name="/foo/name2", Labels=["Label1"])
+
+    filters = [{"Key": "Label", "Values": ["Label1"]}]
+    response = client.get_parameters_by_path(Path="/foo", ParameterFilters=filters)
+    len(response["Parameters"]).should.equal(1)
+    {p["Name"] for p in response["Parameters"]}.should.equal(set(["/foo/name2"]))
 
 
 @pytest.mark.parametrize("name", ["test", "my-cool-parameter"])

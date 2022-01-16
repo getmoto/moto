@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import uuid
 import json
@@ -7,18 +5,19 @@ import json
 import requests
 import re
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
+    BackendDict,
 )
 from moto.sqs import sqs_backends
+from moto.sqs.exceptions import MissingParameter
 
 from .exceptions import (
     SNSNotFoundError,
+    TopicNotFound,
     DuplicateSnsEndpointError,
     SnsEndpointDisabled,
     SNSInvalidParameter,
@@ -26,6 +25,8 @@ from .exceptions import (
     InternalError,
     ResourceNotFoundError,
     TagLimitExceededError,
+    TooManyEntriesInBatchRequest,
+    BatchEntryIdsNotDistinct,
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
@@ -55,8 +56,10 @@ class Topic(CloudFormationModel):
             sns_backend.region_name, self.account_id, name
         )
         self._tags = {}
+        self.fifo_topic = "false"
+        self.content_based_deduplication = "false"
 
-    def publish(self, message, subject=None, message_attributes=None):
+    def publish(self, message, subject=None, message_attributes=None, group_id=None):
         message_id = str(uuid.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions(self.arn)
         for subscription in subscriptions:
@@ -65,8 +68,13 @@ class Topic(CloudFormationModel):
                 message_id,
                 subject=subject,
                 message_attributes=message_attributes,
+                group_id=group_id,
             )
         return message_id
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["TopicName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -98,7 +106,7 @@ class Topic(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -174,7 +182,9 @@ class Subscription(BaseModel):
         self._filter_policy = None  # filter policy as a dict, not json.
         self.confirmed = False
 
-    def publish(self, message, message_id, subject=None, message_attributes=None):
+    def publish(
+        self, message, message_id, subject=None, message_attributes=None, group_id=None
+    ):
         if not self._matches_filter_policy(message_attributes):
             return
 
@@ -195,24 +205,28 @@ class Subscription(BaseModel):
                         indent=2,
                         separators=(",", ": "),
                     ),
+                    group_id=group_id,
                 )
             else:
                 raw_message_attributes = {}
                 for key, value in message_attributes.items():
-                    type = "string_value"
+                    attr_type = "string_value"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):
-                        type = "binary_value"
+                        attr_type = "binary_value"
                     elif value["Type"].startswith("Number"):
                         type_value = "{0:g}".format(value["Value"])
 
                     raw_message_attributes[key] = {
                         "data_type": value["Type"],
-                        type: type_value,
+                        attr_type: type_value,
                     }
 
                 sqs_backends[region].send_message(
-                    queue_name, message, message_attributes=raw_message_attributes
+                    queue_name,
+                    message,
+                    message_attributes=raw_message_attributes,
+                    group_id=group_id,
                 )
         elif self.protocol in ["http", "https"]:
             post_data = self.get_post_data(message, message_id, subject)
@@ -308,7 +322,6 @@ class Subscription(BaseModel):
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
-            "Subject": subject or "my subject",
             "Message": message,
             "Timestamp": iso_8601_datetime_with_milliseconds(
                 datetime.datetime.utcnow()
@@ -320,6 +333,8 @@ class Subscription(BaseModel):
                 DEFAULT_ACCOUNT_ID
             ),
         }
+        if subject:
+            post_data["Subject"] = subject
         if message_attributes:
             post_data["MessageAttributes"] = message_attributes
         return post_data
@@ -390,7 +405,7 @@ class PlatformEndpoint(BaseModel):
 
 class SNSBackend(BaseBackend):
     def __init__(self, region_name):
-        super(SNSBackend, self).__init__()
+        super().__init__()
         self.topics = OrderedDict()
         self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
@@ -564,6 +579,7 @@ class SNSBackend(BaseBackend):
         phone_number=None,
         subject=None,
         message_attributes=None,
+        group_id=None,
     ):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
@@ -585,8 +601,25 @@ class SNSBackend(BaseBackend):
 
         try:
             topic = self.get_topic(arn)
+
+            fifo_topic = topic.fifo_topic == "true"
+            if group_id is None:
+                # MessageGroupId is a mandatory parameter for all
+                # messages in a fifo queue
+                if fifo_topic:
+                    raise MissingParameter("MessageGroupId")
+            else:
+                if not fifo_topic:
+                    msg = (
+                        "Value {} for parameter MessageGroupId is invalid. "
+                        "Reason: The request include parameter that is not valid for this queue type."
+                    ).format(group_id)
+                    raise InvalidParameterValue(msg)
             message_id = topic.publish(
-                message, subject=subject, message_attributes=message_attributes
+                message,
+                subject=subject,
+                message_attributes=message_attributes,
+                group_id=group_id,
             )
         except SNSNotFoundError:
             endpoint = self.get_endpoint(arn)
@@ -704,7 +737,7 @@ class SNSBackend(BaseBackend):
                 "Invalid parameter: FilterPolicy: Filter policy is too complex"
             )
 
-        for field, rules in value.items():
+        for rules in value.values():
             for rule in rules:
                 if rule is None:
                     continue
@@ -813,14 +846,58 @@ class SNSBackend(BaseBackend):
         for key in tag_keys:
             self.topics[resource_arn]._tags.pop(key, None)
 
+    def publish_batch(self, topic_arn, publish_batch_request_entries):
+        """
+        The MessageStructure and MessageDeduplicationId-parameters have not yet been implemented.
+        """
+        try:
+            topic = self.get_topic(topic_arn)
+        except SNSNotFoundError:
+            raise TopicNotFound
 
-sns_backends = {}
-for region in Session().get_available_regions("sns"):
-    sns_backends[region] = SNSBackend(region)
-for region in Session().get_available_regions("sns", partition_name="aws-us-gov"):
-    sns_backends[region] = SNSBackend(region)
-for region in Session().get_available_regions("sns", partition_name="aws-cn"):
-    sns_backends[region] = SNSBackend(region)
+        if len(publish_batch_request_entries) > 10:
+            raise TooManyEntriesInBatchRequest
+
+        ids = [m["Id"] for m in publish_batch_request_entries]
+        if len(set(ids)) != len(ids):
+            raise BatchEntryIdsNotDistinct
+
+        fifo_topic = topic.fifo_topic == "true"
+        if fifo_topic:
+            if not all(
+                ["MessageGroupId" in entry for entry in publish_batch_request_entries]
+            ):
+                raise SNSInvalidParameter(
+                    "Invalid parameter: The MessageGroupId parameter is required for FIFO topics"
+                )
+
+        successful = []
+        failed = []
+
+        for entry in publish_batch_request_entries:
+            try:
+                message_id = self.publish(
+                    message=entry["Message"],
+                    arn=topic_arn,
+                    subject=entry.get("Subject"),
+                    message_attributes=entry.get("MessageAttributes", []),
+                    group_id=entry.get("MessageGroupId"),
+                )
+                successful.append({"MessageId": message_id, "Id": entry["Id"]})
+            except Exception as e:
+                if isinstance(e, InvalidParameterValue):
+                    failed.append(
+                        {
+                            "Id": entry["Id"],
+                            "Code": "InvalidParameter",
+                            "Message": f"Invalid parameter: {e.message}",
+                            "SenderFault": True,
+                        }
+                    )
+        return successful, failed
+
+
+sns_backends = BackendDict(SNSBackend, "sns")
 
 
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = {

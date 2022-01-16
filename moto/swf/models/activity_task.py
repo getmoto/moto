@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from datetime import datetime
 import uuid
 
@@ -17,12 +16,12 @@ class ActivityTask(BaseModel):
         scheduled_event_id,
         workflow_execution,
         timeouts,
-        input=None,
+        workflow_input=None,
     ):
         self.activity_id = activity_id
         self.activity_type = activity_type
         self.details = None
-        self.input = input
+        self.input = workflow_input
         self.last_heartbeat_timestamp = unix_time()
         self.scheduled_event_id = scheduled_event_id
         self.started_event_id = None
