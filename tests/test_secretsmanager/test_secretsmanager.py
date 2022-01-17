@@ -1,3 +1,5 @@
+import os
+
 import boto3
 from dateutil.tz import tzlocal
 
@@ -993,7 +995,17 @@ def test_update_secret_updates_last_changed_dates(pass_arn):
         conn.update_secret(SecretId="test-secret", Description="new-desc")
         secret_details_2 = conn.describe_secret(SecretId=secret_id)
         assert secret_details_1["CreatedDate"] == secret_details_2["CreatedDate"]
-        assert secret_details_1["LastChangedDate"] < secret_details_2["LastChangedDate"]
+        if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
+            assert (
+                secret_details_1["LastChangedDate"]
+                < secret_details_2["LastChangedDate"]
+            )
+        else:
+            # Can't manipulate time in server mode, so use weaker constraints here
+            assert (
+                secret_details_1["LastChangedDate"]
+                <= secret_details_2["LastChangedDate"]
+            )
 
 
 @mock_secretsmanager
