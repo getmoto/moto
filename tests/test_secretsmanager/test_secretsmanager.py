@@ -1,11 +1,13 @@
 import boto3
+from dateutil.tz import tzlocal
 
 from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
 import string
 import pytz
-from datetime import datetime
+from freezegun import freeze_time
+from datetime import timedelta, datetime
 import sure  # noqa # pylint: disable=unused-import
 from uuid import uuid4
 import pytest
@@ -430,6 +432,14 @@ def test_describe_secret():
     assert secret_description["ARN"] != ""  # Test arn not empty
     assert secret_description_2["Name"] == ("test-secret-2")
     assert secret_description_2["ARN"] != ""  # Test arn not empty
+    assert secret_description["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description["CreatedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description_2["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description_2["CreatedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description["LastChangedDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert secret_description_2["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secret_description_2["LastChangedDate"] > datetime.fromtimestamp(1, pytz.utc)
 
 
 @mock_secretsmanager
@@ -965,6 +975,25 @@ def test_update_secret(pass_arn):
     secret = conn.get_secret_value(SecretId=secret_id)
     assert secret["SecretString"] == "barsecret"
     assert created_secret["VersionId"] != updated_secret["VersionId"]
+
+
+@mock_secretsmanager
+@pytest.mark.parametrize("pass_arn", [True, False])
+def test_update_secret_updates_last_changed_dates(pass_arn):
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # create a secret
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    secret_id = created_secret["ARN"] if pass_arn else "test-secret"
+
+    # save details for secret before modification
+    secret_details_1 = conn.describe_secret(SecretId=secret_id)
+    # check if only LastChangedDate changed, CreatedDate should stay the same
+    with freeze_time(timedelta(minutes=1)):
+        conn.update_secret(SecretId="test-secret", Description="new-desc")
+        secret_details_2 = conn.describe_secret(SecretId=secret_id)
+        assert secret_details_1["CreatedDate"] == secret_details_2["CreatedDate"]
+        assert secret_details_1["LastChangedDate"] < secret_details_2["LastChangedDate"]
 
 
 @mock_secretsmanager
