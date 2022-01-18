@@ -1270,7 +1270,7 @@ class RDS2Backend(BaseBackend):
         else:
             max_records = 100
 
-        for option_group_name, option_group in self.option_groups.items():
+        for option_group in self.option_groups.values():
             if (
                 option_group_kwargs["name"]
                 and option_group.name != option_group_kwargs["name"]
@@ -1401,10 +1401,7 @@ class RDS2Backend(BaseBackend):
         else:
             max_records = 100
 
-        for (
-            db_parameter_group_name,
-            db_parameter_group,
-        ) in self.db_parameter_groups.items():
+        for db_parameter_group in self.db_parameter_groups.values():
             if not db_parameter_group_kwargs.get(
                 "name"
             ) or db_parameter_group.name == db_parameter_group_kwargs.get("name"):

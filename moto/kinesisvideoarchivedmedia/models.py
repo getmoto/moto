@@ -6,7 +6,7 @@ from moto.sts.utils import random_session_token
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(KinesisVideoArchivedMediaBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
     def reset(self):

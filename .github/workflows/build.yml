@@ -217,12 +217,14 @@ jobs:
           serverlogs/*
 
   test_responses:
-    name: Test Responses==0.12.0
+    name: Test Responses versions
     runs-on: ubuntu-latest
     needs: lint
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: [ 3.8 ]
+        responses-version: [0.11.0, 0.12.0, 0.12.1, 0.13.0, 0.15.0, 0.17.0]
 
     steps:
       - uses: actions/checkout@v2
@@ -246,11 +248,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
           pip install pytest-cov
-          pip install responses==0.12.0
+          pip install responses==${{ matrix.responses-version }}
           pip install "coverage<=4.5.4"
-      - name: Test core-logic with responses==0.12.0
+      - name: Test core-logic with responses==${{ matrix.responses-version }}
         run: |
-          pytest -sv --cov=moto --cov-report xml ./tests/test_core
+          pytest -sv --cov=moto --cov-report xml ./tests/test_core ./tests/test_apigateway/test_apigateway_integration.py
       - name: "Upload coverage to Codecov"
         if: ${{ github.repository == 'spulec/moto'}}
         uses: codecov/codecov-action@v1

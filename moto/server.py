@@ -243,7 +243,7 @@ class RegexConverter(BaseConverter):
     # http://werkzeug.pocoo.org/docs/routing/#custom-converters
 
     def __init__(self, url_map, *items):
-        super(RegexConverter, self).__init__(url_map)
+        super().__init__(url_map)
         self.regex = items[0]
 
 
@@ -327,7 +327,8 @@ def signal_handler(reset_server_port, signum, frame):
     sys.exit(0)
 
 
-def main(argv=sys.argv[1:]):
+def main(argv=None):
+    argv = argv or sys.argv[1:]
     parser = argparse.ArgumentParser()
 
     # Keep this for backwards compat

@@ -128,7 +128,7 @@ apigateway
 - [ ] update_account
 - [X] update_api_key
 - [X] update_authorizer
-- [ ] update_base_path_mapping
+- [X] update_base_path_mapping
 - [ ] update_client_certificate
 - [ ] update_deployment
 - [ ] update_documentation_part

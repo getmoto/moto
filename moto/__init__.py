@@ -26,6 +26,7 @@ def lazy_load(
 
 mock_acm = lazy_load(".acm", "mock_acm")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
+mock_appsync = lazy_load(".appsync", "mock_appsync", boto3_name="appsync")
 mock_athena = lazy_load(".athena", "mock_athena")
 mock_applicationautoscaling = lazy_load(
     ".applicationautoscaling", "mock_applicationautoscaling"
@@ -107,6 +108,7 @@ mock_ses = lazy_load(".ses", "mock_ses")
 mock_sns = lazy_load(".sns", "mock_sns")
 mock_sqs = lazy_load(".sqs", "mock_sqs")
 mock_ssm = lazy_load(".ssm", "mock_ssm")
+mock_ssoadmin = lazy_load(".ssoadmin", "mock_ssoadmin", boto3_name="sso-admin")
 mock_stepfunctions = lazy_load(
     ".stepfunctions", "mock_stepfunctions", backend="stepfunction_backends"
 )
@@ -168,7 +170,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "2.3.1.dev"
+__version__ = "3.0.0.dev"
 
 
 try:

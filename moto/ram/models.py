@@ -153,7 +153,7 @@ class ResourceShare(BaseModel):
 
 class ResourceAccessManagerBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(ResourceAccessManagerBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.resource_shares = []
 

@@ -17,6 +17,7 @@ from moto.sqs.exceptions import MissingParameter
 
 from .exceptions import (
     SNSNotFoundError,
+    TopicNotFound,
     DuplicateSnsEndpointError,
     SnsEndpointDisabled,
     SNSInvalidParameter,
@@ -24,6 +25,8 @@ from .exceptions import (
     InternalError,
     ResourceNotFoundError,
     TagLimitExceededError,
+    TooManyEntriesInBatchRequest,
+    BatchEntryIdsNotDistinct,
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
@@ -207,16 +210,16 @@ class Subscription(BaseModel):
             else:
                 raw_message_attributes = {}
                 for key, value in message_attributes.items():
-                    type = "string_value"
+                    attr_type = "string_value"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):
-                        type = "binary_value"
+                        attr_type = "binary_value"
                     elif value["Type"].startswith("Number"):
                         type_value = "{0:g}".format(value["Value"])
 
                     raw_message_attributes[key] = {
                         "data_type": value["Type"],
-                        type: type_value,
+                        attr_type: type_value,
                     }
 
                 sqs_backends[region].send_message(
@@ -402,7 +405,7 @@ class PlatformEndpoint(BaseModel):
 
 class SNSBackend(BaseBackend):
     def __init__(self, region_name):
-        super(SNSBackend, self).__init__()
+        super().__init__()
         self.topics = OrderedDict()
         self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
@@ -734,7 +737,7 @@ class SNSBackend(BaseBackend):
                 "Invalid parameter: FilterPolicy: Filter policy is too complex"
             )
 
-        for field, rules in value.items():
+        for rules in value.values():
             for rule in rules:
                 if rule is None:
                     continue
@@ -842,6 +845,56 @@ class SNSBackend(BaseBackend):
 
         for key in tag_keys:
             self.topics[resource_arn]._tags.pop(key, None)
+
+    def publish_batch(self, topic_arn, publish_batch_request_entries):
+        """
+        The MessageStructure and MessageDeduplicationId-parameters have not yet been implemented.
+        """
+        try:
+            topic = self.get_topic(topic_arn)
+        except SNSNotFoundError:
+            raise TopicNotFound
+
+        if len(publish_batch_request_entries) > 10:
+            raise TooManyEntriesInBatchRequest
+
+        ids = [m["Id"] for m in publish_batch_request_entries]
+        if len(set(ids)) != len(ids):
+            raise BatchEntryIdsNotDistinct
+
+        fifo_topic = topic.fifo_topic == "true"
+        if fifo_topic:
+            if not all(
+                ["MessageGroupId" in entry for entry in publish_batch_request_entries]
+            ):
+                raise SNSInvalidParameter(
+                    "Invalid parameter: The MessageGroupId parameter is required for FIFO topics"
+                )
+
+        successful = []
+        failed = []
+
+        for entry in publish_batch_request_entries:
+            try:
+                message_id = self.publish(
+                    message=entry["Message"],
+                    arn=topic_arn,
+                    subject=entry.get("Subject"),
+                    message_attributes=entry.get("MessageAttributes", []),
+                    group_id=entry.get("MessageGroupId"),
+                )
+                successful.append({"MessageId": message_id, "Id": entry["Id"]})
+            except Exception as e:
+                if isinstance(e, InvalidParameterValue):
+                    failed.append(
+                        {
+                            "Id": entry["Id"],
+                            "Code": "InvalidParameter",
+                            "Message": f"Invalid parameter: {e.message}",
+                            "SenderFault": True,
+                        }
+                    )
+        return successful, failed
 
 
 sns_backends = BackendDict(SNSBackend, "sns")

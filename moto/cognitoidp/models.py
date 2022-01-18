@@ -1486,6 +1486,13 @@ class CognitoIdpBackend(BaseBackend):
             session = str(uuid.uuid4())
             self.sessions[session] = user_pool
 
+            if user.status is UserStatus.FORCE_CHANGE_PASSWORD:
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {"USERNAME": user.username},
+                    "Session": session,
+                }
+
             access_token, expires_in = user_pool.create_access_token(
                 client_id, username
             )

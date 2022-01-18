@@ -96,7 +96,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         restored_from_snapshot=False,
         kms_key_id=None,
     ):
-        super(Cluster, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
         self.create_time = iso_8601_datetime_with_milliseconds(
@@ -358,7 +358,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         region_name,
         tags=None,
     ):
-        super(SubnetGroup, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.ec2_backend = ec2_backend
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.description = description
@@ -427,7 +427,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
     def __init__(
         self, cluster_security_group_name, description, region_name, tags=None
     ):
-        super(SecurityGroup, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
         self.ingress_rules = []
@@ -458,7 +458,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
         region_name,
         tags=None,
     ):
-        super(ParameterGroup, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.cluster_parameter_group_name = cluster_parameter_group_name
         self.group_family = group_family
         self.description = description
@@ -507,7 +507,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
     def __init__(
         self, cluster, snapshot_identifier, region_name, tags=None, iam_roles_arn=None
     ):
-        super(Snapshot, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = "manual"

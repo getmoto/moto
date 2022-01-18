@@ -3358,6 +3358,57 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
 
 
 @mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
+    # Test flow:
+    # 1. Create user with FORCE_CHANGE_PASSWORD status
+    # 2. Login with temporary password
+    # 3. Check that the right challenge is received
+    # 4. Respond to challenge with new password
+    # 5. Check that the access tokens are received
+
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+
+    # Create pool and client
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+
+    # Create user in status FORCE_CHANGE_PASSWORD
+    temporary_password = str(uuid.uuid4())
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=temporary_password
+    )
+
+    result = client.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
+    result["ChallengeParameters"]["USERNAME"].should.equal(username)
+    result["Session"].should_not.be.none
+    assert result.get("AuthenticationResult") is None
+
+    new_password = str(uuid.uuid4())
+    result = client.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        Session=result["Session"],
+        ChallengeResponses={
+            "NEW_PASSWORD": new_password,
+            "USERNAME": result["ChallengeParameters"]["USERNAME"],
+        },
+    )
+
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+
+
+@mock_cognitoidp
 def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)

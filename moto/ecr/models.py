@@ -66,12 +66,13 @@ class Repository(BaseObject, CloudFormationModel):
         self,
         region_name,
         repository_name,
+        registry_id,
         encryption_config,
         image_scan_config,
         image_tag_mutablility,
     ):
         self.region_name = region_name
-        self.registry_id = DEFAULT_REGISTRY_ID
+        self.registry_id = registry_id or DEFAULT_REGISTRY_ID
         self.arn = (
             f"arn:aws:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
         )
@@ -190,6 +191,7 @@ class Repository(BaseObject, CloudFormationModel):
             # RepositoryName is optional in CloudFormation, thus create a random
             # name if necessary
             repository_name=resource_name,
+            registry_id=None,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
             image_tag_mutablility=image_tag_mutablility,
@@ -406,6 +408,7 @@ class ECRBackend(BaseBackend):
     def create_repository(
         self,
         repository_name,
+        registry_id,
         encryption_config,
         image_scan_config,
         image_tag_mutablility,
@@ -417,6 +420,7 @@ class ECRBackend(BaseBackend):
         repository = Repository(
             region_name=self.region_name,
             repository_name=repository_name,
+            registry_id=registry_id,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
             image_tag_mutablility=image_tag_mutablility,

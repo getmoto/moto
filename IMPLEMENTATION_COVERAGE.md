@@ -125,7 +125,7 @@
 - [ ] update_account
 - [X] update_api_key
 - [X] update_authorizer
-- [ ] update_base_path_mapping
+- [X] update_base_path_mapping
 - [ ] update_client_certificate
 - [ ] update_deployment
 - [ ] update_documentation_part
@@ -160,6 +160,61 @@
 - [X] put_scaling_policy
 - [ ] put_scheduled_action
 - [X] register_scalable_target
+</details>
+
+## appsync
+<details>
+<summary>30% implemented</summary>
+
+- [ ] associate_api
+- [ ] create_api_cache
+- [X] create_api_key
+- [ ] create_data_source
+- [ ] create_domain_name
+- [ ] create_function
+- [X] create_graphql_api
+- [ ] create_resolver
+- [ ] create_type
+- [ ] delete_api_cache
+- [X] delete_api_key
+- [ ] delete_data_source
+- [ ] delete_domain_name
+- [ ] delete_function
+- [X] delete_graphql_api
+- [ ] delete_resolver
+- [ ] delete_type
+- [ ] disassociate_api
+- [ ] flush_api_cache
+- [ ] get_api_association
+- [ ] get_api_cache
+- [ ] get_data_source
+- [ ] get_domain_name
+- [ ] get_function
+- [X] get_graphql_api
+- [ ] get_introspection_schema
+- [ ] get_resolver
+- [X] get_schema_creation_status
+- [X] get_type
+- [X] list_api_keys
+- [ ] list_data_sources
+- [ ] list_domain_names
+- [ ] list_functions
+- [X] list_graphql_apis
+- [ ] list_resolvers
+- [ ] list_resolvers_by_function
+- [X] list_tags_for_resource
+- [ ] list_types
+- [X] start_schema_creation
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_api_cache
+- [X] update_api_key
+- [ ] update_data_source
+- [ ] update_domain_name
+- [ ] update_function
+- [X] update_graphql_api
+- [ ] update_resolver
+- [ ] update_type
 </details>
 
 ## athena
@@ -498,25 +553,36 @@
 
 ## cloudtrail
 <details>
-<summary>44% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] add_tags
+- [ ] cancel_query
+- [ ] create_event_data_store
 - [X] create_trail
+- [ ] delete_event_data_store
 - [X] delete_trail
+- [ ] describe_query
 - [X] describe_trails
+- [ ] get_event_data_store
 - [ ] get_event_selectors
 - [ ] get_insight_selectors
+- [ ] get_query_results
 - [X] get_trail
 - [X] get_trail_status
+- [ ] list_event_data_stores
 - [ ] list_public_keys
+- [ ] list_queries
 - [ ] list_tags
 - [X] list_trails
 - [ ] lookup_events
 - [ ] put_event_selectors
 - [ ] put_insight_selectors
 - [ ] remove_tags
+- [ ] restore_event_data_store
 - [X] start_logging
+- [ ] start_query
 - [X] stop_logging
+- [ ] update_event_data_store
 - [ ] update_trail
 </details>
 
@@ -950,6 +1016,7 @@
 - [X] cancel_task_execution
 - [ ] create_agent
 - [ ] create_location_efs
+- [ ] create_location_fsx_lustre
 - [ ] create_location_fsx_windows
 - [ ] create_location_hdfs
 - [ ] create_location_nfs
@@ -962,6 +1029,7 @@
 - [X] delete_task
 - [ ] describe_agent
 - [ ] describe_location_efs
+- [ ] describe_location_fsx_lustre
 - [ ] describe_location_fsx_windows
 - [ ] describe_location_hdfs
 - [ ] describe_location_nfs
@@ -1424,6 +1492,7 @@
 - [ ] describe_elastic_gpus
 - [ ] describe_export_image_tasks
 - [ ] describe_export_tasks
+- [ ] describe_fast_launch_images
 - [ ] describe_fast_snapshot_restores
 - [ ] describe_fleet_history
 - [ ] describe_fleet_instances
@@ -1538,6 +1607,7 @@
 - [X] detach_volume
 - [X] detach_vpn_gateway
 - [X] disable_ebs_encryption_by_default
+- [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -1558,6 +1628,7 @@
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
 - [X] enable_ebs_encryption_by_default
+- [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -1658,6 +1729,7 @@
 - [ ] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [ ] modify_vpc_endpoint_service_configuration
+- [ ] modify_vpc_endpoint_service_payer_responsibility
 - [ ] modify_vpc_endpoint_service_permissions
 - [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
@@ -2538,6 +2610,9 @@
 - [ ] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
+- [ ] get_unfiltered_partition_metadata
+- [ ] get_unfiltered_partitions_metadata
+- [ ] get_unfiltered_table_metadata
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -3682,6 +3757,7 @@
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources
+- [ ] list_permission_versions
 - [ ] list_permissions
 - [ ] list_principals
 - [ ] list_resource_share_permissions
@@ -4622,7 +4698,7 @@
 
 ## sns
 <details>
-<summary>52% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
@@ -4652,7 +4728,7 @@
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
-- [ ] publish_batch
+- [X] publish_batch
 - [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes
@@ -4831,6 +4907,43 @@
 - [ ] update_patch_baseline
 - [ ] update_resource_data_sync
 - [ ] update_service_setting
+</details>
+
+## sso-admin
+<details>
+<summary>9% implemented</summary>
+
+- [ ] attach_managed_policy_to_permission_set
+- [X] create_account_assignment
+- [ ] create_instance_access_control_attribute_configuration
+- [ ] create_permission_set
+- [X] delete_account_assignment
+- [ ] delete_inline_policy_from_permission_set
+- [ ] delete_instance_access_control_attribute_configuration
+- [ ] delete_permission_set
+- [ ] describe_account_assignment_creation_status
+- [ ] describe_account_assignment_deletion_status
+- [ ] describe_instance_access_control_attribute_configuration
+- [ ] describe_permission_set
+- [ ] describe_permission_set_provisioning_status
+- [ ] detach_managed_policy_from_permission_set
+- [ ] get_inline_policy_for_permission_set
+- [ ] list_account_assignment_creation_status
+- [ ] list_account_assignment_deletion_status
+- [X] list_account_assignments
+- [ ] list_accounts_for_provisioned_permission_set
+- [ ] list_instances
+- [ ] list_managed_policies_in_permission_set
+- [ ] list_permission_set_provisioning_status
+- [ ] list_permission_sets
+- [ ] list_permission_sets_provisioned_to_account
+- [ ] list_tags_for_resource
+- [ ] provision_permission_set
+- [ ] put_inline_policy_to_permission_set
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_instance_access_control_attribute_configuration
+- [ ] update_permission_set
 </details>
 
 ## stepfunctions
@@ -5078,7 +5191,6 @@
 - appmesh
 - apprunner
 - appstream
-- appsync
 - auditmanager
 - autoscaling-plans
 - backup
@@ -5255,7 +5367,6 @@
 - ssm-contacts
 - ssm-incidents
 - sso
-- sso-admin
 - sso-oidc
 - storagegateway
 - synthetics

@@ -918,9 +918,8 @@ class RestAPI(CloudFormationModel):
                         method=http_method,
                         callback=self.resource_callback,
                         content_type="text/plain",
-                        match_querystring=False,
                     )
-                    responses_mock._matches.insert(0, callback_response)
+                    responses_mock.add(callback_response)
 
     def create_authorizer(
         self,

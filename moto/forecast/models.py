@@ -100,7 +100,7 @@ class DatasetGroup:
 
 class ForecastBackend(BaseBackend):
     def __init__(self, region_name):
-        super(ForecastBackend, self).__init__()
+        super().__init__()
         self.dataset_groups = {}
         self.datasets = {}
         self.region_name = region_name

@@ -167,7 +167,7 @@ def is_delete_keys(request, path, bucket_name):
 
 class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def __init__(self, backend):
-        super(ResponseObject, self).__init__()
+        super().__init__()
         self.backend = backend
         self.method = ""
         self.path = ""
@@ -1720,7 +1720,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 FakeGrant(
                     [
                         FakeGrantee(
-                            id=grant["Grantee"].get("ID", ""),
+                            grantee_id=grant["Grantee"].get("ID", ""),
                             display_name=grant["Grantee"].get("DisplayName", ""),
                             uri=grant["Grantee"].get("URI", ""),
                         )
@@ -1754,7 +1754,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     '([^=]+)="?([^"]+)"?', key_and_value.strip()
                 ).groups()
                 if key.lower() == "id":
-                    grantees.append(FakeGrantee(id=value))
+                    grantees.append(FakeGrantee(grantee_id=value))
                 else:
                     grantees.append(FakeGrantee(uri=value))
             grants.append(FakeGrant(grantees, [permission]))
@@ -1990,7 +1990,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
             return 204, {}, template.render(version_id=version_id)
         bypass = headers.get("X-Amz-Bypass-Governance-Retention")
-        success, response_meta = self.backend.delete_object(
+        _, response_meta = self.backend.delete_object(
             bucket_name, key_name, version_id=version_id, bypass=bypass
         )
         response_headers = {}
