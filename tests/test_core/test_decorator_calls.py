@@ -1,12 +1,12 @@
 import boto3
-from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 import os
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 import unittest
 
-import pytest
-
-from moto import mock_s3_deprecated, mock_s3, settings
+from botocore.exceptions import ClientError
+from moto import mock_ec2, mock_s3, settings
+from unittest import SkipTest
 
 """
 Test the different ways that the decorator can be used
