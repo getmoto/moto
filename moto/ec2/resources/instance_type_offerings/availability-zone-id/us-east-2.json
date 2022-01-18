@@ -2080,6 +2080,10 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "hpc6a.48xlarge",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "use2-az2"
  },

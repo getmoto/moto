@@ -4672,6 +4672,10 @@
   "Location": "us-east-1c"
  },
  {
+  "InstanceType": "m6i.metal",
+  "Location": "us-east-1c"
+ },
+ {
   "InstanceType": "m6i.xlarge",
   "Location": "us-east-1c"
  },
@@ -6461,6 +6465,10 @@
  },
  {
   "InstanceType": "m6i.large",
+  "Location": "us-east-1d"
+ },
+ {
+  "InstanceType": "m6i.metal",
   "Location": "us-east-1d"
  },
  {
