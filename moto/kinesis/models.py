@@ -11,11 +11,15 @@ from moto.core.utils import unix_time, BackendDict
 from moto.core import ACCOUNT_ID
 from moto.utilities.paginator import paginate
 from .exceptions import (
+    ConsumerNotFound,
     StreamNotFoundError,
     ShardNotFoundError,
     ResourceInUseError,
     ResourceNotFoundError,
     InvalidArgumentError,
+    InvalidRetentionPeriod,
+    InvalidDecreaseRetention,
+    InvalidIncreaseRetention,
     ValidationException,
 )
 from .utils import (
@@ -24,6 +28,26 @@ from .utils import (
     decompose_shard_iterator,
     PAGINATION_MODEL,
 )
+
+
+class Consumer(BaseModel):
+    def __init__(self, consumer_name, region_name, stream_arn):
+        self.consumer_name = consumer_name
+        self.created = unix_time()
+        self.stream_arn = stream_arn
+        stream_name = stream_arn.split("/")[-1]
+        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{ACCOUNT_ID}:stream/{stream_name}/consumer/{consumer_name}"
+
+    def to_json(self, include_stream_arn=False):
+        resp = {
+            "ConsumerName": self.consumer_name,
+            "ConsumerARN": self.consumer_arn,
+            "ConsumerStatus": "ACTIVE",
+            "ConsumerCreationTimestamp": self.created
+        }
+        if include_stream_arn:
+            resp["StreamARN"] = self.stream_arn
+        return resp
 
 
 class Record(BaseModel):
@@ -45,13 +69,14 @@ class Record(BaseModel):
 
 
 class Shard(BaseModel):
-    def __init__(self, shard_id, starting_hash, ending_hash, parent=None):
+    def __init__(self, shard_id, starting_hash, ending_hash, parent=None, adjacent_parent=None):
         self._shard_id = shard_id
         self.starting_hash = starting_hash
         self.ending_hash = ending_hash
         self.records = OrderedDict()
         self.is_open = True
         self.parent = parent
+        self.adjacent_parent = adjacent_parent
 
     @property
     def shard_id(self):
@@ -127,6 +152,8 @@ class Shard(BaseModel):
         }
         if self.parent:
             response["ParentShardId"] = self.parent
+        if self.adjacent_parent:
+            response["AdjacentParentShardId"] = self.adjacent_parent
         if not self.is_open:
             response["SequenceNumberRange"]["EndingSequenceNumber"] = str(
                 self.get_max_sequence_number()
@@ -137,7 +164,7 @@ class Shard(BaseModel):
 class Stream(CloudFormationModel):
     def __init__(self, stream_name, shard_count, retention_period_hours, region_name):
         self.stream_name = stream_name
-        self.creation_datetime = datetime.datetime.now()
+        self.creation_datetime = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f000")
         self.region = region_name
         self.account_number = ACCOUNT_ID
         self.shards = {}
@@ -148,8 +175,16 @@ class Stream(CloudFormationModel):
         self.retention_period_hours = (
             retention_period_hours if retention_period_hours else 24
         )
-        self.enhanced_monitoring = [{"ShardLevelMetrics": []}]
+        self.shard_level_metrics = []
         self.encryption_type = "NONE"
+        self.key_id = None
+        self.consumers = []
+
+    def delete_consumer(self, consumer_arn):
+        self.consumers = [c for c in self.consumers if c.consumer_arn != consumer_arn]
+
+    def get_consumer_by_arn(self, consumer_arn):
+        return next((c for c in self.consumers if c.consumer_arn == consumer_arn), None)
 
     def update_shard_count(self, shard_count):
         # ToDo: This was extracted from init.  It's only accurate for new streams.
@@ -218,12 +253,13 @@ class Stream(CloudFormationModel):
             "StreamDescription": {
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
-                "StreamCreationTimestamp": str(self.creation_datetime),
+                "StreamCreationTimestamp": self.creation_datetime,
                 "StreamStatus": self.status,
                 "HasMoreShards": len(requested_shards) != len(all_shards),
                 "RetentionPeriodHours": self.retention_period_hours,
-                "EnhancedMonitoring": self.enhanced_monitoring,
+                "EnhancedMonitoring": [{"ShardLevelMetrics": self.shard_level_metrics}],
                 "EncryptionType": self.encryption_type,
+                "KeyId": self.key_id,
                 "Shards": [shard.to_json() for shard in requested_shards],
             }
         }
@@ -234,7 +270,7 @@ class Stream(CloudFormationModel):
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
-                "StreamCreationTimestamp": str(self.creation_datetime),
+                "StreamCreationTimestamp": self.creation_datetime,
                 "OpenShardCount": self.shard_count,
             }
         }
@@ -262,7 +298,7 @@ class Stream(CloudFormationModel):
 
         backend = kinesis_backends[region_name]
         stream = backend.create_stream(
-            resource_name, shard_count, retention_period_hours, region_name
+            resource_name, shard_count, retention_period_hours
         )
         if any(tags):
             backend.add_tags_to_stream(stream.stream_name, tags)
@@ -335,8 +371,14 @@ class Stream(CloudFormationModel):
 
 
 class KinesisBackend(BaseBackend):
-    def __init__(self, region=None):
+    def __init__(self, region):
         self.streams = OrderedDict()
+        self.region_name = region
+
+    def reset(self):
+        region = self.region_name
+        self.__dict__ = {}
+        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -346,11 +388,11 @@ class KinesisBackend(BaseBackend):
         )
 
     def create_stream(
-        self, stream_name, shard_count, retention_period_hours, region_name
+        self, stream_name, shard_count, retention_period_hours
     ):
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
-        stream = Stream(stream_name, shard_count, retention_period_hours, region_name)
+        stream = Stream(stream_name, shard_count, retention_period_hours, self.region_name)
         self.streams[stream_name] = stream
         return stream
 
@@ -518,27 +560,78 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
 
         if shard_to_merge not in stream.shards:
+            print(f"Shard {shard_to_merge} not found")
             raise ShardNotFoundError(shard_to_merge, stream=stream_name)
 
         if adjacent_shard_to_merge not in stream.shards:
+            print(f"Shard 2 {adjacent_shard_to_merge} not found")
             raise ShardNotFoundError(adjacent_shard_to_merge, stream=stream_name)
 
         shard1 = stream.shards[shard_to_merge]
         shard2 = stream.shards[adjacent_shard_to_merge]
 
-        if shard1.ending_hash == shard2.starting_hash:
-            shard1.ending_hash = shard2.ending_hash
-        elif shard2.ending_hash == shard1.starting_hash:
-            shard1.starting_hash = shard2.starting_hash
+        # Validate the two shards are adjacent
+        if shard1.ending_hash == (shard2.starting_hash):
+            pass
+        elif shard2.ending_hash == (shard1.starting_hash):
+            pass
         else:
+            print(f"{shard1.starting_hash} || {shard1.ending_hash}")
+            print(f"{shard2.starting_hash} || {shard2.ending_hash}")
             raise InvalidArgumentError(adjacent_shard_to_merge)
 
-        del stream.shards[shard2.shard_id]
-        for index in shard2.records:
-            record = shard2.records[index]
-            shard1.put_record(
+        # Create a new shard
+        last_id = sorted(stream.shards.values(), key=attrgetter("_shard_id"))[
+            -1
+        ]._shard_id
+        new_shard = Shard(
+            last_id + 1,
+            starting_hash=shard1.starting_hash,
+            ending_hash=shard2.ending_hash,
+            parent=shard1.shard_id,
+            adjacent_parent=shard2.shard_id
+        )
+        stream.shards[new_shard.shard_id] = new_shard
+
+        # Close the merged shards
+        shard1.is_open = False
+        shard2.is_open = False
+
+        # Move all data across
+        for record in shard1.records.values():
+            new_shard.put_record(
                 record.partition_key, record.data, record.explicit_hash_key
             )
+        for record in shard2.records.values():
+            new_shard.put_record(
+                record.partition_key, record.data, record.explicit_hash_key
+            )
+
+    def update_shard_count(self, stream_name, target_shard_count):
+        stream = self.describe_stream(stream_name)
+        current_shard_count = len(stream.shards)
+        if current_shard_count == target_shard_count:
+            return current_shard_count
+        previous_shard_count = current_shard_count
+
+        while current_shard_count < target_shard_count:
+            required_shard_splits = ...
+            for shard in ...:
+                shard.split()
+                required_shard_splits -= 1
+                if required_shard_splits == 0:
+                    break
+
+        while current_shard_count > target_shard_count:
+            required_shard_merges = ...
+            adjacent_shards = ...
+            for (x, y) in adjacent_shards:
+                merge(x, y)
+                required_shard_merges = -1
+                if required_shard_merges == 0:
+                    break
+
+        return previous_shard_count
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(self, stream_name):
@@ -548,22 +641,24 @@ class KinesisBackend(BaseBackend):
 
     def increase_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)
+        if retention_period_hours < 24:
+            raise InvalidRetentionPeriod(retention_period_hours, too_short=True)
+        if retention_period_hours > 8760:
+            raise InvalidRetentionPeriod(retention_period_hours, too_short=False)
         if (
-            retention_period_hours <= stream.retention_period_hours
-            or retention_period_hours < 24
-            or retention_period_hours > 8760
+            retention_period_hours < stream.retention_period_hours
         ):
-            raise InvalidArgumentError(retention_period_hours)
+            raise InvalidIncreaseRetention(name=stream_name, requested=retention_period_hours, existing=stream.retention_period_hours)
         stream.retention_period_hours = retention_period_hours
 
     def decrease_stream_retention_period(self, stream_name, retention_period_hours):
         stream = self.describe_stream(stream_name)
-        if (
-            retention_period_hours >= stream.retention_period_hours
-            or retention_period_hours < 24
-            or retention_period_hours > 8760
-        ):
-            raise InvalidArgumentError(retention_period_hours)
+        if retention_period_hours < 24:
+            raise InvalidRetentionPeriod(retention_period_hours, too_short=True)
+        if retention_period_hours > 8760:
+            raise InvalidRetentionPeriod(retention_period_hours, too_short=False)
+        if retention_period_hours > stream.retention_period_hours:
+            raise InvalidDecreaseRetention(name=stream_name, requested=retention_period_hours, existing=stream.retention_period_hours)
         stream.retention_period_hours = retention_period_hours
 
     def list_tags_for_stream(
@@ -593,6 +688,74 @@ class KinesisBackend(BaseBackend):
         for key in tag_keys:
             if key in stream.tags:
                 del stream.tags[key]
+
+    def enable_enhanced_monitoring(self, stream_name, shard_level_metrics):
+        stream = self.describe_stream(stream_name)
+        current_shard_level_metrics = stream.shard_level_metrics
+        desired_metrics = list(set(current_shard_level_metrics + shard_level_metrics))
+        stream.shard_level_metrics = desired_metrics
+        return current_shard_level_metrics, desired_metrics
+
+    def disable_enhanced_monitoring(self, stream_name, to_be_disabled):
+        stream = self.describe_stream(stream_name)
+        current_metrics = stream.shard_level_metrics
+        if "ALL" in to_be_disabled:
+            desired_metrics = []
+        else:
+            desired_metrics = [metric for metric in current_metrics if metric not in to_be_disabled]
+        stream.shard_level_metrics = desired_metrics
+        return current_metrics, desired_metrics
+
+    def _find_stream_by_arn(self, stream_arn):
+        for stream in self.streams.values():
+            if stream.arn == stream_arn:
+                return stream
+
+    def list_stream_consumers(self, stream_arn):
+        """
+        Pagination is not yet implemented
+        """
+        stream = self._find_stream_by_arn(stream_arn)
+        return stream.consumers
+    
+    def register_stream_consumer(self, stream_arn, consumer_name):
+        consumer = Consumer(consumer_name, self.region_name, stream_arn)
+        stream = self._find_stream_by_arn(stream_arn)
+        stream.consumers.append(consumer)
+        return consumer
+
+    def describe_stream_consumer(self, stream_arn, consumer_name, consumer_arn):
+        if stream_arn:
+            stream = self._find_stream_by_arn(stream_arn)
+            for consumer in stream.consumers:
+                if consumer_name and consumer.consumer_name == consumer_name:
+                    return consumer
+        if consumer_arn:
+            for stream in self.streams.values():
+                consumer = stream.get_consumer_by_arn(consumer_arn)
+                if consumer:
+                    return consumer
+        raise ConsumerNotFound(consumer=consumer_name or consumer_arn)
+
+    def deregister_stream_consumer(self, stream_arn, consumer_name, consumer_arn):
+        if stream_arn:
+            stream = self._find_stream_by_arn(stream_arn)
+            stream.consumers = [c for c in stream.consumers if c.consumer_name == consumer_name]
+        if consumer_arn:
+            for stream in self.streams.values():
+                # Only one stream will actually have this consumer
+                # It will be a noop for other streams
+                stream.delete_consumer(consumer_arn)
+
+    def start_stream_encryption(self, stream_name, encryption_type, key_id):
+        stream = self.describe_stream(stream_name)
+        stream.encryption_type = encryption_type
+        stream.key_id = key_id
+
+    def stop_stream_encryption(self, stream_name):
+        stream = self.describe_stream(stream_name)
+        stream.encryption_type = "NONE"
+        stream.key_id = None
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

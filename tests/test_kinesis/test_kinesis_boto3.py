@@ -297,3 +297,25 @@ def test_split_shard_that_was_split_before():
     err["Message"].should.equal(
         f"Shard shardId-000000000001 in stream my-stream under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
     )
+
+
+@mock_kinesis
+def test_update_shard_count():
+    client = boto3.client("kinesis", region_name="eu-west-1")
+    client.create_stream(StreamName="my-stream", ShardCount=2)
+
+    resp = client.update_shard_count(
+        StreamName="my-stream",
+        TargetShardCount=4,
+        ScalingType="UNIFORM_SCALING"
+    )
+
+    resp.should.have.key("StreamName").equals("my-stream")
+    resp.should.have.key("CurrentShardCount").equals(2)
+    resp.should.have.key("TargetShardCount").equals(4)
+
+    stream = client.describe_stream(StreamName="my-stream")[
+        "StreamDescription"
+    ]
+    stream["StreamStatus"].should.equal("ACTIVE")
+    stream["Shards"].should.have.length_of(4)

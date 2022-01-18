@@ -777,10 +777,40 @@ def test_invalid_increase_stream_retention_period():
     )
     with pytest.raises(ClientError) as ex:
         conn.increase_stream_retention_period(
-            StreamName=stream_name, RetentionPeriodHours=20
+            StreamName=stream_name, RetentionPeriodHours=25
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidArgumentException")
-    ex.value.response["Error"]["Message"].should.equal(20)
+    ex.value.response["Error"]["Message"].should.equal("Requested retention period (25 hours) for stream my_stream can not be shorter than existing retention period (30 hours). Use DecreaseRetentionPeriod API.")
+
+
+@mock_kinesis
+def test_invalid_increase_stream_retention_too_low():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    with pytest.raises(ClientError) as ex:
+        conn.increase_stream_retention_period(
+            StreamName=stream_name, RetentionPeriodHours=20
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal("Minimum allowed retention period is 24 hours. Requested retention period (20 hours) is too short.")
+
+
+@mock_kinesis
+def test_invalid_increase_stream_retention_too_high():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    with pytest.raises(ClientError) as ex:
+        conn.increase_stream_retention_period(
+            StreamName=stream_name, RetentionPeriodHours=9999
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal("Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long.")
 
 
 @mock_kinesis
@@ -801,20 +831,48 @@ def test_valid_decrease_stream_retention_period():
 
 
 @mock_kinesis
-def test_invalid_decrease_stream_retention_period():
+def test_decrease_stream_retention_period_upwards():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "decrease_stream"
     conn.create_stream(StreamName=stream_name, ShardCount=1)
 
-    conn.increase_stream_retention_period(
-        StreamName=stream_name, RetentionPeriodHours=30
-    )
     with pytest.raises(ClientError) as ex:
         conn.decrease_stream_retention_period(
-            StreamName=stream_name, RetentionPeriodHours=20
+            StreamName=stream_name, RetentionPeriodHours=40
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidArgumentException")
-    ex.value.response["Error"]["Message"].should.equal(20)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal("Requested retention period (40 hours) for stream decrease_stream can not be longer than existing retention period (24 hours). Use IncreaseRetentionPeriod API.")
+
+
+@mock_kinesis
+def test_decrease_stream_retention_period_too_low():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "decrease_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    with pytest.raises(ClientError) as ex:
+        conn.decrease_stream_retention_period(
+            StreamName=stream_name, RetentionPeriodHours=4
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal("Minimum allowed retention period is 24 hours. Requested retention period (4 hours) is too short.")
+
+
+@mock_kinesis
+def test_decrease_stream_retention_period_too_high():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "decrease_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    with pytest.raises(ClientError) as ex:
+        conn.decrease_stream_retention_period(
+            StreamName=stream_name, RetentionPeriodHours=9999
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidArgumentException")
+    err["Message"].should.equal("Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long.")
 
 
 # Has boto3 equivalent
@@ -1060,6 +1118,11 @@ def test_merge_shards_boto3():
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     shards = stream["Shards"]
+
+    # Old shards still exist, but are closed. A new shard is created out of the old one
+    shards.should.have.length_of(5)
+
+    # Only three shards are active - the two merged shards are closed
     active_shards = [
         shard
         for shard in shards
@@ -1069,18 +1132,29 @@ def test_merge_shards_boto3():
 
     client.merge_shards(
         StreamName=stream_name,
-        ShardToMerge="shardId-000000000002",
-        AdjacentShardToMerge="shardId-000000000000",
+        ShardToMerge="shardId-000000000004",
+        AdjacentShardToMerge="shardId-000000000002",
     )
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     shards = stream["Shards"]
+
     active_shards = [
         shard
         for shard in shards
         if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
     ]
     active_shards.should.have.length_of(2)
+
+    for shard in active_shards:
+        del shard["HashKeyRange"]
+        del shard["SequenceNumberRange"]
+
+    # Original shard #3 is still active (0,1,2 have been merged and closed
+    active_shards.should.contain({'ShardId': 'shardId-000000000003'})
+    # Shard #4 was the child of #0 and #1
+    # Shard #5 is the child of #4 (parent) and #2 (adjacent-parent)
+    active_shards.should.contain({'ShardId': 'shardId-000000000005', 'ParentShardId': 'shardId-000000000004', 'AdjacentParentShardId': 'shardId-000000000002'})
 
 
 @mock_kinesis
