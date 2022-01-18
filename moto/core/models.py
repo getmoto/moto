@@ -16,7 +16,6 @@ from botocore.awsrequest import AWSResponse
 
 from moto import settings
 import responses
-from moto.utilities.distutils_version import LooseVersion
 from unittest.mock import patch
 from .custom_responses_mock import (
     get_response_mock,
