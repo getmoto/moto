@@ -3,8 +3,6 @@ import os
 import re
 from typing import List, Union
 
-from botocore.awsrequest import AWSPreparedRequest
-
 from moto import settings
 from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
 from urllib.parse import (
