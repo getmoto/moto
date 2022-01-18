@@ -2,6 +2,7 @@ import botocore
 import boto3
 import functools
 import inspect
+import itertools
 import os
 import random
 import re
@@ -13,9 +14,11 @@ from collections import defaultdict
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
+from types import FunctionType
 
 from moto import settings
 import responses
+import unittest
 from unittest.mock import patch
 from .custom_responses_mock import (
     get_response_mock,
@@ -90,7 +93,7 @@ class BaseMockAWS:
             for backend in self.backends.values():
                 backend.reset()
 
-        self.enable_patching()
+        self.enable_patching(reset)
 
     def stop(self):
         self.__class__.nested_count -= 1
@@ -124,7 +127,18 @@ class BaseMockAWS:
         return wrapper
 
     def decorate_class(self, klass):
-        for attr in dir(klass):
+        direct_methods = set(
+            x
+            for x, y in klass.__dict__.items()
+            if isinstance(y, (FunctionType, classmethod, staticmethod))
+        )
+        defined_classes = set(
+            x for x, y in klass.__dict__.items() if inspect.isclass(y)
+        )
+
+        has_setup_method = "setUp" in direct_methods
+
+        for attr in itertools.chain(direct_methods, defined_classes):
             if attr.startswith("_"):
                 continue
 
@@ -150,7 +164,18 @@ class BaseMockAWS:
                 continue
 
             try:
-                setattr(klass, attr, self(attr_value, reset=False))
+                # Special case for UnitTests-class
+                is_test_method = attr.startswith(unittest.TestLoader.testMethodPrefix)
+                should_reset = False
+                if attr == "setUp":
+                    should_reset = True
+                elif not has_setup_method and is_test_method:
+                    should_reset = True
+                else:
+                    # Method is unrelated to the test setup
+                    # Method is a test, but was already reset while executing the setUp-method
+                    pass
+                setattr(klass, attr, self(attr_value, reset=should_reset))
             except TypeError:
                 # Sometimes we can't set this for built-in types
                 continue
@@ -296,7 +321,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
         botocore_stubber.reset()
         reset_responses_mock(responses_mock)
 
-    def enable_patching(self):
+    def enable_patching(self, reset=True):
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
             for backend in self.backends_for_urls.values():
@@ -356,8 +381,8 @@ class ServerModeMockAWS(BaseMockAWS):
 
             requests.post("http://localhost:5000/moto-api/reset")
 
-    def enable_patching(self):
-        if self.__class__.nested_count == 1:
+    def enable_patching(self, reset=True):
+        if self.__class__.nested_count == 1 and reset:
             # Just started
             self.reset()
 
