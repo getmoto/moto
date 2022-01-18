@@ -108,12 +108,16 @@ backend_url_patterns = [
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("s3", re.compile("https?://s3(.*)\\.amazonaws.com")),
+    ("s3", re.compile("https?://s3(?!-control)(.*)\\.amazonaws.com")),
     (
         "s3",
         re.compile(
-            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(.*)\\.amazonaws.com"
+            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!-control)(.*)\\.amazonaws.com"
         ),
+    ),
+    (
+        "s3control",
+        re.compile("https?://([0-9]+)\\.s3-control\\.(.+)\\.amazonaws\\.com"),
     ),
     ("sagemaker", re.compile("https?://api.sagemaker\\.(.+)\\.amazonaws.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
