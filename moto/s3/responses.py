@@ -5,10 +5,10 @@ from typing import List, Union
 
 from botocore.awsrequest import AWSPreparedRequest
 
+from moto import settings
 from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
 from urllib.parse import (
     parse_qs,
-    parse_qsl,
     urlparse,
     unquote,
     urlencode,
@@ -17,8 +17,6 @@ from urllib.parse import (
 
 import xmltodict
 
-from moto import settings
-from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
 from moto.core import ACCOUNT_ID
@@ -972,13 +970,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._authenticate_and_authorize_s3_action()
 
         # POST to bucket-url should create file from form
-        if hasattr(request, "form"):
-            # Not HTTPretty
-            form = request.form
-        else:
-            # HTTPretty, build new form object
-            body = body.decode()
-            form = dict(parse_qsl(body))
+        form = request.form
 
         key = form["key"]
         if "file" in form:
@@ -1028,15 +1020,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _get_path(request):
-        if isinstance(request, HTTPrettyRequest):
-            path = request.path
-        else:
-            path = (
-                request.full_path
-                if hasattr(request, "full_path")
-                else path_url(request.url)
-            )
-        return path
+        return (
+            request.full_path
+            if hasattr(request, "full_path")
+            else path_url(request.url)
+        )
 
     def _bucket_response_delete_keys(self, request, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
@@ -1587,39 +1575,29 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)
-        streaming_request = hasattr(request, "streaming") and request.streaming
-        closing_connection = headers.get("connection") == "close"
-        if closing_connection and streaming_request:
-            # Closing the connection of a streaming request. No more data
-            new_key = self.backend.get_object(bucket_name, key_name)
-        elif streaming_request:
-            # Streaming request, more data
-            new_key = self.backend.append_to_key(bucket_name, key_name, body)
-        else:
 
-            # Initial data
-            new_key = self.backend.put_object(
-                bucket_name,
-                key_name,
-                body,
-                storage=storage_class,
-                encryption=encryption,
-                kms_key_id=kms_key_id,
-                bucket_key_enabled=bucket_key_enabled,
-                lock_mode=lock_mode,
-                lock_legal_status=legal_hold,
-                lock_until=lock_until,
-            )
+        # Initial data
+        new_key = self.backend.put_object(
+            bucket_name,
+            key_name,
+            body,
+            storage=storage_class,
+            encryption=encryption,
+            kms_key_id=kms_key_id,
+            bucket_key_enabled=bucket_key_enabled,
+            lock_mode=lock_mode,
+            lock_legal_status=legal_hold,
+            lock_until=lock_until,
+        )
 
-            request.streaming = True
-            metadata = metadata_from_headers(request.headers)
-            metadata.update(metadata_from_headers(query))
-            new_key.set_metadata(metadata)
-            new_key.set_acl(acl)
-            new_key.website_redirect_location = request.headers.get(
-                "x-amz-website-redirect-location"
-            )
-            self.backend.set_key_tags(new_key, tagging)
+        metadata = metadata_from_headers(request.headers)
+        metadata.update(metadata_from_headers(query))
+        new_key.set_metadata(metadata)
+        new_key.set_acl(acl)
+        new_key.website_redirect_location = request.headers.get(
+            "x-amz-website-redirect-location"
+        )
+        self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
         return 200, response_headers, ""

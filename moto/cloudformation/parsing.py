@@ -57,7 +57,6 @@ from .exceptions import (
     ValidationError,
     UnsupportedAttribute,
 )
-from moto.packages.boto.cloudformation.stack import Output
 
 # List of supported CloudFormation models
 MODEL_LIST = CloudFormationModel.__subclasses__()
@@ -76,6 +75,17 @@ NULL_MODELS = [
 DEFAULT_REGION = "us-east-1"
 
 logger = logging.getLogger("moto")
+
+
+class Output(object):
+    def __init__(self, connection=None):
+        self.connection = connection
+        self.description = None
+        self.key = None
+        self.value = None
+
+    def __repr__(self):
+        return 'Output:"%s"="%s"' % (self.key, self.value)
 
 
 class LazyDict(dict):

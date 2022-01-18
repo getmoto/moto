@@ -6,39 +6,17 @@ from unittest import SkipTest
 import base64
 import ipaddress
 
-import boto
 import boto3
-from boto.ec2.instance import Reservation, InstanceAttribute
-from boto.exception import EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_ec2_deprecated, mock_ec2, settings
+from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from tests.helpers import requires_boto_gte
 from uuid import uuid4
 
 
 decode_method = base64.decodebytes
-
-################ Test Readme ###############
-def add_servers(ami_id, count):
-    conn = boto.connect_ec2()
-    for _ in range(count):
-        conn.run_instances(ami_id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_add_servers():
-    add_servers(EXAMPLE_AMI_ID, 2)
-
-    conn = boto.connect_ec2()
-    reservations = conn.get_all_reservations()
-    assert len(reservations) == 2
-    instance1 = reservations[0].instances[0]
-    assert instance1.image_id == EXAMPLE_AMI_ID
 
 
 @mock_ec2
@@ -54,65 +32,6 @@ def test_add_servers_boto3():
     instances.should.have.length_of(2)
     for i in instances:
         i["ImageId"].should.equal(EXAMPLE_AMI_ID)
-
-
-############################################
-
-
-# Has boto3 equivalent
-@freeze_time("2014-01-01 05:00:00")
-@mock_ec2_deprecated
-def test_instance_launch_and_terminate():
-    conn = boto.ec2.connect_to_region("us-east-1")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        reservation = conn.run_instances(EXAMPLE_AMI_ID, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the RunInstance operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    reservation.should.be.a(Reservation)
-    reservation.instances.should.have.length_of(1)
-    instance = reservation.instances[0]
-    instance.state.should.equal("pending")
-
-    reservations = conn.get_all_reservations()
-    reservations.should.have.length_of(1)
-    reservations[0].id.should.equal(reservation.id)
-    instances = reservations[0].instances
-    instances.should.have.length_of(1)
-    instance = instances[0]
-    instance.id.should.equal(instance.id)
-    instance.state.should.equal("running")
-    instance.launch_time.should.equal("2014-01-01T05:00:00.000Z")
-    instance.vpc_id.shouldnt.equal(None)
-    instance.placement.should.equal("us-east-1a")
-
-    root_device_name = instance.root_device_name
-    instance.block_device_mapping[root_device_name].status.should.equal("in-use")
-    volume_id = instance.block_device_mapping[root_device_name].volume_id
-    volume_id.should.match(r"vol-\w+")
-
-    volume = conn.get_all_volumes(volume_ids=[volume_id])[0]
-    volume.attach_data.instance_id.should.equal(instance.id)
-    volume.status.should.equal("in-use")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.terminate_instances([instance.id], dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the TerminateInstance operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.terminate_instances([instance.id])
-
-    reservations = conn.get_all_reservations()
-    instance = reservations[0].instances[0]
-    instance.state.should.equal("terminated")
 
 
 @freeze_time("2014-01-01 05:00:00")
@@ -313,13 +232,6 @@ def test_instance_detach_volume_wrong_path():
         )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_terminate_empty_instances():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    conn.terminate_instances.when.called_with([]).should.throw(EC2ResponseError)
-
-
 @mock_ec2
 def test_terminate_empty_instances_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -329,41 +241,6 @@ def test_terminate_empty_instances_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
     ex.value.response["Error"]["Message"].should.equal("No instances specified")
-
-
-# Has boto3 equivalent
-@freeze_time("2014-01-01 05:00:00")
-@mock_ec2_deprecated
-def test_instance_attach_volume():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    vol1 = conn.create_volume(size=36, zone=conn.region.name)
-    vol1.attach(instance.id, "/dev/sda1")
-    vol1.update()
-    vol2 = conn.create_volume(size=65, zone=conn.region.name)
-    vol2.attach(instance.id, "/dev/sdb1")
-    vol2.update()
-    vol3 = conn.create_volume(size=130, zone=conn.region.name)
-    vol3.attach(instance.id, "/dev/sdc1")
-    vol3.update()
-
-    reservations = conn.get_all_reservations()
-    instance = reservations[0].instances[0]
-
-    instance.block_device_mapping.should.have.length_of(3)
-
-    for v in conn.get_all_volumes(
-        volume_ids=[instance.block_device_mapping["/dev/sdc1"].volume_id]
-    ):
-        v.attach_data.instance_id.should.equal(instance.id)
-        # can do due to freeze_time decorator.
-        v.attach_data.attach_time.should.equal(instance.launch_time)
-        # can do due to freeze_time decorator.
-        v.create_time.should.equal(instance.launch_time)
-        v.region.name.should.equal(instance.region.name)
-        v.status.should.equal("in-use")
 
 
 @freeze_time("2014-01-01 05:00:00")
@@ -398,34 +275,6 @@ def test_instance_attach_volume_boto3():
         # FreezeTime does not work in ServerMode
         expected_vol3.attachments[0]["AttachTime"].should.equal(instance.launch_time)
         expected_vol3.create_time.should.equal(instance.launch_time)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_by_id():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
-    instance1, instance2 = reservation.instances
-
-    reservations = conn.get_all_reservations(instance_ids=[instance1.id])
-    reservations.should.have.length_of(1)
-    reservation = reservations[0]
-    reservation.instances.should.have.length_of(1)
-    reservation.instances[0].id.should.equal(instance1.id)
-
-    reservations = conn.get_all_reservations(instance_ids=[instance1.id, instance2.id])
-    reservations.should.have.length_of(1)
-    reservation = reservations[0]
-    reservation.instances.should.have.length_of(2)
-    instance_ids = [instance.id for instance in reservation.instances]
-    instance_ids.should.equal([instance1.id, instance2.id])
-
-    # Call get_all_reservations with a bad id should raise an error
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_reservations(instance_ids=[instance1.id, "i-1234abcd"])
-    cm.value.code.should.equal("InvalidInstanceID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -540,43 +389,6 @@ def test_create_with_volume_tags():
             sorted(volume["Tags"], key=lambda i: i["Key"]).should.equal(volume_tags)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_state():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
-
-    conn.terminate_instances([instance1.id])
-
-    reservations = conn.get_all_reservations(filters={"instance-state-name": "running"})
-    reservations.should.have.length_of(1)
-    # Since we terminated instance1, only instance2 and instance3 should be
-    # returned
-    instance_ids = [instance.id for instance in reservations[0].instances]
-    set(instance_ids).should.equal(set([instance2.id, instance3.id]))
-
-    reservations = conn.get_all_reservations(
-        [instance2.id], filters={"instance-state-name": "running"}
-    )
-    reservations.should.have.length_of(1)
-    instance_ids = [instance.id for instance in reservations[0].instances]
-    instance_ids.should.equal([instance2.id])
-
-    reservations = conn.get_all_reservations(
-        [instance2.id], filters={"instance-state-name": "terminated"}
-    )
-    list(reservations).should.equal([])
-
-    # get_all_reservations should still return all 3
-    reservations = conn.get_all_reservations()
-    reservations[0].instances.should.have.length_of(3)
-
-    conn.get_all_reservations.when.called_with(
-        filters={"not-implemented-filter": "foobar"}
-    ).should.throw(NotImplementedError)
-
-
 @mock_ec2
 def test_get_instances_filtering_by_state_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -625,28 +437,6 @@ def test_get_instances_filtering_by_state_boto3():
         )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_instance_id():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, _ = reservation.instances
-
-    reservations = conn.get_all_reservations(filters={"instance-id": instance1.id})
-    # get_all_reservations should return just instance1
-    reservations[0].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-
-    reservations = conn.get_all_reservations(
-        filters={"instance-id": [instance1.id, instance2.id]}
-    )
-    # get_all_reservations should return two
-    reservations[0].instances.should.have.length_of(2)
-
-    reservations = conn.get_all_reservations(filters={"instance-id": "non-existing-id"})
-    reservations.should.have.length_of(0)
-
-
 @mock_ec2
 def test_get_instances_filtering_by_instance_id_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -667,50 +457,6 @@ def test_get_instances_filtering_by_instance_id_boto3():
     _filter(values=[instance1.id])
     _filter(values=[instance1.id, instance2.id])
     _filter(values=["non-existing-id"], exists=False)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_instance_type():
-    conn = boto.connect_ec2()
-    reservation1 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="m1.small")
-    instance1 = reservation1.instances[0]
-    reservation2 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="m1.small")
-    instance2 = reservation2.instances[0]
-    reservation3 = conn.run_instances(EXAMPLE_AMI_ID, instance_type="t1.micro")
-    instance3 = reservation3.instances[0]
-
-    reservations = conn.get_all_reservations(filters={"instance-type": "m1.small"})
-    # get_all_reservations should return instance1,2
-    reservations.should.have.length_of(2)
-    reservations[0].instances.should.have.length_of(1)
-    reservations[1].instances.should.have.length_of(1)
-    instance_ids = [reservations[0].instances[0].id, reservations[1].instances[0].id]
-    set(instance_ids).should.equal(set([instance1.id, instance2.id]))
-
-    reservations = conn.get_all_reservations(filters={"instance-type": "t1.micro"})
-    # get_all_reservations should return one
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance3.id)
-
-    reservations = conn.get_all_reservations(
-        filters={"instance-type": ["t1.micro", "m1.small"]}
-    )
-    reservations.should.have.length_of(3)
-    reservations[0].instances.should.have.length_of(1)
-    reservations[1].instances.should.have.length_of(1)
-    reservations[2].instances.should.have.length_of(1)
-    instance_ids = [
-        reservations[0].instances[0].id,
-        reservations[1].instances[0].id,
-        reservations[2].instances[0].id,
-    ]
-    set(instance_ids).should.equal(set([instance1.id, instance2.id, instance3.id]))
-
-    reservations = conn.get_all_reservations(filters={"instance-type": "bogus"})
-    # bogus instance-type should return none
-    reservations.should.have.length_of(0)
 
 
 @mock_ec2
@@ -754,30 +500,6 @@ def test_get_instances_filtering_by_instance_type_boto3():
     res["Reservations"].should.have.length_of(0)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_reason_code():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
-    instance1.stop()
-    instance2.terminate()
-
-    reservations = conn.get_all_reservations(
-        filters={"state-reason-code": "Client.UserInitiatedShutdown"}
-    )
-    # get_all_reservations should return instance1 and instance2
-    reservations[0].instances.should.have.length_of(2)
-    set([instance1.id, instance2.id]).should.equal(
-        set([i.id for i in reservations[0].instances])
-    )
-
-    reservations = conn.get_all_reservations(filters={"state-reason-code": ""})
-    # get_all_reservations should return instance 3
-    reservations[0].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance3.id)
-
-
 @mock_ec2
 def test_get_instances_filtering_by_reason_code_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -805,30 +527,6 @@ def test_get_instances_filtering_by_reason_code_boto3():
     instance_ids.shouldnt.contain(instance2.id)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_source_dest_check():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
-    instance1, instance2 = reservation.instances
-    conn.modify_instance_attribute(
-        instance1.id, attribute="sourceDestCheck", value=False
-    )
-
-    source_dest_check_false = conn.get_all_reservations(
-        filters={"source-dest-check": "false"}
-    )
-    source_dest_check_true = conn.get_all_reservations(
-        filters={"source-dest-check": "true"}
-    )
-
-    source_dest_check_false[0].instances.should.have.length_of(1)
-    source_dest_check_false[0].instances[0].id.should.equal(instance1.id)
-
-    source_dest_check_true[0].instances.should.have.length_of(1)
-    source_dest_check_true[0].instances[0].id.should.equal(instance2.id)
-
-
 @mock_ec2
 def test_get_instances_filtering_by_source_dest_check_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -851,35 +549,6 @@ def test_get_instances_filtering_by_source_dest_check_boto3():
 
     [i["InstanceId"] for i in instances_true].shouldnt.contain(instance1.id)
     [i["InstanceId"] for i in instances_true].should.contain(instance2.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_vpc_id():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    subnet1 = conn.create_subnet(vpc1.id, "10.0.0.0/27")
-    reservation1 = conn.run_instances(EXAMPLE_AMI_ID, min_count=1, subnet_id=subnet1.id)
-    instance1 = reservation1.instances[0]
-
-    vpc2 = conn.create_vpc("10.1.0.0/16")
-    subnet2 = conn.create_subnet(vpc2.id, "10.1.0.0/27")
-    reservation2 = conn.run_instances(EXAMPLE_AMI_ID, min_count=1, subnet_id=subnet2.id)
-    instance2 = reservation2.instances[0]
-
-    reservations1 = conn.get_all_reservations(filters={"vpc-id": vpc1.id})
-    reservations1.should.have.length_of(1)
-    reservations1[0].instances.should.have.length_of(1)
-    reservations1[0].instances[0].id.should.equal(instance1.id)
-    reservations1[0].instances[0].vpc_id.should.equal(vpc1.id)
-    reservations1[0].instances[0].subnet_id.should.equal(subnet1.id)
-
-    reservations2 = conn.get_all_reservations(filters={"vpc-id": vpc2.id})
-    reservations2.should.have.length_of(1)
-    reservations2[0].instances.should.have.length_of(1)
-    reservations2[0].instances[0].id.should.equal(instance2.id)
-    reservations2[0].instances[0].vpc_id.should.equal(vpc2.id)
-    reservations2[0].instances[0].subnet_id.should.equal(subnet2.id)
 
 
 @mock_ec2
@@ -951,17 +620,6 @@ def test_get_instances_filtering_by_dns_name():
     res2.should.have.length_of(1)
     res2[0]["Instances"].should.have.length_of(1)
     res2[0]["Instances"][0]["InstanceId"].should.equal(instance2.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_architecture():
-    conn = boto.connect_ec2()
-    conn.run_instances(EXAMPLE_AMI_ID, min_count=1)
-
-    reservations = conn.get_all_reservations(filters={"architecture": "x86_64"})
-    # get_all_reservations should return the instance
-    reservations[0].instances.should.have.length_of(1)
 
 
 @mock_ec2
@@ -1087,54 +745,6 @@ def test_get_instances_filtering_by_subnet_id():
     reservations.should.have.length_of(1)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_tag():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
-    instance1.add_tag("tag1", "value1")
-    instance1.add_tag("tag2", "value2")
-    instance2.add_tag("tag1", "value1")
-    instance2.add_tag("tag2", "wrong value")
-    instance3.add_tag("tag2", "value2")
-
-    reservations = conn.get_all_reservations(filters={"tag:tag0": "value0"})
-    # get_all_reservations should return no instances
-    reservations.should.have.length_of(0)
-
-    reservations = conn.get_all_reservations(filters={"tag:tag1": "value1"})
-    # get_all_reservations should return both instances with this tag value
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(2)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance2.id)
-
-    reservations = conn.get_all_reservations(
-        filters={"tag:tag1": "value1", "tag:tag2": "value2"}
-    )
-    # get_all_reservations should return the instance with both tag values
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-
-    reservations = conn.get_all_reservations(
-        filters={"tag:tag1": "value1", "tag:tag2": "value2"}
-    )
-    # get_all_reservations should return the instance with both tag values
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(1)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-
-    reservations = conn.get_all_reservations(filters={"tag:tag2": ["value2", "bogus"]})
-    # get_all_reservations should return both instances with one of the
-    # acceptable tag values
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(2)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance3.id)
-
-
 @mock_ec2
 def test_get_instances_filtering_by_tag_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -1188,49 +798,6 @@ def test_get_instances_filtering_by_tag_boto3():
     res["Reservations"][0]["Instances"].should.have.length_of(2)
     res["Reservations"][0]["Instances"][0]["InstanceId"].should.equal(instance1.id)
     res["Reservations"][0]["Instances"][1]["InstanceId"].should.equal(instance3.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_tag_value():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
-    instance1.add_tag("tag1", "value1")
-    instance1.add_tag("tag2", "value2")
-    instance2.add_tag("tag1", "value1")
-    instance2.add_tag("tag2", "wrong value")
-    instance3.add_tag("tag2", "value2")
-
-    reservations = conn.get_all_reservations(filters={"tag-value": "value0"})
-    # get_all_reservations should return no instances
-    reservations.should.have.length_of(0)
-
-    reservations = conn.get_all_reservations(filters={"tag-value": "value1"})
-    # get_all_reservations should return both instances with this tag value
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(2)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance2.id)
-
-    reservations = conn.get_all_reservations(
-        filters={"tag-value": ["value2", "value1"]}
-    )
-    # get_all_reservations should return both instances with one of the
-    # acceptable tag values
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(3)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance2.id)
-    reservations[0].instances[2].id.should.equal(instance3.id)
-
-    reservations = conn.get_all_reservations(filters={"tag-value": ["value2", "bogus"]})
-    # get_all_reservations should return both instances with one of the
-    # acceptable tag values
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(2)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance3.id)
 
 
 @mock_ec2
@@ -1287,39 +854,6 @@ def test_get_instances_filtering_by_tag_value_boto3():
     res["Reservations"][0]["Instances"][1]["InstanceId"].should.equal(instance3.id)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instances_filtering_by_tag_name():
-    conn = boto.connect_ec2()
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
-    instance1.add_tag("tag1")
-    instance1.add_tag("tag2")
-    instance2.add_tag("tag1")
-    instance2.add_tag("tag2X")
-    instance3.add_tag("tag3")
-
-    reservations = conn.get_all_reservations(filters={"tag-key": "tagX"})
-    # get_all_reservations should return no instances
-    reservations.should.have.length_of(0)
-
-    reservations = conn.get_all_reservations(filters={"tag-key": "tag1"})
-    # get_all_reservations should return both instances with this tag value
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(2)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance2.id)
-
-    reservations = conn.get_all_reservations(filters={"tag-key": ["tag1", "tag3"]})
-    # get_all_reservations should return both instances with one of the
-    # acceptable tag values
-    reservations.should.have.length_of(1)
-    reservations[0].instances.should.have.length_of(3)
-    reservations[0].instances[0].id.should.equal(instance1.id)
-    reservations[0].instances[1].id.should.equal(instance2.id)
-    reservations[0].instances[2].id.should.equal(instance3.id)
-
-
 @mock_ec2
 def test_get_instances_filtering_by_tag_name_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -1357,41 +891,6 @@ def test_get_instances_filtering_by_tag_name_boto3():
     res["Reservations"][0]["Instances"][0]["InstanceId"].should.equal(instance1.id)
     res["Reservations"][0]["Instances"][1]["InstanceId"].should.equal(instance2.id)
     res["Reservations"][0]["Instances"][2]["InstanceId"].should.equal(instance3.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_instance_start_and_stop():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=2)
-    instances = reservation.instances
-    instances.should.have.length_of(2)
-
-    instance_ids = [instance.id for instance in instances]
-
-    with pytest.raises(EC2ResponseError) as ex:
-        stopped_instances = conn.stop_instances(instance_ids, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the StopInstance operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    stopped_instances = conn.stop_instances(instance_ids)
-
-    for instance in stopped_instances:
-        instance.state.should.equal("stopping")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        started_instances = conn.start_instances([instances[0].id], dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the StartInstance operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    started_instances = conn.start_instances([instances[0].id])
-    started_instances[0].state.should.equal("pending")
 
 
 @mock_ec2
@@ -1442,25 +941,6 @@ def test_instance_start_and_stop_boto3():
     # started_instances[0]["PreviousState"].should.equal({'Code': 80, 'Name': 'stopped'})
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_instance_reboot():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    with pytest.raises(EC2ResponseError) as ex:
-        instance.reboot(dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the RebootInstance operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    instance.reboot()
-    instance.state.should.equal("pending")
-
-
 @mock_ec2
 def test_instance_reboot_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1484,28 +964,6 @@ def test_instance_reboot_boto3():
     instance.state.should.equal({"Code": 16, "Name": "running"})
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_instance_attribute_instance_type():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    with pytest.raises(EC2ResponseError) as ex:
-        instance.modify_attribute("instanceType", "m1.small", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceType operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    instance.modify_attribute("instanceType", "m1.small")
-
-    instance_attribute = instance.get_attribute("instanceType")
-    instance_attribute.should.be.a(InstanceAttribute)
-    instance_attribute.get("instanceType").should.equal("m1.small")
-
-
 @mock_ec2
 def test_instance_attribute_instance_type_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1527,37 +985,6 @@ def test_instance_attribute_instance_type_boto3():
     instance.describe_attribute(Attribute="instanceType")["InstanceType"].should.equal(
         {"Value": "m1.medium"}
     )
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_modify_instance_attribute_security_groups():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    sg_id = conn.create_security_group(
-        "test security group", "this is a test security group"
-    ).id
-    sg_id2 = conn.create_security_group(
-        "test security group 2", "this is a test security group 2"
-    ).id
-
-    with pytest.raises(EC2ResponseError) as ex:
-        instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    instance.modify_attribute("groupSet", [sg_id, sg_id2])
-
-    instance_attribute = instance.get_attribute("groupSet")
-    instance_attribute.should.be.a(InstanceAttribute)
-    group_list = instance_attribute.get("groupSet")
-    any(g.id == sg_id for g in group_list).should.be.ok
-    any(g.id == sg_id2 for g in group_list).should.be.ok
 
 
 @mock_ec2
@@ -1591,28 +1018,6 @@ def test_modify_instance_attribute_security_groups_boto3():
     new_groups.should.contain({"GroupId": sg_id2})
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_instance_attribute_user_data():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    with pytest.raises(EC2ResponseError) as ex:
-        instance.modify_attribute("userData", "this is my user data", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyUserData operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    instance.modify_attribute("userData", "this is my user data")
-
-    instance_attribute = instance.get_attribute("userData")
-    instance_attribute.should.be.a(InstanceAttribute)
-    instance_attribute.get("userData").should.equal("this is my user data")
-
-
 @mock_ec2
 def test_instance_attribute_user_data_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1634,50 +1039,6 @@ def test_instance_attribute_user_data_boto3():
     attribute = instance.describe_attribute(Attribute="userData")["UserData"]
     retrieved_user_data = attribute["Value"].encode("utf-8")
     decode_method(retrieved_user_data).should.equal(b"this is my user data")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_instance_attribute_source_dest_check():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    # Default value is true
-    instance.sourceDestCheck.should.equal("true")
-
-    instance_attribute = instance.get_attribute("sourceDestCheck")
-    instance_attribute.should.be.a(InstanceAttribute)
-    instance_attribute.get("sourceDestCheck").should.equal(True)
-
-    # Set to false (note: Boto converts bool to string, eg 'false')
-
-    with pytest.raises(EC2ResponseError) as ex:
-        instance.modify_attribute("sourceDestCheck", False, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifySourceDestCheck operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    instance.modify_attribute("sourceDestCheck", False)
-
-    instance.update()
-    instance.sourceDestCheck.should.equal("false")
-
-    instance_attribute = instance.get_attribute("sourceDestCheck")
-    instance_attribute.should.be.a(InstanceAttribute)
-    instance_attribute.get("sourceDestCheck").should.equal(False)
-
-    # Set back to true
-    instance.modify_attribute("sourceDestCheck", True)
-
-    instance.update()
-    instance.sourceDestCheck.should.equal("true")
-
-    instance_attribute = instance.get_attribute("sourceDestCheck")
-    instance_attribute.should.be.a(InstanceAttribute)
-    instance_attribute.get("sourceDestCheck").should.equal(True)
 
 
 @mock_ec2
@@ -1710,21 +1071,6 @@ def test_instance_attribute_source_dest_check_boto3():
     instance_attribute.get("SourceDestCheck").should.equal({"Value": True})
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_user_data_with_run_instance():
-    user_data = b"some user data"
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, user_data=user_data)
-    instance = reservation.instances[0]
-
-    instance_attribute = instance.get_attribute("userData")
-    instance_attribute.should.be.a(InstanceAttribute)
-    retrieved_user_data = instance_attribute.get("userData").encode("utf-8")
-    decoded_user_data = decode_method(retrieved_user_data)
-    decoded_user_data.should.equal(b"some user data")
-
-
 @mock_ec2
 def test_user_data_with_run_instance_boto3():
     user_data = b"some user data"
@@ -1737,28 +1083,6 @@ def test_user_data_with_run_instance_boto3():
     retrieved_user_data = attribute["Value"].encode("utf-8")
     decoded_user_data = decode_method(retrieved_user_data)
     decoded_user_data.should.equal(b"some user data")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_security_group_name():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        group = conn.create_security_group("group1", "some description", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    group = conn.create_security_group("group1", "some description")
-
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, security_groups=["group1"])
-    instance = reservation.instances[0]
-
-    instance.groups[0].id.should.equal(group.id)
-    instance.groups[0].name.should.equal("group1")
 
 
 @mock_ec2
@@ -1791,18 +1115,6 @@ def test_run_instance_with_security_group_name_boto3():
     )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_security_group_id():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    group = conn.create_security_group("group1", "some description")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, security_group_ids=[group.id])
-    instance = reservation.instances[0]
-
-    instance.groups[0].id.should.equal(group.id)
-    instance.groups[0].name.should.equal("group1")
-
-
 @mock_ec2
 def test_run_instance_with_security_group_id_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1819,16 +1131,6 @@ def test_run_instance_with_security_group_id_boto3():
     )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_instance_type():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, instance_type="t1.micro")
-    instance = reservation.instances[0]
-
-    instance.instance_type.should.equal("t1.micro")
-
-
 @mock_ec2
 def test_run_instance_with_instance_type_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1839,32 +1141,12 @@ def test_run_instance_with_instance_type_boto3():
     instance.instance_type.should.equal("t1.micro")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_default_placement():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    instance.placement.should.equal("us-east-1a")
-
-
 @mock_ec2
 def test_run_instance_with_default_placement_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
 
     instance.placement.should.have.key("AvailabilityZone").equal("us-east-1a")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_placement():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, placement="us-east-1b")
-    instance = reservation.instances[0]
-
-    instance.placement.should.equal("us-east-1b")
 
 
 @mock_ec2
@@ -1976,51 +1258,6 @@ def test_run_instance_mapped_public_ipv4():
     len(instance["PublicIpAddress"]).should.be.greater_than(0)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_nic_autocreated():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    security_group1 = conn.create_security_group(
-        "test security group #1", "this is a test security group"
-    )
-    security_group2 = conn.create_security_group(
-        "test security group #2", "this is a test security group"
-    )
-    private_ip = "10.0.0.1"
-
-    reservation = conn.run_instances(
-        EXAMPLE_AMI_ID,
-        subnet_id=subnet.id,
-        security_groups=[security_group1.name],
-        security_group_ids=[security_group2.id],
-        private_ip_address=private_ip,
-    )
-    instance = reservation.instances[0]
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-    eni = all_enis[0]
-
-    instance.interfaces.should.have.length_of(1)
-    instance.interfaces[0].id.should.equal(eni.id)
-
-    instance.subnet_id.should.equal(subnet.id)
-    instance.groups.should.have.length_of(2)
-    set([group.id for group in instance.groups]).should.equal(
-        set([security_group1.id, security_group2.id])
-    )
-
-    eni.subnet_id.should.equal(subnet.id)
-    eni.groups.should.have.length_of(2)
-    set([group.id for group in eni.groups]).should.equal(
-        set([security_group1.id, security_group2.id])
-    )
-    eni.private_ip_addresses.should.have.length_of(1)
-    eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
-
-
 @mock_ec2
 def test_run_instance_with_nic_autocreated_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -2071,61 +1308,6 @@ def test_run_instance_with_nic_autocreated_boto3():
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should.equal(private_ip)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_nic_preexisting():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    security_group1 = conn.create_security_group(
-        "test security group #1", "this is a test security group"
-    )
-    security_group2 = conn.create_security_group(
-        "test security group #2", "this is a test security group"
-    )
-    private_ip = "54.0.0.1"
-    eni = conn.create_network_interface(
-        subnet.id, private_ip, groups=[security_group1.id]
-    )
-
-    # Boto requires NetworkInterfaceCollection of NetworkInterfaceSpecifications...
-    #   annoying, but generates the desired querystring.
-    from boto.ec2.networkinterface import (
-        NetworkInterfaceSpecification,
-        NetworkInterfaceCollection,
-    )
-
-    interface = NetworkInterfaceSpecification(
-        network_interface_id=eni.id, device_index=0
-    )
-    interfaces = NetworkInterfaceCollection(interface)
-    # end Boto objects
-
-    reservation = conn.run_instances(
-        EXAMPLE_AMI_ID,
-        network_interfaces=interfaces,
-        security_group_ids=[security_group2.id],
-    )
-    instance = reservation.instances[0]
-
-    instance.subnet_id.should.equal(subnet.id)
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-
-    instance.interfaces.should.have.length_of(1)
-    instance_eni = instance.interfaces[0]
-    instance_eni.id.should.equal(eni.id)
-
-    instance_eni.subnet_id.should.equal(subnet.id)
-    instance_eni.groups.should.have.length_of(2)
-    set([group.id for group in instance_eni.groups]).should.equal(
-        set([security_group1.id, security_group2.id])
-    )
-    instance_eni.private_ip_addresses.should.have.length_of(1)
-    instance_eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
-
-
 @mock_ec2
 def test_run_instance_with_nic_preexisting_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -2174,88 +1356,6 @@ def test_run_instance_with_nic_preexisting_boto3():
     )
     instance_eni["PrivateIpAddresses"].should.have.length_of(1)
     instance_eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should.equal(private_ip)
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.32.0")
-@mock_ec2_deprecated
-def test_instance_with_nic_attach_detach():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-
-    security_group1 = conn.create_security_group(
-        "test security group #1", "this is a test security group"
-    )
-    security_group2 = conn.create_security_group(
-        "test security group #2", "this is a test security group"
-    )
-
-    reservation = conn.run_instances(
-        EXAMPLE_AMI_ID, security_group_ids=[security_group1.id]
-    )
-    instance = reservation.instances[0]
-
-    eni = conn.create_network_interface(subnet.id, groups=[security_group2.id])
-
-    # Check initial instance and ENI data
-    instance.interfaces.should.have.length_of(1)
-
-    eni.groups.should.have.length_of(1)
-    set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
-
-    # Attach
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.attach_network_interface(eni.id, instance.id, device_index=1, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.attach_network_interface(eni.id, instance.id, device_index=1)
-
-    # Check attached instance and ENI data
-    instance.update()
-    instance.interfaces.should.have.length_of(2)
-    instance_eni = instance.interfaces[1]
-    instance_eni.id.should.equal(eni.id)
-    instance_eni.groups.should.have.length_of(2)
-    set([group.id for group in instance_eni.groups]).should.equal(
-        set([security_group1.id, security_group2.id])
-    )
-
-    eni = conn.get_all_network_interfaces(filters={"network-interface-id": eni.id})[0]
-    eni.groups.should.have.length_of(2)
-    set([group.id for group in eni.groups]).should.equal(
-        set([security_group1.id, security_group2.id])
-    )
-
-    # Detach
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.detach_network_interface(instance_eni.attachment.id, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.detach_network_interface(instance_eni.attachment.id)
-
-    # Check detached instance and ENI data
-    instance.update()
-    instance.interfaces.should.have.length_of(1)
-
-    eni = conn.get_all_network_interfaces(filters={"network-interface-id": eni.id})[0]
-    eni.groups.should.have.length_of(1)
-    set([group.id for group in eni.groups]).should.equal(set([security_group2.id]))
-
-    # Detach with invalid attachment ID
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.detach_network_interface("eni-attach-1234abcd")
-    cm.value.code.should.equal("InvalidAttachmentID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -2360,20 +1460,6 @@ def test_instance_with_nic_attach_detach_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidAttachmentID.NotFound")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_ec2_classic_has_public_ip_address():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
-    instance = reservation.instances[0]
-    instance.ip_address.should_not.equal(None)
-    instance.public_dns_name.should.contain(instance.ip_address.replace(".", "-"))
-    instance.private_ip_address.should_not.equal(None)
-    instance.private_dns_name.should.contain(
-        instance.private_ip_address.replace(".", "-")
-    )
-
-
 @mock_ec2
 def test_ec2_classic_has_public_ip_address_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -2386,16 +1472,6 @@ def test_ec2_classic_has_public_ip_address_boto3():
     instance.private_dns_name.should.contain(
         instance.private_ip_address.replace(".", "-")
     )
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_run_instance_with_keypair():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
-    instance = reservation.instances[0]
-
-    instance.key_name.should.equal("keypair_name")
 
 
 @mock_ec2
@@ -2514,14 +1590,6 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
     volumes["Volumes"][0]["SnapshotId"].should.equal(snapshot.snapshot_id)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_describe_instance_status_no_instances():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    all_status = conn.get_all_instance_status()
-    len(all_status).should.equal(0)
-
-
 @mock_ec2
 def test_describe_instance_status_no_instances_boto3():
     if settings.TEST_SERVER_MODE:
@@ -2529,18 +1597,6 @@ def test_describe_instance_status_no_instances_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     all_status = client.describe_instance_status()["InstanceStatuses"]
     all_status.should.have.length_of(0)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_describe_instance_status_with_instances():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
-
-    all_status = conn.get_all_instance_status()
-    len(all_status).should.equal(1)
-    all_status[0].instance_status.status.should.equal("ok")
-    all_status[0].system_status.status.should.equal("ok")
 
 
 @mock_ec2
@@ -2556,30 +1612,6 @@ def test_describe_instance_status_with_instances_boto3():
     my_status = [s for s in all_status if s["InstanceId"] == instance.id][0]
     my_status["InstanceStatus"]["Status"].should.equal("ok")
     my_status["SystemStatus"]["Status"].should.equal("ok")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_describe_instance_status_with_instance_filter_deprecated():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    # We want to filter based on this one
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
-    instance = reservation.instances[0]
-
-    # This is just to setup the test
-    conn.run_instances(EXAMPLE_AMI_ID, key_name="keypair_name")
-
-    all_status = conn.get_all_instance_status(instance_ids=[instance.id])
-    len(all_status).should.equal(1)
-    all_status[0].id.should.equal(instance.id)
-
-    # Call get_all_instance_status with a bad id should raise an error
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_instance_status(instance_ids=[instance.id, "i-1234abcd"])
-    cm.value.code.should.equal("InvalidInstanceID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -2705,34 +1737,6 @@ def test_describe_instance_status_with_instance_filter():
         found_instance_ids.shouldnt.contain(_id)
 
 
-# Has boto3 equivalent
-@requires_boto_gte("2.32.0")
-@mock_ec2_deprecated
-def test_describe_instance_status_with_non_running_instances():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID, min_count=3)
-    instance1, instance2, instance3 = reservation.instances
-    instance1.stop()
-    instance2.terminate()
-
-    all_running_status = conn.get_all_instance_status()
-    all_running_status.should.have.length_of(1)
-    all_running_status[0].id.should.equal(instance3.id)
-    all_running_status[0].state_name.should.equal("running")
-
-    all_status = conn.get_all_instance_status(include_all_instances=True)
-    all_status.should.have.length_of(3)
-
-    status1 = next((s for s in all_status if s.id == instance1.id), None)
-    status1.state_name.should.equal("stopped")
-
-    status2 = next((s for s in all_status if s.id == instance2.id), None)
-    status2.state_name.should.equal("terminated")
-
-    status3 = next((s for s in all_status if s.id == instance3.id), None)
-    status3.state_name.should.equal("running")
-
-
 @mock_ec2
 def test_describe_instance_status_with_non_running_instances_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -2769,34 +1773,6 @@ def test_describe_instance_status_with_non_running_instances_boto3():
 
     status3 = next((s for s in all_status if s["InstanceId"] == instance3.id), None)
     status3["InstanceState"].should.equal({"Code": 16, "Name": "running"})
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_instance_by_security_group():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    conn.run_instances(EXAMPLE_AMI_ID)
-    instance = conn.get_only_instances()[0]
-
-    security_group = conn.create_security_group("test", "test")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.modify_instance_attribute(
-            instance.id, "groupSet", [security_group.id], dry_run=True
-        )
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceSecurityGroups operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.modify_instance_attribute(instance.id, "groupSet", [security_group.id])
-
-    security_group_instances = security_group.instances()
-
-    assert len(security_group_instances) == 1
-    assert security_group_instances[0].id == instance.id
 
 
 @mock_ec2

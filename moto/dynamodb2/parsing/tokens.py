@@ -1,5 +1,4 @@
 import re
-import sys
 
 from moto.dynamodb2.exceptions import (
     InvalidTokenException,
@@ -149,15 +148,8 @@ class ExpressionTokenizer(object):
         self.staged_characters = ""
 
     @classmethod
-    def is_py2(cls):
-        return sys.version_info[0] == 2
-
-    @classmethod
     def make_list(cls, input_expression_str):
-        if cls.is_py2():
-            pass
-        else:
-            assert isinstance(input_expression_str, str)
+        assert isinstance(input_expression_str, str)
 
         return ExpressionTokenizer(input_expression_str)._make_list()
 

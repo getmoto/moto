@@ -17,7 +17,7 @@ from werkzeug.serving import run_simple
 
 import moto.backends as backends
 import moto.backend_index as backend_index
-from moto.core.utils import convert_flask_to_httpretty_response
+from moto.core.utils import convert_to_flask_response
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
@@ -291,7 +291,7 @@ def create_backend_app(service):
         backend = backend_dict["global"]
 
     for url_path, handler in backend.flask_paths.items():
-        view_func = convert_flask_to_httpretty_response(handler)
+        view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
             endpoint = "{0}.dispatch".format(handler.__self__.__name__)
         else:
