@@ -1,7 +1,6 @@
 import json
 import time
 import uuid
-
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_sqs, mock_lambda, mock_logs

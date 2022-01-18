@@ -1,23 +1,10 @@
-import boto.glacier
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
-from moto import mock_glacier_deprecated, mock_glacier
+from moto import mock_glacier
 from moto.core import ACCOUNT_ID
 from uuid import uuid4
-
-
-# Has boto3 equivalent
-@mock_glacier_deprecated
-def test_create_vault():
-    conn = boto.glacier.connect_to_region("us-west-2")
-
-    conn.create_vault("my_vault")
-
-    vaults = conn.list_vaults()
-    vaults.should.have.length_of(1)
-    vaults[0].name.should.equal("my_vault")
 
 
 @mock_glacier
@@ -35,21 +22,6 @@ def test_describe_vault():
     describe.should.have.key("VaultARN").equal(
         f"arn:aws:glacier:us-west-2:{ACCOUNT_ID}:vaults/myvault"
     )
-
-
-# Has boto3 equivalent
-@mock_glacier_deprecated
-def test_delete_vault():
-    conn = boto.glacier.connect_to_region("us-west-2")
-
-    conn.create_vault("my_vault")
-
-    vaults = conn.list_vaults()
-    vaults.should.have.length_of(1)
-
-    conn.delete_vault("my_vault")
-    vaults = conn.list_vaults()
-    vaults.should.have.length_of(0)
 
 
 @mock_glacier

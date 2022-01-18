@@ -25,7 +25,6 @@ from moto import (
 from moto import settings
 from moto.core import ACCOUNT_ID
 from moto.cloudformation import cloudformation_backends
-from .test_cloudformation_stack_crud import dummy_template_json2, dummy_template_json4
 
 from tests import EXAMPLE_AMI_ID
 
@@ -48,6 +47,12 @@ dummy_template = {
     },
 }
 
+dummy_template2 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 2",
+    "Resources": {},
+}
+
 dummy_template3 = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Stack 3",
@@ -56,6 +61,29 @@ dummy_template3 = {
     },
 }
 
+dummy_template4 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "myDynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {"AttributeName": "Name", "AttributeType": "S"},
+                    {"AttributeName": "Age", "AttributeType": "S"},
+                ],
+                "KeySchema": [
+                    {"AttributeName": "Name", "KeyType": "HASH"},
+                    {"AttributeName": "Age", "KeyType": "RANGE"},
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5,
+                },
+                "TableName": "Person",
+            },
+        }
+    },
+}
 
 dummy_template_with_parameters = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -278,6 +306,8 @@ dummy_update_template_json = json.dumps(dummy_update_template)
 dummy_output_template_json = json.dumps(dummy_output_template)
 dummy_import_template_json = json.dumps(dummy_import_template)
 dummy_redrive_template_json = json.dumps(dummy_redrive_template)
+dummy_template_json2 = json.dumps(dummy_template2)
+dummy_template_json4 = json.dumps(dummy_template4)
 dummy_unknown_template_json = json.dumps(dummy_unknown_template)
 
 
