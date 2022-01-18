@@ -96,7 +96,7 @@ class FakeThingGroup(BaseModel):
             if "rootToParentThingGroups" not in self.metadata:
                 self.metadata["rootToParentThingGroups"] = []
             # search for parent arn
-            for thing_group_arn, thing_group in thing_groups.items():
+            for thing_group in thing_groups.values():
                 if thing_group.thing_group_name == parent_group_name:
                     parent_thing_group_structure = thing_group
                     break
@@ -338,12 +338,12 @@ class FakeJobExecution(BaseModel):
         thing_arn,
         status="QUEUED",
         force_canceled=False,
-        status_details_map={},
+        status_details_map=None,
     ):
         self.job_id = job_id
         self.status = status  # IN_PROGRESS | CANCELED | COMPLETED
         self.force_canceled = force_canceled
-        self.status_details_map = status_details_map
+        self.status_details_map = status_details_map or {}
         self.thing_arn = thing_arn
         self.queued_at = time.mktime(datetime(2015, 1, 1).timetuple())
         self.started_at = time.mktime(datetime(2015, 1, 1).timetuple())
@@ -543,7 +543,7 @@ class FakeDomainConfiguration(BaseModel):
 
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(IoTBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.things = OrderedDict()
         self.jobs = OrderedDict()

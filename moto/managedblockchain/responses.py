@@ -16,7 +16,7 @@ from .utils import (
 
 class ManagedBlockchainResponse(BaseResponse):
     def __init__(self, backend):
-        super(ManagedBlockchainResponse, self).__init__()
+        super().__init__()
         self.backend = backend
 
     @classmethod

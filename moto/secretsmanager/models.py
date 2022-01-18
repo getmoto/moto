@@ -17,11 +17,11 @@ from .exceptions import (
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
-from .list_secrets.filters import all, tag_key, tag_value, description, name
+from .list_secrets.filters import filter_all, tag_key, tag_value, description, name
 
 
 _filter_functions = {
-    "all": all,
+    "all": filter_all,
     "name": name,
     "description": description,
     "tag-key": tag_key,
@@ -57,7 +57,7 @@ class FakeSecret:
         secret_string=None,
         secret_binary=None,
         description=None,
-        tags=[],
+        tags=None,
         kms_key_id=None,
         version_id=None,
         version_stages=None,
@@ -68,7 +68,7 @@ class FakeSecret:
         self.secret_string = secret_string
         self.secret_binary = secret_binary
         self.description = description
-        self.tags = tags
+        self.tags = tags or []
         self.kms_key_id = kms_key_id
         self.version_id = version_id
         self.version_stages = version_stages
@@ -77,9 +77,9 @@ class FakeSecret:
         self.auto_rotate_after_days = 0
         self.deleted_date = None
 
-    def update(self, description=None, tags=[], kms_key_id=None):
+    def update(self, description=None, tags=None, kms_key_id=None):
         self.description = description
-        self.tags = tags
+        self.tags = tags or []
 
         if kms_key_id is not None:
             self.kms_key_id = kms_key_id
@@ -153,11 +153,11 @@ class FakeSecret:
 class SecretsStore(dict):
     def __setitem__(self, key, value):
         new_key = get_secret_name_from_arn(key)
-        super(SecretsStore, self).__setitem__(new_key, value)
+        super().__setitem__(new_key, value)
 
     def __getitem__(self, key):
         new_key = get_secret_name_from_arn(key)
-        return super(SecretsStore, self).__getitem__(new_key)
+        return super().__getitem__(new_key)
 
     def __contains__(self, key):
         new_key = get_secret_name_from_arn(key)
@@ -165,12 +165,12 @@ class SecretsStore(dict):
 
     def pop(self, key, *args, **kwargs):
         new_key = get_secret_name_from_arn(key)
-        return super(SecretsStore, self).pop(new_key, *args, **kwargs)
+        return super().pop(new_key, *args, **kwargs)
 
 
 class SecretsManagerBackend(BaseBackend):
     def __init__(self, region_name=None, **kwargs):
-        super(SecretsManagerBackend, self).__init__()
+        super().__init__()
         self.region = region_name
         self.secrets = SecretsStore()
 
@@ -298,7 +298,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_string=None,
         secret_binary=None,
         description=None,
-        tags=[],
+        tags=None,
         kms_key_id=None,
     ):
 
@@ -325,7 +325,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_string=None,
         secret_binary=None,
         description=None,
-        tags=[],
+        tags=None,
         kms_key_id=None,
         version_id=None,
         version_stages=None,

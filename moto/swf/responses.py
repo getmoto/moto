@@ -396,7 +396,7 @@ class SWFResponse(BaseResponse):
             task_list=task_list,
             child_policy=child_policy,
             execution_start_to_close_timeout=execution_start_to_close_timeout,
-            input=input_,
+            workflow_input=input_,
             tag_list=tag_list,
             task_start_to_close_timeout=task_start_to_close_timeout,
         )

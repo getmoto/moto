@@ -233,10 +233,7 @@ class IAMPolicyDocumentValidator:
             assert isinstance(statement["Condition"], dict)
             for condition_key, condition_value in statement["Condition"].items():
                 assert isinstance(condition_value, dict)
-                for (
-                    condition_element_key,
-                    condition_element_value,
-                ) in condition_value.items():
+                for condition_element_value in condition_value.values():
                     assert isinstance(condition_element_value, (list, str))
 
                 if (
@@ -455,10 +452,7 @@ class IAMPolicyDocumentValidator:
         )
 
         if stripped_condition_key.startswith("Date"):
-            for (
-                condition_element_key,
-                condition_element_value,
-            ) in condition_value.items():
+            for condition_element_value in condition_value.values():
                 if isinstance(condition_element_value, str):
                     IAMPolicyDocumentValidator._legacy_parse_date_condition_value(
                         condition_element_value

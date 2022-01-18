@@ -28,7 +28,7 @@ class SWFBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         self.domains = []
-        super(SWFBackend, self).__init__()
+        super().__init__()
 
     def reset(self):
         region_name = self.region_name
@@ -175,7 +175,7 @@ class SWFBackend(BaseBackend):
         workflow_name,
         workflow_version,
         tag_list=None,
-        input=None,
+        workflow_input=None,
         **kwargs
     ):
         domain = self._get_domain(domain_name)
@@ -183,7 +183,12 @@ class SWFBackend(BaseBackend):
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
         wfe = WorkflowExecution(
-            domain, wf_type, workflow_id, tag_list=tag_list, input=input, **kwargs
+            domain,
+            wf_type,
+            workflow_id,
+            tag_list=tag_list,
+            workflow_input=workflow_input,
+            **kwargs
         )
         domain.add_workflow_execution(wfe)
         wfe.start()
@@ -422,7 +427,7 @@ class SWFBackend(BaseBackend):
             activity_task.details = details
 
     def signal_workflow_execution(
-        self, domain_name, signal_name, workflow_id, input=None, run_id=None
+        self, domain_name, signal_name, workflow_id, workflow_input=None, run_id=None
     ):
         # process timeouts on all objects
         self._process_timeouts()
@@ -430,7 +435,7 @@ class SWFBackend(BaseBackend):
         wfe = domain.get_workflow_execution(
             workflow_id, run_id=run_id, raise_if_closed=True
         )
-        wfe.signal(signal_name, input)
+        wfe.signal(signal_name, workflow_input)
 
 
 swf_backends = BackendDict(SWFBackend, "swf")

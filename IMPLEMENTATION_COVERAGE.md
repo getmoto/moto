@@ -162,6 +162,61 @@
 - [X] register_scalable_target
 </details>
 
+## appsync
+<details>
+<summary>30% implemented</summary>
+
+- [ ] associate_api
+- [ ] create_api_cache
+- [X] create_api_key
+- [ ] create_data_source
+- [ ] create_domain_name
+- [ ] create_function
+- [X] create_graphql_api
+- [ ] create_resolver
+- [ ] create_type
+- [ ] delete_api_cache
+- [X] delete_api_key
+- [ ] delete_data_source
+- [ ] delete_domain_name
+- [ ] delete_function
+- [X] delete_graphql_api
+- [ ] delete_resolver
+- [ ] delete_type
+- [ ] disassociate_api
+- [ ] flush_api_cache
+- [ ] get_api_association
+- [ ] get_api_cache
+- [ ] get_data_source
+- [ ] get_domain_name
+- [ ] get_function
+- [X] get_graphql_api
+- [ ] get_introspection_schema
+- [ ] get_resolver
+- [X] get_schema_creation_status
+- [X] get_type
+- [X] list_api_keys
+- [ ] list_data_sources
+- [ ] list_domain_names
+- [ ] list_functions
+- [X] list_graphql_apis
+- [ ] list_resolvers
+- [ ] list_resolvers_by_function
+- [X] list_tags_for_resource
+- [ ] list_types
+- [X] start_schema_creation
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_api_cache
+- [X] update_api_key
+- [ ] update_data_source
+- [ ] update_domain_name
+- [ ] update_function
+- [X] update_graphql_api
+- [ ] update_resolver
+- [ ] update_type
+</details>
+
 ## athena
 <details>
 <summary>20% implemented</summary>
@@ -1437,6 +1492,7 @@
 - [ ] describe_elastic_gpus
 - [ ] describe_export_image_tasks
 - [ ] describe_export_tasks
+- [ ] describe_fast_launch_images
 - [ ] describe_fast_snapshot_restores
 - [ ] describe_fleet_history
 - [ ] describe_fleet_instances
@@ -1551,6 +1607,7 @@
 - [X] detach_volume
 - [X] detach_vpn_gateway
 - [X] disable_ebs_encryption_by_default
+- [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -1571,6 +1628,7 @@
 - [ ] disassociate_trunk_interface
 - [X] disassociate_vpc_cidr_block
 - [X] enable_ebs_encryption_by_default
+- [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -3699,6 +3757,7 @@
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources
+- [ ] list_permission_versions
 - [ ] list_permissions
 - [ ] list_principals
 - [ ] list_resource_share_permissions
@@ -5195,7 +5254,6 @@
 - appmesh
 - apprunner
 - appstream
-- appsync
 - auditmanager
 - autoscaling-plans
 - backup

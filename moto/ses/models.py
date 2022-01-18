@@ -126,7 +126,7 @@ class SESBackend(BaseBackend):
             return True
         if address in self.email_addresses:
             return True
-        user, host = address.split("@", 1)
+        _, host = address.split("@", 1)
         return host in self.domains
 
     def verify_email_identity(self, address):

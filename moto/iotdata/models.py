@@ -140,7 +140,7 @@ class FakeShadow(BaseModel):
 
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(IoTDataPlaneBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
     def reset(self):

@@ -49,7 +49,7 @@ class SupportCase(object):
 
 class SupportBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(SupportBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.check_status = {}
         self.cases = {}

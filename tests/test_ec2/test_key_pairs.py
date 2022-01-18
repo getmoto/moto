@@ -1,12 +1,10 @@
 import pytest
 
-import boto
 import sure  # noqa # pylint: disable=unused-import
 import boto3
 
-from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
-from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto import mock_ec2, settings
 from uuid import uuid4
 from unittest import SkipTest
 
@@ -46,31 +44,12 @@ ffsm7UIHtCBYERr9Nx0u20ldfhkgB1lhaJb5o0ZJ3pmJ38KChfyHe5EUcqRdEFo89Mp72VI2Z6UHyL17
 moto@github.com"""
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_empty():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    assert len(conn.get_all_key_pairs()) == 0
-
-
 @mock_ec2
 def test_key_pairs_empty_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", "us-west-1")
     client.describe_key_pairs()["KeyPairs"].should.be.empty
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_invalid_id():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_key_pairs("foo")
-    cm.value.code.should.equal("InvalidKeyPair.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -82,49 +61,6 @@ def test_key_pairs_invalid_id_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_create():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.create_key_pair("foo", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    kp = conn.create_key_pair("foo")
-    rsa_check_private_key(kp.material)
-
-    kps = conn.get_all_key_pairs()
-    assert len(kps) == 1
-    assert kps[0].name == "foo"
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_create_two():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    kp1 = conn.create_key_pair("foo")
-    rsa_check_private_key(kp1.material)
-
-    kp2 = conn.create_key_pair("bar")
-    rsa_check_private_key(kp2.material)
-
-    assert kp1.material != kp2.material
-
-    kps = conn.get_all_key_pairs()
-    kps.should.have.length_of(2)
-    assert {i.name for i in kps} == {"foo", "bar"}
-
-    kps = conn.get_all_key_pairs("foo")
-    kps.should.have.length_of(1)
-    kps[0].name.should.equal("foo")
 
 
 @mock_ec2
@@ -166,20 +102,6 @@ def test_key_pairs_create_boto3():
     kps[0].should.have.key("KeyFingerprint")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_create_exist():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    conn.create_key_pair("foo")
-    assert len(conn.get_all_key_pairs()) == 1
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.create_key_pair("foo")
-    cm.value.code.should.equal("InvalidKeyPair.Duplicate")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_key_pairs_create_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
@@ -193,38 +115,10 @@ def test_key_pairs_create_exist_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.Duplicate")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_delete_no_exist():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    assert len(conn.get_all_key_pairs()) == 0
-    r = conn.delete_key_pair("foo")
-    r.should.be.ok
-
-
 @mock_ec2
 def test_key_pairs_delete_no_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
     client.delete_key_pair(KeyName=str(uuid4())[0:6])
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_delete_exist():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    conn.create_key_pair("foo")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        r = conn.delete_key_pair("foo", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    r = conn.delete_key_pair("foo")
-    r.should.be.ok
-    assert len(conn.get_all_key_pairs()) == 0
 
 
 @mock_ec2
@@ -245,33 +139,6 @@ def test_key_pairs_delete_exist_boto3():
     [kp.get("Name") for kp in client.describe_key_pairs()["KeyPairs"]].shouldnt.contain(
         key_name
     )
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_import():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.import_key_pair("foo", RSA_PUBLIC_KEY_OPENSSH, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    kp1 = conn.import_key_pair("foo", RSA_PUBLIC_KEY_OPENSSH)
-    assert kp1.name == "foo"
-    assert kp1.fingerprint == RSA_PUBLIC_KEY_FINGERPRINT
-
-    kp2 = conn.import_key_pair("foo2", RSA_PUBLIC_KEY_RFC4716)
-    assert kp2.name == "foo2"
-    assert kp2.fingerprint == RSA_PUBLIC_KEY_FINGERPRINT
-
-    kps = conn.get_all_key_pairs()
-    assert len(kps) == 2
-    assert kps[0].name == kp1.name
-    assert kps[1].name == kp2.name
 
 
 @mock_ec2
@@ -309,21 +176,6 @@ def test_key_pairs_import_boto3():
     all_names.should.contain(kp2["KeyName"])
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_import_exist():
-    conn = boto.connect_ec2("the_key", "the_secret")
-    kp = conn.import_key_pair("foo", RSA_PUBLIC_KEY_OPENSSH)
-    assert kp.name == "foo"
-    assert len(conn.get_all_key_pairs()) == 1
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.create_key_pair("foo")
-    cm.value.code.should.equal("InvalidKeyPair.Duplicate")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_key_pairs_import_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
@@ -341,30 +193,6 @@ def test_key_pairs_import_exist_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.Duplicate")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pairs_invalid():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.import_key_pair("foo", b"")
-    ex.value.error_code.should.equal("InvalidKeyPair.Format")
-    ex.value.status.should.equal(400)
-    ex.value.message.should.equal("Key is not in valid OpenSSH public key format")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.import_key_pair("foo", b"garbage")
-    ex.value.error_code.should.equal("InvalidKeyPair.Format")
-    ex.value.status.should.equal(400)
-    ex.value.message.should.equal("Key is not in valid OpenSSH public key format")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.import_key_pair("foo", DSA_PUBLIC_KEY_OPENSSH)
-    ex.value.error_code.should.equal("InvalidKeyPair.Format")
-    ex.value.status.should.equal(400)
-    ex.value.message.should.equal("Key is not in valid OpenSSH public key format")
 
 
 @mock_ec2
@@ -391,22 +219,6 @@ def test_key_pairs_invalid_boto3():
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidKeyPair.Format")
     err["Message"].should.equal("Key is not in valid OpenSSH public key format")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_key_pair_filters():
-    conn = boto.connect_ec2("the_key", "the_secret")
-
-    _ = conn.create_key_pair("kpfltr1")
-    kp2 = conn.create_key_pair("kpfltr2")
-    kp3 = conn.create_key_pair("kpfltr3")
-
-    kp_by_name = conn.get_all_key_pairs(filters={"key-name": "kpfltr2"})
-    set([kp.name for kp in kp_by_name]).should.equal(set([kp2.name]))
-
-    kp_by_name = conn.get_all_key_pairs(filters={"fingerprint": kp3.fingerprint})
-    set([kp.name for kp in kp_by_name]).should.equal(set([kp3.name]))
 
 
 @mock_ec2

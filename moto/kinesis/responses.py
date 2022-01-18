@@ -140,11 +140,9 @@ class KinesisResponse(BaseResponse):
     def list_shards(self):
         stream_name = self.parameters.get("StreamName")
         next_token = self.parameters.get("NextToken")
-        start_id = self.parameters.get("ExclusiveStartShardId")  # noqa
-        max = self.parameters.get("MaxResults", 10000)
-        start_timestamp = self.parameters.get("StreamCreationTimestamp")  # noqa
+        max_results = self.parameters.get("MaxResults", 10000)
         shards, token = self.kinesis_backend.list_shards(
-            stream_name=stream_name, limit=max, next_token=next_token
+            stream_name=stream_name, limit=max_results, next_token=next_token
         )
         res = {"Shards": shards}
         if token:

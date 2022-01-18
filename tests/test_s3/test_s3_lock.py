@@ -5,7 +5,7 @@ import botocore
 from moto import mock_s3
 from botocore.config import Config
 from moto.s3.responses import DEFAULT_REGION_NAME
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_s3

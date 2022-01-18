@@ -3919,13 +3919,6 @@ class VPCBackend(object):
         self.vpc_refs[self.__class__].add(weakref.ref(self))
         super().__init__()
 
-    @classmethod
-    def get_vpc_refs(cls):
-        for inst_ref in cls.vpc_refs[cls]:
-            inst = inst_ref()
-            if inst is not None:
-                yield inst
-
     def create_vpc(
         self,
         cidr_block,
@@ -3974,13 +3967,6 @@ class VPCBackend(object):
         if vpc_id not in self.vpcs:
             raise InvalidVPCIdError(vpc_id)
         return self.vpcs.get(vpc_id)
-
-    # get vpc by vpc id and aws region
-    def get_cross_vpc(self, vpc_id, peer_region):
-        for vpcs in self.get_vpc_refs():
-            if vpcs.region_name == peer_region:
-                match_vpc = vpcs.get_vpc(vpc_id)
-        return match_vpc
 
     def describe_vpcs(self, vpc_ids=None, filters=None):
         matches = self.vpcs.copy().values()
@@ -5610,6 +5596,7 @@ class ManagedPrefixListBackend(object):
         result = managed_prefix_lists
         if filters:
             result = filter_resources(managed_prefix_lists, filters, attr_pairs)
+            result = describe_tag_filter(filters, managed_prefix_lists)
 
         for item in result.copy():
             if not item.delete_counter:

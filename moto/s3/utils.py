@@ -72,7 +72,7 @@ def parse_region_from_url(url):
 def metadata_from_headers(headers):
     metadata = CaseInsensitiveDict()
     meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_.]+)$", flags=re.IGNORECASE)
-    for header, value in headers.items():
+    for header in headers.keys():
         if isinstance(header, str):
             result = meta_regex.match(header)
             meta_key = None
@@ -106,7 +106,7 @@ class _VersionedKeyStore(dict):
     """
 
     def __sgetitem__(self, key):
-        return super(_VersionedKeyStore, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def __getitem__(self, key):
         return self.__sgetitem__(key)[-1]
@@ -118,7 +118,7 @@ class _VersionedKeyStore(dict):
         except (KeyError, IndexError):
             current = [value]
 
-        super(_VersionedKeyStore, self).__setitem__(key, current)
+        super().__setitem__(key, current)
 
     def get(self, key, default=None):
         try:
@@ -140,7 +140,7 @@ class _VersionedKeyStore(dict):
         elif not isinstance(list_, list):
             list_ = [list_]
 
-        super(_VersionedKeyStore, self).__setitem__(key, list_)
+        super().__setitem__(key, list_)
 
     def _iteritems(self):
         for key in self._self_iterable():
@@ -168,14 +168,3 @@ class _VersionedKeyStore(dict):
     items = iteritems = _iteritems
     lists = iterlists = _iterlists
     values = itervalues = _itervalues
-
-    if sys.version_info[0] < 3:
-
-        def items(self):
-            return list(self.iteritems())
-
-        def values(self):
-            return list(self.itervalues())
-
-        def lists(self):
-            return list(self.iterlists())
