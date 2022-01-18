@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+        python-version: [ 3.6, 3.7, 3.8, 3.9, "3.10" ]
 
     steps:
       - uses: actions/checkout@v2
@@ -113,7 +113,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -158,7 +158,7 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -224,7 +224,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ 3.8 ]
-        part: ["aa", "ab", "ac"]
+        part: ["aa", "ab", "ac", "ad"]
 
     steps:
     - uses: actions/checkout@v2
@@ -259,7 +259,7 @@ jobs:
       run: |
         cd moto-terraform-tests
         bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
-        split -n l/3 tftestlist.txt tf-split-
+        split -n l/4 tftestlist.txt tf-split-
         cd ..
     - name: Run Terraform Tests
       run: |
