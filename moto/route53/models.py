@@ -474,6 +474,24 @@ class Route53Backend(BaseBackend):
             zones = sorted(zones, key=sort_key)
         return dnsname, zones
 
+    def list_hosted_zones_by_vpc(self, VpcId, VPCRegion):
+        zone_list = []
+        for zone in self.list_hosted_zones():
+            if zone["Config"]["Private"]:
+                this_zone = self.get_hosted_zone(zone["Id"])
+                for vpc in this_zone["VPCs"]:
+                    if vpc["VPCId"] == VpcId:
+                        this_id = zone["Id"].replace("/hostedzone/", "")
+                        zone_list.append(
+                            {
+                                "HostedZoneId": this_id,
+                                "Name": zone["Name"],
+                                "Owner": {"OwningAccount": "XXXXXXXXXXXX"},
+                            }
+                        )
+
+        return zone_list
+
     def get_hosted_zone(self, id_):
         the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
         if not the_zone:

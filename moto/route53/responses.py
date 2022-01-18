@@ -83,6 +83,18 @@ class Route53(BaseResponse):
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
         return 200, headers, template.render(zones=zones, dnsname=dnsname, xmlns=XMLNS)
 
+    def list_hosted_zones_by_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        query_params = parse_qs(parsed_url.query)
+        vpc_id = query_params.get("vpcid")
+        vpc_region = query_params.get("vpcregion")
+
+        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
+
+        template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
+        return 200, headers, template.render(zones=zones, xmlns=XMLNS)
+
     @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -493,6 +505,28 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
    </HostedZones>
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesByNameResponse>"""
+
+
+LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/"
+   <HostedZoneSummaries>
+      {% for zone in zones %}
+      <HostedZoneSummary>
+         <HostedZoneId>{{ zone.HostedZoneId}}</HostedZoneId>
+         <Name>{{zone.Name}}</Name>
+         <Owner>
+            {% if zone.Owner.OwningAccount %}
+            <OwningAccount>{{zone.Owner.OwningAccount}}</OwningAccount>
+            {% endif %}
+            {% if zone.Owner.OwningService %}
+            <OwningService>string</OwningService>
+            {% endif %}
+         </Owner>
+      </HostedZoneSummary>
+     {% endfor %}
+   </HostedZoneSummaries>
+   <MaxItems>string</MaxItems>
+   <NextToken>string</NextToken>
+</ListHostedZonesByVPCResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">
