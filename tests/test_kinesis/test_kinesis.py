@@ -780,7 +780,9 @@ def test_invalid_increase_stream_retention_period():
             StreamName=stream_name, RetentionPeriodHours=25
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidArgumentException")
-    ex.value.response["Error"]["Message"].should.equal("Requested retention period (25 hours) for stream my_stream can not be shorter than existing retention period (30 hours). Use DecreaseRetentionPeriod API.")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Requested retention period (25 hours) for stream my_stream can not be shorter than existing retention period (30 hours). Use DecreaseRetentionPeriod API."
+    )
 
 
 @mock_kinesis
@@ -795,7 +797,9 @@ def test_invalid_increase_stream_retention_too_low():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Minimum allowed retention period is 24 hours. Requested retention period (20 hours) is too short.")
+    err["Message"].should.equal(
+        "Minimum allowed retention period is 24 hours. Requested retention period (20 hours) is too short."
+    )
 
 
 @mock_kinesis
@@ -810,7 +814,9 @@ def test_invalid_increase_stream_retention_too_high():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long.")
+    err["Message"].should.equal(
+        "Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long."
+    )
 
 
 @mock_kinesis
@@ -842,7 +848,9 @@ def test_decrease_stream_retention_period_upwards():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Requested retention period (40 hours) for stream decrease_stream can not be longer than existing retention period (24 hours). Use IncreaseRetentionPeriod API.")
+    err["Message"].should.equal(
+        "Requested retention period (40 hours) for stream decrease_stream can not be longer than existing retention period (24 hours). Use IncreaseRetentionPeriod API."
+    )
 
 
 @mock_kinesis
@@ -857,7 +865,9 @@ def test_decrease_stream_retention_period_too_low():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Minimum allowed retention period is 24 hours. Requested retention period (4 hours) is too short.")
+    err["Message"].should.equal(
+        "Minimum allowed retention period is 24 hours. Requested retention period (4 hours) is too short."
+    )
 
 
 @mock_kinesis
@@ -872,7 +882,9 @@ def test_decrease_stream_retention_period_too_high():
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long.")
+    err["Message"].should.equal(
+        "Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long."
+    )
 
 
 # Has boto3 equivalent
@@ -1151,10 +1163,16 @@ def test_merge_shards_boto3():
         del shard["SequenceNumberRange"]
 
     # Original shard #3 is still active (0,1,2 have been merged and closed
-    active_shards.should.contain({'ShardId': 'shardId-000000000003'})
+    active_shards.should.contain({"ShardId": "shardId-000000000003"})
     # Shard #4 was the child of #0 and #1
     # Shard #5 is the child of #4 (parent) and #2 (adjacent-parent)
-    active_shards.should.contain({'ShardId': 'shardId-000000000005', 'ParentShardId': 'shardId-000000000004', 'AdjacentParentShardId': 'shardId-000000000002'})
+    active_shards.should.contain(
+        {
+            "ShardId": "shardId-000000000005",
+            "ParentShardId": "shardId-000000000004",
+            "AdjacentParentShardId": "shardId-000000000002",
+        }
+    )
 
 
 @mock_kinesis

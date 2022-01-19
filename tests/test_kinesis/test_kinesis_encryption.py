@@ -14,9 +14,7 @@ def test_enable_encryption():
     desc.shouldnt.have.key("KeyId")
 
     client.start_stream_encryption(
-        StreamName="my-stream",
-        EncryptionType="KMS",
-        KeyId="n/a"
+        StreamName="my-stream", EncryptionType="KMS", KeyId="n/a"
     )
 
     resp = client.describe_stream(StreamName="my-stream")
@@ -35,15 +33,11 @@ def test_disable_encryption():
     desc.should.have.key("EncryptionType").should.equal("NONE")
 
     client.start_stream_encryption(
-        StreamName="my-stream",
-        EncryptionType="KMS",
-        KeyId="n/a"
+        StreamName="my-stream", EncryptionType="KMS", KeyId="n/a"
     )
 
     client.stop_stream_encryption(
-        StreamName="my-stream",
-        EncryptionType="KMS",
-        KeyId="n/a"
+        StreamName="my-stream", EncryptionType="KMS", KeyId="n/a"
     )
 
     resp = client.describe_stream(StreamName="my-stream")

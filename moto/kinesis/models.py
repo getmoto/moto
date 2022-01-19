@@ -43,7 +43,7 @@ class Consumer(BaseModel):
             "ConsumerName": self.consumer_name,
             "ConsumerARN": self.consumer_arn,
             "ConsumerStatus": "ACTIVE",
-            "ConsumerCreationTimestamp": self.created
+            "ConsumerCreationTimestamp": self.created,
         }
         if include_stream_arn:
             resp["StreamARN"] = self.stream_arn
@@ -69,7 +69,9 @@ class Record(BaseModel):
 
 
 class Shard(BaseModel):
-    def __init__(self, shard_id, starting_hash, ending_hash, parent=None, adjacent_parent=None):
+    def __init__(
+        self, shard_id, starting_hash, ending_hash, parent=None, adjacent_parent=None
+    ):
         self._shard_id = shard_id
         self.starting_hash = starting_hash
         self.ending_hash = ending_hash
@@ -164,14 +166,16 @@ class Shard(BaseModel):
 class Stream(CloudFormationModel):
     def __init__(self, stream_name, shard_count, retention_period_hours, region_name):
         self.stream_name = stream_name
-        self.creation_datetime = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f000")
+        self.creation_datetime = datetime.datetime.now().strftime(
+            "%Y-%m-%dT%H:%M:%S.%f000"
+        )
         self.region = region_name
         self.account_number = ACCOUNT_ID
         self.shards = {}
         self.tags = {}
         self.status = "ACTIVE"
         self.shard_count = None
-        self.update_shard_count(shard_count)
+        self.init_shards(shard_count)
         self.retention_period_hours = (
             retention_period_hours if retention_period_hours else 24
         )
@@ -186,21 +190,150 @@ class Stream(CloudFormationModel):
     def get_consumer_by_arn(self, consumer_arn):
         return next((c for c in self.consumers if c.consumer_arn == consumer_arn), None)
 
-    def update_shard_count(self, shard_count):
-        # ToDo: This was extracted from init.  It's only accurate for new streams.
-        #  It doesn't (yet) try to accurately mimic the more complex re-sharding behavior.
-        #  It makes the stream as if it had been created with this number of shards.
-        #  Logically consistent, but not what AWS does.
+    def init_shards(self, shard_count):
         self.shard_count = shard_count
 
         step = 2 ** 128 // shard_count
         hash_ranges = itertools.chain(
-            map(lambda i: (i, i * step, (i + 1) * step), range(shard_count - 1)),
+            map(lambda i: (i, i * step, (i + 1) * step - 1), range(shard_count - 1)),
             [(shard_count - 1, (shard_count - 1) * step, 2 ** 128)],
         )
         for index, start, end in hash_ranges:
             shard = Shard(index, start, end)
             self.shards[shard.shard_id] = shard
+
+    def split_shard(self, shard_to_split, new_starting_hash_key):
+        new_starting_hash_key = int(new_starting_hash_key)
+
+        shard = self.shards[shard_to_split]
+
+        if shard.starting_hash < new_starting_hash_key < shard.ending_hash:
+            pass
+        else:
+            raise InvalidArgumentError(
+                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {self.stream_name} under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash - 1)}."
+            )
+
+        if not shard.is_open:
+            raise InvalidArgumentError(
+                message=f"Shard {shard.shard_id} in stream {self.stream_name} under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
+            )
+
+        last_id = sorted(self.shards.values(), key=attrgetter("_shard_id"))[
+            -1
+        ]._shard_id
+
+        # Create two new shards
+        new_shard_1 = Shard(
+            last_id + 1,
+            starting_hash=shard.starting_hash,
+            ending_hash=new_starting_hash_key - 1,
+            parent=shard.shard_id,
+        )
+        new_shard_2 = Shard(
+            last_id + 2,
+            starting_hash=new_starting_hash_key,
+            ending_hash=shard.ending_hash,
+            parent=shard.shard_id,
+        )
+        self.shards[new_shard_1.shard_id] = new_shard_1
+        self.shards[new_shard_2.shard_id] = new_shard_2
+        shard.is_open = False
+
+        records = shard.records
+        shard.records = OrderedDict()
+
+        for index in records:
+            record = records[index]
+            self.put_record(
+                record.partition_key, record.explicit_hash_key, None, record.data
+            )
+
+    def merge_shards(self, shard_to_merge, adjacent_shard_to_merge):
+        shard1 = self.shards[shard_to_merge]
+        shard2 = self.shards[adjacent_shard_to_merge]
+
+        # Validate the two shards are adjacent
+        if shard1.ending_hash == (shard2.starting_hash - 1):
+            pass
+        elif shard2.ending_hash == (shard1.starting_hash + 1):
+            pass
+        else:
+            raise InvalidArgumentError(adjacent_shard_to_merge)
+
+        # Create a new shard
+        last_id = sorted(self.shards.values(), key=attrgetter("_shard_id"))[
+            -1
+        ]._shard_id
+        new_shard = Shard(
+            last_id + 1,
+            starting_hash=shard1.starting_hash,
+            ending_hash=shard2.ending_hash,
+            parent=shard1.shard_id,
+            adjacent_parent=shard2.shard_id,
+        )
+        self.shards[new_shard.shard_id] = new_shard
+
+        # Close the merged shards
+        shard1.is_open = False
+        shard2.is_open = False
+
+        # Move all data across
+        for record in shard1.records.values():
+            new_shard.put_record(
+                record.partition_key, record.data, record.explicit_hash_key
+            )
+        for record in shard2.records.values():
+            new_shard.put_record(
+                record.partition_key, record.data, record.explicit_hash_key
+            )
+
+    def update_shard_count(self, target_shard_count):
+        current_shard_count = len([s for s in self.shards.values() if s.is_open])
+        if current_shard_count == target_shard_count:
+            return
+
+        # Split shards until we have enough shards
+        # AWS seems to split until we have (current * 2) shards, and then merge until we reach the target
+        # That's what observable at least - the actual algorithm is probably more advanced
+        #
+        if current_shard_count < target_shard_count:
+            open_shards = [
+                (shard_id, shard)
+                for shard_id, shard in self.shards.items()
+                if shard.is_open
+            ]
+            for shard_id, shard in open_shards:
+                # Split the current shard
+                new_starting_hash_key = str(
+                    int((shard.ending_hash + shard.starting_hash) / 2)
+                )
+                self.split_shard(shard_id, new_starting_hash_key)
+
+        current_shard_count = len([s for s in self.shards.values() if s.is_open])
+
+        # If we need to reduce the shard count, merge shards until we get there
+        while current_shard_count > target_shard_count:
+            # Keep track of how often we need to merge to get to the target shard count
+            required_shard_merges = current_shard_count - target_shard_count
+            # Get a list of pairs of adjacent shards
+            shard_list = sorted(
+                [s for s in self.shards.values() if s.is_open],
+                key=lambda x: x.starting_hash,
+            )
+            adjacent_shards = zip(
+                [s for s in shard_list[0:-1:2]], [s for s in shard_list[1::2]]
+            )
+
+            for (shard, adjacent) in adjacent_shards:
+                self.merge_shards(shard.shard_id, adjacent.shard_id)
+                required_shard_merges -= 1
+                if required_shard_merges == 0:
+                    break
+
+            current_shard_count = len([s for s in self.shards.values() if s.is_open])
+
+        self.shard_count = target_shard_count
 
     @property
     def arn(self):
@@ -387,12 +520,12 @@ class KinesisBackend(BaseBackend):
             service_region, zones, "kinesis", special_service_name="kinesis-streams"
         )
 
-    def create_stream(
-        self, stream_name, shard_count, retention_period_hours
-    ):
+    def create_stream(self, stream_name, shard_count, retention_period_hours):
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
-        stream = Stream(stream_name, shard_count, retention_period_hours, self.region_name)
+        stream = Stream(
+            stream_name, shard_count, retention_period_hours, self.region_name
+        )
         self.streams[stream_name] = stream
         return stream
 
@@ -510,128 +643,27 @@ class KinesisBackend(BaseBackend):
                 position="newStartingHashKey",
                 regex_to_match=r"0|([1-9]\d{0,38})",
             )
-        new_starting_hash_key = int(new_starting_hash_key)
 
-        shard = stream.shards[shard_to_split]
-
-        if shard.starting_hash < new_starting_hash_key < shard.ending_hash:
-            pass
-        else:
-            raise InvalidArgumentError(
-                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {stream_name} under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash-1)}."
-            )
-
-        if not shard.is_open:
-            raise InvalidArgumentError(
-                message=f"Shard {shard.shard_id} in stream {stream_name} under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
-            )
-
-        last_id = sorted(stream.shards.values(), key=attrgetter("_shard_id"))[
-            -1
-        ]._shard_id
-
-        # Create two new shards
-        new_shard_1 = Shard(
-            last_id + 1,
-            starting_hash=shard.starting_hash,
-            ending_hash=new_starting_hash_key - 1,
-            parent=shard.shard_id,
-        )
-        new_shard_2 = Shard(
-            last_id + 2,
-            starting_hash=new_starting_hash_key,
-            ending_hash=shard.ending_hash,
-            parent=shard.shard_id,
-        )
-        stream.shards[new_shard_1.shard_id] = new_shard_1
-        stream.shards[new_shard_2.shard_id] = new_shard_2
-        shard.is_open = False
-
-        records = shard.records
-        shard.records = OrderedDict()
-
-        for index in records:
-            record = records[index]
-            stream.put_record(
-                record.partition_key, record.explicit_hash_key, None, record.data
-            )
+        stream.split_shard(shard_to_split, new_starting_hash_key)
 
     def merge_shards(self, stream_name, shard_to_merge, adjacent_shard_to_merge):
         stream = self.describe_stream(stream_name)
 
         if shard_to_merge not in stream.shards:
-            print(f"Shard {shard_to_merge} not found")
             raise ShardNotFoundError(shard_to_merge, stream=stream_name)
 
         if adjacent_shard_to_merge not in stream.shards:
-            print(f"Shard 2 {adjacent_shard_to_merge} not found")
             raise ShardNotFoundError(adjacent_shard_to_merge, stream=stream_name)
 
-        shard1 = stream.shards[shard_to_merge]
-        shard2 = stream.shards[adjacent_shard_to_merge]
-
-        # Validate the two shards are adjacent
-        if shard1.ending_hash == (shard2.starting_hash):
-            pass
-        elif shard2.ending_hash == (shard1.starting_hash):
-            pass
-        else:
-            print(f"{shard1.starting_hash} || {shard1.ending_hash}")
-            print(f"{shard2.starting_hash} || {shard2.ending_hash}")
-            raise InvalidArgumentError(adjacent_shard_to_merge)
-
-        # Create a new shard
-        last_id = sorted(stream.shards.values(), key=attrgetter("_shard_id"))[
-            -1
-        ]._shard_id
-        new_shard = Shard(
-            last_id + 1,
-            starting_hash=shard1.starting_hash,
-            ending_hash=shard2.ending_hash,
-            parent=shard1.shard_id,
-            adjacent_parent=shard2.shard_id
-        )
-        stream.shards[new_shard.shard_id] = new_shard
-
-        # Close the merged shards
-        shard1.is_open = False
-        shard2.is_open = False
-
-        # Move all data across
-        for record in shard1.records.values():
-            new_shard.put_record(
-                record.partition_key, record.data, record.explicit_hash_key
-            )
-        for record in shard2.records.values():
-            new_shard.put_record(
-                record.partition_key, record.data, record.explicit_hash_key
-            )
+        stream.merge_shards(shard_to_merge, adjacent_shard_to_merge)
 
     def update_shard_count(self, stream_name, target_shard_count):
         stream = self.describe_stream(stream_name)
-        current_shard_count = len(stream.shards)
-        if current_shard_count == target_shard_count:
-            return current_shard_count
-        previous_shard_count = current_shard_count
+        current_shard_count = len([s for s in stream.shards.values() if s.is_open])
 
-        while current_shard_count < target_shard_count:
-            required_shard_splits = ...
-            for shard in ...:
-                shard.split()
-                required_shard_splits -= 1
-                if required_shard_splits == 0:
-                    break
+        stream.update_shard_count(target_shard_count)
 
-        while current_shard_count > target_shard_count:
-            required_shard_merges = ...
-            adjacent_shards = ...
-            for (x, y) in adjacent_shards:
-                merge(x, y)
-                required_shard_merges = -1
-                if required_shard_merges == 0:
-                    break
-
-        return previous_shard_count
+        return current_shard_count
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(self, stream_name):
@@ -645,10 +677,12 @@ class KinesisBackend(BaseBackend):
             raise InvalidRetentionPeriod(retention_period_hours, too_short=True)
         if retention_period_hours > 8760:
             raise InvalidRetentionPeriod(retention_period_hours, too_short=False)
-        if (
-            retention_period_hours < stream.retention_period_hours
-        ):
-            raise InvalidIncreaseRetention(name=stream_name, requested=retention_period_hours, existing=stream.retention_period_hours)
+        if retention_period_hours < stream.retention_period_hours:
+            raise InvalidIncreaseRetention(
+                name=stream_name,
+                requested=retention_period_hours,
+                existing=stream.retention_period_hours,
+            )
         stream.retention_period_hours = retention_period_hours
 
     def decrease_stream_retention_period(self, stream_name, retention_period_hours):
@@ -658,7 +692,11 @@ class KinesisBackend(BaseBackend):
         if retention_period_hours > 8760:
             raise InvalidRetentionPeriod(retention_period_hours, too_short=False)
         if retention_period_hours > stream.retention_period_hours:
-            raise InvalidDecreaseRetention(name=stream_name, requested=retention_period_hours, existing=stream.retention_period_hours)
+            raise InvalidDecreaseRetention(
+                name=stream_name,
+                requested=retention_period_hours,
+                existing=stream.retention_period_hours,
+            )
         stream.retention_period_hours = retention_period_hours
 
     def list_tags_for_stream(
@@ -702,7 +740,9 @@ class KinesisBackend(BaseBackend):
         if "ALL" in to_be_disabled:
             desired_metrics = []
         else:
-            desired_metrics = [metric for metric in current_metrics if metric not in to_be_disabled]
+            desired_metrics = [
+                metric for metric in current_metrics if metric not in to_be_disabled
+            ]
         stream.shard_level_metrics = desired_metrics
         return current_metrics, desired_metrics
 
@@ -717,7 +757,7 @@ class KinesisBackend(BaseBackend):
         """
         stream = self._find_stream_by_arn(stream_arn)
         return stream.consumers
-    
+
     def register_stream_consumer(self, stream_arn, consumer_name):
         consumer = Consumer(consumer_name, self.region_name, stream_arn)
         stream = self._find_stream_by_arn(stream_arn)
@@ -740,7 +780,9 @@ class KinesisBackend(BaseBackend):
     def deregister_stream_consumer(self, stream_arn, consumer_name, consumer_arn):
         if stream_arn:
             stream = self._find_stream_by_arn(stream_arn)
-            stream.consumers = [c for c in stream.consumers if c.consumer_name == consumer_name]
+            stream.consumers = [
+                c for c in stream.consumers if c.consumer_name == consumer_name
+            ]
         if consumer_arn:
             for stream in self.streams.values():
                 # Only one stream will actually have this consumer

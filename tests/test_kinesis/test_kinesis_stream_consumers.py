@@ -28,13 +28,17 @@ def test_register_stream_consumer():
     client = boto3.client("kinesis", region_name="eu-west-1")
     stream_arn = create_stream(client)
 
-    resp = client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="newconsumer")
+    resp = client.register_stream_consumer(
+        StreamARN=stream_arn, ConsumerName="newconsumer"
+    )
     resp.should.have.key("Consumer")
 
     consumer = resp["Consumer"]
 
     consumer.should.have.key("ConsumerName").equals("newconsumer")
-    consumer.should.have.key("ConsumerARN").equals(f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer")
+    consumer.should.have.key("ConsumerARN").equals(
+        f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer"
+    )
     consumer.should.have.key("ConsumerStatus").equals("ACTIVE")
     consumer.should.have.key("ConsumerCreationTimestamp")
 
@@ -43,7 +47,9 @@ def test_register_stream_consumer():
     resp.should.have.key("Consumers").length_of(1)
     consumer = resp["Consumers"][0]
     consumer.should.have.key("ConsumerName").equals("newconsumer")
-    consumer.should.have.key("ConsumerARN").equals(f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer")
+    consumer.should.have.key("ConsumerARN").equals(
+        f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer"
+    )
     consumer.should.have.key("ConsumerStatus").equals("ACTIVE")
     consumer.should.have.key("ConsumerCreationTimestamp")
 
@@ -54,7 +60,9 @@ def test_describe_stream_consumer_by_name():
     stream_arn = create_stream(client)
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="newconsumer")
 
-    resp = client.describe_stream_consumer(StreamARN=stream_arn, ConsumerName="newconsumer")
+    resp = client.describe_stream_consumer(
+        StreamARN=stream_arn, ConsumerName="newconsumer"
+    )
     resp.should.have.key("ConsumerDescription")
 
     consumer = resp["ConsumerDescription"]
@@ -69,7 +77,9 @@ def test_describe_stream_consumer_by_name():
 def test_describe_stream_consumer_by_arn():
     client = boto3.client("kinesis", region_name="us-east-2")
     stream_arn = create_stream(client)
-    resp = client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="newconsumer")
+    resp = client.register_stream_consumer(
+        StreamARN=stream_arn, ConsumerName="newconsumer"
+    )
     consumer_arn = resp["Consumer"]["ConsumerARN"]
 
     resp = client.describe_stream_consumer(ConsumerARN=consumer_arn)
@@ -103,11 +113,15 @@ def test_deregister_stream_consumer_by_name():
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer1")
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer2")
 
-    client.list_stream_consumers(StreamARN=stream_arn)["Consumers"].should.have.length_of(2)
+    client.list_stream_consumers(StreamARN=stream_arn)[
+        "Consumers"
+    ].should.have.length_of(2)
 
     client.deregister_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer1")
 
-    client.list_stream_consumers(StreamARN=stream_arn)["Consumers"].should.have.length_of(1)
+    client.list_stream_consumers(StreamARN=stream_arn)[
+        "Consumers"
+    ].should.have.length_of(1)
 
 
 @mock_kinesis
@@ -115,12 +129,18 @@ def test_deregister_stream_consumer_by_arn():
     client = boto3.client("kinesis", region_name="ap-southeast-1")
     stream_arn = create_stream(client)
 
-    resp = client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer1")
+    resp = client.register_stream_consumer(
+        StreamARN=stream_arn, ConsumerName="consumer1"
+    )
     consumer1_arn = resp["Consumer"]["ConsumerARN"]
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer2")
 
-    client.list_stream_consumers(StreamARN=stream_arn)["Consumers"].should.have.length_of(2)
+    client.list_stream_consumers(StreamARN=stream_arn)[
+        "Consumers"
+    ].should.have.length_of(2)
 
     client.deregister_stream_consumer(ConsumerARN=consumer1_arn)
 
-    client.list_stream_consumers(StreamARN=stream_arn)["Consumers"].should.have.length_of(1)
+    client.list_stream_consumers(StreamARN=stream_arn)[
+        "Consumers"
+    ].should.have.length_of(1)

@@ -63,7 +63,7 @@ def test_list_shards():
         shard["HashKeyRange"].should.have.key("StartingHashKey")
         shard["HashKeyRange"].should.have.key("EndingHashKey")
     shard_list[0]["HashKeyRange"]["EndingHashKey"].should.equal(
-        shard_list[1]["HashKeyRange"]["StartingHashKey"]
+        str(int(shard_list[1]["HashKeyRange"]["StartingHashKey"]) - 1)
     )
     # Verify sequence numbers
     for shard in shard_list:
@@ -300,22 +300,42 @@ def test_split_shard_that_was_split_before():
 
 
 @mock_kinesis
-def test_update_shard_count():
+@pytest.mark.parametrize(
+    "initial,target,expected_total",
+    [(2, 4, 6), (4, 5, 15), (10, 13, 37), (4, 2, 6), (5, 3, 7), (10, 3, 17)],
+)
+def test_update_shard_count(initial, target, expected_total):
+    """
+    Test that we update the shard count in a similar manner to AWS
+    Assert on: initial_shard_count, target_shard_count and total_shard_count
+
+    total_shard_count gives an idea of the number of splits/merges required to reach the target
+
+    These numbers have been verified against AWS
+    """
     client = boto3.client("kinesis", region_name="eu-west-1")
-    client.create_stream(StreamName="my-stream", ShardCount=2)
+    client.create_stream(StreamName="my-stream", ShardCount=initial)
 
     resp = client.update_shard_count(
-        StreamName="my-stream",
-        TargetShardCount=4,
-        ScalingType="UNIFORM_SCALING"
+        StreamName="my-stream", TargetShardCount=target, ScalingType="UNIFORM_SCALING"
     )
 
     resp.should.have.key("StreamName").equals("my-stream")
-    resp.should.have.key("CurrentShardCount").equals(2)
-    resp.should.have.key("TargetShardCount").equals(4)
+    resp.should.have.key("CurrentShardCount").equals(initial)
+    resp.should.have.key("TargetShardCount").equals(target)
 
-    stream = client.describe_stream(StreamName="my-stream")[
-        "StreamDescription"
-    ]
+    stream = client.describe_stream(StreamName="my-stream")["StreamDescription"]
     stream["StreamStatus"].should.equal("ACTIVE")
-    stream["Shards"].should.have.length_of(4)
+    stream["Shards"].should.have.length_of(expected_total)
+
+    active_shards = [
+        shard
+        for shard in stream["Shards"]
+        if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
+    ]
+    active_shards.should.have.length_of(target)
+
+    resp = client.describe_stream_summary(StreamName="my-stream")
+    stream = resp["StreamDescriptionSummary"]
+
+    stream["OpenShardCount"].should.equal(target)
