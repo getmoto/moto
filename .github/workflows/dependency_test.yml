@@ -1,4 +1,4 @@
-name: DependencyTest
+name: "Service-specific Dependencies Test"
 
 on:
   workflow_dispatch:

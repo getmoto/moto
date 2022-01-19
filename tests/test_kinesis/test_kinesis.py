@@ -2,47 +2,15 @@ import datetime
 import time
 import pytest
 
-import boto.kinesis
 import boto3
-from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
 from botocore.exceptions import ClientError
 
 from dateutil.tz import tzlocal
 
-from moto import mock_kinesis, mock_kinesis_deprecated
+from moto import mock_kinesis
 from moto.core import ACCOUNT_ID
 
 import sure  # noqa # pylint: disable=unused-import
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_create_cluster():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-
-    conn.create_stream("my_stream", 3)
-
-    stream_response = conn.describe_stream("my_stream")
-
-    stream = stream_response["StreamDescription"]
-    stream["StreamName"].should.equal("my_stream")
-    stream["HasMoreShards"].should.equal(False)
-    stream["StreamARN"].should.equal(
-        "arn:aws:kinesis:us-west-2:{}:stream/my_stream".format(ACCOUNT_ID)
-    )
-    stream["StreamStatus"].should.equal("ACTIVE")
-
-    shards = stream["Shards"]
-    shards.should.have.length_of(3)
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_describe_non_existent_stream():
-    conn = boto.kinesis.connect_to_region("us-east-1")
-    conn.describe_stream.when.called_with("not-a-stream").should.throw(
-        ResourceNotFoundException
-    )
 
 
 @mock_kinesis
@@ -54,26 +22,6 @@ def test_describe_non_existent_stream_boto3():
     err["Code"].should.equal("ResourceNotFoundException")
     err["Message"].should.equal(
         "Stream not-a-stream under account 123456789012 not found."
-    )
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_list_and_delete_stream():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-
-    conn.create_stream("stream1", 1)
-    conn.create_stream("stream2", 1)
-
-    conn.list_streams()["StreamNames"].should.have.length_of(2)
-
-    conn.delete_stream("stream2")
-
-    conn.list_streams()["StreamNames"].should.have.length_of(1)
-
-    # Delete invalid id
-    conn.delete_stream.when.called_with("not-a-stream").should.throw(
-        ResourceNotFoundException
     )
 
 
@@ -139,26 +87,6 @@ def test_describe_stream_summary():
     stream["StreamStatus"].should.equal("ACTIVE")
 
 
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_basic_shard_iterator():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-
-    response = conn.get_shard_iterator(stream_name, shard_id, "TRIM_HORIZON")
-    shard_iterator = response["ShardIterator"]
-
-    response = conn.get_records(shard_iterator)
-    shard_iterator = response["NextShardIterator"]
-    response["Records"].should.equal([])
-    response["MillisBehindLatest"].should.equal(0)
-
-
 @mock_kinesis
 def test_basic_shard_iterator_boto3():
     client = boto3.client("kinesis", region_name="us-west-1")
@@ -176,19 +104,6 @@ def test_basic_shard_iterator_boto3():
     resp = client.get_records(ShardIterator=shard_iterator)
     resp.should.have.key("Records").length_of(0)
     resp.should.have.key("MillisBehindLatest").equal(0)
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_get_invalid_shard_iterator():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    conn.get_shard_iterator.when.called_with(
-        stream_name, "123", "TRIM_HORIZON"
-    ).should.throw(ResourceNotFoundException)
 
 
 @mock_kinesis
@@ -209,40 +124,6 @@ def test_get_invalid_shard_iterator_boto3():
     err["Message"].should.equal(
         f"Shard 123 in stream {stream_name} under account {ACCOUNT_ID} does not exist"
     )
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_put_records():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    data = "hello world"
-    partition_key = "1234"
-
-    conn.put_record.when.called_with(stream_name, data, 1234).should.throw(
-        InvalidArgumentException
-    )
-
-    response = conn.put_record(stream_name, data, partition_key)
-    response["SequenceNumber"].should.equal("1")
-
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-
-    response = conn.get_shard_iterator(stream_name, shard_id, "TRIM_HORIZON")
-    shard_iterator = response["ShardIterator"]
-
-    response = conn.get_records(shard_iterator)
-    shard_iterator = response["NextShardIterator"]
-    response["Records"].should.have.length_of(1)
-    record = response["Records"][0]
-
-    record["Data"].should.equal("hello world")
-    record["PartitionKey"].should.equal("1234")
-    record["SequenceNumber"].should.equal("1")
 
 
 @mock_kinesis
@@ -276,36 +157,6 @@ def test_put_records_boto3():
     record["SequenceNumber"].should.equal("1")
 
 
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_get_records_limit():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    # Create some data
-    data = "hello world"
-
-    for index in range(5):
-        conn.put_record(stream_name, data, str(index))
-
-    # Get a shard iterator
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-    response = conn.get_shard_iterator(stream_name, shard_id, "TRIM_HORIZON")
-    shard_iterator = response["ShardIterator"]
-
-    # Retrieve only 3 records
-    response = conn.get_records(shard_iterator, limit=3)
-    response["Records"].should.have.length_of(3)
-
-    # Then get the rest of the results
-    next_shard_iterator = response["NextShardIterator"]
-    response = conn.get_records(next_shard_iterator)
-    response["Records"].should.have.length_of(2)
-
-
 @mock_kinesis
 def test_get_records_limit_boto3():
     client = boto3.client("kinesis", region_name="eu-west-2")
@@ -333,41 +184,6 @@ def test_get_records_limit_boto3():
     next_shard_iterator = resp["NextShardIterator"]
     response = client.get_records(ShardIterator=next_shard_iterator)
     response["Records"].should.have.length_of(2)
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_get_records_at_sequence_number():
-    # AT_SEQUENCE_NUMBER - Start reading exactly from the position denoted by
-    # a specific sequence number.
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    # Create some data
-    for index in range(1, 5):
-        conn.put_record(stream_name, str(index), str(index))
-
-    # Get a shard iterator
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-    response = conn.get_shard_iterator(stream_name, shard_id, "TRIM_HORIZON")
-    shard_iterator = response["ShardIterator"]
-
-    # Get the second record
-    response = conn.get_records(shard_iterator, limit=2)
-    second_sequence_id = response["Records"][1]["SequenceNumber"]
-
-    # Then get a new iterator starting at that id
-    response = conn.get_shard_iterator(
-        stream_name, shard_id, "AT_SEQUENCE_NUMBER", second_sequence_id
-    )
-    shard_iterator = response["ShardIterator"]
-
-    response = conn.get_records(shard_iterator)
-    # And the first result returned should be the second item
-    response["Records"][0]["SequenceNumber"].should.equal(second_sequence_id)
-    response["Records"][0]["Data"].should.equal("2")
 
 
 @mock_kinesis
@@ -409,41 +225,6 @@ def test_get_records_at_sequence_number_boto3():
     resp["Records"][0]["Data"].should.equal(b"data_2")
 
 
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_get_records_after_sequence_number():
-    # AFTER_SEQUENCE_NUMBER - Start reading right after the position denoted
-    # by a specific sequence number.
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    # Create some data
-    for index in range(1, 5):
-        conn.put_record(stream_name, str(index), str(index))
-
-    # Get a shard iterator
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-    response = conn.get_shard_iterator(stream_name, shard_id, "TRIM_HORIZON")
-    shard_iterator = response["ShardIterator"]
-
-    # Get the second record
-    response = conn.get_records(shard_iterator, limit=2)
-    second_sequence_id = response["Records"][1]["SequenceNumber"]
-
-    # Then get a new iterator starting after that id
-    response = conn.get_shard_iterator(
-        stream_name, shard_id, "AFTER_SEQUENCE_NUMBER", second_sequence_id
-    )
-    shard_iterator = response["ShardIterator"]
-
-    response = conn.get_records(shard_iterator)
-    # And the first result returned should be the third item
-    response["Records"][0]["Data"].should.equal("3")
-    response["MillisBehindLatest"].should.equal(0)
-
-
 @mock_kinesis
 def test_get_records_after_sequence_number_boto3():
     client = boto3.client("kinesis", region_name="eu-west-2")
@@ -482,46 +263,6 @@ def test_get_records_after_sequence_number_boto3():
     resp["Records"][0]["SequenceNumber"].should.equal("3")
     resp["Records"][0]["Data"].should.equal(b"data_3")
     resp["MillisBehindLatest"].should.equal(0)
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_get_records_latest():
-    # LATEST - Start reading just after the most recent record in the shard,
-    # so that you always read the most recent data in the shard.
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    # Create some data
-    for index in range(1, 5):
-        conn.put_record(stream_name, str(index), str(index))
-
-    # Get a shard iterator
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-    response = conn.get_shard_iterator(stream_name, shard_id, "TRIM_HORIZON")
-    shard_iterator = response["ShardIterator"]
-
-    # Get the second record
-    response = conn.get_records(shard_iterator, limit=2)
-    second_sequence_id = response["Records"][1]["SequenceNumber"]
-
-    # Then get a new iterator starting after that id
-    response = conn.get_shard_iterator(
-        stream_name, shard_id, "LATEST", second_sequence_id
-    )
-    shard_iterator = response["ShardIterator"]
-
-    # Write some more data
-    conn.put_record(stream_name, "last_record", "last_record")
-
-    response = conn.get_records(shard_iterator)
-    # And the only result returned should be the new item
-    response["Records"].should.have.length_of(1)
-    response["Records"][0]["PartitionKey"].should.equal("last_record")
-    response["Records"][0]["Data"].should.equal("last_record")
-    response["MillisBehindLatest"].should.equal(0)
 
 
 @mock_kinesis
@@ -887,20 +628,6 @@ def test_decrease_stream_retention_period_too_high():
     )
 
 
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_invalid_shard_iterator_type():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    response = conn.describe_stream(stream_name)
-    shard_id = response["StreamDescription"]["Shards"][0]["ShardId"]
-    response = conn.get_shard_iterator.when.called_with(
-        stream_name, shard_id, "invalid-type"
-    ).should.throw(InvalidArgumentException)
-
-
 @mock_kinesis
 def test_invalid_shard_iterator_type_boto3():
     client = boto3.client("kinesis", region_name="eu-west-2")
@@ -916,20 +643,6 @@ def test_invalid_shard_iterator_type_boto3():
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidArgumentException")
     err["Message"].should.equal("Invalid ShardIteratorType: invalid-type")
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_add_tags():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    conn.describe_stream(stream_name)
-    conn.add_tags_to_stream(stream_name, {"tag1": "val1"})
-    conn.add_tags_to_stream(stream_name, {"tag2": "val2"})
-    conn.add_tags_to_stream(stream_name, {"tag1": "val3"})
-    conn.add_tags_to_stream(stream_name, {"tag2": "val4"})
 
 
 @mock_kinesis
@@ -962,147 +675,6 @@ def test_add_list_remove_tags_boto3():
     tags.should.contain({"Key": "tag1", "Value": "val1"})
     tags.should.contain({"Key": "tag4", "Value": "val4"})
     tags.should.contain({"Key": "tag5", "Value": "val5"})
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_list_tags():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    conn.describe_stream(stream_name)
-    conn.add_tags_to_stream(stream_name, {"tag1": "val1"})
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag1").should.equal("val1")
-    conn.add_tags_to_stream(stream_name, {"tag2": "val2"})
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag2").should.equal("val2")
-    conn.add_tags_to_stream(stream_name, {"tag1": "val3"})
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag1").should.equal("val3")
-    conn.add_tags_to_stream(stream_name, {"tag2": "val4"})
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag2").should.equal("val4")
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_remove_tags():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-    conn.create_stream(stream_name, 1)
-
-    conn.describe_stream(stream_name)
-    conn.add_tags_to_stream(stream_name, {"tag1": "val1"})
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag1").should.equal("val1")
-    conn.remove_tags_from_stream(stream_name, ["tag1"])
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag1").should.equal(None)
-
-    conn.add_tags_to_stream(stream_name, {"tag2": "val2"})
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag2").should.equal("val2")
-    conn.remove_tags_from_stream(stream_name, ["tag2"])
-    tags = dict(
-        [
-            (tag["Key"], tag["Value"])
-            for tag in conn.list_tags_for_stream(stream_name)["Tags"]
-        ]
-    )
-    tags.get("tag2").should.equal(None)
-
-
-# Has boto3 equivalent
-@mock_kinesis_deprecated
-def test_merge_shards():
-    conn = boto.kinesis.connect_to_region("us-west-2")
-    stream_name = "my_stream"
-
-    conn.create_stream(stream_name, 4)
-
-    # Create some data
-    for index in range(1, 100):
-        conn.put_record(stream_name, str(index), str(index))
-
-    stream_response = conn.describe_stream(stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(4)
-
-    conn.merge_shards.when.called_with(
-        stream_name, "shardId-000000000000", "shardId-000000000002"
-    ).should.throw(InvalidArgumentException)
-
-    stream_response = conn.describe_stream(stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    shards.should.have.length_of(4)
-
-    conn.merge_shards(stream_name, "shardId-000000000000", "shardId-000000000001")
-
-    stream_response = conn.describe_stream(stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    active_shards = [
-        shard
-        for shard in shards
-        if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
-    ]
-    active_shards.should.have.length_of(3)
-
-    conn.merge_shards(stream_name, "shardId-000000000002", "shardId-000000000000")
-
-    stream_response = conn.describe_stream(stream_name)
-
-    stream = stream_response["StreamDescription"]
-    shards = stream["Shards"]
-    active_shards = [
-        shard
-        for shard in shards
-        if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
-    ]
-
-    active_shards.should.have.length_of(2)
 
 
 @mock_kinesis

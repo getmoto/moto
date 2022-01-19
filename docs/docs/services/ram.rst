@@ -39,6 +39,7 @@ ram
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources
+- [ ] list_permission_versions
 - [ ] list_permissions
 - [ ] list_principals
 - [ ] list_resource_share_permissions

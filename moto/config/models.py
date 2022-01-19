@@ -54,7 +54,8 @@ from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import BackendDict
 from moto.iam.config import role_config_query, policy_config_query
-from moto.s3.config import s3_account_public_access_block_query, s3_config_query
+from moto.s3.config import s3_config_query
+from moto.s3control.config import s3_account_public_access_block_query
 from moto.utilities.utils import load_resource
 
 

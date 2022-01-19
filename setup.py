@@ -3,7 +3,6 @@ from io import open
 import os
 import re
 from setuptools import setup, find_packages
-import sys
 import moto.__init__ as service_list
 
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
@@ -136,11 +135,11 @@ setup(
     test_suite="tests",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],

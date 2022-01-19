@@ -1,6 +1,35 @@
 Moto Changelog
 ===================
 
+2.3.2
+-----
+    General:
+        * Compatible with the latest `responses`-release (0.17.0)
+
+    New Services:
+        * Appsync:
+            * create_api_key()
+            * create_graphql_api()
+            * delete_api_key()
+            * delete_graphql_api()
+            * get_graphql_api()
+            * get_schema_creation_status()
+            * get_type()
+            * list_api_keys()
+            * list_graphql_apis()
+            * list_tags_for_resource()
+            * start_schema_creation()
+            * tag_resource()
+            * untag_resource()
+            * update_api_key()
+            * update_graphql_api()
+
+    Miscellaneous:
+        * AWSLambda:invoke() now throws an error when trying to return an oversized payload (>6MB)
+        * EC2:describe_instances() now supports filtering by `dns-name`
+        * EC2:describe_managed_prefix_lists() now supports filtering by tags
+        * SQS:delete_message_batch() now correctly deals with invalid receipt handles
+
 2.3.1
 -----
     New Services:

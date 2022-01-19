@@ -1,9 +1,3 @@
-from moto.packages.boto.ec2.elb.attributes import (
-    ConnectionSettingAttribute,
-    ConnectionDrainingAttribute,
-    AccessLogAttribute,
-    CrossZoneLoadBalancingAttribute,
-)
 from moto.packages.boto.ec2.elb.policies import AppCookieStickinessPolicy, OtherPolicy
 
 from moto.core.responses import BaseResponse
@@ -153,40 +147,30 @@ class ELBResponse(BaseResponse):
             "LoadBalancerAttributes.CrossZoneLoadBalancing."
         )
         if cross_zone:
-            attribute = CrossZoneLoadBalancingAttribute()
-            attribute.enabled = cross_zone["enabled"] == "true"
-            self.elb_backend.set_cross_zone_load_balancing_attribute(
-                load_balancer_name, attribute
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, cross_zone=cross_zone
             )
 
         access_log = self._get_dict_param("LoadBalancerAttributes.AccessLog.")
         if access_log:
-            attribute = AccessLogAttribute()
-            attribute.enabled = access_log["enabled"] == "true"
-            attribute.s3_bucket_name = access_log["s3_bucket_name"]
-            attribute.s3_bucket_prefix = access_log["s3_bucket_prefix"]
-            attribute.emit_interval = access_log["emit_interval"]
-            self.elb_backend.set_access_log_attribute(load_balancer_name, attribute)
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, access_log=access_log
+            )
 
         connection_draining = self._get_dict_param(
             "LoadBalancerAttributes.ConnectionDraining."
         )
         if connection_draining:
-            attribute = ConnectionDrainingAttribute()
-            attribute.enabled = connection_draining["enabled"] == "true"
-            attribute.timeout = connection_draining.get("timeout", 300)
-            self.elb_backend.set_connection_draining_attribute(
-                load_balancer_name, attribute
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, connection_draining=connection_draining
             )
 
         connection_settings = self._get_dict_param(
             "LoadBalancerAttributes.ConnectionSettings."
         )
         if connection_settings:
-            attribute = ConnectionSettingAttribute()
-            attribute.idle_timeout = connection_settings["idle_timeout"]
-            self.elb_backend.set_connection_settings_attribute(
-                load_balancer_name, attribute
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, connection_settings=connection_settings
             )
 
         template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
@@ -628,23 +612,23 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
   <DescribeLoadBalancerAttributesResult>
     <LoadBalancerAttributes>
       <AccessLog>
-        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
-        {% if attributes.access_log.enabled %}
-        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
+        <Enabled>{{ attributes["access_log"]["enabled"] }}</Enabled>
+        {% if attributes["access_log"]["enabled"] == 'true' %}
+        <S3BucketName>{{ attributes["access_log"]["s3_bucket_name"] }}</S3BucketName>
+        <S3BucketPrefix>{{ attributes["access_log"]["s3_bucket_prefix"] }}</S3BucketPrefix>
+        <EmitInterval>{{ attributes["access_log"]["emit_interval"] }}</EmitInterval>
         {% endif %}
       </AccessLog>
       <ConnectionSettings>
-        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
+        <IdleTimeout>{{ attributes["connection_settings"]["idle_timeout"] }}</IdleTimeout>
       </ConnectionSettings>
       <CrossZoneLoadBalancing>
         <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
       </CrossZoneLoadBalancing>
       <ConnectionDraining>
-        {% if attributes.connection_draining.enabled %}
+        {% if attributes["connection_draining"]["enabled"] == 'true' %}
         <Enabled>true</Enabled>
-        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
         {% else %}
         <Enabled>false</Enabled>
         {% endif %}
@@ -662,23 +646,23 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
   <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
     <LoadBalancerAttributes>
       <AccessLog>
-        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
-        {% if attributes.access_log.enabled %}
-        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
+        <Enabled>{{ attributes["access_log"]["enabled"] == 'true' }}</Enabled>
+        {% if attributes["access_log"]["enabled"] == 'true' %}
+        <S3BucketName>{{ attributes["access_log"]["s3_bucket_name"] }}</S3BucketName>
+        <S3BucketPrefix>{{ attributes["access_log"]["s3_bucket_prefix"] }}</S3BucketPrefix>
+        <EmitInterval>{{ attributes["access_log"]["emit_interval"] }}</EmitInterval>
         {% endif %}
       </AccessLog>
       <ConnectionSettings>
-        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
+        <IdleTimeout>{{ attributes["connection_settings"]["idle_timeout"] }}</IdleTimeout>
       </ConnectionSettings>
       <CrossZoneLoadBalancing>
         <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
       </CrossZoneLoadBalancing>
       <ConnectionDraining>
-        {% if attributes.connection_draining.enabled %}
+        {% if attributes["connection_draining"]["enabled"] == 'true' %}
         <Enabled>true</Enabled>
-        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
         {% else %}
         <Enabled>false</Enabled>
         {% endif %}
