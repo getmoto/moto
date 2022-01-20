@@ -23,6 +23,7 @@ from moto.dynamodb2.exceptions import (
     TransactionCanceledException,
     EmptyKeyAttributeException,
     InvalidAttributeTypeError,
+    MultipleTransactionsException
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -1566,6 +1567,13 @@ class DynamoDBBackend(BaseBackend):
     def transact_write_items(self, transact_items):
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
+        target_items = set()
+        def check_unicity(table_name, key):
+            item = (table_name, key)
+            if item in target_items:
+                # raise MultipleTransactionsException()
+                pass
+            target_items.add(item)
         errors = []
         for item in transact_items:
             try:
@@ -1573,6 +1581,7 @@ class DynamoDBBackend(BaseBackend):
                     item = item["ConditionCheck"]
                     key = item["Key"]
                     table_name = item["TableName"]
+                    check_unicity(table_name, key)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None
@@ -1611,6 +1620,7 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Delete"]
                     key = item["Key"]
                     table_name = item["TableName"]
+                    check_unicity(table_name, key)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None
@@ -1629,6 +1639,7 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Update"]
                     key = item["Key"]
                     table_name = item["TableName"]
+                    check_unicity(table_name, key)
                     update_expression = item["UpdateExpression"]
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(

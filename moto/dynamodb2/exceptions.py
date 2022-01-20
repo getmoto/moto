@@ -174,6 +174,13 @@ class TransactionCanceledException(ValueError):
         super().__init__(msg)
 
 
+class MultipleTransactionsException(MockValidationException):
+    msg = 'Transaction request cannot include multiple operations on one item'
+
+    def __init__(self):
+        super().__init__(self.msg)
+
+
 class EmptyKeyAttributeException(MockValidationException):
     empty_str_msg = "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     # AWS has a different message for empty index keys
