@@ -29,29 +29,33 @@ kinesis
 - [X] create_stream
 - [X] decrease_stream_retention_period
 - [X] delete_stream
-- [ ] deregister_stream_consumer
+- [X] deregister_stream_consumer
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_consumer
+- [X] describe_stream_consumer
 - [X] describe_stream_summary
-- [ ] disable_enhanced_monitoring
-- [ ] enable_enhanced_monitoring
+- [X] disable_enhanced_monitoring
+- [X] enable_enhanced_monitoring
 - [X] get_records
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
 - [X] list_shards
-- [ ] list_stream_consumers
+- [X] list_stream_consumers
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_streams
 - [X] list_tags_for_stream
 - [X] merge_shards
 - [X] put_record
 - [X] put_records
-- [ ] register_stream_consumer
+- [X] register_stream_consumer
 - [X] remove_tags_from_stream
 - [X] split_shard
-- [ ] start_stream_encryption
-- [ ] stop_stream_encryption
+- [X] start_stream_encryption
+- [X] stop_stream_encryption
 - [ ] subscribe_to_shard
-- [ ] update_shard_count
+- [X] update_shard_count
 - [ ] update_stream_mode
 
