@@ -32,7 +32,9 @@ class InvalidUpdateExpression(MockValidationException):
 
 
 class InvalidConditionExpression(MockValidationException):
-    invalid_condition_expr_msg = "Invalid ConditionExpression: {condition_expression_error}"
+    invalid_condition_expr_msg = (
+        "Invalid ConditionExpression: {condition_expression_error}"
+    )
 
     def __init__(self, condition_expression_error):
         self.condition_expression_error = condition_expression_error

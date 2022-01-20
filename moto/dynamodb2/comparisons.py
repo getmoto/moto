@@ -5,6 +5,7 @@ from collections import namedtuple
 from moto.dynamodb2.exceptions import ConditionAttributeIsReservedKeyword
 from moto.dynamodb2.parsing.reserved_keywords import ReservedKeywords
 
+
 def get_filter_expression(expr, names, values):
     """
     Parse a filter expression into an Op.

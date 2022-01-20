@@ -386,10 +386,14 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
     }
     table.put_item(Item=record)
 
-    expected_error_message = re.escape("An error occurred (ValidationException) when "
-    "calling the UpdateItem operation: Invalid ConditionExpression: Attribute name "
-    "is a reserved keyword; reserved keyword: end")
-    with pytest.raises(dynamodb.meta.client.exceptions.ClientError, match=expected_error_message):
+    expected_error_message = re.escape(
+        "An error occurred (ValidationException) when "
+        "calling the UpdateItem operation: Invalid ConditionExpression: Attribute name "
+        "is a reserved keyword; reserved keyword: end"
+    )
+    with pytest.raises(
+        dynamodb.meta.client.exceptions.ClientError, match=expected_error_message
+    ):
         table.update_item(
             Key={"id": "key-0"},
             UpdateExpression="REMOVE #first.#second, #other",
@@ -405,9 +409,7 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
 
     # table is unchanged
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal(
-        record
-    )
+    item.should.equal(record)
 
     # using attribute names solves the issue
     table.update_item(
@@ -417,7 +419,7 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
             "#first": "first",
             "#second": email_like_str,
             "#other": "other",
-            "#end": "end"
+            "#end": "end",
         },
         ExpressionAttributeValues={":value": "VALUE", ":one": 1},
         ConditionExpression="size(#first.#second.#end) = :one AND contains(#first.#second.#end, :value)",
