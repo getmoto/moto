@@ -1250,7 +1250,7 @@ def test_filter_expression():
 
     # attribute function tests (with extra spaces)
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "attribute_exists(Id) AND attribute_not_exists (User)", {}, {}
+        "attribute_exists(Id) AND attribute_not_exists (UnknownAttribute)", {}, {}
     )
     filter_expr.expr(row1).should.be(True)
 
