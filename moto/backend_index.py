@@ -91,6 +91,7 @@ backend_url_patterns = [
     ("mediapackage", re.compile("https?://mediapackage\\.(.+)\\.amazonaws.com")),
     ("mediastore", re.compile("https?://mediastore\\.(.+)\\.amazonaws\\.com")),
     ("mediastore-data", re.compile("https?://data.mediastore\\.(.+)\\.amazonaws.com")),
+    ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),

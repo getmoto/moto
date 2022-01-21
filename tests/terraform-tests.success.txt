@@ -68,6 +68,7 @@ TestAccAWSIAMUserPolicy
 TestAccAWSIPRanges
 TestAccAWSKmsAlias
 TestAccAWSKmsSecretDataSource
+TestAccAWSMq
 TestAccAWSPartition
 TestAccAWSProvider
 TestAccAWSRedshiftServiceAccount
