@@ -1419,3 +1419,11 @@ def test_describe_log_streams_no_prefix():
     err["Message"].should.equal(
         "Cannot order by LastEventTime with a logStreamNamePrefix."
     )
+
+
+@mock_logs
+def test_create_export_task():
+    client = boto3.client("logs", region_name="ap-southeast-1")
+    resp = client.create_export_task()
+
+    raise Exception("NotYetImplemented")

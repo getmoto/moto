@@ -982,5 +982,11 @@ class LogsBackend(BaseBackend):
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
 
+    def create_export_task( self, *, task_name: str, log_group_name: str, log_stream_name_prefix: str, from: int, destination: str, destination_prefix: str ):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        task_id = uuid.uuid1()
+        return task_id
+
 
 logs_backends = BackendDict(LogsBackend, "logs")
