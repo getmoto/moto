@@ -152,6 +152,42 @@
   "Location": "me-south-1a"
  },
  {
+  "InstanceType": "c6g.12xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.2xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.4xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.8xlarge",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.large",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.medium",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.metal",
+  "Location": "me-south-1a"
+ },
+ {
+  "InstanceType": "c6g.xlarge",
+  "Location": "me-south-1a"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "me-south-1a"
  },
@@ -585,6 +621,42 @@
  },
  {
   "InstanceType": "c5n.xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.12xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.2xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.4xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.8xlarge",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.large",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.medium",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.metal",
+  "Location": "me-south-1b"
+ },
+ {
+  "InstanceType": "c6g.xlarge",
   "Location": "me-south-1b"
  },
  {
@@ -1065,6 +1137,42 @@
  },
  {
   "InstanceType": "c5n.xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.12xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.16xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.2xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.4xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.8xlarge",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.large",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.medium",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.metal",
+  "Location": "me-south-1c"
+ },
+ {
+  "InstanceType": "c6g.xlarge",
   "Location": "me-south-1c"
  },
  {

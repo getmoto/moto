@@ -2448,6 +2448,46 @@
   "Location": "sae1-az3"
  },
  {
+  "InstanceType": "m6i.12xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.16xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.24xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.2xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.32xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.4xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.8xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.large",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.metal",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m6i.xlarge",
+  "Location": "sae1-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sae1-az3"
  },

@@ -3288,6 +3288,46 @@
   "Location": "apne2-az4"
  },
  {
+  "InstanceType": "m6i.12xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.16xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.24xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.2xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.32xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.4xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.8xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.large",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.metal",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "m6i.xlarge",
+  "Location": "apne2-az4"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "apne2-az4"
  },

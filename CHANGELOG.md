@@ -1,6 +1,25 @@
 Moto Changelog
 ===================
 
+3.0.0
+-----
+    This is a major release, and as such contains some breaking changes.
+
+    * Removed:
+        - All deprecated decorators have been removed
+
+    * Changes:
+        - The behaviour of the class-decorator has been reworked - the state is now reset before every test-method.
+        - ECS ARN's are now using the long format.
+
+    * Rebranded:
+        - The new mock_s3control-decorator has been introduced. The existing S3control methods (get/put/delete_public_access_block) are no longer available via mock_s3, only via mock_s3control.
+
+    * General:
+        - Python 3.5 support has been removed
+        - Python 3.10 is now supported
+
+
 2.3.2
 -----
     General:
