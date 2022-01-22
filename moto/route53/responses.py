@@ -30,32 +30,44 @@ class Route53(BaseResponse):
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
+        # Set these here outside the scope of the try/except
+        # so they're defined later when we call create_hosted_zone()
+        vpcid = None
+        vpcregion = None
         if request.method == "POST":
             elements = xmltodict.parse(self.body)
-            if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
-                comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"][
-                    "Comment"
-                ]
+            zone_request = elements["CreateHostedZoneRequest"]
+            if "HostedZoneConfig" in zone_request:
+                zone_config = zone_request["HostedZoneConfig"]
+                comment = zone_config["Comment"]
                 try:
                     # in boto3, this field is set directly in the xml
-                    private_zone = elements["CreateHostedZoneRequest"][
-                        "HostedZoneConfig"
-                    ]["PrivateZone"]
+                    private_zone = zone_config["PrivateZone"]
                 except KeyError:
-                    # if a VPC subsection is only included in xmls params when private_zone=True,
-                    # see boto: boto/route53/connection.py
-                    private_zone = "VPC" in elements["CreateHostedZoneRequest"]
+                    # if a VPC subsection is only included in xmls
+                    # params when private_zone=True, see boto:
+                    # boto/route53/connection.py
+                    private_zone = "VPC" in zone_request
             else:
                 comment = None
                 private_zone = False
 
-            name = elements["CreateHostedZoneRequest"]["Name"]
+            if private_zone == 'true':
+                try:
+                    vpcid = zone_request["VPC"]["VPCId"]
+                    vpcregion = zone_request["VPC"]["VPCRegion"]
+                except KeyError:
+                    msg="Private Hosted zone requires VPC ID and Region"
+                    raise KeyError(msg)
+
+            name = zone_request["Name"]
 
             if name[-1] != ".":
                 name += "."
-
+            
             new_zone = route53_backend.create_hosted_zone(
-                name, comment=comment, private_zone=private_zone
+                name, comment=comment, private_zone=private_zone,
+                vpcid=vpcid, vpcregion=vpcregion
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
             return 201, headers, template.render(zone=new_zone)
@@ -414,6 +426,13 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
          <NameServer>moto.test.com</NameServer>
       </NameServers>
    </DelegationSet>
+   <VPCs>
+      <VPC>
+         <VPCId>{{zone.vpcid}}</VPCId>
+         <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+      </VPC>
+   </VPCs>
+
 </GetHostedZoneResponse>"""
 
 CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -433,6 +452,10 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
          <NameServer>moto.test.com</NameServer>
       </NameServers>
    </DelegationSet>
+   <VPC>
+      <VPCId>{{zone.vpcid}}</VPCId>
+      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+   </VPC>
 </CreateHostedZoneResponse>"""
 
 LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
