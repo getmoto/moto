@@ -15,7 +15,7 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -474,11 +474,15 @@ class Route53Backend(BaseBackend):
             zones = sorted(zones, key=sort_key)
         return dnsname, zones
 
-    def list_hosted_zones_by_vpc(self, VpcId, VPCRegion):
+    def list_hosted_zones_by_vpc(self, VPCId, VPCRegion, MaxItems=None, NextToken=None):
+
         zone_list = []
         for zone in self.list_hosted_zones():
-            if zone["Config"]["Private"]:
-                this_zone = self.get_hosted_zone(zone["Id"])
+            import pytest
+            pytest.set_trace()
+
+            if zone.private_zone:
+                this_zone = self.get_hosted_zone(zone.id)
                 for vpc in this_zone["VPCs"]:
                     if vpc["VPCId"] == VpcId:
                         this_id = zone["Id"].replace("/hostedzone/", "")
@@ -486,7 +490,7 @@ class Route53Backend(BaseBackend):
                             {
                                 "HostedZoneId": this_id,
                                 "Name": zone["Name"],
-                                "Owner": {"OwningAccount": "XXXXXXXXXXXX"},
+                                "Owner": {"OwningAccount": ACCOUNT_ID},
                             }
                         )
 
