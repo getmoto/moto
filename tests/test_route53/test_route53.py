@@ -407,7 +407,7 @@ def test_hosted_zone_private_zone_preserved_boto3():
     # but without a _valid_ vpc-id should fail.
     conn = boto3.client("route53", region_name=region)
     with pytest.raises(KeyError) as e:
-        firstzone = conn.create_hosted_zone(
+        conn.create_hosted_zone(
             Name="testdns.aws.com.",
             CallerReference=str(hash("foo")),
             HostedZoneConfig=dict(PrivateZone=True, Comment="Test"),
@@ -524,17 +524,6 @@ def test_list_hosted_zones_by_name():
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
 
-    zone_a = conn.create_hosted_zone(
-        Name="test.a.org.",
-        CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
-    )
-    zone_a_2 = conn.create_hosted_zone(
-        Name="test.a.org.",
-        CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
-    )
-
     zone_b = conn.list_hosted_zones_by_name(DNSName="test.b.com.")
     len(zone_b["HostedZones"]).should.equal(1)
     zone_b["HostedZones"][0]["Name"].should.equal("test.b.com.")
@@ -564,6 +553,18 @@ def test_list_hosted_zones_by_name():
     b_hz_vpcs["VPCRegion"].should_not.be.empty
     b_hz_vpcs["VPCId"].should.be.equal(vpc_id)
     b_hz_vpcs["VPCRegion"].should.be.equal(region)
+
+    # Now create other zones and test them.
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
+    )
 
     # Now makes sure the other zones we created above are NOT private...
     zones = conn.list_hosted_zones_by_name(DNSName="test.a.org.")
