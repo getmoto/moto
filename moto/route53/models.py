@@ -212,7 +212,9 @@ def reverse_domain_name(domain_name):
 
 
 class FakeZone(CloudFormationModel):
-    def __init__(self, name, id_, private_zone, vpcid=None, vpcregion=None, comment=None):
+    def __init__(
+        self, name, id_, private_zone, vpcid=None, vpcregion=None, comment=None
+    ):
         self.name = name
         self.id = id_
         if comment is not None:
@@ -369,9 +371,18 @@ class Route53Backend(BaseBackend):
         self.resource_tags = defaultdict(dict)
         self.query_logging_configs = {}
 
-    def create_hosted_zone(self, name, private_zone, vpcid=None, vpcregion=None,comment=None):
+    def create_hosted_zone(
+        self, name, private_zone, vpcid=None, vpcregion=None, comment=None
+    ):
         new_id = create_route53_zone_id()
-        new_zone = FakeZone(name, new_id, private_zone=private_zone, vpcid=vpcid, vpcregion=vpcregion, comment=comment)
+        new_zone = FakeZone(
+            name,
+            new_id,
+            private_zone=private_zone,
+            vpcid=vpcid,
+            vpcregion=vpcregion,
+            comment=comment,
+        )
         self.zones[new_id] = new_zone
         return new_zone
 

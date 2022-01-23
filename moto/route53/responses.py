@@ -52,22 +52,25 @@ class Route53(BaseResponse):
                 comment = None
                 private_zone = False
 
-            if private_zone == 'true':
+            if private_zone == "true":
                 try:
                     vpcid = zone_request["VPC"]["VPCId"]
                     vpcregion = zone_request["VPC"]["VPCRegion"]
                 except KeyError:
-                    msg="Private Hosted zone requires VPC ID and Region"
+                    msg = "Private Hosted zone requires VPC ID and Region"
                     raise KeyError(msg)
 
             name = zone_request["Name"]
 
             if name[-1] != ".":
                 name += "."
-            
+
             new_zone = route53_backend.create_hosted_zone(
-                name, comment=comment, private_zone=private_zone,
-                vpcid=vpcid, vpcregion=vpcregion
+                name,
+                comment=comment,
+                private_zone=private_zone,
+                vpcid=vpcid,
+                vpcregion=vpcregion,
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
             return 201, headers, template.render(zone=new_zone)
