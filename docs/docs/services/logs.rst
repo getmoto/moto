@@ -27,7 +27,7 @@ logs
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
-- [ ] create_export_task
+- [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_destination
@@ -53,7 +53,7 @@ logs
         The next_token and limit arguments are ignored.  The maximum
         number of resource policies per region is a small number (less
         than 50), so pagination isn't needed.
-        
+
 
 - [X] describe_subscription_filters
 - [ ] disassociate_kms_key
@@ -78,4 +78,3 @@ logs
 - [X] tag_log_group
 - [ ] test_metric_filter
 - [X] untag_log_group
-
