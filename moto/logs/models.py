@@ -983,7 +983,17 @@ class LogsBackend(BaseBackend):
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
 
-    def create_export_task(self, *, task_name, log_group_name, log_stream_name_prefix, fromTime, to, destination, destination_prefix):
+    def create_export_task(
+        self,
+        *,
+        task_name,
+        log_group_name,
+        log_stream_name_prefix,
+        fromTime,
+        to,
+        destination,
+        destination_prefix,
+    ):
         s3_backend.get_bucket(destination)
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()

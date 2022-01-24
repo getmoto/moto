@@ -1461,7 +1461,10 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(aws_credent
     logs.create_log_group(logGroupName=log_group_name)
     with pytest.raises(ClientError):
         logs.create_export_task(
-            logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination
+            logGroupName=log_group_name,
+            fromTime=fromTime,
+            to=to,
+            destination=destination,
         )
 
 
@@ -1479,5 +1482,8 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
     logs = boto3.client("logs", region_name="ap-southeast-1")
     with pytest.raises(logs.exceptions.ResourceNotFoundException):
         logs.create_export_task(
-            logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination
+            logGroupName=log_group_name,
+            fromTime=fromTime,
+            to=to,
+            destination=destination,
         )
