@@ -10,7 +10,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_logs, settings
+from moto import mock_logs, mock_s3, settings
 from moto.core.utils import unix_time_millis
 from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 
@@ -1421,9 +1421,21 @@ def test_describe_log_streams_no_prefix():
     )
 
 
+@mock_s3
 @mock_logs
 def test_create_export_task():
-    client = boto3.client("logs", region_name="ap-southeast-1")
-    resp = client.create_export_task()
-
-    raise Exception("NotYetImplemented")
+    from uuid import UUID
+    log_group_name = "/aws/codebuild/blah1"
+    destination = "mybucket"
+    fromTime = 1611316574
+    to = 1642852574
+    logs = boto3.client("logs", region_name="ap-southeast-1")
+    s3 = boto3.client("s3")
+    logs.create_log_group(logGroupName=log_group_name)
+    s3.create_bucket(Bucket=destination)
+    resp = logs.create_export_task(
+        logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination
+    )
+    # taskId resembles a valid UUID (i.e. a string of 32 hexadecimal digits)
+    assert UUID(resp["taskId"])
+    assert resp['ResponseMetadata']["HTTPStatusCode"] == 200
