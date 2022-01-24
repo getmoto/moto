@@ -650,6 +650,18 @@ def test_put_retention_policy():
 
 
 @mock_logs
+def test_delete_log_stream():
+    logs = boto3.client("logs", TEST_REGION)
+    logs.create_log_group(logGroupName="logGroup")
+    logs.create_log_stream(logGroupName="logGroup", logStreamName="logStream")
+    resp = logs.describe_log_streams(logGroupName="logGroup")
+    assert resp["logStreams"][0]["logStreamName"] == "logStream"
+    logs.delete_log_stream(logGroupName="logGroup", logStreamName="logStream")
+    resp = logs.describe_log_streams(logGroupName="logGroup")
+    assert resp["logStreams"] == []
+
+
+@mock_logs
 def test_delete_retention_policy():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
