@@ -4,6 +4,7 @@ import time
 import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
 from datetime import timedelta, datetime
+from uuid import UUID
 
 import boto3
 import pytest
@@ -1434,8 +1435,6 @@ def test_describe_log_streams_no_prefix():
 @mock_s3
 @mock_logs
 def test_create_export_task_happy_path(aws_credentials):
-    from uuid import UUID
-
     log_group_name = "/aws/codebuild/blah1"
     destination = "mybucket"
     fromTime = 1611316574
