@@ -1569,8 +1569,7 @@ class DynamoDBBackend(BaseBackend):
         def check_unicity(table_name, key):
             item = (table_name, key)
             if item in target_items:
-                # raise MultipleTransactionsException()
-                pass
+                raise MultipleTransactionsException()
             target_items.add(item)
 
         errors = []
