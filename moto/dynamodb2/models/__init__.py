@@ -1,36 +1,33 @@
-from collections import defaultdict
 import copy
 import datetime
 import decimal
 import json
 import re
 import uuid
+from collections import OrderedDict, defaultdict
 
-from collections import OrderedDict
-from moto.core import ACCOUNT_ID
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis, BackendDict
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.dynamodb2.comparisons import get_filter_expression
-from moto.dynamodb2.comparisons import get_expected
+from moto.core.utils import BackendDict, unix_time, unix_time_millis
+from moto.dynamodb2.comparisons import get_expected, get_filter_expression
 from moto.dynamodb2.exceptions import (
+    ConditionalCheckFailed,
+    EmptyKeyAttributeException,
+    HashKeyTooLong,
+    InvalidAttributeTypeError,
     InvalidIndexNameError,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
-    HashKeyTooLong,
+    MultipleTransactionsException,
     RangeKeyTooLong,
-    ConditionalCheckFailed,
     TransactionCanceledException,
-    EmptyKeyAttributeException,
-    InvalidAttributeTypeError,
-    MultipleTransactionsException
 )
-from moto.dynamodb2.models.utilities import bytesize
+from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 from moto.dynamodb2.models.dynamo_type import DynamoType
+from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
-from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -1568,12 +1565,14 @@ class DynamoDBBackend(BaseBackend):
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
         target_items = set()
+
         def check_unicity(table_name, key):
             item = (table_name, key)
             if item in target_items:
                 # raise MultipleTransactionsException()
                 pass
             target_items.add(item)
+
         errors = []
         for item in transact_items:
             try:

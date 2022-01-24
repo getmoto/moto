@@ -466,51 +466,8 @@ def test_creating_table_with_0_global_indexes():
     )
 
 
-# @mock_dynamodb2
-# def test_multiple_transactions_on_same_item():
-#     table_schema = {
-#         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-#         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
-#     }
-#     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-#     dynamodb.create_table(
-#         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-#     )
-#     # Insert an item
-#     dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
-
-#     def update_email_transact(email):
-#         return {"Update": {
-#                     "Key": {"id": {"S": "foo"}},
-#                     "TableName": "test-table",
-#                     "UpdateExpression": "SET #e = :v",
-#                     "ExpressionAttributeNames": {"#e": "email_address"},
-#                     "ExpressionAttributeValues": {":v": {"S": email}},
-#                 }
-#             }
-
-#     # with pytest.raises(ClientError) as exc:
-#     dynamodb.transact_write_items(
-#         TransactItems=[
-#             {"Update": {
-#                     "Key": {"id": {"S": "foo"}},
-#                     "TableName": "test-table",
-#                     "UpdateExpression": "SET #e = :v",
-#                     "ExpressionAttributeNames": {"#e": "email_address"},
-#                     "ExpressionAttributeValues": {":v": {"S": "test"}},
-#                 }
-#             }
-#             # update_email_transact("test2@moto.com"),
-#         ]
-#     )
-#     # err = exc.value.response["Error"]
-#     # err["Code"].should.equal("ValidationException")
-#     # err["Message"].should.equal(
-#     #     "Transaction request cannot include multiple operations on one item"
-#     # )
-
 @mock_dynamodb2
-def test_transact_write_items_update():
+def test_multiple_transactions_on_same_item():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
@@ -520,18 +477,28 @@ def test_transact_write_items_update():
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
     # Insert an item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}, "email_address": {"S": "test"}})
-    # Update the item
-    dynamodb.transact_write_items(
-        TransactItems=[
-            {
-                "Update": {
-                    "Key": {"id": {"S": "foo"}},
-                    "TableName": "test-table",
-                    "UpdateExpression": "SET #e = :v",
-                    "ExpressionAttributeNames": {"#e": "email_address"},
-                    "ExpressionAttributeValues": {":v": {"S": "test@moto.com"}},
-                }
+    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+
+    def update_email_transact(email):
+        return {
+            "Update": {
+                "Key": {"id": {"S": "foo"}},
+                "TableName": "test-table",
+                "UpdateExpression": "SET #e = :v",
+                "ExpressionAttributeNames": {"#e": "email_address"},
+                "ExpressionAttributeValues": {":v": {"S": email}},
             }
-        ]
+        }
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                update_email_transact("test1@moto.com"),
+                update_email_transact("test2@moto.com"),
+            ]
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "Transaction request cannot include multiple operations on one item"
     )

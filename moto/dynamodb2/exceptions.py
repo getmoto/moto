@@ -175,7 +175,7 @@ class TransactionCanceledException(ValueError):
 
 
 class MultipleTransactionsException(MockValidationException):
-    msg = 'Transaction request cannot include multiple operations on one item'
+    msg = "Transaction request cannot include multiple operations on one item"
 
     def __init__(self):
         super().__init__(self.msg)
