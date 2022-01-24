@@ -993,7 +993,7 @@ class LogsBackend(BaseBackend):
 
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
-        task_id = uuid.uuid1()
+        task_id = uuid.uuid4()
         return task_id
 
 
