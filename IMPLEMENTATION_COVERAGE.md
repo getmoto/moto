@@ -3354,7 +3354,7 @@
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
-- [ ] create_export_task
+- [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_destination

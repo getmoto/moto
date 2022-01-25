@@ -14,6 +14,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+from moto.s3 import s3_backend
 from .utils import PAGINATION_MODEL
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -981,6 +982,23 @@ class LogsBackend(BaseBackend):
         query_id = uuid.uuid1()
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
+
+    def create_export_task(
+        self,
+        *,
+        task_name,
+        log_group_name,
+        log_stream_name_prefix,
+        fromTime,
+        to,
+        destination,
+        destination_prefix,
+    ):
+        s3_backend.get_bucket(destination)
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        task_id = uuid.uuid4()
+        return task_id
 
 
 logs_backends = BackendDict(LogsBackend, "logs")
