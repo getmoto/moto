@@ -114,7 +114,11 @@ ec2
 - [X] create_route_table
 - [X] create_security_group
 - [X] create_snapshot
-- [ ] create_snapshots
+- [X] create_snapshots
+  
+        The CopyTagsFromSource-parameter is not yet implemented.
+        
+
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
