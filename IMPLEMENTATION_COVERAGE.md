@@ -3587,6 +3587,34 @@
 - [X] put_object
 </details>
 
+## mq
+<details>
+<summary>86% implemented</summary>
+
+- [X] create_broker
+- [X] create_configuration
+- [X] create_tags
+- [X] create_user
+- [X] delete_broker
+- [X] delete_tags
+- [X] delete_user
+- [X] describe_broker
+- [ ] describe_broker_engine_types
+- [ ] describe_broker_instance_options
+- [X] describe_configuration
+- [X] describe_configuration_revision
+- [X] describe_user
+- [X] list_brokers
+- [ ] list_configuration_revisions
+- [X] list_configurations
+- [X] list_tags
+- [X] list_users
+- [X] reboot_broker
+- [X] update_broker
+- [X] update_configuration
+- [X] update_user
+</details>
+
 ## opsworks
 <details>
 <summary>12% implemented</summary>
@@ -5372,7 +5400,6 @@
 - migrationhub-config
 - migrationhubstrategy
 - mobile
-- mq
 - mturk
 - mwaa
 - neptune
