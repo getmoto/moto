@@ -2754,6 +2754,9 @@ def test_boto3_put_object_with_tagging():
         {"Key": "foo", "Value": "bar"}
     )
 
+    resp = s3.get_object(Bucket=bucket_name, Key=key)
+    resp.should.have.key("TagCount").equals(1)
+
     s3.delete_object_tagging(Bucket=bucket_name, Key=key)
 
     s3.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"].should.equal([])

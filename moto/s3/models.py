@@ -115,6 +115,7 @@ class FakeKey(BaseModel):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
+        s3_backend=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -146,6 +147,8 @@ class FakeKey(BaseModel):
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
+
+        self.s3_backend = s3_backend
 
     @property
     def version_id(self):
@@ -265,6 +268,9 @@ class FakeKey(BaseModel):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
+        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        if tags:
+            res["x-amz-tagging-count"] = len(tags.keys())
 
         return res
 
@@ -1620,6 +1626,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            s3_backend=s3_backend,
         )
 
         keys = [
