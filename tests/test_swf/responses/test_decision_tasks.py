@@ -505,16 +505,17 @@ def test_start_and_fire_timer_decision():
             "DecisionTaskCompleted",
             "TimerStarted",
             "TimerFired",
+            "DecisionTaskScheduled",
         ]
     )
-    resp["events"][-2]["timerStartedEventAttributes"].should.equal(
+    resp["events"][-3]["timerStartedEventAttributes"].should.equal(
         {
             "decisionTaskCompletedEventId": 4,
             "startToFireTimeout": "1",
             "timerId": "timer1",
         }
     )
-    resp["events"][-1]["timerFiredEventAttributes"].should.equal(
+    resp["events"][-2]["timerFiredEventAttributes"].should.equal(
         {"startedEventId": 5, "timerId": "timer1"}
     )
 

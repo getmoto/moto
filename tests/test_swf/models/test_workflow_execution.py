@@ -589,10 +589,12 @@ def test_start_timer_correctly_fires_timer_later():
         # Small wait to let both events populate
         sleep(0.5)
 
+        second_to_last_event = wfe.events()[-2]
         last_event = wfe.events()[-1]
-        last_event.event_type.should.equal("TimerFired")
-        last_event.event_attributes["timerId"].should.equal("abc123")
-        last_event.event_attributes["startedEventId"].should.equal(1)
+        second_to_last_event.event_type.should.equal("TimerFired")
+        second_to_last_event.event_attributes["timerId"].should.equal("abc123")
+        second_to_last_event.event_attributes["startedEventId"].should.equal(1)
+        last_event.event_type.should.equal("DecisionTaskScheduled")
 
 
 def test_start_timer_fails_if_timer_already_started():
