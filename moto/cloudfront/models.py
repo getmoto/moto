@@ -100,6 +100,8 @@ class Origin:
 class DistributionConfig:
     def __init__(self, config):
         self.config = config
+        self.aliases = config.get("Aliases", {}).get("Items", {}).get("CNAME", [])
+        self.comment = config.get("Comment", "")
         self.default_cache_behavior = DefaultCacheBehaviour(
             config["DefaultCacheBehavior"]
         )
@@ -145,7 +147,6 @@ class Distribution(BaseModel):
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
         self.active_trusted_key_groups = ActiveTrustedKeyGroups()
-        self.aliases = []
         self.origin_groups = []
         self.alias_icp_recordals = []
         self.last_modified_time = "2021-11-27T10:34:26.802Z"
