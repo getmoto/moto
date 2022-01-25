@@ -2,6 +2,9 @@ import re
 from collections import deque
 from collections import namedtuple
 
+from moto.dynamodb2.exceptions import ConditionAttributeIsReservedKeyword
+from moto.dynamodb2.parsing.reserved_keywords import ReservedKeywords
+
 
 def get_filter_expression(expr, names, values):
     """
@@ -238,6 +241,11 @@ class ConditionExpressionParser:
 
     Node = namedtuple("Node", ["nonterminal", "kind", "text", "value", "children"])
 
+    @classmethod
+    def raise_exception_if_keyword(cls, attribute):
+        if attribute.upper() in ReservedKeywords.get_reserved_keywords():
+            raise ConditionAttributeIsReservedKeyword(attribute)
+
     def _lex_condition_expression(self):
         nodes = deque()
         remaining_expression = self.condition_expression
@@ -403,6 +411,7 @@ class ConditionExpressionParser:
             )
         else:
             # e.g. ItemId
+            self.raise_exception_if_keyword(name)
             return self.Node(
                 nonterminal=self.Nonterminal.IDENTIFIER,
                 kind=self.Kind.LITERAL,
