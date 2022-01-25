@@ -143,6 +143,7 @@ class Broker(BaseModel):
         region,
         authentication_strategy,
         auto_minor_version_upgrade,
+        configuration,
         deployment_mode,
         encryption_options,
         engine_type,
@@ -198,19 +199,28 @@ class Broker(BaseModel):
                     "default-az3",
                     "default-az4",
                 ]
+            elif self.deployment_mode == "ACTIVE_STANDBY_MULTI_AZ":
+                self.subnet_ids = ["active-subnet", "standby-subnet"]
             else:
                 self.subnet_ids = ["default-subnet"]
 
         self.users = dict()
-        for u in users:
-            username = u["username"]
-            self.users[username] = User(broker_id=self.id, username=username)
+        for user in users:
+            self.create_user(
+                username=user["username"],
+                groups=user.get("groups", []),
+                console_access=user.get("consoleAccess", False),
+            )
 
         if self.engine_type.upper() == "RABBITMQ":
             self.configurations = None
         else:
+            current_config = configuration or {
+                "id": f"c-{get_random_hex(6)}",
+                "revision": 1,
+            }
             self.configurations = {
-                "current": {"id": f"c-{get_random_hex(6)}", "revision": 1},
+                "current": current_config,
                 "history": [],
             }
         if self.engine_type.upper() == "RABBITMQ":
@@ -233,6 +243,15 @@ class Broker(BaseModel):
             }
         ]
 
+        if deployment_mode == "ACTIVE_STANDBY_MULTI_AZ":
+            self.instances.append(
+                {
+                    "consoleURL": console_url,
+                    "endpoints": endpoints,
+                    "ipAddress": "192.168.0.2",
+                }
+            )
+
     def update(
         self,
         authentication_strategy,
@@ -249,6 +268,9 @@ class Broker(BaseModel):
             self.authentication_strategy = authentication_strategy
         if auto_minor_version_upgrade is not None:
             self.auto_minor_version_upgrade = auto_minor_version_upgrade
+        if configuration:
+            self.configurations["history"].append(self.configurations["current"])
+            self.configurations["current"] = configuration
         if engine_version:
             self.engine_version = engine_version
         if host_instance_type:
@@ -367,6 +389,7 @@ class MQBackend(BaseBackend):
             region=self.region_name,
             authentication_strategy=authentication_strategy,
             auto_minor_version_upgrade=auto_minor_version_upgrade,
+            configuration=configuration,
             deployment_mode=deployment_mode,
             encryption_options=encryption_options,
             engine_type=engine_type,

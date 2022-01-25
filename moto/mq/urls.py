@@ -19,5 +19,4 @@ url_paths = {
     "{0}/v1/configurations/(?P<config_id>[^/]+)$": response.configuration,
     "{0}/v1/configurations/(?P<config_id>[^/]+)/revisions/(?P<revision_id>[^/]+)$": response.configuration_revision,
     "{0}/v1/tags/(?P<resource_arn>[^/]+)$": response.tags,
-    "{0}/.*$": response.dispatch,
 }

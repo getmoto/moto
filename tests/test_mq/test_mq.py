@@ -48,6 +48,96 @@ def test_create_with_tags():
 
 
 @mock_mq
+def test_create_with_multiple_users():
+    client = boto3.client("mq", region_name="us-east-2")
+    broker_id = client.create_broker(
+        AutoMinorVersionUpgrade=False,
+        BrokerName="testbroker",
+        DeploymentMode="CLUSTER_MULTI_AZ",
+        EngineType="RabbitMQ",
+        EngineVersion="version",
+        HostInstanceType="hit",
+        PubliclyAccessible=True,
+        Users=[
+            {
+                "ConsoleAccess": True,
+                "Groups": ["second", "first", "third"],
+                "Password": "SecondTestTest1234",
+                "Username": "SecondTest",
+            },
+            {
+                "ConsoleAccess": False,
+                "Groups": [],
+                "Password": "TestTest1234",
+                "Username": "Test",
+            },
+        ],
+    )["BrokerId"]
+
+    user1 = client.describe_user(BrokerId=broker_id, Username="SecondTest")
+    user1.should.have.key("Username").equals("SecondTest")
+    user1.should.have.key("Groups").equals(["second", "first", "third"])
+    user1.should.have.key("ConsoleAccess").equals(True)
+
+    user2 = client.describe_user(BrokerId=broker_id, Username="Test")
+    user2.should.have.key("Username").equals("Test")
+    user2.should.have.key("Groups").equals([])
+    user2.should.have.key("ConsoleAccess").equals(False)
+
+
+@mock_mq
+def test_create_with_configuration():
+    client = boto3.client("mq", region_name="us-east-2")
+    broker_id = client.create_broker(
+        AutoMinorVersionUpgrade=False,
+        BrokerName="testbroker",
+        Configuration={"Id": "config_id_x", "Revision": 3},
+        DeploymentMode="CLUSTER_SINGLE",
+        EngineType="ActiveMQ",
+        EngineVersion="version",
+        HostInstanceType="hit",
+        PubliclyAccessible=True,
+        Tags={"key1": "val2", "key2": "val2"},
+        Users=[],
+    )["BrokerId"]
+
+    resp = client.describe_broker(BrokerId=broker_id)
+
+    resp.should.have.key("Configurations")
+    resp["Configurations"].should.have.key("Current").equals(
+        {"Id": "config_id_x", "Revision": 3}
+    )
+
+
+@mock_mq
+def test_update_with_configuration():
+    client = boto3.client("mq", region_name="us-east-2")
+    broker_id = client.create_broker(
+        AutoMinorVersionUpgrade=False,
+        BrokerName="testbroker",
+        Configuration={"Id": "config_id_x", "Revision": 1},
+        DeploymentMode="CLUSTER_SINGLE",
+        EngineType="ActiveMQ",
+        EngineVersion="version",
+        HostInstanceType="hit",
+        PubliclyAccessible=True,
+        Tags={"key1": "val2", "key2": "val2"},
+        Users=[],
+    )["BrokerId"]
+
+    client.update_broker(
+        BrokerId=broker_id, Configuration={"Id": "config_id_x", "Revision": 2}
+    )
+
+    resp = client.describe_broker(BrokerId=broker_id)
+
+    resp.should.have.key("Configurations")
+    resp["Configurations"].should.have.key("Current").equals(
+        {"Id": "config_id_x", "Revision": 2}
+    )
+
+
+@mock_mq
 def test_delete_broker():
     client = boto3.client("mq", region_name="ap-southeast-1")
     broker_id = client.create_broker(
@@ -188,6 +278,27 @@ def test_describe_multiple_rabbits():
     resp.shouldnt.have.key("Configurations")
     resp.should.have.key("Logs").equals({"General": False})
     resp.should.have.key("SubnetIds").length_of(4)
+
+
+@mock_mq
+def test_describe_active_mq_with_standby():
+    client = boto3.client("mq", region_name="us-east-2")
+    broker_id = client.create_broker(
+        AutoMinorVersionUpgrade=False,
+        BrokerName="testbroker",
+        DeploymentMode="ACTIVE_STANDBY_MULTI_AZ",
+        EngineType="ActiveMQ",
+        EngineVersion="version",
+        HostInstanceType="hit",
+        PubliclyAccessible=True,
+        Users=[],
+    )["BrokerId"]
+
+    resp = client.describe_broker(BrokerId=broker_id)
+
+    # Instances and subnets in two regions - one active, one standby
+    resp.should.have.key("BrokerInstances").length_of(2)
+    resp.should.have.key("SubnetIds").length_of(2)
 
 
 @mock_mq
