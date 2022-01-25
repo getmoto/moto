@@ -741,6 +741,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
+        self.root_device_name = ami.root_device_name if ami else None
 
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
@@ -3624,6 +3625,29 @@ class EBSBackend(object):
         snapshot = Snapshot(*params)
         self.snapshots[snapshot_id] = snapshot
         return snapshot
+
+    def create_snapshots(self, instance_spec, description, tags):
+        """
+        The CopyTagsFromSource-parameter is not yet implemented.
+        """
+        instance = self.get_instance(instance_spec["InstanceId"])
+        block_device_mappings = instance.block_device_mapping
+
+        if str(instance_spec.get("ExcludeBootVolume", False)).lower() == "true":
+            volumes = [
+                m.volume_id
+                for k, m in block_device_mappings.items()
+                if k != instance.root_device_name
+            ]
+        else:
+            volumes = [m.volume_id for m in block_device_mappings.values()]
+
+        snapshots = [
+            self.create_snapshot(v_id, description=description) for v_id in volumes
+        ]
+        for snapshot in snapshots:
+            snapshot.add_tags(tags)
+        return snapshots
 
     def describe_snapshots(self, snapshot_ids=None, filters=None):
         matches = self.snapshots.copy().values()
