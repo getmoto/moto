@@ -1365,6 +1365,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         kms_key_id = request.headers.get(
             "x-amz-server-side-encryption-aws-kms-key-id", None
         )
+
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None
         )
@@ -1437,13 +1438,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if isinstance(copy_source, bytes):
                 copy_source = copy_source.decode("utf-8")
             copy_source_parsed = urlparse(copy_source)
-            src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+            src_bucket, src_key = (
+                unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
+            )
             src_version_id = parse_qs(copy_source_parsed.query).get(
                 "versionId", [None]
             )[0]
 
             key = self.backend.get_object(
-                src_bucket, src_key, version_id=src_version_id
+                src_bucket, src_key, version_id=src_version_id, key_is_clean=True
             )
 
             if key is not None:
@@ -1455,16 +1458,22 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     ):
                         raise ObjectNotInActiveTierError(key)
 
+                bucket_key_enabled = (
+                    request.headers.get(
+                        "x-amz-server-side-encryption-bucket-key-enabled", ""
+                    ).lower()
+                    == "true"
+                )
+
                 self.backend.copy_object(
-                    src_bucket,
-                    src_key,
+                    key,
                     bucket_name,
                     key_name,
                     storage=storage_class,
                     acl=acl,
-                    src_version_id=src_version_id,
                     kms_key_id=kms_key_id,
                     encryption=encryption,
+                    bucket_key_enabled=bucket_key_enabled,
                 )
             else:
                 raise MissingKey(key=src_key)
