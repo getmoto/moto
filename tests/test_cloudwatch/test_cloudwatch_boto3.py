@@ -106,6 +106,31 @@ def test_get_metric_statistics():
 
 
 @mock_cloudwatch
+def test_get_metric_invalid_parameter_combination():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+    utc_now = datetime.now(tz=pytz.utc)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[dict(MetricName="metric", Value=1.5, Timestamp=utc_now)],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        # make request without both statistics or extended statistics parameters
+        conn.get_metric_statistics(
+            Namespace="tester",
+            MetricName="metric",
+            StartTime=utc_now - timedelta(seconds=60),
+            EndTime=utc_now + timedelta(seconds=60),
+            Period=60,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterCombination")
+    err["Message"].should.equal("Must specify either Statistics or ExtendedStatistics")
+
+
+@mock_cloudwatch
 def test_get_metric_statistics_dimensions():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=pytz.utc)
