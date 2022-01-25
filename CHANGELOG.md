@@ -1,6 +1,46 @@
 Moto Changelog
 ===================
 
+3.0.1
+-----
+
+    * New Services:
+        * MQ:
+            * create_broker()
+            * create_configuration()
+            * create_tags()
+            * create_user()
+            * delete_broker()
+            * delete_tags()
+            * delete_user()
+            * describe_broker()
+            * describe_configuration()
+            * describe_configuration_revision()
+            * describe_user()
+            * list_brokers()
+            * list_configurations()
+            * list_tags()
+            * list_users()
+            * reboot_broker()
+            * update_broker()
+            * update_configuration()
+            * update_user()
+
+    * New Methods:
+        * EC2:
+            * create_snapshots()
+        * Logs:
+            * create_export_task()
+        * Organizations:
+            * remove_account_from_organization()
+
+    * Miscellaneous:
+        * DynamoDB: transact_write_items() now throws a MultipleTransactionsException when appropriate
+        * DynamoDB: Now throws the appropriate InvalidConditionExpression when a ConditionExpression contains reserved keywords
+        * Organizations: delete_organization() now validates whether all accounts are deleted
+        * SecretsManager: The attributes CreatedDate and LastChangedDate are now returned for secrets
+        * SNS: Simplistic email validation is now in place before sending emails
+
 3.0.0
 -----
     This is a major release, and as such contains some breaking changes.

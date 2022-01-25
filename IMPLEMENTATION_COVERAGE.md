@@ -1371,7 +1371,7 @@
 - [X] create_route_table
 - [X] create_security_group
 - [X] create_snapshot
-- [ ] create_snapshots
+- [X] create_snapshots
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
@@ -3350,7 +3350,7 @@
 
 ## logs
 <details>
-<summary>57% implemented</summary>
+<summary>59% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -3697,7 +3697,7 @@
 
 ## organizations
 <details>
-<summary>74% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -3745,7 +3745,7 @@
 - [X] list_targets_for_policy
 - [X] move_account
 - [X] register_delegated_administrator
-- [ ] remove_account_from_organization
+- [X] remove_account_from_organization
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit
