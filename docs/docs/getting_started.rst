@@ -184,6 +184,8 @@ The decorator is effective for every test-method inside your class. State is not
             # 'bucket_inside' however, created inside the other test, no longer exists
             pass
 
+.. note:: A tearDown-method can be used to destroy any buckets/state, but because state is automatically destroyed before a test-method start, this is not strictly necessary.
+
 Stand-alone server mode
 ~~~~~~~~~~~~~~~~~~~~~~~
 
