@@ -3562,6 +3562,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
 
     # Older version has tags while the most recent does not
     resp = s3.get_object_tagging(Bucket=bucket_name, Key=key, VersionId=first_object.id)
+    resp["VersionId"].should.equal(first_object.id)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
     sorted_tagset.should.equal(
@@ -3571,6 +3572,7 @@ def test_boto3_put_object_tagging_on_earliest_version():
     resp = s3.get_object_tagging(
         Bucket=bucket_name, Key=key, VersionId=second_object.id
     )
+    resp["VersionId"].should.equal(second_object.id)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     resp["TagSet"].should.equal([])
 
