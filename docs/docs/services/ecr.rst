@@ -28,15 +28,19 @@ ecr
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
+- [ ] batch_get_repository_scanning_configuration
 - [ ] complete_layer_upload
+- [ ] create_pull_through_cache_rule
 - [X] create_repository
 - [X] delete_lifecycle_policy
+- [ ] delete_pull_through_cache_rule
 - [X] delete_registry_policy
 - [X] delete_repository
 - [X] delete_repository_policy
 - [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
 - [X] describe_images
+- [ ] describe_pull_through_cache_rules
 - [X] describe_registry
 - [X] describe_repositories
   
@@ -48,6 +52,7 @@ ecr
 - [X] get_lifecycle_policy
 - [ ] get_lifecycle_policy_preview
 - [X] get_registry_policy
+- [ ] get_registry_scanning_configuration
 - [X] get_repository_policy
 - [ ] initiate_layer_upload
 - [X] list_images
@@ -61,6 +66,7 @@ ecr
 - [X] put_image_tag_mutability
 - [X] put_lifecycle_policy
 - [X] put_registry_policy
+- [ ] put_registry_scanning_configuration
 - [X] put_replication_configuration
 - [X] set_repository_policy
 - [X] start_image_scan

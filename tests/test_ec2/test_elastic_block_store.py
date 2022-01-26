@@ -1,55 +1,13 @@
-import boto
-import boto.ec2
 import boto3
 
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
-from moto import mock_ec2, mock_ec2_deprecated
-from moto.ec2 import ec2_backends
+from moto import mock_ec2
 from moto.ec2.models import OWNER_ID
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_and_delete_volume():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a")
-
-    all_volumes = conn.get_all_volumes()
-
-    current_volume = [item for item in all_volumes if item.id == volume.id]
-    current_volume.should.have.length_of(1)
-    current_volume[0].size.should.equal(80)
-    current_volume[0].zone.should.equal("us-east-1a")
-    current_volume[0].encrypted.should.be(False)
-
-    volume = current_volume[0]
-
-    with pytest.raises(EC2ResponseError) as ex:
-        volume.delete(dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    volume.delete()
-
-    all_volumes = conn.get_all_volumes()
-    my_volume = [item for item in all_volumes if item.id == volume.id]
-    my_volume.should.have.length_of(0)
-
-    # Deleting something that was already deleted should throw an error
-    with pytest.raises(EC2ResponseError) as cm:
-        volume.delete()
-    cm.value.code.should.equal("InvalidVolume.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -86,46 +44,6 @@ def test_create_and_delete_volume_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_delete_attached_volume():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    # create an instance
-    instance = reservation.instances[0]
-    # create a volume
-    volume = conn.create_volume(80, "us-east-1a")
-    # attach volume to instance
-    volume.attach(instance.id, "/dev/sdh")
-
-    volume.update()
-    volume.volume_state().should.equal("in-use")
-    volume.attachment_state().should.equal("attached")
-
-    volume.attach_data.instance_id.should.equal(instance.id)
-
-    # attempt to delete volume
-    # assert raises VolumeInUseError
-    with pytest.raises(EC2ResponseError) as ex:
-        volume.delete()
-    ex.value.error_code.should.equal("VolumeInUse")
-    ex.value.status.should.equal(400)
-    ex.value.message.should.equal(
-        "Volume {0} is currently attached to {1}".format(volume.id, instance.id)
-    )
-
-    volume.detach()
-
-    volume.update()
-    volume.volume_state().should.equal("available")
-
-    volume.delete()
-
-    all_volumes = conn.get_all_volumes()
-    my_volume = [item for item in all_volumes if item.id == volume.id]
-    my_volume.should.have.length_of(0)
 
 
 @mock_ec2
@@ -168,19 +86,6 @@ def test_delete_attached_volume_boto3():
     [v["VolumeId"] for v in all_volumes].shouldnt.contain(volume.id)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_encrypted_volume_dryrun():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-
 @mock_ec2
 def test_create_encrypted_volume_dryrun_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -193,24 +98,6 @@ def test_create_encrypted_volume_dryrun_boto3():
     )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_encrypted_volume():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a", encrypted=True)
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    all_volumes = [vol for vol in conn.get_all_volumes() if vol.id == volume.id]
-    all_volumes[0].encrypted.should.be(True)
-
-
 @mock_ec2
 def test_create_encrypted_volume_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -219,27 +106,6 @@ def test_create_encrypted_volume_boto3():
 
     all_volumes = client.describe_volumes(VolumeIds=[volume.id])["Volumes"]
     all_volumes[0]["Encrypted"].should.be(True)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_filter_volume_by_id():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume1 = conn.create_volume(80, "us-east-1a")
-    volume2 = conn.create_volume(36, "us-east-1b")
-    volume3 = conn.create_volume(20, "us-east-1c")
-    vol1 = conn.get_all_volumes(volume_ids=volume3.id)
-    vol1.should.have.length_of(1)
-    vol1[0].size.should.equal(20)
-    vol1[0].zone.should.equal("us-east-1c")
-    vol2 = conn.get_all_volumes(volume_ids=[volume1.id, volume2.id])
-    vol2.should.have.length_of(2)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_volumes(volume_ids=["vol-does_not_exist"])
-    cm.value.code.should.equal("InvalidVolume.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -262,115 +128,6 @@ def test_filter_volume_by_id_boto3():
         client.describe_volumes(VolumeIds=["vol-does_not_exist"])
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_volume_filters():
-    conn = boto.ec2.connect_to_region("us-east-1")
-
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-
-    instance.update()
-
-    volume1 = conn.create_volume(80, "us-east-1a", encrypted=True)
-    volume2 = conn.create_volume(36, "us-east-1b", encrypted=False)
-    volume3 = conn.create_volume(20, "us-east-1c", encrypted=True)
-
-    snapshot = volume3.create_snapshot(description="testsnap")
-    volume4 = conn.create_volume(25, "us-east-1a", snapshot=snapshot)
-
-    conn.create_tags([volume1.id], {"testkey1": "testvalue1"})
-    conn.create_tags([volume2.id], {"testkey2": "testvalue2"})
-
-    volume1.update()
-    volume2.update()
-    volume3.update()
-    volume4.update()
-
-    block_mapping = instance.block_device_mapping["/dev/sda1"]
-
-    volume_ids = (
-        volume1.id,
-        volume2.id,
-        volume3.id,
-        volume4.id,
-        block_mapping.volume_id,
-    )
-
-    volumes_by_attach_time = conn.get_all_volumes(
-        filters={"attachment.attach-time": block_mapping.attach_time}
-    )
-    set([vol.id for vol in volumes_by_attach_time]).should.equal(
-        {block_mapping.volume_id}
-    )
-
-    volumes_by_attach_device = conn.get_all_volumes(
-        filters={"attachment.device": "/dev/sda1"}
-    )
-    set([vol.id for vol in volumes_by_attach_device]).should.equal(
-        {block_mapping.volume_id}
-    )
-
-    volumes_by_attach_instance_id = conn.get_all_volumes(
-        filters={"attachment.instance-id": instance.id}
-    )
-    set([vol.id for vol in volumes_by_attach_instance_id]).should.equal(
-        {block_mapping.volume_id}
-    )
-
-    volumes_by_attach_status = conn.get_all_volumes(
-        filters={"attachment.status": "attached"}
-    )
-    set([vol.id for vol in volumes_by_attach_status]).should.equal(
-        {block_mapping.volume_id}
-    )
-
-    volumes_by_create_time = conn.get_all_volumes(
-        filters={"create-time": volume4.create_time}
-    )
-    set([vol.create_time for vol in volumes_by_create_time]).should.equal(
-        {volume4.create_time}
-    )
-
-    volumes_by_size = conn.get_all_volumes(filters={"size": volume2.size})
-    set([vol.id for vol in volumes_by_size]).should.equal({volume2.id})
-
-    volumes_by_snapshot_id = conn.get_all_volumes(filters={"snapshot-id": snapshot.id})
-    set([vol.id for vol in volumes_by_snapshot_id]).should.equal({volume4.id})
-
-    volumes_by_status = conn.get_all_volumes(filters={"status": "in-use"})
-    set([vol.id for vol in volumes_by_status]).should.equal({block_mapping.volume_id})
-
-    volumes_by_id = conn.get_all_volumes(filters={"volume-id": volume1.id})
-    set([vol.id for vol in volumes_by_id]).should.equal({volume1.id})
-
-    volumes_by_tag_key = conn.get_all_volumes(filters={"tag-key": "testkey1"})
-    set([vol.id for vol in volumes_by_tag_key]).should.equal({volume1.id})
-
-    volumes_by_tag_value = conn.get_all_volumes(filters={"tag-value": "testvalue1"})
-    set([vol.id for vol in volumes_by_tag_value]).should.equal({volume1.id})
-
-    volumes_by_tag = conn.get_all_volumes(filters={"tag:testkey1": "testvalue1"})
-    set([vol.id for vol in volumes_by_tag]).should.equal({volume1.id})
-
-    volumes_by_unencrypted = conn.get_all_volumes(filters={"encrypted": "false"})
-    set(
-        [vol.id for vol in volumes_by_unencrypted if vol.id in volume_ids]
-    ).should.equal({block_mapping.volume_id, volume2.id})
-
-    volumes_by_encrypted = conn.get_all_volumes(filters={"encrypted": "true"})
-    set([vol.id for vol in volumes_by_encrypted if vol.id in volume_ids]).should.equal(
-        {volume1.id, volume3.id, volume4.id}
-    )
-
-    volumes_by_availability_zone = conn.get_all_volumes(
-        filters={"availability-zone": "us-east-1b"}
-    )
-    set(
-        [vol.id for vol in volumes_by_availability_zone if vol.id in volume_ids]
-    ).should.equal({volume2.id})
 
 
 @mock_ec2
@@ -496,65 +253,6 @@ def test_volume_filters_boto3():
     [vol["VolumeId"] for vol in volumes_by_attach_device].should.contain(volume4.id)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_volume_attach_and_detach():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-    instance = reservation.instances[0]
-    volume = conn.create_volume(80, "us-east-1a")
-
-    volume.update()
-    volume.volume_state().should.equal("available")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        volume.attach(instance.id, "/dev/sdh", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    volume.attach(instance.id, "/dev/sdh")
-
-    volume.update()
-    volume.volume_state().should.equal("in-use")
-    volume.attachment_state().should.equal("attached")
-
-    volume.attach_data.instance_id.should.equal(instance.id)
-
-    with pytest.raises(EC2ResponseError) as ex:
-        volume.detach(dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    volume.detach()
-
-    volume.update()
-    volume.volume_state().should.equal("available")
-
-    with pytest.raises(EC2ResponseError) as cm1:
-        volume.attach("i-1234abcd", "/dev/sdh")
-    cm1.value.code.should.equal("InvalidInstanceID.NotFound")
-    cm1.value.status.should.equal(400)
-    cm1.value.request_id.should_not.be.none
-
-    with pytest.raises(EC2ResponseError) as cm2:
-        conn.detach_volume(volume.id, instance.id, "/dev/sdh")
-    cm2.value.code.should.equal("InvalidAttachment.NotFound")
-    cm2.value.status.should.equal(400)
-    cm2.value.request_id.should_not.be.none
-
-    with pytest.raises(EC2ResponseError) as cm3:
-        conn.detach_volume(volume.id, "i-1234abcd", "/dev/sdh")
-    cm3.value.code.should.equal("InvalidInstanceID.NotFound")
-    cm3.value.status.should.equal(400)
-    cm3.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_volume_attach_and_detach_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -621,47 +319,6 @@ def test_volume_attach_and_detach_boto3():
     ex3.value.response["Error"]["Code"].should.equal("InvalidInstanceID.NotFound")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_snapshot():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        snapshot = volume.create_snapshot("a dryrun snapshot", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    snapshot = volume.create_snapshot("a test snapshot")
-    snapshot.update()
-    snapshot.status.should.equal("completed")
-
-    snapshots = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
-    snapshots.should.have.length_of(1)
-    snapshots[0].description.should.equal("a test snapshot")
-    snapshots[0].start_time.should_not.be.none
-    snapshots[0].encrypted.should.be(False)
-
-    # Create snapshot without description
-    num_snapshots = len(conn.get_all_snapshots())
-
-    snapshot = volume.create_snapshot()
-    conn.get_all_snapshots().should.have.length_of(num_snapshots + 1)
-
-    snapshot.delete()
-    conn.get_all_snapshots().should.have.length_of(num_snapshots)
-
-    # Deleting something that was already deleted should throw an error
-    with pytest.raises(EC2ResponseError) as cm:
-        snapshot.delete()
-    cm.value.code.should.equal("InvalidSnapshot.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_create_snapshot_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -706,22 +363,6 @@ def test_create_snapshot_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_encrypted_snapshot():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a", encrypted=True)
-    snapshot = volume.create_snapshot("a test snapshot")
-    snapshot.update()
-    snapshot.status.should.equal("completed")
-
-    snapshots = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
-    snapshots.should.have.length_of(1)
-    snapshots[0].description.should.equal("a test snapshot")
-    snapshots[0].start_time.should_not.be.none
-    snapshots[0].encrypted.should.be(True)
-
-
 @mock_ec2
 @pytest.mark.parametrize("encrypted", [True, False])
 def test_create_encrypted_snapshot_boto3(encrypted):
@@ -744,34 +385,6 @@ def test_create_encrypted_snapshot_boto3(encrypted):
     snapshots[0]["Description"].should.equal("a test snapshot")
     snapshots[0]["StartTime"].should_not.be.none
     snapshots[0]["Encrypted"].should.be(encrypted)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_filter_snapshot_by_id():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume1 = conn.create_volume(36, "us-east-1a")
-    volume1.create_snapshot("a test snapshot 1")
-    volume2 = conn.create_volume(42, "us-east-1a")
-    snap2 = volume2.create_snapshot("a test snapshot 2")
-    volume3 = conn.create_volume(84, "us-east-1a")
-    snap3 = volume3.create_snapshot("a test snapshot 3")
-    snapshots1 = conn.get_all_snapshots(snapshot_ids=snap2.id)
-    snapshots1.should.have.length_of(1)
-    snapshots1[0].volume_id.should.equal(volume2.id)
-    snapshots1[0].region.name.should.equal(conn.region.name)
-    snapshots2 = conn.get_all_snapshots(snapshot_ids=[snap2.id, snap3.id])
-    snapshots2.should.have.length_of(2)
-    for s in snapshots2:
-        s.start_time.should_not.be.none
-        s.volume_id.should.be.within([volume2.id, volume3.id])
-        s.region.name.should.equal(conn.region.name)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_snapshots(snapshot_ids=["snap-does_not_exist"])
-    cm.value.code.should.equal("InvalidSnapshot.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -800,71 +413,6 @@ def test_filter_snapshot_by_id_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_snapshot_filters():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume1 = conn.create_volume(20, "us-east-1a", encrypted=False)
-    volume2 = conn.create_volume(25, "us-east-1a", encrypted=True)
-
-    snapshot1 = volume1.create_snapshot(description="testsnapshot1")
-    snapshot2 = volume1.create_snapshot(description="testsnapshot2")
-    snapshot3 = volume2.create_snapshot(description="testsnapshot3")
-
-    conn.create_tags([snapshot1.id], {"testkey1": "testvalue1"})
-    conn.create_tags([snapshot2.id], {"testkey2": "testvalue2"})
-
-    snapshots_by_description = conn.get_all_snapshots(
-        filters={"description": "testsnapshot1"}
-    )
-    set([snap.id for snap in snapshots_by_description]).should.equal({snapshot1.id})
-
-    snapshots_by_id = conn.get_all_snapshots(filters={"snapshot-id": snapshot1.id})
-    set([snap.id for snap in snapshots_by_id]).should.equal({snapshot1.id})
-
-    snapshots_by_start_time = conn.get_all_snapshots(
-        filters={"start-time": snapshot1.start_time}
-    )
-    set([snap.start_time for snap in snapshots_by_start_time]).should.equal(
-        {snapshot1.start_time}
-    )
-
-    snapshots_by_volume_id = conn.get_all_snapshots(filters={"volume-id": volume1.id})
-    set([snap.id for snap in snapshots_by_volume_id]).should.equal(
-        {snapshot1.id, snapshot2.id}
-    )
-
-    snapshots_by_status = conn.get_all_snapshots(filters={"status": "completed"})
-    (
-        {snapshot1.id, snapshot2.id, snapshot3.id}
-        - {snap.id for snap in snapshots_by_status}
-    ).should.have.length_of(0)
-
-    snapshots_by_volume_size = conn.get_all_snapshots(
-        filters={"volume-size": volume1.size}
-    )
-    set([snap.id for snap in snapshots_by_volume_size]).should.equal(
-        {snapshot1.id, snapshot2.id}
-    )
-
-    snapshots_by_tag_key = conn.get_all_snapshots(filters={"tag-key": "testkey1"})
-    set([snap.id for snap in snapshots_by_tag_key]).should.equal({snapshot1.id})
-
-    snapshots_by_tag_value = conn.get_all_snapshots(filters={"tag-value": "testvalue1"})
-    set([snap.id for snap in snapshots_by_tag_value]).should.equal({snapshot1.id})
-
-    snapshots_by_tag = conn.get_all_snapshots(filters={"tag:testkey1": "testvalue1"})
-    set([snap.id for snap in snapshots_by_tag]).should.equal({snapshot1.id})
-
-    snapshots_by_encrypted = conn.get_all_snapshots(filters={"encrypted": "true"})
-    set([snap.id for snap in snapshots_by_encrypted]).should.equal({snapshot3.id})
-
-    snapshots_by_owner_id = conn.get_all_snapshots(filters={"owner-id": OWNER_ID})
-    set([snap.id for snap in snapshots_by_owner_id]).should.equal(
-        {snapshot1.id, snapshot2.id, snapshot3.id}
-    )
 
 
 @mock_ec2
@@ -935,115 +483,6 @@ def test_snapshot_filters_boto3():
     [s["SnapshotId"] for s in snapshots].should.contain(snapshot1.id)
     [s["SnapshotId"] for s in snapshots].should.contain(snapshot2.id)
     [s["SnapshotId"] for s in snapshots].should.contain(snapshot3.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_snapshot_attribute():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a")
-    snapshot = volume.create_snapshot()
-
-    # Baseline
-    attributes = conn.get_snapshot_attribute(
-        snapshot.id, attribute="createVolumePermission"
-    )
-    attributes.name.should.equal("create_volume_permission")
-    attributes.attrs.should.have.length_of(0)
-
-    ADD_GROUP_ARGS = {
-        "snapshot_id": snapshot.id,
-        "attribute": "createVolumePermission",
-        "operation": "add",
-        "groups": "all",
-    }
-
-    REMOVE_GROUP_ARGS = {
-        "snapshot_id": snapshot.id,
-        "attribute": "createVolumePermission",
-        "operation": "remove",
-        "groups": "all",
-    }
-
-    # Add 'all' group and confirm
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.modify_snapshot_attribute(**ADD_GROUP_ARGS)
-
-    attributes = conn.get_snapshot_attribute(
-        snapshot.id, attribute="createVolumePermission"
-    )
-    attributes.attrs["groups"].should.have.length_of(1)
-    attributes.attrs["groups"].should.equal(["all"])
-
-    # Add is idempotent
-    conn.modify_snapshot_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(
-        EC2ResponseError
-    )
-
-    # Remove 'all' group and confirm
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{"dry_run": True}))
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
-
-    attributes = conn.get_snapshot_attribute(
-        snapshot.id, attribute="createVolumePermission"
-    )
-    attributes.attrs.should.have.length_of(0)
-
-    # Remove is idempotent
-    conn.modify_snapshot_attribute.when.called_with(
-        **REMOVE_GROUP_ARGS
-    ).should_not.throw(EC2ResponseError)
-
-    # Error: Add with group != 'all'
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.modify_snapshot_attribute(
-            snapshot.id,
-            attribute="createVolumePermission",
-            operation="add",
-            groups="everyone",
-        )
-    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-    # Error: Add with invalid snapshot ID
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.modify_snapshot_attribute(
-            "snapshot-abcd1234",
-            attribute="createVolumePermission",
-            operation="add",
-            groups="all",
-        )
-    cm.value.code.should.equal("InvalidSnapshot.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-    # Error: Remove with invalid snapshot ID
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.modify_snapshot_attribute(
-            "snapshot-abcd1234",
-            attribute="createVolumePermission",
-            operation="remove",
-            groups="all",
-        )
-    cm.value.code.should.equal("InvalidSnapshot.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -1215,46 +654,6 @@ def test_modify_snapshot_attribute():
     assert len(attributes["CreateVolumePermissions"]) == 0
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_volume_from_snapshot():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a")
-    snapshot = volume.create_snapshot("a test snapshot")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        snapshot = volume.create_snapshot("a test snapshot", dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    snapshot = volume.create_snapshot("a test snapshot")
-    snapshot.update()
-    snapshot.status.should.equal("completed")
-
-    new_volume = snapshot.create_volume("us-east-1a")
-    new_volume.size.should.equal(80)
-    new_volume.snapshot_id.should.equal(snapshot.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_volume_from_encrypted_snapshot():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    volume = conn.create_volume(80, "us-east-1a", encrypted=True)
-
-    snapshot = volume.create_snapshot("a test snapshot")
-    snapshot.update()
-    snapshot.status.should.equal("completed")
-
-    new_volume = snapshot.create_volume("us-east-1a")
-    new_volume.size.should.equal(80)
-    new_volume.snapshot_id.should.equal(snapshot.id)
-    new_volume.encrypted.should.be(True)
-
-
 @mock_ec2
 @pytest.mark.parametrize("encrypted", [True, False])
 def test_create_volume_from_snapshot_boto3(encrypted):
@@ -1273,38 +672,6 @@ def test_create_volume_from_snapshot_boto3(encrypted):
     new_volume["Size"].should.equal(80)
     new_volume["SnapshotId"].should.equal(snapshot.id)
     new_volume["Encrypted"].should.equal(encrypted)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_modify_attribute_blockDeviceMapping():
-    """
-    Reproduces the missing feature explained at [0], where we want to mock a
-    call to modify an instance attribute of type: blockDeviceMapping.
-
-    [0] https://github.com/spulec/moto/issues/160
-    """
-    conn = boto.ec2.connect_to_region("us-east-1")
-
-    reservation = conn.run_instances(EXAMPLE_AMI_ID)
-
-    instance = reservation.instances[0]
-
-    with pytest.raises(EC2ResponseError) as ex:
-        instance.modify_attribute(
-            "blockDeviceMapping", {"/dev/sda1": True}, dry_run=True
-        )
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    instance.modify_attribute("blockDeviceMapping", {"/dev/sda1": True})
-
-    instance = ec2_backends[conn.region.name].get_instance(instance.id)
-    instance.block_device_mapping.should.have.key("/dev/sda1")
-    instance.block_device_mapping["/dev/sda1"].delete_on_termination.should.be(True)
 
 
 @mock_ec2
@@ -1344,29 +711,6 @@ def test_modify_attribute_blockDeviceMapping_boto3():
     mapping = instance.block_device_mappings[0]
     mapping.should.have.key("DeviceName").equal("/dev/sda1")
     mapping["Ebs"]["DeleteOnTermination"].should.be(True)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_volume_tag_escaping():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    vol = conn.create_volume(10, "us-east-1a")
-    snapshot = conn.create_snapshot(vol.id, "Desc")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        snapshot.add_tags({"key": "</closed>"}, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
-    snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
-    dict(snaps[0].tags).should_not.be.equal({"key": "</closed>"})
-
-    snapshot.add_tags({"key": "</closed>"})
-
-    snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
-    dict(snaps[0].tags).should.equal({"key": "</closed>"})
 
 
 @mock_ec2
@@ -1565,3 +909,143 @@ def test_create_volume_with_non_standard_type(volume_type):
 
     volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
     volume["VolumeType"].should.equal(volume_type)
+
+
+@mock_ec2
+def test_create_snapshots_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.create_snapshots(
+            InstanceSpecification={"InstanceId": "asf"}, DryRun=True
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateSnapshots operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
+def test_create_snapshots_with_tagspecification():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    resp = client.create_snapshots(
+        Description="my tagged snapshots",
+        InstanceSpecification={"InstanceId": instance["InstanceId"]},
+        TagSpecifications=[
+            {
+                "ResourceType": "snapshot",
+                "Tags": [
+                    {"Key": "key1", "Value": "val1"},
+                    {"Key": "key2", "Value": "val2"},
+                ],
+            }
+        ],
+    )
+    snapshots = resp["Snapshots"]
+
+    snapshots.should.have.length_of(1)
+    snapshots[0].should.have.key("Description").equals("my tagged snapshots")
+    snapshots[0].should.have.key("Tags").equals(
+        [{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}]
+    )
+
+
+@mock_ec2
+def test_create_snapshots_single_volume():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    instance = client.describe_instances(InstanceIds=[instance["InstanceId"]])[
+        "Reservations"
+    ][0]["Instances"][0]
+    boot_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+
+    snapshots = client.create_snapshots(
+        InstanceSpecification={"InstanceId": instance["InstanceId"]}
+    )["Snapshots"]
+
+    snapshots.should.have.length_of(1)
+    snapshots[0].should.have.key("Encrypted").equals(False)
+    snapshots[0].should.have.key("VolumeId").equals(boot_volume["VolumeId"])
+    snapshots[0].should.have.key("VolumeSize").equals(8)
+    snapshots[0].should.have.key("SnapshotId")
+    snapshots[0].should.have.key("Description").equals("")
+    snapshots[0].should.have.key("Tags").equals([])
+
+
+@mock_ec2
+def test_create_snapshots_multiple_volumes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    instance = client.describe_instances(InstanceIds=[instance["InstanceId"]])[
+        "Reservations"
+    ][0]["Instances"][0]
+    boot_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+
+    volume1 = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
+    volume1.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdh")
+
+    volume2 = ec2.create_volume(Size=100, AvailabilityZone="us-east-1b")
+    volume2.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdg")
+
+    snapshots = client.create_snapshots(
+        InstanceSpecification={"InstanceId": instance["InstanceId"]}
+    )["Snapshots"]
+
+    # 3 Snapshots ; 1 boot, two additional volumes
+    snapshots.should.have.length_of(3)
+    # 3 unique snapshot IDs
+    set([s["SnapshotId"] for s in snapshots]).should.have.length_of(3)
+
+    boot_snapshot = next(
+        s for s in snapshots if s["VolumeId"] == boot_volume["VolumeId"]
+    )
+    boot_snapshot.should.have.key("VolumeSize").equals(8)
+
+    snapshot1 = next(s for s in snapshots if s["VolumeId"] == volume1.volume_id)
+    snapshot1.should.have.key("VolumeSize").equals(80)
+
+    snapshot2 = next(s for s in snapshots if s["VolumeId"] == volume2.volume_id)
+    snapshot2.should.have.key("VolumeSize").equals(100)
+
+
+@mock_ec2
+def test_create_snapshots_multiple_volumes_without_boot():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    volume1 = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
+    volume1.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdh")
+
+    volume2 = ec2.create_volume(Size=100, AvailabilityZone="us-east-1b")
+    volume2.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdg")
+
+    snapshots = client.create_snapshots(
+        InstanceSpecification={
+            "InstanceId": instance["InstanceId"],
+            "ExcludeBootVolume": True,
+        }
+    )["Snapshots"]
+
+    # 1 Snapshots ; Only the additional volumes are returned
+    snapshots.should.have.length_of(2)
+
+    snapshot1 = next(s for s in snapshots if s["VolumeId"] == volume1.volume_id)
+    snapshot1.should.have.key("VolumeSize").equals(80)
+
+    snapshot2 = next(s for s in snapshots if s["VolumeId"] == volume2.volume_id)
+    snapshot2.should.have.key("VolumeSize").equals(100)

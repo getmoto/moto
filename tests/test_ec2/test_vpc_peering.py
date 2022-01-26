@@ -2,26 +2,9 @@ import pytest
 from botocore.exceptions import ClientError
 
 import boto3
-import boto
-from boto.exception import EC2ResponseError
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_ec2, mock_ec2_deprecated
-from tests.helpers import requires_boto_gte
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.32.0")
-@mock_ec2_deprecated
-def test_vpc_peering_connections():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    peer_vpc = conn.create_vpc("11.0.0.0/16")
-
-    vpc_pcx = conn.create_vpc_peering_connection(vpc.id, peer_vpc.id)
-    vpc_pcx._status.code.should.equal("initiating-request")
-
-    return vpc_pcx
+from moto import mock_ec2
 
 
 def create_vpx_pcx(ec2, client):
@@ -43,19 +26,6 @@ def test_vpc_peering_connections_boto3():
     vpc_pcx["Status"]["Code"].should.equal("initiating-request")
 
 
-# Has boto3 equivalent
-@requires_boto_gte("2.32.0")
-@mock_ec2_deprecated
-def test_vpc_peering_connections_get_all():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc_pcx = test_vpc_peering_connections()
-    vpc_pcx._status.code.should.equal("initiating-request")
-
-    all_vpc_pcxs = conn.get_all_vpc_peering_connections()
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]._status.code.should.equal("pending-acceptance")
-
-
 @mock_ec2
 def test_vpc_peering_connections_get_all_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -73,27 +43,6 @@ def test_vpc_peering_connections_get_all_boto3():
         if vpc_pcx["VpcPeeringConnectionId"] == vpc_pcx_id
     ][0]
     my_vpc_pcx["Status"]["Code"].should.equal("pending-acceptance")
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.32.0")
-@mock_ec2_deprecated
-def test_vpc_peering_connections_accept():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc_pcx = test_vpc_peering_connections()
-
-    vpc_pcx = conn.accept_vpc_peering_connection(vpc_pcx.id)
-    vpc_pcx._status.code.should.equal("active")
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.reject_vpc_peering_connection(vpc_pcx.id)
-    cm.value.code.should.equal("InvalidStateTransition")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-    all_vpc_pcxs = conn.get_all_vpc_peering_connections()
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]._status.code.should.equal("active")
 
 
 @mock_ec2
@@ -120,27 +69,6 @@ def test_vpc_peering_connections_accept_boto3():
     my_vpc_pcxs[0]["Status"]["Code"].should.equal("active")
 
 
-# Has boto3 equivalent
-@requires_boto_gte("2.32.0")
-@mock_ec2_deprecated
-def test_vpc_peering_connections_reject():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc_pcx = test_vpc_peering_connections()
-
-    verdict = conn.reject_vpc_peering_connection(vpc_pcx.id)
-    verdict.should.equal(True)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.accept_vpc_peering_connection(vpc_pcx.id)
-    cm.value.code.should.equal("InvalidStateTransition")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-    all_vpc_pcxs = conn.get_all_vpc_peering_connections()
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]._status.code.should.equal("rejected")
-
-
 @mock_ec2
 def test_vpc_peering_connections_reject_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -161,27 +89,6 @@ def test_vpc_peering_connections_reject_boto3():
     )["VpcPeeringConnections"]
     my_pcxs.should.have.length_of(1)
     my_pcxs[0]["Status"]["Code"].should.equal("rejected")
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.32.1")
-@mock_ec2_deprecated
-def test_vpc_peering_connections_delete():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc_pcx = test_vpc_peering_connections()
-
-    verdict = vpc_pcx.delete()
-    verdict.should.equal(True)
-
-    all_vpc_pcxs = conn.get_all_vpc_peering_connections()
-    all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]._status.code.should.equal("deleted")
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.delete_vpc_peering_connection("pcx-1234abcd")
-    cm.value.code.should.equal("InvalidVpcPeeringConnectionId.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

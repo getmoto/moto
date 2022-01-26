@@ -48,7 +48,7 @@ elb
 - [ ] detach_load_balancer_from_subnets
 - [ ] disable_availability_zones_for_load_balancer
 - [ ] enable_availability_zones_for_load_balancer
-- [ ] modify_load_balancer_attributes
+- [X] modify_load_balancer_attributes
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags
 - [X] set_load_balancer_listener_ssl_certificate

@@ -696,3 +696,40 @@ class IoTResponse(BaseResponse):
     def disable_topic_rule(self):
         self.iot_backend.disable_topic_rule(rule_name=self._get_param("ruleName"))
         return json.dumps(dict())
+
+    def create_domain_configuration(self):
+        domain_configuration = self.iot_backend.create_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName"),
+            domain_name=self._get_param("domainName"),
+            server_certificate_arns=self._get_param("serverCertificateArns"),
+            validation_certificate_arn=self._get_param("validationCertificateArn"),
+            authorizer_config=self._get_param("authorizerConfig"),
+            service_type=self._get_param("serviceType"),
+        )
+        return json.dumps(domain_configuration.to_dict())
+
+    def delete_domain_configuration(self):
+        self.iot_backend.delete_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName")
+        )
+        return json.dumps(dict())
+
+    def describe_domain_configuration(self):
+        domain_configuration = self.iot_backend.describe_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName")
+        )
+        return json.dumps(domain_configuration.to_description_dict())
+
+    def list_domain_configurations(self):
+        return json.dumps(
+            dict(domainConfigurations=self.iot_backend.list_domain_configurations())
+        )
+
+    def update_domain_configuration(self):
+        domain_configuration = self.iot_backend.update_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName"),
+            authorizer_config=self._get_param("authorizerConfig"),
+            domain_configuration_status=self._get_param("domainConfigurationStatus"),
+            remove_authorizer_config=self._get_bool_param("removeAuthorizerConfig"),
+        )
+        return json.dumps(domain_configuration.to_dict())

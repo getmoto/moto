@@ -1,25 +1,21 @@
-import base64
 import json
 import time
 import uuid
 import hashlib
 
-import boto
 import boto3
 import botocore.exceptions
 import sure  # noqa # pylint: disable=unused-import
-from boto.exception import SQSError
-from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_sqs, mock_sqs_deprecated, settings
+from moto import mock_sqs, settings
 
 from unittest import SkipTest, mock
 
 import pytest
-from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
 from moto.sqs.models import (
+    Queue,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     MAXIMUM_MESSAGE_LENGTH,
@@ -277,6 +273,46 @@ def test_set_queue_attribute_empty_policy_removes_attr():
         "Attributes"
     ]
     response.shouldnt.have.key("Policy")
+
+
+def test_is_empty_redrive_policy_returns_true_for_empty_and_falsy_values():
+    assert Queue._is_empty_redrive_policy("")
+    assert Queue._is_empty_redrive_policy("{}")
+
+
+def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
+    test_dlq_arn = "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue"
+    assert not Queue._is_empty_redrive_policy(
+        json.dumps({"deadLetterTargetArn": test_dlq_arn, "maxReceiveCount": 5})
+    )
+    assert not Queue._is_empty_redrive_policy(json.dumps({"maxReceiveCount": 5}))
+
+
+@mock_sqs
+def test_set_queue_attribute_empty_redrive_removes_attr():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    dlq_resp = client.create_queue(QueueName="test-dlr-queue")
+    dlq_arn1 = client.get_queue_attributes(
+        QueueUrl=dlq_resp["QueueUrl"], AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+    q_name = str(uuid4())[0:6]
+    response = client.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 5}
+            ),
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    no_redrive = {"RedrivePolicy": ""}
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=no_redrive)
+    response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    response.shouldnt.have.key("RedrivePolicy")
 
 
 @mock_sqs
@@ -1369,22 +1405,6 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
     messages.should.equal([])
 
 
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_send_message_with_xml_characters():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    body_one = "< & >"
-
-    queue.write(queue.new_message(body_one))
-
-    messages = conn.receive_message(queue, number_messages=1)
-
-    messages[0].get_body().should.equal(body_one)
-
-
 @mock_sqs
 def test_send_message_with_xml_characters_boto3():
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -1398,69 +1418,6 @@ def test_send_message_with_xml_characters_boto3():
     messages = client.receive_message(QueueUrl=queue.url)["Messages"]
 
     messages[0]["Body"].should.equal(body_one)
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.28")
-@mock_sqs_deprecated
-def test_send_message_with_attributes():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    body = "this is a test message"
-    message = queue.new_message(body)
-    BASE64_BINARY = base64.b64encode(b"binary value").decode("utf-8")
-    message_attributes = {
-        "test.attribute_name": {
-            "data_type": "String",
-            "string_value": "attribute value",
-        },
-        "test.binary_attribute": {"data_type": "Binary", "binary_value": BASE64_BINARY},
-        "test.number_attribute": {
-            "data_type": "Number",
-            "string_value": "string value",
-        },
-    }
-    message.message_attributes = message_attributes
-
-    queue.write(message)
-
-    messages = conn.receive_message(
-        queue,
-        message_attributes=[
-            "test.attribute_name",
-            "test.binary_attribute",
-            "test.number_attribute",
-        ],
-    )
-
-    messages[0].get_body().should.equal(body)
-
-    for name, value in message_attributes.items():
-        dict(messages[0].message_attributes[name]).should.equal(value)
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_send_message_with_delay():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    body_one = "this is a test message"
-    body_two = "this is another test message"
-
-    queue.write(queue.new_message(body_one), delay_seconds=3)
-    queue.write(queue.new_message(body_two))
-
-    queue.count().should.equal(1)
-
-    messages = conn.receive_message(queue, number_messages=2)
-    assert len(messages) == 1
-    message = messages[0]
-    assert message.get_body().should.equal(body_two)
-    queue.count().should.equal(0)
 
 
 @mock_sqs
@@ -1483,19 +1440,6 @@ def test_send_message_with_delay_boto3():
     messages.should.have.length_of(0)
 
 
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_send_large_message_fails():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    body_one = "test message" * 200000
-    huge_message = queue.new_message(body_one)
-
-    queue.write.when.called_with(huge_message).should.throw(SQSError)
-
-
 @mock_sqs
 def test_send_large_message_fails_boto3():
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -1509,28 +1453,6 @@ def test_send_large_message_fails_boto3():
     err["Message"].should.equal(
         "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes."
     )
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_message_becomes_inflight_when_received():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=2)
-    queue.set_message_class(RawMessage)
-
-    body_one = "this is a test message"
-    queue.write(queue.new_message(body_one))
-    queue.count().should.equal(1)
-
-    messages = conn.receive_message(queue, number_messages=1)
-    queue.count().should.equal(0)
-
-    assert len(messages) == 1
-
-    # Wait
-    time.sleep(3)
-
-    queue.count().should.equal(1)
 
 
 @mock_sqs
@@ -1561,25 +1483,6 @@ def test_message_becomes_inflight_when_received_boto3():
     queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
 
 
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_receive_message_with_explicit_visibility_timeout():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    body_one = "this is another test message"
-    queue.write(queue.new_message(body_one))
-
-    queue.count().should.equal(1)
-    messages = conn.receive_message(queue, number_messages=1, visibility_timeout=0)
-
-    assert len(messages) == 1
-
-    # Message should remain visible
-    queue.count().should.equal(1)
-
-
 @mock_sqs
 def test_receive_message_with_explicit_visibility_timeout_boto3():
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -1600,41 +1503,6 @@ def test_receive_message_with_explicit_visibility_timeout_boto3():
 
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_change_message_visibility():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=2)
-    queue.set_message_class(RawMessage)
-
-    body_one = "this is another test message"
-    queue.write(queue.new_message(body_one))
-
-    queue.count().should.equal(1)
-    messages = conn.receive_message(queue, number_messages=1)
-
-    assert len(messages) == 1
-
-    queue.count().should.equal(0)
-
-    messages[0].change_visibility(2)
-
-    # Wait
-    time.sleep(1)
-
-    # Message is not visible
-    queue.count().should.equal(0)
-
-    time.sleep(2)
-
-    # Message now becomes visible
-    queue.count().should.equal(1)
-
-    messages = conn.receive_message(queue, number_messages=1)
-    messages[0].delete()
-    queue.count().should.equal(0)
 
 
 @mock_sqs
@@ -1694,56 +1562,6 @@ def test_change_message_visibility_on_unknown_receipt_handle():
     err["Message"].should.equal("The input receipt handle is invalid.")
 
 
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_message_attributes():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=2)
-    queue.set_message_class(RawMessage)
-
-    body_one = "this is another test message"
-    queue.write(queue.new_message(body_one))
-
-    queue.count().should.equal(1)
-
-    messages = conn.receive_message(queue, number_messages=1, attributes=["All"])
-    queue.count().should.equal(0)
-
-    assert len(messages) == 1
-
-    message_attributes = messages[0].attributes
-
-    assert message_attributes.get("ApproximateFirstReceiveTimestamp")
-    assert int(message_attributes.get("ApproximateReceiveCount")) == 1
-    assert message_attributes.get("SentTimestamp")
-    assert message_attributes.get("SenderId")
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_read_message_from_queue():
-    conn = boto.connect_sqs()
-    queue = conn.create_queue("testqueue")
-    queue.set_message_class(RawMessage)
-
-    body = "foo bar baz"
-    queue.write(queue.new_message(body))
-    message = queue.read(1)
-    message.get_body().should.equal(body)
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_queue_length():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    queue.write(queue.new_message("this is a test message"))
-    queue.write(queue.new_message("this is another test message"))
-    queue.count().should.equal(2)
-
-
 @mock_sqs
 def test_queue_length_boto3():
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -1756,96 +1574,6 @@ def test_queue_length_boto3():
 
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("2")
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_delete_message():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    queue.write(queue.new_message("this is a test message"))
-    queue.write(queue.new_message("this is another test message"))
-    queue.count().should.equal(2)
-
-    messages = conn.receive_message(queue, number_messages=1)
-    assert len(messages) == 1
-    messages[0].delete()
-    queue.count().should.equal(1)
-
-    messages = conn.receive_message(queue, number_messages=1)
-    assert len(messages) == 1
-    messages[0].delete()
-    queue.count().should.equal(0)
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_send_batch_operation():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-
-    # See https://github.com/boto/boto/issues/831
-    queue.set_message_class(RawMessage)
-
-    queue.write_batch(
-        [
-            ("my_first_message", "test message 1", 0),
-            ("my_second_message", "test message 2", 0),
-            ("my_third_message", "test message 3", 0),
-        ]
-    )
-
-    messages = queue.get_messages(3)
-    messages[0].get_body().should.equal("test message 1")
-
-    # Test that pulling more messages doesn't break anything
-    messages = queue.get_messages(2)
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.28")
-@mock_sqs_deprecated
-def test_send_batch_operation_with_message_attributes():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-    queue.set_message_class(RawMessage)
-
-    message_tuple = (
-        "my_first_message",
-        "test message 1",
-        0,
-        {"name1": {"data_type": "String", "string_value": "foo"}},
-    )
-    queue.write_batch([message_tuple])
-
-    messages = queue.get_messages(message_attributes=["name1"])
-    messages[0].get_body().should.equal("test message 1")
-
-    for name, value in message_tuple[3].items():
-        dict(messages[0].message_attributes[name]).should.equal(value)
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_delete_batch_operation():
-    conn = boto.connect_sqs("the_key", "the_secret")
-    queue = conn.create_queue("test-queue", visibility_timeout=3)
-
-    conn.send_message_batch(
-        queue,
-        [
-            ("my_first_message", "test message 1", 0),
-            ("my_second_message", "test message 2", 0),
-            ("my_third_message", "test message 3", 0),
-        ],
-    )
-
-    messages = queue.get_messages(2)
-    queue.delete_message_batch(messages)
-
-    queue.count().should.equal(1)
 
 
 @mock_sqs
@@ -1868,40 +1596,6 @@ def test_delete_batch_operation_boto3():
 
     queue.reload()
     queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_queue_attributes():
-    conn = boto.connect_sqs("the_key", "the_secret")
-
-    queue_name = "test-queue"
-    visibility_timeout = 3
-
-    queue = conn.create_queue(queue_name, visibility_timeout=visibility_timeout)
-
-    attributes = queue.get_attributes()
-
-    attributes["QueueArn"].should.look_like(
-        "arn:aws:sqs:us-east-1:{AccountId}:{name}".format(
-            AccountId=ACCOUNT_ID, name=queue_name
-        )
-    )
-
-    attributes["VisibilityTimeout"].should.look_like(str(visibility_timeout))
-
-    attribute_names = queue.get_attributes().keys()
-    attribute_names.should.contain("ApproximateNumberOfMessagesNotVisible")
-    attribute_names.should.contain("MessageRetentionPeriod")
-    attribute_names.should.contain("ApproximateNumberOfMessagesDelayed")
-    attribute_names.should.contain("MaximumMessageSize")
-    attribute_names.should.contain("CreatedTimestamp")
-    attribute_names.should.contain("ApproximateNumberOfMessages")
-    attribute_names.should.contain("ReceiveMessageWaitTimeSeconds")
-    attribute_names.should.contain("DelaySeconds")
-    attribute_names.should.contain("VisibilityTimeout")
-    attribute_names.should.contain("LastModifiedTimestamp")
-    attribute_names.should.contain("QueueArn")
 
 
 @mock_sqs
@@ -1970,20 +1664,6 @@ def test_change_message_visibility_on_visible_message_boto3():
     queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
 
 
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_purge_action():
-    conn = boto.sqs.connect_to_region("us-east-1")
-
-    queue = conn.create_queue("new-queue")
-    queue.write(queue.new_message("this is another test message"))
-    queue.count().should.equal(1)
-
-    queue.purge()
-
-    queue.count().should.equal(0)
-
-
 @mock_sqs
 def test_purge_queue_before_delete_message():
     client = boto3.client("sqs", region_name="us-east-1")
@@ -2014,28 +1694,6 @@ def test_purge_queue_before_delete_message():
 
     len(receive_resp2.get("Messages", [])).should.equal(1)
     receive_resp2["Messages"][0]["Body"].should.equal("second_message")
-
-
-# Has boto3 equivalent
-@mock_sqs_deprecated
-def test_delete_message_after_visibility_timeout():
-    VISIBILITY_TIMEOUT = 1
-    conn = boto.sqs.connect_to_region("us-east-1")
-    new_queue = conn.create_queue("new-queue", visibility_timeout=VISIBILITY_TIMEOUT)
-
-    m1 = Message()
-    m1.set_body("Message 1!")
-    new_queue.write(m1)
-
-    assert new_queue.count() == 1
-
-    m1_retrieved = new_queue.read()
-
-    time.sleep(VISIBILITY_TIMEOUT + 1)
-
-    m1_retrieved.delete()
-
-    assert new_queue.count() == 0
 
 
 @mock_sqs
@@ -2220,6 +1878,46 @@ def test_delete_message_batch_with_duplicates():
         "Messages", []
     )
     assert messages, "message still in the queue"
+
+
+@mock_sqs
+def test_delete_message_batch_with_invalid_receipt_id():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName=str(uuid4())[0:6])
+    queue_url = response["QueueUrl"]
+    client.send_message(QueueUrl=queue_url, MessageBody="coucou")
+
+    messages = client.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=0, VisibilityTimeout=0
+    )["Messages"]
+    assert messages, "at least one msg"
+
+    # Try to delete the message from SQS but also include two invalid delete requests
+    entries = [
+        {"Id": "fake-receipt-handle-1", "ReceiptHandle": "fake-receipt-handle-1"},
+        {"Id": messages[0]["MessageId"], "ReceiptHandle": messages[0]["ReceiptHandle"]},
+        {"Id": "fake-receipt-handle-2", "ReceiptHandle": "fake-receipt-handle-2"},
+    ]
+    response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
+
+    assert response["Successful"] == [
+        {"Id": messages[0]["MessageId"]}
+    ], "delete ok for real message"
+
+    assert response["Failed"] == [
+        {
+            "Id": "fake-receipt-handle-1",
+            "SenderFault": True,
+            "Code": "ReceiptHandleIsInvalid",
+            "Message": 'The input receipt handle "fake-receipt-handle-1" is not a valid receipt handle.',
+        },
+        {
+            "Id": "fake-receipt-handle-2",
+            "SenderFault": True,
+            "Code": "ReceiptHandleIsInvalid",
+            "Message": 'The input receipt handle "fake-receipt-handle-2" is not a valid receipt handle.',
+        },
+    ]
 
 
 @mock_sqs
@@ -3414,3 +3112,16 @@ def test_receive_message_again_preserves_attributes():
     assert len(second_messages[0]["MessageAttributes"]) == 2
     assert second_messages[0]["MessageAttributes"].get("Custom1") is not None
     assert second_messages[0]["MessageAttributes"].get("Custom2") is not None
+
+
+@mock_sqs
+def test_message_has_windows_return():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName=f"{str(uuid4())[0:6]}")
+
+    message = "content:\rmessage_with line"
+    queue.send_message(MessageBody=message)
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    messages[0].body.should.match(message)

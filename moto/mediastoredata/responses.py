@@ -13,8 +13,10 @@ class MediaStoreDataResponse(BaseResponse):
 
     def get_object(self):
         path = self._get_param("Path")
-        range = self._get_param("Range")
-        result = self.mediastoredata_backend.get_object(path=path, range=range)
+        object_range = self._get_param("Range")
+        result = self.mediastoredata_backend.get_object(
+            path=path, object_range=object_range
+        )
         headers = {"Path": result.path}
         return result.body, headers
 

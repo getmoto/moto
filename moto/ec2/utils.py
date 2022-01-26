@@ -251,10 +251,10 @@ def random_ip():
     )
 
 
-def generate_dns_from_ip(ip, type="internal"):
+def generate_dns_from_ip(ip, dns_type="internal"):
     splits = ip.split("/")[0].split(".") if "/" in ip else ip.split(".")
     return "ip-{}-{}-{}-{}.ec2.{}".format(
-        splits[0], splits[1], splits[2], splits[3], type
+        splits[0], splits[1], splits[2], splits[3], dns_type
     )
 
 
@@ -477,6 +477,7 @@ filter_dict_attribute_mapping = {
     "private-dns-name": "private_dns",
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
+    "dns-name": "public_dns",
 }
 
 
@@ -553,8 +554,8 @@ def filter_internet_gateways(igws, filter_dict):
     return result
 
 
-def is_filter_matching(obj, filter, filter_value):
-    value = obj.get_filter_value(filter)
+def is_filter_matching(obj, _filter, filter_value):
+    value = obj.get_filter_value(_filter)
 
     if filter_value is None:
         return False
@@ -616,7 +617,7 @@ def random_key_pair():
 
 
 def get_prefix(resource_id):
-    resource_id_prefix, separator, after = resource_id.partition("-")
+    resource_id_prefix, _, after = resource_id.partition("-")
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["transit-gateway"]:
         if after.startswith("rtb"):
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"]

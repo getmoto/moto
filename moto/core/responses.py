@@ -484,14 +484,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             tracked_prefixes or set()
         )  # prefixes which have already been processed
 
-        def is_tracked(name_param):
-            for prefix_loop in tracked_prefixes:
-                if name_param.startswith(prefix_loop):
-                    return True
-            return False
-
         for name, value in self.querystring.items():
-            if is_tracked(name) or not name.startswith(param_prefix):
+            if not name.startswith(param_prefix):
                 continue
 
             if len(name) > len(param_prefix) and not name[
@@ -651,6 +645,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                         # reset parent
                         obj = []
                         parent[keylist[i - 1]] = obj
+                elif isinstance(obj, dict):
+                    # initialize dict
+                    obj[key] = {}
+                    # step into
+                    parent = obj
+                    obj = obj[key]
                 elif key.isdigit():
                     index = int(key) - 1
                     if len(obj) <= index:
@@ -659,12 +659,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     # step into
                     parent = obj
                     obj = obj[index]
-                else:
-                    # initialize dict
-                    obj[key] = {}
-                    # step into
-                    parent = obj
-                    obj = obj[key]
         if isinstance(obj, list):
             obj.append(value)
         else:

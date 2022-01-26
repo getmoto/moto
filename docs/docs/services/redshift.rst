@@ -129,7 +129,7 @@ redshift
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule
 - [ ] modify_usage_limit
-- [ ] pause_cluster
+- [X] pause_cluster
 - [ ] purchase_reserved_node_offering
 - [ ] reboot_cluster
 - [ ] reject_data_share
@@ -137,7 +137,7 @@ redshift
 - [ ] resize_cluster
 - [X] restore_from_cluster_snapshot
 - [ ] restore_table_from_cluster_snapshot
-- [ ] resume_cluster
+- [X] resume_cluster
 - [ ] revoke_cluster_security_group_ingress
 - [ ] revoke_endpoint_access
 - [ ] revoke_snapshot_access

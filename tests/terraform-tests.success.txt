@@ -1,5 +1,7 @@
 TestAccAWSAccessKey
 TestAccAWSAvailabilityZones
+TestAccAWSAppsyncApiKey
+TestAccAWSAppsyncGraphqlApi
 TestAccAWSBillingServiceAccount
 TestAccAWSCallerIdentity
 TestAccAWSCloudTrailServiceAccount
@@ -14,6 +16,7 @@ TestAccAWSCloudWatchEventRule
 TestAccAWSCloudWatchEventTarget_ssmDocument
 TestAccAWSCloudwatchLogGroupDataSource
 TestAccAWSCloudWatchMetricAlarm
+TestAccAWSDAX
 TestAccAWSDataSourceCloudwatch
 TestAccAWSDataSourceElasticBeanstalkHostedZone
 TestAccAWSDataSourceIAMGroup
@@ -63,8 +66,10 @@ TestAccAWSIAMGroupPolicyAttachment
 TestAccAWSIAMRole
 TestAccAWSIAMUserPolicy
 TestAccAWSIPRanges
+TestAccAWSKinesisStream
 TestAccAWSKmsAlias
 TestAccAWSKmsSecretDataSource
+TestAccAWSMq
 TestAccAWSPartition
 TestAccAWSProvider
 TestAccAWSRedshiftServiceAccount
@@ -118,6 +123,13 @@ TestAccAWSENI_basic
 TestAccAWSENI_IPv6
 TestAccAWSENI_disappears
 TestAccAWSS3BucketObject_
+TestAccAWSS3ObjectCopy
 TestAccAWSIAMPolicy_
 TestAccAWSIAMGroup_
 TestAccAWSIAMRolePolicy
+TestAccAWSIAMUserPolicy
+TestAccAWSIAMGroupPolicy
+TestAccAWSDataSourceIAMRole
+TestAccAWSDataSourceIAMUser
+TestAccAWSIAMAccountAlias
+TestAccAWSIAMOpenIDConnectProvider

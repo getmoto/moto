@@ -33,7 +33,6 @@ Additional Resources
    docs/getting_started
    docs/server_mode
    docs/faq
-   docs/boto
    docs/iam
    docs/aws_config
 

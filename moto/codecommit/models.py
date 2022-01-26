@@ -1,6 +1,5 @@
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from datetime import datetime
 from moto.core import ACCOUNT_ID
 from .exceptions import RepositoryDoesNotExistException, RepositoryNameExistsException
@@ -33,7 +32,7 @@ class CodeCommit(BaseModel):
 
 
 class CodeCommitBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.repositories = {}
 
     @staticmethod
@@ -71,6 +70,4 @@ class CodeCommitBackend(BaseBackend):
         return None
 
 
-codecommit_backends = {}
-for region in Session().get_available_regions("codecommit"):
-    codecommit_backends[region] = CodeCommitBackend()
+codecommit_backends = BackendDict(CodeCommitBackend, "codecommit")

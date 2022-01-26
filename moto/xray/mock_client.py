@@ -46,10 +46,10 @@ class MockXrayClient:
         if not f:
             return self
 
-        def wrapped_f():
+        def wrapped_f(*args, **kwargs):
             self.start()
             try:
-                f()
+                f(*args, **kwargs)
             finally:
                 self.stop()
 

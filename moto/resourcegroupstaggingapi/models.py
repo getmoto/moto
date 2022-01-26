@@ -1,9 +1,9 @@
 import uuid
-from boto3 import Session
 
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
+from moto.core.utils import BackendDict
 
 from moto.s3 import s3_backends
 from moto.ec2 import ec2_backends
@@ -24,7 +24,7 @@ from moto.awslambda import lambda_backends
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(ResourceGroupsTaggingAPIBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
         self._pages = {}
@@ -729,14 +729,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     #     return failed_resources_map
 
 
-resourcegroupstaggingapi_backends = {}
-for region in Session().get_available_regions("resourcegroupstaggingapi"):
-    resourcegroupstaggingapi_backends[region] = ResourceGroupsTaggingAPIBackend(region)
-for region in Session().get_available_regions(
-    "resourcegroupstaggingapi", partition_name="aws-us-gov"
-):
-    resourcegroupstaggingapi_backends[region] = ResourceGroupsTaggingAPIBackend(region)
-for region in Session().get_available_regions(
-    "resourcegroupstaggingapi", partition_name="aws-cn"
-):
-    resourcegroupstaggingapi_backends[region] = ResourceGroupsTaggingAPIBackend(region)
+resourcegroupstaggingapi_backends = BackendDict(
+    ResourceGroupsTaggingAPIBackend, "resourcegroupstaggingapi"
+)

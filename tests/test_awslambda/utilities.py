@@ -100,6 +100,15 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
+def get_test_zip_largeresponse():
+    pfunc = """
+def lambda_handler(event, context):
+    x = ["xxx" for x in range(10 ** 6)]
+    return {"statusCode": 200, "body": x}
+"""
+    return _process_lambda(pfunc)
+
+
 def get_zip_with_multiple_files():
     pfunc = """
 from utilities import util_function

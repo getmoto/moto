@@ -71,7 +71,7 @@ organizations
 - [X] list_targets_for_policy
 - [X] move_account
 - [X] register_delegated_administrator
-- [ ] remove_account_from_organization
+- [X] remove_account_from_organization
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit

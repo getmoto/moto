@@ -10,8 +10,6 @@ from enum import Enum, unique
 from json import JSONDecodeError
 from operator import lt, le, eq, ge, gt
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
@@ -19,6 +17,7 @@ from moto.core.utils import (
     unix_time,
     unix_time_millis,
     iso_8601_datetime_without_milliseconds,
+    BackendDict,
 )
 from moto.events.exceptions import (
     ValidationException,
@@ -1806,10 +1805,4 @@ class EventsBackend(BaseBackend):
         return {}
 
 
-events_backends = {}
-for region in Session().get_available_regions("events"):
-    events_backends[region] = EventsBackend(region)
-for region in Session().get_available_regions("events", partition_name="aws-us-gov"):
-    events_backends[region] = EventsBackend(region)
-for region in Session().get_available_regions("events", partition_name="aws-cn"):
-    events_backends[region] = EventsBackend(region)
+events_backends = BackendDict(EventsBackend, "events")

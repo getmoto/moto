@@ -16,7 +16,7 @@ from werkzeug.serving import run_simple
 
 import moto.backends as backends
 import moto.backend_index as backend_index
-from moto.core.utils import convert_flask_to_httpretty_response
+from moto.core.utils import convert_to_flask_response
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
@@ -242,7 +242,7 @@ class RegexConverter(BaseConverter):
     # http://werkzeug.pocoo.org/docs/routing/#custom-converters
 
     def __init__(self, url_map, *items):
-        super(RegexConverter, self).__init__(url_map)
+        super().__init__(url_map)
         self.regex = items[0]
 
 
@@ -282,9 +282,15 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters["regex"] = RegexConverter
-    backend = list(backends.get_backend(service).values())[0]
+
+    backend_dict = backends.get_backend(service)
+    if "us-east-1" in backend_dict:
+        backend = backend_dict["us-east-1"]
+    else:
+        backend = backend_dict["global"]
+
     for url_path, handler in backend.flask_paths.items():
-        view_func = convert_flask_to_httpretty_response(handler)
+        view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
             endpoint = "{0}.dispatch".format(handler.__self__.__name__)
         else:
@@ -318,7 +324,8 @@ def signal_handler(signum, frame):
     sys.exit(0)
 
 
-def main(argv=sys.argv[1:]):
+def main(argv=None):
+    argv = argv or sys.argv[1:]
     parser = argparse.ArgumentParser()
 
     # Keep this for backwards compat

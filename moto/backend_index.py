@@ -8,6 +8,7 @@ backend_url_patterns = [
         "applicationautoscaling",
         re.compile("https?://application-autoscaling\\.(.+)\\.amazonaws.com"),
     ),
+    ("appsync", re.compile("https?://appsync\\.(.+)\\.amazonaws\\.com")),
     ("athena", re.compile("https?://athena\\.(.+)\\.amazonaws\\.com")),
     ("autoscaling", re.compile("https?://autoscaling\\.(.+)\\.amazonaws\\.com")),
     ("batch", re.compile("https?://batch\\.(.+)\\.amazonaws.com")),
@@ -26,6 +27,7 @@ backend_url_patterns = [
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
     ("datapipeline", re.compile("https?://datapipeline\\.(.+)\\.amazonaws\\.com")),
     ("datasync", re.compile("https?://(.*\\.)?(datasync)\\.(.+)\\.amazonaws.com")),
+    ("dax", re.compile("https?://dax\\.(.+)\\.amazonaws\\.com")),
     ("dms", re.compile("https?://dms\\.(.+)\\.amazonaws\\.com")),
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
     ("dynamodb", re.compile("https?://dynamodb\\.(.+)\\.amazonaws\\.com")),
@@ -45,6 +47,7 @@ backend_url_patterns = [
     ("efs", re.compile("https?://elasticfilesystem\\.(.+)\\.amazonaws.com")),
     ("efs", re.compile("https?://elasticfilesystem\\.amazonaws.com")),
     ("eks", re.compile("https?://eks\\.(.+)\\.amazonaws.com")),
+    ("elasticache", re.compile("https?://elasticache\\.(.+)\\.amazonaws\\.com")),
     (
         "elasticbeanstalk",
         re.compile(
@@ -60,11 +63,13 @@ backend_url_patterns = [
     ("emr", re.compile("https?://(.+)\\.elasticmapreduce\\.amazonaws.com")),
     ("emr", re.compile("https?://elasticmapreduce\\.(.+)\\.amazonaws.com")),
     ("emr-containers", re.compile("https?://emr-containers\\.(.+)\\.amazonaws\\.com")),
+    ("es", re.compile("https?://es\\.(.+)\\.amazonaws\\.com")),
     ("events", re.compile("https?://events\\.(.+)\\.amazonaws\\.com")),
     ("firehose", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
     ("forecast", re.compile("https?://forecast\\.(.+)\\.amazonaws\\.com")),
     ("glacier", re.compile("https?://glacier\\.(.+)\\.amazonaws.com")),
     ("glue", re.compile("https?://glue\\.(.+)\\.amazonaws\\.com")),
+    ("guardduty", re.compile("https?://guardduty\\.(.+)\\.amazonaws\\.com")),
     ("iam", re.compile("https?://iam\\.(.*\\.)?amazonaws\\.com")),
     ("iot", re.compile("https?://iot\\.(.+)\\.amazonaws\\.com")),
     ("iot-data", re.compile("https?://data\\.iot\\.(.+)\\.amazonaws.com")),
@@ -86,6 +91,7 @@ backend_url_patterns = [
     ("mediapackage", re.compile("https?://mediapackage\\.(.+)\\.amazonaws.com")),
     ("mediastore", re.compile("https?://mediastore\\.(.+)\\.amazonaws\\.com")),
     ("mediastore-data", re.compile("https?://data.mediastore\\.(.+)\\.amazonaws.com")),
+    ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
@@ -103,12 +109,16 @@ backend_url_patterns = [
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("s3", re.compile("https?://s3(.*)\\.amazonaws.com")),
+    ("s3", re.compile("https?://s3(?!-control)(.*)\\.amazonaws.com")),
     (
         "s3",
         re.compile(
-            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(.*)\\.amazonaws.com"
+            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!-control)(.*)\\.amazonaws.com"
         ),
+    ),
+    (
+        "s3control",
+        re.compile("https?://([0-9]+)\\.s3-control\\.(.+)\\.amazonaws\\.com"),
     ),
     ("sagemaker", re.compile("https?://api.sagemaker\\.(.+)\\.amazonaws.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
@@ -119,6 +129,7 @@ backend_url_patterns = [
     ("sqs", re.compile("https?://(.*\\.)?(queue|sqs)\\.(.*\\.)?amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com")),
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com\\.cn")),
+    ("sso-admin", re.compile("https?://sso\\.(.+)\\.amazonaws\\.com")),
     ("stepfunctions", re.compile("https?://states\\.(.+)\\.amazonaws.com")),
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),

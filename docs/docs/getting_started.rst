@@ -156,28 +156,33 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
             actual = object.get()['Body'].read()
             self.assertEqual(actual, content)
 
+Class Decorator
+~~~~~~~~~~~~~~~~~
 
-It is possible to use Moto as a class-decorator.
-Note that this may behave differently then you might expected - it currently creates a global state on class-level, rather than on method-level.
+It is also possible to use decorators on the class-level.
+
+The decorator is effective for every test-method inside your class. State is not shared across test-methods.
 
 .. sourcecode:: python
 
     @mock_s3
     class TestMockClassLevel(unittest.TestCase):
-        def create_my_bucket(self):
-            s3 = boto3.resource('s3')
-            bucket = s3.Bucket("mybucket")
-            bucket.create()
+        def setUp(self):
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.create_bucket(Bucket="mybucket")
 
-        def test_1_should_create_bucket(self):
-            self.create_my_bucket()
+        def test_creating_a_bucket(self):
+            # 'mybucket', created in setUp, is accessible in this test
+            # Other clients can be created at will
 
-            client = boto3.client("s3")
-            assert len(client.list_buckets()["Buckets"]) == 1
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.create_bucket(Bucket="bucket_inside")
 
-        def test_2_bucket_still_exists(self):
-            client = boto3.client("s3")
-            assert len(client.list_buckets()["Buckets"]) == 1
+        def test_accessing_a_bucket(self):
+            # The state has been reset before this method has started
+            # 'mybucket' is recreated as part of the setUp-method
+            # 'bucket_inside' however, created inside the other test, no longer exists
+            pass
 
 Stand-alone server mode
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,6 +233,7 @@ Here is an example:
         os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
         os.environ['AWS_SECURITY_TOKEN'] = 'testing'
         os.environ['AWS_SESSION_TOKEN'] = 'testing'
+        os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 
     @pytest.fixture(scope='function')
     def s3(aws_credentials):

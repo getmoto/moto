@@ -6,11 +6,11 @@ import time
 import uuid
 import enum
 import random
-from boto3 import Session
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
     NotAuthorizedError,
@@ -1335,6 +1335,8 @@ class CognitoIdpBackend(BaseBackend):
         self.admin_get_user(user_pool_id, username)
 
         for token, token_tuple in list(user_pool.refresh_tokens.items()):
+            if token_tuple is None:
+                continue
             _, username = token_tuple
             if username == username:
                 user_pool.refresh_tokens[token] = None
@@ -1484,6 +1486,13 @@ class CognitoIdpBackend(BaseBackend):
             session = str(uuid.uuid4())
             self.sessions[session] = user_pool
 
+            if user.status is UserStatus.FORCE_CHANGE_PASSWORD:
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {"USERNAME": user.username},
+                    "Session": session,
+                }
+
             access_token, expires_in = user_pool.create_access_token(
                 client_id, username
             )
@@ -1592,15 +1601,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.add_custom_attributes(custom_attributes)
 
 
-cognitoidp_backends = {}
-for region in Session().get_available_regions("cognito-idp"):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
-for region in Session().get_available_regions(
-    "cognito-idp", partition_name="aws-us-gov"
-):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
-for region in Session().get_available_regions("cognito-idp", partition_name="aws-cn"):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
+cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't

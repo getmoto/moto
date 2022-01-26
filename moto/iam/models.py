@@ -156,7 +156,7 @@ class SAMLProvider(BaseModel):
 
 
 class OpenIDConnectProvider(BaseModel):
-    def __init__(self, url, thumbprint_list, client_id_list=None):
+    def __init__(self, url, thumbprint_list, client_id_list=None, tags=None):
         self._errors = []
         self._validate(url, thumbprint_list, client_id_list)
 
@@ -165,6 +165,7 @@ class OpenIDConnectProvider(BaseModel):
         self.thumbprint_list = thumbprint_list
         self.client_id_list = client_id_list
         self.create_date = datetime.utcnow()
+        self.tags = tags
 
     @property
     def arn(self):
@@ -237,6 +238,9 @@ class OpenIDConnectProvider(BaseModel):
                     count=count, plural=plural, errors=errors
                 )
             )
+
+    def get_tags(self):
+        return [self.tags[tag] for tag in self.tags]
 
 
 class PolicyVersion(object):
@@ -613,12 +617,12 @@ class Role(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        for profile_name, profile in iam_backend.instance_profiles.items():
+        for profile in iam_backend.instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
-        for _, role in iam_backend.roles.items():
+        for role in iam_backend.roles.values():
             if role.name == resource_name:
-                for arn, policy in role.policies.items():
+                for arn in role.policies.keys():
                     role.delete_policy(arn)
         iam_backend.delete_role(resource_name)
 
@@ -641,7 +645,7 @@ class Role(CloudFormationModel):
 
         _instance_profiles = []
         for key, instance_profile in iam_backend.instance_profiles.items():
-            for role in instance_profile.roles:
+            for _ in instance_profile.roles:
                 _instance_profiles.append(instance_profile.to_embedded_config_dict())
                 break
 
@@ -848,8 +852,8 @@ class Certificate(BaseModel):
 
 
 class SigningCertificate(BaseModel):
-    def __init__(self, id, user_name, body):
-        self.id = id
+    def __init__(self, certificate_id, user_name, body):
+        self.id = certificate_id
         self.user_name = user_name
         self.body = body
         self.upload_date = datetime.utcnow()
@@ -1522,7 +1526,7 @@ class IAMBackend(BaseBackend):
         self.access_keys = {}
 
         self.tagger = TaggingService()
-        super(IAMBackend, self).__init__()
+        super().__init__()
 
     def _init_managed_policies(self):
         return dict((p.arn, p) for p in aws_managed_policies)
@@ -1660,8 +1664,6 @@ class IAMBackend(BaseBackend):
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
     def set_default_policy_version(self, policy_arn, version_id):
-        import re
-
         if re.match(r"v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
             raise ValidationError(
                 "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\\.[A-Za-z0-9-]*)?".format(
@@ -2044,7 +2046,7 @@ class IAMBackend(BaseBackend):
         return cert
 
     def get_server_certificate(self, name):
-        for key, cert in self.certificates.items():
+        for cert in self.certificates.values():
             if name == cert.cert_name:
                 return cert
 
@@ -2552,12 +2554,12 @@ class IAMBackend(BaseBackend):
     def delete_account_alias(self, alias):
         self.account_aliases = []
 
-    def get_account_authorization_details(self, filter):
+    def get_account_authorization_details(self, policy_filter):
         policies = self.managed_policies.values()
         local_policies = set(policies) - set(aws_managed_policies)
         returned_policies = []
 
-        if len(filter) == 0:
+        if len(policy_filter) == 0:
             return {
                 "instance_profiles": self.instance_profiles.values(),
                 "roles": self.roles.values(),
@@ -2566,16 +2568,16 @@ class IAMBackend(BaseBackend):
                 "managed_policies": self.managed_policies.values(),
             }
 
-        if "AWSManagedPolicy" in filter:
+        if "AWSManagedPolicy" in policy_filter:
             returned_policies = aws_managed_policies
-        if "LocalManagedPolicy" in filter:
+        if "LocalManagedPolicy" in policy_filter:
             returned_policies = returned_policies + list(local_policies)
 
         return {
             "instance_profiles": self.instance_profiles.values(),
-            "roles": self.roles.values() if "Role" in filter else [],
-            "groups": self.groups.values() if "Group" in filter else [],
-            "users": self.users.values() if "User" in filter else [],
+            "roles": self.roles.values() if "Role" in policy_filter else [],
+            "groups": self.groups.values() if "Group" in policy_filter else [],
+            "users": self.users.values() if "User" in policy_filter else [],
             "managed_policies": returned_policies,
         }
 
@@ -2618,14 +2620,53 @@ class IAMBackend(BaseBackend):
                     return user
         return None
 
-    def create_open_id_connect_provider(self, url, thumbprint_list, client_id_list):
-        open_id_provider = OpenIDConnectProvider(url, thumbprint_list, client_id_list)
+    def create_open_id_connect_provider(
+        self, url, thumbprint_list, client_id_list, tags
+    ):
+        clean_tags = self._tag_verification(tags)
+        open_id_provider = OpenIDConnectProvider(
+            url, thumbprint_list, client_id_list, clean_tags
+        )
 
         if open_id_provider.arn in self.open_id_providers:
             raise EntityAlreadyExists("Unknown")
 
         self.open_id_providers[open_id_provider.arn] = open_id_provider
         return open_id_provider
+
+    def update_open_id_connect_provider_thumbprint(self, arn, thumbprint_list):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+        open_id_provider.thumbprint_list = thumbprint_list
+
+    def tag_open_id_connect_provider(self, arn, tags):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+        clean_tags = self._tag_verification(tags)
+        open_id_provider.tags.update(clean_tags)
+
+    def untag_open_id_connect_provider(self, arn, tag_keys):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+
+        for key in tag_keys:
+            ref_key = key.lower()
+            self._validate_tag_key(key, exception_param="tagKeys")
+            open_id_provider.tags.pop(ref_key, None)
+
+    def list_open_id_connect_provider_tags(self, arn, marker, max_items=100):
+        open_id_provider = self.get_open_id_connect_provider(arn)
+
+        max_items = int(max_items)
+        tag_index = sorted(open_id_provider.tags)
+        start_idx = int(marker) if marker else 0
+
+        tag_index = tag_index[start_idx : start_idx + max_items]
+
+        if len(open_id_provider.tags) <= (start_idx + max_items):
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        tags = [open_id_provider.tags[tag] for tag in tag_index]
+        return tags, marker
 
     def delete_open_id_connect_provider(self, arn):
         self.open_id_providers.pop(arn, None)

@@ -14,7 +14,7 @@ def tag_value(secret, tag_values):
     return _matcher(tag_values, [tag["Value"] for tag in secret.tags])
 
 
-def all(secret, values):
+def filter_all(secret, values):
     attributes = (
         [secret.name, secret.description]
         + [tag["Key"] for tag in secret.tags]
@@ -37,8 +37,8 @@ def _matcher(patterns, strings):
     return False
 
 
-def _match_pattern(pattern, str):
+def _match_pattern(pattern, value):
     for word in pattern.split(" "):
-        if word not in str:
+        if word not in value:
             return False
     return True

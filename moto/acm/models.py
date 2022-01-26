@@ -3,7 +3,7 @@ import re
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
-from moto.ec2 import ec2_backends
+from moto.core.utils import BackendDict
 from moto import settings
 
 from .utils import make_arn_for_certificate
@@ -559,6 +559,4 @@ class AWSCertificateManagerBackend(BaseBackend):
         return certificate, certificate_chain, private_key
 
 
-acm_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    acm_backends[region] = AWSCertificateManagerBackend(region)
+acm_backends = BackendDict(AWSCertificateManagerBackend, "ec2")

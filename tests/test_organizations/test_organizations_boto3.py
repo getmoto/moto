@@ -420,6 +420,49 @@ def test_get_paginated_list_create_account_status():
         validate_create_account_status(createAccountStatus)
 
 
+@mock_organizations
+def test_remove_account_from_organization():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    create_account_status = client.create_account(
+        AccountName=mockname, Email=mockemail
+    )["CreateAccountStatus"]
+    account_id = create_account_status["AccountId"]
+
+    def created_account_exists(accounts):
+        return any(
+            account
+            for account in accounts
+            if account["Name"] == mockname and account["Email"] == mockemail
+        )
+
+    accounts = client.list_accounts()["Accounts"]
+    assert len(accounts) == 2
+    assert created_account_exists(accounts)
+    client.remove_account_from_organization(AccountId=account_id)
+    accounts = client.list_accounts()["Accounts"]
+    assert len(accounts) == 1
+    assert not created_account_exists(accounts)
+
+
+@mock_organizations
+def test_delete_organization_with_existing_account():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    create_account_status = client.create_account(
+        Email=mockemail, AccountName=mockname
+    )["CreateAccountStatus"]
+    account_id = create_account_status["AccountId"]
+    with pytest.raises(ClientError) as e:
+        client.delete_organization()
+    e.match("OrganizationNotEmptyException")
+    client.remove_account_from_organization(AccountId=account_id)
+    client.delete_organization()
+    with pytest.raises(ClientError) as e:
+        client.describe_organization()
+    e.match("AWSOrganizationsNotInUseException")
+
+
 # Service Control Policies
 policy_doc01 = dict(
     Version="2012-10-17",

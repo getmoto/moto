@@ -1,12 +1,11 @@
 import uuid
 
-from boto3 import Session
 from datetime import datetime, timedelta
 
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import CloudFormationModel
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
@@ -15,6 +14,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+from moto.s3 import s3_backend
 from .utils import PAGINATION_MODEL
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -983,15 +983,22 @@ class LogsBackend(BaseBackend):
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
 
+    def create_export_task(
+        self,
+        *,
+        task_name,
+        log_group_name,
+        log_stream_name_prefix,
+        fromTime,
+        to,
+        destination,
+        destination_prefix,
+    ):
+        s3_backend.get_bucket(destination)
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        task_id = uuid.uuid4()
+        return task_id
 
-logs_backends = {}
-for available_region in Session().get_available_regions("logs"):
-    logs_backends[available_region] = LogsBackend(available_region)
-for available_region in Session().get_available_regions(
-    "logs", partition_name="aws-us-gov"
-):
-    logs_backends[available_region] = LogsBackend(available_region)
-for available_region in Session().get_available_regions(
-    "logs", partition_name="aws-cn"
-):
-    logs_backends[available_region] = LogsBackend(available_region)
+
+logs_backends = BackendDict(LogsBackend, "logs")

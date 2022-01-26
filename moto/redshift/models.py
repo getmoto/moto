@@ -1,11 +1,9 @@
 import copy
 import datetime
 
-from boto3 import Session
-
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.utilities.utils import random_string
 from moto.ec2 import ec2_backends
 from .exceptions import (
@@ -98,7 +96,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         restored_from_snapshot=False,
         kms_key_id=None,
     ):
-        super(Cluster, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
         self.create_time = iso_8601_datetime_with_milliseconds(
@@ -261,6 +259,12 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
     def resource_id(self):
         return self.cluster_identifier
 
+    def pause(self):
+        self.status = "paused"
+
+    def resume(self):
+        self.status = "available"
+
     def to_json(self):
         json_response = {
             "MasterUsername": self.master_username,
@@ -354,7 +358,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         region_name,
         tags=None,
     ):
-        super(SubnetGroup, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.ec2_backend = ec2_backend
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.description = description
@@ -423,7 +427,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
     def __init__(
         self, cluster_security_group_name, description, region_name, tags=None
     ):
-        super(SecurityGroup, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
         self.ingress_rules = []
@@ -454,7 +458,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
         region_name,
         tags=None,
     ):
-        super(ParameterGroup, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.cluster_parameter_group_name = cluster_parameter_group_name
         self.group_family = group_family
         self.description = description
@@ -503,7 +507,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
     def __init__(
         self, cluster, snapshot_identifier, region_name, tags=None, iam_roles_arn=None
     ):
-        super(Snapshot, self).__init__(region_name, tags)
+        super().__init__(region_name, tags)
         self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = "manual"
@@ -542,7 +546,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
 
 
 class RedshiftBackend(BaseBackend):
-    def __init__(self, ec2_backend, region_name):
+    def __init__(self, region_name):
         self.region = region_name
         self.clusters = {}
         self.subnet_groups = {}
@@ -559,7 +563,7 @@ class RedshiftBackend(BaseBackend):
                 self.region,
             )
         }
-        self.ec2_backend = ec2_backend
+        self.ec2_backend = ec2_backends[self.region]
         self.snapshots = OrderedDict()
         self.RESOURCE_TYPE_MAP = {
             "cluster": self.clusters,
@@ -571,10 +575,9 @@ class RedshiftBackend(BaseBackend):
         self.snapshot_copy_grants = {}
 
     def reset(self):
-        ec2_backend = self.ec2_backend
         region_name = self.region
         self.__dict__ = {}
-        self.__init__(ec2_backend, region_name)
+        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -636,6 +639,18 @@ class RedshiftBackend(BaseBackend):
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
         return cluster
+
+    def pause_cluster(self, cluster_id):
+        if cluster_id not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier=cluster_id)
+        self.clusters[cluster_id].pause()
+        return self.clusters[cluster_id]
+
+    def resume_cluster(self, cluster_id):
+        if cluster_id not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier=cluster_id)
+        self.clusters[cluster_id].resume()
+        return self.clusters[cluster_id]
 
     def describe_clusters(self, cluster_identifier=None):
         clusters = self.clusters.values()
@@ -989,10 +1004,4 @@ class RedshiftBackend(BaseBackend):
             raise ClusterNotFoundError(cluster_identifier)
 
 
-redshift_backends = {}
-for region in Session().get_available_regions("redshift"):
-    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
-for region in Session().get_available_regions("redshift", partition_name="aws-us-gov"):
-    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
-for region in Session().get_available_regions("redshift", partition_name="aws-cn"):
-    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
+redshift_backends = BackendDict(RedshiftBackend, "redshift")

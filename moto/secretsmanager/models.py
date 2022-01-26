@@ -3,10 +3,10 @@ import json
 import uuid
 import datetime
 
-from boto3 import Session
 from typing import List, Tuple
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from .exceptions import (
     SecretNotFoundException,
     SecretHasNoValueException,
@@ -17,11 +17,11 @@ from .exceptions import (
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
-from .list_secrets.filters import all, tag_key, tag_value, description, name
+from .list_secrets.filters import filter_all, tag_key, tag_value, description, name
 
 
 _filter_functions = {
-    "all": all,
+    "all": filter_all,
     "name": name,
     "description": description,
     "tag-key": tag_key,
@@ -57,10 +57,12 @@ class FakeSecret:
         secret_string=None,
         secret_binary=None,
         description=None,
-        tags=[],
+        tags=None,
         kms_key_id=None,
         version_id=None,
         version_stages=None,
+        last_changed_date=None,
+        created_date=None,
     ):
         self.secret_id = secret_id
         self.name = secret_id
@@ -68,18 +70,24 @@ class FakeSecret:
         self.secret_string = secret_string
         self.secret_binary = secret_binary
         self.description = description
-        self.tags = tags
+        self.tags = tags or []
         self.kms_key_id = kms_key_id
         self.version_id = version_id
         self.version_stages = version_stages
+        self.last_changed_date = last_changed_date
+        self.created_date = created_date
         self.rotation_enabled = False
         self.rotation_lambda_arn = ""
         self.auto_rotate_after_days = 0
         self.deleted_date = None
 
-    def update(self, description=None, tags=[], kms_key_id=None):
+    def update(
+        self, description=None, tags=None, kms_key_id=None, last_changed_date=None
+    ):
         self.description = description
-        self.tags = tags
+        self.tags = tags or []
+        if last_changed_date is not None:
+            self.last_changed_date = last_changed_date
 
         if kms_key_id is not None:
             self.kms_key_id = kms_key_id
@@ -134,12 +142,13 @@ class FakeSecret:
             "RotationLambdaARN": self.rotation_lambda_arn,
             "RotationRules": {"AutomaticallyAfterDays": self.auto_rotate_after_days},
             "LastRotatedDate": None,
-            "LastChangedDate": None,
+            "LastChangedDate": self.last_changed_date,
             "LastAccessedDate": None,
             "DeletedDate": self.deleted_date,
             "Tags": self.tags,
             "VersionIdsToStages": version_id_to_stages,
             "SecretVersionsToStages": version_id_to_stages,
+            "CreatedDate": self.created_date,
         }
 
     def _form_version_ids_to_stages(self):
@@ -153,11 +162,11 @@ class FakeSecret:
 class SecretsStore(dict):
     def __setitem__(self, key, value):
         new_key = get_secret_name_from_arn(key)
-        super(SecretsStore, self).__setitem__(new_key, value)
+        super().__setitem__(new_key, value)
 
     def __getitem__(self, key):
         new_key = get_secret_name_from_arn(key)
-        return super(SecretsStore, self).__getitem__(new_key)
+        return super().__getitem__(new_key)
 
     def __contains__(self, key):
         new_key = get_secret_name_from_arn(key)
@@ -165,12 +174,12 @@ class SecretsStore(dict):
 
     def pop(self, key, *args, **kwargs):
         new_key = get_secret_name_from_arn(key)
-        return super(SecretsStore, self).pop(new_key, *args, **kwargs)
+        return super().pop(new_key, *args, **kwargs)
 
 
 class SecretsManagerBackend(BaseBackend):
     def __init__(self, region_name=None, **kwargs):
-        super(SecretsManagerBackend, self).__init__()
+        super().__init__()
         self.region = region_name
         self.secrets = SecretsStore()
 
@@ -298,7 +307,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_string=None,
         secret_binary=None,
         description=None,
-        tags=[],
+        tags=None,
         kms_key_id=None,
     ):
 
@@ -325,7 +334,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_string=None,
         secret_binary=None,
         description=None,
-        tags=[],
+        tags=None,
         kms_key_id=None,
         version_id=None,
         version_stages=None,
@@ -350,10 +359,11 @@ class SecretsManagerBackend(BaseBackend):
         if secret_binary is not None:
             secret_version["secret_binary"] = secret_binary
 
+        update_time = int(time.time())
         if secret_id in self.secrets:
             secret = self.secrets[secret_id]
 
-            secret.update(description, tags, kms_key_id)
+            secret.update(description, tags, kms_key_id, last_changed_date=update_time)
 
             if "AWSPENDING" in version_stages:
                 secret.versions[version_id] = secret_version
@@ -368,6 +378,8 @@ class SecretsManagerBackend(BaseBackend):
                 description=description,
                 tags=tags,
                 kms_key_id=kms_key_id,
+                last_changed_date=update_time,
+                created_date=update_time,
             )
             secret.set_versions({version_id: secret_version})
             secret.set_default_version_id(version_id)
@@ -796,14 +808,4 @@ class SecretsManagerBackend(BaseBackend):
         )
 
 
-secretsmanager_backends = {}
-for region in Session().get_available_regions("secretsmanager"):
-    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
-for region in Session().get_available_regions(
-    "secretsmanager", partition_name="aws-us-gov"
-):
-    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
-for region in Session().get_available_regions(
-    "secretsmanager", partition_name="aws-cn"
-):
-    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
+secretsmanager_backends = BackendDict(SecretsManagerBackend, "secretsmanager")

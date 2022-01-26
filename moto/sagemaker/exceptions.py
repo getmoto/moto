@@ -9,28 +9,26 @@ class SagemakerClientError(RESTError):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("template", "single_error")
         self.templates["model_error"] = ERROR_WITH_MODEL_NAME
-        super(SagemakerClientError, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class ModelError(RESTError):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("template", "model_error")
         self.templates["model_error"] = ERROR_WITH_MODEL_NAME
-        super(ModelError, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class MissingModel(ModelError):
     code = 404
 
     def __init__(self, *args, **kwargs):
-        super(MissingModel, self).__init__(
-            "NoSuchModel", "Could not find model", *args, **kwargs
-        )
+        super().__init__("NoSuchModel", "Could not find model", *args, **kwargs)
 
 
 class ValidationError(JsonRESTError):
     def __init__(self, message, **kwargs):
-        super(ValidationError, self).__init__("ValidationException", message, **kwargs)
+        super().__init__("ValidationException", message, **kwargs)
 
 
 class AWSValidationException(AWSError):
@@ -39,4 +37,4 @@ class AWSValidationException(AWSError):
 
 class ResourceNotFound(JsonRESTError):
     def __init__(self, message, **kwargs):
-        super(ResourceNotFound, self).__init__(__class__.__name__, message, **kwargs)
+        super().__init__(__class__.__name__, message, **kwargs)

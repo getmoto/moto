@@ -50,7 +50,6 @@ from moto.s3.exceptions import (
     CrossLocationLoggingProhibitted,
     NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
-    WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
     InvalidTagError,
@@ -116,6 +115,7 @@ class FakeKey(BaseModel):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
+        s3_backend=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -147,6 +147,8 @@ class FakeKey(BaseModel):
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
+
+        self.s3_backend = s3_backend
 
     @property
     def version_id(self):
@@ -195,18 +197,6 @@ class FakeKey(BaseModel):
 
     def set_acl(self, acl):
         self.acl = acl
-
-    def append_to_value(self, value):
-        self.contentsize += len(value)
-        self._value_buffer.seek(0, os.SEEK_END)
-        self._value_buffer.write(value)
-
-        self.last_modified = datetime.datetime.utcnow()
-        self._etag = None  # must recalculate etag
-        if self._is_versioned:
-            self._version_id = str(uuid.uuid4())
-        else:
-            self._version_id = None
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
@@ -278,6 +268,9 @@ class FakeKey(BaseModel):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
+        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        if tags:
+            res["x-amz-tagging-count"] = len(tags.keys())
 
         return res
 
@@ -392,8 +385,8 @@ class FakeMultipart(BaseModel):
 
 
 class FakeGrantee(BaseModel):
-    def __init__(self, id="", uri="", display_name=""):
-        self.id = id
+    def __init__(self, grantee_id="", uri="", display_name=""):
+        self.id = grantee_id
         self.uri = uri
         self.display_name = display_name
 
@@ -512,7 +505,7 @@ class FakeAcl(BaseModel):
 
 
 def get_canned_acl(acl):
-    owner_grantee = FakeGrantee(id=OWNER)
+    owner_grantee = FakeGrantee(grantee_id=OWNER)
     grants = [FakeGrant([owner_grantee], [PERMISSION_FULL_CONTROL])]
     if acl == "private":
         pass  # no other permissions
@@ -590,7 +583,7 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleRule(BaseModel):
     def __init__(
         self,
-        id=None,
+        rule_id=None,
         prefix=None,
         lc_filter=None,
         status=None,
@@ -605,7 +598,7 @@ class LifecycleRule(BaseModel):
         nvt_storage_class=None,
         aimu_days=None,
     ):
-        self.id = id
+        self.id = rule_id
         self.prefix = prefix
         self.filter = lc_filter
         self.status = status
@@ -689,13 +682,9 @@ class CorsRule(BaseModel):
 
 
 class Notification(BaseModel):
-    def __init__(self, arn, events, filters=None, id=None):
-        self.id = (
-            id
-            if id
-            else "".join(
-                random.choice(string.ascii_letters + string.digits) for _ in range(50)
-            )
+    def __init__(self, arn, events, filters=None, notification_id=None):
+        self.id = notification_id or "".join(
+            random.choice(string.ascii_letters + string.digits) for _ in range(50)
         )
         self.arn = arn
         self.events = events
@@ -730,7 +719,10 @@ class NotificationConfiguration(BaseModel):
         self.topic = (
             [
                 Notification(
-                    t["Topic"], t["Event"], filters=t.get("Filter"), id=t.get("Id")
+                    t["Topic"],
+                    t["Event"],
+                    filters=t.get("Filter"),
+                    notification_id=t.get("Id"),
                 )
                 for t in topic
             ]
@@ -740,7 +732,10 @@ class NotificationConfiguration(BaseModel):
         self.queue = (
             [
                 Notification(
-                    q["Queue"], q["Event"], filters=q.get("Filter"), id=q.get("Id")
+                    q["Queue"],
+                    q["Event"],
+                    filters=q.get("Filter"),
+                    notification_id=q.get("Id"),
                 )
                 for q in queue
             ]
@@ -753,7 +748,7 @@ class NotificationConfiguration(BaseModel):
                     c["CloudFunction"],
                     c["Event"],
                     filters=c.get("Filter"),
-                    id=c.get("Id"),
+                    notification_id=c.get("Id"),
                 )
                 for c in cloud_function
             ]
@@ -972,7 +967,7 @@ class FakeBucket(CloudFormationModel):
 
             self.rules.append(
                 LifecycleRule(
-                    id=rule.get("ID"),
+                    rule_id=rule.get("ID"),
                     prefix=top_level_prefix,
                     lc_filter=lc_filter,
                     status=rule["Status"],
@@ -1340,7 +1335,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def __init__(self):
         self.buckets = {}
-        self.account_public_access_block = None
         self.tagger = TaggingService()
 
     @property
@@ -1582,16 +1576,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return bucket.public_access_block
 
-    def get_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not self.account_public_access_block:
-            raise NoSuchPublicAccessBlockConfiguration()
-
-        return self.account_public_access_block
-
     def put_object(
         self,
         bucket_name,
@@ -1642,6 +1626,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            s3_backend=s3_backend,
         )
 
         keys = [
@@ -1672,13 +1657,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key.lock_mode = retention[0]
         key.lock_until = retention[1]
 
-    def append_to_key(self, bucket_name, key_name, value):
-        key = self.get_object(bucket_name, key_name)
-        key.append_to_value(value)
-        return key
-
-    def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
-        key_name = clean_key_name(key_name)
+    def get_object(
+        self,
+        bucket_name,
+        key_name,
+        version_id=None,
+        part_number=None,
+        key_is_clean=False,
+    ):
+        if not key_is_clean:
+            key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None
 
@@ -1783,13 +1771,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         bucket.public_access_block = None
 
-    def delete_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        self.account_public_access_block = None
-
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -1812,21 +1793,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise InvalidPublicAccessBlockConfiguration()
 
         bucket.public_access_block = PublicAccessBlock(
-            pub_block_config.get("BlockPublicAcls"),
-            pub_block_config.get("IgnorePublicAcls"),
-            pub_block_config.get("BlockPublicPolicy"),
-            pub_block_config.get("RestrictPublicBuckets"),
-        )
-
-    def put_account_public_access_block(self, account_id, pub_block_config):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not pub_block_config:
-            raise InvalidPublicAccessBlockConfiguration()
-
-        self.account_public_access_block = PublicAccessBlock(
             pub_block_config.get("BlockPublicAcls"),
             pub_block_config.get("IgnorePublicAcls"),
             pub_block_config.get("BlockPublicPolicy"),
@@ -2040,36 +2006,35 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def copy_object(
         self,
-        src_bucket_name,
-        src_key_name,
+        src_key,
         dest_bucket_name,
         dest_key_name,
         storage=None,
         acl=None,
-        src_version_id=None,
         encryption=None,
         kms_key_id=None,
+        bucket_key_enabled=False,
     ):
-        key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,
             key_name=dest_key_name,
-            value=key.value,
-            storage=storage or key.storage_class,
-            multipart=key.multipart,
-            encryption=encryption or key.encryption,
-            kms_key_id=kms_key_id or key.kms_key_id,
-            bucket_key_enabled=key.bucket_key_enabled,
-            lock_mode=key.lock_mode,
-            lock_legal_status=key.lock_legal_status,
-            lock_until=key.lock_until,
+            value=src_key.value,
+            storage=storage or src_key.storage_class,
+            multipart=src_key.multipart,
+            encryption=encryption or src_key.encryption,
+            kms_key_id=kms_key_id or src_key.kms_key_id,
+            bucket_key_enabled=bucket_key_enabled or src_key.bucket_key_enabled,
+            lock_mode=src_key.lock_mode,
+            lock_legal_status=src_key.lock_legal_status,
+            lock_until=src_key.lock_until,
         )
-        self.tagger.copy_tags(key.arn, new_key.arn)
+        self.tagger.copy_tags(src_key.arn, new_key.arn)
+        new_key.set_metadata(src_key.metadata)
 
         if acl is not None:
             new_key.set_acl(acl)
-        if key.storage_class in "GLACIER":
+        if src_key.storage_class in "GLACIER":
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
 

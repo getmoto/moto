@@ -1,6 +1,186 @@
 Moto Changelog
 ===================
 
+3.0.1
+-----
+
+    * New Services:
+        * MQ:
+            * create_broker()
+            * create_configuration()
+            * create_tags()
+            * create_user()
+            * delete_broker()
+            * delete_tags()
+            * delete_user()
+            * describe_broker()
+            * describe_configuration()
+            * describe_configuration_revision()
+            * describe_user()
+            * list_brokers()
+            * list_configurations()
+            * list_tags()
+            * list_users()
+            * reboot_broker()
+            * update_broker()
+            * update_configuration()
+            * update_user()
+
+    * New Methods:
+        * EC2:
+            * create_snapshots()
+        * Logs:
+            * create_export_task()
+        * Organizations:
+            * remove_account_from_organization()
+
+    * Miscellaneous:
+        * DynamoDB: transact_write_items() now throws a MultipleTransactionsException when appropriate
+        * DynamoDB: Now throws the appropriate InvalidConditionExpression when a ConditionExpression contains reserved keywords
+        * Organizations: delete_organization() now validates whether all accounts are deleted
+        * SecretsManager: The attributes CreatedDate and LastChangedDate are now returned for secrets
+        * SNS: Simplistic email validation is now in place before sending emails
+
+3.0.0
+-----
+    This is a major release, and as such contains some breaking changes.
+
+    * Removed:
+        - All deprecated decorators have been removed
+
+    * Changes:
+        - The behaviour of the class-decorator has been reworked - the state is now reset before every test-method.
+        - ECS ARN's are now using the long format.
+
+    * Rebranded:
+        - The new mock_s3control-decorator has been introduced. The existing S3control methods (get/put/delete_public_access_block) are no longer available via mock_s3, only via mock_s3control.
+
+    * General:
+        - Python 3.5 support has been removed
+        - Python 3.10 is now supported
+
+
+2.3.2
+-----
+    General:
+        * Compatible with the latest `responses`-release (0.17.0)
+
+    New Services:
+        * Appsync:
+            * create_api_key()
+            * create_graphql_api()
+            * delete_api_key()
+            * delete_graphql_api()
+            * get_graphql_api()
+            * get_schema_creation_status()
+            * get_type()
+            * list_api_keys()
+            * list_graphql_apis()
+            * list_tags_for_resource()
+            * start_schema_creation()
+            * tag_resource()
+            * untag_resource()
+            * update_api_key()
+            * update_graphql_api()
+
+    Miscellaneous:
+        * AWSLambda:invoke() now throws an error when trying to return an oversized payload (>6MB)
+        * EC2:describe_instances() now supports filtering by `dns-name`
+        * EC2:describe_managed_prefix_lists() now supports filtering by tags
+        * SQS:delete_message_batch() now correctly deals with invalid receipt handles
+
+2.3.1
+-----
+    New Services:
+        * DAX:
+            * create_cluster()
+            * decrease_replication_factor()
+            * delete_cluster()
+            * describe_clusters()
+            * increase_replication_factor()
+            * list_tags()
+        * SSO-Admin:
+            * create_account_assignment()
+            * delete_account_assignment()
+            * list_account_assignments()
+
+    New Methods:
+        * APIGateway:
+            * update_base_path_mapping()
+        * SNS:
+            * publish_batch()
+
+    Miscellaneous:
+        * ECS: run_task() now supports the launchType-parameter
+        * SNS: publish() now supports FIFO-topics
+        * SWF: respond_decision_task_completed() now supports RecordMarker/StartTimer/CancelTimer/CancelWorkflowExecution decisions
+
+2.3.0
+-----
+    General:
+        * It is now possible to use a mocked region. This will throw an error by default, but can be enabled using the `MOTO_ALLOW_NONEXISTENT_REGION`-environment variable.
+        * Performance improvements - only the backend for the requested region is now loaded into memory, instead of (naively) loading a backend for every region.
+
+2.2.20
+-----
+    New Services:
+        * ElasticsearchService:
+            * create_elasticsearch_domain()
+            * delete_elasticsearch_domain()
+            * describe_elasticsearch_domain()
+            * list_domain_names()
+
+    New Methods:
+        * EC2:
+            * disable_ebs_encryption_by_default()
+            * enable_ebs_encryption_by_default()
+            * get_ebs_encryption_by_default()
+        * Redshift:
+            * pause_cluster()
+            * resume_cluster()
+
+    Miscellanous:
+        * ELBv2: create_listener now supports the DefaultActions.ForwardConfig parameter
+        * Redshift: restore_from_cluster_snapshot() now supports the NodeType and NumberOfNodes-parameters
+        * Sagemaker: list_experiments() now supports pagination
+        * Sagemaker: list_trials() now supports pagination
+        * Sagemaker: list_trial_components() now supports pagination
+
+
+2.2.19
+-----
+    General:
+        * Support for ap-southeast-3
+
+
+2.2.18
+------
+    New Services:
+        * ElastiCache:
+            * create_user()
+            * delete_user()
+            * describe_users()
+        * GuardDuty:
+            * create_detector()
+            * list_detectors()
+
+    New Methods:
+        * IAM:
+            * list_open_id_connect_provider_tags()
+            * tag_open_id_connect_provider()
+            * untag_open_id_connect_provider()
+            * update_open_id_connect_provider_thumbprint()
+        * IOT:
+            * create_domain_configuration()
+            * delete_domain_configuration()
+            * describe_domain_configuration()
+            * list_domain_configurations()
+            * update_domain_configuration()
+
+    Miscellaneous:
+        * ResourceGroupTaggingAPI now supports Lambda Functions
+        * SecretsManager:list_secrets() now supports negative filters
+
 2.2.17
 ------
     New Services:

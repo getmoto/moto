@@ -15,6 +15,13 @@ class InvalidParameterValue(RESTError):
         super().__init__(__class__.__name__, message)
 
 
+class InvalidParameterCombination(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__(__class__.__name__, message)
+
+
 class ResourceNotFound(RESTError):
     code = 404
 

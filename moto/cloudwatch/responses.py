@@ -5,6 +5,7 @@ from dateutil.parser import parse as dtparse
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from .models import cloudwatch_backends, MetricDataQuery, MetricStat, Metric, Dimension
+from .exceptions import InvalidParameterCombination
 
 
 class CloudWatchResponse(BaseResponse):
@@ -187,9 +188,8 @@ class CloudWatchResponse(BaseResponse):
         unit = self._get_param("Unit")
         extended_statistics = self._get_param("ExtendedStatistics")
 
-        # TODO: this should instead throw InvalidParameterCombination
         if not statistics and not extended_statistics:
-            raise NotImplementedError(
+            raise InvalidParameterCombination(
                 "Must specify either Statistics or ExtendedStatistics"
             )
 

@@ -4,9 +4,8 @@ from datetime import datetime
 import random
 from uuid import uuid4
 
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 from moto.organizations import organizations_backends
 from moto.ram.exceptions import (
     MalformedArnException,
@@ -154,7 +153,7 @@ class ResourceShare(BaseModel):
 
 class ResourceAccessManagerBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(ResourceAccessManagerBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.resource_shares = []
 
@@ -238,10 +237,4 @@ class ResourceAccessManagerBackend(BaseBackend):
         return dict(returnValue=True)
 
 
-ram_backends = {}
-for region in Session().get_available_regions("ram"):
-    ram_backends[region] = ResourceAccessManagerBackend(region)
-for region in Session().get_available_regions("ram", partition_name="aws-us-gov"):
-    ram_backends[region] = ResourceAccessManagerBackend(region)
-for region in Session().get_available_regions("ram", partition_name="aws-cn"):
-    ram_backends[region] = ResourceAccessManagerBackend(region)
+ram_backends = BackendDict(ResourceAccessManagerBackend, "ram")

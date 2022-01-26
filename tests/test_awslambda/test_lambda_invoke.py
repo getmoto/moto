@@ -22,6 +22,7 @@ from .utilities import (
     get_test_zip_file2,
     get_lambda_using_environment_port,
     get_lambda_using_network_mode,
+    get_test_zip_largeresponse,
 )
 
 _lambda_region = "us-west-2"
@@ -353,3 +354,36 @@ def test_invoke_async_function(key):
     )
 
     success_result["Status"].should.equal(202)
+
+
+@pytest.mark.network
+@mock_lambda
+def test_invoke_function_large_response():
+    # AWS Lambda should only return bodies smaller than 6 MB
+    conn = boto3.client("lambda", _lambda_region)
+    fxn = conn.create_function(
+        FunctionName=str(uuid4())[0:6],
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_largeresponse()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    resp = conn.invoke(FunctionName=fxn["FunctionArn"])
+    resp.should.have.key("FunctionError").equals("Unhandled")
+    payload = resp["Payload"].read().decode("utf-8")
+    payload = json.loads(payload)
+    payload.should.equal(
+        {
+            "errorMessage": "Response payload size exceeded maximum allowed payload size (6291556 bytes).",
+            "errorType": "Function.ResponseSizeTooLarge",
+        }
+    )
+
+    # Absolutely fine when invoking async
+    resp = conn.invoke(FunctionName=fxn["FunctionArn"], InvocationType="Event")
+    resp.shouldnt.have.key("FunctionError")
