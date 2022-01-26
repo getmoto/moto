@@ -1272,6 +1272,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif key is None:
             raise MissingVersion()
 
+        if key.version_id:
+            response_headers["x-amz-version-id"] = key.version_id
+
         if key.storage_class == "GLACIER":
             raise InvalidObjectState(storage_class="GLACIER")
         if if_unmodified_since:
