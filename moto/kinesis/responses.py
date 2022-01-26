@@ -18,7 +18,7 @@ class KinesisResponse(BaseResponse):
         shard_count = self.parameters.get("ShardCount")
         retention_period_hours = self.parameters.get("RetentionPeriodHours")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, retention_period_hours, self.region
+            stream_name, shard_count, retention_period_hours
         )
         return ""
 
@@ -149,6 +149,20 @@ class KinesisResponse(BaseResponse):
             res["NextToken"] = token
         return json.dumps(res)
 
+    def update_shard_count(self):
+        stream_name = self.parameters.get("StreamName")
+        target_shard_count = self.parameters.get("TargetShardCount")
+        current_shard_count = self.kinesis_backend.update_shard_count(
+            stream_name=stream_name, target_shard_count=target_shard_count,
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardCount=current_shard_count,
+                TargetShardCount=target_shard_count,
+            )
+        )
+
     def increase_stream_retention_period(self):
         stream_name = self.parameters.get("StreamName")
         retention_period_hours = self.parameters.get("RetentionPeriodHours")
@@ -185,3 +199,82 @@ class KinesisResponse(BaseResponse):
         tag_keys = self.parameters.get("TagKeys")
         self.kinesis_backend.remove_tags_from_stream(stream_name, tag_keys)
         return json.dumps({})
+
+    def enable_enhanced_monitoring(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_level_metrics = self.parameters.get("ShardLevelMetrics")
+        current, desired = self.kinesis_backend.enable_enhanced_monitoring(
+            stream_name=stream_name, shard_level_metrics=shard_level_metrics,
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardLevelMetrics=current,
+                DesiredShardLevelMetrics=desired,
+            )
+        )
+
+    def disable_enhanced_monitoring(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_level_metrics = self.parameters.get("ShardLevelMetrics")
+        current, desired = self.kinesis_backend.disable_enhanced_monitoring(
+            stream_name=stream_name, to_be_disabled=shard_level_metrics,
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardLevelMetrics=current,
+                DesiredShardLevelMetrics=desired,
+            )
+        )
+
+    def list_stream_consumers(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
+        return json.dumps(dict(Consumers=[c.to_json() for c in consumers]))
+
+    def register_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer = self.kinesis_backend.register_stream_consumer(
+            stream_arn=stream_arn, consumer_name=consumer_name,
+        )
+        return json.dumps(dict(Consumer=consumer.to_json()))
+
+    def describe_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer_arn = self.parameters.get("ConsumerARN")
+        consumer = self.kinesis_backend.describe_stream_consumer(
+            stream_arn=stream_arn,
+            consumer_name=consumer_name,
+            consumer_arn=consumer_arn,
+        )
+        return json.dumps(
+            dict(ConsumerDescription=consumer.to_json(include_stream_arn=True))
+        )
+
+    def deregister_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer_arn = self.parameters.get("ConsumerARN")
+        self.kinesis_backend.deregister_stream_consumer(
+            stream_arn=stream_arn,
+            consumer_name=consumer_name,
+            consumer_arn=consumer_arn,
+        )
+        return json.dumps(dict())
+
+    def start_stream_encryption(self):
+        stream_name = self.parameters.get("StreamName")
+        encryption_type = self.parameters.get("EncryptionType")
+        key_id = self.parameters.get("KeyId")
+        self.kinesis_backend.start_stream_encryption(
+            stream_name=stream_name, encryption_type=encryption_type, key_id=key_id
+        )
+        return json.dumps(dict())
+
+    def stop_stream_encryption(self):
+        stream_name = self.parameters.get("StreamName")
+        self.kinesis_backend.stop_stream_encryption(stream_name=stream_name,)
+        return json.dumps(dict())
