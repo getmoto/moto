@@ -568,6 +568,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             env_vars.update(self.environment_vars)
             env_vars["MOTO_HOST"] = settings.moto_server_host()
             env_vars["MOTO_PORT"] = settings.moto_server_port()
+            env_vars[
+                "MOTO_HTTP_ENDPOINT"
+            ] = f'{env_vars["MOTO_HOST"]}:{env_vars["MOTO_PORT"]}'
 
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
@@ -605,7 +608,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         environment=env_vars,
                         detach=True,
                         log_config=log_config,
-                        **run_kwargs
+                        **run_kwargs,
                     )
                 finally:
                     if container:
@@ -1128,6 +1131,10 @@ The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, whic
         port = os.environ.get("MOTO_PORT")
         url = host + ":" + port
         ec2 = boto3.client('ec2', region_name='us-west-2', endpoint_url=url)
+
+        # Or even simpler:
+        full_url = os.environ.get("MOTO_HTTP_ENDPOINT")
+        ec2 = boto3.client("ec2", region_name="eu-west-1", endpoint_url=full_url)
 
         ec2.do_whatever_inside_the_existing_moto_server()
 

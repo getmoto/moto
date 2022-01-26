@@ -59,9 +59,11 @@ def lambda_handler(event, context):
     url = base_url + ":" + port
     conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
 
+    full_url = os.environ["MOTO_HTTP_ENDPOINT"]
+
     functions = conn.list_functions()["Functions"]
 
-    return {'response': functions}
+    return {'functions': functions, 'host': full_url}
 """
     return _process_lambda(func_str)
 

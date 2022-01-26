@@ -170,9 +170,13 @@ def test_invoke_lambda_using_environment_port():
 
     success_result["StatusCode"].should.equal(202)
     response = success_result["Payload"].read()
-    functions = json.loads(response.decode("utf-8"))["response"]
+    response = json.loads(response.decode("utf-8"))
+
+    functions = response["functions"]
     function_names = [f["FunctionName"] for f in functions]
     function_names.should.contain(function_name)
+
+    response["host"].should.equal("http://host.docker.internal:5000")
 
 
 @pytest.mark.network
