@@ -285,6 +285,36 @@ def test_apply_security_groups_to_load_balancer():
 
 
 @mock_elb
+def test_create_listener_is_idempotent():
+    client = boto3.client("elb", region_name="us-east-1")
+
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+    client.describe_load_balancers()["LoadBalancerDescriptions"].should.have.length_of(1)
+
+    client.create_load_balancer_listeners(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 443, "InstancePort": 8443}],
+    )
+    balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+    balancer["ListenerDescriptions"].should.have.length_of(2)
+
+    # We can make this call again, and the result is the same
+    # From the docs:
+    # If a listener with the specified port does not already exist, it is created;
+    # otherwise, the properties of the new listener must match the properties of the existing listener.
+    client.create_load_balancer_listeners(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 443, "InstancePort": 8443}],
+    )
+    balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+    balancer["ListenerDescriptions"].should.have.length_of(2)
+
+
+@mock_elb
 def test_create_and_delete_listener_boto3_support():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -679,7 +709,7 @@ def test_connection_draining_attribute_boto3():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False})
+    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False, "Timeout": 300})
 
 
 @mock_elb
@@ -1202,3 +1232,40 @@ def test_create_load_balancer_duplicate_boto3():
     err["Message"].should.equal(
         f"The specified load balancer name already exists for this account: {lb_name}"
     )
+
+
+@mock_elb
+@mock_ec2
+def test_enable_availability_zones_for_load_balancer():
+    client = boto3.client("elb", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    lb = client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[
+            {"Protocol": "http", "LoadBalancerPort": 81, "InstancePort": 9000},
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    # Sanity Check we only have the supplied availability zones
+    describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
+        "LoadBalancerDescriptions"
+    ][0]
+    describe.should.have.key("AvailabilityZones").equal(["us-east-1a"])
+
+    # Now enable some more zones
+    resp = client.enable_availability_zones_for_load_balancer(
+        LoadBalancerName="my-lb",
+        AvailabilityZones=["us-east-1b", "us-east-1c"]
+    )
+    resp.should.have.key("AvailabilityZones").equals(["us-east-1b", "us-east-1c"])
+
+    # Verify that the new zones are persisted
+    describe = client.describe_load_balancers(LoadBalancerNames=["my-lb"])[
+        "LoadBalancerDescriptions"
+    ][0]
+    describe.should.have.key("AvailabilityZones").length_of(3)
+    describe["AvailabilityZones"].should.contain("us-east-1a")
+    describe["AvailabilityZones"].should.contain("us-east-1b")
+    describe["AvailabilityZones"].should.contain("us-east-1c")

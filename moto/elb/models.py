@@ -322,25 +322,28 @@ class ELBBackend(BaseBackend):
                 ssl_certificate_id = port.get("ssl_certificate_id")
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
-                        if protocol != listener.protocol:
+                        same_protocol = protocol.lower() == listener.protocol.lower()
+                        if same_protocol and instance_port == listener.instance_port and ssl_certificate_id == listener.ssl_certificate_id:
+                            # Idempotent operation - if this exact listener already exists, we can ignore
+                            return balancer
+                        if not same_protocol or instance_port != listener.instance_port or ssl_certificate_id != listener.ssl_certificate_id:
                             raise DuplicateListenerError(name, lb_port)
-                        if instance_port != listener.instance_port:
-                            raise DuplicateListenerError(name, lb_port)
-                        if ssl_certificate_id != listener.ssl_certificate_id:
-                            raise DuplicateListenerError(name, lb_port)
-                        break
-                else:
-                    if ssl_certificate_id:
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
-                        )
-                    balancer.listeners.append(
-                        FakeListener(
-                            lb_port, instance_port, protocol, ssl_certificate_id
-                        )
+
+                if ssl_certificate_id:
+                    self._register_certificate(
+                        ssl_certificate_id, balancer.dns_name
                     )
+                balancer.listeners.append(
+                    FakeListener(
+                        lb_port, instance_port, protocol, ssl_certificate_id
+                    )
+                )
 
         return balancer
+
+    def enable_availability_zones_for_load_balancer(self, lb_name, zones):
+        lb = self.get_load_balancer(lb_name)
+        lb.zones = list(set(lb.zones + zones))
 
     def describe_load_balancers(self, names):
         balancers = self.load_balancers.values()

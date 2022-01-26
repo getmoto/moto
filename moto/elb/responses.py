@@ -260,6 +260,16 @@ class ELBResponse(BaseResponse):
         )
         return template.render()
 
+    def enable_availability_zones_for_load_balancer(self):
+        load_balancer_name = self._get_param("LoadBalancerName")
+        availability_zones = self._get_multi_param("AvailabilityZones.member")
+        self.elb_backend.enable_availability_zones_for_load_balancer(
+            load_balancer_name, availability_zones
+        )
+
+        template = self.response_template(ENABLE_AVAILABILITY_ZONES_TEMPLATE)
+        return template.render(zones=availability_zones)
+
     def describe_instance_health(self):
         load_balancer_name = self._get_param("LoadBalancerName")
         provided_instance_ids = [
@@ -432,6 +442,8 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
               <HealthyThreshold>{{ load_balancer.health_check.healthy_threshold }}</HealthyThreshold>
               <Timeout>{{ load_balancer.health_check.timeout }}</Timeout>
               <UnhealthyThreshold>{{ load_balancer.health_check.unhealthy_threshold }}</UnhealthyThreshold>
+            {% else %}
+            <Target></Target>
             {% endif %}
           </HealthCheck>
           {% if load_balancer.vpc_id %}
@@ -631,6 +643,9 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
         <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
         {% else %}
         <Enabled>false</Enabled>
+        {% if attributes["connection_draining"]["timeout"] %}
+        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
+        {% endif %}
         {% endif %}
       </ConnectionDraining>
     </LoadBalancerAttributes>
@@ -732,3 +747,14 @@ DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="ht
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeInstanceHealthResponse>"""
+
+
+ENABLE_AVAILABILITY_ZONES_TEMPLATE = """<EnableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+<EnableAvailabilityZonesForLoadBalancerResult>
+    <AvailabilityZones>
+        {% for zone in zones %}
+        <AvailabilityZone>{{ zone }}</AvailabilityZone>
+        {% endfor %}
+    </AvailabilityZones>
+</EnableAvailabilityZonesForLoadBalancerResult>
+</EnableAvailabilityZonesForLoadBalancerResponse>"""

@@ -27,6 +27,13 @@ def create_route53_zone_id():
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
 
 
+class DNSSecStatus(BaseModel):
+    def __init__(self):
+        self.signature = "NOT_SIGNING"
+        self.message = ""
+        self.key_signing_keys = []
+
+
 class HealthCheck(CloudFormationModel):
     def __init__(self, health_check_id, caller_reference, health_check_args):
         self.id = health_check_id
@@ -86,7 +93,7 @@ class HealthCheck(CloudFormationModel):
             <CallerReference>{{ health_check.caller_reference }}</CallerReference>
             <HealthCheckConfig>
                 {% if health_check.type_ != "CALCULATED" %}
-                    <IPAddress>{{ health_check.ip_address }}</IPAddress>
+                    {% if health_check.ip_address %}<IPAddress>{{ health_check.ip_address }}</IPAddress>{% endif %}
                     <Port>{{ health_check.port }}</Port>
                 {% endif %}
                 <Type>{{ health_check.type_ }}</Type>
@@ -139,6 +146,7 @@ class RecordSet(CloudFormationModel):
         self.alias_target = kwargs.get("AliasTarget")
         self.failover = kwargs.get("Failover")
         self.geo_location = kwargs.get("GeoLocation")
+        self.multivalueanswer = kwargs.get("MultiValueAnswer", "")
 
     @staticmethod
     def cloudformation_name_type():
@@ -219,6 +227,7 @@ class FakeZone(CloudFormationModel):
             self.comment = comment
         self.private_zone = private_zone
         self.rrsets = []
+        self.dnssec = DNSSecStatus()
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -361,6 +370,7 @@ class QueryLoggingConfig(BaseModel):
 class Route53Backend(BaseBackend):
     def __init__(self):
         self.zones = {}
+        self.zones_by_vpc = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
         self.query_logging_configs = {}
@@ -458,6 +468,11 @@ class Route53Backend(BaseBackend):
             zones = self.list_hosted_zones()
             zones = sorted(zones, key=sort_key)
         return dnsname, zones
+
+    def list_hosted_zones_by_vpc(self, vpc_id, vpc_region):
+        zone_ids = self.zones_by_vpc.get(vpc_region, {}).get(vpc_id, [])
+        zones = [self.zones.get(id_.replace("/hostedzone/", "")) for id_ in zone_ids]
+        return zones
 
     def get_hosted_zone(self, id_):
         the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
@@ -572,6 +587,22 @@ class Route53Backend(BaseBackend):
                 raise NoSuchHostedZone(hosted_zone_id)
 
         return list(self.query_logging_configs.values())
+
+    def get_dnssec(self, hosted_zone_id):
+        zone = self.get_hosted_zone(hosted_zone_id)
+        return zone.dnssec
+
+    def update_hosted_zone_comment(self, id_, comment):
+        hosted_zone = self.get_hosted_zone(id_)
+        hosted_zone.comment = comment
+        return hosted_zone
+
+    def associate_vpc_with_hosted_zone(self, hosted_zone_id, vpc_id, vpc_region):
+        if not vpc_region in self.zones_by_vpc:
+            self.zones_by_vpc[vpc_region] = {}
+        if not vpc_id in self.zones_by_vpc[vpc_region]:
+            self.zones_by_vpc[vpc_region][vpc_id] = []
+        self.zones_by_vpc[vpc_region][vpc_id].append(hosted_zone_id)
 
 
 route53_backend = Route53Backend()

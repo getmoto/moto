@@ -6,7 +6,7 @@ class Route53ClientError(RESTError):
     """Base class for Route53 errors."""
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("template", "single_error")
+        kwargs.setdefault("template", "wrapped_single_error")
         super().__init__(*args, **kwargs)
 
 

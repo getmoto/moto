@@ -1226,6 +1226,23 @@ def test_modify_load_balancer_attributes_routing_http2_enabled():
 
 @mock_elbv2
 @mock_ec2
+def test_modify_load_balancer_attributes_crosszone_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "load_balancing.cross_zone.enabled", "Value": "false"},
+                    {"Key": "deletion_protection.enabled", "Value": "false"}],
+    )
+
+    attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
+    attrs.should.contain({'Key': 'deletion_protection.enabled', 'Value': 'false'})
+    attrs.should.contain({'Key': 'load_balancing.cross_zone.enabled', 'Value': 'false'})
+
+
+@mock_elbv2
+@mock_ec2
 def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields_enabled():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]

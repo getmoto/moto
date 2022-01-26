@@ -32,24 +32,21 @@ class Route53(BaseResponse):
 
         if request.method == "POST":
             elements = xmltodict.parse(self.body)
-            if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
-                comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"][
-                    "Comment"
-                ]
+            root_elem = elements["CreateHostedZoneRequest"]
+            if "HostedZoneConfig" in root_elem:
+                comment = root_elem["HostedZoneConfig"].get("Comment")
                 try:
                     # in boto3, this field is set directly in the xml
-                    private_zone = elements["CreateHostedZoneRequest"][
-                        "HostedZoneConfig"
-                    ]["PrivateZone"]
+                    private_zone = root_elem["HostedZoneConfig"]["PrivateZone"]
                 except KeyError:
                     # if a VPC subsection is only included in xmls params when private_zone=True,
                     # see boto: boto/route53/connection.py
-                    private_zone = "VPC" in elements["CreateHostedZoneRequest"]
+                    private_zone = "VPC" in root_elem
             else:
                 comment = None
                 private_zone = False
 
-            name = elements["CreateHostedZoneRequest"]["Name"]
+            name = root_elem["Name"]
 
             if name[-1] != ".":
                 name += "."
@@ -76,8 +73,20 @@ class Route53(BaseResponse):
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
         return 200, headers, template.render(zones=zones, dnsname=dnsname, xmlns=XMLNS)
 
+    def list_hosted_zones_by_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        query_params = parse_qs(parsed_url.query)
+        vpc_id = query_params.get("vpcid")[0]
+        vpc_region = query_params.get("vpcregion")[0]
+
+        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
+
+        template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
+        return 200, headers, template.render(zones=zones, xmlns=XMLNS)
+
     @error_handler
-    def get_or_delete_hostzone_response(self, request, full_url, headers):
+    def individual_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
@@ -89,6 +98,17 @@ class Route53(BaseResponse):
         elif request.method == "DELETE":
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
+        elif request.method == "POST":
+            try:
+                body = xmltodict.parse(request.body, dict_constructor=dict)
+                comment = body["UpdateHostedZoneCommentRequest"].get("Comment", None)
+            except (TypeError, ValueError):
+                # RequestBody can be None, if no comment is supplied
+                comment = None
+            hosted_zone = route53_backend.update_hosted_zone_comment(zoneid, comment)
+            template = Template(UPDATE_HOSTED_ZONE_COMMENT_TEMPLATE)
+            return 200, headers, template.render(zone=hosted_zone)
+
 
     @error_handler
     def rrset_response(self, request, full_url, headers):
@@ -309,6 +329,30 @@ class Route53(BaseResponse):
             route53_backend.delete_query_logging_config(query_logging_config_id)
             return 200, headers, ""
 
+    def get_dnssec(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        status = route53_backend.get_dnssec(hosted_zone_id=zoneid)
+        template = self.response_template(GET_DNSSEC_TEMPLATE)
+        return 200, {}, template.render(status=status)
+
+    def associate_vpc_with_hosted_zone(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        body = xmltodict.parse(self.body)["AssociateVPCWithHostedZoneRequest"]
+        vpc_id = body["VPC"]["VPCId"]
+        vpc_region = body["VPC"]["VPCRegion"]
+        route53_backend.associate_vpc_with_hosted_zone(
+            hosted_zone_id=zoneid,
+            vpc_id=vpc_id,
+            vpc_region=vpc_region,
+        )
+        return 200, {}, ASSOCIATE_VPC_WITH_HOSTED_ZONE_TEMPLATE
+
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
@@ -375,6 +419,7 @@ LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
                {% endfor %}
            </ResourceRecords>
            {% endif %}
+           {% if record.multivalueanswer == 'true' %}<MultiValueAnswer>true</MultiValueAnswer>{% endif %}
            {% if record.health_check %}
                <HealthCheckId>{{ record.health_check }}</HealthCheckId>
            {% endif %}
@@ -411,7 +456,10 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
    </HostedZone>
    <DelegationSet>
       <NameServers>
-         <NameServer>moto.test.com</NameServer>
+         <NameServer>ns-2048.awsdns-64.com</NameServer>
+         <NameServer>ns-2049.awsdns-65.net</NameServer>
+         <NameServer>ns-2050.awsdns-66.org</NameServer>
+         <NameServer>ns-2051.awsdns-67.co.uk</NameServer>
       </NameServers>
    </DelegationSet>
 </GetHostedZoneResponse>"""
@@ -430,7 +478,10 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
    </HostedZone>
    <DelegationSet>
       <NameServers>
-         <NameServer>moto.test.com</NameServer>
+         <NameServer>ns-2048.awsdns-64.com</NameServer>
+         <NameServer>ns-2049.awsdns-65.net</NameServer>
+         <NameServer>ns-2050.awsdns-66.org</NameServer>
+         <NameServer>ns-2051.awsdns-67.co.uk</NameServer>
       </NameServers>
    </DelegationSet>
 </CreateHostedZoneResponse>"""
@@ -476,6 +527,24 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesByNameResponse>"""
 
+LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{ xmlns }}">
+  <HostedZoneSummaries>
+      {% for zone in zones %}
+      <HostedZone>
+         <HostedZoneId>/hostedzone/{{ zone.id }}</HostedZoneId>
+         <Name>{{ zone.name }}</Name>
+         <Config>
+            {% if zone.comment %}
+                <Comment>{{ zone.comment }}</Comment>
+            {% endif %}
+           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+         </Config>
+         <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
+      </HostedZone>
+      {% endfor %}
+   </HostedZoneSummaries>
+</ListHostedZonesByVpcResponse>"""
+
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">
   {{ health_check.to_xml() }}
@@ -483,13 +552,11 @@ CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 
 LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListHealthChecksResponse xmlns="{{ xmlns }}">
-   <HealthChecks>
    {% for health_check in health_checks %}
       {{ health_check.to_xml() }}
     {% endfor %}
-   </HealthChecks>
    <IsTruncated>false</IsTruncated>
-   <MaxItems>{{ health_checks|length }}</MaxItems>
+   <MaxItems>100</MaxItems>
 </ListHealthChecksResponse>"""
 
 DELETE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -526,3 +593,36 @@ LIST_QUERY_LOGGING_CONFIGS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <NextToken>{{ next_token }}</NextToken>
    {% endif %}
 </ListQueryLoggingConfigsResponse>"""
+
+GET_DNSSEC_TEMPLATE = """<GetDNSSECResponse>
+  <Status>
+      <ServeSignature>{{ status.signature }}</ServeSignature>
+      <StatusMessage>{{ status.message }}</StatusMessage>
+  </Status>
+  <KeySigningKeys></KeySigningKeys>
+</GetDNSSECResponse>
+"""
+
+UPDATE_HOSTED_ZONE_COMMENT_TEMPLATE = """<UpdateHostedZoneCommentResponse>
+  <HostedZone>
+    <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+      <Config>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
+        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+      </Config>
+  </HostedZone>
+</UpdateHostedZoneCommentResponse>
+"""
+
+ASSOCIATE_VPC_WITH_HOSTED_ZONE_TEMPLATE = """<AssociateVPCWithHostedZoneResponse>
+  <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ5</Id>
+   </ChangeInfo>
+</AssociateVPCWithHostedZoneResponse>
+"""

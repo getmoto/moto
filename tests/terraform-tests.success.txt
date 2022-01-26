@@ -73,6 +73,7 @@ TestAccAWSPartition
 TestAccAWSProvider
 TestAccAWSRedshiftServiceAccount
 TestAccAWSRolePolicyAttachment
+TestAccAWSRoute53Record
 TestAccAWSSNSSMSPreferences
 TestAccAWSSageMakerPrebuiltECRImage
 TestAccAWSSQSQueuePolicy

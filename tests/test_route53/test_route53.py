@@ -930,6 +930,37 @@ def test_failover_record_sets():
 
 
 @mock_route53
+def test_change_resource_record_set_with_multivalueanswer():
+    conn = boto3.client("route53", region_name="us-east-2")
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
+    zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "MultiValueAnswer": True,
+                        "Name": "www.test.zone",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.1"}],
+                        "SetIdentifier": "server",
+                    },
+                }
+            ]
+        },
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    record = response["ResourceRecordSets"][0]
+    record.should.have.key("MultiValueAnswer").equals(True)
+
+
+@mock_route53
 def test_geolocation_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
     conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
@@ -1220,3 +1251,29 @@ def test_change_resource_record_sets_records_limit():
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidChangeBatch")
     err["Message"].should.equal("Number of records limit of 1000 exceeded.")
+
+
+@mock_route53
+def test_update_hosted_zone_comment():
+    # TestAccAWSRoute53Zone_Comment
+    client = boto3.client("route53", region_name="us-east-2")
+
+    zone = client.create_hosted_zone(
+        Name="testdns.aws.com.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig={
+            "Comment": "first comment"
+        }
+    )["HostedZone"]
+    zone.should.have.key("Config").equal({"Comment": "first comment", "PrivateZone": False})
+
+    updated_zone = client.update_hosted_zone_comment(
+        Id=zone["Id"],
+        Comment="second comment"
+    )["HostedZone"]
+    updated_zone.should.have.key("Config").equal({'Comment': 'second comment', 'PrivateZone': False})
+
+    updated_zone = client.update_hosted_zone_comment(
+        Id=zone["Id"],
+    )["HostedZone"]
+    updated_zone.should.have.key("Config").equal({'PrivateZone': False})
