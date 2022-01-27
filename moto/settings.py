@@ -72,8 +72,7 @@ def moto_network_mode():
 
 def test_server_mode_endpoint():
     return os.environ.get(
-        "TEST_SERVER_MODE_ENDPOINT",
-        f"http://localhost:{moto_server_port()}"
+        "TEST_SERVER_MODE_ENDPOINT", f"http://localhost:{moto_server_port()}"
     )
 
 
