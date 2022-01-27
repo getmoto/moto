@@ -387,12 +387,16 @@ MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
+    def __init__(self, *args, **kwargs):
+        self.port = settings.moto_server_port()
+        super().__init__(*args, **kwargs)
+
     def reset(self):
         call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
         if not call_reset_api or call_reset_api.lower() != "false":
             import requests
 
-            requests.post("http://localhost:5000/moto-api/reset")
+            requests.post(f"http://localhost:{self.port}/moto-api/reset")
 
     def enable_patching(self, reset=True):
         if self.__class__.nested_count == 1 and reset:
@@ -410,12 +414,12 @@ class ServerModeMockAWS(BaseMockAWS):
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = f"http://localhost:{self.port}"
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args, **kwargs):
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = f"http://localhost:{self.port}"
             return real_boto3_resource(*args, **kwargs)
 
         self._client_patcher = patch("boto3.client", fake_boto3_client)

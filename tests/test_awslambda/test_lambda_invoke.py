@@ -13,12 +13,15 @@ from moto import (
     settings,
 )
 from uuid import uuid4
+from unittest import SkipTest
 from .utilities import (
     get_role_name,
     get_test_zip_file_error,
     get_test_zip_file1,
     get_zip_with_multiple_files,
     get_test_zip_file2,
+    get_lambda_using_environment_port,
+    get_lambda_using_network_mode,
     get_test_zip_largeresponse,
 )
 
@@ -144,6 +147,70 @@ def test_invoke_event_function():
     )
     success_result["StatusCode"].should.equal(202)
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
+
+
+@pytest.mark.network
+@mock_lambda
+def test_invoke_lambda_using_environment_port():
+    if not settings.TEST_SERVER_MODE:
+        raise SkipTest("Can only test environment variables in server mode")
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_lambda_using_environment_port()},
+    )
+
+    success_result = conn.invoke(
+        FunctionName=function_name, InvocationType="Event", Payload="{}"
+    )
+
+    success_result["StatusCode"].should.equal(202)
+    response = success_result["Payload"].read()
+    response = json.loads(response.decode("utf-8"))
+
+    functions = response["functions"]
+    function_names = [f["FunctionName"] for f in functions]
+    function_names.should.contain(function_name)
+
+    # Host matches the full URL, so one of:
+    # http://host.docker.internal:5000
+    # http://172.0.2.1:5000
+    # http://172.0.1.1:4555
+    response["host"].should.match("http://.+:[0-9]{4}")
+
+
+@pytest.mark.network
+@mock_lambda
+def test_invoke_lambda_using_networkmode():
+    """
+    Special use case - verify that Lambda can send a request to 'http://localhost'
+    This is only possible when the `network_mode` is set to host in the Docker args
+    Test is only run in our CI (for now)
+    """
+    if not settings.moto_network_mode():
+        raise SkipTest("Can only test this when NETWORK_MODE is specified")
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_lambda_using_network_mode()},
+    )
+
+    success_result = conn.invoke(
+        FunctionName=function_name, InvocationType="Event", Payload="{}"
+    )
+
+    response = success_result["Payload"].read()
+    functions = json.loads(response.decode("utf-8"))["response"]
+    function_names = [f["FunctionName"] for f in functions]
+    function_names.should.contain(function_name)
 
 
 @pytest.mark.network
