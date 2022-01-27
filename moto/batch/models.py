@@ -28,6 +28,7 @@ from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.docker_utilities import DockerModel
+from moto import settings
 from ..utilities.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)
@@ -562,6 +563,20 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 else {}
             )
 
+            environment["MOTO_HOST"] = settings.moto_server_host()
+            environment["MOTO_PORT"] = settings.moto_server_port()
+            environment[
+                "MOTO_HTTP_ENDPOINT"
+            ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+
+            run_kwargs = dict()
+            network_name = settings.moto_network_name()
+            network_mode = settings.moto_network_mode()
+            if network_name:
+                run_kwargs["network"] = network_name
+            elif network_mode:
+                run_kwargs["network_mode"] = network_mode
+
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
             container = self.docker_client.containers.run(
@@ -574,6 +589,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 mounts=mounts,
                 privileged=privileged,
                 extra_hosts=extra_hosts,
+                **run_kwargs,
             )
             self.job_state = "RUNNING"
             try:

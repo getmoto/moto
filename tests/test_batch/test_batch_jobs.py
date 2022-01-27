@@ -166,7 +166,7 @@ def test_list_jobs():
         job.should.have.key("createdAt")
         job.should.have.key("jobDefinition")
         job.should.have.key("jobName")
-        job.should.have.key("status").equals("STARTING")
+        job.should.have.key("status").which.should.be.within(["STARTING", "RUNNABLE"])
 
     batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
         "jobSummaryList"
