@@ -47,7 +47,7 @@ elb
 - [ ] describe_tags
 - [ ] detach_load_balancer_from_subnets
 - [ ] disable_availability_zones_for_load_balancer
-- [ ] enable_availability_zones_for_load_balancer
+- [X] enable_availability_zones_for_load_balancer
 - [X] modify_load_balancer_attributes
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags

@@ -19,6 +19,7 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone$": response.list_or_create_hostzone_response,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)$": response.individual_hostzone_response,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/associatevpc$": response.associate_vpc_with_hosted_zone,
+    r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/disassociatevpc$": response.disassociate_vpc_with_hosted_zone,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/dnssec$": response.get_dnssec,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/rrset/?$": response.rrset_response,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzonesbyname": response.list_hosted_zones_by_name_response,
@@ -31,4 +32,6 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/change/(?P<change_id>[^/]+)$": response.get_change,
     r"{0}/(?P<api_version>[\d_-]+)/queryloggingconfig$": response.list_or_create_query_logging_config_response,
     r"{0}/(?P<api_version>[\d_-]+)/queryloggingconfig/(?P<query_id>[^/]+)$": response.get_or_delete_query_logging_config_response,
+    r"{0}/(?P<api_version>[\d_-]+)/delegationset$": response.reusable_delegation_sets,
+    r"{0}/(?P<api_version>[\d_-]+)/delegationset/(?P<delegation_set_id>[^/]+)$": response.reusable_delegation_set,
 }

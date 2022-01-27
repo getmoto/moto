@@ -41,7 +41,9 @@ def test_list_recordset_using_filters():
     test_client.post(f"2013-04-01/hostedzone/{zone_id}/rrset/", data=request_data)
 
     # list record set
-    res = test_client.get(f"2013-04-01/hostedzone/{zone_id}/rrset?name=n.example.com&type=TXT")
+    res = test_client.get(
+        f"2013-04-01/hostedzone/{zone_id}/rrset?name=n.example.com&type=TXT"
+    )
     print(res.status_code)
     print(res.data.decode("utf-8"))
     # Ampersand should be properly encoded

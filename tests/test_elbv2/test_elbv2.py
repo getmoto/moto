@@ -1232,13 +1232,15 @@ def test_modify_load_balancer_attributes_crosszone_enabled():
 
     client.modify_load_balancer_attributes(
         LoadBalancerArn=arn,
-        Attributes=[{"Key": "load_balancing.cross_zone.enabled", "Value": "false"},
-                    {"Key": "deletion_protection.enabled", "Value": "false"}],
+        Attributes=[
+            {"Key": "load_balancing.cross_zone.enabled", "Value": "false"},
+            {"Key": "deletion_protection.enabled", "Value": "false"},
+        ],
     )
 
     attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
-    attrs.should.contain({'Key': 'deletion_protection.enabled', 'Value': 'false'})
-    attrs.should.contain({'Key': 'load_balancing.cross_zone.enabled', 'Value': 'false'})
+    attrs.should.contain({"Key": "deletion_protection.enabled", "Value": "false"})
+    attrs.should.contain({"Key": "load_balancing.cross_zone.enabled", "Value": "false"})
 
 
 @mock_elbv2

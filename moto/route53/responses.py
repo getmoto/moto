@@ -47,12 +47,16 @@ class Route53(BaseResponse):
                 private_zone = False
 
             name = root_elem["Name"]
+            delegation_set_id = root_elem.get("DelegationSetId")
 
             if name[-1] != ".":
                 name += "."
 
             new_zone = route53_backend.create_hosted_zone(
-                name, comment=comment, private_zone=private_zone
+                name,
+                comment=comment,
+                private_zone=private_zone,
+                delegation_set_id=delegation_set_id,
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
             return 201, headers, template.render(zone=new_zone)
@@ -109,7 +113,6 @@ class Route53(BaseResponse):
             template = Template(UPDATE_HOSTED_ZONE_COMMENT_TEMPLATE)
             return 200, headers, template.render(zone=hosted_zone)
 
-
     @error_handler
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -160,14 +163,33 @@ class Route53(BaseResponse):
             template = Template(LIST_RRSET_RESPONSE)
             start_type = querystring.get("type", [None])[0]
             start_name = querystring.get("name", [None])[0]
+            max_items = int(querystring.get("maxitems", ["300"])[0])
 
             if start_type and not start_name:
                 return 400, headers, "The input is not valid"
 
-            record_sets = route53_backend.list_resource_record_sets(
-                zoneid, start_type=start_type, start_name=start_name
+            (
+                record_sets,
+                next_name,
+                next_type,
+                is_truncated,
+            ) = route53_backend.list_resource_record_sets(
+                zoneid,
+                start_type=start_type,
+                start_name=start_name,
+                max_items=max_items,
             )
-            return 200, headers, template.render(record_sets=record_sets)
+            return (
+                200,
+                headers,
+                template.render(
+                    record_sets=record_sets,
+                    next_name=next_name,
+                    next_type=next_type,
+                    max_items=max_items,
+                    is_truncated=is_truncated,
+                ),
+            )
 
     def health_check_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -347,11 +369,68 @@ class Route53(BaseResponse):
         vpc_id = body["VPC"]["VPCId"]
         vpc_region = body["VPC"]["VPCRegion"]
         route53_backend.associate_vpc_with_hosted_zone(
-            hosted_zone_id=zoneid,
-            vpc_id=vpc_id,
-            vpc_region=vpc_region,
+            hosted_zone_id=zoneid, vpc_id=vpc_id, vpc_region=vpc_region,
         )
         return 200, {}, ASSOCIATE_VPC_WITH_HOSTED_ZONE_TEMPLATE
+
+    def disassociate_vpc_with_hosted_zone(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        body = xmltodict.parse(self.body)["DisassociateVPCFromHostedZoneRequest"]
+        vpc_id = body["VPC"]["VPCId"]
+        vpc_region = body["VPC"]["VPCRegion"]
+        route53_backend.disassociate_vpc_with_hosted_zone(
+            hosted_zone_id=zoneid, vpc_id=vpc_id, vpc_region=vpc_region,
+        )
+        return 200, {}, DISASSOCIATE_VPC_WITH_HOSTED_ZONE_TEMPLATE
+
+    def reusable_delegation_sets(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            delegation_sets = route53_backend.list_reusable_delegation_sets()
+            template = self.response_template(LIST_REUSABLE_DELEGATION_SETS_TEMPLATE)
+            return (
+                200,
+                {},
+                template.render(
+                    delegation_sets=delegation_sets,
+                    marker=None,
+                    is_truncated=False,
+                    max_items=100,
+                ),
+            )
+        elif request.method == "POST":
+            elements = xmltodict.parse(self.body)
+            root_elem = elements["CreateReusableDelegationSetRequest"]
+            caller_reference = root_elem.get("CallerReference")
+            hosted_zone_id = root_elem.get("HostedZoneId")
+            delegation_set = route53_backend.create_reusable_delegation_set(
+                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id,
+            )
+            template = self.response_template(CREATE_REUSABLE_DELEGATION_SET_TEMPLATE)
+            return (
+                201,
+                {"Location": delegation_set.location},
+                template.render(delegation_set=delegation_set),
+            )
+
+    @error_handler
+    def reusable_delegation_set(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        ds_id = parsed_url.path.rstrip("/").rsplit("/")[-1]
+        if request.method == "GET":
+            delegation_set = route53_backend.get_reusable_delegation_set(
+                delegation_set_id=ds_id
+            )
+            template = self.response_template(GET_REUSABLE_DELEGATION_SET_TEMPLATE)
+            return 200, {}, template.render(delegation_set=delegation_set)
+        if request.method == "DELETE":
+            route53_backend.delete_reusable_delegation_set(delegation_set_id=ds_id)
+            template = self.response_template(DELETE_REUSABLE_DELEGATION_SET_TEMPLATE)
+            return 200, {}, template.render()
 
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
@@ -426,7 +505,10 @@ LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
         </ResourceRecordSet>
        {% endfor %}
    </ResourceRecordSets>
-   <IsTruncated>false</IsTruncated>
+   {% if is_truncated %}<NextRecordName>{{ next_name }}</NextRecordName>{% endif %}
+   {% if is_truncated %}<NextRecordType>{{ next_type }}</NextRecordType>{% endif %}
+   <MaxItems>{{ max_items }}</MaxItems>
+   <IsTruncated>{{ 'true' if is_truncated else 'false' }}</IsTruncated>
 </ListResourceRecordSetsResponse>"""
 
 CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -455,11 +537,9 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
       </Config>
    </HostedZone>
    <DelegationSet>
+      <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
-         <NameServer>ns-2048.awsdns-64.com</NameServer>
-         <NameServer>ns-2049.awsdns-65.net</NameServer>
-         <NameServer>ns-2050.awsdns-66.org</NameServer>
-         <NameServer>ns-2051.awsdns-67.co.uk</NameServer>
+         {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
 </GetHostedZoneResponse>"""
@@ -477,11 +557,9 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
       </Config>
    </HostedZone>
    <DelegationSet>
+      <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
-         <NameServer>ns-2048.awsdns-64.com</NameServer>
-         <NameServer>ns-2049.awsdns-65.net</NameServer>
-         <NameServer>ns-2050.awsdns-66.org</NameServer>
-         <NameServer>ns-2051.awsdns-67.co.uk</NameServer>
+         {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
 </CreateHostedZoneResponse>"""
@@ -552,9 +630,9 @@ CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 
 LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListHealthChecksResponse xmlns="{{ xmlns }}">
-   {% for health_check in health_checks %}
-      {{ health_check.to_xml() }}
-    {% endfor %}
+  <HealthChecks>
+   {% for health_check in health_checks %}{{ health_check.to_xml() }}{% endfor %}
+  </HealthChecks>
    <IsTruncated>false</IsTruncated>
    <MaxItems>100</MaxItems>
 </ListHealthChecksResponse>"""
@@ -625,4 +703,61 @@ ASSOCIATE_VPC_WITH_HOSTED_ZONE_TEMPLATE = """<AssociateVPCWithHostedZoneResponse
       <Id>/change/C2682N5HXP0BZ5</Id>
    </ChangeInfo>
 </AssociateVPCWithHostedZoneResponse>
+"""
+
+DISASSOCIATE_VPC_WITH_HOSTED_ZONE_TEMPLATE = """<DisassociateVPCWithHostedZoneResponse>
+  <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ5</Id>
+   </ChangeInfo>
+</DisassociateVPCWithHostedZoneResponse>
+"""
+
+
+CREATE_REUSABLE_DELEGATION_SET_TEMPLATE = """<CreateReusableDelegationSetResponse>
+  <DelegationSet>
+      <Id>{{ delegation_set.id }}</Id>
+      <CallerReference>{{ delegation_set.caller_reference }}</CallerReference>
+      <NameServers>
+        {% for name in delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+      </NameServers>
+  </DelegationSet>
+</CreateReusableDelegationSetResponse>
+"""
+
+
+LIST_REUSABLE_DELEGATION_SETS_TEMPLATE = """<ListReusableDelegationSetsResponse>
+  <DelegationSets>
+    {% for delegation in delegation_sets %}
+    <DelegationSet>
+  <Id>{{ delegation.id }}</Id>
+  <CallerReference>{{ delegation.caller_reference }}</CallerReference>
+  <NameServers>
+    {% for name in delegation.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+  </NameServers>
+</DelegationSet>
+    {% endfor %}
+  </DelegationSets>
+  <Marker>{{ marker }}</Marker>
+  <IsTruncated>{{ is_truncated }}</IsTruncated>
+  <MaxItems>{{ max_items }}</MaxItems>
+</ListReusableDelegationSetsResponse>
+"""
+
+
+DELETE_REUSABLE_DELEGATION_SET_TEMPLATE = """<DeleteReusableDelegationSetResponse>
+  <DeleteReusableDelegationSetResponse/>
+</DeleteReusableDelegationSetResponse>
+"""
+
+GET_REUSABLE_DELEGATION_SET_TEMPLATE = """<GetReusableDelegationSetResponse>
+<DelegationSet>
+  <Id>{{ delegation_set.id }}</Id>
+  <CallerReference>{{ delegation_set.caller_reference }}</CallerReference>
+  <NameServers>
+    {% for name in delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+  </NameServers>
+</DelegationSet>
+</GetReusableDelegationSetResponse>
 """

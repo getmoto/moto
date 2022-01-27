@@ -22,7 +22,11 @@ def test_create_hosted_zone_boto3():
     firstzone.should.have.key("ResourceRecordSetCount").equal(0)
 
     delegation = response["DelegationSet"]
-    delegation.should.equal({"NameServers": ["moto.test.com"]})
+    delegation.should.have.key("NameServers").length_of(4)
+    delegation["NameServers"].should.contain("ns-2048.awsdns-64.com")
+    delegation["NameServers"].should.contain("ns-2049.awsdns-65.net")
+    delegation["NameServers"].should.contain("ns-2050.awsdns-66.org")
+    delegation["NameServers"].should.contain("ns-2051.awsdns-67.co.uk")
 
 
 @mock_route53
@@ -1261,19 +1265,84 @@ def test_update_hosted_zone_comment():
     zone = client.create_hosted_zone(
         Name="testdns.aws.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig={
-            "Comment": "first comment"
-        }
+        HostedZoneConfig={"Comment": "first comment"},
     )["HostedZone"]
-    zone.should.have.key("Config").equal({"Comment": "first comment", "PrivateZone": False})
+    zone.should.have.key("Config").equal(
+        {"Comment": "first comment", "PrivateZone": False}
+    )
 
     updated_zone = client.update_hosted_zone_comment(
-        Id=zone["Id"],
-        Comment="second comment"
+        Id=zone["Id"], Comment="second comment"
     )["HostedZone"]
-    updated_zone.should.have.key("Config").equal({'Comment': 'second comment', 'PrivateZone': False})
+    updated_zone.should.have.key("Config").equal(
+        {"Comment": "second comment", "PrivateZone": False}
+    )
 
-    updated_zone = client.update_hosted_zone_comment(
-        Id=zone["Id"],
-    )["HostedZone"]
-    updated_zone.should.have.key("Config").equal({'PrivateZone': False})
+    updated_zone = client.update_hosted_zone_comment(Id=zone["Id"],)["HostedZone"]
+    updated_zone.should.have.key("Config").equal({"PrivateZone": False})
+
+
+@mock_route53
+def test_list_resource_recordset_pagination():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create A Record.
+    a_record_endpoint_payload = {
+        "Comment": f"Create 500 A records",
+        "Changes": [
+            {
+                "Action": "CREATE",
+                "ResourceRecordSet": {
+                    "Name": f"env{idx}.redis.db.",
+                    "Type": "A",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "127.0.0.1"}],
+                },
+            }
+            for idx in range(500)
+        ],
+    }
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id, ChangeBatch=a_record_endpoint_payload
+    )
+
+    response = conn.list_resource_record_sets(
+        HostedZoneId=hosted_zone_id, MaxItems="100"
+    )
+    response.should.have.key("ResourceRecordSets").length_of(100)
+    response.should.have.key("IsTruncated").equals(True)
+    response.should.have.key("MaxItems").equals("100")
+    response.should.have.key("NextRecordName").equals("env189.redis.db.")
+    response.should.have.key("NextRecordType").equals("A")
+
+    response = conn.list_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        StartRecordName=response["NextRecordName"],
+        StartRecordType=response["NextRecordType"],
+    )
+    response.should.have.key("ResourceRecordSets").length_of(300)
+    response.should.have.key("IsTruncated").equals(True)
+    response.should.have.key("MaxItems").equals("300")
+    response.should.have.key("NextRecordName").equals("env459.redis.db.")
+    response.should.have.key("NextRecordType").equals("A")
+
+    response = conn.list_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        StartRecordName=response["NextRecordName"],
+        StartRecordType=response["NextRecordType"],
+    )
+    response.should.have.key("ResourceRecordSets").length_of(100)
+    response.should.have.key("IsTruncated").equals(False)
+    response.should.have.key("MaxItems").equals("300")
+    response.shouldnt.have.key("NextRecordName")
+    response.shouldnt.have.key("NextRecordType")

@@ -43,6 +43,14 @@ class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
         super().__init__("NoSuchCloudWatchLogsLogGroup", message)
 
 
+class NoSuchDelegationSet(Route53ClientError):
+    code = 400
+
+    def __init__(self, delegation_set_id):
+        super().__init__("NoSuchDelegationSet", delegation_set_id)
+        self.content_type = "text/xml"
+
+
 class NoSuchHostedZone(Route53ClientError):
     """HostedZone does not exist."""
 

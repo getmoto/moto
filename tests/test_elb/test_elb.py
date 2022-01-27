@@ -293,7 +293,9 @@ def test_create_listener_is_idempotent():
         Listeners=[{"Protocol": "http", "LoadBalancerPort": 80, "InstancePort": 8080}],
         AvailabilityZones=["us-east-1a", "us-east-1b"],
     )
-    client.describe_load_balancers()["LoadBalancerDescriptions"].should.have.length_of(1)
+    client.describe_load_balancers()["LoadBalancerDescriptions"].should.have.length_of(
+        1
+    )
 
     client.create_load_balancer_listeners(
         LoadBalancerName="my-lb",
@@ -709,7 +711,9 @@ def test_connection_draining_attribute_boto3():
     attributes = client.describe_load_balancer_attributes(LoadBalancerName=lb_name)[
         "LoadBalancerAttributes"
     ]
-    attributes.should.have.key("ConnectionDraining").equal({"Enabled": False, "Timeout": 300})
+    attributes.should.have.key("ConnectionDraining").equal(
+        {"Enabled": False, "Timeout": 300}
+    )
 
 
 @mock_elb
@@ -1242,9 +1246,7 @@ def test_enable_availability_zones_for_load_balancer():
 
     lb = client.create_load_balancer(
         LoadBalancerName="my-lb",
-        Listeners=[
-            {"Protocol": "http", "LoadBalancerPort": 81, "InstancePort": 9000},
-        ],
+        Listeners=[{"Protocol": "http", "LoadBalancerPort": 81, "InstancePort": 9000},],
         AvailabilityZones=["us-east-1a"],
     )
 
@@ -1256,8 +1258,7 @@ def test_enable_availability_zones_for_load_balancer():
 
     # Now enable some more zones
     resp = client.enable_availability_zones_for_load_balancer(
-        LoadBalancerName="my-lb",
-        AvailabilityZones=["us-east-1b", "us-east-1c"]
+        LoadBalancerName="my-lb", AvailabilityZones=["us-east-1b", "us-east-1c"]
     )
     resp.should.have.key("AvailabilityZones").equals(["us-east-1b", "us-east-1c"])
 

@@ -239,3 +239,15 @@ def test_s3_server_post_cors_exposed_header():
         for header_name, header_value in expected_cors_headers.items():
             assert header_name in preflight_response.headers
             assert preflight_response.headers[header_name] == header_value
+
+
+def test_s3_get_location_using_terraform():
+    test_client = authenticated_client()
+    # Create the bucket
+    bucket_name = "tf-acc-test-6090090860119904881"
+    test_client.put("/", f"http://{bucket_name}.localhost:5000/")
+
+    res = test_client.get(
+        f"/{bucket_name}?location=", "http://s3.localhost.localstack.cloud"
+    )
+    res.status_code.should.equal(200)

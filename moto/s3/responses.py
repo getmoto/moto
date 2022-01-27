@@ -207,11 +207,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             or host.startswith("localstack")
             or host.startswith("host.docker.internal")
             or re.match(r"^[^.]+$", host)
+            or re.match(r"^s3\.localhost\.localstack\.cloud:?\d*$", host)
             or re.match(r"^.*\.svc\.cluster\.local:?\d*$", host)
         ):
             # Default to path-based buckets for (1) localhost, (2) localstack hosts (e.g. localstack.dev),
-            # (3) local host names that do not contain a "." (e.g., Docker container host names), or
-            # (4) kubernetes host names
+            # (3) local host names that do not contain a "." (e.g., Docker container host names),
+            # (4) Terraform tests, or
+            # (5) kubernetes host names
             return False
 
         match = re.match(r"^([^\[\]:]+)(:\d+)?$", host)
