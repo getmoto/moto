@@ -176,7 +176,11 @@ def test_invoke_lambda_using_environment_port():
     function_names = [f["FunctionName"] for f in functions]
     function_names.should.contain(function_name)
 
-    response["host"].should.equal("http://host.docker.internal:5000")
+    # Host matches the full URL, so one of:
+    # http://host.docker.internal:5000
+    # http://172.0.2.1:5000
+    # http://172.0.1.1:4555
+    response["host"].should.match("http://.+:[0-9]{4}")
 
 
 @pytest.mark.network
