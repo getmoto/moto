@@ -111,6 +111,17 @@ class RDS2Response(BaseResponse):
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
         }
 
+    def _get_export_task_kwargs(self):
+        return {
+            "export_task_identifier": self._get_param("ExportTaskIdentifier"),
+            "source_arn": self._get_param("SourceArn"),
+            "s3_bucket_name": self._get_param("S3BucketName"),
+            "iam_role_arn": self._get_param("IamRoleArn"),
+            "kms_key_id": self._get_param("KmsKeyId"),
+            "s3_prefix": self._get_param("S3Prefix"),
+            "export_only": self.unpack_list_params("ExportOnly.member"),
+        }
+
     def unpack_complex_list_params(self, label, names):
         unpacked_list = list()
         count = 1
@@ -547,6 +558,24 @@ class RDS2Response(BaseResponse):
         )
         template = self.response_template(RESTORE_CLUSTER_FROM_SNAPSHOT_TEMPLATE)
         return template.render(cluster=new_cluster)
+
+    def start_export_task(self):
+        kwargs = self._get_export_task_kwargs()
+        export_task = self.backend.start_export_task(kwargs)
+        template = self.response_template(START_EXPORT_TASK_TEMPLATE)
+        return template.render(task=export_task)
+
+    def cancel_export_task(self):
+        export_task_identifier = self._get_param("ExportTaskIdentifier")
+        export_task = self.backend.cancel_export_task(export_task_identifier)
+        template = self.response_template(CANCEL_EXPORT_TASK_TEMPLATE)
+        return template.render(task=export_task)
+
+    def describe_export_tasks(self):
+        export_task_identifier = self._get_param("ExportTaskIdentifier")
+        tasks = self.backend.describe_export_tasks(export_task_identifier,)
+        template = self.response_template(DESCRIBE_EXPORT_TASKS_TEMPLATE)
+        return template.render(tasks=tasks)
 
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
@@ -996,4 +1025,41 @@ DELETE_CLUSTER_SNAPSHOT_TEMPLATE = """<DeleteDBClusterSnapshotResponse xmlns="ht
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </DeleteDBClusterSnapshotResponse>
+"""
+
+START_EXPORT_TASK_TEMPLATE = """<StartExportTaskResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <StartExportTaskResult>
+  {{ task.to_xml() }}
+  </StartExportTaskResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</StartExportTaskResponse>
+"""
+
+CANCEL_EXPORT_TASK_TEMPLATE = """<CancelExportTaskResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CancelExportTaskResult>
+  {{ task.to_xml() }}
+  </CancelExportTaskResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CancelExportTaskResponse>
+"""
+
+DESCRIBE_EXPORT_TASKS_TEMPLATE = """<DescribeExportTasksResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeExportTasksResult>
+    <ExportTasks>
+    {%- for task in tasks -%}
+      <ExportTask>{{ task.to_xml() }}</ExportTask>
+    {%- endfor -%}
+    </ExportTasks>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+  </DescribeExportTasksResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DescribeExportTasksResponse>
 """
