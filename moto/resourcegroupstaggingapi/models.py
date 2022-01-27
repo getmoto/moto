@@ -383,7 +383,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "rds" in resource_type_filters
             or "rds:snapshot" in resource_type_filters
         ):
-            for snapshot in self.rds_backend.snapshots.values():
+            for snapshot in self.rds_backend.database_snapshots.values():
+                tags = snapshot.get_tags()
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": snapshot.snapshot_arn,
+                    "Tags": tags,
+                }
+
+        # RDS Cluster Snapshot
+        if (
+            not resource_type_filters
+            or "rds" in resource_type_filters
+            or "rds:cluster-snapshot" in resource_type_filters
+        ):
+            for snapshot in self.rds_backend.cluster_snapshots.values():
                 tags = snapshot.get_tags()
                 if not tags or not tag_filter(tags):
                     continue

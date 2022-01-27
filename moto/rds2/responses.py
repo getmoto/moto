@@ -98,11 +98,17 @@ class RDS2Response(BaseResponse):
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
             "engine_mode": self._get_param("EngineMode"),
+            "allocated_storage": self._get_param("AllocatedStorage"),
+            "iops": self._get_param("Iops"),
+            "storage_type": self._get_param("StorageType"),
             "master_username": self._get_param("MasterUsername"),
             "master_user_password": self._get_param("MasterUserPassword"),
             "port": self._get_param("Port"),
             "parameter_group": self._get_param("DBClusterParameterGroup"),
             "region": self.region,
+            "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
+            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
         }
 
     def unpack_complex_list_params(self, label, names):
@@ -191,17 +197,27 @@ class RDS2Response(BaseResponse):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
-        snapshot = self.backend.create_snapshot(
+        snapshot = self.backend.create_database_snapshot(
             db_instance_identifier, db_snapshot_identifier, tags
         )
         template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def copy_db_snapshot(self):
+        source_snapshot_identifier = self._get_param("SourceDBSnapshotIdentifier")
+        target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
+        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        snapshot = self.backend.copy_database_snapshot(
+            source_snapshot_identifier, target_snapshot_identifier, tags,
+        )
+        template = self.response_template(COPY_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
 
     def describe_db_snapshots(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         filters = filters_from_querystring(self.querystring)
-        snapshots = self.backend.describe_snapshots(
+        snapshots = self.backend.describe_database_snapshots(
             db_instance_identifier, db_snapshot_identifier, filters
         )
         template = self.response_template(DESCRIBE_SNAPSHOTS_TEMPLATE)
@@ -209,7 +225,7 @@ class RDS2Response(BaseResponse):
 
     def delete_db_snapshot(self):
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
-        snapshot = self.backend.delete_snapshot(db_snapshot_identifier)
+        snapshot = self.backend.delete_database_snapshot(db_snapshot_identifier)
         template = self.response_template(DELETE_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
 
@@ -483,6 +499,55 @@ class RDS2Response(BaseResponse):
         template = self.response_template(STOP_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
+    def create_db_cluster_snapshot(self):
+        db_cluster_identifier = self._get_param("DBClusterIdentifier")
+        db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
+        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        snapshot = self.backend.create_cluster_snapshot(
+            db_cluster_identifier, db_snapshot_identifier, tags
+        )
+        template = self.response_template(CREATE_CLUSTER_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def copy_db_cluster_snapshot(self):
+        source_snapshot_identifier = self._get_param(
+            "SourceDBClusterSnapshotIdentifier"
+        )
+        target_snapshot_identifier = self._get_param(
+            "TargetDBClusterSnapshotIdentifier"
+        )
+        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
+        snapshot = self.backend.copy_cluster_snapshot(
+            source_snapshot_identifier, target_snapshot_identifier, tags,
+        )
+        template = self.response_template(COPY_CLUSTER_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def describe_db_cluster_snapshots(self):
+        db_cluster_identifier = self._get_param("DBClusterIdentifier")
+        db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
+        filters = filters_from_querystring(self.querystring)
+        snapshots = self.backend.describe_cluster_snapshots(
+            db_cluster_identifier, db_snapshot_identifier, filters
+        )
+        template = self.response_template(DESCRIBE_CLUSTER_SNAPSHOTS_TEMPLATE)
+        return template.render(snapshots=snapshots)
+
+    def delete_db_cluster_snapshot(self):
+        db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
+        snapshot = self.backend.delete_cluster_snapshot(db_snapshot_identifier)
+        template = self.response_template(DELETE_CLUSTER_SNAPSHOT_TEMPLATE)
+        return template.render(snapshot=snapshot)
+
+    def restore_db_cluster_from_snapshot(self):
+        db_snapshot_identifier = self._get_param("SnapshotIdentifier")
+        db_kwargs = self._get_db_cluster_kwargs()
+        new_cluster = self.backend.restore_db_cluster_from_snapshot(
+            db_snapshot_identifier, db_kwargs
+        )
+        template = self.response_template(RESTORE_CLUSTER_FROM_SNAPSHOT_TEMPLATE)
+        return template.render(cluster=new_cluster)
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -589,6 +654,16 @@ CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazon
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </CreateDBSnapshotResponse>
+"""
+
+COPY_SNAPSHOT_TEMPLATE = """<CopyDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CopyDBSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </CopyDBSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CopyDBSnapshotResponse>
 """
 
 DESCRIBE_SNAPSHOTS_TEMPLATE = """<DescribeDBSnapshotsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
@@ -824,7 +899,6 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
   </ResponseMetadata>
 </RemoveTagsFromResourceResponse>"""
 
-
 CREATE_DB_CLUSTER_TEMPLATE = """<CreateDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBClusterResult>
   {{ cluster.to_xml() }}
@@ -867,3 +941,59 @@ STOP_CLUSTER_TEMPLATE = """<StopDBClusterResponse xmlns="http://rds.amazonaws.co
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab8</RequestId>
   </ResponseMetadata>
 </StopDBClusterResponse>"""
+
+RESTORE_CLUSTER_FROM_SNAPSHOT_TEMPLATE = """<RestoreDBClusterFromDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <RestoreDBClusterFromSnapshotResult>
+  {{ cluster.to_xml() }}
+  </RestoreDBClusterFromSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</RestoreDBClusterFromDBSnapshotResponse>
+"""
+
+CREATE_CLUSTER_SNAPSHOT_TEMPLATE = """<CreateDBClusterSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateDBClusterSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </CreateDBClusterSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CreateDBClusterSnapshotResponse>
+"""
+
+COPY_CLUSTER_SNAPSHOT_TEMPLATE = """<CopyDBClusterSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CopyDBClusterSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </CopyDBClusterSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CopyDBClusterSnapshotResponse>
+"""
+
+DESCRIBE_CLUSTER_SNAPSHOTS_TEMPLATE = """<DescribeDBClusterSnapshotsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeDBClusterSnapshotsResult>
+    <DBClusterSnapshots>
+    {%- for snapshot in snapshots -%}
+      {{ snapshot.to_xml() }}
+    {%- endfor -%}
+    </DBClusterSnapshots>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+  </DescribeDBClusterSnapshotsResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DescribeDBClusterSnapshotsResponse>"""
+
+DELETE_CLUSTER_SNAPSHOT_TEMPLATE = """<DeleteDBClusterSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DeleteDBClusterSnapshotResult>
+  {{ snapshot.to_xml() }}
+  </DeleteDBClusterSnapshotResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DeleteDBClusterSnapshotResponse>
+"""
