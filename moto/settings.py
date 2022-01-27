@@ -70,6 +70,12 @@ def moto_network_mode():
     return os.environ.get("MOTO_DOCKER_NETWORK_MODE")
 
 
+def test_server_mode_endpoint():
+    return os.environ.get(
+        "TEST_SERVER_MODE_ENDPOINT", f"http://localhost:{moto_server_port()}"
+    )
+
+
 def is_docker():
     path = "/proc/self/cgroup"
     return (

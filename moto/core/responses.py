@@ -141,13 +141,13 @@ class ActionAuthenticatorMixin(object):
 
     @staticmethod
     def set_initial_no_auth_action_count(initial_no_auth_action_count):
-        _port = settings.moto_server_port()
+        _test_server_mode_endpoint = settings.test_server_mode_endpoint()
 
         def decorator(function):
             def wrapper(*args, **kwargs):
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
-                        f"http://localhost:{_port}/moto-api/reset-auth",
+                        f"{_test_server_mode_endpoint}/moto-api/reset-auth",
                         data=str(initial_no_auth_action_count).encode("utf-8"),
                     )
                     original_initial_no_auth_action_count = response.json()[
@@ -165,7 +165,7 @@ class ActionAuthenticatorMixin(object):
                 finally:
                     if settings.TEST_SERVER_MODE:
                         requests.post(
-                            f"http://localhost:{_port}/moto-api/reset-auth",
+                            f"{_test_server_mode_endpoint}/moto-api/reset-auth",
                             data=str(original_initial_no_auth_action_count).encode(
                                 "utf-8"
                             ),

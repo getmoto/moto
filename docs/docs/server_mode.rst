@@ -119,7 +119,7 @@ It is possible to keep the state in between tests, using this environment variab
 
 .. code-block:: bash
 
-    MOTO_CALL_RESET_API=true
+    MOTO_CALL_RESET_API=false
 
 
 Dashboard
