@@ -3800,7 +3800,7 @@
 
 ## rds
 <details>
-<summary>14% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -3820,7 +3820,7 @@
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
-- [ ] create_db_cluster_snapshot
+- [X] create_db_cluster_snapshot
 - [ ] create_db_instance
 - [ ] create_db_instance_read_replica
 - [X] create_db_parameter_group
@@ -3837,7 +3837,7 @@
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
-- [ ] delete_db_cluster_snapshot
+- [X] delete_db_cluster_snapshot
 - [ ] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
@@ -3859,7 +3859,7 @@
 - [ ] describe_db_cluster_parameter_groups
 - [ ] describe_db_cluster_parameters
 - [ ] describe_db_cluster_snapshot_attributes
-- [ ] describe_db_cluster_snapshots
+- [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
@@ -3928,7 +3928,7 @@
 - [ ] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
-- [ ] restore_db_cluster_from_snapshot
+- [X] restore_db_cluster_from_snapshot
 - [ ] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3

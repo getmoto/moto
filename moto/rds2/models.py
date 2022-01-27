@@ -15,6 +15,8 @@ from moto.ec2.models import ec2_backends
 from .exceptions import (
     RDSClientError,
     DBClusterNotFoundError,
+    DBClusterSnapshotAlreadyExistsError,
+    DBClusterSnapshotNotFoundError,
     DBInstanceNotFoundError,
     DBSnapshotNotFoundError,
     DBSecurityGroupNotFoundError,
@@ -36,18 +38,30 @@ class Cluster:
     def __init__(self, **kwargs):
         self.db_name = kwargs.get("db_name")
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
+        self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.deletion_protection = kwargs.get("deletion_protection")
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version")
         if not self.engine_version:
-            # Set default
-            self.engine_version = "5.6.mysql_aurora.1.22.5"  # TODO: depends on engine
+            self.engine_version = Cluster.default_engine_version(self.engine)
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
+        self.iops = kwargs.get("iops")
         self.status = "active"
         self.region = kwargs.get("region")
         self.cluster_create_time = iso_8601_datetime_with_milliseconds(
             datetime.datetime.now()
         )
+        self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
+        if self.copy_tags_to_snapshot is None:
+            self.copy_tags_to_snapshot = True
+        self.storage_type = kwargs.get("storage_type")
+        if self.storage_type is None:
+            self.storage_type = Cluster.default_storage_type(iops=self.iops)
+        self.allocated_storage = kwargs.get("allocated_storage")
+        if self.allocated_storage is None:
+            self.allocated_storage = Cluster.default_allocated_storage(
+                engine=self.engine, storage_type=self.storage_type
+            )
         self.master_username = kwargs.get("master_username")
         if not self.master_username:
             raise InvalidParameterValue(
@@ -69,7 +83,7 @@ class Cluster:
                 f"{self.region}b",
                 f"{self.region}c",
             ]
-        self.parameter_group = kwargs.get("parameter_group") or "default.aurora5.6"
+        self.parameter_group = kwargs.get("parameter_group") or "default.aurora8.0"
         self.subnet_group = "default"
         self.status = "creating"
         self.url_identifier = "".join(
@@ -77,7 +91,9 @@ class Cluster:
         )
         self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
-        self.port = kwargs.get("port") or 3306
+        self.port = kwargs.get("port")
+        if self.port is None:
+            self.port = Cluster.default_port(self.engine)
         self.preferred_backup_window = "01:37-02:07"
         self.preferred_maintenance_window = "wed:02:40-wed:03:10"
         # This should default to the default security group
@@ -88,7 +104,13 @@ class Cluster:
         self.resource_id = "cluster-" + "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
         )
-        self.arn = f"arn:aws:rds:{self.region}:{ACCOUNT_ID}:cluster:{self.db_cluster_identifier}"
+        self.tags = kwargs.get("tags", [])
+
+    @property
+    def db_cluster_arn(self):
+        return "arn:aws:rds:{0}:{1}:cluster:{2}".format(
+            self.region, ACCOUNT_ID, self.db_cluster_identifier
+        )
 
     def to_xml(self):
         template = Template(
@@ -113,6 +135,13 @@ class Cluster:
               <MultiAZ>false</MultiAZ>
               <EngineVersion>{{ cluster.engine_version }}</EngineVersion>
               <Port>{{ cluster.port }}</Port>
+              {% if cluster.iops %}
+                <Iops>{{ cluster.iops }}</Iops>
+                <StorageType>io1</StorageType>
+              {% else %}
+                <StorageType>{{ cluster.storage_type }}</StorageType>
+              {% endif %}
+              <DBClusterInstanceClass>{{ cluster.db_cluster_instance_class }}</DBClusterInstanceClass>
               <MasterUsername>{{ cluster.master_username }}</MasterUsername>
               <PreferredBackupWindow>{{ cluster.preferred_backup_window }}</PreferredBackupWindow>
               <PreferredMaintenanceWindow>{{ cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
@@ -129,19 +158,166 @@ class Cluster:
               <HostedZoneId>{{ cluster.hosted_zone_id }}</HostedZoneId>
               <StorageEncrypted>false</StorageEncrypted>
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
-              <DBClusterArn>{{ cluster.arn }}</DBClusterArn>
+              <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>false</HttpEndpointEnabled>
-              <CopyTagsToSnapshot>false</CopyTagsToSnapshot>
+              <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>
-              <TagList></TagList>
+              <TagList>
+              {%- for tag in cluster.tags -%}
+                <Tag>
+                  <Key>{{ tag['Key'] }}</Key>
+                  <Value>{{ tag['Value'] }}</Value>
+                </Tag>
+              {%- endfor -%}
+              </TagList>
             </DBCluster>"""
         )
         return template.render(cluster=self)
+
+    @staticmethod
+    def default_engine_version(engine):
+        return {
+            "aurora": "8.0.mysql_aurora.3.01.0",
+            "mysql": "8.0",
+            "mariadb": "10.5",
+            "postgres": "13.5",
+            "oracle-ee": "19c",
+            "oracle-se2": "19c",
+            "oracle-se1": "19c",
+            "oracle-se": "19c",
+            "sqlserver-ee": "15.00",
+            "sqlserver-ex": "15.00",
+            "sqlserver-se": "15.00",
+            "sqlserver-web": "15.00",
+        }[engine]
+
+    @staticmethod
+    def default_port(engine):
+        return {
+            "aurora": 3306,
+            "mysql": 3306,
+            "mariadb": 3306,
+            "postgres": 5432,
+            "oracle-ee": 1521,
+            "oracle-se2": 1521,
+            "oracle-se1": 1521,
+            "oracle-se": 1521,
+            "sqlserver-ee": 1433,
+            "sqlserver-ex": 1433,
+            "sqlserver-se": 1433,
+            "sqlserver-web": 1433,
+        }[engine]
+
+    @staticmethod
+    def default_storage_type(iops):
+        if iops is None:
+            return "gp2"
+        else:
+            return "io1"
+
+    @staticmethod
+    def default_allocated_storage(engine, storage_type):
+        return {
+            "aurora": {"gp2": 0, "io1": 0, "standard": 0},
+            "mysql": {"gp2": 20, "io1": 100, "standard": 5},
+            "mariadb": {"gp2": 20, "io1": 100, "standard": 5},
+            "postgres": {"gp2": 20, "io1": 100, "standard": 5},
+            "oracle-ee": {"gp2": 20, "io1": 100, "standard": 10},
+            "oracle-se2": {"gp2": 20, "io1": 100, "standard": 10},
+            "oracle-se1": {"gp2": 20, "io1": 100, "standard": 10},
+            "oracle-se": {"gp2": 20, "io1": 100, "standard": 10},
+            "sqlserver-ee": {"gp2": 200, "io1": 200, "standard": 200},
+            "sqlserver-ex": {"gp2": 20, "io1": 100, "standard": 20},
+            "sqlserver-se": {"gp2": 200, "io1": 200, "standard": 200},
+            "sqlserver-web": {"gp2": 20, "io1": 100, "standard": 20},
+        }[engine][storage_type]
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set["Key"] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
+
+
+class ClusterSnapshot(BaseModel):
+
+    SUPPORTED_FILTERS = {
+        "db-cluster-id": FilterDef(
+            ["cluster.db_cluster_arn", "cluster.db_cluster_identifier"],
+            "DB Cluster Identifiers",
+        ),
+        "db-cluster-snapshot-id": FilterDef(
+            ["snapshot_id"], "DB Cluster Snapshot Identifiers"
+        ),
+        "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
+        "snapshot-type": FilterDef(None, "Snapshot Types"),
+        "engine": FilterDef(["database.engine"], "Engine Names"),
+    }
+
+    def __init__(self, cluster, snapshot_id, tags):
+        self.cluster = cluster
+        self.snapshot_id = snapshot_id
+        self.tags = tags
+        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+
+    @property
+    def snapshot_arn(self):
+        return "arn:aws:rds:{0}:{1}:snapshot:{2}".format(
+            self.cluster.region, ACCOUNT_ID, self.snapshot_id
+        )
+
+    def to_xml(self):
+        template = Template(
+            """
+            <DBClusterSnapshot>
+                <DBClusterSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBClusterSnapshotIdentifier>
+                <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
+                <DBClusterIdentifier>{{ cluster.db_cluster_identifier }}</DBClusterIdentifier>
+                <ClusterCreateTime>{{ snapshot.created_at }}</ClusterCreateTime>
+                <PercentProgress>{{ 100 }}</PercentProgress>
+                <AllocatedStorage>{{ cluster.allocated_storage }}</AllocatedStorage>
+                <MasterUsername>{{ cluster.master_username }}</MasterUsername>
+                <Port>{{ cluster.port }}</Port>
+                <Engine>{{ cluster.engine }}</Engine>
+                <Status>available</Status>
+                <SnapshotType>manual</SnapshotType>
+                <DBClusterSnapshotArn>{{ snapshot.snapshot_arn }}</DBClusterSnapshotArn>
+                <SourceRegion>{{ cluster.region }}</SourceRegion>
+                {% if cluster.iops %}
+                <Iops>{{ cluster.iops }}</Iops>
+                <StorageType>io1</StorageType>
+                {% else %}
+                <StorageType>{{ cluster.storage_type }}</StorageType>
+                {% endif %}
+                <Timezone></Timezone>
+                <LicenseModel>{{ cluster.license_model }}</LicenseModel>
+            </DBClusterSnapshot>
+            """
+        )
+        return template.render(snapshot=self, cluster=self.cluster)
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set["Key"] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
 class Database(CloudFormationModel):
@@ -657,7 +833,7 @@ class Database(CloudFormationModel):
         backend.delete_database(self.db_instance_identifier)
 
 
-class Snapshot(BaseModel):
+class DatabaseSnapshot(BaseModel):
 
     SUPPORTED_FILTERS = {
         "db-instance-id": FilterDef(
@@ -952,11 +1128,12 @@ class RDS2Backend(BaseBackend):
     def __init__(self, region):
         self.region = region
         self.arn_regex = re_compile(
-            r"^arn:aws:rds:.*:[0-9]*:(db|es|og|pg|ri|secgrp|snapshot|subgrp):.*$"
+            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|subgrp):.*$"
         )
         self.clusters = OrderedDict()
         self.databases = OrderedDict()
-        self.snapshots = OrderedDict()
+        self.database_snapshots = OrderedDict()
+        self.cluster_snapshots = OrderedDict()
         self.db_parameter_groups = {}
         self.option_groups = {}
         self.security_groups = {}
@@ -983,29 +1160,55 @@ class RDS2Backend(BaseBackend):
         self.databases[database_id] = database
         return database
 
-    def create_snapshot(
+    def create_database_snapshot(
         self, db_instance_identifier, db_snapshot_identifier, tags=None
     ):
         database = self.databases.get(db_instance_identifier)
         if not database:
             raise DBInstanceNotFoundError(db_instance_identifier)
-        if db_snapshot_identifier in self.snapshots:
+        if db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
-        if len(self.snapshots) >= int(os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")):
+        if len(self.database_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
             raise SnapshotQuotaExceededError()
         if tags is None:
             tags = list()
         if database.copy_tags_to_snapshot and not tags:
             tags = database.get_tags()
-        snapshot = Snapshot(database, db_snapshot_identifier, tags)
-        self.snapshots[db_snapshot_identifier] = snapshot
+        snapshot = DatabaseSnapshot(database, db_snapshot_identifier, tags)
+        self.database_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
 
-    def delete_snapshot(self, db_snapshot_identifier):
-        if db_snapshot_identifier not in self.snapshots:
+    def copy_database_snapshot(
+        self, source_snapshot_identifier, target_snapshot_identifier, tags=None,
+    ):
+        if source_snapshot_identifier not in self.database_snapshots:
+            raise DBSnapshotNotFoundError(source_snapshot_identifier)
+        if target_snapshot_identifier in self.database_snapshots:
+            raise DBSnapshotAlreadyExistsError(target_snapshot_identifier)
+        if len(self.database_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededError()
+
+        source_snapshot = self.database_snapshots[source_snapshot_identifier]
+        if tags is None:
+            tags = source_snapshot.tags
+        else:
+            tags = self._merge_tags(source_snapshot.tags, tags)
+        target_snapshot = DatabaseSnapshot(
+            source_snapshot.database, target_snapshot_identifier, tags
+        )
+        self.database_snapshots[target_snapshot_identifier] = target_snapshot
+
+        return target_snapshot
+
+    def delete_database_snapshot(self, db_snapshot_identifier):
+        if db_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(db_snapshot_identifier)
 
-        return self.snapshots.pop(db_snapshot_identifier)
+        return self.database_snapshots.pop(db_snapshot_identifier)
 
     def create_database_replica(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
@@ -1034,10 +1237,10 @@ class RDS2Backend(BaseBackend):
             raise DBInstanceNotFoundError(db_instance_identifier)
         return list(databases.values())
 
-    def describe_snapshots(
+    def describe_database_snapshots(
         self, db_instance_identifier, db_snapshot_identifier, filters=None
     ):
-        snapshots = self.snapshots
+        snapshots = self.database_snapshots
         if db_instance_identifier:
             filters = merge_filters(
                 filters, {"db-instance-id": [db_instance_identifier]}
@@ -1047,7 +1250,7 @@ class RDS2Backend(BaseBackend):
                 filters, {"db-snapshot-id": [db_snapshot_identifier]}
             )
         if filters:
-            snapshots = self._filter_resources(snapshots, filters, Snapshot)
+            snapshots = self._filter_resources(snapshots, filters, DatabaseSnapshot)
         if db_snapshot_identifier and not snapshots and not db_instance_identifier:
             raise DBSnapshotNotFoundError(db_snapshot_identifier)
         return list(snapshots.values())
@@ -1068,7 +1271,7 @@ class RDS2Backend(BaseBackend):
         return database
 
     def restore_db_instance_from_db_snapshot(self, from_snapshot_id, overrides):
-        snapshot = self.describe_snapshots(
+        snapshot = self.describe_database_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
@@ -1096,7 +1299,9 @@ class RDS2Backend(BaseBackend):
         if database.status != "available":
             raise InvalidDBInstanceStateError(db_instance_identifier, "stop")
         if db_snapshot_identifier:
-            self.create_snapshot(db_instance_identifier, db_snapshot_identifier)
+            self.create_database_snapshot(
+                db_instance_identifier, db_snapshot_identifier
+            )
         database.status = "stopped"
         return database
 
@@ -1127,7 +1332,7 @@ class RDS2Backend(BaseBackend):
                     "Can't delete Instance with protection enabled"
                 )
             if db_snapshot_name:
-                self.create_snapshot(db_instance_identifier, db_snapshot_name)
+                self.create_database_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
@@ -1430,10 +1635,74 @@ class RDS2Backend(BaseBackend):
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
 
+    def create_cluster_snapshot(
+        self, db_cluster_identifier, db_snapshot_identifier, tags=None
+    ):
+        cluster = self.clusters.get(db_cluster_identifier)
+        if cluster is None:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+        if db_snapshot_identifier in self.cluster_snapshots:
+            raise DBClusterSnapshotAlreadyExistsError(db_snapshot_identifier)
+        if len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededError()
+        if tags is None:
+            tags = list()
+        if cluster.copy_tags_to_snapshot:
+            tags += cluster.get_tags()
+        snapshot = ClusterSnapshot(cluster, db_snapshot_identifier, tags)
+        self.cluster_snapshots[db_snapshot_identifier] = snapshot
+        return snapshot
+
+    def copy_cluster_snapshot(
+        self, source_snapshot_identifier, target_snapshot_identifier, tags=None
+    ):
+        if source_snapshot_identifier not in self.cluster_snapshots:
+            raise DBClusterSnapshotNotFoundError(source_snapshot_identifier)
+        if target_snapshot_identifier in self.cluster_snapshots:
+            raise DBClusterSnapshotAlreadyExistsError(target_snapshot_identifier)
+        if len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededError()
+        source_snapshot = self.cluster_snapshots[source_snapshot_identifier]
+        if tags is None:
+            tags = source_snapshot.tags
+        else:
+            tags = self._merge_tags(source_snapshot.tags, tags)
+        target_snapshot = ClusterSnapshot(
+            source_snapshot.cluster, target_snapshot_identifier, tags
+        )
+        self.cluster_snapshots[target_snapshot_identifier] = target_snapshot
+        return target_snapshot
+
+    def delete_cluster_snapshot(self, db_snapshot_identifier):
+        if db_snapshot_identifier not in self.cluster_snapshots:
+            raise DBClusterSnapshotNotFoundError(db_snapshot_identifier)
+
+        return self.cluster_snapshots.pop(db_snapshot_identifier)
+
     def describe_db_clusters(self, cluster_identifier):
         if cluster_identifier:
             return [self.clusters[cluster_identifier]]
         return self.clusters.values()
+
+    def describe_cluster_snapshots(
+        self, db_cluster_identifier, db_snapshot_identifier, filters=None
+    ):
+        snapshots = self.cluster_snapshots
+        if db_cluster_identifier:
+            filters = merge_filters(filters, {"db-cluster-id": [db_cluster_identifier]})
+        if db_snapshot_identifier:
+            filters = merge_filters(
+                filters, {"db-cluster-snapshot-id": [db_snapshot_identifier]}
+            )
+        if filters:
+            snapshots = self._filter_resources(snapshots, filters, ClusterSnapshot)
+        if db_snapshot_identifier and not snapshots and not db_cluster_identifier:
+            raise DBClusterSnapshotNotFoundError(db_snapshot_identifier)
+        return list(snapshots.values())
 
     def delete_db_cluster(self, cluster_identifier):
         if cluster_identifier in self.clusters:
@@ -1457,6 +1726,18 @@ class RDS2Backend(BaseBackend):
         cluster.status = "available"  # This is the final status - already setting it in the background
         return temp_state
 
+    def restore_db_cluster_from_snapshot(self, from_snapshot_id, overrides):
+        snapshot = self.describe_cluster_snapshots(
+            db_cluster_identifier=None, db_snapshot_identifier=from_snapshot_id
+        )[0]
+        original_cluster = snapshot.cluster
+        new_cluster_props = copy.deepcopy(original_cluster.__dict__)
+        for key, value in overrides.items():
+            if value:
+                new_cluster_props[key] = value
+
+        return self.create_db_cluster(new_cluster_props)
+
     def stop_db_cluster(self, cluster_identifier):
         if cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(cluster_identifier)
@@ -1477,6 +1758,9 @@ class RDS2Backend(BaseBackend):
             if resource_type == "db":  # Database
                 if resource_name in self.databases:
                     return self.databases[resource_name].get_tags()
+            elif resource_type == "cluster":  # Cluster
+                if resource_name in self.clusters:
+                    return self.clusters[resource_name].get_tags()
             elif resource_type == "es":  # Event Subscription
                 # TODO: Complete call to tags on resource type Event
                 # Subscription
@@ -1495,8 +1779,10 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == "snapshot":  # DB Snapshot
-                if resource_name in self.snapshots:
-                    return self.snapshots[resource_name].get_tags()
+                if resource_name in self.database_snapshots:
+                    return self.database_snapshots[resource_name].get_tags()
+                if resource_name in self.cluster_snapshots:
+                    return self.cluster_snapshots[resource_name].get_tags()
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
@@ -1527,8 +1813,10 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == "snapshot":  # DB Snapshot
-                if resource_name in self.snapshots:
-                    return self.snapshots[resource_name].remove_tags(tag_keys)
+                if resource_name in self.database_snapshots:
+                    return self.database_snapshots[resource_name].remove_tags(tag_keys)
+                if resource_name in self.cluster_snapshots:
+                    return self.cluster_snapshots[resource_name].remove_tags(tag_keys)
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].remove_tags(tag_keys)
@@ -1558,8 +1846,10 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].add_tags(tags)
             elif resource_type == "snapshot":  # DB Snapshot
-                if resource_name in self.snapshots:
-                    return self.snapshots[resource_name].add_tags(tags)
+                if resource_name in self.database_snapshots:
+                    return self.database_snapshots[resource_name].add_tags(tags)
+                if resource_name in self.cluster_snapshots:
+                    return self.cluster_snapshots[resource_name].add_tags(tags)
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)
@@ -1579,6 +1869,13 @@ class RDS2Backend(BaseBackend):
             raise InvalidParameterValue(e.args[0])
         except ValueError as e:
             raise InvalidParameterCombination(str(e))
+
+    @staticmethod
+    def _merge_tags(old_tags: list, new_tags: list):
+        tags_dict = dict()
+        tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
+        tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
+        return [{"Key": k, "Value": v} for k, v in tags_dict.items()]
 
 
 class OptionGroup(object):

@@ -129,3 +129,21 @@ class DBClusterNotFoundError(RDSClientError):
             "DBClusterNotFoundFault",
             "DBCluster {} not found.".format(cluster_identifier),
         )
+
+
+class DBClusterSnapshotNotFoundError(RDSClientError):
+    def __init__(self, snapshot_identifier):
+        super().__init__(
+            "DBClusterSnapshotNotFoundFault",
+            "DBClusterSnapshot {} not found.".format(snapshot_identifier),
+        )
+
+
+class DBClusterSnapshotAlreadyExistsError(RDSClientError):
+    def __init__(self, database_snapshot_identifier):
+        super().__init__(
+            "DBClusterSnapshotAlreadyExistsFault",
+            "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
+                database_snapshot_identifier
+            ),
+        )

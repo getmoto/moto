@@ -557,6 +557,37 @@ def test_create_db_snapshots_copy_tags():
 
 
 @mock_rds2
+def test_copy_db_snapshots():
+    conn = boto3.client("rds", region_name="us-west-2")
+
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    ).get("DBSnapshot")
+
+    target_snapshot = conn.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="snapshot-1", TargetDBSnapshotIdentifier="snapshot-2"
+    ).get("DBSnapshot")
+
+    target_snapshot.get("Engine").should.equal("postgres")
+    target_snapshot.get("DBInstanceIdentifier").should.equal("db-primary-1")
+    target_snapshot.get("DBSnapshotIdentifier").should.equal("snapshot-2")
+    result = conn.list_tags_for_resource(ResourceName=target_snapshot["DBSnapshotArn"])
+    result["TagList"].should.equal([])
+
+
+@mock_rds2
 def test_describe_db_snapshots():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_instance(
