@@ -406,15 +406,15 @@ def test_hosted_zone_private_zone_preserved_boto3():
     # create_hosted_zone statements with  PrivateZone=True,
     # but without a _valid_ vpc-id should fail.
     conn = boto3.client("route53", region_name=region)
-    with pytest.raises(KeyError) as e:
+    with pytest.raises(ClientError) as exc:
         conn.create_hosted_zone(
             Name="testdns.aws.com.",
             CallerReference=str(hash("foo")),
             HostedZoneConfig=dict(PrivateZone=True, Comment="Test"),
         )
-        print("")
-    expected_msg = "Private Hosted zone requires VPC ID and Region"
-    assert e.value.args[0] == expected_msg
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidVPCId")
+    err["Message"].should.equal("Invalid or missing VPC Id.")
 
     return
 
@@ -1231,7 +1231,6 @@ def test_change_resource_record_sets_records_limit():
         "Comment": "Create four records with 250 resource records each, plus one more",
         "Changes": too_many_changes,
     }
-
     with pytest.raises(ClientError) as exc:
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id,

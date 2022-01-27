@@ -6,7 +6,7 @@ from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch
+from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch, InvalidVPCId
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -40,14 +40,7 @@ class Route53(BaseResponse):
             if "HostedZoneConfig" in zone_request:
                 zone_config = zone_request["HostedZoneConfig"]
                 comment = zone_config["Comment"]
-                try:
-                    # in boto3, this field is set directly in the xml
-                    private_zone = zone_config["PrivateZone"]
-                except KeyError:
-                    # if a VPC subsection is only included in xmls
-                    # params when private_zone=True, see boto:
-                    # boto/route53/connection.py
-                    private_zone = "VPC" in zone_request
+                private_zone = zone_config.get("PrivateZone", False)
             else:
                 comment = None
                 private_zone = False
@@ -57,8 +50,7 @@ class Route53(BaseResponse):
                     vpcid = zone_request["VPC"]["VPCId"]
                     vpcregion = zone_request["VPC"]["VPCRegion"]
                 except KeyError:
-                    msg = "Private Hosted zone requires VPC ID and Region"
-                    raise KeyError(msg)
+                    raise InvalidVPCId()
 
             name = zone_request["Name"]
 
