@@ -114,6 +114,15 @@ Whenever a mock-decorator starts, Moto will:
  #. Send a reset-request to :bash:`http://localhost:5000`, removing all state that was kept
  #. Add the :bash:`endpoint_url` parameter to boto3, so that all requests will be made to :bash:`http://localhost:5000`.
 
+Optionally, the `http://localhost:5000` endpoint can be overridden by:
+
+.. code-block:: bash
+
+    TEST_SERVER_MODE_ENDPOINT=http://moto-server:5000
+
+This can be used for example in case of docker-compose configuration that runs Moto server
+in a separate service container.
+
 Calling the reset-API ensures the same behaviour as normal decorators, where the complete state is removed.
 It is possible to keep the state in between tests, using this environment variable:
 
