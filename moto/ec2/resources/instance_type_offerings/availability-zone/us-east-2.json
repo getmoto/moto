@@ -2080,6 +2080,10 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "hpc6a.48xlarge",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "us-east-2b"
  },

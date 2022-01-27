@@ -7,7 +7,7 @@ from uuid import uuid4
 
 class GuardDutyBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(GuardDutyBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.detectors = {}
 

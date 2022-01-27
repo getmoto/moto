@@ -1,52 +1,19 @@
-from __future__ import print_function
-
 import uuid
 from datetime import datetime
 from decimal import Decimal
 
-import boto
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 import re
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_dynamodb2, mock_dynamodb2_deprecated
-from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
-from boto.exception import JSONResponseError
+from moto import mock_dynamodb2
+from moto.dynamodb2 import dynamodb_backends2
 from botocore.exceptions import ClientError
-from tests.helpers import requires_boto_gte
 
 import moto.dynamodb2.comparisons
 import moto.dynamodb2.models
 
 import pytest
-
-try:
-    import boto.dynamodb2
-except ImportError:
-    print("This boto version is not supported")
-
-
-@requires_boto_gte("2.9")
-# Has boto3 equivalent
-@mock_dynamodb2_deprecated
-def test_list_tables():
-    name = "TestTable"
-    # Should make tables properly with boto
-    dynamodb_backend2.create_table(
-        name,
-        attr=[
-            {"AttributeType": "S", "AttributeName": "forum_name"},
-            {"AttributeType": "S", "AttributeName": "subject"},
-        ],
-        schema=[
-            {"KeyType": "HASH", "AttributeName": "forum_name"},
-            {"KeyType": "RANGE", "AttributeName": "subject"},
-        ],
-    )
-    conn = boto.dynamodb2.connect_to_region(
-        "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
-    )
-    assert conn.list_tables()["TableNames"] == [name]
 
 
 @mock_dynamodb2
@@ -65,34 +32,6 @@ def test_list_tables_boto3(names):
             ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         )
     conn.list_tables()["TableNames"].should.equal(names)
-
-
-@requires_boto_gte("2.9")
-# Has boto3 equivalent
-@mock_dynamodb2_deprecated
-def test_list_tables_layer_1():
-    # Should make tables properly with boto
-    dynamodb_backend2.create_table(
-        "test_1",
-        attr=[{"AttributeType": "S", "AttributeName": "name"},],
-        schema=[{"KeyType": "HASH", "AttributeName": "name"}],
-    )
-    dynamodb_backend2.create_table(
-        "test_2",
-        attr=[{"AttributeType": "S", "AttributeName": "name"}],
-        schema=[{"KeyType": "HASH", "AttributeName": "name"}],
-    )
-    conn = boto.dynamodb2.connect_to_region(
-        "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
-    )
-
-    res = conn.list_tables(limit=1)
-    expected = {"TableNames": ["test_1"], "LastEvaluatedTableName": "test_1"}
-    res.should.equal(expected)
-
-    res = conn.list_tables(limit=1, exclusive_start_table_name="test_1")
-    expected = {"TableNames": ["test_2"]}
-    res.should.equal(expected)
 
 
 @mock_dynamodb2
@@ -119,17 +58,6 @@ def test_list_tables_paginated():
     res.shouldnt.have.key("LastEvaluatedTableName")
 
 
-@requires_boto_gte("2.9")
-# Has boto3 equivalent
-@mock_dynamodb2_deprecated
-def test_describe_missing_table():
-    conn = boto.dynamodb2.connect_to_region(
-        "us-west-2", aws_access_key_id="ak", aws_secret_access_key="sk"
-    )
-    with pytest.raises(JSONResponseError):
-        conn.describe_table("messages")
-
-
 @mock_dynamodb2
 def test_describe_missing_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -140,7 +68,6 @@ def test_describe_missing_table_boto3():
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_table_tags():
     name = "TestTable"
@@ -178,7 +105,6 @@ def test_list_table_tags():
     assert resp["Tags"] == [{"Key": "TestTag2", "Value": "TestValue2"}]
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_table_tags_empty():
     name = "TestTable"
@@ -200,7 +126,6 @@ def test_list_table_tags_empty():
     assert resp["Tags"] == []
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_table_tags_paginated():
     name = "TestTable"
@@ -229,7 +154,6 @@ def test_list_table_tags_paginated():
     assert "NextToken" not in resp2.keys()
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_list_not_found_table_tags():
     conn = boto3.client(
@@ -384,7 +308,6 @@ def test_update_item_with_empty_string_attr_no_exception():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_query_invalid_table():
     conn = boto3.client(
@@ -403,7 +326,6 @@ def test_query_invalid_table():
         assert exception.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_put_item_with_special_chars():
     name = "TestTable"
@@ -434,7 +356,6 @@ def test_put_item_with_special_chars():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_put_item_with_streams():
     name = "TestTable"
@@ -1252,7 +1173,7 @@ def test_filter_expression():
         attrs={
             "Id": {"N": "8"},
             "Subs": {"N": "5"},
-            "Desc": {"S": "Some description"},
+            "Des": {"S": "Some description"},
             "KV": {"SS": ["test1", "test2"]},
         },
     )
@@ -1262,7 +1183,7 @@ def test_filter_expression():
         attrs={
             "Id": {"N": "8"},
             "Subs": {"N": "10"},
-            "Desc": {"S": "A description"},
+            "Des": {"S": "A description"},
             "KV": {"SS": ["test3", "test4"]},
         },
     )
@@ -1329,7 +1250,7 @@ def test_filter_expression():
 
     # attribute function tests (with extra spaces)
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "attribute_exists(Id) AND attribute_not_exists (User)", {}, {}
+        "attribute_exists(Id) AND attribute_not_exists (UnknownAttribute)", {}, {}
     )
     filter_expr.expr(row1).should.be(True)
 
@@ -1340,7 +1261,7 @@ def test_filter_expression():
 
     # beginswith function test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "begins_with(Desc, :v0)", {}, {":v0": {"S": "Some"}}
+        "begins_with(Des, :v0)", {}, {":v0": {"S": "Some"}}
     )
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
@@ -1354,7 +1275,7 @@ def test_filter_expression():
 
     # size function test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "size(Desc) > size(KV)", {}, {}
+        "size(Des) > size(KV)", {}, {}
     )
     filter_expr.expr(row1).should.be(True)
 
@@ -1367,7 +1288,7 @@ def test_filter_expression():
     filter_expr.expr(row1).should.be(True)
     # Expression from to check contains on string value
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "contains(#n0, :v0)", {"#n0": "Desc"}, {":v0": {"S": "Some"}}
+        "contains(#n0, :v0)", {"#n0": "Des"}, {":v0": {"S": "Some"}}
     )
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
@@ -3513,7 +3434,6 @@ def test_update_supports_list_append_maps():
     )
 
 
-@requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_update_supports_nested_update_if_nested_value_not_exists():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")

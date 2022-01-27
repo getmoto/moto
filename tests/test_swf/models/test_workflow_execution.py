@@ -1,7 +1,17 @@
+from threading import Timer as ThreadingTimer
+from time import sleep
+
 from freezegun import freeze_time
+from unittest.mock import Mock, patch
 import sure  # noqa # pylint: disable=unused-import
 
-from moto.swf.models import ActivityType, Timeout, WorkflowType, WorkflowExecution
+from moto.swf.models import (
+    ActivityType,
+    Timeout,
+    Timer,
+    WorkflowType,
+    WorkflowExecution,
+)
 from moto.swf.exceptions import SWFDefaultUndefinedFault
 from ..utils import (
     auto_start_decision_tasks,
@@ -541,3 +551,115 @@ def test_timeouts_are_processed_in_order_and_reevaluated():
                 "WorkflowExecutionTimedOut",
             ]
         )
+
+
+def test_record_marker():
+    wfe = make_workflow_execution()
+    MARKER_EVENT_ATTRIBUTES = {"markerName": "example_marker"}
+
+    wfe.record_marker(123, MARKER_EVENT_ATTRIBUTES)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("MarkerRecorded")
+    last_event.event_attributes["markerName"].should.equal("example_marker")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_start_timer():
+    wfe = make_workflow_execution()
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
+    with patch("moto.swf.models.workflow_execution.ThreadingTimer"):
+
+        wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+
+        last_event = wfe.events()[-1]
+        last_event.event_type.should.equal("TimerStarted")
+        last_event.event_attributes["startToFireTimeout"].should.equal("10")
+        last_event.event_attributes["timerId"].should.equal("abc123")
+        last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_start_timer_correctly_fires_timer_later():
+    wfe = make_workflow_execution()
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "60", "timerId": "abc123"}
+
+    # Patch thread's event with one that immediately resolves
+    with patch("threading.Event.wait"):
+        wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+        # Small wait to let both events populate
+        sleep(0.5)
+
+        second_to_last_event = wfe.events()[-2]
+        last_event = wfe.events()[-1]
+        second_to_last_event.event_type.should.equal("TimerFired")
+        second_to_last_event.event_attributes["timerId"].should.equal("abc123")
+        second_to_last_event.event_attributes["startedEventId"].should.equal(1)
+        last_event.event_type.should.equal("DecisionTaskScheduled")
+
+
+def test_start_timer_fails_if_timer_already_started():
+    wfe = make_workflow_execution()
+    existing_timer = Mock(spec=ThreadingTimer)
+    existing_timer.is_alive.return_value = True
+    wfe._timers["abc123"] = Timer(existing_timer, 1)
+    START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
+
+    wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("StartTimerFailed")
+    last_event.event_attributes["cause"].should.equal("TIMER_ID_ALREADY_IN_USE")
+    last_event.event_attributes["timerId"].should.equal("abc123")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_timer():
+    wfe = make_workflow_execution()
+    existing_timer = Mock(spec=ThreadingTimer)
+    existing_timer.is_alive.return_value = True
+    wfe._timers["abc123"] = Timer(existing_timer, 1)
+
+    wfe.cancel_timer(123, "abc123")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("TimerCancelled")
+    last_event.event_attributes["startedEventId"].should.equal(1)
+    last_event.event_attributes["timerId"].should.equal("abc123")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+    existing_timer.cancel.assert_called_once()
+    assert not wfe._timers.get("abc123")
+
+
+def test_cancel_timer_fails_if_timer_not_found():
+    wfe = make_workflow_execution()
+
+    wfe.cancel_timer(123, "abc123")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("CancelTimerFailed")
+    last_event.event_attributes["cause"].should.equal("TIMER_ID_UNKNOWN")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_workflow():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"] = 1
+
+    wfe.cancel(123, "I want to cancel")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("WorkflowExecutionCanceled")
+    last_event.event_attributes["details"].should.equal("I want to cancel")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)
+
+
+def test_cancel_workflow_fails_if_open_decision():
+    wfe = make_workflow_execution()
+    wfe.open_counts["openDecisionTasks"] = 2
+
+    wfe.cancel(123, "I want to cancel")
+
+    last_event = wfe.events()[-1]
+    last_event.event_type.should.equal("CancelWorkflowExecutionFailed")
+    last_event.event_attributes["cause"].should.equal("UNHANDLED_DECISION")
+    last_event.event_attributes["decisionTaskCompletedEventId"].should.equal(123)

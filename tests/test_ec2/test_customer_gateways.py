@@ -1,24 +1,9 @@
-import boto
-import sure  # noqa # pylint: disable=unused-import
 import boto3
 import pytest
-from boto.exception import EC2ResponseError
+import sure  # noqa # pylint: disable=unused-import
+
 from botocore.exceptions import ClientError
-
-from moto import mock_ec2_deprecated, mock_ec2
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_create_customer_gateways():
-    conn = boto.connect_vpc("the_key", "the_secret")
-
-    customer_gateway = conn.create_customer_gateway("ipsec.1", "205.251.242.54", 65534)
-    customer_gateway.should_not.be.none
-    customer_gateway.id.should.match(r"cgw-\w+")
-    customer_gateway.type.should.equal("ipsec.1")
-    customer_gateway.bgp_asn.should.equal(65534)
-    customer_gateway.ip_address.should.equal("205.251.242.54")
+from moto import mock_ec2
 
 
 @mock_ec2
@@ -30,16 +15,6 @@ def test_create_customer_gateways_boto3():
     customer_gateway.should.have.key("Type").equal("ipsec.1")
     customer_gateway.should.have.key("BgpAsn").equal("65534")
     customer_gateway.should.have.key("IpAddress").equal("205.251.242.54")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_describe_customer_gateways():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    customer_gateway = conn.create_customer_gateway("ipsec.1", "205.251.242.54", 65534)
-    cgws = conn.get_all_customer_gateways()
-    cgws.should.have.length_of(1)
-    cgws[0].id.should.match(customer_gateway.id)
 
 
 @mock_ec2
@@ -81,21 +56,6 @@ def test_describe_customer_gateways_boto3():
     ), "Should have at least the one CustomerGateway we just created"
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_delete_customer_gateways():
-    conn = boto.connect_vpc("the_key", "the_secret")
-
-    customer_gateway = conn.create_customer_gateway("ipsec.1", "205.251.242.54", 65534)
-    customer_gateway.should_not.be.none
-    cgws = conn.get_all_customer_gateways()
-    cgws[0].id.should.match(customer_gateway.id)
-    conn.delete_customer_gateway(customer_gateway.id)
-    cgws = conn.get_all_customer_gateways()
-    cgws[0].state.should.equal("deleted")
-    cgws.should.have.length_of(1)
-
-
 @mock_ec2
 def test_delete_customer_gateways_boto3():
     ec2 = boto3.client("ec2", region_name="us-east-1")
@@ -116,14 +76,6 @@ def test_delete_customer_gateways_boto3():
     ]
     cgws.should.have.length_of(1)
     cgws[0].should.have.key("State").equal("deleted")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_delete_customer_gateways_bad_id():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    with pytest.raises(EC2ResponseError):
-        conn.delete_customer_gateway("cgw-0123abcd")
 
 
 @mock_ec2

@@ -464,6 +464,10 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "hpc6a.48xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "us-east-2"
  },

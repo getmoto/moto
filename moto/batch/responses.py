@@ -276,11 +276,7 @@ class BatchResponse(BaseResponse):
         except AWSError as err:
             return err.response()
 
-        result = {
-            "jobSummaryList": [
-                {"jobId": job.job_id, "jobName": job.job_name} for job in jobs
-            ]
-        }
+        result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)
 
     # TerminateJob

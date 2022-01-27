@@ -55,16 +55,21 @@ class CustomModel(CloudFormationModel):
         stack = cloudformation_backends[region_name].get_stack(stack_id)
         stack.add_custom_resource(custom_resource)
 
+        # A request will be send to this URL to indicate success/failure
+        # This request will be coming from inside a Docker container
+        # Note that, in order to reach the Moto host, the Moto-server should be listening on 0.0.0.0
+        #
+        # Alternative: Maybe we should let the user pass in a container-name where Moto is running?
+        # Similar to how we know for sure that the container in our CI is called 'motoserver'
+        host = f"{settings.moto_server_host()}:{settings.moto_server_port()}"
+        response_url = (
+            f"{host}/cloudformation_{region_name}/cfnresponse?stack={stack_id}"
+        )
+
         event = {
             "RequestType": "Create",
             "ServiceToken": service_token,
-            # A request will be send to this URL to indicate success/failure
-            # This request will be coming from inside a Docker container
-            # Note that, in order to reach the Moto host, the Moto-server should be listening on 0.0.0.0
-            #
-            # Alternative: Maybe we should let the user pass in a container-name where Moto is running?
-            # Similar to how we know for sure that the container in our CI is called 'motoserver'
-            "ResponseURL": f"{settings.moto_server_host()}/cloudformation_{region_name}/cfnresponse?stack={stack_id}",
+            "ResponseURL": response_url,
             "StackId": stack_id,
             "RequestId": request_id,
             "LogicalResourceId": logical_id,

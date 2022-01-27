@@ -544,6 +544,51 @@ aws_managed_policies_data = """
         "UpdateDate": "2019-09-10T22:44:43+00:00",
         "VersionId": "v2"
     },
+    "AWSAppRunnerFullAccess": {
+        "Arn": "arn:aws:iam::aws:policy/AWSAppRunnerFullAccess",
+        "AttachmentCount": 0,
+        "CreateDate": "2022-01-11T04:02:09+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": "iam:CreateServiceLinkedRole",
+                    "Condition": {
+                        "StringLike": {
+                            "iam:AWSServiceName": "apprunner.amazonaws.com"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:iam::*:role/aws-service-role/apprunner.amazonaws.com/AWSServiceRoleForAppRunner"
+                },
+                {
+                    "Action": "iam:PassRole",
+                    "Condition": {
+                        "StringLike": {
+                            "iam:PassedToService": "apprunner.amazonaws.com"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                },
+                {
+                    "Action": "apprunner:*",
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "AppRunnerAdminAccess"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/",
+        "PermissionsBoundaryUsageCount": 0,
+        "PolicyId": "ANPAZKAPJZG4CI7E7OMBX",
+        "PolicyName": "AWSAppRunnerFullAccess",
+        "UpdateDate": "2022-01-11T04:02:09+00:00",
+        "VersionId": "v1"
+    },
     "AWSAppRunnerServicePolicyForECRAccess": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess",
         "AttachmentCount": 0,
@@ -3284,7 +3329,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSBackupServiceLinkedRolePolicyForBackup",
         "AttachmentCount": 0,
         "CreateDate": "2020-06-02T23:08:40+00:00",
-        "DefaultVersionId": "v6",
+        "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
                 {
@@ -3477,11 +3522,19 @@ aws_managed_policies_data = """
                 },
                 {
                     "Action": [
-                        "dynamodb:ListTagsOfResource"
+                        "dynamodb:ListTagsOfResource",
+                        "dynamodb:DescribeTable"
                     ],
                     "Effect": "Allow",
-                    "Resource": "arn:aws:dynamodb:*:*:table/*",
-                    "Sid": "ListTagsForDynamoDBTable"
+                    "Resource": "arn:aws:dynamodb:*:*:table/*"
+                },
+                {
+                    "Action": [
+                        "storagegateway:DescribeCachediSCSIVolumes",
+                        "storagegateway:DescribeStorediSCSIVolumes"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:storagegateway:*:*:gateway/*/volume/*"
                 }
             ],
             "Version": "2012-10-17"
@@ -3492,8 +3545,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4ONJBD4ZY2",
         "PolicyName": "AWSBackupServiceLinkedRolePolicyForBackup",
-        "UpdateDate": "2021-11-23T22:00:49+00:00",
-        "VersionId": "v6"
+        "UpdateDate": "2022-01-14T19:17:42+00:00",
+        "VersionId": "v7"
     },
     "AWSBackupServiceLinkedRolePolicyForBackupTest": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSBackupServiceLinkedRolePolicyForBackupTest",
@@ -5107,7 +5160,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSCloud9ServiceRolePolicy",
         "AttachmentCount": 0,
         "CreateDate": "2017-11-30T13:44:08+00:00",
-        "DefaultVersionId": "v7",
+        "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
                 {
@@ -5173,6 +5226,16 @@ aws_managed_policies_data = """
                 },
                 {
                     "Action": [
+                        "ec2:StartInstances",
+                        "ec2:StopInstances"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:license-manager:*:*:license-configuration:*"
+                    ]
+                },
+                {
+                    "Action": [
                         "iam:ListInstanceProfiles",
                         "iam:GetInstanceProfile"
                     ],
@@ -5204,8 +5267,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJFXGCBXQIZATFZ4YG",
         "PolicyName": "AWSCloud9ServiceRolePolicy",
-        "UpdateDate": "2020-10-06T12:43:49+00:00",
-        "VersionId": "v7"
+        "UpdateDate": "2022-01-17T14:06:15+00:00",
+        "VersionId": "v8"
     },
     "AWSCloud9User": {
         "Arn": "arn:aws:iam::aws:policy/AWSCloud9User",
@@ -22564,7 +22627,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AWSPanoramaFullAccess",
         "AttachmentCount": 0,
         "CreateDate": "2020-12-01T13:12:47+00:00",
-        "DefaultVersionId": "v3",
+        "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
                 {
@@ -22634,6 +22697,15 @@ aws_managed_policies_data = """
                 },
                 {
                     "Action": [
+                        "logs:DescribeLogGroups"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:logs:*:*:log-group:*"
+                    ]
+                },
+                {
+                    "Action": [
                         "cloudwatch:ListMetrics",
                         "cloudwatch:GetMetricData",
                         "cloudwatch:GetMetricStatistics"
@@ -22665,8 +22737,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4IAPULBSWQ",
         "PolicyName": "AWSPanoramaFullAccess",
-        "UpdateDate": "2021-10-28T15:37:05+00:00",
-        "VersionId": "v3"
+        "UpdateDate": "2022-01-12T21:21:04+00:00",
+        "VersionId": "v4"
     },
     "AWSPanoramaGreengrassGroupRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSPanoramaGreengrassGroupRolePolicy",
@@ -23296,6 +23368,37 @@ aws_managed_policies_data = """
         "PolicyId": "ANPAZKAPJZG4AV6W3DAIW",
         "PolicyName": "AWSPrivateMarketplaceRequests",
         "UpdateDate": "2019-10-28T21:44:03+00:00",
+        "VersionId": "v1"
+    },
+    "AWSPrivateNetworksServiceRolePolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSPrivateNetworksServiceRolePolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2021-12-16T23:17:46+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "cloudwatch:PutMetricData"
+                    ],
+                    "Condition": {
+                        "StringEquals": {
+                            "cloudwatch:namespace": "AWS/Private5G"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PermissionsBoundaryUsageCount": 0,
+        "PolicyId": "ANPAZKAPJZG4IGXMJRAAS",
+        "PolicyName": "AWSPrivateNetworksServiceRolePolicy",
+        "UpdateDate": "2021-12-16T23:17:46+00:00",
         "VersionId": "v1"
     },
     "AWSProtonDeveloperAccess": {
@@ -25461,7 +25564,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSServiceRoleForAmazonEKSNodegroup",
         "AttachmentCount": 0,
         "CreateDate": "2019-11-07T01:34:26+00:00",
-        "DefaultVersionId": "v5",
+        "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
                 {
@@ -25521,7 +25624,8 @@ aws_managed_policies_data = """
                         "autoscaling:TerminateInstanceInAutoScalingGroup",
                         "autoscaling:CompleteLifecycleAction",
                         "autoscaling:PutLifecycleHook",
-                        "autoscaling:PutNotificationConfiguration"
+                        "autoscaling:PutNotificationConfiguration",
+                        "autoscaling:EnableMetricsCollection"
                     ],
                     "Effect": "Allow",
                     "Resource": "arn:aws:autoscaling:*:*:*:autoScalingGroupName/eks-*",
@@ -25640,8 +25744,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4KH2AAMJJG",
         "PolicyName": "AWSServiceRoleForAmazonEKSNodegroup",
-        "UpdateDate": "2020-08-31T19:07:38+00:00",
-        "VersionId": "v5"
+        "UpdateDate": "2022-01-14T00:33:26+00:00",
+        "VersionId": "v6"
     },
     "AWSServiceRoleForCloudWatchAlarmsActionSSMServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSServiceRoleForCloudWatchAlarmsActionSSMServiceRolePolicy",
@@ -28888,7 +28992,7 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJ7W6266ELXF5MISDS",
         "PolicyName": "AWSSupportServiceRolePolicy",
-        "UpdateDate": "2021-11-12T00:01:03+00:00",
+        "UpdateDate": "2021-12-22T08:23:42+00:00",
         "VersionId": "v19"
     },
     "AWSSystemsManagerAccountDiscoveryServicePolicy": {
@@ -29833,7 +29937,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy",
         "AttachmentCount": 0,
         "CreateDate": "2020-05-27T19:29:09+00:00",
-        "DefaultVersionId": "v4",
+        "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
                 {
@@ -30023,6 +30127,7 @@ aws_managed_policies_data = """
                     "Action": [
                         "lambda:CreateFunction",
                         "lambda:DeleteFunction",
+                        "lambda:DeleteFunctionConcurrency",
                         "lambda:GetFunction",
                         "lambda:GetFunctionConfiguration",
                         "lambda:ListTags",
@@ -30070,8 +30175,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4FKWWNUOP2",
         "PolicyName": "AWSThinkboxDeadlineResourceTrackerAdminPolicy",
-        "UpdateDate": "2021-08-12T21:28:43+00:00",
-        "VersionId": "v4"
+        "UpdateDate": "2021-12-23T01:01:48+00:00",
+        "VersionId": "v5"
     },
     "AWSThinkboxDeadlineSpotEventPluginAdminPolicy": {
         "Arn": "arn:aws:iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy",
@@ -30629,7 +30734,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AWSWAFConsoleFullAccess",
         "AttachmentCount": 0,
         "CreateDate": "2020-04-06T18:38:38+00:00",
-        "DefaultVersionId": "v3",
+        "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
                 {
@@ -30649,7 +30754,10 @@ aws_managed_policies_data = """
                         "appsync:SetWebACL",
                         "waf-regional:*",
                         "waf:*",
-                        "wafv2:*"
+                        "wafv2:*",
+                        "s3:ListAllMyBuckets",
+                        "logs:DescribeResourcePolicies",
+                        "logs:DescribeLogGroups"
                     ],
                     "Effect": "Allow",
                     "Resource": "*",
@@ -30661,10 +30769,7 @@ aws_managed_policies_data = """
                         "logs:DeleteLogDelivery"
                     ],
                     "Effect": "Allow",
-                    "Resource": [
-                        "arn:aws:s3:::aws-waf-logs-*",
-                        "arn:aws:logs:*:*:aws-waf-logs-*"
-                    ],
+                    "Resource": "*",
                     "Sid": "AllowLogDeliverySubscription"
                 },
                 {
@@ -30680,14 +30785,17 @@ aws_managed_policies_data = """
                 },
                 {
                     "Action": [
-                        "logs:PutResourcePolicy",
-                        "logs:DescribeResourcePolicies",
-                        "logs:DescribeLogGroups"
+                        "logs:PutResourcePolicy"
                     ],
+                    "Condition": {
+                        "ForAnyValue:StringEquals": {
+                            "aws:CalledVia": [
+                                "wafv2.amazonaws.com"
+                            ]
+                        }
+                    },
                     "Effect": "Allow",
-                    "Resource": [
-                        "arn:aws:logs:*:*:aws-waf-logs-*"
-                    ],
+                    "Resource": "*",
                     "Sid": "GrantLogDeliveryPermissionForCloudWatchLogGroup"
                 }
             ],
@@ -30699,8 +30807,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4AZOTQ7KAT",
         "PolicyName": "AWSWAFConsoleFullAccess",
-        "UpdateDate": "2021-11-15T19:33:52+00:00",
-        "VersionId": "v3"
+        "UpdateDate": "2022-01-11T19:34:04+00:00",
+        "VersionId": "v4"
     },
     "AWSWAFConsoleReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSWAFConsoleReadOnlyAccess",
@@ -30748,7 +30856,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AWSWAFFullAccess",
         "AttachmentCount": 0,
         "CreateDate": "2015-10-06T20:44:00+00:00",
-        "DefaultVersionId": "v6",
+        "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
                 {
@@ -30758,7 +30866,9 @@ aws_managed_policies_data = """
                         "wafv2:*",
                         "elasticloadbalancing:SetWebACL",
                         "apigateway:SetWebACL",
-                        "appsync:SetWebACL"
+                        "appsync:SetWebACL",
+                        "logs:DescribeResourcePolicies",
+                        "logs:DescribeLogGroups"
                     ],
                     "Effect": "Allow",
                     "Resource": "*",
@@ -30770,10 +30880,7 @@ aws_managed_policies_data = """
                         "logs:DeleteLogDelivery"
                     ],
                     "Effect": "Allow",
-                    "Resource": [
-                        "arn:aws:s3:::aws-waf-logs-*",
-                        "arn:aws:logs:*:*:aws-waf-logs-*"
-                    ],
+                    "Resource": "*",
                     "Sid": "AllowLogDeliverySubscription"
                 },
                 {
@@ -30789,14 +30896,17 @@ aws_managed_policies_data = """
                 },
                 {
                     "Action": [
-                        "logs:PutResourcePolicy",
-                        "logs:DescribeResourcePolicies",
-                        "logs:DescribeLogGroups"
+                        "logs:PutResourcePolicy"
                     ],
+                    "Condition": {
+                        "ForAnyValue:StringEquals": {
+                            "aws:CalledVia": [
+                                "wafv2.amazonaws.com"
+                            ]
+                        }
+                    },
                     "Effect": "Allow",
-                    "Resource": [
-                        "arn:aws:logs:*:*:aws-waf-logs-*"
-                    ],
+                    "Resource": "*",
                     "Sid": "GrantLogDeliveryPermissionForCloudWatchLogGroup"
                 }
             ],
@@ -30808,8 +30918,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJMIKIAFXZEGOLRH7C",
         "PolicyName": "AWSWAFFullAccess",
-        "UpdateDate": "2021-11-15T19:33:27+00:00",
-        "VersionId": "v6"
+        "UpdateDate": "2022-01-11T19:33:38+00:00",
+        "VersionId": "v7"
     },
     "AWSWAFReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSWAFReadOnlyAccess",
@@ -33899,7 +34009,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonChimeVoiceConnectorServiceLinkedRolePolicy",
         "AttachmentCount": 0,
         "CreateDate": "2019-09-30T22:16:42+00:00",
-        "DefaultVersionId": "v1",
+        "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
                 {
@@ -33909,6 +34019,46 @@ aws_managed_policies_data = """
                     "Effect": "Allow",
                     "Resource": [
                         "*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "kinesisvideo:GetDataEndpoint",
+                        "kinesisvideo:PutMedia",
+                        "kinesisvideo:UpdateDataRetention",
+                        "kinesisvideo:DescribeStream",
+                        "kinesisvideo:CreateStream"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:kinesisvideo:*:*:stream/ChimeVoiceConnector-*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "kinesisvideo:ListStreams"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "SNS:Publish"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:sns:*:*:ChimeVoiceConnector-Streaming*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "sqs:SendMessage"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:sqs:*:*:ChimeVoiceConnector-Streaming*"
                     ]
                 }
             ],
@@ -33920,8 +34070,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4GP44ZBY4P",
         "PolicyName": "AmazonChimeVoiceConnectorServiceLinkedRolePolicy",
-        "UpdateDate": "2019-09-30T22:16:42+00:00",
-        "VersionId": "v1"
+        "UpdateDate": "2021-12-21T00:08:05+00:00",
+        "VersionId": "v2"
     },
     "AmazonCloudDirectoryFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonCloudDirectoryFullAccess",
@@ -35402,6 +35552,106 @@ aws_managed_policies_data = """
         "PolicyId": "ANPAZKAPJZG4G5GQKDXB6",
         "PolicyName": "AmazonDetectiveServiceLinkedRolePolicy",
         "UpdateDate": "2021-11-18T19:47:32+00:00",
+        "VersionId": "v1"
+    },
+    "AmazonDevOpsGuruConsoleFullAccess": {
+        "Arn": "arn:aws:iam::aws:policy/AmazonDevOpsGuruConsoleFullAccess",
+        "AttachmentCount": 0,
+        "CreateDate": "2021-12-17T18:43:09+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "devops-guru:*"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "DevOpsGuruFullAccess"
+                },
+                {
+                    "Action": [
+                        "cloudformation:DescribeStacks",
+                        "cloudformation:ListStacks"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "CloudFormationListStacksAccess"
+                },
+                {
+                    "Action": [
+                        "cloudwatch:GetMetricData"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "CloudWatchGetMetricDataAccess"
+                },
+                {
+                    "Action": [
+                        "sns:ListTopics"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "SnsListTopicsAccess"
+                },
+                {
+                    "Action": [
+                        "sns:CreateTopic",
+                        "sns:GetTopicAttributes",
+                        "sns:SetTopicAttributes",
+                        "sns:Publish"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:sns:*:*:DevOps-Guru-*",
+                    "Sid": "SnsTopicOperations"
+                },
+                {
+                    "Action": "iam:CreateServiceLinkedRole",
+                    "Condition": {
+                        "StringLike": {
+                            "iam:AWSServiceName": "devops-guru.amazonaws.com"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:iam::*:role/aws-service-role/devops-guru.amazonaws.com/AWSServiceRoleForDevOpsGuru",
+                    "Sid": "DevOpsGuruSlrCreation"
+                },
+                {
+                    "Action": [
+                        "iam:DeleteServiceLinkedRole",
+                        "iam:GetServiceLinkedRoleDeletionStatus"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:iam::*:role/aws-service-role/devops-guru.amazonaws.com/AWSServiceRoleForDevOpsGuru",
+                    "Sid": "DevOpsGuruSlrDeletion"
+                },
+                {
+                    "Action": [
+                        "rds:DescribeDBInstances"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "RDSDescribeDBInstancesAccess"
+                },
+                {
+                    "Action": [
+                        "pi:GetResourceMetrics",
+                        "pi:DescribeDimensionKeys"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "PerformanceInsightsMetricsDataAccess"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/",
+        "PermissionsBoundaryUsageCount": 0,
+        "PolicyId": "ANPAZKAPJZG4GSGM7UDO3",
+        "PolicyName": "AmazonDevOpsGuruConsoleFullAccess",
+        "UpdateDate": "2021-12-17T18:43:09+00:00",
         "VersionId": "v1"
     },
     "AmazonDevOpsGuruFullAccess": {
@@ -38892,7 +39142,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AmazonESCognitoAccess",
         "AttachmentCount": 0,
         "CreateDate": "2018-02-28T22:29:18+00:00",
-        "DefaultVersionId": "v1",
+        "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
                 {
@@ -38900,6 +39150,7 @@ aws_managed_policies_data = """
                         "cognito-idp:DescribeUserPool",
                         "cognito-idp:CreateUserPoolClient",
                         "cognito-idp:DeleteUserPoolClient",
+                        "cognito-idp:UpdateUserPoolClient",
                         "cognito-idp:DescribeUserPoolClient",
                         "cognito-idp:AdminInitiateAuth",
                         "cognito-idp:AdminUserGlobalSignOut",
@@ -38916,7 +39167,10 @@ aws_managed_policies_data = """
                     "Action": "iam:PassRole",
                     "Condition": {
                         "StringLike": {
-                            "iam:PassedToService": "cognito-identity.amazonaws.com"
+                            "iam:PassedToService": [
+                                "cognito-identity.amazonaws.com",
+                                "cognito-identity-us-gov.amazonaws.com"
+                            ]
                         }
                     },
                     "Effect": "Allow",
@@ -38931,8 +39185,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJL2FUMODIGNDPTZHO",
         "PolicyName": "AmazonESCognitoAccess",
-        "UpdateDate": "2018-02-28T22:29:18+00:00",
-        "VersionId": "v1"
+        "UpdateDate": "2021-12-20T14:04:44+00:00",
+        "VersionId": "v2"
     },
     "AmazonESFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonESFullAccess",
@@ -39237,7 +39491,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticFileSystemFullAccess",
         "AttachmentCount": 0,
         "CreateDate": "2015-05-27T16:22:28+00:00",
-        "DefaultVersionId": "v7",
+        "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
                 {
@@ -39258,11 +39512,13 @@ aws_managed_policies_data = """
                         "elasticfilesystem:CreateMountTarget",
                         "elasticfilesystem:CreateTags",
                         "elasticfilesystem:CreateAccessPoint",
+                        "elasticfilesystem:CreateReplicationConfiguration",
                         "elasticfilesystem:DeleteFileSystem",
                         "elasticfilesystem:DeleteMountTarget",
                         "elasticfilesystem:DeleteTags",
                         "elasticfilesystem:DeleteAccessPoint",
                         "elasticfilesystem:DeleteFileSystemPolicy",
+                        "elasticfilesystem:DeleteReplicationConfiguration",
                         "elasticfilesystem:DescribeAccountPreferences",
                         "elasticfilesystem:DescribeBackupPolicy",
                         "elasticfilesystem:DescribeFileSystems",
@@ -39272,6 +39528,7 @@ aws_managed_policies_data = """
                         "elasticfilesystem:DescribeMountTargetSecurityGroups",
                         "elasticfilesystem:DescribeTags",
                         "elasticfilesystem:DescribeAccessPoints",
+                        "elasticfilesystem:DescribeReplicationConfigurations",
                         "elasticfilesystem:ModifyMountTargetSecurityGroups",
                         "elasticfilesystem:PutAccountPreferences",
                         "elasticfilesystem:PutBackupPolicy",
@@ -39292,7 +39549,7 @@ aws_managed_policies_data = """
                 {
                     "Action": "iam:CreateServiceLinkedRole",
                     "Condition": {
-                        "StringLike": {
+                        "StringEquals": {
                             "iam:AWSServiceName": [
                                 "elasticfilesystem.amazonaws.com"
                             ]
@@ -39310,14 +39567,14 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJKXTMNVQGIDNCKPBC",
         "PolicyName": "AmazonElasticFileSystemFullAccess",
-        "UpdateDate": "2021-05-10T14:25:43+00:00",
-        "VersionId": "v7"
+        "UpdateDate": "2022-01-10T19:03:16+00:00",
+        "VersionId": "v8"
     },
     "AmazonElasticFileSystemReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess",
         "AttachmentCount": 0,
         "CreateDate": "2015-05-27T16:25:25+00:00",
-        "DefaultVersionId": "v6",
+        "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
                 {
@@ -39340,6 +39597,7 @@ aws_managed_policies_data = """
                         "elasticfilesystem:DescribeMountTargetSecurityGroups",
                         "elasticfilesystem:DescribeTags",
                         "elasticfilesystem:DescribeAccessPoints",
+                        "elasticfilesystem:DescribeReplicationConfigurations",
                         "elasticfilesystem:ListTagsForResource",
                         "kms:ListAliases"
                     ],
@@ -39355,14 +39613,14 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAIPN5S4NE5JJOKVC4Y",
         "PolicyName": "AmazonElasticFileSystemReadOnlyAccess",
-        "UpdateDate": "2021-05-10T14:20:55+00:00",
-        "VersionId": "v6"
+        "UpdateDate": "2022-01-10T18:53:37+00:00",
+        "VersionId": "v7"
     },
     "AmazonElasticFileSystemServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonElasticFileSystemServiceRolePolicy",
-        "AttachmentCount": 0,
+        "AttachmentCount": 1,
         "CreateDate": "2019-11-05T16:52:41+00:00",
-        "DefaultVersionId": "v3",
+        "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
                 {
@@ -39411,7 +39669,7 @@ aws_managed_policies_data = """
                         "iam:CreateServiceLinkedRole"
                     ],
                     "Condition": {
-                        "StringLike": {
+                        "StringEquals": {
                             "iam:AWSServiceName": [
                                 "backup.amazonaws.com"
                             ]
@@ -39433,6 +39691,16 @@ aws_managed_policies_data = """
                     "Resource": [
                         "arn:aws:iam::*:role/aws-service-role/backup.amazonaws.com/AWSServiceRoleForBackup"
                     ]
+                },
+                {
+                    "Action": [
+                        "elasticfilesystem:DescribeFileSystems",
+                        "elasticfilesystem:CreateReplicationConfiguration",
+                        "elasticfilesystem:DescribeReplicationConfigurations",
+                        "elasticfilesystem:DeleteReplicationConfiguration"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
                 }
             ],
             "Version": "2012-10-17"
@@ -39443,8 +39711,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4FXCJYWBN7",
         "PolicyName": "AmazonElasticFileSystemServiceRolePolicy",
-        "UpdateDate": "2020-07-16T19:27:41+00:00",
-        "VersionId": "v3"
+        "UpdateDate": "2022-01-10T19:27:33+00:00",
+        "VersionId": "v4"
     },
     "AmazonElasticFileSystemsUtils": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils",
@@ -40373,14 +40641,13 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonFISServiceRolePolicy",
         "AttachmentCount": 0,
         "CreateDate": "2020-12-21T21:18:19+00:00",
-        "DefaultVersionId": "v3",
+        "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
                 {
                     "Action": [
                         "events:PutRule",
                         "events:DeleteRule",
-                        "events:DescribeRule",
                         "events:PutTargets",
                         "events:RemoveTargets"
                     ],
@@ -40392,6 +40659,14 @@ aws_managed_policies_data = """
                     "Effect": "Allow",
                     "Resource": "*",
                     "Sid": "EventBridge"
+                },
+                {
+                    "Action": [
+                        "events:DescribeRule"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "EventBridgeDescribe"
                 },
                 {
                     "Action": [
@@ -40435,8 +40710,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4JLZR2TQJD",
         "PolicyName": "AmazonFISServiceRolePolicy",
-        "UpdateDate": "2021-06-30T13:50:04+00:00",
-        "VersionId": "v3"
+        "UpdateDate": "2022-01-06T16:43:13+00:00",
+        "VersionId": "v4"
     },
     "AmazonFSxConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonFSxConsoleFullAccess",
@@ -43584,7 +43859,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AmazonLookoutMetricsReadOnlyAccess",
         "AttachmentCount": 0,
         "CreateDate": "2021-05-07T00:43:34+00:00",
-        "DefaultVersionId": "v1",
+        "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
                 {
@@ -43599,6 +43874,7 @@ aws_managed_policies_data = """
                         "lookoutmetrics:ListTagsForResource",
                         "lookoutmetrics:ListAnomalyGroupSummaries",
                         "lookoutmetrics:ListAnomalyGroupTimeSeries",
+                        "lookoutmetrics:ListAnomalyGroupRelatedMetrics",
                         "lookoutmetrics:GetAnomalyGroup",
                         "lookoutmetrics:GetDataQualityMetrics",
                         "lookoutmetrics:GetSampleData",
@@ -43616,8 +43892,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4MP33SLV3F",
         "PolicyName": "AmazonLookoutMetricsReadOnlyAccess",
-        "UpdateDate": "2021-05-07T00:43:34+00:00",
-        "VersionId": "v1"
+        "UpdateDate": "2022-01-04T18:19:27+00:00",
+        "VersionId": "v2"
     },
     "AmazonLookoutVisionConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonLookoutVisionConsoleFullAccess",
@@ -44273,7 +44549,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AmazonMSKFullAccess",
         "AttachmentCount": 0,
         "CreateDate": "2019-01-14T22:07:52+00:00",
-        "DefaultVersionId": "v5",
+        "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
                 {
@@ -44359,7 +44635,7 @@ aws_managed_policies_data = """
                 {
                     "Action": "iam:CreateServiceLinkedRole",
                     "Condition": {
-                        "StringLike": {
+                        "StringEquals": {
                             "iam:AWSServiceName": "kafka.amazonaws.com"
                         }
                     },
@@ -44367,17 +44643,9 @@ aws_managed_policies_data = """
                     "Resource": "arn:aws:iam::*:role/aws-service-role/kafka.amazonaws.com/AWSServiceRoleForKafka*"
                 },
                 {
-                    "Action": [
-                        "iam:AttachRolePolicy",
-                        "iam:PutRolePolicy"
-                    ],
-                    "Effect": "Allow",
-                    "Resource": "arn:aws:iam::*:role/aws-service-role/kafka.amazonaws.com/AWSServiceRoleForKafka*"
-                },
-                {
                     "Action": "iam:CreateServiceLinkedRole",
                     "Condition": {
-                        "StringLike": {
+                        "StringEquals": {
                             "iam:AWSServiceName": "delivery.logs.amazonaws.com"
                         }
                     },
@@ -44393,8 +44661,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJERQQQTWI5OMENTQE",
         "PolicyName": "AmazonMSKFullAccess",
-        "UpdateDate": "2021-11-30T18:04:10+00:00",
-        "VersionId": "v5"
+        "UpdateDate": "2022-01-06T21:18:01+00:00",
+        "VersionId": "v6"
     },
     "AmazonMSKReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMSKReadOnlyAccess",
@@ -45632,7 +45900,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/AmazonOpenSearchServiceCognitoAccess",
         "AttachmentCount": 0,
         "CreateDate": "2021-09-02T06:31:49+00:00",
-        "DefaultVersionId": "v1",
+        "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
                 {
@@ -45640,13 +45908,13 @@ aws_managed_policies_data = """
                         "cognito-idp:DescribeUserPool",
                         "cognito-idp:CreateUserPoolClient",
                         "cognito-idp:DeleteUserPoolClient",
+                        "cognito-idp:UpdateUserPoolClient",
                         "cognito-idp:DescribeUserPoolClient",
                         "cognito-idp:AdminInitiateAuth",
                         "cognito-idp:AdminUserGlobalSignOut",
                         "cognito-idp:ListUserPoolClients",
                         "cognito-identity:DescribeIdentityPool",
                         "cognito-identity:UpdateIdentityPool",
-                        "cognito-identity:SetIdentityPoolRoles",
                         "cognito-identity:GetIdentityPoolRoles"
                     ],
                     "Effect": "Allow",
@@ -45659,11 +45927,19 @@ aws_managed_policies_data = """
                     "Action": "iam:PassRole",
                     "Condition": {
                         "StringLike": {
-                            "iam:PassedToService": "cognito-identity.amazonaws.com"
+                            "iam:PassedToService": [
+                                "cognito-identity.amazonaws.com",
+                                "cognito-identity-us-gov.amazonaws.com"
+                            ]
                         }
                     },
                     "Effect": "Allow",
                     "Resource": "arn:aws:iam::*:role/*"
+                },
+                {
+                    "Action": "cognito-identity:SetIdentityPoolRoles",
+                    "Effect": "Allow",
+                    "Resource": "*"
                 }
             ],
             "Version": "2012-10-17"
@@ -45674,8 +45950,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAZKAPJZG4I2NKQTDYL",
         "PolicyName": "AmazonOpenSearchServiceCognitoAccess",
-        "UpdateDate": "2021-09-02T06:31:49+00:00",
-        "VersionId": "v1"
+        "UpdateDate": "2021-12-20T14:04:18+00:00",
+        "VersionId": "v2"
     },
     "AmazonOpenSearchServiceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess",
@@ -53420,6 +53696,71 @@ aws_managed_policies_data = """
         "UpdateDate": "2015-02-06T18:41:14+00:00",
         "VersionId": "v1"
     },
+    "AppRunnerNetworkingServiceRolePolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/AppRunnerNetworkingServiceRolePolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2022-01-12T21:02:40+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "ec2:DescribeNetworkInterfaces",
+                        "ec2:DescribeVpcs",
+                        "ec2:DescribeDhcpOptions",
+                        "ec2:DescribeSubnets",
+                        "ec2:DescribeSecurityGroups"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
+                },
+                {
+                    "Action": "ec2:CreateNetworkInterface",
+                    "Condition": {
+                        "ForAllValues:StringEquals": {
+                            "aws:TagKeys": [
+                                "AWSAppRunnerManaged"
+                            ]
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                },
+                {
+                    "Action": "ec2:CreateTags",
+                    "Condition": {
+                        "StringEquals": {
+                            "ec2:CreateAction": "CreateNetworkInterface"
+                        },
+                        "StringLike": {
+                            "aws:RequestTag/AWSAppRunnerManaged": "*"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:ec2:*:*:network-interface/*"
+                },
+                {
+                    "Action": "ec2:DeleteNetworkInterface",
+                    "Condition": {
+                        "Null": {
+                            "ec2:ResourceTag/AWSAppRunnerManaged": "false"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PermissionsBoundaryUsageCount": 0,
+        "PolicyId": "ANPAZKAPJZG4BKUD67OZN",
+        "PolicyName": "AppRunnerNetworkingServiceRolePolicy",
+        "UpdateDate": "2022-01-12T21:02:40+00:00",
+        "VersionId": "v1"
+    },
     "AppRunnerServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AppRunnerServiceRolePolicy",
         "AttachmentCount": 0,
@@ -56426,7 +56767,7 @@ aws_managed_policies_data = """
     },
     "DAXServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/DAXServiceRolePolicy",
-        "AttachmentCount": 0,
+        "AttachmentCount": 1,
         "CreateDate": "2018-03-05T17:51:25+00:00",
         "DefaultVersionId": "v1",
         "Document": {
@@ -56872,6 +57213,184 @@ aws_managed_policies_data = """
         "PolicyName": "DynamoDBReplicationServiceRolePolicy",
         "UpdateDate": "2020-09-09T18:43:04+00:00",
         "VersionId": "v6"
+    },
+    "EC2FastLaunchServiceRolePolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/EC2FastLaunchServiceRolePolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2022-01-10T13:08:21+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "ec2:RunInstances"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:subnet/*",
+                        "arn:aws:ec2:*:*:network-interface/*",
+                        "arn:aws:ec2:*::image/*",
+                        "arn:aws:ec2:*:*:key-pair/*",
+                        "arn:aws:ec2:*:*:security-group/*",
+                        "arn:aws:ec2:*:*:launch-template/*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "ec2:RunInstances"
+                    ],
+                    "Condition": {
+                        "StringEquals": {
+                            "aws:RequestTag/CreatedBy": "EC2 Fast Launch"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:volume/*",
+                        "arn:aws:ec2:*:*:instance/*"
+                    ]
+                },
+                {
+                    "Action": "iam:PassRole",
+                    "Condition": {
+                        "StringEquals": {
+                            "iam:PassedToService": [
+                                "ec2.amazonaws.com",
+                                "ec2.amazonaws.com.cn"
+                            ]
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                },
+                {
+                    "Action": [
+                        "ec2:StopInstances",
+                        "ec2:TerminateInstances"
+                    ],
+                    "Condition": {
+                        "StringEquals": {
+                            "aws:ResourceTag/CreatedBy": "EC2 Fast Launch"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:instance/*"
+                    ]
+                },
+                {
+                    "Action": "ec2:CreateSnapshot",
+                    "Condition": {
+                        "StringEquals": {
+                            "aws:ResourceTag/CreatedBy": "EC2 Fast Launch"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:volume/*"
+                    ]
+                },
+                {
+                    "Action": "ec2:CreateSnapshot",
+                    "Condition": {
+                        "ForAnyValue:StringEquals": {
+                            "aws:TagKeys": [
+                                "CreatedByLaunchTemplateName",
+                                "CreatedByLaunchTemplateId"
+                            ]
+                        },
+                        "StringEquals": {
+                            "aws:RequestTag/CreatedBy": "EC2 Fast Launch"
+                        },
+                        "StringLike": {
+                            "aws:RequestTag/CreatedByLaunchTemplateVersion": "*"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:snapshot/*"
+                    ],
+                    "Sid": "AllowCreateTaggedSnapshot"
+                },
+                {
+                    "Action": "ec2:CreateLaunchTemplate",
+                    "Condition": {
+                        "StringEquals": {
+                            "aws:RequestTag/CreatedBy": "EC2 Fast Launch"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:ec2:*:*:launch-template/*"
+                },
+                {
+                    "Action": "ec2:CreateTags",
+                    "Condition": {
+                        "StringEquals": {
+                            "ec2:CreateAction": [
+                                "CreateSnapshot",
+                                "RunInstances",
+                                "CreateLaunchTemplate"
+                            ]
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:volume/*",
+                        "arn:aws:ec2:*:*:instance/*",
+                        "arn:aws:ec2:*:*:snapshot/*",
+                        "arn:aws:ec2:*:*:launch-template/*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "ec2:DeleteSnapshot"
+                    ],
+                    "Condition": {
+                        "StringEquals": {
+                            "aws:ResourceTag/CreatedBy": "EC2 Fast Launch"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                        "arn:aws:ec2:*:*:snapshot/*"
+                    ]
+                },
+                {
+                    "Action": [
+                        "ec2:DescribeImages",
+                        "ec2:DescribeSnapshots",
+                        "ec2:DescribeSubnets",
+                        "ec2:DescribeInstanceAttribute",
+                        "ec2:DescribeInstanceStatus",
+                        "ec2:DescribeInstances",
+                        "ec2:DescribeInstanceTypeOfferings",
+                        "ec2:DescribeLaunchTemplateVersions",
+                        "ec2:DescribeLaunchTemplates"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
+                },
+                {
+                    "Action": "cloudwatch:PutMetricData",
+                    "Condition": {
+                        "StringEquals": {
+                            "cloudwatch:namespace": "AWS/EC2"
+                        }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PermissionsBoundaryUsageCount": 0,
+        "PolicyId": "ANPAZKAPJZG4PBILMNSY7",
+        "PolicyName": "EC2FastLaunchServiceRolePolicy",
+        "UpdateDate": "2022-01-10T13:08:21+00:00",
+        "VersionId": "v1"
     },
     "EC2FleetTimeShiftableServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/EC2FleetTimeShiftableServiceRolePolicy",
@@ -57479,7 +57998,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/FMSServiceRolePolicy",
         "AttachmentCount": 0,
         "CreateDate": "2018-03-28T23:01:12+00:00",
-        "DefaultVersionId": "v21",
+        "DefaultVersionId": "v22",
         "Document": {
             "Statement": [
                 {
@@ -57499,7 +58018,9 @@ aws_managed_policies_data = """
                         "waf-regional:DisassociateWebACL",
                         "elasticloadbalancing:SetWebACL",
                         "apigateway:SetWebACL",
-                        "elasticloadbalancing:SetSecurityGroups"
+                        "elasticloadbalancing:SetSecurityGroups",
+                        "waf:ListTagsForResource",
+                        "waf-regional:ListTagsForResource"
                     ],
                     "Effect": "Allow",
                     "Resource": [
@@ -57529,7 +58050,8 @@ aws_managed_policies_data = """
                         "waf:CreateWebACL",
                         "waf-regional:CreateWebACL",
                         "waf:GetChangeToken",
-                        "waf-regional:GetChangeToken"
+                        "waf-regional:GetChangeToken",
+                        "waf-regional:GetWebACLForResource"
                     ],
                     "Effect": "Allow",
                     "Resource": [
@@ -57643,7 +58165,10 @@ aws_managed_policies_data = """
                         "shield:DescribeEmergencyContactSettings",
                         "shield:UpdateEmergencyContactSettings",
                         "elasticloadbalancing:DescribeLoadBalancers",
-                        "ec2:DescribeAddresses"
+                        "ec2:DescribeAddresses",
+                        "shield:EnableApplicationLayerAutomaticResponse",
+                        "shield:DisableApplicationLayerAutomaticResponse",
+                        "shield:UpdateApplicationLayerAutomaticResponse"
                     ],
                     "Effect": "Allow",
                     "Resource": "*"
@@ -57886,7 +58411,8 @@ aws_managed_policies_data = """
                     "Condition": {
                         "StringEquals": {
                             "iam:AWSServiceName": [
-                                "network-firewall.amazonaws.com"
+                                "network-firewall.amazonaws.com",
+                                "shield.amazonaws.com"
                             ]
                         }
                     },
@@ -58011,8 +58537,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAI62NTGYJB446ACUEA",
         "PolicyName": "FMSServiceRolePolicy",
-        "UpdateDate": "2021-11-18T19:05:49+00:00",
-        "VersionId": "v21"
+        "UpdateDate": "2022-01-06T21:30:04+00:00",
+        "VersionId": "v22"
     },
     "FSxDeleteServiceLinkedRoleAccess": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/FSxDeleteServiceLinkedRoleAccess",
@@ -58792,7 +59318,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/LightsailExportAccess",
         "AttachmentCount": 0,
         "CreateDate": "2018-09-28T16:35:54+00:00",
-        "DefaultVersionId": "v1",
+        "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
                 {
@@ -58812,6 +59338,13 @@ aws_managed_policies_data = """
                     ],
                     "Effect": "Allow",
                     "Resource": "*"
+                },
+                {
+                    "Action": [
+                        "s3:GetAccountPublicAccessBlock"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*"
                 }
             ],
             "Version": "2012-10-17"
@@ -58822,8 +59355,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAJ4LZGPQLZWMVR4WMQ",
         "PolicyName": "LightsailExportAccess",
-        "UpdateDate": "2018-09-28T16:35:54+00:00",
-        "VersionId": "v1"
+        "UpdateDate": "2022-01-15T01:45:33+00:00",
+        "VersionId": "v2"
     },
     "MediaPackageServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/MediaPackageServiceRolePolicy",
@@ -63167,7 +63700,7 @@ aws_managed_policies_data = """
         "Arn": "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess",
         "AttachmentCount": 0,
         "CreateDate": "2016-11-10T17:20:15+00:00",
-        "DefaultVersionId": "v11",
+        "DefaultVersionId": "v12",
         "Document": {
             "Statement": [
                 {
@@ -63272,6 +63805,14 @@ aws_managed_policies_data = """
                         "ec2:DescribeVolume*",
                         "ec2:DescribeVpc*",
                         "ec2:DescribeVpnGateways",
+                        "ec2:DescribeCarrierGateways",
+                        "ec2:DescribeLocalGateways",
+                        "ec2:DescribeLocalGatewayVirtualInterfaces",
+                        "ec2:DescribeLocalGatewayVirtualInterfaceGroups",
+                        "ec2:DescribeLocalGatewayRouteTables",
+                        "ec2:DescribeLocalGatewayRouteTableVirtualInterfaceGroupAssociations",
+                        "ec2:DescribeLocalGatewayRouteTableVpcAssociations",
+                        "ec2:SearchLocalGatewayRoutes",
                         "ecr:DescribeRepositories",
                         "ecr:ListImages",
                         "ecs:List*",
@@ -63396,8 +63937,8 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAID22R6XPJATWOFDK6",
         "PolicyName": "ViewOnlyAccess",
-        "UpdateDate": "2021-06-11T19:27:03+00:00",
-        "VersionId": "v11"
+        "UpdateDate": "2021-12-21T02:53:03+00:00",
+        "VersionId": "v12"
     },
     "WAFLoggingServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/WAFLoggingServiceRolePolicy",

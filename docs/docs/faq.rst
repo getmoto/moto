@@ -20,7 +20,7 @@ Moto has a dependency on the pip-module `cryptography`. As of Cryptography >= 3.
 Most OS/platforms will support the installation of Rust, but if you're getting any errors related to this, see the cryptography documentation for more information: https://cryptography.io/en/latest/installation/#rust
 
 Can I mock the default AWS region?
-#########################
+###################################
 
 By default, Moto only allows valid regions, supporting the same regions that AWS supports.
 

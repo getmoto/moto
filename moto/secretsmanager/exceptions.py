@@ -8,15 +8,13 @@ class SecretsManagerClientError(JsonRESTError):
 class ResourceNotFoundException(SecretsManagerClientError):
     def __init__(self, message):
         self.code = 404
-        super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException", message
-        )
+        super().__init__("ResourceNotFoundException", message)
 
 
 class SecretNotFoundException(SecretsManagerClientError):
     def __init__(self):
         self.code = 404
-        super(SecretNotFoundException, self).__init__(
+        super().__init__(
             "ResourceNotFoundException",
             message="Secrets Manager can't find the specified secret.",
         )
@@ -25,7 +23,7 @@ class SecretNotFoundException(SecretsManagerClientError):
 class SecretHasNoValueException(SecretsManagerClientError):
     def __init__(self, version_stage):
         self.code = 404
-        super(SecretHasNoValueException, self).__init__(
+        super().__init__(
             "ResourceNotFoundException",
             message="Secrets Manager can't find the specified secret "
             "value for staging label: {}".format(version_stage),
@@ -34,30 +32,24 @@ class SecretHasNoValueException(SecretsManagerClientError):
 
 class ClientError(SecretsManagerClientError):
     def __init__(self, message):
-        super(ClientError, self).__init__("InvalidParameterValue", message)
+        super().__init__("InvalidParameterValue", message)
 
 
 class InvalidParameterException(SecretsManagerClientError):
     def __init__(self, message):
-        super(InvalidParameterException, self).__init__(
-            "InvalidParameterException", message
-        )
+        super().__init__("InvalidParameterException", message)
 
 
 class ResourceExistsException(SecretsManagerClientError):
     def __init__(self, message):
-        super(ResourceExistsException, self).__init__(
-            "ResourceExistsException", message
-        )
+        super().__init__("ResourceExistsException", message)
 
 
 class InvalidRequestException(SecretsManagerClientError):
     def __init__(self, message):
-        super(InvalidRequestException, self).__init__(
-            "InvalidRequestException", message
-        )
+        super().__init__("InvalidRequestException", message)
 
 
 class ValidationException(SecretsManagerClientError):
     def __init__(self, message):
-        super(ValidationException, self).__init__("ValidationException", message)
+        super().__init__("ValidationException", message)

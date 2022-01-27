@@ -59,7 +59,7 @@ class RedshiftResponse(BaseResponse):
             return xml
 
     def call_action(self):
-        status, headers, body = super(RedshiftResponse, self).call_action()
+        status, headers, body = super().call_action()
         if status >= 400 and not self.request_json:
             body = convert_json_error_to_xml(body)
         return status, headers, body

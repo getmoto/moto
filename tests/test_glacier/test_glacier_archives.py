@@ -1,24 +1,9 @@
-from tempfile import NamedTemporaryFile
 import boto3
-import boto.glacier
+import os
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
-from moto import mock_glacier_deprecated, mock_glacier
-
-
-@mock_glacier_deprecated
-def test_create_and_delete_archive():
-    the_file = NamedTemporaryFile(delete=False)
-    the_file.write(b"some stuff")
-    the_file.close()
-
-    conn = boto.glacier.connect_to_region("us-west-2")
-    vault = conn.create_vault("my_vault")
-
-    archive_id = vault.upload_archive(the_file.name)
-
-    vault.delete_archive(archive_id)
+from moto import mock_glacier
 
 
 @mock_glacier
@@ -37,6 +22,21 @@ def test_upload_archive():
 
     res.should.have.key("checksum")
     res.should.have.key("archiveId")
+
+
+@mock_glacier
+def test_upload_zip_archive():
+    client = boto3.client("glacier", region_name="us-west-2")
+    client.create_vault(vaultName="asdf")
+
+    path = "test.gz"
+    with open(os.path.join(os.path.dirname(__file__), path), mode="rb") as archive:
+        content = archive.read()
+
+        res = client.upload_archive(vaultName="asdf", body=content)
+
+        res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+        res.should.have.key("checksum")
 
 
 @mock_glacier

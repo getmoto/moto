@@ -4936,6 +4936,10 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "m6i.metal",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "m6i.xlarge",
   "Location": "use1-az4"
  },
@@ -8133,6 +8137,10 @@
  },
  {
   "InstanceType": "m6i.large",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "m6i.metal",
   "Location": "use1-az6"
  },
  {

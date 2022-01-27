@@ -312,7 +312,7 @@ class ManagedNodegroup:
 
 class EKSBackend(BaseBackend):
     def __init__(self, region_name):
-        super(EKSBackend, self).__init__()
+        super().__init__()
         self.clusters = dict()
         self.cluster_count = 0
         self.region_name = region_name

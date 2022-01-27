@@ -1,15 +1,12 @@
 import pytest
 import datetime
 
-import boto
-import boto.ec2
 import boto3
-from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 import pytz
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto import mock_ec2, settings
 from moto.ec2.models import ec2_backends
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
@@ -155,30 +152,6 @@ def test_request_spot_instances_default_arguments():
     request.shouldnt.contain("SubnetId")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_cancel_spot_instance_request():
-    conn = boto.connect_ec2()
-
-    conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-
-    requests = conn.get_all_spot_instance_requests()
-    requests.should.have.length_of(1)
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.cancel_spot_instance_requests([requests[0].id], dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CancelSpotInstance operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.cancel_spot_instance_requests([requests[0].id])
-
-    requests = conn.get_all_spot_instance_requests()
-    requests.should.have.length_of(0)
-
-
 @mock_ec2
 def test_cancel_spot_instance_request_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
@@ -219,32 +192,6 @@ def test_cancel_spot_instance_request_boto3():
     requests.should.have.length_of(0)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_request_spot_instances_fulfilled():
-    """
-    Test that moto correctly fullfills a spot instance request
-    """
-    conn = boto.ec2.connect_to_region("us-east-1")
-
-    request = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-
-    requests = conn.get_all_spot_instance_requests()
-    requests.should.have.length_of(1)
-    request = requests[0]
-
-    request.state.should.equal("open")
-
-    if not settings.TEST_SERVER_MODE:
-        ec2_backends["us-east-1"].spot_instance_requests[request.id].state = "active"
-
-        requests = conn.get_all_spot_instance_requests()
-        requests.should.have.length_of(1)
-        request = requests[0]
-
-        request.state.should.equal("active")
-
-
 @mock_ec2
 def test_request_spot_instances_fulfilled_boto3():
     """
@@ -277,26 +224,6 @@ def test_request_spot_instances_fulfilled_boto3():
         request["State"].should.equal("active")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_tag_spot_instance_request():
-    """
-    Test that moto correctly tags a spot instance request
-    """
-    conn = boto.connect_ec2()
-
-    request = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-    request[0].add_tag("tag1", "value1")
-    request[0].add_tag("tag2", "value2")
-
-    requests = conn.get_all_spot_instance_requests()
-    requests.should.have.length_of(1)
-    request = requests[0]
-
-    tag_dict = dict(request.tags)
-    tag_dict.should.equal({"tag1": "value1", "tag2": "value2"})
-
-
 @mock_ec2
 def test_tag_spot_instance_request_boto3():
     """
@@ -322,37 +249,6 @@ def test_tag_spot_instance_request_boto3():
     request["Tags"].should.have.length_of(2)
     request["Tags"].should.contain({"Key": "tag1", "Value": "value1"})
     request["Tags"].should.contain({"Key": "tag2", "Value": "value2"})
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_all_spot_instance_requests_filtering():
-    """
-    Test that moto correctly filters spot instance requests
-    """
-    conn = boto.connect_ec2()
-
-    request1 = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-    request2 = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-    conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-    request1[0].add_tag("tag1", "value1")
-    request1[0].add_tag("tag2", "value2")
-    request2[0].add_tag("tag1", "value1")
-    request2[0].add_tag("tag2", "wrong")
-
-    requests = conn.get_all_spot_instance_requests(filters={"state": "active"})
-    requests.should.have.length_of(0)
-
-    requests = conn.get_all_spot_instance_requests(filters={"state": "open"})
-    requests.should.have.length_of(3)
-
-    requests = conn.get_all_spot_instance_requests(filters={"tag:tag1": "value1"})
-    requests.should.have.length_of(2)
-
-    requests = conn.get_all_spot_instance_requests(
-        filters={"tag:tag1": "value1", "tag:tag2": "value2"}
-    )
-    requests.should.have.length_of(1)
 
 
 @mock_ec2
@@ -409,22 +305,6 @@ def test_get_all_spot_instance_requests_filtering_boto3():
         ]
     )["SpotInstanceRequests"]
     requests.should.have.length_of(1)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_request_spot_instances_setting_instance_id():
-    conn = boto.ec2.connect_to_region("us-east-1")
-    request = conn.request_spot_instances(price=0.5, image_id=EXAMPLE_AMI_ID)
-
-    if not settings.TEST_SERVER_MODE:
-        req = ec2_backends["us-east-1"].spot_instance_requests[request[0].id]
-        req.state = "active"
-        req.instance_id = "i-12345678"
-
-        request = conn.get_all_spot_instance_requests()[0]
-        assert request.state == "active"
-        assert request.instance_id == "i-12345678"
 
 
 @mock_ec2

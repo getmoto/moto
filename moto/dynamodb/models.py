@@ -174,13 +174,9 @@ class Table(CloudFormationModel):
         return Table(**spec)
 
     def __len__(self):
-        count = 0
-        for key, value in self.items.items():
-            if self.has_range_key:
-                count += len(value)
-            else:
-                count += 1
-        return count
+        return sum(
+            [(len(value) if self.has_range_key else 1) for value in self.items.values()]
+        )
 
     def __nonzero__(self):
         return True

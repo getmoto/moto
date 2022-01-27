@@ -341,7 +341,7 @@ class NestableBinExpressionParser(ExpressionParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(NestableBinExpressionParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.target_nodes = deque()
 
     def _parse_target_clause(self, factory_class):
@@ -456,7 +456,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
         pass
 
     def __init__(self, *args, **kwargs):
-        super(UpdateExpressionParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         NestableExpressionParserMixin.__init__(self)
 
     @classmethod
@@ -520,7 +520,7 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
     """
 
     def __init__(self, *args, **kwargs):
-        super(UpdateExpressionActionsParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         NestableExpressionParserMixin.__init__(self)
 
     @classmethod
@@ -626,7 +626,7 @@ class UpdateExpressionPathParser(ExpressionParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(UpdateExpressionPathParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.path_nodes = []
 
     @classmethod

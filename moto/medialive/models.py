@@ -114,7 +114,7 @@ class Channel(BaseModel):
 
 class MediaLiveBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaLiveBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._channels = OrderedDict()
         self._inputs = OrderedDict()
@@ -229,7 +229,7 @@ class MediaLiveBackend(BaseBackend):
         role_arn,
         sources,
         tags,
-        type,
+        input_type,
         vpc,
     ):
         input_id = uuid4().hex
@@ -245,7 +245,7 @@ class MediaLiveBackend(BaseBackend):
             role_arn=role_arn,
             sources=sources,
             tags=tags,
-            input_type=type,
+            input_type=input_type,
             state="CREATING",
         )
         self._inputs[input_id] = a_input

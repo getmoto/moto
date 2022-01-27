@@ -47,7 +47,7 @@ def main():
     dest = os.path.join(root_dir, "moto/ec2/resources/instance_types.json")
     print("Writing data to {0}".format(dest))
     with open(dest, "w") as open_file:
-        json.dump(result, open_file, sort_keys=True)
+        json.dump(result, open_file, sort_keys=True, indent=1)
 
 
 if __name__ == "__main__":

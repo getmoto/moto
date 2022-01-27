@@ -315,7 +315,7 @@ class EFSBackend(BaseBackend):
     """
 
     def __init__(self, region_name=None):
-        super(EFSBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.creation_tokens = set()
         self.file_systems_by_id = {}

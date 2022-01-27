@@ -24,10 +24,9 @@ def test_put_metric_data_no_dimensions():
     )
 
     metrics = conn.list_metrics()["Metrics"]
-    metrics.should.have.length_of(1)
-    metric = metrics[0]
-    metric["Namespace"].should.equal("tester")
-    metric["MetricName"].should.equal("metric")
+    metrics.should.contain(
+        {"Namespace": "tester", "MetricName": "metric", "Dimensions": []}
+    )
 
 
 @mock_cloudwatch
@@ -75,10 +74,9 @@ def test_put_metric_data_with_statistics():
     )
 
     metrics = conn.list_metrics()["Metrics"]
-    metrics.should.have.length_of(1)
-    metric = metrics[0]
-    metric["Namespace"].should.equal("tester")
-    metric["MetricName"].should.equal("statmetric")
+    metrics.should.contain(
+        {"Namespace": "tester", "MetricName": "statmetric", "Dimensions": []}
+    )
     # TODO: test statistics - https://github.com/spulec/moto/issues/1615
 
 
@@ -105,6 +103,31 @@ def test_get_metric_statistics():
     datapoint = stats["Datapoints"][0]
     datapoint["SampleCount"].should.equal(1.0)
     datapoint["Sum"].should.equal(1.5)
+
+
+@mock_cloudwatch
+def test_get_metric_invalid_parameter_combination():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+    utc_now = datetime.now(tz=pytz.utc)
+
+    conn.put_metric_data(
+        Namespace="tester",
+        MetricData=[dict(MetricName="metric", Value=1.5, Timestamp=utc_now)],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        # make request without both statistics or extended statistics parameters
+        conn.get_metric_statistics(
+            Namespace="tester",
+            MetricName="metric",
+            StartTime=utc_now - timedelta(seconds=60),
+            EndTime=utc_now + timedelta(seconds=60),
+            Period=60,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterCombination")
+    err["Message"].should.equal("Must specify either Statistics or ExtendedStatistics")
 
 
 @mock_cloudwatch
@@ -170,7 +193,6 @@ def test_get_metric_statistics_dimensions():
             Statistics=["Average", "Sum"],
             **params[0],
         )
-        print(stats)
         stats["Datapoints"].should.have.length_of(1)
         datapoint = stats["Datapoints"][0]
         datapoint["Sum"].should.equal(params[1])
@@ -319,14 +341,14 @@ def test_list_metrics():
     create_metrics(cloudwatch, namespace="list_test_2/", metrics=4, data_points=2)
     # Verify we can retrieve everything
     res = cloudwatch.list_metrics()["Metrics"]
-    len(res).should.equal(16)  # 2 namespaces * 4 metrics * 2 data points
+    assert len(res) >= 16  # 2 namespaces * 4 metrics * 2 data points
     # Verify we can filter by namespace/metric name
     res = cloudwatch.list_metrics(Namespace="list_test_1/")["Metrics"]
-    len(res).should.equal(8)  # 1 namespace * 4 metrics * 2 data points
+    res.should.have.length_of(8)  # 1 namespace * 4 metrics * 2 data points
     res = cloudwatch.list_metrics(Namespace="list_test_1/", MetricName="metric1")[
         "Metrics"
     ]
-    len(res).should.equal(2)  # 1 namespace * 1 metrics * 2 data points
+    res.should.have.length_of(2)  # 1 namespace * 1 metrics * 2 data points
     # Verify format
     res.should.equal(
         [
@@ -353,29 +375,34 @@ def test_list_metrics_paginated():
     # Add a boatload of metrics
     create_metrics(cloudwatch, namespace="test", metrics=100, data_points=1)
     # Verify that a single page is returned until we've reached 500
-    first_page = cloudwatch.list_metrics()
+    first_page = cloudwatch.list_metrics(Namespace="test")
     first_page["Metrics"].shouldnt.be.empty
+
     len(first_page["Metrics"]).should.equal(100)
     create_metrics(cloudwatch, namespace="test", metrics=200, data_points=2)
-    first_page = cloudwatch.list_metrics()
+    first_page = cloudwatch.list_metrics(Namespace="test")
     len(first_page["Metrics"]).should.equal(500)
     first_page.shouldnt.contain("NextToken")
     # Verify that adding more data points results in pagination
     create_metrics(cloudwatch, namespace="test", metrics=60, data_points=10)
-    first_page = cloudwatch.list_metrics()
+    first_page = cloudwatch.list_metrics(Namespace="test")
     len(first_page["Metrics"]).should.equal(500)
     first_page["NextToken"].shouldnt.be.empty
     # Retrieve second page - and verify there's more where that came from
-    second_page = cloudwatch.list_metrics(NextToken=first_page["NextToken"])
+    second_page = cloudwatch.list_metrics(
+        Namespace="test", NextToken=first_page["NextToken"]
+    )
     len(second_page["Metrics"]).should.equal(500)
     second_page.should.contain("NextToken")
     # Last page should only have the last 100 results, and no NextToken (indicating that pagination is finished)
-    third_page = cloudwatch.list_metrics(NextToken=second_page["NextToken"])
+    third_page = cloudwatch.list_metrics(
+        Namespace="test", NextToken=second_page["NextToken"]
+    )
     len(third_page["Metrics"]).should.equal(100)
     third_page.shouldnt.contain("NextToken")
     # Verify that we can't reuse an existing token
     with pytest.raises(ClientError) as e:
-        cloudwatch.list_metrics(NextToken=first_page["NextToken"])
+        cloudwatch.list_metrics(Namespace="test", NextToken=first_page["NextToken"])
     e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
@@ -398,6 +425,53 @@ def test_list_metrics_without_value():
     results[0]["Namespace"].should.equals("MyNamespace")
     results[0]["MetricName"].should.equal("MyMetric")
     results[0]["Dimensions"].should.equal([{"Name": "D1", "Value": "V1"}])
+
+
+@mock_cloudwatch
+def test_list_metrics_with_same_dimensions_different_metric_name():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # create metrics with same namespace and dimensions but different metric names
+    cloudwatch.put_metric_data(
+        Namespace="unique/",
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Dimensions": [{"Name": "D1", "Value": "V1"}],
+                "Unit": "Seconds",
+            }
+        ],
+    )
+
+    cloudwatch.put_metric_data(
+        Namespace="unique/",
+        MetricData=[
+            {
+                "MetricName": "metric2",
+                "Dimensions": [{"Name": "D1", "Value": "V1"}],
+                "Unit": "Seconds",
+            }
+        ],
+    )
+
+    results = cloudwatch.list_metrics(Namespace="unique/")["Metrics"]
+    results.should.have.length_of(2)
+
+    # duplicating existing metric
+    cloudwatch.put_metric_data(
+        Namespace="unique/",
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Dimensions": [{"Name": "D1", "Value": "V1"}],
+                "Unit": "Seconds",
+            }
+        ],
+    )
+
+    # asserting only unique values are returned
+    results = cloudwatch.list_metrics(Namespace="unique/")["Metrics"]
+    results.should.have.length_of(2)
 
 
 def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):

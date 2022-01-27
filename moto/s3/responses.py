@@ -3,12 +3,10 @@ import os
 import re
 from typing import List, Union
 
-from botocore.awsrequest import AWSPreparedRequest
-
+from moto import settings
 from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
 from urllib.parse import (
     parse_qs,
-    parse_qsl,
     urlparse,
     unquote,
     urlencode,
@@ -17,8 +15,6 @@ from urllib.parse import (
 
 import xmltodict
 
-from moto import settings
-from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
 from moto.core import ACCOUNT_ID
@@ -169,7 +165,7 @@ def is_delete_keys(request, path, bucket_name):
 
 class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def __init__(self, backend):
-        super(ResponseObject, self).__init__()
+        super().__init__()
         self.backend = backend
         self.method = ""
         self.path = ""
@@ -263,7 +259,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Depending on which calling format the client is using, we don't know
         # if this is a bucket or key request so we have to check
         if self.subdomain_based_buckets(request):
-            return self.key_or_control_response(request, full_url, headers)
+            return self.key_response(request, full_url, headers)
         else:
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
@@ -972,13 +968,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._authenticate_and_authorize_s3_action()
 
         # POST to bucket-url should create file from form
-        if hasattr(request, "form"):
-            # Not HTTPretty
-            form = request.form
-        else:
-            # HTTPretty, build new form object
-            body = body.decode()
-            form = dict(parse_qsl(body))
+        form = request.form
 
         key = form["key"]
         if "file" in form:
@@ -1028,15 +1018,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _get_path(request):
-        if isinstance(request, HTTPrettyRequest):
-            path = request.path
-        else:
-            path = (
-                request.full_path
-                if hasattr(request, "full_path")
-                else path_url(request.url)
-            )
-        return path
+        return (
+            request.full_path
+            if hasattr(request, "full_path")
+            else path_url(request.url)
+        )
 
     def _bucket_response_delete_keys(self, request, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
@@ -1104,7 +1090,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return bytes(new_body)
 
     @amzn_request_id
-    def key_or_control_response(self, request, full_url, headers):
+    def key_response(self, request, full_url, headers):
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
@@ -1115,11 +1101,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         response_headers = {}
 
         try:
-            # Is this an S3 control response?
-            if isinstance(request, AWSPreparedRequest) and "s3-control" in request.url:
-                response = self._control_response(request, full_url, headers)
-            else:
-                response = self._key_response(request, full_url, self.headers)
+            response = self._key_response(request, full_url, self.headers)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
@@ -1141,94 +1123,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             except S3ClientError as s3error:
                 return s3error.code, {}, s3error.description
         return status_code, response_headers, response_content
-
-    def _control_response(self, request, full_url, headers):
-        parsed_url = urlparse(full_url)
-        query = parse_qs(parsed_url.query, keep_blank_values=True)
-        method = request.method
-
-        if hasattr(request, "body"):
-            # Boto
-            body = request.body
-            if hasattr(body, "read"):
-                body = body.read()
-        else:
-            # Flask server
-            body = request.data
-        if body is None:
-            body = b""
-
-        if method == "GET":
-            return self._control_response_get(request, query, headers)
-        elif method == "PUT":
-            return self._control_response_put(request, body, query, headers)
-        elif method == "DELETE":
-            return self._control_response_delete(request, query, headers)
-        else:
-            raise NotImplementedError(
-                "Method {0} has not been implemented in the S3 backend yet".format(
-                    method
-                )
-            )
-
-    def _control_response_get(self, request, query, headers):
-        action = self.path.split("?")[0].split("/")[
-            -1
-        ]  # Gets the action out of the URL sans query params.
-        self._set_action("CONTROL", "GET", action)
-        self._authenticate_and_authorize_s3_action()
-
-        response_headers = {}
-        if "publicAccessBlock" in action:
-            public_block_config = self.backend.get_account_public_access_block(
-                headers["x-amz-account-id"]
-            )
-            template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
-            return (
-                200,
-                response_headers,
-                template.render(public_block_config=public_block_config),
-            )
-
-        raise NotImplementedError(
-            "Method {0} has not been implemented in the S3 backend yet".format(action)
-        )
-
-    def _control_response_put(self, request, body, query, headers):
-        action = self.path.split("?")[0].split("/")[
-            -1
-        ]  # Gets the action out of the URL sans query params.
-        self._set_action("CONTROL", "PUT", action)
-        self._authenticate_and_authorize_s3_action()
-
-        response_headers = {}
-        if "publicAccessBlock" in action:
-            pab_config = self._parse_pab_config(body)
-            self.backend.put_account_public_access_block(
-                headers["x-amz-account-id"],
-                pab_config["PublicAccessBlockConfiguration"],
-            )
-            return 200, response_headers, ""
-
-        raise NotImplementedError(
-            "Method {0} has not been implemented in the S3 backend yet".format(action)
-        )
-
-    def _control_response_delete(self, request, query, headers):
-        action = self.path.split("?")[0].split("/")[
-            -1
-        ]  # Gets the action out of the URL sans query params.
-        self._set_action("CONTROL", "DELETE", action)
-        self._authenticate_and_authorize_s3_action()
-
-        response_headers = {}
-        if "publicAccessBlock" in action:
-            self.backend.delete_account_public_access_block(headers["x-amz-account-id"])
-            return 200, response_headers, ""
-
-        raise NotImplementedError(
-            "Method {0} has not been implemented in the S3 backend yet".format(action)
-        )
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
@@ -1347,7 +1241,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 max_parts=max_parts,
             )
             next_part_number_marker = parts[-1].name if parts else 0
-            is_truncated = parts and self.backend.is_truncated(
+            is_truncated = len(parts) != 0 and self.backend.is_truncated(
                 bucket_name, upload_id, next_part_number_marker
             )
 
@@ -1377,6 +1271,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             raise MissingKey(key=key_name)
         elif key is None:
             raise MissingVersion()
+
+        if key.version_id:
+            response_headers["x-amz-version-id"] = key.version_id
 
         if key.storage_class == "GLACIER":
             raise InvalidObjectState(storage_class="GLACIER")
@@ -1471,6 +1368,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         kms_key_id = request.headers.get(
             "x-amz-server-side-encryption-aws-kms-key-id", None
         )
+
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None
         )
@@ -1543,13 +1441,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if isinstance(copy_source, bytes):
                 copy_source = copy_source.decode("utf-8")
             copy_source_parsed = urlparse(copy_source)
-            src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+            src_bucket, src_key = (
+                unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
+            )
             src_version_id = parse_qs(copy_source_parsed.query).get(
                 "versionId", [None]
             )[0]
 
             key = self.backend.get_object(
-                src_bucket, src_key, version_id=src_version_id
+                src_bucket, src_key, version_id=src_version_id, key_is_clean=True
             )
 
             if key is not None:
@@ -1561,16 +1461,22 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     ):
                         raise ObjectNotInActiveTierError(key)
 
+                bucket_key_enabled = (
+                    request.headers.get(
+                        "x-amz-server-side-encryption-bucket-key-enabled", ""
+                    ).lower()
+                    == "true"
+                )
+
                 self.backend.copy_object(
-                    src_bucket,
-                    src_key,
+                    key,
                     bucket_name,
                     key_name,
                     storage=storage_class,
                     acl=acl,
-                    src_version_id=src_version_id,
                     kms_key_id=kms_key_id,
                     encryption=encryption,
+                    bucket_key_enabled=bucket_key_enabled,
                 )
             else:
                 raise MissingKey(key=src_key)
@@ -1587,39 +1493,29 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)
-        streaming_request = hasattr(request, "streaming") and request.streaming
-        closing_connection = headers.get("connection") == "close"
-        if closing_connection and streaming_request:
-            # Closing the connection of a streaming request. No more data
-            new_key = self.backend.get_object(bucket_name, key_name)
-        elif streaming_request:
-            # Streaming request, more data
-            new_key = self.backend.append_to_key(bucket_name, key_name, body)
-        else:
 
-            # Initial data
-            new_key = self.backend.put_object(
-                bucket_name,
-                key_name,
-                body,
-                storage=storage_class,
-                encryption=encryption,
-                kms_key_id=kms_key_id,
-                bucket_key_enabled=bucket_key_enabled,
-                lock_mode=lock_mode,
-                lock_legal_status=legal_hold,
-                lock_until=lock_until,
-            )
+        # Initial data
+        new_key = self.backend.put_object(
+            bucket_name,
+            key_name,
+            body,
+            storage=storage_class,
+            encryption=encryption,
+            kms_key_id=kms_key_id,
+            bucket_key_enabled=bucket_key_enabled,
+            lock_mode=lock_mode,
+            lock_legal_status=legal_hold,
+            lock_until=lock_until,
+        )
 
-            request.streaming = True
-            metadata = metadata_from_headers(request.headers)
-            metadata.update(metadata_from_headers(query))
-            new_key.set_metadata(metadata)
-            new_key.set_acl(acl)
-            new_key.website_redirect_location = request.headers.get(
-                "x-amz-website-redirect-location"
-            )
-            self.backend.set_key_tags(new_key, tagging)
+        metadata = metadata_from_headers(request.headers)
+        metadata.update(metadata_from_headers(query))
+        new_key.set_metadata(metadata)
+        new_key.set_acl(acl)
+        new_key.website_redirect_location = request.headers.get(
+            "x-amz-website-redirect-location"
+        )
+        self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
         return 200, response_headers, ""
@@ -1742,7 +1638,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 FakeGrant(
                     [
                         FakeGrantee(
-                            id=grant["Grantee"].get("ID", ""),
+                            grantee_id=grant["Grantee"].get("ID", ""),
                             display_name=grant["Grantee"].get("DisplayName", ""),
                             uri=grant["Grantee"].get("URI", ""),
                         )
@@ -1776,7 +1672,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     '([^=]+)="?([^"]+)"?', key_and_value.strip()
                 ).groups()
                 if key.lower() == "id":
-                    grantees.append(FakeGrantee(id=value))
+                    grantees.append(FakeGrantee(grantee_id=value))
                 else:
                     grantees.append(FakeGrantee(uri=value))
             grants.append(FakeGrant(grantees, [permission]))
@@ -2012,7 +1908,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
             return 204, {}, template.render(version_id=version_id)
         bypass = headers.get("X-Amz-Bypass-Governance-Retention")
-        success, response_meta = self.backend.delete_object(
+        _, response_meta = self.backend.delete_object(
             bucket_name, key_name, version_id=version_id, bypass=bypass
         )
         response_headers = {}

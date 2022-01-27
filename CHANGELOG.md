@@ -1,6 +1,120 @@
 Moto Changelog
 ===================
 
+3.0.1
+-----
+
+    * New Services:
+        * MQ:
+            * create_broker()
+            * create_configuration()
+            * create_tags()
+            * create_user()
+            * delete_broker()
+            * delete_tags()
+            * delete_user()
+            * describe_broker()
+            * describe_configuration()
+            * describe_configuration_revision()
+            * describe_user()
+            * list_brokers()
+            * list_configurations()
+            * list_tags()
+            * list_users()
+            * reboot_broker()
+            * update_broker()
+            * update_configuration()
+            * update_user()
+
+    * New Methods:
+        * EC2:
+            * create_snapshots()
+        * Logs:
+            * create_export_task()
+        * Organizations:
+            * remove_account_from_organization()
+
+    * Miscellaneous:
+        * DynamoDB: transact_write_items() now throws a MultipleTransactionsException when appropriate
+        * DynamoDB: Now throws the appropriate InvalidConditionExpression when a ConditionExpression contains reserved keywords
+        * Organizations: delete_organization() now validates whether all accounts are deleted
+        * SecretsManager: The attributes CreatedDate and LastChangedDate are now returned for secrets
+        * SNS: Simplistic email validation is now in place before sending emails
+
+3.0.0
+-----
+    This is a major release, and as such contains some breaking changes.
+
+    * Removed:
+        - All deprecated decorators have been removed
+
+    * Changes:
+        - The behaviour of the class-decorator has been reworked - the state is now reset before every test-method.
+        - ECS ARN's are now using the long format.
+
+    * Rebranded:
+        - The new mock_s3control-decorator has been introduced. The existing S3control methods (get/put/delete_public_access_block) are no longer available via mock_s3, only via mock_s3control.
+
+    * General:
+        - Python 3.5 support has been removed
+        - Python 3.10 is now supported
+
+
+2.3.2
+-----
+    General:
+        * Compatible with the latest `responses`-release (0.17.0)
+
+    New Services:
+        * Appsync:
+            * create_api_key()
+            * create_graphql_api()
+            * delete_api_key()
+            * delete_graphql_api()
+            * get_graphql_api()
+            * get_schema_creation_status()
+            * get_type()
+            * list_api_keys()
+            * list_graphql_apis()
+            * list_tags_for_resource()
+            * start_schema_creation()
+            * tag_resource()
+            * untag_resource()
+            * update_api_key()
+            * update_graphql_api()
+
+    Miscellaneous:
+        * AWSLambda:invoke() now throws an error when trying to return an oversized payload (>6MB)
+        * EC2:describe_instances() now supports filtering by `dns-name`
+        * EC2:describe_managed_prefix_lists() now supports filtering by tags
+        * SQS:delete_message_batch() now correctly deals with invalid receipt handles
+
+2.3.1
+-----
+    New Services:
+        * DAX:
+            * create_cluster()
+            * decrease_replication_factor()
+            * delete_cluster()
+            * describe_clusters()
+            * increase_replication_factor()
+            * list_tags()
+        * SSO-Admin:
+            * create_account_assignment()
+            * delete_account_assignment()
+            * list_account_assignments()
+
+    New Methods:
+        * APIGateway:
+            * update_base_path_mapping()
+        * SNS:
+            * publish_batch()
+
+    Miscellaneous:
+        * ECS: run_task() now supports the launchType-parameter
+        * SNS: publish() now supports FIFO-topics
+        * SWF: respond_decision_task_completed() now supports RecordMarker/StartTimer/CancelTimer/CancelWorkflowExecution decisions
+
 2.3.0
 -----
     General:

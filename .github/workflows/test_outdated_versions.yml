@@ -1,0 +1,38 @@
+# Run separate test cases to verify Moto works with older versions of dependencies
+#
+name: "Outdated Dependency Tests"
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.7", "3.10" ]
+        responses-version: ["0.11.0", "0.12.0", "0.13.0", "0.15.0", "0.17.0" ]
+        mock-version: [ "3.0.5", "4.0.0", "4.0.3" ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Update pip
+      run: |
+        python -m pip install --upgrade pip
+
+    - name: Install project dependencies
+      run: |
+        pip install -r requirements-dev.txt
+        pip install responses==${{ matrix.responses-version }}
+        pip install mock==${{ matrix.mock-version }}
+
+    - name: Run tests
+      run: |
+        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py

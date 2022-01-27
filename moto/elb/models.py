@@ -2,13 +2,6 @@ import datetime
 
 import pytz
 
-from moto.packages.boto.ec2.elb.attributes import (
-    LbAttributes,
-    ConnectionSettingAttribute,
-    ConnectionDrainingAttribute,
-    AccessLogAttribute,
-    CrossZoneLoadBalancingAttribute,
-)
 from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
@@ -248,23 +241,11 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def get_default_attributes(cls):
-        attributes = LbAttributes()
-
-        cross_zone_load_balancing = CrossZoneLoadBalancingAttribute()
-        cross_zone_load_balancing.enabled = False
-        attributes.cross_zone_load_balancing = cross_zone_load_balancing
-
-        connection_draining = ConnectionDrainingAttribute()
-        connection_draining.enabled = False
-        attributes.connection_draining = connection_draining
-
-        access_log = AccessLogAttribute()
-        access_log.enabled = False
-        attributes.access_log = access_log
-
-        connection_settings = ConnectionSettingAttribute()
-        connection_settings.idle_timeout = 60
-        attributes.connecting_settings = connection_settings
+        attributes = dict()
+        attributes["cross_zone_load_balancing"] = {"enabled": False}
+        attributes["connection_draining"] = {"enabled": False}
+        attributes["access_log"] = {"enabled": False}
+        attributes["connection_settings"] = {"idle_timeout": 60}
 
         return attributes
 
@@ -468,25 +449,27 @@ class ELBBackend(BaseBackend):
 
         return load_balancer
 
-    def set_cross_zone_load_balancing_attribute(self, load_balancer_name, attribute):
+    def modify_load_balancer_attributes(
+        self,
+        load_balancer_name,
+        cross_zone=None,
+        connection_settings=None,
+        connection_draining=None,
+        access_log=None,
+    ):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.attributes.cross_zone_load_balancing = attribute
-        return load_balancer
-
-    def set_access_log_attribute(self, load_balancer_name, attribute):
-        load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.attributes.access_log = attribute
-        return load_balancer
-
-    def set_connection_draining_attribute(self, load_balancer_name, attribute):
-        load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.attributes.connection_draining = attribute
-        return load_balancer
-
-    def set_connection_settings_attribute(self, load_balancer_name, attribute):
-        load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.attributes.connecting_settings = attribute
-        return load_balancer
+        if cross_zone:
+            load_balancer.attributes["cross_zone_load_balancing"] = cross_zone
+        if connection_settings:
+            load_balancer.attributes["connection_settings"] = connection_settings
+        if connection_draining:
+            load_balancer.attributes["connection_draining"] = connection_draining
+            if "timeout" not in connection_draining:
+                load_balancer.attributes["connection_draining"][
+                    "timeout"
+                ] = 300  # default
+        if access_log:
+            load_balancer.attributes["access_log"] = access_log
 
     def create_lb_other_policy(self, load_balancer_name, other_policy):
         load_balancer = self.get_load_balancer(load_balancer_name)

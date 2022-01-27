@@ -160,7 +160,7 @@ class EMRContainersBackend(BaseBackend):
     """Implementation of EMRContainers APIs."""
 
     def __init__(self, region_name=None):
-        super(EMRContainersBackend, self).__init__()
+        super().__init__()
         self.virtual_clusters = dict()
         self.virtual_cluster_count = 0
         self.jobs = dict()
@@ -198,18 +198,18 @@ class EMRContainersBackend(BaseBackend):
         self.virtual_cluster_count += 1
         return virtual_cluster
 
-    def delete_virtual_cluster(self, id):
-        if id not in self.virtual_clusters:
+    def delete_virtual_cluster(self, cluster_id):
+        if cluster_id not in self.virtual_clusters:
             raise ValidationException("VirtualCluster does not exist")
 
-        self.virtual_clusters[id].state = "TERMINATED"
-        return self.virtual_clusters[id]
+        self.virtual_clusters[cluster_id].state = "TERMINATED"
+        return self.virtual_clusters[cluster_id]
 
-    def describe_virtual_cluster(self, id):
-        if id not in self.virtual_clusters:
-            raise ValidationException(f"Virtual cluster {id} doesn't exist.")
+    def describe_virtual_cluster(self, cluster_id):
+        if cluster_id not in self.virtual_clusters:
+            raise ValidationException(f"Virtual cluster {cluster_id} doesn't exist.")
 
-        return self.virtual_clusters[id].to_dict()
+        return self.virtual_clusters[cluster_id].to_dict()
 
     def list_virtual_clusters(
         self,
@@ -303,26 +303,26 @@ class EMRContainersBackend(BaseBackend):
         self.job_count += 1
         return job
 
-    def cancel_job_run(self, id, virtual_cluster_id):
+    def cancel_job_run(self, job_id, virtual_cluster_id):
 
-        if not re.match(r"[a-z,A-Z,0-9]{19}", id):
+        if not re.match(r"[a-z,A-Z,0-9]{19}", job_id):
             raise ValidationException("Invalid job run short id")
 
-        if id not in self.jobs.keys():
-            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+        if job_id not in self.jobs.keys():
+            raise ResourceNotFoundException(f"Job run {job_id} doesn't exist.")
 
-        if virtual_cluster_id != self.jobs[id].virtual_cluster_id:
-            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+        if virtual_cluster_id != self.jobs[job_id].virtual_cluster_id:
+            raise ResourceNotFoundException(f"Job run {job_id} doesn't exist.")
 
-        if self.jobs[id].state in [
+        if self.jobs[job_id].state in [
             "FAILED",
             "CANCELLED",
             "CANCEL_PENDING",
             "COMPLETED",
         ]:
-            raise ValidationException(f"Job run {id} is not in a cancellable state")
+            raise ValidationException(f"Job run {job_id} is not in a cancellable state")
 
-        job = self.jobs[id]
+        job = self.jobs[job_id]
         job.state = "CANCELLED"
         job.finished_at = iso_8601_datetime_without_milliseconds(
             datetime.today().replace(hour=0, minute=1, second=0, microsecond=0)
@@ -360,17 +360,17 @@ class EMRContainersBackend(BaseBackend):
         sort_key = "id"
         return paginated_list(jobs, sort_key, max_results, next_token)
 
-    def describe_job_run(self, id, virtual_cluster_id):
-        if not re.match(r"[a-z,A-Z,0-9]{19}", id):
+    def describe_job_run(self, job_id, virtual_cluster_id):
+        if not re.match(r"[a-z,A-Z,0-9]{19}", job_id):
             raise ValidationException("Invalid job run short id")
 
-        if id not in self.jobs.keys():
-            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+        if job_id not in self.jobs.keys():
+            raise ResourceNotFoundException(f"Job run {job_id} doesn't exist.")
 
-        if virtual_cluster_id != self.jobs[id].virtual_cluster_id:
-            raise ResourceNotFoundException(f"Job run {id} doesn't exist.")
+        if virtual_cluster_id != self.jobs[job_id].virtual_cluster_id:
+            raise ResourceNotFoundException(f"Job run {job_id} doesn't exist.")
 
-        return self.jobs[id].to_dict()
+        return self.jobs[job_id].to_dict()
 
 
 emrcontainers_backends = BackendDict(EMRContainersBackend, "emr-containers")

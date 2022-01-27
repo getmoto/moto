@@ -3,60 +3,12 @@ import random
 
 import boto3
 from botocore.exceptions import ClientError
-import boto
-import boto.ec2
-from boto.exception import EC2ResponseError
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto import mock_ec2, settings
 from moto.ec2.utils import random_private_ip
 from tests import EXAMPLE_AMI_ID
-from tests.helpers import requires_boto_gte
 from uuid import uuid4
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_elastic_network_interfaces():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-
-    with pytest.raises(EC2ResponseError) as ex:
-        eni = conn.create_network_interface(subnet.id, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.create_network_interface(subnet.id)
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-    eni = all_enis[0]
-    eni.groups.should.have.length_of(1)
-    eni.private_ip_addresses.should.have.length_of(1)
-    eni.private_ip_addresses[0].private_ip_address.startswith("10.").should.be.true
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.delete_network_interface(eni.id, dry_run=True)
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.delete_network_interface(eni.id)
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(0)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.delete_network_interface(eni.id)
-    cm.value.error_code.should.equal("InvalidNetworkInterfaceID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -116,18 +68,6 @@ def test_elastic_network_interfaces_boto3():
     )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_elastic_network_interfaces_subnet_validation():
-    conn = boto.connect_vpc("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.create_network_interface("subnet-abcd1234")
-    cm.value.error_code.should.equal("InvalidSubnetID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_elastic_network_interfaces_subnet_validation_boto3():
     client = boto3.client("ec2", "us-east-1")
@@ -137,25 +77,6 @@ def test_elastic_network_interfaces_subnet_validation_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidSubnetID.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_elastic_network_interfaces_with_private_ip():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    private_ip = "54.0.0.1"
-    eni = conn.create_network_interface(subnet.id, private_ip)
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-
-    eni = all_enis[0]
-    eni.groups.should.have.length_of(1)
-
-    eni.private_ip_addresses.should.have.length_of(1)
-    eni.private_ip_addresses[0].private_ip_address.should.equal(private_ip)
 
 
 @mock_ec2
@@ -181,32 +102,6 @@ def test_elastic_network_interfaces_with_private_ip_boto3():
 
     eni["PrivateIpAddresses"].should.have.length_of(1)
     eni["PrivateIpAddresses"][0]["PrivateIpAddress"].should.equal(private_ip)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_elastic_network_interfaces_with_groups():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    security_group1 = conn.create_security_group(
-        "test security group #1", "this is a test security group"
-    )
-    security_group2 = conn.create_security_group(
-        "test security group #2", "this is a test security group"
-    )
-    conn.create_network_interface(
-        subnet.id, groups=[security_group1.id, security_group2.id]
-    )
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-
-    eni = all_enis[0]
-    eni.groups.should.have.length_of(2)
-    set([group.id for group in eni.groups]).should.equal(
-        set([security_group1.id, security_group2.id])
-    )
 
 
 @mock_ec2
@@ -250,51 +145,6 @@ def test_elastic_network_interfaces_without_group():
     my_eni["Groups"][0]["GroupName"].should.equal("default")
 
 
-# Has boto3 equivalent
-@requires_boto_gte("2.12.0")
-@mock_ec2_deprecated
-def test_elastic_network_interfaces_modify_attribute():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-    security_group1 = conn.create_security_group(
-        "test security group #1", "this is a test security group"
-    )
-    security_group2 = conn.create_security_group(
-        "test security group #2", "this is a test security group"
-    )
-    conn.create_network_interface(subnet.id, groups=[security_group1.id])
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-
-    eni = all_enis[0]
-    eni.groups.should.have.length_of(1)
-    eni.groups[0].id.should.equal(security_group1.id)
-
-    with pytest.raises(EC2ResponseError) as ex:
-        conn.modify_network_interface_attribute(
-            eni.id, "groupset", [security_group1.id, security_group2.id], dry_run=True
-        )
-    ex.value.error_code.should.equal("DryRunOperation")
-    ex.value.status.should.equal(412)
-    ex.value.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifyNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
-
-    conn.modify_network_interface_attribute(
-        eni.id, "groupset", [security_group1.id, security_group2.id]
-    )
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(1)
-
-    eni = all_enis[0]
-    eni.groups.should.have.length_of(2)
-    eni.groups[0].id.should.equal(security_group1.id)
-    eni.groups[1].id.should.equal(security_group2.id)
-
-
 @mock_ec2
 def test_elastic_network_interfaces_modify_attribute_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -332,68 +182,6 @@ def test_elastic_network_interfaces_modify_attribute_boto3():
     ][0]
     my_eni["Groups"].should.have.length_of(1)
     my_eni["Groups"][0]["GroupId"].should.equal(sec_group2.id)
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_elastic_network_interfaces_filtering():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-
-    security_group1 = conn.create_security_group(
-        "test security group #1", "this is a test security group"
-    )
-    security_group2 = conn.create_security_group(
-        "test security group #2", "this is a test security group"
-    )
-
-    eni1 = conn.create_network_interface(
-        subnet.id, groups=[security_group1.id, security_group2.id]
-    )
-    eni2 = conn.create_network_interface(subnet.id, groups=[security_group1.id])
-    eni3 = conn.create_network_interface(subnet.id, description="test description")
-
-    all_enis = conn.get_all_network_interfaces()
-    all_enis.should.have.length_of(3)
-
-    # Filter by NetworkInterfaceId
-    enis_by_id = conn.get_all_network_interfaces([eni1.id])
-    enis_by_id.should.have.length_of(1)
-    set([eni.id for eni in enis_by_id]).should.equal(set([eni1.id]))
-
-    # Filter by ENI ID
-    enis_by_id = conn.get_all_network_interfaces(
-        filters={"network-interface-id": eni1.id}
-    )
-    enis_by_id.should.have.length_of(1)
-    set([eni.id for eni in enis_by_id]).should.equal(set([eni1.id]))
-
-    # Filter by Security Group
-    enis_by_group = conn.get_all_network_interfaces(
-        filters={"group-id": security_group1.id}
-    )
-    enis_by_group.should.have.length_of(2)
-    set([eni.id for eni in enis_by_group]).should.equal(set([eni1.id, eni2.id]))
-
-    # Filter by ENI ID and Security Group
-    enis_by_group = conn.get_all_network_interfaces(
-        filters={"network-interface-id": eni1.id, "group-id": security_group1.id}
-    )
-    enis_by_group.should.have.length_of(1)
-    set([eni.id for eni in enis_by_group]).should.equal(set([eni1.id]))
-
-    # Filter by Description
-    enis_by_description = conn.get_all_network_interfaces(
-        filters={"description": eni3.description}
-    )
-    enis_by_description.should.have.length_of(1)
-    enis_by_description[0].description.should.equal(eni3.description)
-
-    # Unsupported filter
-    conn.get_all_network_interfaces.when.called_with(
-        filters={"not-implemented-filter": "foobar"}
-    ).should.throw(NotImplementedError)
 
 
 @mock_ec2

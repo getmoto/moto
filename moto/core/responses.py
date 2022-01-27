@@ -141,13 +141,13 @@ class ActionAuthenticatorMixin(object):
 
     @staticmethod
     def set_initial_no_auth_action_count(initial_no_auth_action_count):
+        _test_server_mode_endpoint = settings.test_server_mode_endpoint()
+
         def decorator(function):
             def wrapper(*args, **kwargs):
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
-                        "{test_server_endpoint}/moto-api/reset-auth".format(
-                            test_server_endpoint=settings.TEST_SERVER_MODE_ENDPOINT
-                        ),
+                        f"{_test_server_mode_endpoint}/moto-api/reset-auth",
                         data=str(initial_no_auth_action_count).encode("utf-8"),
                     )
                     original_initial_no_auth_action_count = response.json()[
@@ -165,9 +165,7 @@ class ActionAuthenticatorMixin(object):
                 finally:
                     if settings.TEST_SERVER_MODE:
                         requests.post(
-                            "{test_server_endpoint}/moto-api/reset-auth".format(
-                                test_server_endpoint=settings.TEST_SERVER_MODE_ENDPOINT
-                            ),
+                            f"{_test_server_mode_endpoint}/moto-api/reset-auth",
                             data=str(original_initial_no_auth_action_count).encode(
                                 "utf-8"
                             ),
@@ -486,14 +484,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             tracked_prefixes or set()
         )  # prefixes which have already been processed
 
-        def is_tracked(name_param):
-            for prefix_loop in tracked_prefixes:
-                if name_param.startswith(prefix_loop):
-                    return True
-            return False
-
         for name, value in self.querystring.items():
-            if is_tracked(name) or not name.startswith(param_prefix):
+            if not name.startswith(param_prefix):
                 continue
 
             if len(name) > len(param_prefix) and not name[
@@ -653,6 +645,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                         # reset parent
                         obj = []
                         parent[keylist[i - 1]] = obj
+                elif isinstance(obj, dict):
+                    # initialize dict
+                    obj[key] = {}
+                    # step into
+                    parent = obj
+                    obj = obj[key]
                 elif key.isdigit():
                     index = int(key) - 1
                     if len(obj) <= index:
@@ -661,12 +659,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     # step into
                     parent = obj
                     obj = obj[index]
-                else:
-                    # initialize dict
-                    obj[key] = {}
-                    # step into
-                    parent = obj
-                    obj = obj[key]
         if isinstance(obj, list):
             obj.append(value)
         else:

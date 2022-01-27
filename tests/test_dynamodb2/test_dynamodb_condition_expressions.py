@@ -1,8 +1,9 @@
+from decimal import Decimal
+import re
+
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-
-from decimal import Decimal
 from moto import mock_dynamodb2
 
 
@@ -365,3 +366,67 @@ def test_condition_expression__and_order():
             ExpressionAttributeValues={":ttl": {"N": "6"}, ":old_ttl": {"N": "5"}},
         )
     _assert_conditional_check_failed_exception(exc)
+
+
+@mock_dynamodb2
+def test_condition_expression_with_reserved_keyword_as_attr_name():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
+    table_name = "Test"
+    dynamodb.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+    )
+    table = dynamodb.Table(table_name)
+
+    email_like_str = "test@foo.com"
+    record = {
+        "id": "key-0",
+        "first": {email_like_str: {"end": {"VALUE"}},},
+    }
+    table.put_item(Item=record)
+
+    expected_error_message = re.escape(
+        "An error occurred (ValidationException) when "
+        "calling the UpdateItem operation: Invalid ConditionExpression: Attribute name "
+        "is a reserved keyword; reserved keyword: end"
+    )
+    with pytest.raises(
+        dynamodb.meta.client.exceptions.ClientError, match=expected_error_message
+    ):
+        table.update_item(
+            Key={"id": "key-0"},
+            UpdateExpression="REMOVE #first.#second, #other",
+            ExpressionAttributeNames={
+                "#first": "first",
+                "#second": email_like_str,
+                "#other": "other",
+            },
+            ExpressionAttributeValues={":value": "VALUE", ":one": 1},
+            ConditionExpression="size(#first.#second.end) = :one AND contains(#first.#second.end, :value)",
+            ReturnValues="ALL_NEW",
+        )
+
+    # table is unchanged
+    item = table.get_item(Key={"id": "key-0"})["Item"]
+    item.should.equal(record)
+
+    # using attribute names solves the issue
+    table.update_item(
+        Key={"id": "key-0"},
+        UpdateExpression="REMOVE #first.#second, #other",
+        ExpressionAttributeNames={
+            "#first": "first",
+            "#second": email_like_str,
+            "#other": "other",
+            "#end": "end",
+        },
+        ExpressionAttributeValues={":value": "VALUE", ":one": 1},
+        ConditionExpression="size(#first.#second.#end) = :one AND contains(#first.#second.#end, :value)",
+        ReturnValues="ALL_NEW",
+    )
+
+    item = table.get_item(Key={"id": "key-0"})["Item"]
+    item.should.equal(
+        {"id": "key-0", "first": {},}
+    )

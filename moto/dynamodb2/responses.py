@@ -1127,6 +1127,9 @@ class DynamoHandler(BaseResponse):
         except TransactionCanceledException as e:
             er = "com.amazonaws.dynamodb.v20111205#TransactionCanceledException"
             return self.error(er, str(e))
+        except MockValidationException as mve:
+            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+            return self.error(er, mve.exception_msg)
         response = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
 

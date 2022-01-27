@@ -3288,6 +3288,46 @@
   "Location": "ap-northeast-2d"
  },
  {
+  "InstanceType": "m6i.12xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.16xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.24xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.2xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.32xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.4xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.8xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.large",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.metal",
+  "Location": "ap-northeast-2d"
+ },
+ {
+  "InstanceType": "m6i.xlarge",
+  "Location": "ap-northeast-2d"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-northeast-2d"
  },

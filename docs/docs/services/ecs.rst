@@ -12,6 +12,8 @@
 ecs
 ===
 
+.. autoclass:: moto.ecs.models.EC2ContainerServiceBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python

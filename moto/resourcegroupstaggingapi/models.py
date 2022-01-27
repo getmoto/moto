@@ -24,7 +24,7 @@ from moto.awslambda import lambda_backends
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(ResourceGroupsTaggingAPIBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
         self._pages = {}

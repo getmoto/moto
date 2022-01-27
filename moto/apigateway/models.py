@@ -918,9 +918,8 @@ class RestAPI(CloudFormationModel):
                         method=http_method,
                         callback=self.resource_callback,
                         content_type="text/plain",
-                        match_querystring=False,
                     )
-                    responses_mock._matches.insert(0, callback_response)
+                    responses_mock.add(callback_response)
 
     def create_authorizer(
         self,
@@ -1092,6 +1091,13 @@ class Model(BaseModel, dict):
 
 
 class BasePathMapping(BaseModel, dict):
+
+    # operations
+    OPERATION_REPLACE = "replace"
+    OPERATION_PATH = "path"
+    OPERATION_VALUE = "value"
+    OPERATION_OP = "op"
+
     def __init__(self, domain_name, rest_api_id, **kwargs):
         super().__init__()
         self["domain_name"] = domain_name
@@ -1100,9 +1106,22 @@ class BasePathMapping(BaseModel, dict):
             self["basePath"] = kwargs.get("basePath")
         else:
             self["basePath"] = "(none)"
-
         if kwargs.get("stage"):
             self["stage"] = kwargs.get("stage")
+
+    def apply_patch_operations(self, patch_operations):
+
+        for op in patch_operations:
+            path = op["path"]
+            value = op["value"]
+            operation = op["op"]
+            if operation == self.OPERATION_REPLACE:
+                if "/basePath" in path:
+                    self["basePath"] = value
+                if "/restapiId" in path:
+                    self["restApiId"] = value
+                if "/stage" in path:
+                    self["stage"] = value
 
 
 class APIGatewayBackend(BaseBackend):
@@ -1815,6 +1834,52 @@ class APIGatewayBackend(BaseBackend):
             raise BasePathNotFoundException()
 
         self.base_path_mappings[domain_name].pop(base_path)
+
+    def update_base_path_mapping(self, domain_name, base_path, patch_operations):
+
+        if domain_name not in self.domain_names:
+            raise DomainNameNotFound()
+
+        if base_path not in self.base_path_mappings[domain_name]:
+            raise BasePathNotFoundException()
+
+        base_path_mapping = self.get_base_path_mapping(domain_name, base_path)
+
+        rest_api_ids = [
+            op["value"] for op in patch_operations if op["path"] == "/restapiId"
+        ]
+        if len(rest_api_ids) == 0:
+            modified_rest_api_id = base_path_mapping["restApiId"]
+        else:
+            modified_rest_api_id = rest_api_ids[-1]
+
+        stages = [op["value"] for op in patch_operations if op["path"] == "/stage"]
+        if len(stages) == 0:
+            modified_stage = base_path_mapping.get("stage")
+        else:
+            modified_stage = stages[-1]
+
+        base_paths = [
+            op["value"] for op in patch_operations if op["path"] == "/basePath"
+        ]
+        if len(base_paths) == 0:
+            modified_base_path = base_path_mapping["basePath"]
+        else:
+            modified_base_path = base_paths[-1]
+
+        rest_api = self.apis.get(modified_rest_api_id)
+        if rest_api is None:
+            raise InvalidRestApiIdForBasePathMappingException()
+        if modified_stage and rest_api.stages.get(modified_stage) is None:
+            raise InvalidStageException()
+
+        base_path_mapping.apply_patch_operations(patch_operations)
+
+        if base_path != modified_base_path:
+            self.base_path_mappings[domain_name].pop(base_path)
+            self.base_path_mappings[domain_name][modified_base_path] = base_path_mapping
+
+        return base_path_mapping
 
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")
