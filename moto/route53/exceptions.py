@@ -33,6 +33,17 @@ class InvalidPaginationToken(Route53ClientError):
         super().__init__("InvalidPaginationToken", message)
 
 
+class InvalidVPCId(Route53ClientError):
+    """Missing/Invalid VPC ID"""
+
+    code = 400
+
+    def __init__(self):
+        message = "Invalid or missing VPC Id."
+        super().__init__("InvalidVPCId", message)
+        self.content_type = "text/xml"
+
+
 class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
     """CloudWatch LogGroup has a permissions policy, but does not exist."""
 
