@@ -381,6 +381,11 @@ class OrganizationsBackend(BaseBackend):
         return self.org.describe()
 
     def delete_organization(self, **kwargs):
+        if [account for account in self.accounts if account.name != "master"]:
+            raise RESTError(
+                "OrganizationNotEmptyException",
+                "To delete an organization you must first remove all member accounts (except the master).",
+            )
         self._reset()
         return {}
 
@@ -884,6 +889,12 @@ class OrganizationsBackend(BaseBackend):
                 raise AccountNotFoundException
         else:
             raise InvalidInputException("You specified an invalid value.")
+
+    def remove_account_from_organization(self, **kwargs):
+        account = self.get_account_by_id(kwargs["AccountId"])
+        for policy in account.attached_policies:
+            policy.attachments.remove(account)
+        self.accounts.remove(account)
 
 
 organizations_backend = OrganizationsBackend()

@@ -1173,7 +1173,7 @@ def test_filter_expression():
         attrs={
             "Id": {"N": "8"},
             "Subs": {"N": "5"},
-            "Desc": {"S": "Some description"},
+            "Des": {"S": "Some description"},
             "KV": {"SS": ["test1", "test2"]},
         },
     )
@@ -1183,7 +1183,7 @@ def test_filter_expression():
         attrs={
             "Id": {"N": "8"},
             "Subs": {"N": "10"},
-            "Desc": {"S": "A description"},
+            "Des": {"S": "A description"},
             "KV": {"SS": ["test3", "test4"]},
         },
     )
@@ -1250,7 +1250,7 @@ def test_filter_expression():
 
     # attribute function tests (with extra spaces)
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "attribute_exists(Id) AND attribute_not_exists (User)", {}, {}
+        "attribute_exists(Id) AND attribute_not_exists (UnknownAttribute)", {}, {}
     )
     filter_expr.expr(row1).should.be(True)
 
@@ -1261,7 +1261,7 @@ def test_filter_expression():
 
     # beginswith function test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "begins_with(Desc, :v0)", {}, {":v0": {"S": "Some"}}
+        "begins_with(Des, :v0)", {}, {":v0": {"S": "Some"}}
     )
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
@@ -1275,7 +1275,7 @@ def test_filter_expression():
 
     # size function test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "size(Desc) > size(KV)", {}, {}
+        "size(Des) > size(KV)", {}, {}
     )
     filter_expr.expr(row1).should.be(True)
 
@@ -1288,7 +1288,7 @@ def test_filter_expression():
     filter_expr.expr(row1).should.be(True)
     # Expression from to check contains on string value
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
-        "contains(#n0, :v0)", {"#n0": "Desc"}, {":v0": {"S": "Some"}}
+        "contains(#n0, :v0)", {"#n0": "Des"}, {":v0": {"S": "Some"}}
     )
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)

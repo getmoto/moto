@@ -909,3 +909,143 @@ def test_create_volume_with_non_standard_type(volume_type):
 
     volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
     volume["VolumeType"].should.equal(volume_type)
+
+
+@mock_ec2
+def test_create_snapshots_dryrun():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.create_snapshots(
+            InstanceSpecification={"InstanceId": "asf"}, DryRun=True
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateSnapshots operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+
+@mock_ec2
+def test_create_snapshots_with_tagspecification():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    resp = client.create_snapshots(
+        Description="my tagged snapshots",
+        InstanceSpecification={"InstanceId": instance["InstanceId"]},
+        TagSpecifications=[
+            {
+                "ResourceType": "snapshot",
+                "Tags": [
+                    {"Key": "key1", "Value": "val1"},
+                    {"Key": "key2", "Value": "val2"},
+                ],
+            }
+        ],
+    )
+    snapshots = resp["Snapshots"]
+
+    snapshots.should.have.length_of(1)
+    snapshots[0].should.have.key("Description").equals("my tagged snapshots")
+    snapshots[0].should.have.key("Tags").equals(
+        [{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}]
+    )
+
+
+@mock_ec2
+def test_create_snapshots_single_volume():
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    instance = client.describe_instances(InstanceIds=[instance["InstanceId"]])[
+        "Reservations"
+    ][0]["Instances"][0]
+    boot_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+
+    snapshots = client.create_snapshots(
+        InstanceSpecification={"InstanceId": instance["InstanceId"]}
+    )["Snapshots"]
+
+    snapshots.should.have.length_of(1)
+    snapshots[0].should.have.key("Encrypted").equals(False)
+    snapshots[0].should.have.key("VolumeId").equals(boot_volume["VolumeId"])
+    snapshots[0].should.have.key("VolumeSize").equals(8)
+    snapshots[0].should.have.key("SnapshotId")
+    snapshots[0].should.have.key("Description").equals("")
+    snapshots[0].should.have.key("Tags").equals([])
+
+
+@mock_ec2
+def test_create_snapshots_multiple_volumes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    instance = client.describe_instances(InstanceIds=[instance["InstanceId"]])[
+        "Reservations"
+    ][0]["Instances"][0]
+    boot_volume = instance["BlockDeviceMappings"][0]["Ebs"]
+
+    volume1 = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
+    volume1.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdh")
+
+    volume2 = ec2.create_volume(Size=100, AvailabilityZone="us-east-1b")
+    volume2.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdg")
+
+    snapshots = client.create_snapshots(
+        InstanceSpecification={"InstanceId": instance["InstanceId"]}
+    )["Snapshots"]
+
+    # 3 Snapshots ; 1 boot, two additional volumes
+    snapshots.should.have.length_of(3)
+    # 3 unique snapshot IDs
+    set([s["SnapshotId"] for s in snapshots]).should.have.length_of(3)
+
+    boot_snapshot = next(
+        s for s in snapshots if s["VolumeId"] == boot_volume["VolumeId"]
+    )
+    boot_snapshot.should.have.key("VolumeSize").equals(8)
+
+    snapshot1 = next(s for s in snapshots if s["VolumeId"] == volume1.volume_id)
+    snapshot1.should.have.key("VolumeSize").equals(80)
+
+    snapshot2 = next(s for s in snapshots if s["VolumeId"] == volume2.volume_id)
+    snapshot2.should.have.key("VolumeSize").equals(100)
+
+
+@mock_ec2
+def test_create_snapshots_multiple_volumes_without_boot():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+
+    volume1 = ec2.create_volume(Size=80, AvailabilityZone="us-east-1a")
+    volume1.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdh")
+
+    volume2 = ec2.create_volume(Size=100, AvailabilityZone="us-east-1b")
+    volume2.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdg")
+
+    snapshots = client.create_snapshots(
+        InstanceSpecification={
+            "InstanceId": instance["InstanceId"],
+            "ExcludeBootVolume": True,
+        }
+    )["Snapshots"]
+
+    # 1 Snapshots ; Only the additional volumes are returned
+    snapshots.should.have.length_of(2)
+
+    snapshot1 = next(s for s in snapshots if s["VolumeId"] == volume1.volume_id)
+    snapshot1.should.have.key("VolumeSize").equals(80)
+
+    snapshot2 = next(s for s in snapshots if s["VolumeId"] == volume2.volume_id)
+    snapshot2.should.have.key("VolumeSize").equals(100)

@@ -726,6 +726,7 @@ class WorkflowExecution(BaseModel):
             "TimerFired", started_event_id=started_event_id, timer_id=timer_id
         )
         self._timers.pop(timer_id)
+        self._schedule_decision_task()
 
     def cancel_timer(self, event_id, timer_id):
         requested_timer = self._timers.get(timer_id)

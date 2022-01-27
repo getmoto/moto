@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
+
 import boto3
+from dateutil.tz import tzlocal
 
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
@@ -41,6 +44,10 @@ def test_list_secrets():
     assert secrets["SecretList"][1]["Name"] == "test-secret-2"
     assert secrets["SecretList"][1]["Tags"] == [{"Key": "a", "Value": "1"}]
     assert secrets["SecretList"][1]["SecretVersionsToStages"] is not None
+    assert secrets["SecretList"][0]["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][1]["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][0]["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][1]["LastChangedDate"] <= datetime.now(tz=tzlocal())
 
 
 @mock_secretsmanager

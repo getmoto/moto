@@ -160,6 +160,26 @@ class TestWithPseudoPrivateMethod(unittest.TestCase):
 
 
 @mock_s3
+class Baseclass(unittest.TestCase):
+    def setUp(self):
+        self.s3 = boto3.resource("s3", region_name="us-east-1")
+        self.client = boto3.client("s3", region_name="us-east-1")
+        self.test_bucket = self.s3.Bucket("testbucket")
+        self.test_bucket.create()
+
+    def tearDown(self):
+        # The bucket will still exist at this point
+        self.test_bucket.delete()
+
+
+@mock_s3
+class TestSetUpInBaseClass(Baseclass):
+    def test_a_thing(self):
+        # Verify that we can 'see' the setUp-method in the parent class
+        self.client.head_bucket(Bucket="testbucket").shouldnt.equal(None)
+
+
+@mock_s3
 class TestWithNestedClasses:
     class NestedClass(unittest.TestCase):
         def _ensure_bucket_exists(self):

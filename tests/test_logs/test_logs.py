@@ -4,13 +4,14 @@ import time
 import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
 from datetime import timedelta, datetime
+from uuid import UUID
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_logs, settings
+from moto import mock_logs, mock_s3, settings
 from moto.core.utils import unix_time_millis
 from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 
@@ -37,6 +38,16 @@ def json_policy_doc():
             ],
         }
     )
+
+
+@pytest.fixture(scope="function")
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
 
 @mock_logs
@@ -647,6 +658,18 @@ def test_put_retention_policy():
     assert response["logGroups"][0].get("retentionInDays") == 7
 
     response = conn.delete_log_group(logGroupName=log_group_name)
+
+
+@mock_logs
+def test_delete_log_stream():
+    logs = boto3.client("logs", TEST_REGION)
+    logs.create_log_group(logGroupName="logGroup")
+    logs.create_log_stream(logGroupName="logGroup", logStreamName="logStream")
+    resp = logs.describe_log_streams(logGroupName="logGroup")
+    assert resp["logStreams"][0]["logStreamName"] == "logStream"
+    logs.delete_log_stream(logGroupName="logGroup", logStreamName="logStream")
+    resp = logs.describe_log_streams(logGroupName="logGroup")
+    assert resp["logStreams"] == []
 
 
 @mock_logs
@@ -1419,3 +1442,60 @@ def test_describe_log_streams_no_prefix():
     err["Message"].should.equal(
         "Cannot order by LastEventTime with a logStreamNamePrefix."
     )
+
+
+@mock_s3
+@mock_logs
+def test_create_export_task_happy_path(aws_credentials):
+    log_group_name = "/aws/codebuild/blah1"
+    destination = "mybucket"
+    fromTime = 1611316574
+    to = 1642852574
+    logs = boto3.client("logs", region_name="ap-southeast-1")
+    s3 = boto3.client("s3")
+    logs.create_log_group(logGroupName=log_group_name)
+    s3.create_bucket(Bucket=destination)
+    resp = logs.create_export_task(
+        logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination
+    )
+    # taskId resembles a valid UUID (i.e. a string of 32 hexadecimal digits)
+    assert UUID(resp["taskId"])
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_logs
+def test_create_export_task_raises_ClientError_when_bucket_not_found(aws_credentials):
+    log_group_name = "/aws/codebuild/blah1"
+    destination = "368a7022dea3dd621"
+    fromTime = 1611316574
+    to = 1642852574
+    logs = boto3.client("logs", region_name="ap-southeast-1")
+    logs.create_log_group(logGroupName=log_group_name)
+    with pytest.raises(ClientError):
+        logs.create_export_task(
+            logGroupName=log_group_name,
+            fromTime=fromTime,
+            to=to,
+            destination=destination,
+        )
+
+
+@mock_s3
+@mock_logs
+def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
+    aws_credentials,
+):
+    log_group_name = "/aws/codebuild/blah1"
+    destination = "mybucket"
+    fromTime = 1611316574
+    to = 1642852574
+    s3 = boto3.client("s3")
+    s3.create_bucket(Bucket=destination)
+    logs = boto3.client("logs", region_name="ap-southeast-1")
+    with pytest.raises(logs.exceptions.ResourceNotFoundException):
+        logs.create_export_task(
+            logGroupName=log_group_name,
+            fromTime=fromTime,
+            to=to,
+            destination=destination,
+        )

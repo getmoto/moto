@@ -140,6 +140,29 @@ def test_send_unverified_email_with_chevrons():
 
 
 @mock_ses
+def test_send_email_invalid_address():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_email(
+            Source="test@example.com",
+            Destination={
+                "ToAddresses": ["test_to@example.com", "invalid_address"],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            },
+            Message={
+                "Subject": {"Data": "test subject"},
+                "Body": {"Text": {"Data": "test body"}},
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Missing domain")
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -182,6 +205,35 @@ def test_send_templated_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(3)
+
+
+@mock_ses
+def test_send_templated_email_invalid_address():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_identity(Domain="example.com")
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_templated_email(
+            Source="test@example.com",
+            Destination={
+                "ToAddresses": ["test_to@example.com", "invalid_address"],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            },
+            Template="test_template",
+            TemplateData='{"name": "test"}',
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Missing domain")
 
 
 @mock_ses
@@ -241,6 +293,25 @@ def test_send_raw_email_validate_domain():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(2)
+
+
+@mock_ses
+def test_send_raw_email_invalid_address():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_identity(Domain="example.com")
+
+    message = get_raw_email()
+    del message["To"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_raw_email(
+            Source=message["From"],
+            Destinations=["test_to@example.com", "invalid_address"],
+            RawMessage={"Data": message.as_string()},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Missing domain")
 
 
 def get_raw_email():

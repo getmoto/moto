@@ -215,3 +215,10 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.detach_policy(**self.request_params)
         )
+
+    def remove_account_from_organization(self):
+        return json.dumps(
+            self.organizations_backend.remove_account_from_organization(
+                **self.request_params
+            )
+        )

@@ -643,6 +643,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                         # reset parent
                         obj = []
                         parent[keylist[i - 1]] = obj
+                elif isinstance(obj, dict):
+                    # initialize dict
+                    obj[key] = {}
+                    # step into
+                    parent = obj
+                    obj = obj[key]
                 elif key.isdigit():
                     index = int(key) - 1
                     if len(obj) <= index:
@@ -651,12 +657,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     # step into
                     parent = obj
                     obj = obj[index]
-                else:
-                    # initialize dict
-                    obj[key] = {}
-                    # step into
-                    parent = obj
-                    obj = obj[key]
         if isinstance(obj, list):
             obj.append(value)
         else:

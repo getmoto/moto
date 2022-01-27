@@ -381,7 +381,7 @@ DIST_CONFIG_TEMPLATE = """
         </Items>
         {% endif %}
       </CustomErrorResponses>
-      <Comment>{{ CommentType }}</Comment>
+      <Comment>{{ distribution.distribution_config.comment }}</Comment>
       <Logging>
         <Enabled>{{ distribution.distribution_config.logging.enabled }}</Enabled>
         <IncludeCookies>{{ distribution.distribution_config.logging.include_cookies }}</IncludeCookies>

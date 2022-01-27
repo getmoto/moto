@@ -1371,7 +1371,7 @@
 - [X] create_route_table
 - [X] create_security_group
 - [X] create_snapshot
-- [ ] create_snapshots
+- [X] create_snapshots
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
@@ -3161,36 +3161,36 @@
 
 ## kinesis
 <details>
-<summary>58% implemented</summary>
+<summary>89% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
 - [X] decrease_stream_retention_period
 - [X] delete_stream
-- [ ] deregister_stream_consumer
+- [X] deregister_stream_consumer
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_consumer
+- [X] describe_stream_consumer
 - [X] describe_stream_summary
-- [ ] disable_enhanced_monitoring
-- [ ] enable_enhanced_monitoring
+- [X] disable_enhanced_monitoring
+- [X] enable_enhanced_monitoring
 - [X] get_records
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
 - [X] list_shards
-- [ ] list_stream_consumers
+- [X] list_stream_consumers
 - [X] list_streams
 - [X] list_tags_for_stream
 - [X] merge_shards
 - [X] put_record
 - [X] put_records
-- [ ] register_stream_consumer
+- [X] register_stream_consumer
 - [X] remove_tags_from_stream
 - [X] split_shard
-- [ ] start_stream_encryption
-- [ ] stop_stream_encryption
+- [X] start_stream_encryption
+- [X] stop_stream_encryption
 - [ ] subscribe_to_shard
-- [ ] update_shard_count
+- [X] update_shard_count
 - [ ] update_stream_mode
 </details>
 
@@ -3350,11 +3350,11 @@
 
 ## logs
 <details>
-<summary>57% implemented</summary>
+<summary>59% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
-- [ ] create_export_task
+- [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_destination
@@ -3587,6 +3587,34 @@
 - [X] put_object
 </details>
 
+## mq
+<details>
+<summary>86% implemented</summary>
+
+- [X] create_broker
+- [X] create_configuration
+- [X] create_tags
+- [X] create_user
+- [X] delete_broker
+- [X] delete_tags
+- [X] delete_user
+- [X] describe_broker
+- [ ] describe_broker_engine_types
+- [ ] describe_broker_instance_options
+- [X] describe_configuration
+- [X] describe_configuration_revision
+- [X] describe_user
+- [X] list_brokers
+- [ ] list_configuration_revisions
+- [X] list_configurations
+- [X] list_tags
+- [X] list_users
+- [X] reboot_broker
+- [X] update_broker
+- [X] update_configuration
+- [X] update_user
+</details>
+
 ## opsworks
 <details>
 <summary>12% implemented</summary>
@@ -3669,7 +3697,7 @@
 
 ## organizations
 <details>
-<summary>74% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -3717,7 +3745,7 @@
 - [X] list_targets_for_policy
 - [X] move_account
 - [X] register_delegated_administrator
-- [ ] remove_account_from_organization
+- [X] remove_account_from_organization
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit
@@ -5372,7 +5400,6 @@
 - migrationhub-config
 - migrationhubstrategy
 - mobile
-- mq
 - mturk
 - mwaa
 - neptune

@@ -10,6 +10,7 @@ Please try it out by running:
 
 .. sourcecode:: bash
 
+  export AWS_DEFAULT_REGION="us-east-2"
   python scripts/scaffold.py
 
 

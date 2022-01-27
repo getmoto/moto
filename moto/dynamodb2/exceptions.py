@@ -31,6 +31,30 @@ class InvalidUpdateExpression(MockValidationException):
         )
 
 
+class InvalidConditionExpression(MockValidationException):
+    invalid_condition_expr_msg = (
+        "Invalid ConditionExpression: {condition_expression_error}"
+    )
+
+    def __init__(self, condition_expression_error):
+        self.condition_expression_error = condition_expression_error
+        super().__init__(
+            self.invalid_condition_expr_msg.format(
+                condition_expression_error=condition_expression_error
+            )
+        )
+
+
+class ConditionAttributeIsReservedKeyword(InvalidConditionExpression):
+    attribute_is_keyword_msg = (
+        "Attribute name is a reserved keyword; reserved keyword: {keyword}"
+    )
+
+    def __init__(self, keyword):
+        self.keyword = keyword
+        super().__init__(self.attribute_is_keyword_msg.format(keyword=keyword))
+
+
 class AttributeDoesNotExist(MockValidationException):
     attr_does_not_exist_msg = (
         "The provided expression refers to an attribute that does not exist in the item"
@@ -172,6 +196,13 @@ class TransactionCanceledException(ValueError):
     def __init__(self, errors):
         msg = self.cancel_reason_msg.format(", ".join([str(err) for err in errors]))
         super().__init__(msg)
+
+
+class MultipleTransactionsException(MockValidationException):
+    msg = "Transaction request cannot include multiple operations on one item"
+
+    def __init__(self):
+        super().__init__(self.msg)
 
 
 class EmptyKeyAttributeException(MockValidationException):

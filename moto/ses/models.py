@@ -24,7 +24,7 @@ from .exceptions import (
     RuleAlreadyExists,
     MissingRenderingAttributeException,
 )
-from .utils import get_random_message_id
+from .utils import get_random_message_id, is_valid_address
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
 RECIPIENT_LIMIT = 50
@@ -160,6 +160,13 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+        destination_addresses = [
+            address for addresses in destinations.values() for address in addresses
+        ]
+        for address in [source, *destination_addresses]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -178,6 +185,13 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+        destination_addresses = [
+            address for addresses in destinations.values() for address in addresses
+        ]
+        for address in [source, *destination_addresses]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         if not self.templates.get(template[0]):
             raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
@@ -259,6 +273,10 @@ class SESBackend(BaseBackend):
             )
         if recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many recipients.")
+        for address in [addr for addr in [source, *destinations] if addr is not None]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         self.__process_sns_feedback__(source, destinations, region)
 

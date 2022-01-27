@@ -115,6 +115,7 @@ class FakeKey(BaseModel):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
+        s3_backend=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -146,6 +147,8 @@ class FakeKey(BaseModel):
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
+
+        self.s3_backend = s3_backend
 
     @property
     def version_id(self):
@@ -265,6 +268,9 @@ class FakeKey(BaseModel):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
+        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        if tags:
+            res["x-amz-tagging-count"] = len(tags.keys())
 
         return res
 
@@ -1620,6 +1626,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            s3_backend=s3_backend,
         )
 
         keys = [
@@ -1650,8 +1657,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key.lock_mode = retention[0]
         key.lock_until = retention[1]
 
-    def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
-        key_name = clean_key_name(key_name)
+    def get_object(
+        self,
+        bucket_name,
+        key_name,
+        version_id=None,
+        part_number=None,
+        key_is_clean=False,
+    ):
+        if not key_is_clean:
+            key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None
 
@@ -1991,37 +2006,35 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def copy_object(
         self,
-        src_bucket_name,
-        src_key_name,
+        src_key,
         dest_bucket_name,
         dest_key_name,
         storage=None,
         acl=None,
-        src_version_id=None,
         encryption=None,
         kms_key_id=None,
+        bucket_key_enabled=False,
     ):
-        key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,
             key_name=dest_key_name,
-            value=key.value,
-            storage=storage or key.storage_class,
-            multipart=key.multipart,
-            encryption=encryption or key.encryption,
-            kms_key_id=kms_key_id or key.kms_key_id,
-            bucket_key_enabled=key.bucket_key_enabled,
-            lock_mode=key.lock_mode,
-            lock_legal_status=key.lock_legal_status,
-            lock_until=key.lock_until,
+            value=src_key.value,
+            storage=storage or src_key.storage_class,
+            multipart=src_key.multipart,
+            encryption=encryption or src_key.encryption,
+            kms_key_id=kms_key_id or src_key.kms_key_id,
+            bucket_key_enabled=bucket_key_enabled or src_key.bucket_key_enabled,
+            lock_mode=src_key.lock_mode,
+            lock_legal_status=src_key.lock_legal_status,
+            lock_until=src_key.lock_until,
         )
-        self.tagger.copy_tags(key.arn, new_key.arn)
-        new_key.set_metadata(key.metadata)
+        self.tagger.copy_tags(src_key.arn, new_key.arn)
+        new_key.set_metadata(src_key.metadata)
 
         if acl is not None:
             new_key.set_acl(acl)
-        if key.storage_class in "GLACIER":
+        if src_key.storage_class in "GLACIER":
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
 

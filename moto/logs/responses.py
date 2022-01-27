@@ -379,3 +379,23 @@ class LogsResponse(BaseResponse):
         )
 
         return json.dumps({"queryId": "{0}".format(query_id)})
+
+    def create_export_task(self):
+        task_name = self._get_param("taskName")
+        log_group_name = self._get_param("logGroupName")
+        log_group_name = self._get_param("logGroupName")
+        log_stream_name_prefix = self._get_param("logStreamNamePrefix")
+        fromTime = self._get_param("from")
+        to = self._get_param("to")
+        destination = self._get_param("destination")
+        destination_prefix = self._get_param("destinationPrefix")
+        task_id = self.logs_backend.create_export_task(
+            task_name=task_name,
+            log_group_name=log_group_name,
+            log_stream_name_prefix=log_stream_name_prefix,
+            fromTime=fromTime,
+            to=to,
+            destination=destination,
+            destination_prefix=destination_prefix,
+        )
+        return json.dumps(dict(taskId=str(task_id)))
