@@ -265,17 +265,19 @@ class JobDefinition(CloudFormationModel):
         )
 
         if required_resource:
-            return required_resource[0]["value"]
+            if req_type == "vcpus":
+                return float(required_resource[0]["value"])
+            elif req_type == "memory":
+                return int(required_resource[0]["value"])
+            else:
+                return required_resource[0]["value"]
         else:
             return self.container_properties.get(req_type, default)
 
     def _validate(self):
+        # For future use when containers arnt the only thing in batch
         if self.type not in ("container",):
             raise ClientException('type must be one of "container"')
-
-        # For future use when containers arnt the only thing in batch
-        if self.type != "container":
-            raise NotImplementedError()
 
         if not isinstance(self.parameters, dict):
             raise ClientException("parameters must be a string to string map")
@@ -292,7 +294,7 @@ class JobDefinition(CloudFormationModel):
         vcpus = self._get_resource_requirement("vcpus")
         if vcpus is None:
             raise ClientException("containerProperties must contain vcpus")
-        if vcpus < 1:
+        if vcpus <= 0:
             raise ClientException("container vcpus limit must be greater than 0")
 
     def update(

@@ -195,25 +195,20 @@ def register_job_def(batch_client, definition_name="sleep10", use_resource_reqs=
         container_properties.update(
             {
                 "resourceRequirements": [
-                    {"value": "1", "type": "VCPU"},
-                    {"value": str(random.randint(4, 128)), "type": "MEMORY"},
+                    {"value": "0.25", "type": "VCPU"},
+                    {"value": "512", "type": "MEMORY"},
                 ]
             }
         )
     else:
         container_properties.update(
-            {"memory": random.randint(4, 128), "vcpus": 1,}
+            {"memory": 128, "vcpus": 1,}
         )
 
     return batch_client.register_job_definition(
         jobDefinitionName=definition_name,
         type="container",
-        containerProperties={
-            "image": "busybox",
-            "vcpus": 1,
-            "memory": random.randint(4, 128),
-            "command": ["sleep", "10"],
-        },
+        containerProperties=container_properties,
     )
 
 
