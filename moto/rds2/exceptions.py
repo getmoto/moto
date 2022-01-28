@@ -147,3 +147,33 @@ class DBClusterSnapshotAlreadyExistsError(RDSClientError):
                 database_snapshot_identifier
             ),
         )
+
+
+class ExportTaskAlreadyExistsError(RDSClientError):
+    def __init__(self, export_task_identifier):
+        super().__init__(
+            "ExportTaskAlreadyExistsFault",
+            "Cannot start export task because a task with the identifier {} already exists.".format(
+                export_task_identifier
+            ),
+        )
+
+
+class ExportTaskNotFoundError(RDSClientError):
+    def __init__(self, export_task_identifier):
+        super().__init__(
+            "ExportTaskNotFoundFault",
+            "Cannot cancel export task because a task with the identifier {} is not exist.".format(
+                export_task_identifier
+            ),
+        )
+
+
+class InvalidExportSourceStateError(RDSClientError):
+    def __init__(self, status):
+        super().__init__(
+            "InvalidExportSourceStateFault",
+            "Export source should be 'available' but current status is {}.".format(
+                status
+            ),
+        )

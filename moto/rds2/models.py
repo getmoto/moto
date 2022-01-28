@@ -30,6 +30,9 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidParameterCombination,
     InvalidDBClusterStateFault,
+    ExportTaskNotFoundError,
+    ExportTaskAlreadyExistsError,
+    InvalidExportSourceStateError,
 )
 from .utils import FilterDef, apply_filter, merge_filters, validate_filters
 
@@ -260,20 +263,20 @@ class ClusterSnapshot(BaseModel):
         "db-cluster-snapshot-id": FilterDef(
             ["snapshot_id"], "DB Cluster Snapshot Identifiers"
         ),
-        "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
         "snapshot-type": FilterDef(None, "Snapshot Types"),
-        "engine": FilterDef(["database.engine"], "Engine Names"),
+        "engine": FilterDef(["cluster.engine"], "Engine Names"),
     }
 
     def __init__(self, cluster, snapshot_id, tags):
         self.cluster = cluster
         self.snapshot_id = snapshot_id
         self.tags = tags
+        self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
     def snapshot_arn(self):
-        return "arn:aws:rds:{0}:{1}:snapshot:{2}".format(
+        return "arn:aws:rds:{0}:{1}:cluster-snapshot:{2}".format(
             self.cluster.region, ACCOUNT_ID, self.snapshot_id
         )
 
@@ -290,7 +293,7 @@ class ClusterSnapshot(BaseModel):
                 <MasterUsername>{{ cluster.master_username }}</MasterUsername>
                 <Port>{{ cluster.port }}</Port>
                 <Engine>{{ cluster.engine }}</Engine>
-                <Status>available</Status>
+                <Status>{{ snapshot.status }}</Status>
                 <SnapshotType>manual</SnapshotType>
                 <DBClusterSnapshotArn>{{ snapshot.snapshot_arn }}</DBClusterSnapshotArn>
                 <SourceRegion>{{ cluster.region }}</SourceRegion>
@@ -850,6 +853,7 @@ class DatabaseSnapshot(BaseModel):
         self.database = database
         self.snapshot_id = snapshot_id
         self.tags = tags
+        self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
@@ -867,7 +871,7 @@ class DatabaseSnapshot(BaseModel):
               <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
               <Engine>{{ database.engine }}</Engine>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
-              <Status>available</Status>
+              <Status>{{ snapshot.status }}</Status>
               <Port>{{ database.port }}</Port>
               <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
               <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
@@ -907,6 +911,50 @@ class DatabaseSnapshot(BaseModel):
 
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
+
+
+class ExportTask(BaseModel):
+    def __init__(self, snapshot, kwargs):
+        self.snapshot = snapshot
+
+        self.export_task_identifier = kwargs.get("export_task_identifier")
+        self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+        self.source_arn = kwargs.get("source_arn")
+        self.iam_role_arn = kwargs.get("iam_role_arn")
+        self.s3_bucket_name = kwargs.get("s3_bucket_name")
+        self.s3_prefix = kwargs.get("s3_prefix", "")
+        self.export_only = kwargs.get("export_only", [])
+
+        self.status = "available"
+        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+
+    def to_xml(self):
+        template = Template(
+            """
+            <ExportTaskIdentifier>{{ task.export_task_identifier }}</ExportTaskIdentifier>
+            <SourceArn>{{ snapshot.snapshot_arn }}</SourceArn>
+            <TaskStartTime>{{ task.created_at }}</TaskStartTime>
+            <TaskEndTime>{{ task.created_at }}</TaskEndTime>
+            <SnapshotTime>{{ snapshot.created_at }}</SnapshotTime>
+            <S3Bucket>{{ task.s3_bucket_name }}</S3Bucket>
+            <S3Prefix>{{ task.s3_prefix }}</S3Prefix>
+            <IamRoleArn>{{ task.iam_role_arn }}</IamRoleArn>
+            <KmsKeyId>{{ task.kms_key_id }}</KmsKeyId>
+            {%- if task.export_only -%}
+            <ExportOnly>
+                {%- for table in task.export_only -%}
+                    <member>{{ table }}</member>
+                {%- endfor -%}
+            </ExportOnly>
+            {%- endif -%}
+            <Status>{{ task.status }}</Status>
+            <PercentProgress>{{ 100 }}</PercentProgress>
+            <TotalExtractedDataInGB>{{ 1 }}</TotalExtractedDataInGB>
+            <FailureCause></FailureCause>
+            <WarningMessage></WarningMessage>
+            """
+        )
+        return template.render(task=self, snapshot=self.snapshot)
 
 
 class SecurityGroup(CloudFormationModel):
@@ -1128,12 +1176,13 @@ class RDS2Backend(BaseBackend):
     def __init__(self, region):
         self.region = region
         self.arn_regex = re_compile(
-            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|subgrp):.*$"
+            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp):.*$"
         )
         self.clusters = OrderedDict()
         self.databases = OrderedDict()
         self.database_snapshots = OrderedDict()
         self.cluster_snapshots = OrderedDict()
+        self.export_tasks = OrderedDict()
         self.db_parameter_groups = {}
         self.option_groups = {}
         self.security_groups = {}
@@ -1750,6 +1799,51 @@ class RDS2Backend(BaseBackend):
         cluster.status = "stopped"
         return previous_state
 
+    def start_export_task(self, kwargs):
+        export_task_id = kwargs["export_task_identifier"]
+        source_arn = kwargs["source_arn"]
+        snapshot_id = source_arn.split(":")[-1]
+        snapshot_type = source_arn.split(":")[-2]
+
+        if export_task_id in self.export_tasks:
+            raise ExportTaskAlreadyExistsError(export_task_id)
+        if snapshot_type == "snapshot" and snapshot_id not in self.database_snapshots:
+            raise DBSnapshotNotFoundError(snapshot_id)
+        elif (
+            snapshot_type == "cluster-snapshot"
+            and snapshot_id not in self.cluster_snapshots
+        ):
+            raise DBClusterSnapshotNotFoundError(snapshot_id)
+
+        if snapshot_type == "snapshot":
+            snapshot = self.database_snapshots[snapshot_id]
+        else:
+            snapshot = self.cluster_snapshots[snapshot_id]
+
+        if snapshot.status not in ["available"]:
+            raise InvalidExportSourceStateError(snapshot.status)
+
+        export_task = ExportTask(snapshot, kwargs)
+        self.export_tasks[export_task_id] = export_task
+
+        return export_task
+
+    def cancel_export_task(self, export_task_identifier):
+        if export_task_identifier in self.export_tasks:
+            export_task = self.export_tasks[export_task_identifier]
+            export_task.status = "canceled"
+            self.export_tasks[export_task_identifier] = export_task
+            return export_task
+        raise ExportTaskNotFoundError(export_task_identifier)
+
+    def describe_export_tasks(self, export_task_identifier):
+        if export_task_identifier:
+            if export_task_identifier in self.export_tasks:
+                return [self.export_tasks[export_task_identifier]]
+            else:
+                raise ExportTaskNotFoundError(export_task_identifier)
+        return self.export_tasks.values()
+
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
@@ -1781,6 +1875,7 @@ class RDS2Backend(BaseBackend):
             elif resource_type == "snapshot":  # DB Snapshot
                 if resource_name in self.database_snapshots:
                     return self.database_snapshots[resource_name].get_tags()
+            elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].get_tags()
             elif resource_type == "subgrp":  # DB subnet group
@@ -1815,6 +1910,7 @@ class RDS2Backend(BaseBackend):
             elif resource_type == "snapshot":  # DB Snapshot
                 if resource_name in self.database_snapshots:
                     return self.database_snapshots[resource_name].remove_tags(tag_keys)
+            elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].remove_tags(tag_keys)
             elif resource_type == "subgrp":  # DB subnet group
@@ -1848,6 +1944,7 @@ class RDS2Backend(BaseBackend):
             elif resource_type == "snapshot":  # DB Snapshot
                 if resource_name in self.database_snapshots:
                     return self.database_snapshots[resource_name].add_tags(tags)
+            elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].add_tags(tags)
             elif resource_type == "subgrp":  # DB subnet group

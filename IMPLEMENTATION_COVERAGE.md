@@ -3800,7 +3800,7 @@
 
 ## rds
 <details>
-<summary>17% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -3809,7 +3809,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
-- [ ] cancel_export_task
+- [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [ ] copy_db_cluster_snapshot
 - [ ] copy_db_parameter_group
@@ -3880,7 +3880,7 @@
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
 - [ ] describe_events
-- [ ] describe_export_tasks
+- [X] describe_export_tasks
 - [ ] describe_global_clusters
 - [ ] describe_installation_media
 - [X] describe_option_group_options
@@ -3938,7 +3938,7 @@
 - [X] start_db_cluster
 - [ ] start_db_instance
 - [ ] start_db_instance_automated_backups_replication
-- [ ] start_export_task
+- [X] start_export_task
 - [ ] stop_activity_stream
 - [X] stop_db_cluster
 - [ ] stop_db_instance
