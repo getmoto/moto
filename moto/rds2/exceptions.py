@@ -177,3 +177,19 @@ class InvalidExportSourceStateError(RDSClientError):
                 status
             ),
         )
+
+
+class SubscriptionAlreadyExistError(RDSClientError):
+    def __init__(self, subscription_name):
+        super().__init__(
+            "SubscriptionAlreadyExistFault",
+            "Subscription {} already exists.".format(subscription_name),
+        )
+
+
+class SubscriptionNotFoundError(RDSClientError):
+    def __init__(self, subscription_name):
+        super().__init__(
+            "SubscriptionNotFoundFault",
+            "Subscription {} not found.".format(subscription_name),
+        )
