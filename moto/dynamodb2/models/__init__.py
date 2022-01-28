@@ -839,9 +839,6 @@ class Table(CloudFormationModel):
             index = self.get_index(index_name)
             for result in results:
                 index.project(result)
-        if projection_expression:
-            for result in results:
-                result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key, scanned_index=index_name
@@ -849,6 +846,10 @@ class Table(CloudFormationModel):
 
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
+
+        if projection_expression:
+            for result in results:
+                result.filter(projection_expression)
 
         return results, scanned_count, last_evaluated_key
 

@@ -5838,3 +5838,63 @@ def test_filter_expression_execution_order():
     scan_items_2[0].should.equal(
         {"hash_key": "keyvalue", "filtered_attribute": "Z", "range_key": "B"}
     )
+
+
+@mock_dynamodb2
+def test_projection_expression_execution_order():
+    # projection expression needs to be applied after calculation of
+    # LastEvaluatedKey as it is possible for LastEvaluatedKey to
+    # include attributes which are not projected.
+
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    name = "test-projection-expression-with-gsi"
+    table = conn.Table(name)
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "hash_key", "KeyType": "HASH"},
+            {"AttributeName": "range_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "hash_key", "AttributeType": "S"},
+            {"AttributeName": "range_key", "AttributeType": "S"},
+            {"AttributeName": "index_key", "AttributeType": "S"},
+        ],
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_index",
+                "KeySchema": [{"AttributeName": "index_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL",},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table.put_item(Item={"hash_key": "keyvalue", "range_key": "A", "index_key": "Z"},)
+    table.put_item(Item={"hash_key": "keyvalue", "range_key": "B", "index_key": "Z"},)
+
+    # test query
+
+    # if projection expression is applied before LastEvaluatedKey is computed
+    # then this raises an exception.
+    table.query(
+        Limit=1,
+        IndexName="test_index",
+        KeyConditionExpression=Key("index_key").eq("Z"),
+        ProjectionExpression="#a",
+        ExpressionAttributeNames={"#a": "hashKey"},
+    )
+    # if projection expression is applied before LastEvaluatedKey is computed
+    # then this raises an exception.
+    table.scan(
+        Limit=1,
+        IndexName="test_index",
+        ProjectionExpression="#a",
+        ExpressionAttributeNames={"#a": "hashKey"},
+    )
+
