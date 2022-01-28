@@ -87,8 +87,8 @@ class Route53(BaseResponse):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         query_params = parse_qs(parsed_url.query)
-        query_params['vpcid'].should.have.length_of(1)
-        query_params['vpcregion'].should.have.length_of(1)
+        query_params["vpcid"].should.have.length_of(1)
+        query_params["vpcregion"].should.have.length_of(1)
         vpc_id = query_params.get("vpcid")[0]
         vpc_region = query_params.get("vpcregion")[0]
 

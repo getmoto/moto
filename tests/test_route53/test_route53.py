@@ -650,20 +650,17 @@ def test_list_hosted_zones_by_vpc():
         HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
-    response = conn.list_hosted_zones_by_vpc(
-        VPCId=vpc_id,
-        VPCRegion=region
-    )
-    response.should.have.key('ResponseMetadata')
-    response.should.have.key('HostedZoneSummaries')
-    response['HostedZoneSummaries'].should.have.length_of(1)
-    response['HostedZoneSummaries'][0].should.have.key('HostedZoneId')
-    retured_zone = response['HostedZoneSummaries'][0]
+    response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
+    response.should.have.key("ResponseMetadata")
+    response.should.have.key("HostedZoneSummaries")
+    response["HostedZoneSummaries"].should.have.length_of(1)
+    response["HostedZoneSummaries"][0].should.have.key("HostedZoneId")
+    retured_zone = response["HostedZoneSummaries"][0]
 
-    retured_zone['HostedZoneId'].should.equal(zone_b['HostedZone']['Id'])
-    retured_zone['Name'].should.equal(zone_b['HostedZone']['Name'])
-    
-    
+    retured_zone["HostedZoneId"].should.equal(zone_b["HostedZone"]["Id"])
+    retured_zone["Name"].should.equal(zone_b["HostedZone"]["Name"])
+
+
 @mock_route53
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")

@@ -487,8 +487,8 @@ class Route53Backend(BaseBackend):
                             "HostedZoneId": this_id,
                             "Name": zone.name,
                             "Owner": {"OwningAccount": ACCOUNT_ID},
-                            }
-                        )
+                        }
+                    )
 
         return zone_list
 
