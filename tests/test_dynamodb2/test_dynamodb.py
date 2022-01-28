@@ -5897,4 +5897,3 @@ def test_projection_expression_execution_order():
         ProjectionExpression="#a",
         ExpressionAttributeNames={"#a": "hashKey"},
     )
-
