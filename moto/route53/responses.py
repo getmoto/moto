@@ -87,8 +87,10 @@ class Route53(BaseResponse):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         query_params = parse_qs(parsed_url.query)
-        vpc_id = query_params.get("vpcid")
-        vpc_region = query_params.get("vpcregion")
+        query_params['vpcid'].should.have.length_of(1)
+        query_params['vpcregion'].should.have.length_of(1)
+        vpc_id = query_params.get("vpcid")[0]
+        vpc_region = query_params.get("vpcregion")[0]
 
         zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
 
@@ -506,27 +508,24 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesByNameResponse>"""
 
-
-LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/"
+LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{xmlns}}">
    <HostedZoneSummaries>
-      {% for zone in zones %}
-      <HostedZoneSummary>
-         <HostedZoneId>{{ zone.HostedZoneId}}</HostedZoneId>
-         <Name>{{zone.Name}}</Name>
-         <Owner>
-            {% if zone.Owner.OwningAccount %}
-            <OwningAccount>{{zone.Owner.OwningAccount}}</OwningAccount>
-            {% endif %}
-            {% if zone.Owner.OwningService %}
-            <OwningService>string</OwningService>
-            {% endif %}
-         </Owner>
-      </HostedZoneSummary>
-     {% endfor %}
+       {% for zone in zones -%}
+       <HostedZoneSummary>
+           <HostedZoneId>{{zone["HostedZoneId"]}}</HostedZoneId>
+           <Name>{{zone["Name"]}}</Name>
+           <Owner>
+               {% if zone["Owner"]["OwningAccount"] -%}
+               <OwningAccount>{{zone["Owner"]["OwningAccount"]}}</OwningAccount>
+               {% endif -%}
+               {% if zone["Owner"]["OwningService"] -%}
+               <OwningService>zone["Owner"]["OwningService"]</OwningService>
+               {% endif -%}
+           </Owner>
+       </HostedZoneSummary>
+       {% endfor -%}
    </HostedZoneSummaries>
-   <MaxItems>string</MaxItems>
-   <NextToken>string</NextToken>
-</ListHostedZonesByVPCResponse>"""
+</ListHostedZonesByVpcResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">

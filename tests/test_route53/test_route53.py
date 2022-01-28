@@ -635,6 +635,35 @@ def test_list_hosted_zones_by_dns_name():
     zones["HostedZones"][3]["Name"].should.equal("test.a.org.")
 
 
+@mock_ec2
+@mock_route53
+def test_list_hosted_zones_by_vpc():
+    # Create mock VPC so we can get a VPC ID
+    ec2c = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
+    region = "us-east-1"
+
+    conn = boto3.client("route53", region_name=region)
+    zone_b = conn.create_hosted_zone(
+        Name="test.b.com.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        VPC={"VPCRegion": region, "VPCId": vpc_id},
+    )
+    response = conn.list_hosted_zones_by_vpc(
+        VPCId=vpc_id,
+        VPCRegion=region
+    )
+    response.should.have.key('ResponseMetadata')
+    response.should.have.key('HostedZoneSummaries')
+    response['HostedZoneSummaries'].should.have.length_of(1)
+    response['HostedZoneSummaries'][0].should.have.key('HostedZoneId')
+    retured_zone = response['HostedZoneSummaries'][0]
+
+    retured_zone['HostedZoneId'].should.equal(zone_b['HostedZone']['Id'])
+    retured_zone['Name'].should.equal(zone_b['HostedZone']['Name'])
+    
+    
 @mock_route53
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")

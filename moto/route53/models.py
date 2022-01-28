@@ -478,19 +478,15 @@ class Route53Backend(BaseBackend):
 
         zone_list = []
         for zone in self.list_hosted_zones():
-            import pytest
-            pytest.set_trace()
-
-            if zone.private_zone:
+            if zone.private_zone == "true":
                 this_zone = self.get_hosted_zone(zone.id)
-                for vpc in this_zone["VPCs"]:
-                    if vpc["VPCId"] == VpcId:
-                        this_id = zone["Id"].replace("/hostedzone/", "")
-                        zone_list.append(
-                            {
-                                "HostedZoneId": this_id,
-                                "Name": zone["Name"],
-                                "Owner": {"OwningAccount": ACCOUNT_ID},
+                if this_zone.vpcid == VPCId:
+                    this_id = f"/hostedzone/{zone.id}"
+                    zone_list.append(
+                        {
+                            "HostedZoneId": this_id,
+                            "Name": zone.name,
+                            "Owner": {"OwningAccount": ACCOUNT_ID},
                             }
                         )
 
