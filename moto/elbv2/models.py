@@ -951,8 +951,6 @@ Member must satisfy regular expression pattern: {}".format(
         return target_group
 
     def modify_target_group_attributes(self, target_group_arn, attributes):
-        if "matcher" in attributes:
-            pass
         target_group = self.target_groups.get(target_group_arn)
         if not target_group:
             raise TargetGroupNotFoundError()
