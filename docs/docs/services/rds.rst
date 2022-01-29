@@ -32,7 +32,7 @@ rds
 - [ ] apply_pending_maintenance_action
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
-- [ ] cancel_export_task
+- [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [ ] copy_db_cluster_snapshot
 - [ ] copy_db_parameter_group
@@ -43,7 +43,7 @@ rds
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
-- [ ] create_db_cluster_snapshot
+- [X] create_db_cluster_snapshot
 - [ ] create_db_instance
 - [ ] create_db_instance_read_replica
 - [X] create_db_parameter_group
@@ -52,7 +52,7 @@ rds
 - [ ] create_db_security_group
 - [ ] create_db_snapshot
 - [ ] create_db_subnet_group
-- [ ] create_event_subscription
+- [X] create_event_subscription
 - [ ] create_global_cluster
 - [X] create_option_group
 - [ ] delete_custom_availability_zone
@@ -60,7 +60,7 @@ rds
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
-- [ ] delete_db_cluster_snapshot
+- [X] delete_db_cluster_snapshot
 - [ ] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
@@ -69,7 +69,7 @@ rds
 - [ ] delete_db_security_group
 - [ ] delete_db_snapshot
 - [ ] delete_db_subnet_group
-- [ ] delete_event_subscription
+- [X] delete_event_subscription
 - [ ] delete_global_cluster
 - [ ] delete_installation_media
 - [X] delete_option_group
@@ -82,7 +82,7 @@ rds
 - [ ] describe_db_cluster_parameter_groups
 - [ ] describe_db_cluster_parameters
 - [ ] describe_db_cluster_snapshot_attributes
-- [ ] describe_db_cluster_snapshots
+- [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
@@ -101,9 +101,9 @@ rds
 - [ ] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
-- [ ] describe_event_subscriptions
+- [X] describe_event_subscriptions
 - [ ] describe_events
-- [ ] describe_export_tasks
+- [X] describe_export_tasks
 - [ ] describe_global_clusters
 - [ ] describe_installation_media
 - [X] describe_option_group_options
@@ -151,7 +151,7 @@ rds
 - [ ] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
-- [ ] restore_db_cluster_from_snapshot
+- [X] restore_db_cluster_from_snapshot
 - [ ] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
@@ -161,7 +161,7 @@ rds
 - [X] start_db_cluster
 - [ ] start_db_instance
 - [ ] start_db_instance_automated_backups_replication
-- [ ] start_export_task
+- [X] start_export_task
 - [ ] stop_activity_stream
 - [X] stop_db_cluster
 - [ ] stop_db_instance
