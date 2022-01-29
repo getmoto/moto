@@ -33,6 +33,8 @@ from .exceptions import (
     ExportTaskNotFoundError,
     ExportTaskAlreadyExistsError,
     InvalidExportSourceStateError,
+    SubscriptionNotFoundError,
+    SubscriptionAlreadyExistError,
 )
 from .utils import FilterDef, apply_filter, merge_filters, validate_filters
 
@@ -957,6 +959,72 @@ class ExportTask(BaseModel):
         return template.render(task=self, snapshot=self.snapshot)
 
 
+class EventSubscription(BaseModel):
+    def __init__(self, kwargs):
+        self.subscription_name = kwargs.get("subscription_name")
+        self.sns_topic_arn = kwargs.get("sns_topic_arn")
+        self.source_type = kwargs.get("source_type")
+        self.event_categories = kwargs.get("event_categories", [])
+        self.source_ids = kwargs.get("source_ids", [])
+        self.enabled = kwargs.get("enabled", True)
+        self.tags = kwargs.get("tags", True)
+
+        self.region = ""
+        self.customer_aws_id = copy.copy(ACCOUNT_ID)
+        self.status = "available"
+        self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+
+    @property
+    def es_arn(self):
+        return "arn:aws:rds:{0}:{1}:es:{2}".format(
+            self.region, ACCOUNT_ID, self.subscription_name
+        )
+
+    def to_xml(self):
+        template = Template(
+            """
+            <EventSubscription>
+              <CustomerAwsId>{{ subscription.customer_aws_id }}</CustomerAwsId>
+              <CustSubscriptionId>{{ subscription.subscription_name }}</CustSubscriptionId>
+              <SnsTopicArn>{{ subscription.sns_topic_arn }}</SnsTopicArn>
+              <SubscriptionCreationTime>{{ subscription.created_at }}</SubscriptionCreationTime>
+              <SourceType>{{ subscription.source_type }}</SourceType>
+              <SourceIdsList>
+                {%- for source_id in subscription.source_ids -%}
+                  <SourceId>{{ source_id }}</SourceId>
+                {%- endfor -%}
+              </SourceIdsList>
+              <EventCategoriesList>
+                {%- for category in subscription.event_categories -%}
+                  <EventCategory>{{ category }}</EventCategory>
+                {%- endfor -%}
+              </EventCategoriesList>
+              <Status>{{ subscription.status }}</Status>
+              <Enabled>{{ subscription.enabled }}</Enabled>
+              <EventSubscriptionArn>{{ subscription.es_arn }}</EventSubscriptionArn>
+              <TagList>
+              {%- for tag in subscription.tags -%}
+                <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
+              {%- endfor -%}
+              </TagList>
+            </EventSubscription>
+            """
+        )
+        return template.render(subscription=self)
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set["Key"] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
+
+
 class SecurityGroup(CloudFormationModel):
     def __init__(self, group_name, description, tags):
         self.group_name = group_name
@@ -1183,6 +1251,7 @@ class RDS2Backend(BaseBackend):
         self.database_snapshots = OrderedDict()
         self.cluster_snapshots = OrderedDict()
         self.export_tasks = OrderedDict()
+        self.event_subscriptions = OrderedDict()
         self.db_parameter_groups = {}
         self.option_groups = {}
         self.security_groups = {}
@@ -1844,6 +1913,30 @@ class RDS2Backend(BaseBackend):
                 raise ExportTaskNotFoundError(export_task_identifier)
         return self.export_tasks.values()
 
+    def create_event_subscription(self, kwargs):
+        subscription_name = kwargs["subscription_name"]
+
+        if subscription_name in self.event_subscriptions:
+            raise SubscriptionAlreadyExistError(subscription_name)
+
+        subscription = EventSubscription(kwargs)
+        self.event_subscriptions[subscription_name] = subscription
+
+        return subscription
+
+    def delete_event_subscription(self, subscription_name):
+        if subscription_name in self.event_subscriptions:
+            return self.event_subscriptions.pop(subscription_name)
+        raise SubscriptionNotFoundError(subscription_name)
+
+    def describe_event_subscriptions(self, subscription_name):
+        if subscription_name:
+            if subscription_name in self.event_subscriptions:
+                return [self.event_subscriptions[subscription_name]]
+            else:
+                raise SubscriptionNotFoundError(subscription_name)
+        return self.event_subscriptions.values()
+
     def list_tags_for_resource(self, arn):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
@@ -1856,9 +1949,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.clusters:
                     return self.clusters[resource_name].get_tags()
             elif resource_type == "es":  # Event Subscription
-                # TODO: Complete call to tags on resource type Event
-                # Subscription
-                return []
+                if resource_name in self.event_subscriptions:
+                    return self.event_subscriptions[resource_name].get_tags()
             elif resource_type == "og":  # Option Group
                 if resource_name in self.option_groups:
                     return self.option_groups[resource_name].get_tags()

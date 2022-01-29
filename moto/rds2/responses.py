@@ -122,6 +122,19 @@ class RDS2Response(BaseResponse):
             "export_only": self.unpack_list_params("ExportOnly.member"),
         }
 
+    def _get_event_subscription_kwargs(self):
+        return {
+            "subscription_name": self._get_param("SubscriptionName"),
+            "sns_topic_arn": self._get_param("SnsTopicArn"),
+            "source_type": self._get_param("SourceType"),
+            "event_categories": self.unpack_list_params(
+                "EventCategories.EventCategory"
+            ),
+            "source_ids": self.unpack_list_params("SourceIds.SourceId"),
+            "enabled": self._get_param("Enabled"),
+            "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
+        }
+
     def unpack_complex_list_params(self, label, names):
         unpacked_list = list()
         count = 1
@@ -576,6 +589,24 @@ class RDS2Response(BaseResponse):
         tasks = self.backend.describe_export_tasks(export_task_identifier,)
         template = self.response_template(DESCRIBE_EXPORT_TASKS_TEMPLATE)
         return template.render(tasks=tasks)
+
+    def create_event_subscription(self):
+        kwargs = self._get_event_subscription_kwargs()
+        subscription = self.backend.create_event_subscription(kwargs)
+        template = self.response_template(CREATE_EVENT_SUBSCRIPTION_TEMPLATE)
+        return template.render(subscription=subscription)
+
+    def delete_event_subscription(self):
+        subscription_name = self._get_param("SubscriptionName")
+        subscription = self.backend.delete_event_subscription(subscription_name)
+        template = self.response_template(DELETE_EVENT_SUBSCRIPTION_TEMPLATE)
+        return template.render(subscription=subscription)
+
+    def describe_event_subscriptions(self):
+        subscription_name = self._get_param("SubscriptionName")
+        subscriptions = self.backend.describe_event_subscriptions(subscription_name)
+        template = self.response_template(DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE)
+        return template.render(subscriptions=subscriptions)
 
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
@@ -1062,4 +1093,38 @@ DESCRIBE_EXPORT_TASKS_TEMPLATE = """<DescribeExportTasksResponse xmlns="http://r
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </DescribeExportTasksResponse>
+"""
+
+CREATE_EVENT_SUBSCRIPTION_TEMPLATE = """<CreateEventSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <CreateEventSubscriptionResult>
+  {{ subscription.to_xml() }}
+  </CreateEventSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</CreateEventSubscriptionResponse>
+"""
+
+DELETE_EVENT_SUBSCRIPTION_TEMPLATE = """<DeleteEventSubscriptionResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DeleteEventSubscriptionResult>
+  {{ subscription.to_xml() }}
+  </DeleteEventSubscriptionResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DeleteEventSubscriptionResponse>
+"""
+
+DESCRIBE_EVENT_SUBSCRIPTIONS_TEMPLATE = """<DescribeEventSubscriptionsResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <DescribeEventSubscriptionsResult>
+    <EventSubscriptionsList>
+      {%- for subscription in subscriptions -%}
+        {{ subscription.to_xml() }}
+      {%- endfor -%}
+    </EventSubscriptionsList>
+  </DescribeEventSubscriptionsResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</DescribeEventSubscriptionsResponse>
 """
