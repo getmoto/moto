@@ -834,21 +834,23 @@ class Table(CloudFormationModel):
 
         scanned_count = len(list(self.all_items()))
 
-        if filter_expression is not None:
-            results = [item for item in results if filter_expression.expr(item)]
-
         results = copy.deepcopy(results)
         if index_name:
             index = self.get_index(index_name)
             for result in results:
                 index.project(result)
-        if projection_expression:
-            for result in results:
-                result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key, scanned_index=index_name
         )
+
+        if filter_expression is not None:
+            results = [item for item in results if filter_expression.expr(item)]
+
+        if projection_expression:
+            for result in results:
+                result.filter(projection_expression)
+
         return results, scanned_count, last_evaluated_key
 
     def all_items(self):
@@ -927,20 +929,21 @@ class Table(CloudFormationModel):
                     passes_all_conditions = False
                     break
 
-            if filter_expression is not None:
-                passes_all_conditions &= filter_expression.expr(item)
-
             if passes_all_conditions:
                 results.append(item)
+
+        results, last_evaluated_key = self._trim_results(
+            results, limit, exclusive_start_key, scanned_index=index_name
+        )
+
+        if filter_expression is not None:
+            results = [item for item in results if filter_expression.expr(item)]
 
         if projection_expression:
             results = copy.deepcopy(results)
             for result in results:
                 result.filter(projection_expression)
 
-        results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key, scanned_index=index_name
-        )
         return results, scanned_count, last_evaluated_key
 
     def _trim_results(self, results, limit, exclusive_start_key, scanned_index=None):
