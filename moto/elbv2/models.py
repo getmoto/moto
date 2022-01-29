@@ -62,6 +62,7 @@ class FakeTargetGroup(CloudFormationModel):
         vpc_id,
         protocol,
         port,
+        protocol_version=None,
         healthcheck_protocol=None,
         healthcheck_port=None,
         healthcheck_path=None,
@@ -79,6 +80,7 @@ class FakeTargetGroup(CloudFormationModel):
         self.arn = arn
         self.vpc_id = vpc_id
         self.protocol = protocol
+        self.protocol_version = protocol_version or "HTTP1"
         self.port = port
         self.healthcheck_protocol = healthcheck_protocol or self.protocol
         self.healthcheck_port = healthcheck_port
@@ -912,7 +914,7 @@ Member must satisfy regular expression pattern: {}".format(
             if target_group.name == name:
                 raise DuplicateTargetGroupName()
 
-        valid_protocols = ["HTTPS", "HTTP", "TCP"]
+        valid_protocols = ["HTTPS", "HTTP", "TCP", "TLS", "UDP", "TCP_UDP", "GENEVE"]
         if (
             kwargs.get("healthcheck_protocol")
             and kwargs["healthcheck_protocol"] not in valid_protocols
@@ -947,6 +949,13 @@ Member must satisfy regular expression pattern: {}".format(
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
         return target_group
+
+    def modify_target_group_attributes(self, target_group_arn, attributes):
+        target_group = self.target_groups.get(target_group_arn)
+        if not target_group:
+            raise TargetGroupNotFoundError()
+
+        target_group.attributes.update(attributes)
 
     def convert_and_validate_certificates(self, certificates):
 
@@ -1355,7 +1364,7 @@ Member must satisfy regular expression pattern: {}".format(
                 "HttpCode must be like 200 | 200-399 | 200,201 ...",
             )
 
-        if http_codes is not None:
+        if http_codes is not None and target_group.protocol in ["HTTP", "HTTPS"]:
             target_group.matcher["HttpCode"] = http_codes
         if health_check_interval is not None:
             target_group.healthcheck_interval_seconds = health_check_interval
@@ -1397,34 +1406,35 @@ Member must satisfy regular expression pattern: {}".format(
         if port is not None:
             listener.port = port
 
-        if protocol is not None:
-            if protocol not in ("HTTP", "HTTPS", "TCP"):
+        if protocol not in (None, "HTTP", "HTTPS", "TCP"):
+            raise RESTError(
+                "UnsupportedProtocol", "Protocol {0} is not supported".format(protocol),
+            )
+
+        # HTTPS checks
+        protocol_becomes_https = protocol == "HTTPS"
+        protocol_stays_https = protocol is None and listener.protocol == "HTTPS"
+        if protocol_becomes_https or protocol_stays_https:
+            # Check certificates exist
+            if certificates:
+                default_cert = certificates[0]
+                default_cert_arn = default_cert["certificate_arn"]
+                try:
+                    self.acm_backend.get_certificate(default_cert_arn)
+                except Exception:
+                    raise RESTError(
+                        "CertificateNotFound",
+                        "Certificate {0} not found".format(default_cert_arn),
+                    )
+                listener.certificate = default_cert_arn
+                listener.certificates = certificates
+            else:
                 raise RESTError(
-                    "UnsupportedProtocol",
-                    "Protocol {0} is not supported".format(protocol),
+                    "CertificateWereNotPassed",
+                    "You must provide a list containing exactly one certificate if the listener protocol is HTTPS.",
                 )
 
-            # HTTPS checks
-            if protocol == "HTTPS":
-                # Check certificates exist
-                if certificates:
-                    default_cert = certificates[0]
-                    default_cert_arn = default_cert["certificate_arn"]
-                    try:
-                        self.acm_backend.get_certificate(default_cert_arn)
-                    except Exception:
-                        raise RESTError(
-                            "CertificateNotFound",
-                            "Certificate {0} not found".format(default_cert_arn),
-                        )
-                    listener.certificate = default_cert_arn
-                    listener.certificates = certificates
-                else:
-                    raise RESTError(
-                        "CertificateWereNotPassed",
-                        "You must provide a list containing exactly one certificate if the listener protocol is HTTPS.",
-                    )
-
+        if protocol is not None:
             listener.protocol = protocol
 
         if ssl_policy is not None:

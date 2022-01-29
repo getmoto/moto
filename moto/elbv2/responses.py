@@ -178,6 +178,7 @@ class ELBV2Response(BaseResponse):
         name = self._get_param("Name")
         vpc_id = self._get_param("VpcId")
         protocol = self._get_param("Protocol")
+        protocol_version = self._get_param("ProtocolVersion", "HTTP1")
         port = self._get_param("Port")
         healthcheck_protocol = self._get_param("HealthCheckProtocol")
         healthcheck_port = self._get_param("HealthCheckPort")
@@ -194,6 +195,7 @@ class ELBV2Response(BaseResponse):
             name,
             vpc_id=vpc_id,
             protocol=protocol,
+            protocol_version=protocol_version,
             port=port,
             healthcheck_protocol=healthcheck_protocol,
             healthcheck_port=healthcheck_port,
@@ -366,14 +368,10 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def modify_target_group_attributes(self):
         target_group_arn = self._get_param("TargetGroupArn")
-        target_group = self.elbv2_backend.target_groups.get(target_group_arn)
-        attributes = {
-            attr["key"]: attr["value"]
-            for attr in self._get_list_prefix("Attributes.member")
-        }
-        target_group.attributes.update(attributes)
-        if not target_group:
-            raise TargetGroupNotFoundError()
+        attributes = self._get_list_prefix("Attributes.member")
+        attributes = {attr["key"]: attr["value"] for attr in attributes}
+        self.elbv2_backend.modify_target_group_attributes(target_group_arn, attributes)
+
         template = self.response_template(MODIFY_TARGET_GROUP_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
@@ -1085,6 +1083,7 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
         {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        <ProtocolVersion>{{ target_group.protocol_version }}</ProtocolVersion>
         {% endif %}
         {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
@@ -1608,6 +1607,7 @@ DESCRIBE_LOADBALANCER_ATTRS_TEMPLATE = """<DescribeLoadBalancerAttributesRespons
   </ResponseMetadata>
 </DescribeLoadBalancerAttributesResponse>"""
 
+
 MODIFY_TARGET_GROUP_TEMPLATE = """<ModifyTargetGroupResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <ModifyTargetGroupResult>
     <TargetGroups>
@@ -1650,7 +1650,7 @@ MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadb
         <Certificates>
           {% for cert in listener.certificates %}
           <member>
-            <CertificateArn>{{ cert }}</CertificateArn>
+            <CertificateArn>{{ cert["certificate_arn"] }}</CertificateArn>
           </member>
           {% endfor %}
         </Certificates>
