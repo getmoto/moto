@@ -6,7 +6,7 @@ from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch, InvalidVPCId
+from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -45,12 +45,12 @@ class Route53(BaseResponse):
                 comment = None
                 private_zone = False
 
+            # It is possible to create a Private Hosted Zone without
+            # associating VPC at the time of creation.
             if private_zone == "true":
-                try:
-                    vpcid = zone_request["VPC"]["VPCId"]
-                    vpcregion = zone_request["VPC"]["VPCRegion"]
-                except KeyError:
-                    raise InvalidVPCId()
+                if zone_request.get("VPC", None) is not None:
+                    vpcid = zone_request["VPC"].get("VPCId", None)
+                    vpcregion = zone_request["VPC"].get("VPCRegion", None)
 
             name = zone_request["Name"]
 
@@ -82,6 +82,16 @@ class Route53(BaseResponse):
 
         template = Template(LIST_HOSTED_ZONES_BY_NAME_RESPONSE)
         return 200, headers, template.render(zones=zones, dnsname=dnsname, xmlns=XMLNS)
+
+    def list_hosted_zones_by_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+        query_params = parse_qs(parsed_url.query)
+        vpc_id = query_params.get("vpcid")[0]
+        vpc_region = query_params.get("vpcregion")[0]
+        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
+        template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
+        return 200, headers, template.render(zones=zones, xmlns=XMLNS)
 
     @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
@@ -493,6 +503,25 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
    </HostedZones>
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesByNameResponse>"""
+
+LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{xmlns}}">
+   <HostedZoneSummaries>
+       {% for zone in zones -%}
+       <HostedZoneSummary>
+           <HostedZoneId>{{zone["HostedZoneId"]}}</HostedZoneId>
+           <Name>{{zone["Name"]}}</Name>
+           <Owner>
+               {% if zone["Owner"]["OwningAccount"] -%}
+               <OwningAccount>{{zone["Owner"]["OwningAccount"]}}</OwningAccount>
+               {% endif -%}
+               {% if zone["Owner"]["OwningService"] -%}
+               <OwningService>zone["Owner"]["OwningService"]</OwningService>
+               {% endif -%}
+           </Owner>
+       </HostedZoneSummary>
+       {% endfor -%}
+   </HostedZoneSummaries>
+</ListHostedZonesByVpcResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">

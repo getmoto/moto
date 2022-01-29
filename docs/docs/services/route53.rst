@@ -78,7 +78,7 @@ route53
 - [X] list_health_checks
 - [X] list_hosted_zones
 - [X] list_hosted_zones_by_name
-- [ ] list_hosted_zones_by_vpc
+- [X] list_hosted_zones_by_vpc
 - [X] list_query_logging_configs
   Return a list of query logging configs.
 
