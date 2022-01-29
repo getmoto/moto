@@ -527,7 +527,7 @@ class RDS2Response(BaseResponse):
         db_cluster_identifier = self._get_param("DBClusterIdentifier")
         db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
         tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
-        snapshot = self.backend.create_cluster_snapshot(
+        snapshot = self.backend.create_db_cluster_snapshot(
             db_cluster_identifier, db_snapshot_identifier, tags
         )
         template = self.response_template(CREATE_CLUSTER_SNAPSHOT_TEMPLATE)
@@ -551,7 +551,7 @@ class RDS2Response(BaseResponse):
         db_cluster_identifier = self._get_param("DBClusterIdentifier")
         db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
         filters = filters_from_querystring(self.querystring)
-        snapshots = self.backend.describe_cluster_snapshots(
+        snapshots = self.backend.describe_db_cluster_snapshots(
             db_cluster_identifier, db_snapshot_identifier, filters
         )
         template = self.response_template(DESCRIBE_CLUSTER_SNAPSHOTS_TEMPLATE)
@@ -559,7 +559,7 @@ class RDS2Response(BaseResponse):
 
     def delete_db_cluster_snapshot(self):
         db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
-        snapshot = self.backend.delete_cluster_snapshot(db_snapshot_identifier)
+        snapshot = self.backend.delete_db_cluster_snapshot(db_snapshot_identifier)
         template = self.response_template(DELETE_CLUSTER_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
 

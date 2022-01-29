@@ -1918,16 +1918,18 @@
 
 ## efs
 <details>
-<summary>25% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] create_access_point
 - [X] create_file_system
 - [X] create_mount_target
+- [ ] create_replication_configuration
 - [ ] create_tags
 - [ ] delete_access_point
 - [X] delete_file_system
 - [ ] delete_file_system_policy
 - [X] delete_mount_target
+- [ ] delete_replication_configuration
 - [ ] delete_tags
 - [ ] describe_access_points
 - [ ] describe_account_preferences
@@ -1937,6 +1939,7 @@
 - [ ] describe_lifecycle_configuration
 - [ ] describe_mount_target_security_groups
 - [X] describe_mount_targets
+- [ ] describe_replication_configurations
 - [ ] describe_tags
 - [ ] list_tags_for_resource
 - [ ] modify_mount_target_security_groups
@@ -2173,7 +2176,7 @@
 
 ## elbv2
 <details>
-<summary>70% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] add_listener_certificates
 - [ ] add_tags
@@ -2201,7 +2204,7 @@
 - [X] modify_load_balancer_attributes
 - [X] modify_rule
 - [X] modify_target_group
-- [ ] modify_target_group_attributes
+- [X] modify_target_group_attributes
 - [X] register_targets
 - [ ] remove_listener_certificates
 - [ ] remove_tags
@@ -3800,7 +3803,7 @@
 
 ## rds
 <details>
-<summary>19% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -3829,7 +3832,7 @@
 - [ ] create_db_security_group
 - [ ] create_db_snapshot
 - [ ] create_db_subnet_group
-- [ ] create_event_subscription
+- [X] create_event_subscription
 - [ ] create_global_cluster
 - [X] create_option_group
 - [ ] delete_custom_availability_zone
@@ -3846,7 +3849,7 @@
 - [ ] delete_db_security_group
 - [ ] delete_db_snapshot
 - [ ] delete_db_subnet_group
-- [ ] delete_event_subscription
+- [X] delete_event_subscription
 - [ ] delete_global_cluster
 - [ ] delete_installation_media
 - [X] delete_option_group
@@ -3878,7 +3881,7 @@
 - [ ] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
-- [ ] describe_event_subscriptions
+- [X] describe_event_subscriptions
 - [ ] describe_events
 - [X] describe_export_tasks
 - [ ] describe_global_clusters
@@ -4107,7 +4110,7 @@
 
 ## route53
 <details>
-<summary>25% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -4156,7 +4159,7 @@
 - [X] list_health_checks
 - [X] list_hosted_zones
 - [X] list_hosted_zones_by_name
-- [ ] list_hosted_zones_by_vpc
+- [X] list_hosted_zones_by_vpc
 - [X] list_query_logging_configs
 - [X] list_resource_record_sets
 - [ ] list_reusable_delegation_sets

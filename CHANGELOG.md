@@ -1,6 +1,38 @@
 Moto Changelog
 ===================
 
+3.0.2
+-----
+
+    * New Methods:
+        * Kinesis:
+            * deregister_stream_consumer()
+            * describe_stream_consumer()
+            * disable_enhanced_monitoring()
+            * enable_enhanced_monitoring()
+            * list_stream_consumers()
+            * register_stream_consumer()
+            * start_stream_encryption()
+            * stop_stream_encryption()
+            * update_shard_count()
+        * RDS:
+            * cancel_export_task()
+            * copy_db_cluster_snapshot()
+            * copy_db_snapshot()
+            * create_db_cluster_snapshot()
+            * create_event_subscription()
+            * delete_db_cluster_snapshot()
+            * delete_event_subscription()
+            * describe_db_cluster_snapshots()
+            * describe_event_subscriptions()
+            * describe_export_tasks()
+            * start_export_task()
+        * Route53
+            * list_hosted_zones_by_vpc()
+
+    * Miscellaneous:
+        * Improved configuration options for Docker-instances started by AWSLambda and Batch
+
 3.0.1
 -----
 

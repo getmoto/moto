@@ -1753,7 +1753,7 @@ class RDS2Backend(BaseBackend):
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
 
-    def create_cluster_snapshot(
+    def create_db_cluster_snapshot(
         self, db_cluster_identifier, db_snapshot_identifier, tags=None
     ):
         cluster = self.clusters.get(db_cluster_identifier)
@@ -1795,7 +1795,7 @@ class RDS2Backend(BaseBackend):
         self.cluster_snapshots[target_snapshot_identifier] = target_snapshot
         return target_snapshot
 
-    def delete_cluster_snapshot(self, db_snapshot_identifier):
+    def delete_db_cluster_snapshot(self, db_snapshot_identifier):
         if db_snapshot_identifier not in self.cluster_snapshots:
             raise DBClusterSnapshotNotFoundError(db_snapshot_identifier)
 
@@ -1806,7 +1806,7 @@ class RDS2Backend(BaseBackend):
             return [self.clusters[cluster_identifier]]
         return self.clusters.values()
 
-    def describe_cluster_snapshots(
+    def describe_db_cluster_snapshots(
         self, db_cluster_identifier, db_snapshot_identifier, filters=None
     ):
         snapshots = self.cluster_snapshots
@@ -1845,7 +1845,7 @@ class RDS2Backend(BaseBackend):
         return temp_state
 
     def restore_db_cluster_from_snapshot(self, from_snapshot_id, overrides):
-        snapshot = self.describe_cluster_snapshots(
+        snapshot = self.describe_db_cluster_snapshots(
             db_cluster_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_cluster = snapshot.cluster

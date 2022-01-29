@@ -51,7 +51,7 @@ elbv2
 - [X] modify_load_balancer_attributes
 - [X] modify_rule
 - [X] modify_target_group
-- [ ] modify_target_group_attributes
+- [X] modify_target_group_attributes
 - [X] register_targets
 - [ ] remove_listener_certificates
 - [ ] remove_tags

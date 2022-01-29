@@ -43,6 +43,7 @@ efs
         https://docs.aws.amazon.com/efs/latest/ug/API_CreateMountTarget.html
         
 
+- [ ] create_replication_configuration
 - [ ] create_tags
 - [ ] delete_access_point
 - [X] delete_file_system
@@ -62,6 +63,7 @@ efs
         https://docs.aws.amazon.com/efs/latest/ug/API_DeleteMountTarget.html
         
 
+- [ ] delete_replication_configuration
 - [ ] delete_tags
 - [ ] describe_access_points
 - [ ] describe_account_preferences
@@ -84,6 +86,7 @@ efs
         https://docs.aws.amazon.com/efs/latest/ug/API_DescribeMountTargets.html
         
 
+- [ ] describe_replication_configurations
 - [ ] describe_tags
 - [ ] list_tags_for_resource
 - [ ] modify_mount_target_security_groups
