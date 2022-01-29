@@ -30,24 +30,30 @@ class Route53(BaseResponse):
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
+        # Set these here outside the scope of the try/except
+        # so they're defined later when we call create_hosted_zone()
+        vpcid = None
+        vpcregion = None
         if request.method == "POST":
             elements = xmltodict.parse(self.body)
-            root_elem = elements["CreateHostedZoneRequest"]
-            if "HostedZoneConfig" in root_elem:
-                comment = root_elem["HostedZoneConfig"].get("Comment")
-                try:
-                    # in boto3, this field is set directly in the xml
-                    private_zone = root_elem["HostedZoneConfig"]["PrivateZone"]
-                except KeyError:
-                    # if a VPC subsection is only included in xmls params when private_zone=True,
-                    # see boto: boto/route53/connection.py
-                    private_zone = "VPC" in root_elem
+            zone_request = elements["CreateHostedZoneRequest"]
+            if "HostedZoneConfig" in zone_request:
+                zone_config = zone_request["HostedZoneConfig"]
+                comment = zone_config.get("Comment")
+                private_zone = zone_config.get("PrivateZone", False)
             else:
                 comment = None
                 private_zone = False
 
-            name = root_elem["Name"]
-            delegation_set_id = root_elem.get("DelegationSetId")
+            # It is possible to create a Private Hosted Zone without
+            # associating VPC at the time of creation.
+            if private_zone == "true":
+                if zone_request.get("VPC", None) is not None:
+                    vpcid = zone_request["VPC"].get("VPCId", None)
+                    vpcregion = zone_request["VPC"].get("VPCRegion", None)
+
+            name = zone_request["Name"]
+            delegation_set_id = zone_request.get("DelegationSetId")
 
             if name[-1] != ".":
                 name += "."
@@ -57,6 +63,8 @@ class Route53(BaseResponse):
                 comment=comment,
                 private_zone=private_zone,
                 delegation_set_id=delegation_set_id,
+                vpc_id=vpcid,
+                vpc_region=vpcregion,
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
             return 201, headers, template.render(zone=new_zone)
@@ -83,9 +91,7 @@ class Route53(BaseResponse):
         query_params = parse_qs(parsed_url.query)
         vpc_id = query_params.get("vpcid")[0]
         vpc_region = query_params.get("vpcregion")[0]
-
         zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
-
         template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
         return 200, headers, template.render(zones=zones, xmlns=XMLNS)
 
@@ -542,6 +548,13 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
          {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
+   <VPCs>
+      <VPC>
+         <VPCId>{{ zone.vpc_id if zone.vpc_id else '' }}</VPCId>
+         <VPCRegion>{{ zone.vpc_region if zone.vpc_id else '' }}</VPCRegion>
+      </VPC>
+   </VPCs>
+
 </GetHostedZoneResponse>"""
 
 CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -562,6 +575,10 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
          {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
+   <VPC>
+      <VPCId>{{zone.vpc_id}}</VPCId>
+      <VPCRegion>{{zone.vpc_region}}</VPCRegion>
+   </VPC>
 </CreateHostedZoneResponse>"""
 
 LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -605,21 +622,24 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
    <IsTruncated>false</IsTruncated>
 </ListHostedZonesByNameResponse>"""
 
-LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{ xmlns }}">
-  <HostedZoneSummaries>
-      {% for zone in zones %}
-      <HostedZone>
-         <HostedZoneId>/hostedzone/{{ zone.id }}</HostedZoneId>
-         <Name>{{ zone.name }}</Name>
-         <Config>
-            {% if zone.comment %}
-                <Comment>{{ zone.comment }}</Comment>
-            {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
-         </Config>
-         <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
-      </HostedZone>
-      {% endfor %}
+
+LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{xmlns}}">
+   <HostedZoneSummaries>
+       {% for zone in zones -%}
+       <HostedZoneSummary>
+           <HostedZoneId>/hostedzone/{{ zone.id }}</HostedZoneId>
+           <Name>{{ zone.name }}</Name>
+           <Config>
+             {%- if zone.comment %}
+             <Comment>{{ zone.comment }}</Comment>
+             {% endif -%}
+             <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           </Config>
+           <Owner>
+               <OwningAccount>{{ zone.owner["OwningAccount"] }}</OwningAccount>
+           </Owner>
+       </HostedZoneSummary>
+       {% endfor -%}
    </HostedZoneSummaries>
 </ListHostedZonesByVpcResponse>"""
 

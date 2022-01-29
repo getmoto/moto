@@ -5749,3 +5749,151 @@ def test_gsi_lastevaluatedkey():
     last_evaluated_key = response["LastEvaluatedKey"]
     last_evaluated_key.should.have.length_of(2)
     last_evaluated_key.should.equal({"main_key": "testkey1", "index_key": "indexkey"})
+
+
+@mock_dynamodb2
+def test_filter_expression_execution_order():
+    # As mentioned here: https://github.com/spulec/moto/issues/3909
+    # and documented here: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html#Query.FilterExpression
+    # the filter expression should be evaluated after the query.
+    # The same applies to scan operations:
+    # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.FilterExpression
+
+    # If we set limit=1 and apply a filter expression whixh excludes the first result
+    # then we should get no items in response.
+
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    name = "test-filter-expression-table"
+    table = conn.Table(name)
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "hash_key", "KeyType": "HASH"},
+            {"AttributeName": "range_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "hash_key", "AttributeType": "S"},
+            {"AttributeName": "range_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table.put_item(
+        Item={"hash_key": "keyvalue", "range_key": "A", "filtered_attribute": "Y"},
+    )
+    table.put_item(
+        Item={"hash_key": "keyvalue", "range_key": "B", "filtered_attribute": "Z"},
+    )
+
+    # test query
+
+    query_response_1 = table.query(
+        Limit=1,
+        KeyConditionExpression=Key("hash_key").eq("keyvalue"),
+        FilterExpression=Attr("filtered_attribute").eq("Z"),
+    )
+
+    query_items_1 = query_response_1["Items"]
+    query_items_1.should.have.length_of(0)
+
+    query_last_evaluated_key = query_response_1["LastEvaluatedKey"]
+    query_last_evaluated_key.should.have.length_of(2)
+    query_last_evaluated_key.should.equal({"hash_key": "keyvalue", "range_key": "A"})
+
+    query_response_2 = table.query(
+        Limit=1,
+        KeyConditionExpression=Key("hash_key").eq("keyvalue"),
+        FilterExpression=Attr("filtered_attribute").eq("Z"),
+        ExclusiveStartKey=query_last_evaluated_key,
+    )
+
+    query_items_2 = query_response_2["Items"]
+    query_items_2.should.have.length_of(1)
+    query_items_2[0].should.equal(
+        {"hash_key": "keyvalue", "filtered_attribute": "Z", "range_key": "B"}
+    )
+
+    # test scan
+
+    scan_response_1 = table.scan(
+        Limit=1, FilterExpression=Attr("filtered_attribute").eq("Z"),
+    )
+
+    scan_items_1 = scan_response_1["Items"]
+    scan_items_1.should.have.length_of(0)
+
+    scan_last_evaluated_key = scan_response_1["LastEvaluatedKey"]
+    scan_last_evaluated_key.should.have.length_of(2)
+    scan_last_evaluated_key.should.equal({"hash_key": "keyvalue", "range_key": "A"})
+
+    scan_response_2 = table.scan(
+        Limit=1,
+        FilterExpression=Attr("filtered_attribute").eq("Z"),
+        ExclusiveStartKey=query_last_evaluated_key,
+    )
+
+    scan_items_2 = scan_response_2["Items"]
+    scan_items_2.should.have.length_of(1)
+    scan_items_2[0].should.equal(
+        {"hash_key": "keyvalue", "filtered_attribute": "Z", "range_key": "B"}
+    )
+
+
+@mock_dynamodb2
+def test_projection_expression_execution_order():
+    # projection expression needs to be applied after calculation of
+    # LastEvaluatedKey as it is possible for LastEvaluatedKey to
+    # include attributes which are not projected.
+
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    name = "test-projection-expression-with-gsi"
+    table = conn.Table(name)
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "hash_key", "KeyType": "HASH"},
+            {"AttributeName": "range_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "hash_key", "AttributeType": "S"},
+            {"AttributeName": "range_key", "AttributeType": "S"},
+            {"AttributeName": "index_key", "AttributeType": "S"},
+        ],
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_index",
+                "KeySchema": [{"AttributeName": "index_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL",},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table.put_item(Item={"hash_key": "keyvalue", "range_key": "A", "index_key": "Z"},)
+    table.put_item(Item={"hash_key": "keyvalue", "range_key": "B", "index_key": "Z"},)
+
+    # test query
+
+    # if projection expression is applied before LastEvaluatedKey is computed
+    # then this raises an exception.
+    table.query(
+        Limit=1,
+        IndexName="test_index",
+        KeyConditionExpression=Key("index_key").eq("Z"),
+        ProjectionExpression="#a",
+        ExpressionAttributeNames={"#a": "hashKey"},
+    )
+    # if projection expression is applied before LastEvaluatedKey is computed
+    # then this raises an exception.
+    table.scan(
+        Limit=1,
+        IndexName="test_index",
+        ProjectionExpression="#a",
+        ExpressionAttributeNames={"#a": "hashKey"},
+    )

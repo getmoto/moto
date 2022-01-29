@@ -1,4 +1,5 @@
 import boto3
+import os
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
@@ -21,6 +22,21 @@ def test_upload_archive():
 
     res.should.have.key("checksum")
     res.should.have.key("archiveId")
+
+
+@mock_glacier
+def test_upload_zip_archive():
+    client = boto3.client("glacier", region_name="us-west-2")
+    client.create_vault(vaultName="asdf")
+
+    path = "test.gz"
+    with open(os.path.join(os.path.dirname(__file__), path), mode="rb") as archive:
+        content = archive.read()
+
+        res = client.upload_archive(vaultName="asdf", body=content)
+
+        res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+        res.should.have.key("checksum")
 
 
 @mock_glacier

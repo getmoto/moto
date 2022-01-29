@@ -1,6 +1,7 @@
 import boto3
 
 from moto import mock_route53
+from moto.core import ACCOUNT_ID
 
 
 @mock_route53
@@ -47,7 +48,13 @@ def test_associate_vpc_and_list():
     # Hosted zone can be found using the (unvalidated) VPC ID
     resp = client.list_hosted_zones_by_vpc(VPCId="myvpc", VPCRegion="us-east-1")
     resp.should.have.key("HostedZoneSummaries").equals(
-        [{"HostedZoneId": zone_id, "Name": "vpc.zone."}]
+        [
+            {
+                "HostedZoneId": zone_id,
+                "Name": "vpc.zone.",
+                "Owner": {"OwningAccount": ACCOUNT_ID},
+            }
+        ]
     )
 
     # No hosted zones are present in other regions

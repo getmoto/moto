@@ -16,7 +16,7 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -236,14 +236,26 @@ def reverse_domain_name(domain_name):
 
 
 class FakeZone(CloudFormationModel):
-    def __init__(self, name, id_, private_zone, comment, delegation_set):
+    def __init__(
+        self,
+        name,
+        id_,
+        private_zone,
+        vpc_id=None,
+        vpc_region=None,
+        comment=None,
+        delegation_set=None,
+    ):
         self.name = name
         self.id = id_
         self.comment = comment
         self.delegation_set = delegation_set
+        self.vpc_id = vpc_id
+        self.vpc_region = vpc_region
         self.private_zone = private_zone
         self.rrsets = []
         self.dnssec = DNSSecStatus()
+        self.owner = {"OwningAccount": ACCOUNT_ID}
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -386,25 +398,33 @@ class QueryLoggingConfig(BaseModel):
 class Route53Backend(BaseBackend):
     def __init__(self):
         self.zones = {}
-        self.zones_by_vpc = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
         self.query_logging_configs = {}
         self.delegation_sets = dict()
 
     def create_hosted_zone(
-        self, name, private_zone, comment=None, delegation_set_id=None
+        self,
+        name,
+        private_zone,
+        vpc_id=None,
+        vpc_region=None,
+        comment=None,
+        delegation_set_id=None,
     ):
         new_id = create_route53_zone_id()
         delegation_set = self.create_reusable_delegation_set(
             caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
         )
+
         new_zone = FakeZone(
             name,
             new_id,
             private_zone=private_zone,
-            comment=comment,
             delegation_set=delegation_set,
+            vpc_id=vpc_id,
+            vpc_region=vpc_region,
+            comment=comment,
         )
         self.zones[new_id] = new_zone
         return new_zone
@@ -507,8 +527,13 @@ class Route53Backend(BaseBackend):
         return dnsname, zones
 
     def list_hosted_zones_by_vpc(self, vpc_id, vpc_region):
-        zone_ids = self.zones_by_vpc.get(vpc_region, {}).get(vpc_id, [])
-        zones = [self.zones.get(id_.replace("/hostedzone/", "")) for id_ in zone_ids]
+
+        zones = []
+        for zone in self.list_hosted_zones():
+            if zone.private_zone == "true":
+                if zone.vpc_id == vpc_id and zone.vpc_region == vpc_region:
+                    zones.append(zone)
+
         return zones
 
     def get_hosted_zone(self, id_):
@@ -635,16 +660,14 @@ class Route53Backend(BaseBackend):
         return hosted_zone
 
     def associate_vpc_with_hosted_zone(self, hosted_zone_id, vpc_id, vpc_region):
-        if not vpc_region in self.zones_by_vpc:
-            self.zones_by_vpc[vpc_region] = {}
-        if not vpc_id in self.zones_by_vpc[vpc_region]:
-            self.zones_by_vpc[vpc_region][vpc_id] = []
-        self.zones_by_vpc[vpc_region][vpc_id].append(hosted_zone_id)
+        zone = self.get_hosted_zone(hosted_zone_id)
+        zone.vpc_id = vpc_id
+        zone.vpc_region = vpc_region
 
     def disassociate_vpc_with_hosted_zone(self, hosted_zone_id, vpc_id, vpc_region):
-        if vpc_region in self.zones_by_vpc:
-            if vpc_id in self.zones_by_vpc[vpc_region]:
-                self.zones_by_vpc[vpc_region][vpc_id].remove(hosted_zone_id)
+        zone = self.get_hosted_zone(hosted_zone_id)
+        zone.vpc_id = None
+        zone.vpc_region = None
 
     def create_reusable_delegation_set(
         self, caller_reference, delegation_set_id=None, hosted_zone_id=None

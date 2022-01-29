@@ -1371,7 +1371,7 @@
 - [X] create_route_table
 - [X] create_security_group
 - [X] create_snapshot
-- [ ] create_snapshots
+- [X] create_snapshots
 - [ ] create_spot_datafeed_subscription
 - [ ] create_store_image_task
 - [X] create_subnet
@@ -3161,36 +3161,36 @@
 
 ## kinesis
 <details>
-<summary>58% implemented</summary>
+<summary>89% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
 - [X] decrease_stream_retention_period
 - [X] delete_stream
-- [ ] deregister_stream_consumer
+- [X] deregister_stream_consumer
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_consumer
+- [X] describe_stream_consumer
 - [X] describe_stream_summary
-- [ ] disable_enhanced_monitoring
-- [ ] enable_enhanced_monitoring
+- [X] disable_enhanced_monitoring
+- [X] enable_enhanced_monitoring
 - [X] get_records
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
 - [X] list_shards
-- [ ] list_stream_consumers
+- [X] list_stream_consumers
 - [X] list_streams
 - [X] list_tags_for_stream
 - [X] merge_shards
 - [X] put_record
 - [X] put_records
-- [ ] register_stream_consumer
+- [X] register_stream_consumer
 - [X] remove_tags_from_stream
 - [X] split_shard
-- [ ] start_stream_encryption
-- [ ] stop_stream_encryption
+- [X] start_stream_encryption
+- [X] stop_stream_encryption
 - [ ] subscribe_to_shard
-- [ ] update_shard_count
+- [X] update_shard_count
 - [ ] update_stream_mode
 </details>
 
@@ -3350,7 +3350,7 @@
 
 ## logs
 <details>
-<summary>57% implemented</summary>
+<summary>59% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -3697,7 +3697,7 @@
 
 ## organizations
 <details>
-<summary>74% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -3745,7 +3745,7 @@
 - [X] list_targets_for_policy
 - [X] move_account
 - [X] register_delegated_administrator
-- [ ] remove_account_from_organization
+- [X] remove_account_from_organization
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit
@@ -3800,7 +3800,7 @@
 
 ## rds
 <details>
-<summary>14% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -3809,7 +3809,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] authorize_db_security_group_ingress
 - [ ] backtrack_db_cluster
-- [ ] cancel_export_task
+- [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [ ] copy_db_cluster_snapshot
 - [ ] copy_db_parameter_group
@@ -3820,7 +3820,7 @@
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
-- [ ] create_db_cluster_snapshot
+- [X] create_db_cluster_snapshot
 - [ ] create_db_instance
 - [ ] create_db_instance_read_replica
 - [X] create_db_parameter_group
@@ -3837,7 +3837,7 @@
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
-- [ ] delete_db_cluster_snapshot
+- [X] delete_db_cluster_snapshot
 - [ ] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
@@ -3859,7 +3859,7 @@
 - [ ] describe_db_cluster_parameter_groups
 - [ ] describe_db_cluster_parameters
 - [ ] describe_db_cluster_snapshot_attributes
-- [ ] describe_db_cluster_snapshots
+- [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
@@ -3880,7 +3880,7 @@
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
 - [ ] describe_events
-- [ ] describe_export_tasks
+- [X] describe_export_tasks
 - [ ] describe_global_clusters
 - [ ] describe_installation_media
 - [X] describe_option_group_options
@@ -3928,7 +3928,7 @@
 - [ ] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
-- [ ] restore_db_cluster_from_snapshot
+- [X] restore_db_cluster_from_snapshot
 - [ ] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
@@ -3938,7 +3938,7 @@
 - [X] start_db_cluster
 - [ ] start_db_instance
 - [ ] start_db_instance_automated_backups_replication
-- [ ] start_export_task
+- [X] start_export_task
 - [ ] stop_activity_stream
 - [X] stop_db_cluster
 - [ ] stop_db_instance

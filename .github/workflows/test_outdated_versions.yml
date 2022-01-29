@@ -10,8 +10,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.7", "3.9", "3.10" ]
-        responses-version: ["0.11.0", "0.12.0", "0.12.1", "0.13.0", "0.15.0", "0.17.0" ]
+        python-version: [ "3.7", "3.10" ]
+        responses-version: ["0.11.0", "0.12.0", "0.13.0", "0.15.0", "0.17.0" ]
         mock-version: [ "3.0.5", "4.0.0", "4.0.3" ]
 
     steps:

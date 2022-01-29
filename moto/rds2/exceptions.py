@@ -129,3 +129,51 @@ class DBClusterNotFoundError(RDSClientError):
             "DBClusterNotFoundFault",
             "DBCluster {} not found.".format(cluster_identifier),
         )
+
+
+class DBClusterSnapshotNotFoundError(RDSClientError):
+    def __init__(self, snapshot_identifier):
+        super().__init__(
+            "DBClusterSnapshotNotFoundFault",
+            "DBClusterSnapshot {} not found.".format(snapshot_identifier),
+        )
+
+
+class DBClusterSnapshotAlreadyExistsError(RDSClientError):
+    def __init__(self, database_snapshot_identifier):
+        super().__init__(
+            "DBClusterSnapshotAlreadyExistsFault",
+            "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
+                database_snapshot_identifier
+            ),
+        )
+
+
+class ExportTaskAlreadyExistsError(RDSClientError):
+    def __init__(self, export_task_identifier):
+        super().__init__(
+            "ExportTaskAlreadyExistsFault",
+            "Cannot start export task because a task with the identifier {} already exists.".format(
+                export_task_identifier
+            ),
+        )
+
+
+class ExportTaskNotFoundError(RDSClientError):
+    def __init__(self, export_task_identifier):
+        super().__init__(
+            "ExportTaskNotFoundFault",
+            "Cannot cancel export task because a task with the identifier {} is not exist.".format(
+                export_task_identifier
+            ),
+        )
+
+
+class InvalidExportSourceStateError(RDSClientError):
+    def __init__(self, status):
+        super().__init__(
+            "InvalidExportSourceStateFault",
+            "Export source should be 'available' but current status is {}.".format(
+                status
+            ),
+        )

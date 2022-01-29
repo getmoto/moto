@@ -6,7 +6,7 @@ import sure  # noqa # pylint: disable=unused-import
 import botocore
 import pytest
 
-from moto import mock_route53
+from moto import mock_ec2, mock_route53
 
 
 @mock_route53
@@ -371,28 +371,72 @@ def test_deleting_latency_route_boto3():
     cnames[0]["Region"].should.equal("us-west-1")
 
 
+@mock_ec2
 @mock_route53
 def test_hosted_zone_private_zone_preserved_boto3():
-    conn = boto3.client("route53", region_name="us-east-1")
-    # TODO: actually create_hosted_zone statements with PrivateZone=True, but without
-    # a _valid_ vpc-id should fail.
-    firstzone = conn.create_hosted_zone(
+    # Create mock VPC so we can get a VPC ID
+    region = "us-east-1"
+    ec2c = boto3.client("ec2", region_name=region)
+    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
+
+    # Create hosted_zone as a Private VPC Hosted Zone
+    conn = boto3.client("route53", region_name=region)
+    new_zone = conn.create_hosted_zone(
         Name="testdns.aws.com.",
         CallerReference=str(hash("foo")),
         HostedZoneConfig=dict(PrivateZone=True, Comment="Test"),
+        VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
 
-    zone_id = firstzone["HostedZone"]["Id"].split("/")[-1]
-
+    zone_id = new_zone["HostedZone"]["Id"].split("/")[-1]
     hosted_zone = conn.get_hosted_zone(Id=zone_id)
     hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
+    hosted_zone.should.have.key("VPCs")
+    hosted_zone["VPCs"].should.have.length_of(1)
+    hosted_zone["VPCs"][0].should.have.key("VPCId")
+    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
+    hosted_zone["VPCs"][0]["VPCId"].should_not.be.empty
+    hosted_zone["VPCs"][0]["VPCRegion"].should_not.be.empty
+    hosted_zone["VPCs"][0]["VPCId"].should.be.equal(vpc_id)
+    hosted_zone["VPCs"][0]["VPCRegion"].should.be.equal(region)
 
     hosted_zones = conn.list_hosted_zones()
     hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
 
     hosted_zones = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
-    len(hosted_zones["HostedZones"]).should.equal(1)
+    hosted_zones["HostedZones"].should.have.length_of(1)
     hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
+
+    # create_hosted_zone statements with  PrivateZone=True,
+    # but without a _valid_ vpc-id should NOT fail.
+    zone2_name = "testdns2.aws.com."
+    no_vpc_zone = conn.create_hosted_zone(
+        Name=zone2_name,
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="Test without VPC"),
+    )
+
+    zone_id = no_vpc_zone["HostedZone"]["Id"].split("/")[-1]
+    hosted_zone = conn.get_hosted_zone(Id=zone_id)
+    hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
+    hosted_zone.should.have.key("VPCs")
+    hosted_zone["VPCs"].should.have.length_of(1)
+    hosted_zone["VPCs"][0].should.have.key("VPCId")
+    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
+    hosted_zone["VPCs"][0]["VPCId"].should.be.empty
+    hosted_zone["VPCs"][0]["VPCRegion"].should.be.empty
+
+    hosted_zones = conn.list_hosted_zones()
+    hosted_zones["HostedZones"].should.have.length_of(2)
+    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
+    hosted_zones["HostedZones"][1]["Config"]["PrivateZone"].should.equal(True)
+
+    hosted_zones = conn.list_hosted_zones_by_name(DNSName=zone2_name)
+    hosted_zones["HostedZones"].should.have.length_of(1)
+    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
+    hosted_zones["HostedZones"][0]["Name"].should.equal(zone2_name)
+
+    return
 
 
 @mock_route53
@@ -483,33 +527,77 @@ def test_list_or_change_tags_for_resource_request():
     response["ResourceTagSet"]["Tags"].should.be.empty
 
 
+@mock_ec2
 @mock_route53
 def test_list_hosted_zones_by_name():
-    conn = boto3.client("route53", region_name="us-east-1")
-    conn.create_hosted_zone(
+
+    # Create mock VPC so we can get a VPC ID
+    ec2c = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
+    region = "us-east-1"
+
+    conn = boto3.client("route53", region_name=region)
+    zone_b = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
         HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
-    )
-    conn.create_hosted_zone(
-        Name="test.a.org.",
-        CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test org"),
-    )
-    conn.create_hosted_zone(
-        Name="test.a.org.",
-        CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test org 2"),
+        VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
 
-    # test lookup
-    zones = conn.list_hosted_zones_by_name(DNSName="test.b.com.")
-    len(zones["HostedZones"]).should.equal(1)
-    zones["HostedZones"][0]["Name"].should.equal("test.b.com.")
+    zone_b = conn.list_hosted_zones_by_name(DNSName="test.b.com.")
+    len(zone_b["HostedZones"]).should.equal(1)
+    zone_b["HostedZones"][0]["Name"].should.equal("test.b.com.")
+    zone_b["HostedZones"][0].should.have.key("Config")
+    zone_b["HostedZones"][0]["Config"].should.have.key("PrivateZone")
+    zone_b["HostedZones"][0]["Config"]["PrivateZone"].should.be.equal(True)
+
+    # We declared this a a private hosted zone above, so let's make
+    # sure it really is!
+    zone_b_id = zone_b["HostedZones"][0]["Id"].split("/")[-1]
+    b_hosted_zone = conn.get_hosted_zone(Id=zone_b_id)
+
+    # Pull the HostedZone block out and test it.
+    b_hosted_zone.should.have.key("HostedZone")
+    b_hz = b_hosted_zone["HostedZone"]
+    b_hz.should.have.key("Config")
+    b_hz["Config"].should.have.key("PrivateZone")
+    b_hz["Config"]["PrivateZone"].should.be.equal(True)
+
+    # Check for the VPCs block since this *should* be a VPC-Private Zone
+    b_hosted_zone.should.have.key("VPCs")
+    b_hosted_zone["VPCs"].should.have.length_of(1)
+    b_hz_vpcs = b_hosted_zone["VPCs"][0]
+    b_hz_vpcs.should.have.key("VPCId")
+    b_hz_vpcs.should.have.key("VPCRegion")
+    b_hz_vpcs["VPCId"].should_not.be.empty
+    b_hz_vpcs["VPCRegion"].should_not.be.empty
+    b_hz_vpcs["VPCId"].should.be.equal(vpc_id)
+    b_hz_vpcs["VPCRegion"].should.be.equal(region)
+
+    # Now create other zones and test them.
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
+    )
+    conn.create_hosted_zone(
+        Name="test.a.org.",
+        CallerReference=str(hash("bar")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
+    )
+
+    # Now makes sure the other zones we created above are NOT private...
     zones = conn.list_hosted_zones_by_name(DNSName="test.a.org.")
     len(zones["HostedZones"]).should.equal(2)
     zones["HostedZones"][0]["Name"].should.equal("test.a.org.")
+    zones["HostedZones"][0].should.have.key("Config")
+    zones["HostedZones"][0]["Config"].should.have.key("PrivateZone")
+    zones["HostedZones"][0]["Config"]["PrivateZone"].should.be.equal(False)
+
     zones["HostedZones"][1]["Name"].should.equal("test.a.org.")
+    zones["HostedZones"][1].should.have.key("Config")
+    zones["HostedZones"][1]["Config"].should.have.key("PrivateZone")
+    zones["HostedZones"][1]["Config"]["PrivateZone"].should.be.equal(False)
 
     # test sort order
     zones = conn.list_hosted_zones_by_name()
@@ -525,17 +613,17 @@ def test_list_hosted_zones_by_dns_name():
     conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test com"),
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test org"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test org 2"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
     )
     conn.create_hosted_zone(
         Name="my.test.net.",
@@ -567,13 +655,74 @@ def test_list_hosted_zones_by_dns_name():
     zones["HostedZones"][3]["Name"].should.equal("test.a.org.")
 
 
+@mock_ec2
+@mock_route53
+def test_list_hosted_zones_by_vpc():
+    # Create mock VPC so we can get a VPC ID
+    ec2c = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
+    region = "us-east-1"
+
+    conn = boto3.client("route53", region_name=region)
+    zone_b = conn.create_hosted_zone(
+        Name="test.b.com.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        VPC={"VPCRegion": region, "VPCId": vpc_id},
+    )
+    response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
+    response.should.have.key("ResponseMetadata")
+    response.should.have.key("HostedZoneSummaries")
+    response["HostedZoneSummaries"].should.have.length_of(1)
+    response["HostedZoneSummaries"][0].should.have.key("HostedZoneId")
+    retured_zone = response["HostedZoneSummaries"][0]
+    retured_zone["HostedZoneId"].should.equal(zone_b["HostedZone"]["Id"])
+    retured_zone["Name"].should.equal(zone_b["HostedZone"]["Name"])
+
+
+@mock_ec2
+@mock_route53
+def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
+    # Create mock VPC so we can get a VPC ID
+    ec2c = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
+    region = "us-east-1"
+
+    # Create 3 Zones associate with the VPC.
+    zones = {}
+    conn = boto3.client("route53", region_name=region)
+    for zone in ["a", "b", "c"]:
+        zone_name = f"test.{zone}.com."
+        zones[zone] = conn.create_hosted_zone(
+            Name=zone_name,
+            CallerReference=str(hash("foo")),
+            HostedZoneConfig=dict(PrivateZone=True, Comment=f"test {zone} com"),
+            VPC={"VPCRegion": region, "VPCId": vpc_id},
+        )
+
+    # List the zones associated with this vpc
+    response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
+    response.should.have.key("ResponseMetadata")
+    response.should.have.key("HostedZoneSummaries")
+    response["HostedZoneSummaries"].should.have.length_of(3)
+
+    # Loop through all zone summaries and verify they match what was created
+    for summary in response["HostedZoneSummaries"]:
+        # use the zone name as the index
+        index = summary["Name"].split(".")[1]
+        summary.should.have.key("HostedZoneId")
+        summary["HostedZoneId"].should.equal(zones[index]["HostedZone"]["Id"])
+        summary.should.have.key("Name")
+        summary["Name"].should.equal(zones[index]["HostedZone"]["Name"])
+
+
 @mock_route53
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -711,7 +860,7 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1012,7 +1161,7 @@ def test_change_resource_record_invalid():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1073,7 +1222,7 @@ def test_list_resource_record_sets_name_type_filters():
     create_hosted_zone_response = conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
     )
     hosted_zone_id = create_hosted_zone_response["HostedZone"]["Id"]
 
@@ -1142,7 +1291,7 @@ def test_change_resource_record_sets_records_limit():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1194,7 +1343,6 @@ def test_change_resource_record_sets_records_limit():
         "Comment": "Create four records with 250 resource records each, plus one more",
         "Changes": too_many_changes,
     }
-
     with pytest.raises(ClientError) as exc:
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id,

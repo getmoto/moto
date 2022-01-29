@@ -323,20 +323,24 @@ class ELBBackend(BaseBackend):
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
                         same_protocol = protocol.lower() == listener.protocol.lower()
-                        if same_protocol and instance_port == listener.instance_port and ssl_certificate_id == listener.ssl_certificate_id:
+                        if (
+                            same_protocol
+                            and instance_port == listener.instance_port
+                            and ssl_certificate_id == listener.ssl_certificate_id
+                        ):
                             # Idempotent operation - if this exact listener already exists, we can ignore
                             return balancer
-                        if not same_protocol or instance_port != listener.instance_port or ssl_certificate_id != listener.ssl_certificate_id:
+                        if (
+                            not same_protocol
+                            or instance_port != listener.instance_port
+                            or ssl_certificate_id != listener.ssl_certificate_id
+                        ):
                             raise DuplicateListenerError(name, lb_port)
 
                 if ssl_certificate_id:
-                    self._register_certificate(
-                        ssl_certificate_id, balancer.dns_name
-                    )
+                    self._register_certificate(ssl_certificate_id, balancer.dns_name)
                 balancer.listeners.append(
-                    FakeListener(
-                        lb_port, instance_port, protocol, ssl_certificate_id
-                    )
+                    FakeListener(lb_port, instance_port, protocol, ssl_certificate_id)
                 )
 
         return balancer

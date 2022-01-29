@@ -66,6 +66,7 @@ TestAccAWSIAMGroupPolicyAttachment
 TestAccAWSIAMRole
 TestAccAWSIAMUserPolicy
 TestAccAWSIPRanges
+TestAccAWSKinesisStream
 TestAccAWSKmsAlias
 TestAccAWSKmsSecretDataSource
 TestAccAWSMq

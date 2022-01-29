@@ -9,6 +9,7 @@ Moto has a script that can automatically provide the scaffolding for a new servi
 Please try it out by running:
 
 .. sourcecode:: bash
+
   export AWS_DEFAULT_REGION="us-east-2"
   python scripts/scaffold.py
 

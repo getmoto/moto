@@ -6,7 +6,7 @@ from moto import mock_route53
 
 
 @mock_route53
-def test_list_reusable_delegation_sets():
+def test_list_reusable_delegation_set():
     client = boto3.client("route53", region_name="us-east-1")
     resp = client.list_reusable_delegation_sets()
 

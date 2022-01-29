@@ -127,16 +127,21 @@ class BaseMockAWS:
         return wrapper
 
     def decorate_class(self, klass):
-        direct_methods = set(
-            x
-            for x, y in klass.__dict__.items()
-            if isinstance(y, (FunctionType, classmethod, staticmethod))
-        )
+        direct_methods = get_direct_methods_of(klass)
         defined_classes = set(
             x for x, y in klass.__dict__.items() if inspect.isclass(y)
         )
 
-        has_setup_method = "setUp" in direct_methods
+        # Get a list of all userdefined superclasses
+        superclasses = [
+            c for c in klass.__mro__ if c not in [unittest.TestCase, object]
+        ]
+        # Get a list of all userdefined methods
+        supermethods = itertools.chain(
+            *[get_direct_methods_of(c) for c in superclasses]
+        )
+        # Check whether the user has overridden the setUp-method
+        has_setup_method = "setUp" in supermethods
 
         for attr in itertools.chain(direct_methods, defined_classes):
             if attr.startswith("_"):
@@ -198,6 +203,14 @@ class BaseMockAWS:
                 os.environ[k] = v
             else:
                 del os.environ[k]
+
+
+def get_direct_methods_of(klass):
+    return set(
+        x
+        for x, y in klass.__dict__.items()
+        if isinstance(y, (FunctionType, classmethod, staticmethod))
+    )
 
 
 RESPONSES_METHODS = [
@@ -374,12 +387,16 @@ MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
+    def __init__(self, *args, **kwargs):
+        self.test_server_mode_endpoint = settings.test_server_mode_endpoint()
+        super().__init__(*args, **kwargs)
+
     def reset(self):
         call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
         if not call_reset_api or call_reset_api.lower() != "false":
             import requests
 
-            requests.post("http://localhost:5000/moto-api/reset")
+            requests.post(f"{self.test_server_mode_endpoint}/moto-api/reset")
 
     def enable_patching(self, reset=True):
         if self.__class__.nested_count == 1 and reset:
@@ -397,12 +414,12 @@ class ServerModeMockAWS(BaseMockAWS):
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = self.test_server_mode_endpoint
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args, **kwargs):
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = self.test_server_mode_endpoint
             return real_boto3_resource(*args, **kwargs)
 
         self._client_patcher = patch("boto3.client", fake_boto3_client)

@@ -48,6 +48,42 @@ def lambda_handler(event, context):
     return _process_lambda(func_str)
 
 
+def get_lambda_using_environment_port():
+    func_str = """
+import boto3
+import os
+
+def lambda_handler(event, context):
+    base_url = os.environ.get("MOTO_HOST")
+    port = os.environ.get("MOTO_PORT")
+    url = base_url + ":" + port
+    conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
+
+    full_url = os.environ["MOTO_HTTP_ENDPOINT"]
+
+    functions = conn.list_functions()["Functions"]
+
+    return {'functions': functions, 'host': full_url}
+"""
+    return _process_lambda(func_str)
+
+
+def get_lambda_using_network_mode():
+    func_str = """
+import boto3
+import os
+
+def lambda_handler(event, context):
+    port = os.environ.get("MOTO_PORT")
+    url = "http://localhost:" + port
+    conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
+
+    functions = conn.list_functions()["Functions"]
+    return {'response': functions}
+"""
+    return _process_lambda(func_str)
+
+
 def get_test_zip_file3():
     pfunc = """
 def lambda_handler(event, context):
