@@ -93,6 +93,12 @@ class Route53(BaseResponse):
         template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
         return 200, headers, template.render(zones=zones, xmlns=XMLNS)
 
+    def get_hosted_zone_count_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        num_zones = route53_backend.get_hosted_zone_count()
+        template = Template(GET_HOSTED_ZONE_COUNT_RESPONSE)
+        return 200, headers, template.render(zone_count=num_zones, xmlns=XMLNS)
+
     @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -413,6 +419,11 @@ DELETE_HOSTED_ZONE_RESPONSE = """<DeleteHostedZoneResponse xmlns="https://route5
    <ChangeInfo>
    </ChangeInfo>
 </DeleteHostedZoneResponse>"""
+
+GET_HOSTED_ZONE_COUNT_RESPONSE = """<GetHostedZoneCountResponse> xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+   <HostedZoneCount>{{ zone_count }}</HostedZoneCount>
+</GetHostedZoneCountResponse>"""
+
 
 GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <HostedZone>

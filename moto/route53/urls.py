@@ -18,6 +18,7 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/rrset/?$": Route53().rrset_response,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzonesbyname": Route53().list_hosted_zones_by_name_response,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzonesbyvpc": Route53().list_hosted_zones_by_vpc_response,
+    r"{0}/(?P<api_version>[\d_-]+)/hostedzonecount": Route53().get_hosted_zone_count_response,
     r"{0}/(?P<api_version>[\d_-]+)/healthcheck": Route53().health_check_response,
     r"{0}/(?P<api_version>[\d_-]+)/healthcheck/(?P<health_check_id>[^/]+)$": Route53().health_check_response,
     r"{0}/(?P<api_version>[\d_-]+)/tags/healthcheck/(?P<zone_id>[^/]+)$": tag_response1,

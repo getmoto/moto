@@ -62,6 +62,57 @@ def test_delete_hosted_zone():
 
 
 @mock_route53
+def test_get_hosted_zone_count_no_zones():
+    conn = boto3.client("route53", region_name="us-east-1")
+    zone_count = conn.get_hosted_zone_count()
+    zone_count.should.have.key("HostedZoneCount")
+    isinstance(zone_count["HostedZoneCount"], int).should.be.true
+    zone_count["HostedZoneCount"].should.be.equal(0)
+
+
+@mock_route53
+def test_get_hosted_zone_count_one_zone():
+    conn = boto3.client("route53", region_name="us-east-1")
+    zone = "a"
+    zone_name = f"test.{zone}.com."
+    conn.create_hosted_zone(
+        Name=zone_name,
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
+    )
+    zone_count = conn.get_hosted_zone_count()
+    zone_count.should.have.key("HostedZoneCount")
+    isinstance(zone_count["HostedZoneCount"], int).should.be.true
+    zone_count["HostedZoneCount"].should.be.equal(1)
+
+
+@mock_route53
+def test_get_hosted_zone_count_many_zones():
+    conn = boto3.client("route53", region_name="us-east-1")
+    zones = {}
+    zone_indexes = []
+    for char in range(ord("a"), ord("d") + 1):
+        for char2 in range(ord("a"), ord("z") + 1):
+            zone_indexes.append(f"{chr(char)}{chr(char2)}")
+
+    # Create 100-ish zones and make sure we get 100 back.  This works
+    # for 702 zones {a..zz}, but seemed a needless waste of
+    # time/resources.
+    for zone in zone_indexes:
+        zone_name = f"test.{zone}.com."
+        zones[zone] = conn.create_hosted_zone(
+            Name=zone_name,
+            CallerReference=str(hash("foo")),
+            HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
+        )
+    zone_count = conn.get_hosted_zone_count()
+    zone_count.should.have.key("HostedZoneCount")
+    isinstance(zone_count["HostedZoneCount"], int).should.be.true
+    zone_count["HostedZoneCount"].shouldnt.be.equal(0)
+    zone_count["HostedZoneCount"].should.be.equal(len(zone_indexes))
+
+
+@mock_route53
 def test_get_unknown_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
 
