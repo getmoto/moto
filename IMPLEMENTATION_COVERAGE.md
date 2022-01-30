@@ -1280,7 +1280,7 @@
 
 ## ec2
 <details>
-<summary>34% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
@@ -1394,7 +1394,7 @@
 - [X] create_vpc
 - [X] create_vpc_endpoint
 - [ ] create_vpc_endpoint_connection_notification
-- [ ] create_vpc_endpoint_service_configuration
+- [X] create_vpc_endpoint_service_configuration
 - [X] create_vpc_peering_connection
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
@@ -1455,7 +1455,7 @@
 - [X] delete_volume
 - [X] delete_vpc
 - [ ] delete_vpc_endpoint_connection_notifications
-- [ ] delete_vpc_endpoint_service_configurations
+- [X] delete_vpc_endpoint_service_configurations
 - [X] delete_vpc_endpoints
 - [X] delete_vpc_peering_connection
 - [X] delete_vpn_connection
@@ -1593,8 +1593,8 @@
 - [ ] describe_vpc_classic_link_dns_support
 - [ ] describe_vpc_endpoint_connection_notifications
 - [ ] describe_vpc_endpoint_connections
-- [ ] describe_vpc_endpoint_service_configurations
-- [ ] describe_vpc_endpoint_service_permissions
+- [X] describe_vpc_endpoint_service_configurations
+- [X] describe_vpc_endpoint_service_permissions
 - [X] describe_vpc_endpoint_services
 - [X] describe_vpc_endpoints
 - [X] describe_vpc_peering_connections
@@ -1728,9 +1728,9 @@
 - [X] modify_vpc_attribute
 - [ ] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
-- [ ] modify_vpc_endpoint_service_configuration
+- [X] modify_vpc_endpoint_service_configuration
 - [ ] modify_vpc_endpoint_service_payer_responsibility
-- [ ] modify_vpc_endpoint_service_permissions
+- [X] modify_vpc_endpoint_service_permissions
 - [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
 - [ ] modify_vpn_connection

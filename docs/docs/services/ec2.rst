@@ -141,7 +141,7 @@ ec2
 - [X] create_vpc
 - [X] create_vpc_endpoint
 - [ ] create_vpc_endpoint_connection_notification
-- [ ] create_vpc_endpoint_service_configuration
+- [X] create_vpc_endpoint_service_configuration
 - [X] create_vpc_peering_connection
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
@@ -202,7 +202,7 @@ ec2
 - [X] delete_volume
 - [X] delete_vpc
 - [ ] delete_vpc_endpoint_connection_notifications
-- [ ] delete_vpc_endpoint_service_configurations
+- [X] delete_vpc_endpoint_service_configurations
 - [X] delete_vpc_endpoints
 - [X] delete_vpc_peering_connection
 - [X] delete_vpn_connection
@@ -344,8 +344,16 @@ ec2
 - [ ] describe_vpc_classic_link_dns_support
 - [ ] describe_vpc_endpoint_connection_notifications
 - [ ] describe_vpc_endpoint_connections
-- [ ] describe_vpc_endpoint_service_configurations
-- [ ] describe_vpc_endpoint_service_permissions
+- [X] describe_vpc_endpoint_service_configurations
+  
+        The Filters, MaxResults, NextToken parameters are not yet implemented
+        
+
+- [X] describe_vpc_endpoint_service_permissions
+  
+        The Filters, MaxResults, NextToken parameters are not yet implemented
+        
+
 - [X] describe_vpc_endpoint_services
   Return info on services to which you can create a VPC endpoint.
 
@@ -490,9 +498,13 @@ ec2
 - [X] modify_vpc_attribute
 - [ ] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
-- [ ] modify_vpc_endpoint_service_configuration
+- [X] modify_vpc_endpoint_service_configuration
+  
+        The following parameters are not yet implemented: RemovePrivateDnsName, AddNetworkLoadBalancerArns, RemoveNetworkLoadBalancerArns, AddGatewayLoadBalancerArns, RemoveGatewayLoadBalancerArns
+        
+
 - [ ] modify_vpc_endpoint_service_payer_responsibility
-- [ ] modify_vpc_endpoint_service_permissions
+- [X] modify_vpc_endpoint_service_permissions
 - [X] modify_vpc_peering_connection_options
 - [X] modify_vpc_tenancy
 - [ ] modify_vpn_connection

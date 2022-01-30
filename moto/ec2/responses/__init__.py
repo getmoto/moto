@@ -30,6 +30,7 @@ from .virtual_private_gateways import VirtualPrivateGateways
 from .vm_export import VMExport
 from .vm_import import VMImport
 from .vpcs import VPCs
+from .vpc_service_configuration import VPCEndpointServiceConfiguration
 from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
@@ -74,6 +75,7 @@ class EC2Response(
     VMExport,
     VMImport,
     VPCs,
+    VPCEndpointServiceConfiguration,
     VPCPeeringConnections,
     VPNConnections,
     Windows,

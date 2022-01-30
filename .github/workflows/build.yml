@@ -268,6 +268,8 @@ jobs:
         cd ..
     - name: "Create report"
       run: |
+        ls -la
+        cp server_output.log moto-terraform-tests/build/server_output.log
         cd moto-terraform-tests
         bin/create-report
         bin/create-report-cli
