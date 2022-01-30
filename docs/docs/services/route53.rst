@@ -64,7 +64,7 @@ route53
 - [ ] get_health_check_last_failure_reason
 - [ ] get_health_check_status
 - [X] get_hosted_zone
-- [ ] get_hosted_zone_count
+- [X] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
 - [X] get_query_logging_config
   Return query logging config, if it exists.
