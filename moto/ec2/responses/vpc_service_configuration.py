@@ -62,11 +62,19 @@ class VPCEndpointServiceConfiguration(BaseResponse):
         acceptance_required = (
             str(self._get_param("AcceptanceRequired", "true")).lower() == "true"
         )
+        add_network_lbs = self._get_multi_param("AddNetworkLoadBalancerArn")
+        remove_network_lbs = self._get_multi_param("RemoveNetworkLoadBalancerArn")
+        add_gateway_lbs = self._get_multi_param("AddGatewayLoadBalancerArn")
+        remove_gateway_lbs = self._get_multi_param("RemoveGatewayLoadBalancerArn")
 
         self.ec2_backend.modify_vpc_endpoint_service_configuration(
             service_id,
             acceptance_required=acceptance_required,
             private_dns_name=private_dns_name,
+            add_network_lbs=add_network_lbs,
+            remove_network_lbs=remove_network_lbs,
+            add_gateway_lbs=add_gateway_lbs,
+            remove_gateway_lbs=remove_gateway_lbs,
         )
 
         return MODIFY_VPC_ENDPOINT_SERVICE_CONFIGURATION
@@ -99,10 +107,14 @@ CREATE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
       <acceptanceRequired>{{ 'true' if config.acceptance_required else 'false' }}</acceptanceRequired>
       <managesVpcEndpoints>{{ 'true' if config.manages_vpc_endpoints else 'false' }}</managesVpcEndpoints>
       {%- if config.network_load_balancer_arns %}
-      <networkLoadBalancerArnSet><item>{{ config.network_load_balancer_arns }}</item></networkLoadBalancerArnSet>
+      <networkLoadBalancerArnSet>
+        {% for lb in config.network_load_balancer_arns %}<item>{{ lb }}</item>{% endfor %}
+      </networkLoadBalancerArnSet>
       {% endif -%}
       {%- if config.gateway_load_balancer_arns %}
-      <gatewayLoadBalancerArnSet><item>{{ config.gateway_load_balancer_arns }}</item></gatewayLoadBalancerArnSet>
+      <gatewayLoadBalancerArnSet>
+        {% for lb in config.gateway_load_balancer_arns %}<item>{{ lb }}</item>{% endfor %}
+      </gatewayLoadBalancerArnSet>
       {% endif -%}
       <baseEndpointDnsNameSet><item>{{ config.endpoint_dns_name }}</item></baseEndpointDnsNameSet>
       <privateDnsName>{{ config.private_dns_name }}</privateDnsName>
@@ -129,10 +141,14 @@ DESCRIBE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
           <acceptanceRequired>{{ 'true' if config.acceptance_required else 'false' }}</acceptanceRequired>
           <managesVpcEndpoints>{{ 'true' if config.manages_vpc_endpoints else 'false' }}</managesVpcEndpoints>
           {%- if config.network_load_balancer_arns %}
-          <networkLoadBalancerArnSet><item>{{ config.network_load_balancer_arns }}</item></networkLoadBalancerArnSet>
+          <networkLoadBalancerArnSet>
+            {% for lb in config.network_load_balancer_arns %}<item>{{ lb }}</item>{% endfor %}
+          </networkLoadBalancerArnSet>
           {% endif -%}
           {%- if config.gateway_load_balancer_arns %}
-          <gatewayLoadBalancerArnSet><item>{{ config.gateway_load_balancer_arns }}</item></gatewayLoadBalancerArnSet>
+          <gatewayLoadBalancerArnSet>
+            {% for lb in config.gateway_load_balancer_arns %}<item>{{ lb }}</item>{% endfor %}
+          </gatewayLoadBalancerArnSet>
           {% endif -%}
           <baseEndpointDnsNameSet><item>{{ config.endpoint_dns_name }}</item></baseEndpointDnsNameSet>
           <privateDnsName>{{ config.private_dns_name }}</privateDnsName>

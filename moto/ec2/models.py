@@ -1477,27 +1477,6 @@ class SettingsBackend(object):
 class TagBackend(object):
     VALID_TAG_FILTERS = ["key", "resource-id", "resource-type", "value"]
 
-    VALID_TAG_RESOURCE_FILTER_TYPES = [
-        "customer-gateway",
-        "dhcp-options",
-        "image",
-        "instance",
-        "internet-gateway",
-        "network-acl",
-        "network-interface",
-        "reserved-instances",
-        "route-table",
-        "security-group",
-        "snapshot",
-        "spot-instances-request",
-        "subnet",
-        "volume",
-        "vpc",
-        "vpc-flow-log",
-        "vpc-peering-connection" "vpn-connection",
-        "vpn-gateway",
-    ]
-
     def __init__(self):
         self.tags = defaultdict(dict)
         super().__init__()
@@ -8750,6 +8729,8 @@ class EC2Backend(
                 self.get_volume(volume_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpc"]:
                 self.get_vpc(vpc_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpc-endpoint-service"]:
+                self.get_vpc_endpoint_service(resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpc-peering-connection"]:
                 self.get_vpc_peering_connection(vpc_pcx_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpn-connection"]:

@@ -114,15 +114,6 @@ def test_create_vpc_endpoint_service_configuration_with_options():
 
 
 @mock_ec2
-def test_describe_vpc_endpoint_service_configurations_empty():
-    client = boto3.client("ec2", region_name="eu-west-3")
-
-    resp = client.describe_vpc_endpoint_service_configurations()
-
-    resp.should.have.key("ServiceConfigurations").equals([])
-
-
-@mock_ec2
 @mock_elbv2
 def test_describe_vpc_endpoint_service_configurations():
     region = "us-east-2"
@@ -177,6 +168,32 @@ def test_describe_vpc_endpoint_service_configurations_with_tags(tags):
         GatewayLoadBalancerArns=[lb_arn],
         TagSpecifications=[{"ResourceType": "vpc-endpoint-service", "Tags": tags}],
     )["ServiceConfiguration"]["ServiceId"]
+
+    resp = client.describe_vpc_endpoint_service_configurations(ServiceIds=[service_id])
+
+    resp.should.have.key("ServiceConfigurations").length_of(1)
+    result = resp["ServiceConfigurations"][0]
+    result.should.have.key("Tags").length_of(len(tags))
+    for tag in tags:
+        result["Tags"].should.contain(tag)
+
+
+@mock_ec2
+@mock_elbv2
+def test_describe_vpc_endpoint_service_configurations_and_add_tags():
+    tags = [{"Key": "k1", "Value": "v1"}]
+    region = "us-east-2"
+    client = boto3.client("ec2", region_name=region)
+
+    lb_arn = create_load_balancer(
+        region_name=region, lb_type="gateway", zone="us-east-1c"
+    )
+
+    service_id = client.create_vpc_endpoint_service_configuration(
+        GatewayLoadBalancerArns=[lb_arn]
+    )["ServiceConfiguration"]["ServiceId"]
+
+    client.create_tags(Resources=[service_id], Tags=tags)
 
     resp = client.describe_vpc_endpoint_service_configurations(ServiceIds=[service_id])
 
@@ -315,6 +332,51 @@ def test_modify_vpc_endpoint_service_configuration():
 
     config.should.have.key("AcceptanceRequired").equals(False)
     config.should.have.key("PrivateDnsName").equals("dnsname")
+
+
+@mock_ec2
+@mock_elbv2
+def test_modify_vpc_endpoint_service_configuration_with_new_loadbalancers():
+    region = "us-east-2"
+    client = boto3.client("ec2", region_name=region)
+
+    lb_arn = create_load_balancer(
+        region_name=region, lb_type="gateway", zone="us-east-1c"
+    )
+    lb_arn2 = create_load_balancer(
+        region_name=region, lb_type="gateway", zone="us-east-1c"
+    )
+    lb_arn3 = create_load_balancer(
+        region_name=region, lb_type="network", zone="us-east-1c"
+    )
+
+    service_id = client.create_vpc_endpoint_service_configuration(
+        GatewayLoadBalancerArns=[lb_arn]
+    )["ServiceConfiguration"]["ServiceId"]
+
+    client.modify_vpc_endpoint_service_configuration(
+        ServiceId=service_id,
+        AddNetworkLoadBalancerArns=[lb_arn3],
+        AddGatewayLoadBalancerArns=[lb_arn2],
+    )
+
+    config = client.describe_vpc_endpoint_service_configurations(
+        ServiceIds=[service_id]
+    )["ServiceConfigurations"][0]
+    config["GatewayLoadBalancerArns"].should.equal([lb_arn, lb_arn2])
+    config["NetworkLoadBalancerArns"].should.equal([lb_arn3])
+
+    client.modify_vpc_endpoint_service_configuration(
+        ServiceId=service_id,
+        RemoveNetworkLoadBalancerArns=[lb_arn3],
+        RemoveGatewayLoadBalancerArns=[lb_arn],
+    )
+
+    config = client.describe_vpc_endpoint_service_configurations(
+        ServiceIds=[service_id]
+    )["ServiceConfigurations"][0]
+    config["GatewayLoadBalancerArns"].should.equal([lb_arn2])
+    config.shouldnt.have.key("NetworkLoadBalancerArns")
 
 
 def create_load_balancer(region_name, zone, lb_type):

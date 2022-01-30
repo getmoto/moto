@@ -6,22 +6,26 @@ from ..exceptions import UnknownVpcEndpointService
 
 class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
     def __init__(
-        self, load_balancer, region, acceptance_required, private_dns_name, ec2_backend
+        self, load_balancers, region, acceptance_required, private_dns_name, ec2_backend
     ):
-        self.id = f"vpce-svc-{get_random_hex(length=17)}"
+        self.id = f"vpce-svc-{get_random_hex(length=8)}"
         self.service_name = f"com.amazonaws.vpce.{region}.{self.id}"
         self.service_state = "Available"
 
-        self.availability_zones = [s.availability_zone for s in load_balancer.subnets]
+        self.availability_zones = []
+        for lb in load_balancers:
+            for subnet in lb.subnets:
+                self.availability_zones.append(subnet.availability_zone)
 
-        if load_balancer.loadbalancer_type == "network":
-            self.service_type = "Interface"
-            self.gateway_load_balancer_arns = None
-            self.network_load_balancer_arns = load_balancer.arn
-        else:
-            self.service_type = "Gateway"
-            self.gateway_load_balancer_arns = load_balancer.arn
-            self.network_load_balancer_arns = None
+        self.gateway_load_balancer_arns = []
+        self.network_load_balancer_arns = []
+        for lb in load_balancers:
+            if lb.loadbalancer_type == "network":
+                self.service_type = "Interface"
+                self.network_load_balancer_arns.append(lb.arn)
+            else:
+                self.service_type = "Gateway"
+                self.gateway_load_balancer_arns.append(lb.arn)
 
         self.acceptance_required = acceptance_required
         self.manages_vpc_endpoints = False
@@ -43,12 +47,15 @@ class VPCServiceConfigurationBackend(object):
 
         return elbv2_backends[self.region_name]
 
+    def get_vpc_endpoint_service(self, resource_id):
+        return self.configurations.get(resource_id)
+
     def create_vpc_endpoint_service_configuration(
         self, lb_arns, acceptance_required, private_dns_name, tags
     ):
         lbs = self.elbv2_backend.describe_load_balancers(arns=lb_arns, names=None)
         config = VPCServiceConfiguration(
-            load_balancer=lbs[0],
+            load_balancers=lbs,
             region=self.region_name,
             acceptance_required=acceptance_required,
             private_dns_name=private_dns_name,
@@ -98,10 +105,17 @@ class VPCServiceConfigurationBackend(object):
         config.principals = list(set(config.principals))
 
     def modify_vpc_endpoint_service_configuration(
-        self, service_id, acceptance_required, private_dns_name
+        self,
+        service_id,
+        acceptance_required,
+        private_dns_name,
+        add_network_lbs,
+        remove_network_lbs,
+        add_gateway_lbs,
+        remove_gateway_lbs,
     ):
         """
-        The following parameters are not yet implemented: RemovePrivateDnsName, AddNetworkLoadBalancerArns, RemoveNetworkLoadBalancerArns, AddGatewayLoadBalancerArns, RemoveGatewayLoadBalancerArns
+        The following parameters are not yet implemented: RemovePrivateDnsName
         """
         config = self.describe_vpc_endpoint_service_configurations([service_id])[0]
         config.acceptance_required = (
@@ -112,3 +126,11 @@ class VPCServiceConfigurationBackend(object):
         config.private_dns_name = (
             config.private_dns_name if private_dns_name is None else private_dns_name
         )
+        for lb in add_network_lbs:
+            config.network_load_balancer_arns.append(lb)
+        for lb in remove_network_lbs:
+            config.network_load_balancer_arns.remove(lb)
+        for lb in add_gateway_lbs:
+            config.gateway_load_balancer_arns.append(lb)
+        for lb in remove_gateway_lbs:
+            config.gateway_load_balancer_arns.remove(lb)
