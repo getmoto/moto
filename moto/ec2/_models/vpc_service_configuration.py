@@ -118,14 +118,10 @@ class VPCServiceConfigurationBackend(object):
         The following parameters are not yet implemented: RemovePrivateDnsName
         """
         config = self.describe_vpc_endpoint_service_configurations([service_id])[0]
-        config.acceptance_required = (
-            config.acceptance_required
-            if acceptance_required is None
-            else acceptance_required
-        )
-        config.private_dns_name = (
-            config.private_dns_name if private_dns_name is None else private_dns_name
-        )
+        if private_dns_name is not None:
+            config.private_dns_name = private_dns_name
+        if acceptance_required is not None:
+            config.acceptance_required = str(acceptance_required).lower() == "true"
         for lb in add_network_lbs:
             config.network_load_balancer_arns.append(lb)
         for lb in remove_network_lbs:

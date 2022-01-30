@@ -59,9 +59,7 @@ class VPCEndpointServiceConfiguration(BaseResponse):
     def modify_vpc_endpoint_service_configuration(self):
         service_id = self._get_param("ServiceId")
         private_dns_name = self._get_param("PrivateDnsName")
-        acceptance_required = (
-            str(self._get_param("AcceptanceRequired", "true")).lower() == "true"
-        )
+        acceptance_required = self._get_param("AcceptanceRequired")
         add_network_lbs = self._get_multi_param("AddNetworkLoadBalancerArn")
         remove_network_lbs = self._get_multi_param("RemoveNetworkLoadBalancerArn")
         add_gateway_lbs = self._get_multi_param("AddGatewayLoadBalancerArn")
