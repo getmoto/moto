@@ -75,7 +75,7 @@ def test_get_hosted_zone_count_one_zone():
     conn = boto3.client("route53", region_name="us-east-1")
     zone = "a"
     zone_name = f"test.{zone}.com."
-    zone_a = conn.create_hosted_zone(
+    conn.create_hosted_zone(
         Name=zone_name,
         CallerReference=str(hash("foo")),
         HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
