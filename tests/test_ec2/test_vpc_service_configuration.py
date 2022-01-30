@@ -132,15 +132,18 @@ def test_describe_vpc_endpoint_service_configurations():
         region_name=region, lb_type="gateway", zone="us-east-1c"
     )
 
-    client.create_vpc_endpoint_service_configuration(GatewayLoadBalancerArns=[lb_arn])[
-        "ServiceConfiguration"
-    ]["ServiceId"]
+    config1 = client.create_vpc_endpoint_service_configuration(
+        GatewayLoadBalancerArns=[lb_arn]
+    )["ServiceConfiguration"]["ServiceId"]
     config2 = client.create_vpc_endpoint_service_configuration(
         GatewayLoadBalancerArns=[lb_arn]
     )["ServiceConfiguration"]["ServiceId"]
 
     resp = client.describe_vpc_endpoint_service_configurations()
-    resp.should.have.key("ServiceConfigurations").length_of(2)
+    resp.should.have.key("ServiceConfigurations")
+    service_ids = [s["ServiceId"] for s in resp["ServiceConfigurations"]]
+    service_ids.should.contain(config1)
+    service_ids.should.contain(config2)
 
     resp = client.describe_vpc_endpoint_service_configurations(ServiceIds=[config2])
 

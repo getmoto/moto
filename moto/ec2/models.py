@@ -469,6 +469,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return self.description
         elif filter_name == "attachment.instance-id":
             return self.instance.id if self.instance else None
+        elif filter_name == "attachment.instance-owner-id":
+            return self.owner_id
         else:
             return super().get_filter_value(filter_name, "DescribeNetworkInterfaces")
 
