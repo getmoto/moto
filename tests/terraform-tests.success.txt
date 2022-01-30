@@ -133,3 +133,4 @@ TestAccAWSDataSourceIAMRole
 TestAccAWSDataSourceIAMUser
 TestAccAWSIAMAccountAlias
 TestAccAWSIAMOpenIDConnectProvider
+TestAccAWSVpcEndpointService

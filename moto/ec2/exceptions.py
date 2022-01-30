@@ -734,3 +734,19 @@ class InvalidCarrierGatewayID(EC2ClientError):
             "InvalidCarrierGatewayID.NotFound",
             "The CarrierGateway ID '{0}' does not exist".format(carrier_gateway_id),
         )
+
+
+class NoLoadBalancersProvided(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "InvalidParameter",
+            "exactly one of network_load_balancer_arn or gateway_load_balancer_arn is a required member",
+        )
+
+
+class UnknownVpcEndpointService(EC2ClientError):
+    def __init__(self, service_id):
+        super().__init__(
+            "InvalidVpcEndpointServiceId.NotFound",
+            f"The VpcEndpointService Id '{service_id}' does not exist",
+        )

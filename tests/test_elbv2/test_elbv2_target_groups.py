@@ -153,7 +153,7 @@ def test_create_target_group_and_listeners():
     e.value.operation_name.should.equal("DeleteTargetGroup")
     e.value.args.should.equal(
         (
-            "An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:1:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule",
+            f"An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule",
         )
     )  # NOQA
 

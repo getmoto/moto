@@ -43,6 +43,7 @@ EC2_RESOURCE_TO_PREFIX = {
     "volume": "vol",
     "vpc": "vpc",
     "vpc-endpoint": "vpce",
+    "vpc-endpoint-service": "vpce-svc",
     "managed-prefix-list": "pl",
     "vpc-cidr-association-id": "vpc-cidr-assoc",
     "vpc-elastic-ip": "eipalloc",
@@ -626,6 +627,8 @@ def get_prefix(resource_id):
     if resource_id_prefix == EC2_RESOURCE_TO_PREFIX["network-interface"]:
         if after.startswith("attach"):
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX["network-interface-attachment"]
+    if resource_id.startswith(EC2_RESOURCE_TO_PREFIX["vpc-endpoint-service"]):
+        resource_id_prefix = EC2_RESOURCE_TO_PREFIX["vpc-endpoint-service"]
     if resource_id_prefix not in EC2_RESOURCE_TO_PREFIX.values():
         uuid4hex = re.compile(r"[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z", re.I)
         if uuid4hex.match(resource_id) is not None:

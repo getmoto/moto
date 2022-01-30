@@ -19,7 +19,7 @@ def test_create_load_balancer():
     lb = response.get("LoadBalancers")[0]
     lb.get("DNSName").should.equal("my-lb-1.us-east-1.elb.amazonaws.com")
     lb.get("LoadBalancerArn").should.equal(
-        "arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188"
+        f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/my-lb/50dc6c495c0c9188"
     )
     lb.get("SecurityGroups").should.equal([security_group.id])
     lb.get("AvailabilityZones").should.equal(
@@ -1222,6 +1222,25 @@ def test_modify_load_balancer_attributes_routing_http2_enabled():
         )
     )[0]
     routing_http2_enabled["Value"].should.equal("false")
+
+
+@mock_elbv2
+@mock_ec2
+def test_modify_load_balancer_attributes_crosszone_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[
+            {"Key": "load_balancing.cross_zone.enabled", "Value": "false"},
+            {"Key": "deletion_protection.enabled", "Value": "false"},
+        ],
+    )
+
+    attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
+    attrs.should.contain({"Key": "deletion_protection.enabled", "Value": "false"})
+    attrs.should.contain({"Key": "load_balancing.cross_zone.enabled", "Value": "false"})
 
 
 @mock_elbv2

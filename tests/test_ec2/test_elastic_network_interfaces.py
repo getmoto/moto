@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
+from moto.core import ACCOUNT_ID
 from moto.ec2.utils import random_private_ip
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
@@ -486,6 +487,38 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
     filters = [{"Name": "attachment.instance-id", "Values": ["this-doesnt-match-lol"]}]
     enis = ec2_client.describe_network_interfaces(Filters=filters)
     enis.get("NetworkInterfaces").should.have.length_of(0)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
+    ec2_resource = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2_resource.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    security_group1 = ec2_resource.create_security_group(
+        GroupName=str(uuid4()), Description="desc"
+    )
+
+    create_instances_result = ec2_resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )
+    instance = create_instances_result[0]
+
+    eni1 = ec2_resource.create_network_interface(
+        SubnetId=subnet.id, Groups=[security_group1.id]
+    )
+    ec2_client.attach_network_interface(
+        NetworkInterfaceId=eni1.id, InstanceId=instance.id, DeviceIndex=1
+    )
+
+    filters = [{"Name": "attachment.instance-owner-id", "Values": [ACCOUNT_ID]}]
+    enis = ec2_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
+    eni_ids = [eni["NetworkInterfaceId"] for eni in enis]
+    eni_ids.should.contain(eni1.id)
 
 
 @mock_ec2

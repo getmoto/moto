@@ -17,7 +17,7 @@ from boto3 import Session
 
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend
-from moto.core.models import Model, BaseModel, CloudFormationModel
+from moto.core.models import Model, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
@@ -121,6 +121,8 @@ from .exceptions import (
     InvalidGatewayIDError,
     InvalidCarrierGatewayID,
 )
+from ._models.core import TaggedEC2Resource
+from ._models.vpc_service_configuration import VPCServiceConfigurationBackend
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
     EC2_PREFIX_TO_RESOURCE,
@@ -237,42 +239,6 @@ class StateReason(object):
     def __init__(self, message="", code=""):
         self.message = message
         self.code = code
-
-
-class TaggedEC2Resource(BaseModel):
-    def get_tags(self, *args, **kwargs):
-        tags = []
-        if self.id:
-            tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
-        return tags
-
-    def add_tag(self, key, value):
-        self.ec2_backend.create_tags([self.id], {key: value})
-
-    def add_tags(self, tag_map):
-        for key, value in tag_map.items():
-            self.ec2_backend.create_tags([self.id], {key: value})
-
-    def get_filter_value(self, filter_name, method_name=None):
-        tags = self.get_tags()
-
-        if filter_name.startswith("tag:"):
-            tagname = filter_name.replace("tag:", "", 1)
-            for tag in tags:
-                if tag["key"] == tagname:
-                    return tag["value"]
-
-            return None
-        elif filter_name == "tag-key":
-            return [tag["key"] for tag in tags]
-        elif filter_name == "tag-value":
-            return [tag["value"] for tag in tags]
-
-        value = getattr(self, filter_name.lower().replace("-", "_"), None)
-        if value is not None:
-            return value
-
-        raise FilterNotImplementedError(filter_name, method_name)
 
 
 class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
@@ -503,6 +469,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return self.description
         elif filter_name == "attachment.instance-id":
             return self.instance.id if self.instance else None
+        elif filter_name == "attachment.instance-owner-id":
+            return self.owner_id
         else:
             return super().get_filter_value(filter_name, "DescribeNetworkInterfaces")
 
@@ -1508,27 +1476,6 @@ class SettingsBackend(object):
 
 class TagBackend(object):
     VALID_TAG_FILTERS = ["key", "resource-id", "resource-type", "value"]
-
-    VALID_TAG_RESOURCE_FILTER_TYPES = [
-        "customer-gateway",
-        "dhcp-options",
-        "image",
-        "instance",
-        "internet-gateway",
-        "network-acl",
-        "network-interface",
-        "reserved-instances",
-        "route-table",
-        "security-group",
-        "snapshot",
-        "spot-instances-request",
-        "subnet",
-        "volume",
-        "vpc",
-        "vpc-flow-log",
-        "vpc-peering-connection" "vpn-connection",
-        "vpn-gateway",
-    ]
 
     def __init__(self):
         self.tags = defaultdict(dict)
@@ -8667,6 +8614,7 @@ class EC2Backend(
     FlowLogsBackend,
     NetworkInterfaceBackend,
     VPNConnectionBackend,
+    VPCServiceConfigurationBackend,
     VPCPeeringConnectionBackend,
     RouteTableBackend,
     RouteBackend,
@@ -8781,6 +8729,8 @@ class EC2Backend(
                 self.get_volume(volume_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpc"]:
                 self.get_vpc(vpc_id=resource_id)
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpc-endpoint-service"]:
+                self.get_vpc_endpoint_service(resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpc-peering-connection"]:
                 self.get_vpc_peering_connection(vpc_pcx_id=resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX["vpn-connection"]:
