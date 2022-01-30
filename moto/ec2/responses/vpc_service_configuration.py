@@ -118,7 +118,14 @@ CREATE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
       {% endif -%}
       <baseEndpointDnsNameSet><item>{{ config.endpoint_dns_name }}</item></baseEndpointDnsNameSet>
       <privateDnsName>{{ config.private_dns_name }}</privateDnsName>
-      <privateDnsNameConfiguration></privateDnsNameConfiguration>
+      <privateDnsNameConfiguration>
+      {% if config.private_dns_name %}
+        <state>verified</state>
+        <type>TXT</type>
+        <value>val</value>
+        <name>n</name>
+      {% endif %}
+      </privateDnsNameConfiguration>
   </serviceConfiguration>
 </CreateVpcEndpointServiceConfigurationResult>
 """
@@ -152,7 +159,14 @@ DESCRIBE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
           {% endif -%}
           <baseEndpointDnsNameSet><item>{{ config.endpoint_dns_name }}</item></baseEndpointDnsNameSet>
           <privateDnsName>{{ config.private_dns_name }}</privateDnsName>
-          <privateDnsNameConfiguration></privateDnsNameConfiguration>
+          <privateDnsNameConfiguration>
+          {% if config.private_dns_name %}
+            <state>verified</state>
+            <type>TXT</type>
+            <value>val</value>
+            <name>n</name>
+          {% endif %}
+          </privateDnsNameConfiguration>
           <tagSet>
                 {% for tag in config.get_tags() %}
                     <item>

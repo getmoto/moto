@@ -111,6 +111,9 @@ def test_create_vpc_endpoint_service_configuration_with_options():
 
     config.should.have.key("AcceptanceRequired").equals(False)
     config.should.have.key("PrivateDnsName").equals("example.com")
+    config.should.have.key("PrivateDnsNameConfiguration").equals(
+        {"Name": "n", "State": "verified", "Type": "TXT", "Value": "val"}
+    )
 
 
 @mock_ec2
