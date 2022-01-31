@@ -11,6 +11,7 @@ from jinja2 import Template
 from moto.route53.exceptions import (
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
+    NoSuchDelegationSet,
     NoSuchHostedZone,
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
@@ -25,6 +26,21 @@ ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 def create_route53_zone_id():
     # New ID's look like this Z1RWWTK7Y8UDDQ
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
+
+
+class DelegationSet(BaseModel):
+    def __init__(self, caller_reference, name_servers, delegation_set_id):
+        self.caller_reference = caller_reference
+        self.name_servers = name_servers or [
+            "ns-2048.awsdns-64.com",
+            "ns-2049.awsdns-65.net",
+            "ns-2050.awsdns-66.org",
+            "ns-2051.awsdns-67.co.uk",
+        ]
+        self.id = delegation_set_id or "".join(
+            [random.choice(ROUTE53_ID_CHOICE) for _ in range(5)]
+        )
+        self.location = f"https://route53.amazonaws.com/delegationset/{self.id}"
 
 
 class HealthCheck(CloudFormationModel):
@@ -213,7 +229,14 @@ def reverse_domain_name(domain_name):
 
 class FakeZone(CloudFormationModel):
     def __init__(
-        self, name, id_, private_zone, vpcid=None, vpcregion=None, comment=None
+        self,
+        name,
+        id_,
+        private_zone,
+        vpcid=None,
+        vpcregion=None,
+        comment=None,
+        delegation_set=None,
     ):
         self.name = name
         self.id = id_
@@ -225,6 +248,7 @@ class FakeZone(CloudFormationModel):
             self.vpcregion = vpcregion
         self.private_zone = private_zone
         self.rrsets = []
+        self.delegation_set = delegation_set
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -370,11 +394,21 @@ class Route53Backend(BaseBackend):
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
         self.query_logging_configs = {}
+        self.delegation_sets = dict()
 
     def create_hosted_zone(
-        self, name, private_zone, vpcid=None, vpcregion=None, comment=None
+        self,
+        name,
+        private_zone,
+        vpcid=None,
+        vpcregion=None,
+        comment=None,
+        delegation_set_id=None,
     ):
         new_id = create_route53_zone_id()
+        delegation_set = self.create_reusable_delegation_set(
+            caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
+        )
         new_zone = FakeZone(
             name,
             new_id,
@@ -382,6 +416,7 @@ class Route53Backend(BaseBackend):
             vpcid=vpcid,
             vpcregion=vpcregion,
             comment=comment,
+            delegation_set=delegation_set,
         )
         self.zones[new_id] = new_zone
         return new_zone
@@ -407,9 +442,18 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def list_resource_record_sets(self, zone_id, start_type, start_name):
+    def list_resource_record_sets(self, zone_id, start_type, start_name, max_items):
+        """
+        The StartRecordIdentifier-parameter is not yet implemented
+        """
         the_zone = self.get_hosted_zone(zone_id)
-        return the_zone.get_record_sets(start_type, start_name)
+        all_records = list(the_zone.get_record_sets(start_type, start_name))
+        records = all_records[0:max_items]
+        next_record = all_records[max_items] if len(all_records) > max_items else None
+        next_start_name = next_record.name if next_record else None
+        next_start_type = next_record.type_ if next_record else None
+        is_truncated = next_record is not None
+        return records, next_start_name, next_start_type, is_truncated
 
     def change_resource_record_sets(self, zoneid, change_list):
         the_zone = self.get_hosted_zone(zoneid)
@@ -608,6 +652,33 @@ class Route53Backend(BaseBackend):
                 raise NoSuchHostedZone(hosted_zone_id)
 
         return list(self.query_logging_configs.values())
+
+    def create_reusable_delegation_set(
+        self, caller_reference, delegation_set_id=None, hosted_zone_id=None
+    ):
+        name_servers = None
+        if hosted_zone_id:
+            hosted_zone = self.get_hosted_zone(hosted_zone_id)
+            name_servers = hosted_zone.delegation_set.name_servers
+        delegation_set = DelegationSet(
+            caller_reference, name_servers, delegation_set_id
+        )
+        self.delegation_sets[delegation_set.id] = delegation_set
+        return delegation_set
+
+    def list_reusable_delegation_sets(self):
+        """
+        Pagination is not yet implemented
+        """
+        return self.delegation_sets.values()
+
+    def delete_reusable_delegation_set(self, delegation_set_id):
+        self.delegation_sets.pop(delegation_set_id, None)
+
+    def get_reusable_delegation_set(self, delegation_set_id):
+        if delegation_set_id not in self.delegation_sets:
+            raise NoSuchDelegationSet(delegation_set_id)
+        return self.delegation_sets[delegation_set_id]
 
 
 route53_backend = Route53Backend()

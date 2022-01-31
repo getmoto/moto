@@ -27,4 +27,6 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/change/(?P<change_id>[^/]+)$": Route53().get_change,
     r"{0}/(?P<api_version>[\d_-]+)/queryloggingconfig$": Route53().list_or_create_query_logging_config_response,
     r"{0}/(?P<api_version>[\d_-]+)/queryloggingconfig/(?P<query_id>[^/]+)$": Route53().get_or_delete_query_logging_config_response,
+    r"{0}/(?P<api_version>[\d_-]+)/delegationset$": Route53().reusable_delegation_sets,
+    r"{0}/(?P<api_version>[\d_-]+)/delegationset/(?P<delegation_set_id>[^/]+)$": Route53().reusable_delegation_set,
 }
