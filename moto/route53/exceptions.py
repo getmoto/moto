@@ -92,3 +92,11 @@ class InvalidChangeBatch(Route53ClientError):
     def __init__(self):
         message = "Number of records limit of 1000 exceeded."
         super().__init__("InvalidChangeBatch", message)
+
+
+class NoSuchDelegationSet(Route53ClientError):
+    code = 400
+
+    def __init__(self, delegation_set_id):
+        super().__init__("NoSuchDelegationSet", delegation_set_id)
+        self.content_type = "text/xml"

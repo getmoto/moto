@@ -4110,7 +4110,7 @@
 
 ## route53
 <details>
-<summary>26% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -4120,7 +4120,7 @@
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
 - [X] create_query_logging_config
-- [ ] create_reusable_delegation_set
+- [X] create_reusable_delegation_set
 - [ ] create_traffic_policy
 - [ ] create_traffic_policy_instance
 - [ ] create_traffic_policy_version
@@ -4130,7 +4130,7 @@
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
 - [X] delete_query_logging_config
-- [ ] delete_reusable_delegation_set
+- [X] delete_reusable_delegation_set
 - [ ] delete_traffic_policy
 - [ ] delete_traffic_policy_instance
 - [ ] delete_vpc_association_authorization
@@ -4147,10 +4147,10 @@
 - [ ] get_health_check_last_failure_reason
 - [ ] get_health_check_status
 - [X] get_hosted_zone
-- [ ] get_hosted_zone_count
+- [X] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
 - [X] get_query_logging_config
-- [ ] get_reusable_delegation_set
+- [X] get_reusable_delegation_set
 - [ ] get_reusable_delegation_set_limit
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
@@ -4162,7 +4162,7 @@
 - [X] list_hosted_zones_by_vpc
 - [X] list_query_logging_configs
 - [X] list_resource_record_sets
-- [ ] list_reusable_delegation_sets
+- [X] list_reusable_delegation_sets
 - [X] list_tags_for_resource
 - [ ] list_tags_for_resources
 - [ ] list_traffic_policies

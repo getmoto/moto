@@ -35,7 +35,7 @@ route53
 - [X] create_query_logging_config
   Process the create_query_logging_config request.
 
-- [ ] create_reusable_delegation_set
+- [X] create_reusable_delegation_set
 - [ ] create_traffic_policy
 - [ ] create_traffic_policy_instance
 - [ ] create_traffic_policy_version
@@ -47,7 +47,7 @@ route53
 - [X] delete_query_logging_config
   Delete query logging config, if it exists.
 
-- [ ] delete_reusable_delegation_set
+- [X] delete_reusable_delegation_set
 - [ ] delete_traffic_policy
 - [ ] delete_traffic_policy_instance
 - [ ] delete_vpc_association_authorization
@@ -69,7 +69,7 @@ route53
 - [X] get_query_logging_config
   Return query logging config, if it exists.
 
-- [ ] get_reusable_delegation_set
+- [X] get_reusable_delegation_set
 - [ ] get_reusable_delegation_set_limit
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
@@ -83,7 +83,15 @@ route53
   Return a list of query logging configs.
 
 - [X] list_resource_record_sets
-- [ ] list_reusable_delegation_sets
+  
+        The StartRecordIdentifier-parameter is not yet implemented
+        
+
+- [X] list_reusable_delegation_sets
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_tags_for_resource
 - [ ] list_tags_for_resources
 - [ ] list_traffic_policies
