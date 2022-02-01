@@ -4072,6 +4072,25 @@
 - [ ] update_partner_status
 </details>
 
+## redshift-data
+<details>
+<summary>30% implemented</summary>
+
+- [ ] batch_execute_statement
+- [ ] can_paginate
+- [X] cancel_statement
+- [X] describe_statement
+- [ ] describe_table
+- [X] execute_statement
+- [ ] get_paginator
+- [X] get_statement_result
+- [ ] get_waiter
+- [ ] list_databases
+- [ ] list_schemas
+- [ ] list_statements
+- [ ] list_tables
+</details>
+
 ## resource-groups
 <details>
 <summary>68% implemented</summary>

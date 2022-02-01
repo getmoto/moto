@@ -1,4 +1,6 @@
 from collections.abc import Iterable, Mapping
+from uuid import UUID
+
 from sure import assertion
 
 
@@ -32,3 +34,12 @@ def match_dict(context, dict_value):
         assert k in context.obj, f"No such key '{k}' in {context.obj}"
         context.obj[k].should.equal(v)
     return True
+
+
+@assertion
+def match_uuid4(context):
+    try:
+        uuid_obj = UUID(context.obj, version=4)
+    except ValueError:
+        return False
+    return str(uuid_obj) == context.obj

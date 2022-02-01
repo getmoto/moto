@@ -144,6 +144,7 @@ mock_sdb = lazy_load(".sdb", "mock_sdb")
 mock_elasticache = lazy_load(
     ".elasticache", "mock_elasticache", boto3_name="elasticache"
 )
+mock_redshiftdata = lazy_load(".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data")
 
 
 class MockAll(ContextDecorator):
