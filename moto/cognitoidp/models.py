@@ -1529,8 +1529,8 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(secret_hash)
 
             (
-                id_token,
                 access_token,
+                id_token,
                 expires_in,
             ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
