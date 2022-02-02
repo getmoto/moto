@@ -1509,7 +1509,7 @@ class CognitoIdpBackend(BaseBackend):
                     "TokenType": "Bearer",
                 }
             }
-        elif auth_flow in ["REFRESH_TOKEN", "REFRESH_TOKEN_AUTH"]:
+        elif auth_flow in ("REFRESH_TOKEN", "REFRESH_TOKEN_AUTH"):
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
