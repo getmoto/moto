@@ -159,15 +159,16 @@ def get_response_mock():
         responses_mock._find_match = types.MethodType(
             _find_first_match_legacy, responses_mock
         )
-    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    elif LooseVersion(RESPONSES_VERSION) < LooseVersion("0.17.0"):
+        responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
+    else:
+        # >= 0.17.0
         from .responses_custom_registry import CustomRegistry
 
         responses_mock = responses.RequestsMock(
             assert_all_requests_are_fired=False, registry=CustomRegistry
         )
-    else:
-        responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
 
     responses_mock.add_passthru("http")
     return responses_mock
@@ -176,7 +177,9 @@ def get_response_mock():
 def reset_responses_mock(responses_mock):
     if LooseVersion(RESPONSES_VERSION) < LooseVersion("0.12.1"):
         responses_mock.reset()
-    elif LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    elif LooseVersion(RESPONSES_VERSION) < LooseVersion("0.17.0"):
+        responses_mock.reset()
+    elif LooseVersion(RESPONSES_VERSION) == LooseVersion("0.17.0"):
         from .responses_custom_registry import CustomRegistry
 
         responses_mock.reset()
@@ -184,4 +187,6 @@ def reset_responses_mock(responses_mock):
         responses_mock._set_registry(CustomRegistry)
         responses_mock.add_passthru("http")
     else:
+        # >= 0.18.0
         responses_mock.reset()
+        responses_mock.get_registry().reset()
