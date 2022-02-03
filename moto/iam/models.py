@@ -2054,6 +2054,12 @@ class IAMBackend(BaseBackend):
             "The Server Certificate with name {0} cannot be " "found.".format(name)
         )
 
+    def get_certificate_by_arn(self, arn):
+        for cert in self.certificates.values():
+            if arn == cert.arn:
+                return cert
+        return None
+
     def delete_server_certificate(self, name):
         cert_id = None
         for key, cert in self.certificates.items():
