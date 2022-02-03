@@ -1614,6 +1614,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         new_key = FakeKey(
             name=key_name,
+            bucket_name=bucket_name,
             value=value,
             storage=storage,
             etag=etag,
