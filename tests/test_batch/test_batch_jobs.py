@@ -241,7 +241,7 @@ def test_cancel_pending_job():
     # We need to be able to cancel a job that has not been started yet
     # Locally, our jobs start so fast that we can't cancel them in time
     # So delay our job, by letting it depend on a slow-running job
-    commands = ["sleep", "1"]
+    commands = ["sleep", "10"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, "deptest")
 
     resp = batch_client.submit_job(
@@ -786,7 +786,7 @@ def test_submit_job_with_timeout_set_at_definition():
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = str(uuid4())[0:6]
-    commands = ["sleep", "3"]
+    commands = ["sleep", "30"]
     _, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
     resp = batch_client.register_job_definition(
         jobDefinitionName=job_def_name,
