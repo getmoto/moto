@@ -207,11 +207,11 @@ def test_terminate_job():
     )
     job_id = resp["jobId"]
 
-    _wait_for_job_status(batch_client, job_id, "RUNNING")
+    _wait_for_job_status(batch_client, job_id, "RUNNING", seconds_to_wait=120)
 
     batch_client.terminate_job(jobId=job_id, reason="test_terminate")
 
-    _wait_for_job_status(batch_client, job_id, "FAILED")
+    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=120)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test1")
@@ -241,7 +241,7 @@ def test_cancel_pending_job():
     # We need to be able to cancel a job that has not been started yet
     # Locally, our jobs start so fast that we can't cancel them in time
     # So delay our job, by letting it depend on a slow-running job
-    commands = ["sleep", "1"]
+    commands = ["sleep", "10"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, "deptest")
 
     resp = batch_client.submit_job(
@@ -290,14 +290,14 @@ def test_cancel_running_job():
 
     batch_client.cancel_job(jobId=job_id, reason="test_cancel")
     # We cancelled too late, the job was already running. Now we just wait for it to succeed
-    _wait_for_job_status(batch_client, job_id, "SUCCEEDED", seconds_to_wait=5)
+    _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
     resp["jobs"][0].shouldnt.have.key("statusReason")
 
 
-def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
+def _wait_for_job_status(client, job_id, status, seconds_to_wait=60):
     wait_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds_to_wait)
     last_job_status = None
     while datetime.datetime.now() < wait_time:
@@ -305,6 +305,7 @@ def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
         last_job_status = resp["jobs"][0]["status"]
         if last_job_status == status:
             break
+        time.sleep(0.1)
     else:
         raise RuntimeError(
             "Time out waiting for job status {status}!\n Last status: {last_status}".format(
@@ -476,7 +477,7 @@ def test_failed_dependencies():
             "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
-            "command": ["exi1", "1"],
+            "command": ["exit", "1"],
         },
     )
     job_def_arn_failure = resp["jobDefinitionArn"]
@@ -763,7 +764,7 @@ def test_submit_job_with_timeout():
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = str(uuid4())[0:6]
-    commands = ["sleep", "3"]
+    commands = ["sleep", "30"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
@@ -786,7 +787,7 @@ def test_submit_job_with_timeout_set_at_definition():
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
     job_def_name = str(uuid4())[0:6]
-    commands = ["sleep", "3"]
+    commands = ["sleep", "30"]
     _, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
     resp = batch_client.register_job_definition(
         jobDefinitionName=job_def_name,
