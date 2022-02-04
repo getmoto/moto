@@ -476,7 +476,7 @@ def test_failed_dependencies():
             "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
-            "command": ["exi1", "1"],
+            "command": ["exit", "1"],
         },
     )
     job_def_arn_failure = resp["jobDefinitionArn"]

@@ -581,6 +581,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
+            print(f"Running docker image {image} with command {cmd}")
+            print(run_kwargs)
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -704,7 +706,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
     def _wait_for_dependencies(self):
         dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
         successful_dependencies = set()
+        print(f"_wait_for_dependencies({dependent_ids})")
         while len(successful_dependencies) != len(dependent_ids):
+            print(f"Succesfull dependencies: {successful_dependencies}")
             for dependent_id in dependent_ids:
                 if dependent_id in self.all_jobs:
                     dependent_job = self.all_jobs[dependent_id]
@@ -720,6 +724,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         return False
 
             time.sleep(1)
+            if self.stop:
+                # This job has been cancelled while it was waiting for a dependency
+                print("Job has been stopped while waiting")
+                self._mark_stopped(success=False)
+                return False
 
         return True
 
@@ -1495,9 +1504,14 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def cancel_job(self, job_id, reason):
+        print(f"cancel_job({job_id}, {reason})")
         job = self.get_job_by_id(job_id)
+        print(job)
         if job.job_state in ["SUBMITTED", "PENDING", "RUNNABLE"]:
             job.terminate(reason)
+            print("job terminated")
+        else:
+            print(f"Cannot terminate job - job state is {job.job_state}")
         # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
