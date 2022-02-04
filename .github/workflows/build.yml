@@ -144,7 +144,7 @@ jobs:
         pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
-        make test-only
+        pytest -sv ./tests/test_batch
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -193,7 +193,7 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        make test-only
+        pytest -sv ./tests/test_batch
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -217,6 +217,7 @@ jobs:
           serverlogs/*
 
   terraform:
+    if: ${{ false }}
     name: Terraform Tests
     runs-on: ubuntu-latest
     needs: terraformcache

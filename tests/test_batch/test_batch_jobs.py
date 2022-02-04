@@ -259,7 +259,7 @@ def test_cancel_pending_job():
     job_id = resp["jobId"]
 
     batch_client.cancel_job(jobId=job_id, reason="test_cancel")
-    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=30)
+    _wait_for_job_status(batch_client, job_id, "FAILED", seconds_to_wait=60)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
@@ -290,14 +290,14 @@ def test_cancel_running_job():
 
     batch_client.cancel_job(jobId=job_id, reason="test_cancel")
     # We cancelled too late, the job was already running. Now we just wait for it to succeed
-    _wait_for_job_status(batch_client, job_id, "SUCCEEDED", seconds_to_wait=5)
+    _wait_for_job_status(batch_client, job_id, "SUCCEEDED", seconds_to_wait=60)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
     resp["jobs"][0].shouldnt.have.key("statusReason")
 
 
-def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
+def _wait_for_job_status(client, job_id, status, seconds_to_wait=60):
     wait_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds_to_wait)
     last_job_status = None
     while datetime.datetime.now() < wait_time:
