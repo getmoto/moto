@@ -595,21 +595,25 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 extra_hosts=extra_hosts,
                 **run_kwargs,
             )
+            print(f"container is running: {container}")
             self.job_state = "RUNNING"
             try:
                 container.reload()
 
                 max_time = None
+                print(f"Job started at {self.job_started_at}")
                 if self._get_attempt_duration():
                     attempt_duration = self._get_attempt_duration()
                     max_time = self.job_started_at + datetime.timedelta(
                         seconds=attempt_duration
                     )
+                    print(f"Attempt duration is set. Max time = {max_time}")
 
                 while container.status == "running" and not self.stop:
                     container.reload()
                     time.sleep(0.5)
 
+                    print(f"Check if {max_time} exceeds {datetime.datetime.now()}...")
                     if max_time and datetime.datetime.now() > max_time:
                         raise Exception(
                             "Job time exceeded the configured attemptDurationSeconds"

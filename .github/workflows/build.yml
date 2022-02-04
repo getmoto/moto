@@ -144,7 +144,7 @@ jobs:
         pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
-        pytest -sv ./tests/test_batch --durations 10
+        pytest -sv ./tests/test_batch/test_batch_jobs.py::test_terminate_job --durations 10
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -193,7 +193,7 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        pytest -sv ./tests/test_batch --durations 10
+        pytest -sv ./tests/test_batch/test_batch_jobs.py::test_terminate_job --durations 10
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
