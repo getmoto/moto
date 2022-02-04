@@ -556,7 +556,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
-            print(f"Step 1 at {datetime.datetime.now()}")
 
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
             #   for communication with other mock AWS services running on localhost
@@ -565,32 +564,23 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 if platform == "linux" or platform == "linux2"
                 else {}
             )
-            print(f"Step 2 at {datetime.datetime.now()}")
 
             environment["MOTO_HOST"] = settings.moto_server_host()
-            print(f"Step 3 at {datetime.datetime.now()}")
             environment["MOTO_PORT"] = settings.moto_server_port()
-            print(f"Step 4 at {datetime.datetime.now()}")
             environment[
                 "MOTO_HTTP_ENDPOINT"
             ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
-            print(f"Step 5 at {datetime.datetime.now()}")
 
             run_kwargs = dict()
             network_name = settings.moto_network_name()
-            print(f"Step 6 at {datetime.datetime.now()}")
             network_mode = settings.moto_network_mode()
-            print(f"Step 7 at {datetime.datetime.now()}")
             if network_name:
                 run_kwargs["network"] = network_name
             elif network_mode:
                 run_kwargs["network_mode"] = network_mode
-            print(f"Step 8 at {datetime.datetime.now()}")
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
-            print(f"Running docker image {image} with command {cmd}")
-            print(run_kwargs)
             container = self.docker_client.containers.run(
                 image,
                 cmd,
@@ -603,29 +593,21 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 extra_hosts=extra_hosts,
                 **run_kwargs,
             )
-            print(f"container is running: {container}")
             self.job_state = "RUNNING"
             try:
                 container.reload()
 
                 max_time = None
-                print(f"Job started at {self.job_started_at}")
                 if self._get_attempt_duration():
                     attempt_duration = self._get_attempt_duration()
                     max_time = self.job_started_at + datetime.timedelta(
                         seconds=attempt_duration
                     )
-                    print(f"Attempt duration is set. Max time = {max_time}")
 
-                print(f"Status==running: {container.status == 'running'}")
-                print(f"Self.stop: {self.stop}")
                 while container.status == "running" and not self.stop:
-                    print("Reloading container...")
                     container.reload()
-                    print("Container reloaded. Sleeping...")
                     time.sleep(0.5)
 
-                    print(f"Check if {max_time} exceeds {datetime.datetime.now()}...")
                     if max_time and datetime.datetime.now() > max_time:
                         raise Exception(
                             "Job time exceeded the configured attemptDurationSeconds"
@@ -722,9 +704,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
     def _wait_for_dependencies(self):
         dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
         successful_dependencies = set()
-        print(f"_wait_for_dependencies({dependent_ids})")
         while len(successful_dependencies) != len(dependent_ids):
-            print(f"Succesfull dependencies: {successful_dependencies}")
             for dependent_id in dependent_ids:
                 if dependent_id in self.all_jobs:
                     dependent_job = self.all_jobs[dependent_id]
@@ -742,7 +722,6 @@ class Job(threading.Thread, BaseModel, DockerModel):
             time.sleep(1)
             if self.stop:
                 # This job has been cancelled while it was waiting for a dependency
-                print("Job has been stopped while waiting")
                 self._mark_stopped(success=False)
                 return False
 
@@ -1520,14 +1499,9 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def cancel_job(self, job_id, reason):
-        print(f"cancel_job({job_id}, {reason})")
         job = self.get_job_by_id(job_id)
-        print(job)
         if job.job_state in ["SUBMITTED", "PENDING", "RUNNABLE"]:
             job.terminate(reason)
-            print("job terminated")
-        else:
-            print(f"Cannot terminate job - job state is {job.job_state}")
         # No-Op for jobs that have already started - user has to explicitly terminate those
 
     def terminate_job(self, job_id, reason):
