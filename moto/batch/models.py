@@ -720,6 +720,10 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         return False
 
             time.sleep(1)
+            if self.stop:
+                # This job has been cancelled while it was waiting for a dependency
+                self._mark_stopped(success=False)
+                return False
 
         return True
 
