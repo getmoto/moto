@@ -137,11 +137,13 @@ class BaseMockAWS:
             c for c in klass.__mro__ if c not in [unittest.TestCase, object]
         ]
         # Get a list of all userdefined methods
-        supermethods = itertools.chain(
-            *[get_direct_methods_of(c) for c in superclasses]
+        supermethods = list(
+            itertools.chain(*[get_direct_methods_of(c) for c in superclasses])
         )
         # Check whether the user has overridden the setUp-method
-        has_setup_method = "setUp" in supermethods
+        has_setup_method = (
+            "setUp" in supermethods and unittest.TestCase in klass.__mro__
+        ) or "setup" in supermethods
 
         for attr in itertools.chain(direct_methods, defined_classes):
             if attr.startswith("_"):

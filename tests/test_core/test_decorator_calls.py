@@ -125,6 +125,22 @@ class TestWithSetup(unittest.TestCase):
 
 
 @mock_s3
+class TestWithLowercaseSetup:
+    def setup(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_find_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        assert s3.head_bucket(Bucket="mybucket") is not None
+
+    def test_should_not_find_unknown_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="unknown_bucket")
+
+
+@mock_s3
 class TestWithPublicMethod(unittest.TestCase):
     def ensure_bucket_exists(self):
         s3 = boto3.client("s3", region_name="us-east-1")
