@@ -1,6 +1,9 @@
 import json
 import os
 
+from functools import lru_cache
+
+
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
 INITIAL_NO_AUTH_ACTION_COUNT = float(
     os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", float("inf"))
@@ -55,6 +58,7 @@ def moto_server_port():
     return os.environ.get("MOTO_PORT") or "5000"
 
 
+@lru_cache()
 def moto_server_host():
     if is_docker():
         return get_docker_host()
