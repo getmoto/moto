@@ -306,7 +306,6 @@ def _wait_for_job_status(client, job_id, status, seconds_to_wait=60):
         print(f"Job {job_id} has status {last_job_status}, waiting for {status}")
         if last_job_status == status:
             break
-        time.sleep(1)
     else:
         raise RuntimeError(
             "Time out waiting for job status {status}!\n Last status: {last_status}".format(
