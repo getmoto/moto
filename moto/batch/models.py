@@ -556,6 +556,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
+            print(f"Step 1 at {datetime.datetime.now()}")
 
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
             #   for communication with other mock AWS services running on localhost
@@ -564,20 +565,27 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 if platform == "linux" or platform == "linux2"
                 else {}
             )
+            print(f"Step 2 at {datetime.datetime.now()}")
 
             environment["MOTO_HOST"] = settings.moto_server_host()
+            print(f"Step 3 at {datetime.datetime.now()}")
             environment["MOTO_PORT"] = settings.moto_server_port()
+            print(f"Step 4 at {datetime.datetime.now()}")
             environment[
                 "MOTO_HTTP_ENDPOINT"
             ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+            print(f"Step 5 at {datetime.datetime.now()}")
 
             run_kwargs = dict()
             network_name = settings.moto_network_name()
+            print(f"Step 6 at {datetime.datetime.now()}")
             network_mode = settings.moto_network_mode()
+            print(f"Step 7 at {datetime.datetime.now()}")
             if network_name:
                 run_kwargs["network"] = network_name
             elif network_mode:
                 run_kwargs["network_mode"] = network_mode
+            print(f"Step 8 at {datetime.datetime.now()}")
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.job_state = "STARTING"
