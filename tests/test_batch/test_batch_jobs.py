@@ -300,13 +300,11 @@ def test_cancel_running_job():
 def _wait_for_job_status(client, job_id, status, seconds_to_wait=60):
     wait_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds_to_wait)
     last_job_status = None
-    cnt = 0
     while datetime.datetime.now() < wait_time:
         resp = client.describe_jobs(jobs=[job_id])
+        if last_job_status != resp["jobs"][0]["status"]:
+            print(f"Describing jobs: status changed from {last_job_status} to {resp['jobs'][0]['status']} at {datetime.datetime.now()}")
         last_job_status = resp["jobs"][0]["status"]
-        if cnt % 20 == 0:
-            print(f"Job {job_id} has status {last_job_status}, waiting for {status}")
-        cnt = cnt + 1
         if last_job_status == status:
             break
     else:
