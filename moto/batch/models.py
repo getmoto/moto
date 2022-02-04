@@ -609,8 +609,12 @@ class Job(threading.Thread, BaseModel, DockerModel):
                     )
                     print(f"Attempt duration is set. Max time = {max_time}")
 
+                print(f"Status==running: {container.status == 'running'}")
+                print(f"Self.stop: {self.stop}")
                 while container.status == "running" and not self.stop:
+                    print("Reloading container...")
                     container.reload()
+                    print("Container reloaded. Sleeping...")
                     time.sleep(0.5)
 
                     print(f"Check if {max_time} exceeds {datetime.datetime.now()}...")
