@@ -142,8 +142,10 @@ class BaseMockAWS:
         )
         # Check whether the user has overridden the setUp-method
         has_setup_method = (
-            "setUp" in supermethods and unittest.TestCase in klass.__mro__
-        ) or "setup" in supermethods
+            ("setUp" in supermethods and unittest.TestCase in klass.__mro__)
+            or "setup" in supermethods
+            or "setup_method" in supermethods
+        )
 
         for attr in itertools.chain(direct_methods, defined_classes):
             if attr.startswith("_"):
