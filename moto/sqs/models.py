@@ -327,7 +327,7 @@ class Queue(CloudFormationModel):
             if key in integer_fields:
                 value = int(value)
             if key in bool_fields:
-                value = value == "true" or value == "True"
+                value = value.lower() == "true"
 
             if key in ["Policy", "RedrivePolicy"] and value is not None:
                 continue
