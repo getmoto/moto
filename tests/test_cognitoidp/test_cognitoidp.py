@@ -2464,8 +2464,24 @@ def test_authentication_flow_invalid_flow():
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal("Initiate Auth method not supported")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: "
+        "Member must satisfy enum value set: "
+        "['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', 'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', "
+        "'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
+    )
 
+@mock_cognitoidp
+def test_authentication_flow_invalid_user_flow():
+    """ Pass a user authFlow to admin_initiate_auth """
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        authentication_flow(conn, "USER_PASSWORD_AUTH")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal("Initiate Auth method not supported")
 
 def user_authentication_flow(conn):
     username = str(uuid.uuid4())
@@ -3377,9 +3393,33 @@ def test_initiate_auth_invalid_auth_flow():
     with pytest.raises(ClientError) as ex:
         user_authentication_flow(conn)
 
-        result = conn.initiate_auth(
+        conn.initiate_auth(
             ClientId=result["client_id"],
             AuthFlow="NO_SUCH_FLOW",
+            AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: "
+        "Member must satisfy enum value set: ['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', "
+        "'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', 'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
+    )
+
+
+@mock_cognitoidp
+def test_initiate_auth_invalid_admin_auth_flow():
+    """ Pass an admin auth_flow to the regular initiate_auth"""
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    with pytest.raises(ClientError) as ex:
+        user_authentication_flow(conn)
+
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
             AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
         )
 

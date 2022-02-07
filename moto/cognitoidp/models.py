@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import time
+import typing
 import uuid
 import enum
 import random
@@ -40,16 +41,18 @@ class UserStatus(str, enum.Enum):
 
 
 class AuthFlow(str, enum.Enum):
+    # Order follows AWS' order
+    ADMIN_NO_SRP_AUTH = "ADMIN_NO_SRP_AUTH"
+    ADMIN_USER_PASSWORD_AUTH = "ADMIN_USER_PASSWORD_AUTH"
     USER_SRP_AUTH = "USER_SRP_AUTH"
     REFRESH_TOKEN_AUTH = "REFRESH_TOKEN_AUTH"
     REFRESH_TOKEN = "REFRESH_TOKEN"
     CUSTOM_AUTH = "CUSTOM_AUTH"
     USER_PASSWORD_AUTH = "USER_PASSWORD_AUTH"
 
-
-class AdminAuthFlow(str, enum.Enum):
-    ADMIN_NO_SRP_AUTH = "ADMIN_NO_SRP_AUTH"
-    ADMIN_USER_PASSWORD_AUTH = "ADMIN_USER_PASSWORD_AUTH"
+    @classmethod
+    def list(cls):
+        return [e.value for e in cls]
 
 
 class CognitoIdpUserPoolAttribute(BaseModel):
@@ -1123,12 +1126,29 @@ class CognitoIdpBackend(BaseBackend):
             }
         }
 
-    def admin_initiate_auth(self, user_pool_id, client_id, auth_flow, auth_parameters):
-        # convert auth_flow to enum
+    def _validate_auth_flow(self, auth_flow: str, valid_flows: typing.List[AuthFlow]) -> AuthFlow:
+        """ validate auth_flow value and convert auth_flow to enum """
+
         try:
-            auth_flow = AdminAuthFlow[auth_flow]
+            auth_flow = AuthFlow[auth_flow]
         except KeyError:
+            raise InvalidParameterException(
+                f"1 validation error detected: Value '{auth_flow}' at 'authFlow' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: "
+                f"{AuthFlow.list()}"
+            )
+
+        if auth_flow not in valid_flows:
             raise InvalidParameterException('Initiate Auth method not supported')
+
+        return auth_flow
+
+    def admin_initiate_auth(self, user_pool_id, client_id, auth_flow, auth_parameters):
+        admin_auth_flows = [
+            AuthFlow.ADMIN_NO_SRP_AUTH, AuthFlow.ADMIN_USER_PASSWORD_AUTH, AuthFlow.REFRESH_TOKEN_AUTH,
+            AuthFlow.REFRESH_TOKEN
+        ]
+        auth_flow = self._validate_auth_flow(auth_flow=auth_flow, valid_flows=admin_auth_flows)
 
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1136,7 +1156,7 @@ class CognitoIdpBackend(BaseBackend):
         if not client:
             raise ResourceNotFoundError(client_id)
 
-        if auth_flow in (AdminAuthFlow.ADMIN_USER_PASSWORD_AUTH, AdminAuthFlow.ADMIN_NO_SRP_AUTH):
+        if auth_flow in (AuthFlow.ADMIN_USER_PASSWORD_AUTH, AuthFlow.ADMIN_NO_SRP_AUTH):
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
             user = self.admin_get_user(user_pool_id, username)
@@ -1158,7 +1178,7 @@ class CognitoIdpBackend(BaseBackend):
                 }
 
             return self._log_user_in(user_pool, client, username)
-        elif auth_flow is AdminAuthFlow.REFRESH_TOKEN:
+        elif auth_flow is AuthFlow.REFRESH_TOKEN:
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             (
                 id_token,
@@ -1450,11 +1470,12 @@ class CognitoIdpBackend(BaseBackend):
         return ""
 
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
-        # convert auth_flow to enum
-        try:
-            auth_flow = AuthFlow[auth_flow]
-        except KeyError:
-            raise InvalidParameterException('Initiate Auth method not supported')
+        user_auth_flows = [
+            AuthFlow.USER_SRP_AUTH, AuthFlow.REFRESH_TOKEN_AUTH, AuthFlow.REFRESH_TOKEN, AuthFlow.CUSTOM_AUTH,
+            AuthFlow.USER_PASSWORD_AUTH
+        ]
+
+        auth_flow = self._validate_auth_flow(auth_flow=auth_flow, valid_flows=user_auth_flows)
 
         user_pool = None
         for p in self.user_pools.values():
