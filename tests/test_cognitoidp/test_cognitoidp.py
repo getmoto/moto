@@ -2471,6 +2471,7 @@ def test_authentication_flow_invalid_flow():
         "'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
     )
 
+
 @mock_cognitoidp
 def test_authentication_flow_invalid_user_flow():
     """ Pass a user authFlow to admin_initiate_auth """
@@ -2482,6 +2483,7 @@ def test_authentication_flow_invalid_user_flow():
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.equal("Initiate Auth method not supported")
+
 
 def user_authentication_flow(conn):
     username = str(uuid.uuid4())
@@ -3396,7 +3398,10 @@ def test_initiate_auth_invalid_auth_flow():
         conn.initiate_auth(
             ClientId=result["client_id"],
             AuthFlow="NO_SUCH_FLOW",
-            AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+            AuthParameters={
+                "USERNAME": result["username"],
+                "PASSWORD": result["password"],
+            },
         )
 
     err = ex.value.response["Error"]
@@ -3420,7 +3425,10 @@ def test_initiate_auth_invalid_admin_auth_flow():
         conn.initiate_auth(
             ClientId=result["client_id"],
             AuthFlow="ADMIN_USER_PASSWORD_AUTH",
-            AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+            AuthParameters={
+                "USERNAME": result["username"],
+                "PASSWORD": result["password"],
+            },
         )
 
     err = ex.value.response["Error"]

@@ -1126,7 +1126,9 @@ class CognitoIdpBackend(BaseBackend):
             }
         }
 
-    def _validate_auth_flow(self, auth_flow: str, valid_flows: typing.List[AuthFlow]) -> AuthFlow:
+    def _validate_auth_flow(
+        self, auth_flow: str, valid_flows: typing.List[AuthFlow]
+    ) -> AuthFlow:
         """ validate auth_flow value and convert auth_flow to enum """
 
         try:
@@ -1139,16 +1141,20 @@ class CognitoIdpBackend(BaseBackend):
             )
 
         if auth_flow not in valid_flows:
-            raise InvalidParameterException('Initiate Auth method not supported')
+            raise InvalidParameterException("Initiate Auth method not supported")
 
         return auth_flow
 
     def admin_initiate_auth(self, user_pool_id, client_id, auth_flow, auth_parameters):
         admin_auth_flows = [
-            AuthFlow.ADMIN_NO_SRP_AUTH, AuthFlow.ADMIN_USER_PASSWORD_AUTH, AuthFlow.REFRESH_TOKEN_AUTH,
-            AuthFlow.REFRESH_TOKEN
+            AuthFlow.ADMIN_NO_SRP_AUTH,
+            AuthFlow.ADMIN_USER_PASSWORD_AUTH,
+            AuthFlow.REFRESH_TOKEN_AUTH,
+            AuthFlow.REFRESH_TOKEN,
         ]
-        auth_flow = self._validate_auth_flow(auth_flow=auth_flow, valid_flows=admin_auth_flows)
+        auth_flow = self._validate_auth_flow(
+            auth_flow=auth_flow, valid_flows=admin_auth_flows
+        )
 
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1471,11 +1477,16 @@ class CognitoIdpBackend(BaseBackend):
 
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
         user_auth_flows = [
-            AuthFlow.USER_SRP_AUTH, AuthFlow.REFRESH_TOKEN_AUTH, AuthFlow.REFRESH_TOKEN, AuthFlow.CUSTOM_AUTH,
-            AuthFlow.USER_PASSWORD_AUTH
+            AuthFlow.USER_SRP_AUTH,
+            AuthFlow.REFRESH_TOKEN_AUTH,
+            AuthFlow.REFRESH_TOKEN,
+            AuthFlow.CUSTOM_AUTH,
+            AuthFlow.USER_PASSWORD_AUTH,
         ]
 
-        auth_flow = self._validate_auth_flow(auth_flow=auth_flow, valid_flows=user_auth_flows)
+        auth_flow = self._validate_auth_flow(
+            auth_flow=auth_flow, valid_flows=user_auth_flows
+        )
 
         user_pool = None
         for p in self.user_pools.values():
