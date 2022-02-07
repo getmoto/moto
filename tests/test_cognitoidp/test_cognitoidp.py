@@ -2455,6 +2455,18 @@ def test_authentication_flow():
         authentication_flow(conn, auth_flow)
 
 
+@mock_cognitoidp
+def test_authentication_flow_invalid_flow():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        authentication_flow(conn, "NO_SUCH_FLOW")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal("Initiate Auth method not supported")
+
+
 def user_authentication_flow(conn):
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
@@ -3355,6 +3367,25 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
     result["AuthenticationResult"]["AccessToken"].should_not.be.none
     result["AuthenticationResult"]["IdToken"].should_not.be.none
     result["AuthenticationResult"]["RefreshToken"].should_not.be.none
+
+
+@mock_cognitoidp
+def test_initiate_auth_invalid_auth_flow():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    with pytest.raises(ClientError) as ex:
+        user_authentication_flow(conn)
+
+        result = conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="NO_SUCH_FLOW",
+            AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal("Initiate Auth method not supported")
 
 
 @mock_cognitoidp
