@@ -554,8 +554,9 @@ class RedshiftResponse(BaseResponse):
     def describe_cluster_snapshots(self):
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
+        snapshot_type = self._get_param("SnapshotType")
         snapshots = self.redshift_backend.describe_cluster_snapshots(
-            cluster_identifier, snapshot_identifier
+            cluster_identifier, snapshot_identifier, snapshot_type
         )
         return self.get_response(
             {

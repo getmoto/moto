@@ -799,6 +799,191 @@ def test_create_cluster_snapshot_of_non_existent_cluster():
 
 
 @mock_redshift
+def test_automated_snapshot_on_cluster_creation():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+
+    cluster_response = client.create_cluster(
+        DBName="test-db",
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        EnhancedVpcRouting=True,
+        Tags=[{"Key": "tag_key", "Value": "tag_value"}],
+    )
+
+    cluster_response["Cluster"]["Tags"].should.equal(
+        [{"Key": "tag_key", "Value": "tag_value"}]
+    )
+    resp_auto_snap = client.describe_cluster_snapshots(
+        ClusterIdentifier=cluster_identifier
+    )
+    resp_auto_snap["Snapshots"][0]["SnapshotType"].should.equal("automated")
+    # Tags from cluster are not copied over to automated snapshot
+    resp_auto_snap["Snapshots"][0]["Tags"].should.equal([])
+
+
+@mock_redshift
+def test_delete_automated_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+
+    cluster_response = client.create_cluster(
+        DBName="test-db",
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        EnhancedVpcRouting=True,
+    )
+    cluster_response["Cluster"]["NodeType"].should.equal("ds2.xlarge")
+    resp_auto_snap = client.describe_cluster_snapshots(
+        ClusterIdentifier=cluster_identifier
+    )
+    snapshot_identifier = resp_auto_snap["Snapshots"][0]["SnapshotIdentifier"]
+    # Delete automated snapshot should result in error
+    client.delete_cluster_snapshot.when.called_with(
+        SnapshotIdentifier=snapshot_identifier
+    ).should.throw(
+        ClientError,
+        "Cannot delete the snapshot {0} because only manual snapshots may be deleted".format(
+            snapshot_identifier
+        ),
+    )
+
+
+@mock_redshift
+def test_presence_automated_snapshot_on_cluster_delete():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+    )
+    # Ensure automated snapshot is available
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(1)
+
+    # Delete the cluster
+    cluster_response = client.delete_cluster(
+        ClusterIdentifier=cluster_identifier, SkipFinalClusterSnapshot=True
+    )
+    cluster = cluster_response["Cluster"]
+    cluster["ClusterIdentifier"].should.equal(cluster_identifier)
+
+    # Ensure Automated snapshot is deleted
+    resp = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp["Snapshots"].should.have.length_of(0)
+
+
+@mock_redshift
+def test_describe_snapshot_with_filter():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_identifier = "my_cluster"
+    snapshot_identifier = "my_snapshot"
+
+    cluster_response = client.create_cluster(
+        DBName="test-db",
+        ClusterIdentifier=cluster_identifier,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        EnhancedVpcRouting=True,
+    )
+    cluster_response["Cluster"]["NodeType"].should.equal("ds2.xlarge")
+    resp_auto_snap = client.describe_cluster_snapshots(
+        ClusterIdentifier=cluster_identifier, SnapshotType="automated"
+    )
+    auto_snapshot_identifier = resp_auto_snap["Snapshots"][0]["SnapshotIdentifier"]
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=snapshot_identifier, ClusterIdentifier=cluster_identifier,
+    )
+
+    resp = client.describe_cluster_snapshots(
+        ClusterIdentifier=cluster_identifier, SnapshotType="automated"
+    )
+    resp["Snapshots"].should.have.length_of(1)
+
+    resp = client.describe_cluster_snapshots(
+        ClusterIdentifier=cluster_identifier, SnapshotType="manual"
+    )
+    resp["Snapshots"].should.have.length_of(1)
+
+    resp = client.describe_cluster_snapshots(
+        SnapshotIdentifier=snapshot_identifier, SnapshotType="manual"
+    )
+    resp["Snapshots"].should.have.length_of(1)
+
+    resp = client.describe_cluster_snapshots(
+        SnapshotIdentifier=auto_snapshot_identifier, SnapshotType="automated"
+    )
+    resp["Snapshots"].should.have.length_of(1)
+
+    client.describe_cluster_snapshots.when.called_with(
+        SnapshotIdentifier=snapshot_identifier, SnapshotType="automated"
+    ).should.throw(ClientError, "Snapshot {0} not found.".format(snapshot_identifier))
+
+    client.describe_cluster_snapshots.when.called_with(
+        SnapshotIdentifier=auto_snapshot_identifier, SnapshotType="manual"
+    ).should.throw(
+        ClientError, "Snapshot {0} not found.".format(auto_snapshot_identifier)
+    )
+
+
+@mock_redshift
+def test_create_cluster_from_automated_snapshot():
+    client = boto3.client("redshift", region_name="us-east-1")
+    original_cluster_identifier = "original-cluster"
+    new_cluster_identifier = "new-cluster"
+
+    client.create_cluster(
+        ClusterIdentifier=original_cluster_identifier,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        EnhancedVpcRouting=True,
+    )
+
+    resp_auto_snap = client.describe_cluster_snapshots(
+        ClusterIdentifier=original_cluster_identifier, SnapshotType="automated"
+    )
+    auto_snapshot_identifier = resp_auto_snap["Snapshots"][0]["SnapshotIdentifier"]
+    client.restore_from_cluster_snapshot.when.called_with(
+        ClusterIdentifier=original_cluster_identifier,
+        SnapshotIdentifier=auto_snapshot_identifier,
+    ).should.throw(ClientError, "ClusterAlreadyExists")
+
+    response = client.restore_from_cluster_snapshot(
+        ClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=auto_snapshot_identifier,
+        Port=1234,
+    )
+    response["Cluster"]["ClusterStatus"].should.equal("creating")
+
+    response = client.describe_clusters(ClusterIdentifier=new_cluster_identifier)
+    new_cluster = response["Clusters"][0]
+    new_cluster["NodeType"].should.equal("ds2.xlarge")
+    new_cluster["MasterUsername"].should.equal("username")
+    new_cluster["Endpoint"]["Port"].should.equal(1234)
+    new_cluster["EnhancedVpcRouting"].should.equal(True)
+
+    # Make sure the new cluster has automated snapshot on cluster creation
+    resp_auto_snap = client.describe_cluster_snapshots(
+        ClusterIdentifier=new_cluster_identifier, SnapshotType="automated"
+    )
+    resp_auto_snap["Snapshots"].should.have.length_of(1)
+
+
+@mock_redshift
 def test_create_cluster_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -871,7 +1056,9 @@ def test_describe_cluster_snapshots():
     snapshot_2["NodeType"].should.equal("ds2.xlarge")
     snapshot_2["MasterUsername"].should.equal("username")
 
-    resp_clust = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
+    resp_clust = client.describe_cluster_snapshots(
+        ClusterIdentifier=cluster_identifier, SnapshotType="manual"
+    )
     resp_clust["Snapshots"][0].should.equal(resp_snap_1["Snapshots"][0])
     resp_clust["Snapshots"][1].should.equal(resp_snap_2["Snapshots"][0])
 
@@ -908,14 +1095,14 @@ def test_delete_cluster_snapshot():
     )
 
     snapshots = client.describe_cluster_snapshots()["Snapshots"]
-    list(snapshots).should.have.length_of(1)
+    list(snapshots).should.have.length_of(2)
 
     client.delete_cluster_snapshot(SnapshotIdentifier=snapshot_identifier)["Snapshot"][
         "Status"
     ].should.equal("deleted")
 
     snapshots = client.describe_cluster_snapshots()["Snapshots"]
-    list(snapshots).should.have.length_of(0)
+    list(snapshots).should.have.length_of(1)
 
     # Delete invalid id
     client.delete_cluster_snapshot.when.called_with(
