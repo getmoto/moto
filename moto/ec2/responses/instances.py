@@ -871,6 +871,23 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
                     {% endfor %}
                 </supportedArchitectures>
             </processorInfo>
+            {% if instance_type.get('GpuInfo', {})|length > 0 %}
+            <gpuInfo>
+                <gpus>
+                    {% for gpu in instance_type.get('GpuInfo').get('Gpus') %}
+                    <item>
+                        <count>{{ gpu['Count']|int }}</count>
+                        <manufacturer>{{ gpu['Manufacturer'] }}</manufacturer>
+                        <memoryInfo>
+                            <sizeInMiB>{{ gpu['MemoryInfo']['SizeInMiB']|int }}</sizeInMiB>
+                        </memoryInfo>
+                        <name>{{ gpu['Name'] }}</name>
+                    </item>
+                    {% endfor %}
+                </gpus>
+                <totalGpuMemoryInMiB>{{ instance_type['GpuInfo']['TotalGpuMemoryInMiB']|int }}</totalGpuMemoryInMiB>
+            </gpuInfo>
+            {% endif %}
         </item>
     {% endfor %}
     </instanceTypeSet>

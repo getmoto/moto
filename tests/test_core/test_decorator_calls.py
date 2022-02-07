@@ -109,8 +109,9 @@ class TesterWithStaticmethod(object):
 
 
 @mock_s3
-class TestWithSetup(unittest.TestCase):
+class TestWithSetup_UppercaseU(unittest.TestCase):
     def setUp(self):
+        # This method will be executed automatically, provided we extend the TestCase-class
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
 
@@ -122,6 +123,53 @@ class TestWithSetup(unittest.TestCase):
         s3 = boto3.client("s3", region_name="us-east-1")
         with pytest.raises(ClientError):
             s3.head_bucket(Bucket="unknown_bucket")
+
+
+@mock_s3
+class TestWithSetup_LowercaseU:
+    def setup(self, *args):
+        # This method will be executed automatically using pytest
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_find_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        assert s3.head_bucket(Bucket="mybucket") is not None
+
+    def test_should_not_find_unknown_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="unknown_bucket")
+
+
+@mock_s3
+class TestWithSetupMethod:
+    def setup_method(self, *args):
+        # This method will be executed automatically using pytest
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_find_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        assert s3.head_bucket(Bucket="mybucket") is not None
+
+    def test_should_not_find_unknown_bucket(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="unknown_bucket")
+
+
+@mock_s3
+class TestWithInvalidSetupMethod:
+    def setupmethod(self):
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="mybucket")
+
+    def test_should_not_find_bucket(self):
+        # Name of setupmethod is not recognized, so it will not be executed
+        s3 = boto3.client("s3", region_name="us-east-1")
+        with pytest.raises(ClientError):
+            s3.head_bucket(Bucket="mybucket")
 
 
 @mock_s3

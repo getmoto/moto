@@ -1106,6 +1106,7 @@ class CognitoIdpBackend(BaseBackend):
                 "AccessToken": access_token,
                 "RefreshToken": refresh_token,
                 "ExpiresIn": expires_in,
+                "TokenType": "Bearer",
             }
         }
 
@@ -1508,7 +1509,7 @@ class CognitoIdpBackend(BaseBackend):
                     "TokenType": "Bearer",
                 }
             }
-        elif auth_flow == "REFRESH_TOKEN":
+        elif auth_flow in ("REFRESH_TOKEN", "REFRESH_TOKEN_AUTH"):
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
@@ -1528,8 +1529,8 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(secret_hash)
 
             (
-                id_token,
                 access_token,
+                id_token,
                 expires_in,
             ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
@@ -1538,6 +1539,7 @@ class CognitoIdpBackend(BaseBackend):
                     "IdToken": id_token,
                     "AccessToken": access_token,
                     "ExpiresIn": expires_in,
+                    "TokenType": "Bearer",
                 }
             }
         else:
