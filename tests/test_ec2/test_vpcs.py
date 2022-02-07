@@ -1097,3 +1097,16 @@ def test_describe_vpcs_dryrun():
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
     )
+
+
+@mock_ec2
+def test_describe_prefix_lists():
+    client = boto3.client("ec2", region_name="us-east-1")
+    result_unfiltered = client.describe_prefix_lists()
+    assert len(result_unfiltered["PrefixLists"]) > 1
+    result_filtered = client.describe_prefix_lists(
+        Filters=[
+            {"Name": "prefix-list-name", "Values": ["com.amazonaws.us-east-1.s3"]},
+        ]
+    )
+    assert len(result_filtered["PrefixLists"]) == 1
