@@ -264,10 +264,7 @@ dummy_redrive_template = {
         },
         "DeadLetterQueue": {
             "Type": "AWS::SQS::Queue",
-            "Properties": {
-                "QueueName": "deadletterqueue.fifo",
-                "FifoQueue": True
-                },
+            "Properties": {"QueueName": "deadletterqueue.fifo", "FifoQueue": True},
         },
     },
 }
