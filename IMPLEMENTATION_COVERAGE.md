@@ -4744,7 +4744,7 @@
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
 - [ ] get_identity_dkim_attributes
-- [ ] get_identity_mail_from_domain_attributes
+- [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
 - [ ] get_identity_verification_attributes
@@ -4772,7 +4772,7 @@
 - [ ] set_identity_dkim_enabled
 - [X] set_identity_feedback_forwarding_enabled
 - [ ] set_identity_headers_in_notifications_enabled
-- [ ] set_identity_mail_from_domain
+- [X] set_identity_mail_from_domain
 - [X] set_identity_notification_topic
 - [ ] set_receipt_rule_position
 - [ ] test_render_template

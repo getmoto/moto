@@ -117,6 +117,7 @@ class SESBackend(BaseBackend):
         self.config_set = {}
         self.config_set_event_destination = {}
         self.event_destinations = {}
+        self.identity_mail_from_domains = {}
         self.templates = {}
         self.receipt_rule_set = {}
 
@@ -476,6 +477,44 @@ class SESBackend(BaseBackend):
                 break
         else:
             raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
+
+    def set_identity_mail_from_domain(self, identity, mail_from_domain=None, behavior_on_mx_failure=None):
+        if identity not in (self.domains + self.addresses):
+            raise InvalidParameterValue("Identity '{0}' does not exist.".format(identity))
+
+        if mail_from_domain is None:
+            self.identity_mail_from_domains.pop(identity)
+
+        if not mail_from_domain.endswith(identity):
+            raise InvalidParameterValue(
+                "Provided MAIL-FROM domain '{0}' is not subdomain of "
+                "the domain of the identity '{1}'.".format(mail_from_domain, identity)
+            )
+
+        if behavior_on_mx_failure not in (None, 'RejectMessage', 'UseDefaultValue'):
+            raise ValidationError(
+                "1 validation error detected: "
+                "Value '{0}' at 'behaviorOnMXFailure'"
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "[RejectMessage, UseDefaultValue]".format(behavior_on_mx_failure)
+            )
+
+        self.identity_mail_from_domains[identity] = {
+            "mail_from_domain": mail_from_domain,
+            "behavior_on_mx_failure": behavior_on_mx_failure,
+        }
+
+    def get_identity_mail_from_domain_attributes(self, identities=None):
+        if identities is None:
+            identities = []
+
+        attributes_by_identity = {}
+        for identity in identities:
+            if identity in (self.domains + self.addresses):
+                attributes_by_identity[identity] = self.identity_mail_from_domains.get(identity) or \
+                    {"behavior_on_mx_failure": "UseDefaultValue"}
+
+        return attributes_by_identity
 
 
 ses_backend = SESBackend()
