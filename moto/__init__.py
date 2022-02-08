@@ -26,7 +26,7 @@ def lazy_load(
 
 mock_acm = lazy_load(".acm", "mock_acm")
 mock_apigateway = lazy_load(".apigateway", "mock_apigateway")
-mock_apigatewayv2 = lazy_load(".apigatewayv2", "mock_apigatewayv2", boto3_name="apigatewayv2")
+mock_apigatewayv2 = lazy_load(".apigatewayv2", "mock_apigatewayv2")
 mock_appsync = lazy_load(".appsync", "mock_appsync")
 mock_athena = lazy_load(".athena", "mock_athena")
 mock_applicationautoscaling = lazy_load(
