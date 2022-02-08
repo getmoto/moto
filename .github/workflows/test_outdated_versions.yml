@@ -2,10 +2,16 @@
 #
 name: "Outdated Dependency Tests"
 
-on: [push, pull_request]
+on:
+  pull_request:
+    types: [ labeled ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1
 
 jobs:
   test:
+    if: ${{ github.event.label.name == 'moto-core' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
