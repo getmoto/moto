@@ -99,7 +99,7 @@ def test_create_db_cluster__verify_default_properties():
     cluster.should.have.key("ReaderEndpoint").equal(expected_readonly)
     cluster.should.have.key("MultiAZ").equal(False)
     cluster.should.have.key("Engine").equal("aurora")
-    cluster.should.have.key("EngineVersion").equal("8.0.mysql_aurora.3.01.0")
+    cluster.should.have.key("EngineVersion").equal("5.6.mysql_aurora.1.22.5")
     cluster.should.have.key("Port").equal(3306)
     cluster.should.have.key("MasterUsername").equal("root")
     cluster.should.have.key("PreferredBackupWindow").equal("01:37-02:07")
