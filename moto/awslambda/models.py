@@ -334,9 +334,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         # optional
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
+        self.package_type = spec.get("PackageType", None)
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
         self.layers = self._get_layers_data(spec.get("Layers", []))
+        self.signing_profile_version_arn = spec.get("SigningProfileVersionArn")
+        self.signing_job_arn = spec.get("SigningJobArn")
+        self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
 
         self.logs_group_name = "/aws/lambda/{}".format(self.function_name)
 
@@ -413,6 +417,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             )
         return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions]
 
+    def get_code_signing_config(self):
+        return {
+            "CodeSigningConfigArn": self.code_signing_config_arn,
+            "FunctionName": self.function_name,
+        }
+
     def get_configuration(self):
         config = {
             "CodeSha256": self.code_sha_256,
@@ -426,10 +436,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "Role": self.role,
             "Runtime": self.run_time,
             "State": self.state,
+            "PackageType": self.package_type,
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,
             "Layers": self.layers,
+            "SigningProfileVersionArn": self.signing_profile_version_arn,
+            "SigningJobArn": self.signing_job_arn,
         }
         if self.environment_vars:
             config["Environment"] = {"Variables": self.environment_vars}
@@ -1453,6 +1466,10 @@ The following environment variables are available for fine-grained control over 
     def remove_permission(self, function_name, sid, revision=""):
         fn = self.get_function(function_name)
         fn.policy.del_statement(sid, revision)
+
+    def get_code_signing_config(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.get_code_signing_config()
 
     def get_policy(self, function_name):
         fn = self.get_function(function_name)

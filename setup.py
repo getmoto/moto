@@ -81,6 +81,7 @@ for service_name in [
 extras_per_service.update(
     {
         "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "apigatewayv2": [_dep_PyYAML],
         "appsync": [_dep_graphql],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],

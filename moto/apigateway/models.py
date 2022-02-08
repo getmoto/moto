@@ -49,6 +49,7 @@ from .exceptions import (
     InvalidStageException,
     BasePathConflictException,
     BasePathNotFoundException,
+    VpcLinkNotFound,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -712,6 +713,17 @@ class UsagePlanKey(BaseModel, dict):
         self["value"] = value
 
 
+class VpcLink(BaseModel, dict):
+    def __init__(self, name, description, target_arns, tags):
+        super().__init__()
+        self["id"] = create_id()
+        self["name"] = name
+        self["description"] = description
+        self["targetArns"] = target_arns
+        self["tags"] = tags
+        self["status"] = "AVAILABLE"
+
+
 class RestAPI(CloudFormationModel):
 
     PROP_ID = "id"
@@ -1161,6 +1173,7 @@ class APIGatewayBackend(BaseBackend):
         self.models = {}
         self.region_name = region_name
         self.base_path_mappings = {}
+        self.vpc_links = {}
 
     def reset(self):
         region_name = self.region_name
@@ -1880,6 +1893,27 @@ class APIGatewayBackend(BaseBackend):
             self.base_path_mappings[domain_name][modified_base_path] = base_path_mapping
 
         return base_path_mapping
+
+    def create_vpc_link(self, name, description, target_arns, tags):
+        vpc_link = VpcLink(
+            name, description=description, target_arns=target_arns, tags=tags
+        )
+        self.vpc_links[vpc_link["id"]] = vpc_link
+        return vpc_link
+
+    def delete_vpc_link(self, vpc_link_id):
+        self.vpc_links.pop(vpc_link_id, None)
+
+    def get_vpc_link(self, vpc_link_id):
+        if vpc_link_id not in self.vpc_links:
+            raise VpcLinkNotFound
+        return self.vpc_links[vpc_link_id]
+
+    def get_vpc_links(self):
+        """
+        Pagination has not yet been implemented
+        """
+        return list(self.vpc_links.values())
 
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")

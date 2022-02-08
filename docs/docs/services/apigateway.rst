@@ -41,7 +41,7 @@ apigateway
 - [X] create_stage
 - [X] create_usage_plan
 - [X] create_usage_plan_key
-- [ ] create_vpc_link
+- [X] create_vpc_link
 - [X] delete_api_key
 - [X] delete_authorizer
 - [X] delete_base_path_mapping
@@ -62,7 +62,7 @@ apigateway
 - [X] delete_stage
 - [X] delete_usage_plan
 - [X] delete_usage_plan_key
-- [ ] delete_vpc_link
+- [X] delete_vpc_link
 - [ ] flush_stage_authorizers_cache
 - [ ] flush_stage_cache
 - [ ] generate_client_certificate
@@ -110,8 +110,12 @@ apigateway
 - [X] get_usage_plan_key
 - [X] get_usage_plan_keys
 - [X] get_usage_plans
-- [ ] get_vpc_link
-- [ ] get_vpc_links
+- [X] get_vpc_link
+- [X] get_vpc_links
+  
+        Pagination has not yet been implemented
+        
+
 - [ ] import_api_keys
 - [ ] import_documentation_parts
 - [ ] import_rest_api

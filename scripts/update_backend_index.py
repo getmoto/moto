@@ -15,13 +15,16 @@ output_file = "moto/backend_index.py"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 output_path = os.path.join(script_dir, "..", output_file)
 
-IGNORE_BACKENDS = ["moto_api", "instance_metadata"]
+# Ignore the MotoAPI and InstanceMetadata backend, as they do not represent AWS services
+# Ignore the APIGatewayV2, as it's URL's are managed by APIGateway
+# Ignore S3bucket_path, as the functionality is covered in the S3 service
+IGNORE_BACKENDS = ["moto_api", "instance_metadata", "apigatewayv2", "s3bucket_path"]
 
 
 def iter_backend_url_patterns():
     for backend, (module_name, _) in backends.BACKENDS.items():
         if backend in IGNORE_BACKENDS:
-            break
+            continue
         # otherwise we need to import the module
         url_module_name = f"moto.{module_name}.urls"
         module = importlib.import_module(url_module_name)

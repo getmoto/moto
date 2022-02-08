@@ -154,6 +154,11 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def code_signing_config(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._get_code_signing_config()
+
     def function_concurrency(self, request, full_url, headers):
         http_method = request.method
         self.setup_class(request, full_url, headers)
@@ -419,6 +424,11 @@ class LambdaResponse(BaseResponse):
             return 200, {}, json.dumps(resp)
         else:
             return 404, {}, "{}"
+
+    def _get_code_signing_config(self):
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        resp = self.lambda_backend.get_code_signing_config(function_name)
+        return 200, {}, json.dumps(resp)
 
     def _get_function_concurrency(self, request):
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
