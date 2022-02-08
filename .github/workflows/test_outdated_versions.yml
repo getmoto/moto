@@ -5,7 +5,6 @@ name: "Outdated Dependency Tests"
 on:
   pull_request:
     types: [ labeled ]
-  workflow_dispatch:
   schedule:
     - cron: '0 0 * * 1
 
