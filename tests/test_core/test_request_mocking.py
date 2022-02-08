@@ -12,7 +12,7 @@ def test_passthrough_requests():
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
-    res = requests.get("https://httpbin.org/ip")
+    res = requests.get("https://example.com/")
     assert res.status_code == 200
 
 

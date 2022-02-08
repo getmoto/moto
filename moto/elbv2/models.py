@@ -11,7 +11,6 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.ec2.models import ec2_backends
-from moto.acm.models import acm_backends
 from .utils import make_arn_for_target_group
 from .utils import make_arn_for_load_balancer
 from .exceptions import (
@@ -581,16 +580,6 @@ class ELBv2Backend(BaseBackend):
         :rtype: moto.ec2.models.EC2Backend
         """
         return ec2_backends[self.region_name]
-
-    @property
-    def acm_backend(self):
-        """
-        ACM backend
-
-        :return: ACM Backend
-        :rtype: moto.acm.models.AWSCertificateManagerBackend
-        """
-        return acm_backends[self.region_name]
 
     def reset(self):
         region_name = self.region_name
@@ -1420,9 +1409,7 @@ Member must satisfy regular expression pattern: {}".format(
             if certificates:
                 default_cert = certificates[0]
                 default_cert_arn = default_cert["certificate_arn"]
-                try:
-                    self.acm_backend.get_certificate(default_cert_arn)
-                except Exception:
+                if not self._certificate_exists(certificate_arn=default_cert_arn):
                     raise RESTError(
                         "CertificateNotFound",
                         "Certificate {0} not found".format(default_cert_arn),
@@ -1448,6 +1435,30 @@ Member must satisfy regular expression pattern: {}".format(
             listener._default_rule[0].actions = default_actions
 
         return listener
+
+    def _certificate_exists(self, certificate_arn):
+        """
+        Verify the provided certificate exists in either ACM or IAM
+        """
+        from moto.acm import acm_backends
+        from moto.acm.models import AWSResourceNotFoundException
+
+        try:
+            acm_backend = acm_backends[self.region_name]
+            acm_backend.get_certificate(certificate_arn)
+            return True
+        except AWSResourceNotFoundException:
+            pass
+
+        from moto.iam import iam_backend
+
+        cert = iam_backend.get_certificate_by_arn(certificate_arn)
+        if cert is not None:
+            return True
+
+        # ACM threw an error, and IAM did not return a certificate
+        # Safe to assume it doesn't exist when we get here
+        return False
 
     def _any_listener_using(self, target_group_arn):
         for load_balancer in self.load_balancers.values():

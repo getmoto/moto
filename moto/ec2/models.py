@@ -5566,8 +5566,8 @@ class ManagedPrefixListBackend(object):
 
         result = managed_prefix_lists
         if filters:
-            result = filter_resources(managed_prefix_lists, filters, attr_pairs)
-            result = describe_tag_filter(filters, managed_prefix_lists)
+            result = filter_resources(result, filters, attr_pairs)
+            result = describe_tag_filter(filters, result)
 
         for item in result.copy():
             if not item.delete_counter:

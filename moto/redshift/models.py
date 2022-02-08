@@ -25,6 +25,7 @@ from .exceptions import (
     SnapshotCopyGrantNotFoundFaultError,
     UnknownSnapshotCopyRegionFaultError,
     ClusterSecurityGroupNotFoundFaultError,
+    InvalidClusterSnapshotStateFaultError,
 )
 
 
@@ -505,12 +506,18 @@ class Snapshot(TaggableResourceMixin, BaseModel):
     resource_type = "snapshot"
 
     def __init__(
-        self, cluster, snapshot_identifier, region_name, tags=None, iam_roles_arn=None
+        self,
+        cluster,
+        snapshot_identifier,
+        region_name,
+        tags=None,
+        iam_roles_arn=None,
+        snapshot_type="manual",
     ):
         super().__init__(region_name, tags)
         self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
-        self.snapshot_type = "manual"
+        self.snapshot_type = snapshot_type
         self.status = "available"
         self.create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
         self.iam_roles_arn = iam_roles_arn or []
@@ -638,6 +645,17 @@ class RedshiftBackend(BaseBackend):
             raise ClusterAlreadyExistsFaultError()
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
+        snapshot_id = "rs:{}-{}".format(
+            cluster_identifier, datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
+        )
+        # Automated snapshots don't copy over the tags
+        self.create_cluster_snapshot(
+            cluster_identifier,
+            snapshot_id,
+            cluster.region,
+            None,
+            snapshot_type="automated",
+        )
         return cluster
 
     def pause_cluster(self, cluster_id):
@@ -696,6 +714,14 @@ class RedshiftBackend(BaseBackend):
 
         return cluster
 
+    def delete_automated_snapshots(self, cluster_identifier):
+        snapshots = self.describe_cluster_snapshots(
+            cluster_identifier=cluster_identifier
+        )
+        for snapshot in snapshots:
+            if snapshot.snapshot_type == "automated":
+                self.snapshots.pop(snapshot.snapshot_identifier)
+
     def delete_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs.pop("cluster_identifier")
         cluster_skip_final_snapshot = cluster_kwargs.pop("skip_final_snapshot")
@@ -722,7 +748,7 @@ class RedshiftBackend(BaseBackend):
                     cluster.region,
                     cluster.tags,
                 )
-
+            self.delete_automated_snapshots(cluster_identifier)
             return self.clusters.pop(cluster_identifier)
         raise ClusterNotFoundError(cluster_identifier)
 
@@ -817,31 +843,43 @@ class RedshiftBackend(BaseBackend):
         raise ClusterParameterGroupNotFoundError(parameter_group_name)
 
     def create_cluster_snapshot(
-        self, cluster_identifier, snapshot_identifier, region_name, tags
+        self,
+        cluster_identifier,
+        snapshot_identifier,
+        region_name,
+        tags,
+        snapshot_type="manual",
     ):
         cluster = self.clusters.get(cluster_identifier)
         if not cluster:
             raise ClusterNotFoundError(cluster_identifier)
         if self.snapshots.get(snapshot_identifier) is not None:
             raise ClusterSnapshotAlreadyExistsError(snapshot_identifier)
-        snapshot = Snapshot(cluster, snapshot_identifier, region_name, tags)
+        snapshot = Snapshot(
+            cluster, snapshot_identifier, region_name, tags, snapshot_type=snapshot_type
+        )
         self.snapshots[snapshot_identifier] = snapshot
         return snapshot
 
     def describe_cluster_snapshots(
-        self, cluster_identifier=None, snapshot_identifier=None
+        self, cluster_identifier=None, snapshot_identifier=None, snapshot_type=None
     ):
+        snapshot_types = (
+            ["automated", "manual"] if snapshot_type is None else [snapshot_type]
+        )
         if cluster_identifier:
             cluster_snapshots = []
             for snapshot in self.snapshots.values():
                 if snapshot.cluster.cluster_identifier == cluster_identifier:
-                    cluster_snapshots.append(snapshot)
+                    if snapshot.snapshot_type in snapshot_types:
+                        cluster_snapshots.append(snapshot)
             if cluster_snapshots:
                 return cluster_snapshots
 
         if snapshot_identifier:
             if snapshot_identifier in self.snapshots:
-                return [self.snapshots[snapshot_identifier]]
+                if self.snapshots[snapshot_identifier].snapshot_type in snapshot_types:
+                    return [self.snapshots[snapshot_identifier]]
             raise ClusterSnapshotNotFoundError(snapshot_identifier)
 
         return self.snapshots.values()
@@ -850,6 +888,11 @@ class RedshiftBackend(BaseBackend):
         if snapshot_identifier not in self.snapshots:
             raise ClusterSnapshotNotFoundError(snapshot_identifier)
 
+        snapshot = self.describe_cluster_snapshots(
+            snapshot_identifier=snapshot_identifier
+        )[0]
+        if snapshot.snapshot_type == "automated":
+            raise InvalidClusterSnapshotStateFaultError(snapshot_identifier)
         deleted_snapshot = self.snapshots.pop(snapshot_identifier)
         deleted_snapshot.status = "deleted"
         return deleted_snapshot
