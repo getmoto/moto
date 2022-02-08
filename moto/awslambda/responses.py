@@ -6,9 +6,22 @@ try:
 except ImportError:
     from urllib.parse import unquote
 
+from functools import wraps
 from moto.core.utils import amz_crc32, amzn_request_id, path_url
 from moto.core.responses import BaseResponse
+from .exceptions import LambdaClientError
 from .models import lambda_backends
+
+
+def error_handler(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except LambdaClientError as e:
+            return e.code, e.get_headers(), e.get_body()
+
+    return _wrapper
 
 
 class LambdaResponse(BaseResponse):
@@ -29,6 +42,7 @@ class LambdaResponse(BaseResponse):
         """
         return lambda_backends[self.region]
 
+    @error_handler
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -127,6 +141,7 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
+    @error_handler
     def policy(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":

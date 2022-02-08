@@ -5,6 +5,7 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3
 from moto.core.models import ACCOUNT_ID
@@ -1193,3 +1194,24 @@ def test_remove_function_permission(key):
     policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]
     policy = json.loads(policy)
     policy["Statement"].should.equal([])
+
+
+@mock_lambda
+def test_remove_unknown_permission_throws_error():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    f = conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+    )
+    arn = f["FunctionArn"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.remove_permission(FunctionName=arn, StatementId="1")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("No policy is associated with the given resource.")

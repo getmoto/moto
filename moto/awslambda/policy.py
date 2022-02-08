@@ -1,7 +1,10 @@
 import json
 import uuid
 
-from moto.awslambda.exceptions import PreconditionFailedException
+from moto.awslambda.exceptions import (
+    PreconditionFailedException,
+    UnknownPolicyException,
+)
 
 
 class Policy:
@@ -48,6 +51,9 @@ class Policy:
         for statement in self.statements:
             if "Sid" in statement and statement["Sid"] == sid:
                 self.statements.remove(statement)
+                break
+        else:
+            raise UnknownPolicyException()
 
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
