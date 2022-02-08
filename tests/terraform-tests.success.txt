@@ -1,7 +1,5 @@
 TestAccAWSAccessKey
-TestAccAWSAPIGatewayV2Api
 TestAccAWSAPIGatewayV2Authorizer
-TestAccAWSAPIGatewayV2Integration
 TestAccAWSAPIGatewayV2IntegrationResponse
 TestAccAWSAPIGatewayV2Model
 TestAccAWSAPIGatewayV2Route

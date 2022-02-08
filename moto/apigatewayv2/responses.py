@@ -414,7 +414,7 @@ class ApiGatewayV2Response(BaseResponse):
         return 200, {}, json.dumps(model.to_json())
 
     def get_tags(self):
-        resource_arn = unquote(self.path.split("/")[-1])
+        resource_arn = unquote(self.path.split("/tags/")[1])
         tags = self.apigatewayv2_backend.get_tags(resource_arn)
         return 200, {}, json.dumps({"tags": tags})
 
