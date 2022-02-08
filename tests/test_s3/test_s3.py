@@ -479,14 +479,13 @@ def test_key_save_to_missing_bucket_boto3():
 
 @mock_s3
 def test_missing_key_request_boto3():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Only test status code in non-ServerMode")
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
 
     response = requests.get("http://foobar.s3.amazonaws.com/the-key")
-    if settings.TEST_SERVER_MODE:
-        response.status_code.should.equal(403)
-    else:
-        response.status_code.should.equal(404)
+    response.status_code.should.equal(404)
 
 
 @mock_s3
