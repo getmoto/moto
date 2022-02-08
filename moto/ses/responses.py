@@ -431,13 +431,13 @@ GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.
   <GetSendStatisticsResult>
       <SendDataPoints>
         {% for statistics in all_statistics %}
-            <item>
+            <member>
                 <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
                 <Rejects>{{ statistics["Rejects"] }}</Rejects>
                 <Bounces>{{ statistics["Bounces"] }}</Bounces>
                 <Complaints>{{ statistics["Complaints"] }}</Complaints>
-                <Timestamp>{{ statistics["Timestamp"] }}</Timestamp>
-            </item>
+                <Timestamp>{{ statistics["Timestamp"].isoformat() }}</Timestamp>
+            </member>
         {% endfor %}
       </SendDataPoints>
   </GetSendStatisticsResult>
