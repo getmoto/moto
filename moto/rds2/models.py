@@ -187,35 +187,21 @@ class Cluster:
     @staticmethod
     def default_engine_version(engine):
         return {
-            "aurora": "8.0.mysql_aurora.3.01.0",
-            "mysql": "8.0",
-            "mariadb": "10.5",
-            "postgres": "13.5",
-            "oracle-ee": "19c",
-            "oracle-se2": "19c",
-            "oracle-se1": "19c",
-            "oracle-se": "19c",
-            "sqlserver-ee": "15.00",
-            "sqlserver-ex": "15.00",
-            "sqlserver-se": "15.00",
-            "sqlserver-web": "15.00",
+            "aurora": "5.6.mysql_aurora.1.22.5",
+            "aurora-mysql": "5.7.mysql_aurora.2.07.2",
+            "aurora-postgresql": "12.7",
+            "mysql": "8.0.23",
+            "postgres": "13.4",
         }[engine]
 
     @staticmethod
     def default_port(engine):
         return {
             "aurora": 3306,
+            "aurora-mysql": 3306,
+            "aurora-postgresql": 5432,
             "mysql": 3306,
-            "mariadb": 3306,
             "postgres": 5432,
-            "oracle-ee": 1521,
-            "oracle-se2": 1521,
-            "oracle-se1": 1521,
-            "oracle-se": 1521,
-            "sqlserver-ee": 1433,
-            "sqlserver-ex": 1433,
-            "sqlserver-se": 1433,
-            "sqlserver-web": 1433,
         }[engine]
 
     @staticmethod
@@ -229,17 +215,10 @@ class Cluster:
     def default_allocated_storage(engine, storage_type):
         return {
             "aurora": {"gp2": 0, "io1": 0, "standard": 0},
+            "aurora-mysql": {"gp2": 20, "io1": 100, "standard": 10},
+            "aurora-postgresql": {"gp2": 20, "io1": 100, "standard": 10},
             "mysql": {"gp2": 20, "io1": 100, "standard": 5},
-            "mariadb": {"gp2": 20, "io1": 100, "standard": 5},
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
-            "oracle-ee": {"gp2": 20, "io1": 100, "standard": 10},
-            "oracle-se2": {"gp2": 20, "io1": 100, "standard": 10},
-            "oracle-se1": {"gp2": 20, "io1": 100, "standard": 10},
-            "oracle-se": {"gp2": 20, "io1": 100, "standard": 10},
-            "sqlserver-ee": {"gp2": 200, "io1": 200, "standard": 200},
-            "sqlserver-ex": {"gp2": 20, "io1": 100, "standard": 20},
-            "sqlserver-se": {"gp2": 200, "io1": 200, "standard": 200},
-            "sqlserver-web": {"gp2": 20, "io1": 100, "standard": 20},
         }[engine][storage_type]
 
     def get_tags(self):
