@@ -5,8 +5,6 @@ name: "Outdated Dependency Tests"
 on:
   pull_request:
     types: [ labeled ]
-  schedule:
-    - cron: '0 0 * * 1
 
 jobs:
   test:
