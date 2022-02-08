@@ -575,6 +575,16 @@ class BucketMustHaveLockeEnabled(S3ClientError):
         )
 
 
+class CopyObjectMustChangeSomething(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super().__init__(
+            "InvalidRequest",
+            "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes.",
+        )
+
+
 class InvalidFilterRuleName(InvalidArgumentError):
     code = 400
 
