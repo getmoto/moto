@@ -287,8 +287,8 @@ class EmailResponse(BaseResponse):
         ses_backend.set_identity_mail_from_domain(
             identity, mail_from_domain, behavior_on_mx_failure
         )
-        template = self.response_template(SET_IDENTITY_MAIL_FROM_DOMAIN)
 
+        template = self.response_template(SET_IDENTITY_MAIL_FROM_DOMAIN)
         return template.render()
 
     def get_identity_mail_from_domain_attributes(self):

@@ -478,12 +478,17 @@ class SESBackend(BaseBackend):
         else:
             raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
 
-    def set_identity_mail_from_domain(self, identity, mail_from_domain=None, behavior_on_mx_failure=None):
+    def set_identity_mail_from_domain(
+        self, identity, mail_from_domain=None, behavior_on_mx_failure=None
+    ):
         if identity not in (self.domains + self.addresses):
-            raise InvalidParameterValue("Identity '{0}' does not exist.".format(identity))
+            raise InvalidParameterValue(
+                "Identity '{0}' does not exist.".format(identity)
+            )
 
         if mail_from_domain is None:
             self.identity_mail_from_domains.pop(identity)
+            return
 
         if not mail_from_domain.endswith(identity):
             raise InvalidParameterValue(
@@ -491,7 +496,7 @@ class SESBackend(BaseBackend):
                 "the domain of the identity '{1}'.".format(mail_from_domain, identity)
             )
 
-        if behavior_on_mx_failure not in (None, 'RejectMessage', 'UseDefaultValue'):
+        if behavior_on_mx_failure not in (None, "RejectMessage", "UseDefaultValue"):
             raise ValidationError(
                 "1 validation error detected: "
                 "Value '{0}' at 'behaviorOnMXFailure'"
@@ -511,8 +516,9 @@ class SESBackend(BaseBackend):
         attributes_by_identity = {}
         for identity in identities:
             if identity in (self.domains + self.addresses):
-                attributes_by_identity[identity] = self.identity_mail_from_domains.get(identity) or \
-                    {"behavior_on_mx_failure": "UseDefaultValue"}
+                attributes_by_identity[identity] = self.identity_mail_from_domains.get(
+                    identity
+                ) or {"behavior_on_mx_failure": "UseDefaultValue"}
 
         return attributes_by_identity
 
