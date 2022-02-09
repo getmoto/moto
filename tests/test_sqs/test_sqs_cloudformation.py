@@ -55,7 +55,7 @@ def test_describe_stack_subresources():
     template_body = simple_queue.substitute(q_name=q_name)
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
-    queue_urls = client.list_queues()["QueueUrls"]
+    queue_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
     assert any(["{}/{}".format(ACCOUNT_ID, q_name) in url for url in queue_urls])
 
     stack = res.Stack(stack_name)
@@ -76,7 +76,7 @@ def test_list_stack_resources():
     template_body = simple_queue.substitute(q_name=q_name)
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
-    queue_urls = client.list_queues()["QueueUrls"]
+    queue_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
     assert any(["{}/{}".format(ACCOUNT_ID, q_name) in url for url in queue_urls])
 
     queue = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"][0]
@@ -98,7 +98,7 @@ def test_create_from_cloudformation_json_with_tags():
     response = cf.describe_stack_resources(StackName=stack_name)
     q_name = response["StackResources"][0]["PhysicalResourceId"]
 
-    all_urls = client.list_queues()["QueueUrls"]
+    all_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
     queue_url = [url for url in all_urls if url.endswith(q_name)][0]
 
     queue_tags = client.list_queue_tags(QueueUrl=queue_url)["Tags"]

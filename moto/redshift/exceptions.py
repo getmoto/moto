@@ -155,3 +155,13 @@ class ClusterSecurityGroupNotFoundFaultError(RedshiftClientError):
             "ClusterSecurityGroupNotFoundFault",
             "The cluster security group name does not refer to an existing cluster security group.",
         )
+
+
+class InvalidClusterSnapshotStateFaultError(RedshiftClientError):
+    def __init__(self, snapshot_identifier):
+        super().__init__(
+            "InvalidClusterSnapshotStateFault",
+            "Cannot delete the snapshot {0} because only manual snapshots may be deleted".format(
+                snapshot_identifier
+            ),
+        )

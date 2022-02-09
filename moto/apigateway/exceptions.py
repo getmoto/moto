@@ -238,3 +238,10 @@ class BasePathNotFoundException(NotFoundException):
         super().__init__(
             "NotFoundException", "Invalid base path mapping identifier specified"
         )
+
+
+class VpcLinkNotFound(NotFoundException):
+    code = 404
+
+    def __init__(self):
+        super().__init__("NotFoundException", "VPCLink not found")

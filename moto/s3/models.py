@@ -37,6 +37,7 @@ from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
+    CopyObjectMustChangeSomething,
     MissingBucket,
     InvalidBucketName,
     InvalidPart,
@@ -1614,6 +1615,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         new_key = FakeKey(
             name=key_name,
+            bucket_name=bucket_name,
             value=value,
             storage=storage,
             etag=etag,
@@ -2015,6 +2017,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         kms_key_id=None,
         bucket_key_enabled=False,
     ):
+        if (
+            src_key.name == dest_key_name
+            and src_key.bucket_name == dest_bucket_name
+            and storage == src_key.storage_class
+            and acl == src_key.acl
+            and encryption == src_key.encryption
+            and kms_key_id == src_key.kms_key_id
+            and bucket_key_enabled == (src_key.bucket_key_enabled or False)
+        ):
+            raise CopyObjectMustChangeSomething
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,

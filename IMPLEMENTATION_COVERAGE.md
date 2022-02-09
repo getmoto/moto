@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>55% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -38,7 +38,7 @@
 - [X] create_stage
 - [X] create_usage_plan
 - [X] create_usage_plan_key
-- [ ] create_vpc_link
+- [X] create_vpc_link
 - [X] delete_api_key
 - [X] delete_authorizer
 - [X] delete_base_path_mapping
@@ -59,7 +59,7 @@
 - [X] delete_stage
 - [X] delete_usage_plan
 - [X] delete_usage_plan_key
-- [ ] delete_vpc_link
+- [X] delete_vpc_link
 - [ ] flush_stage_authorizers_cache
 - [ ] flush_stage_cache
 - [ ] generate_client_certificate
@@ -107,8 +107,8 @@
 - [X] get_usage_plan_key
 - [X] get_usage_plan_keys
 - [X] get_usage_plans
-- [ ] get_vpc_link
-- [ ] get_vpc_links
+- [X] get_vpc_link
+- [X] get_vpc_links
 - [ ] import_api_keys
 - [ ] import_documentation_parts
 - [ ] import_rest_api
@@ -144,6 +144,84 @@
 - [ ] update_usage
 - [X] update_usage_plan
 - [ ] update_vpc_link
+</details>
+
+## apigatewayv2
+<details>
+<summary>58% implemented</summary>
+
+- [X] create_api
+- [ ] create_api_mapping
+- [X] create_authorizer
+- [ ] create_deployment
+- [ ] create_domain_name
+- [X] create_integration
+- [X] create_integration_response
+- [X] create_model
+- [X] create_route
+- [X] create_route_response
+- [ ] create_stage
+- [X] create_vpc_link
+- [ ] delete_access_log_settings
+- [X] delete_api
+- [ ] delete_api_mapping
+- [X] delete_authorizer
+- [X] delete_cors_configuration
+- [ ] delete_deployment
+- [ ] delete_domain_name
+- [X] delete_integration
+- [X] delete_integration_response
+- [X] delete_model
+- [X] delete_route
+- [X] delete_route_request_parameter
+- [X] delete_route_response
+- [ ] delete_route_settings
+- [ ] delete_stage
+- [X] delete_vpc_link
+- [ ] export_api
+- [X] get_api
+- [ ] get_api_mapping
+- [ ] get_api_mappings
+- [X] get_apis
+- [X] get_authorizer
+- [ ] get_authorizers
+- [ ] get_deployment
+- [ ] get_deployments
+- [ ] get_domain_name
+- [ ] get_domain_names
+- [X] get_integration
+- [X] get_integration_response
+- [X] get_integration_responses
+- [X] get_integrations
+- [X] get_model
+- [ ] get_model_template
+- [ ] get_models
+- [X] get_route
+- [X] get_route_response
+- [ ] get_route_responses
+- [X] get_routes
+- [ ] get_stage
+- [ ] get_stages
+- [X] get_tags
+- [X] get_vpc_link
+- [X] get_vpc_links
+- [ ] import_api
+- [X] reimport_api
+- [ ] reset_authorizers_cache
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_api
+- [ ] update_api_mapping
+- [X] update_authorizer
+- [ ] update_deployment
+- [ ] update_domain_name
+- [X] update_integration
+- [X] update_integration_response
+- [X] update_model
+- [X] update_route
+- [ ] update_route_response
+- [ ] update_stage
+- [X] update_vpc_link
 </details>
 
 ## application-autoscaling
@@ -3289,7 +3367,7 @@
 
 ## lambda
 <details>
-<summary>41% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -3308,7 +3386,7 @@
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [ ] get_alias
-- [ ] get_code_signing_config
+- [X] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
 - [ ] get_function_code_signing_config
@@ -5275,7 +5353,6 @@
 - amplifybackend
 - amplifyuibuilder
 - apigatewaymanagementapi
-- apigatewayv2
 - appconfig
 - appconfigdata
 - appflow

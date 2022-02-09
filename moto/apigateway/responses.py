@@ -909,3 +909,34 @@ class APIGatewayResponse(BaseResponse):
             return self.error("BadRequestException", e.message)
         except InvalidStageException as e:
             return self.error("BadRequestException", e.message)
+
+    def vpc_link(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        vpc_link_id = url_path_parts[-1]
+
+        try:
+            if self.method == "DELETE":
+                self.backend.delete_vpc_link(vpc_link_id=vpc_link_id)
+                return 200, {}, "{}"
+            if self.method == "GET":
+                vpc_link = self.backend.get_vpc_link(vpc_link_id=vpc_link_id)
+                return 200, {}, json.dumps(vpc_link)
+        except NotFoundException as e:
+            return self.error("NotFoundException", e.message, 404)
+
+    def vpc_links(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            vpc_links = self.backend.get_vpc_links()
+            return 200, {}, json.dumps({"item": vpc_links})
+        if self.method == "POST":
+            name = self._get_param("name")
+            description = self._get_param("description")
+            target_arns = self._get_param("targetArns")
+            tags = self._get_param("tags")
+            vpc_link = self.backend.create_vpc_link(
+                name=name, description=description, target_arns=target_arns, tags=tags
+            )
+            return 200, {}, json.dumps(vpc_link)
