@@ -500,7 +500,7 @@ ec2
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
   
-        The following parameters are not yet implemented: RemovePrivateDnsName, AddNetworkLoadBalancerArns, RemoveNetworkLoadBalancerArns, AddGatewayLoadBalancerArns, RemoveGatewayLoadBalancerArns
+        The following parameters are not yet implemented: RemovePrivateDnsName
         
 
 - [ ] modify_vpc_endpoint_service_payer_responsibility
