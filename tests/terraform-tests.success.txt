@@ -1,4 +1,5 @@
 TestAccAWSAccessKey
+TestAccAWSAcmCertificateDataSource
 TestAccAWSAPIGatewayV2Authorizer
 TestAccAWSAPIGatewayV2IntegrationResponse
 TestAccAWSAPIGatewayV2Model
