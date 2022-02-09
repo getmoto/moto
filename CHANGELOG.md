@@ -1,6 +1,82 @@
 Moto Changelog
 ===================
 
+3.0.3
+-----
+
+    * New Services:
+        * APIGatewayV2
+            * create_api()
+            * create_authorizer()
+            * create_integration()
+            * create_integration_response()
+            * create_model()
+            * create_route()
+            * create_route_response()
+            * create_vpc_link()
+            * delete_api()
+            * delete_authorizer()
+            * delete_cors_configuration()
+            * delete_integration()
+            * delete_integration_response()
+            * delete_model()
+            * delete_route()
+            * delete_route_request_parameter()
+            * delete_route_response()
+            * delete_vpc_link()
+            * get_api()
+            * get_apis()
+            * get_authorizer()
+            * get_integration()
+            * get_integration_response()
+            * get_integration_responses()
+            * get_integrations()
+            * get_model()
+            * get_route()
+            * get_route_response()
+            * get_routes()
+            * get_tags()
+            * get_vpc_link()
+            * get_vpc_links()
+            * reimport_api()
+            * tag_resource()
+            * untag_resource()
+            * update_api()
+            * update_authorizer()
+            * update_integration()
+            * update_integration_response()
+            * update_model()
+            * update_route()
+            * update_vpc_link()
+
+    * New Methods:
+        * APIGateway:
+            * create_vpc_link()
+            * delete_vpc_link()
+            * get_vpc_link()
+            * get_vpc_links()
+        EC2:
+            * create_vpc_endpoint_service_configuration()
+            * delete_vpc_endpoint_service_configurations()
+            * describe_vpc_endpoint_service_configurations()
+            * describe_vpc_endpoint_service_permissions()
+            * modify_vpc_endpoint_service_configuration()
+            * modify_vpc_endpoint_service_permissions()
+        * Route53:
+            * create_reusable_delegation_set()
+            * delete_reusable_delegation_set()
+            * get_hosted_zone_count()
+            * get_reusable_delegation_set()
+            * list_reusable_delegation_sets()
+
+    * Miscellaneous:
+        * CognitoIDP:
+            * initiate_auth()/admin_initiate_auth(): improved behaviour of the AuthFlow-parameter
+        * EC2:
+            * describe_instance_types() now returns the GpuInfo-attribute
+        * Redshift:
+            * describe_cluster_snapshots() now supports the SnapshotType-parameter
+
 3.0.2
 -----
 
