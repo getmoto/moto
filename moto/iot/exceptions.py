@@ -1,3 +1,5 @@
+import json
+
 from moto.core.exceptions import JsonRESTError
 
 
@@ -50,10 +52,17 @@ class DeleteConflictException(IoTClientError):
 
 
 class ResourceAlreadyExistsException(IoTClientError):
-    def __init__(self, msg):
+    def __init__(self, msg, resource_id, resource_arn):
         self.code = 409
         super().__init__(
             "ResourceAlreadyExistsException", msg or "The resource already exists."
+        )
+        self.description = json.dumps(
+            {
+                "message": self.message,
+                "resourceId": resource_id,
+                "resourceArn": resource_arn,
+            }
         )
 
 
