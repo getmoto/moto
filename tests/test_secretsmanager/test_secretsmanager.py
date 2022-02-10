@@ -27,6 +27,20 @@ def test_get_secret_value():
 
 
 @mock_secretsmanager
+def test_create_secret_with_client_request_token():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce71'
+    create_dict = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString='secret_string',
+        ClientRequestToken=version_id
+    )
+    assert create_dict
+    assert create_dict['VersionId'] == version_id
+
+
+@mock_secretsmanager
 def test_get_secret_value_by_arn():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -229,6 +243,15 @@ def test_delete_secret_force():
 
 
 @mock_secretsmanager
+def test_delete_secret_force_no_such_secret():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    deleted_secret = conn.delete_secret(SecretId=DEFAULT_SECRET_NAME, ForceDeleteWithoutRecovery=True)
+    assert deleted_secret
+    assert deleted_secret['Name'] == DEFAULT_SECRET_NAME
+
+
+@mock_secretsmanager
 def test_delete_secret_force_with_arn():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -251,7 +274,7 @@ def test_delete_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     with pytest.raises(ClientError):
-        conn.delete_secret(SecretId="i-dont-exist", ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId="i-dont-exist")
 
 
 @mock_secretsmanager
@@ -287,6 +310,17 @@ def test_delete_secret_recovery_window_too_long():
     with pytest.raises(ClientError):
         conn.delete_secret(SecretId="test-secret", RecoveryWindowInDays=31)
 
+
+@mock_secretsmanager
+def test_delete_secret_force_no_such_secret_with_invalid_recovery_window():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    with pytest.raises(ClientError):
+        conn.delete_secret(
+            SecretId=DEFAULT_SECRET_NAME,
+            ForceDeleteWithoutRecovery=True,
+            RecoveryWindowInDays=4
+        )
 
 @mock_secretsmanager
 def test_delete_secret_that_is_marked_deleted():
@@ -950,6 +984,118 @@ def test_can_list_secret_version_ids():
     returned_version_ids = [v["VersionId"] for v in versions_list["Versions"]]
 
     assert [first_version_id, second_version_id].sort() == returned_version_ids.sort()
+
+
+@mock_secretsmanager
+def test_put_secret_value_version_stages_response():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # Creation.
+    first_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce71'
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString='first_secret_string',
+        ClientRequestToken=first_version_id
+    )
+
+    # Use PutSecretValue to push a new version with new version stages.
+    second_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce72'
+    second_version_stages = ['SAMPLESTAGE1', 'SAMPLESTAGE0']
+    second_put_res_dict = conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString='second_secret_string',
+        VersionStages=second_version_stages,
+        ClientRequestToken=second_version_id
+    )
+    assert second_put_res_dict
+    assert second_put_res_dict['VersionId'] == second_version_id
+    assert second_put_res_dict['VersionStages'] == second_version_stages
+
+
+@mock_secretsmanager
+def test_put_secret_value_version_stages_pending_response():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # Creation.
+    first_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce71'
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString='first_secret_string',
+        ClientRequestToken=first_version_id
+    )
+
+    # Use PutSecretValue to push a new version with new version stages.
+    second_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce72'
+    second_version_stages = ['AWSPENDING']
+    second_put_res_dict = conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString='second_secret_string',
+        VersionStages=second_version_stages,
+        ClientRequestToken=second_version_id
+    )
+    assert second_put_res_dict
+    assert second_put_res_dict['VersionId'] == second_version_id
+    assert second_put_res_dict['VersionStages'] == second_version_stages
+
+
+@mock_secretsmanager
+def test_after_put_secret_value_version_stages_can_get_current():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # Creation.
+    first_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce71'
+    first_secret_string = 'first_secret_string'
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString=first_secret_string,
+        ClientRequestToken=first_version_id
+    )
+
+    # Use PutSecretValue to push a new version with new version stages.
+    second_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce72'
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString='second_secret_string',
+        VersionStages=['SAMPLESTAGE1', 'SAMPLESTAGE0'],
+        ClientRequestToken=second_version_id
+    )
+
+    # Get current.
+    get_dict = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME)
+    assert get_dict
+    assert get_dict['VersionId'] == first_version_id
+    assert get_dict['SecretString'] == first_secret_string
+    assert get_dict['VersionStages'] == ['AWSCURRENT']
+
+
+@mock_secretsmanager
+def test_after_put_secret_value_version_stages_pending_can_get_current():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # Creation.
+    first_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce71'
+    first_secret_string = 'first_secret_string'
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString=first_secret_string,
+        ClientRequestToken=first_version_id
+    )
+
+    # Use PutSecretValue to push a new version with new version stages.
+    pending_version_id = 'eb41453f-25bb-4025-b7f4-850cfca0ce72'
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString='second_secret_string',
+        VersionStages=['AWSPENDING'],
+        ClientRequestToken=pending_version_id
+    )
+
+    # Get current.
+    get_dict = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME)
+    assert get_dict
+    assert get_dict['VersionId'] == first_version_id
+    assert get_dict['SecretString'] == first_secret_string
+    assert get_dict['VersionStages'] == ['AWSCURRENT']
 
 
 @mock_secretsmanager
