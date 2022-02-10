@@ -72,6 +72,8 @@ TestAccAWSIAMGroupPolicy
 TestAccAWSIAMGroupPolicyAttachment
 TestAccAWSIAMRole
 TestAccAWSIAMUserPolicy
+TestAccAWSIotEndpointDataSource
+TestAccAWSIotThing
 TestAccAWSIPRanges
 TestAccAWSKinesisStream
 TestAccAWSKmsAlias

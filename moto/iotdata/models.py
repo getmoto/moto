@@ -142,6 +142,7 @@ class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name=None):
         super().__init__()
         self.region_name = region_name
+        self.published_payloads = list()
 
     def reset(self):
         region_name = self.region_name
@@ -199,8 +200,7 @@ class IoTDataPlaneBackend(BaseBackend):
         return thing.thing_shadow
 
     def publish(self, topic, qos, payload):
-        # do nothing because client won't know about the result
-        return None
+        self.published_payloads.append((topic, payload))
 
 
 iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")

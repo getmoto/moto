@@ -2987,7 +2987,7 @@
 
 ## iot
 <details>
-<summary>30% implemented</summary>
+<summary>33% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -3008,7 +3008,7 @@
 - [ ] create_audit_suppression
 - [ ] create_authorizer
 - [ ] create_billing_group
-- [ ] create_certificate_from_csr
+- [X] create_certificate_from_csr
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
@@ -3037,7 +3037,7 @@
 - [ ] delete_audit_suppression
 - [ ] delete_authorizer
 - [ ] delete_billing_group
-- [ ] delete_ca_certificate
+- [X] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_custom_metric
 - [ ] delete_dimension
@@ -3072,7 +3072,7 @@
 - [ ] describe_audit_task
 - [ ] describe_authorizer
 - [ ] describe_billing_group
-- [ ] describe_ca_certificate
+- [X] describe_ca_certificate
 - [X] describe_certificate
 - [ ] describe_custom_metric
 - [ ] describe_default_authorizer
@@ -3115,7 +3115,7 @@
 - [ ] get_percentiles
 - [X] get_policy
 - [X] get_policy_version
-- [ ] get_registration_code
+- [X] get_registration_code
 - [ ] get_statistics
 - [X] get_topic_rule
 - [ ] get_topic_rule_destination
@@ -3131,7 +3131,7 @@
 - [ ] list_billing_groups
 - [ ] list_ca_certificates
 - [X] list_certificates
-- [ ] list_certificates_by_ca
+- [X] list_certificates_by_ca
 - [ ] list_custom_metrics
 - [ ] list_detect_mitigation_actions_executions
 - [ ] list_detect_mitigation_actions_tasks
@@ -3176,7 +3176,7 @@
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
 - [ ] put_verification_state_on_violation
-- [ ] register_ca_certificate
+- [X] register_ca_certificate
 - [X] register_certificate
 - [X] register_certificate_without_ca
 - [ ] register_thing
@@ -3184,7 +3184,7 @@
 - [ ] remove_thing_from_billing_group
 - [X] remove_thing_from_thing_group
 - [X] replace_topic_rule
-- [ ] search_index
+- [X] search_index
 - [ ] set_default_authorizer
 - [X] set_default_policy_version
 - [ ] set_logging_options
@@ -3204,7 +3204,7 @@
 - [ ] update_audit_suppression
 - [ ] update_authorizer
 - [ ] update_billing_group
-- [ ] update_ca_certificate
+- [X] update_ca_certificate
 - [X] update_certificate
 - [ ] update_custom_metric
 - [ ] update_dimension
