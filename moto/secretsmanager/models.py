@@ -129,7 +129,7 @@ class FakeSecret:
             "VersionId": version_id,
         }
         if include_version_stages:
-            dct["VersionStages"] = self.versions[version_id]['version_stages']
+            dct["VersionStages"] = self.versions[version_id]["version_stages"]
         return json.dumps(dct)
 
     def to_dict(self):
@@ -319,7 +319,7 @@ class SecretsManagerBackend(BaseBackend):
         description=None,
         tags=None,
         kms_key_id=None,
-        client_request_token=None
+        client_request_token=None,
     ):
 
         # error if secret exists
@@ -335,7 +335,7 @@ class SecretsManagerBackend(BaseBackend):
             description=description,
             tags=tags,
             kms_key_id=kms_key_id,
-            version_id=client_request_token
+            version_id=client_request_token,
         )
 
         return secret.to_short_dict()
@@ -374,7 +374,7 @@ class SecretsManagerBackend(BaseBackend):
 
             secret.update(description, tags, kms_key_id, last_changed_date=update_time)
 
-            if 'AWSCURRENT' in version_stages:
+            if "AWSCURRENT" in version_stages:
                 secret.reset_default_version(secret_version, version_id)
             else:
                 secret.versions[version_id] = secret_version

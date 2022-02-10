@@ -53,7 +53,7 @@ class SecretsManagerResponse(BaseResponse):
             description=description,
             tags=tags,
             kms_key_id=kms_key_id,
-            client_request_token=client_request_token
+            client_request_token=client_request_token,
         )
 
     def update_secret(self):
