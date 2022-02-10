@@ -224,7 +224,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ 3.8 ]
-        part: ["aa", "ab", "ac", "ad"]
+        part: ["aa", "ab", "ac", "ad", "ae"]
 
     steps:
     - uses: actions/checkout@v2
@@ -252,18 +252,20 @@ jobs:
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
         MOTO_PORT=4566 python scripts/ci_wait_for_server.py
     # Poor man's parallelization
-    # Running them sequentially takes to much time
+    # Running them sequentially takes too much time
     # And using the build in parallel-argument does not help with reducing runtime
     # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
     - name: Get list of tests
       run: |
         cd moto-terraform-tests
         bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
-        split -n l/4 tftestlist.txt tf-split-
+        split -n l/5 tftestlist.txt tf-split-
         cd ..
     - name: Run Terraform Tests
       run: |
         cd moto-terraform-tests
+        echo "Copying random zipfile that is missing for SSM tests..."
+        cp terraform-provider-aws/aws/test-fixtures/lambda_elb.zip terraform-provider-aws/aws/test-fixtures/ssm-doc-acc-test.zip
         AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
         cd ..
     - name: "Create report"
