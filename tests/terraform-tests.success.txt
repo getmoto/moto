@@ -1,4 +1,5 @@
 TestAccAWSAccessKey
+TestAccAWSAcmCertificateDataSource
 TestAccAWSAPIGatewayV2Authorizer
 TestAccAWSAPIGatewayV2IntegrationResponse
 TestAccAWSAPIGatewayV2Model
@@ -71,6 +72,8 @@ TestAccAWSIAMGroupPolicy
 TestAccAWSIAMGroupPolicyAttachment
 TestAccAWSIAMRole
 TestAccAWSIAMUserPolicy
+TestAccAWSIotEndpointDataSource
+TestAccAWSIotThing
 TestAccAWSIPRanges
 TestAccAWSKinesisStream
 TestAccAWSKmsAlias

@@ -164,6 +164,13 @@ def test_describe_certificate():
     resp["Certificate"]["KeyAlgorithm"].should.equal("RSA_2048")
     resp["Certificate"]["Status"].should.equal("ISSUED")
     resp["Certificate"]["Type"].should.equal("IMPORTED")
+    resp["Certificate"].should.have.key("RenewalEligibility").equals("INELIGIBLE")
+    resp["Certificate"].should.have.key("Options")
+    resp["Certificate"].should.have.key("DomainValidationOptions").length_of(1)
+
+    validation_option = resp["Certificate"]["DomainValidationOptions"][0]
+    validation_option.should.have.key("DomainName").equals(SERVER_COMMON_NAME)
+    validation_option.shouldnt.have.key("ValidationDomain")
 
 
 @mock_acm
@@ -523,6 +530,14 @@ def test_request_certificate_no_san():
 
     resp2 = client.describe_certificate(CertificateArn=resp["CertificateArn"])
     resp2.should.contain("Certificate")
+
+    resp2["Certificate"].should.have.key("RenewalEligibility").equals("INELIGIBLE")
+    resp2["Certificate"].should.have.key("Options")
+    resp2["Certificate"].should.have.key("DomainValidationOptions").length_of(1)
+
+    validation_option = resp2["Certificate"]["DomainValidationOptions"][0]
+    validation_option.should.have.key("DomainName").equals("google.com")
+    validation_option.should.have.key("ValidationDomain").equals("google.com")
 
 
 # Also tests the SAN code
