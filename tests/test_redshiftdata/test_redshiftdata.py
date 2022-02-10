@@ -7,7 +7,9 @@ from tests.test_redshiftdata.test_redshiftdata_constants import ErrorAttributes
 
 REGION = "us-east-1"
 
-INVALID_ID_ERROR_MESSAGE = "id must satisfy regex pattern: ^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\\d+)?$"
+INVALID_ID_ERROR_MESSAGE = (
+    "id must satisfy regex pattern: ^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\\d+)?$"
+)
 RESOURCE_NOT_FOUND_ERROR_MESSAGE = "Query does not exist."
 
 
@@ -23,7 +25,9 @@ def test_cancel_statement_throws_exception_when_uuid_invalid(client):
     with pytest.raises(ClientError) as raised_exception:
         client.cancel_statement(Id=statement_id)
 
-    assert_expected_exception(raised_exception, "ValidationException", INVALID_ID_ERROR_MESSAGE)
+    assert_expected_exception(
+        raised_exception, "ValidationException", INVALID_ID_ERROR_MESSAGE
+    )
 
 
 @mock_redshiftdata
@@ -33,7 +37,9 @@ def test_cancel_statement_throws_exception_when_statement_not_found(client):
     with pytest.raises(ClientError) as raised_exception:
         client.cancel_statement(Id=statement_id)
 
-    assert_expected_exception(raised_exception, "ResourceNotFoundException", RESOURCE_NOT_FOUND_ERROR_MESSAGE)
+    assert_expected_exception(
+        raised_exception, "ResourceNotFoundException", RESOURCE_NOT_FOUND_ERROR_MESSAGE
+    )
 
 
 @mock_redshiftdata
@@ -43,7 +49,9 @@ def test_describe_statement_throws_exception_when_uuid_invalid(client):
     with pytest.raises(ClientError) as raised_exception:
         client.describe_statement(Id=statement_id)
 
-    assert_expected_exception(raised_exception, "ValidationException", INVALID_ID_ERROR_MESSAGE)
+    assert_expected_exception(
+        raised_exception, "ValidationException", INVALID_ID_ERROR_MESSAGE
+    )
 
 
 @mock_redshiftdata
@@ -53,7 +61,9 @@ def test_describe_statement_throws_exception_when_statement_not_found(client):
     with pytest.raises(ClientError) as raised_exception:
         client.describe_statement(Id=statement_id)
 
-    assert_expected_exception(raised_exception, "ResourceNotFoundException", RESOURCE_NOT_FOUND_ERROR_MESSAGE)
+    assert_expected_exception(
+        raised_exception, "ResourceNotFoundException", RESOURCE_NOT_FOUND_ERROR_MESSAGE
+    )
 
 
 @mock_redshiftdata
@@ -63,7 +73,9 @@ def test_get_statement_result_throws_exception_when_uuid_invalid(client):
     with pytest.raises(ClientError) as raised_exception:
         client.get_statement_result(Id=statement_id)
 
-    assert_expected_exception(raised_exception, "ValidationException", INVALID_ID_ERROR_MESSAGE)
+    assert_expected_exception(
+        raised_exception, "ValidationException", INVALID_ID_ERROR_MESSAGE
+    )
 
 
 @mock_redshiftdata
@@ -73,7 +85,9 @@ def test_get_statement_result_throws_exception_when_statement_not_found(client):
     with pytest.raises(ClientError) as raised_exception:
         client.get_statement_result(Id=statement_id)
 
-    assert_expected_exception(raised_exception, "ResourceNotFoundException", RESOURCE_NOT_FOUND_ERROR_MESSAGE)
+    assert_expected_exception(
+        raised_exception, "ResourceNotFoundException", RESOURCE_NOT_FOUND_ERROR_MESSAGE
+    )
 
 
 @mock_redshiftdata

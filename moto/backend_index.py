@@ -99,6 +99,7 @@ backend_url_patterns = [
     ("rds", re.compile("https?://rds\\.(.+)\\.amazonaws\\.com")),
     ("rds", re.compile("https?://rds\\.amazonaws\\.com")),
     ("redshift", re.compile("https?://redshift\\.(.+)\\.amazonaws\\.com")),
+    ("redshift-data", re.compile("https?://redshift-data\\.(.+)\\.amazonaws\\.com")),
     (
         "resource-groups",
         re.compile("https?://resource-groups(-fips)?\\.(.+)\\.amazonaws.com"),

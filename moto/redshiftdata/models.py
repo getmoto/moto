@@ -34,7 +34,7 @@ class Statement:
         self.result_rows = -1
         self.result_size = -1
         self.secret_arn = secret_arn
-        self.status = 'STARTED'
+        self.status = "STARTED"
         self.sub_statements = []
         self.updated_at = now
 
@@ -60,11 +60,7 @@ class Statement:
 
 class StatementResult:
     def __init__(
-        self,
-        column_metadata,
-        records,
-        total_number_rows,
-        next_token=None,
+        self, column_metadata, records, total_number_rows, next_token=None,
     ):
         self.column_metadata = column_metadata
         self.records = records
@@ -79,14 +75,7 @@ class StatementResult:
 
 
 class ColumnMetadata:
-    def __init__(
-        self,
-        column_default,
-        is_case_sensitive,
-        is_signed,
-        name,
-        nullable
-    ):
+    def __init__(self, column_default, is_case_sensitive, is_signed, name, nullable):
         self.column_default = column_default
         self.is_case_sensitive = is_case_sensitive
         self.is_signed = is_signed
@@ -103,8 +92,7 @@ class ColumnMetadata:
 
 class Record:
     def __init__(
-        self,
-        **kwargs,
+        self, **kwargs,
     ):
         self.kwargs = kwargs
 
@@ -116,7 +104,6 @@ class Record:
 
 
 class RedshiftDataAPIServiceBackend(BaseBackend):
-
     def __init__(self, region_name=None):
         self.region_name = region_name
         self.statements = {}
@@ -158,13 +145,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
             raise ResourceNotFoundException()
 
     def execute_statement(
-        self,
-        cluster_identifier,
-        database,
-        db_user,
-        parameters,
-        secret_arn,
-        sql,
+        self, cluster_identifier, database, db_user, parameters, secret_arn, sql,
     ):
         """
         Runs an SQL statement
@@ -176,7 +157,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
             db_user=db_user,
             query_parameters=parameters,
             query_string=sql,
-            secret_arn=secret_arn
+            secret_arn=secret_arn,
         )
         self.statements[statement.id] = statement
         return statement
@@ -202,27 +183,29 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
                 [
                     dict(Record(long_value=10)),
                     dict(Record(string_value="Alpha st")),
-                    dict(Record(string_value="Vancouver"))
+                    dict(Record(string_value="Vancouver")),
                 ],
                 [
                     dict(Record(long_value=50)),
                     dict(Record(string_value="Beta st")),
-                    dict(Record(string_value="Toronto"))
+                    dict(Record(string_value="Toronto")),
                 ],
                 [
                     dict(Record(long_value=100)),
                     dict(Record(string_value="Gamma av")),
-                    dict(Record(string_value="Seattle"))
-                ]
+                    dict(Record(string_value="Seattle")),
+                ],
             ],
             3,
         )
 
 
 def _validate_uuid(uuid):
-    match = re.search(r'^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\d+)?$', uuid)
+    match = re.search(r"^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\d+)?$", uuid)
     if not match:
-        raise ValidationException("id must satisfy regex pattern: ^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\\d+)?$")
+        raise ValidationException(
+            "id must satisfy regex pattern: ^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\\d+)?$"
+        )
 
 
 # For unknown reasons I cannot use the service name "redshift-data" as I should

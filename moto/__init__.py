@@ -111,6 +111,7 @@ mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
 mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
 mock_redshift = lazy_load(".redshift", "mock_redshift")
+mock_redshiftdata = lazy_load(".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data")
 mock_resourcegroups = lazy_load(
     ".resourcegroups", "mock_resourcegroups", boto3_name="resource-groups"
 )
@@ -145,11 +146,6 @@ XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
-mock_sdb = lazy_load(".sdb", "mock_sdb")
-mock_elasticache = lazy_load(
-    ".elasticache", "mock_elasticache", boto3_name="elasticache"
-)
-mock_redshiftdata = lazy_load(".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data")
 
 
 class MockAll(ContextDecorator):

@@ -3,7 +3,10 @@ import json
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 import moto.server as server
-from tests.test_redshiftdata.test_redshiftdata_constants import DEFAULT_ENCODING, HttpHeaders
+from tests.test_redshiftdata.test_redshiftdata_constants import (
+    DEFAULT_ENCODING,
+    HttpHeaders,
+)
 
 CLIENT_ENDPOINT = "/"
 
@@ -29,7 +32,9 @@ def test_redshiftdata_cancel_statement_unknown_statement(client):
         headers=headers("CancelStatement"),
     )
     response.status_code.should.equal(400)
-    should_return_expected_exception(response, "ResourceNotFoundException", "Query does not exist.")
+    should_return_expected_exception(
+        response, "ResourceNotFoundException", "Query does not exist."
+    )
 
 
 def test_redshiftdata_describe_statement_unknown_statement(client):
@@ -40,7 +45,9 @@ def test_redshiftdata_describe_statement_unknown_statement(client):
         headers=headers("DescribeStatement"),
     )
     response.status_code.should.equal(400)
-    should_return_expected_exception(response, "ResourceNotFoundException", "Query does not exist.")
+    should_return_expected_exception(
+        response, "ResourceNotFoundException", "Query does not exist."
+    )
 
 
 def test_redshiftdata_get_statement_result_unknown_statement(client):
@@ -51,7 +58,9 @@ def test_redshiftdata_get_statement_result_unknown_statement(client):
         headers=headers("GetStatementResult"),
     )
     response.status_code.should.equal(400)
-    should_return_expected_exception(response, "ResourceNotFoundException", "Query does not exist.")
+    should_return_expected_exception(
+        response, "ResourceNotFoundException", "Query does not exist."
+    )
 
 
 def test_redshiftdata_execute_statement_with_minimal_values(client):
@@ -59,10 +68,7 @@ def test_redshiftdata_execute_statement_with_minimal_values(client):
     sql = "sql"
     response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({
-            "Database": database,
-            "Sql": sql
-        }),
+        data=json.dumps({"Database": database, "Sql": sql}),
         headers=headers("ExecuteStatement"),
     )
     response.status_code.should.equal(200)
@@ -84,13 +90,15 @@ def test_redshiftdata_execute_statement_with_all_values(client):
 
     response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({
-            "ClusterIdentifier": cluster,
-            "Database": database,
-            "DbUser": dbUser,
-            "Sql": sql,
-            "SecretArn": secretArn
-        }),
+        data=json.dumps(
+            {
+                "ClusterIdentifier": cluster,
+                "Database": database,
+                "DbUser": dbUser,
+                "Sql": sql,
+                "SecretArn": secretArn,
+            }
+        ),
         headers=headers("ExecuteStatement"),
     )
     response.status_code.should.equal(200)
@@ -112,13 +120,15 @@ def test_redshiftdata_execute_statement_and_describe_statement(client):
     # ExecuteStatement
     execute_response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({
-            "ClusterIdentifier": cluster,
-            "Database": database,
-            "DbUser": dbUser,
-            "Sql": sql,
-            "SecretArn": secretArn
-        }),
+        data=json.dumps(
+            {
+                "ClusterIdentifier": cluster,
+                "Database": database,
+                "DbUser": dbUser,
+                "Sql": sql,
+                "SecretArn": secretArn,
+            }
+        ),
         headers=headers("ExecuteStatement"),
     )
     execute_response.status_code.should.equal(200)
@@ -146,10 +156,7 @@ def test_redshiftdata_execute_statement_and_get_statement_result(client):
     # ExecuteStatement
     execute_response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({
-            "Database": database,
-            "Sql": sql,
-        }),
+        data=json.dumps({"Database": database, "Sql": sql,}),
         headers=headers("ExecuteStatement"),
     )
     execute_response.status_code.should.equal(200)
@@ -185,10 +192,7 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
     # ExecuteStatement
     execute_response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({
-            "Database": database,
-            "Sql": sql,
-        }),
+        data=json.dumps({"Database": database, "Sql": sql,}),
         headers=headers("ExecuteStatement"),
     )
     execute_response.status_code.should.equal(200)
@@ -214,7 +218,8 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
     should_return_expected_exception(
         cancel_response2,
         "ValidationException",
-        "Could not cancel a query that is already in %s state with ID: %s" % ('ABORTED', execute_payload["Id"])
+        "Could not cancel a query that is already in %s state with ID: %s"
+        % ("ABORTED", execute_payload["Id"]),
     )
 
 

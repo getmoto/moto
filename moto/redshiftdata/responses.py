@@ -10,16 +10,12 @@ class RedshiftDataAPIServiceResponse(BaseResponse):
 
     def cancel_statement(self):
         id = self._get_param("Id")
-        status = self.redshiftdata_backend.cancel_statement(
-            statement_id=id,
-        )
+        status = self.redshiftdata_backend.cancel_statement(statement_id=id,)
         return 200, {}, json.dumps({"Status": status})
 
     def describe_statement(self):
         id = self._get_param("Id")
-        statement = self.redshiftdata_backend.describe_statement(
-            statement_id=id,
-        )
+        statement = self.redshiftdata_backend.describe_statement(statement_id=id,)
         return 200, {}, json.dumps(dict(statement))
 
     def execute_statement(self):
@@ -38,14 +34,20 @@ class RedshiftDataAPIServiceResponse(BaseResponse):
             sql=sql,
         )
 
-        return 200, {}, json.dumps({
-            "ClusterIdentifier": statement.cluster_identifier,
-            "CreatedAt": statement.created_at,
-            "Database": statement.database,
-            "DbUser": statement.db_user,
-            "Id": statement.id,
-            "SecretArn": statement.secret_arn
-        })
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "ClusterIdentifier": statement.cluster_identifier,
+                    "CreatedAt": statement.created_at,
+                    "Database": statement.database,
+                    "DbUser": statement.db_user,
+                    "Id": statement.id,
+                    "SecretArn": statement.secret_arn,
+                }
+            ),
+        )
 
     def get_statement_result(self):
         id = self._get_param("Id")
