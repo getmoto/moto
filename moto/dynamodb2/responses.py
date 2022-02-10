@@ -69,7 +69,7 @@ def include_consumed_capacity(val=1.0):
 
 def put_has_empty_keys(field_updates, table):
     if table:
-        key_names = table.key_attributes
+        key_names = table.attribute_keys
 
         # string/binary fields with empty string as value
         empty_str_fields = [
@@ -168,12 +168,20 @@ class DynamoHandler(BaseResponse):
                 er = "com.amazonaws.dynamodb.v20111205#ValidationException"
                 return self.error(
                     er,
-                    "ProvisionedThroughput cannot be specified \
-                                   when BillingMode is PAY_PER_REQUEST",
+                    "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST",
                 )
             throughput = None
+            billing_mode = "PAY_PER_REQUEST"
         else:  # Provisioned (default billing mode)
             throughput = body.get("ProvisionedThroughput")
+            if throughput is None:
+                return self.error(
+                    "ValidationException",
+                    "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED",
+                )
+            billing_mode = "PROVISIONED"
+        # getting ServerSideEncryption details
+        sse_spec = body.get("SSESpecification")
         # getting the schema
         key_schema = body["KeySchema"]
         # getting attribute definition
@@ -218,6 +226,8 @@ class DynamoHandler(BaseResponse):
             )
         # get the stream specification
         streams = body.get("StreamSpecification")
+        # Get any tags
+        tags = body.get("Tags", [])
 
         table = self.dynamodb_backend.create_table(
             table_name,
@@ -227,6 +237,9 @@ class DynamoHandler(BaseResponse):
             global_indexes=global_indexes,
             indexes=local_secondary_indexes,
             streams=streams,
+            billing_mode=billing_mode,
+            sse_specification=sse_spec,
+            tags=tags,
         )
         if table is not None:
             return dynamo_json_dump(table.describe())
@@ -339,14 +352,18 @@ class DynamoHandler(BaseResponse):
 
     def update_table(self):
         name = self.body["TableName"]
+        attr_definitions = self.body.get("AttributeDefinitions", None)
         global_index = self.body.get("GlobalSecondaryIndexUpdates", None)
         throughput = self.body.get("ProvisionedThroughput", None)
+        billing_mode = self.body.get("BillingMode", None)
         stream_spec = self.body.get("StreamSpecification", None)
         try:
             table = self.dynamodb_backend.update_table(
                 name=name,
+                attr_definitions=attr_definitions,
                 global_index=global_index,
                 throughput=throughput,
+                billing_mode=billing_mode,
                 stream_spec=stream_spec,
             )
             return dynamo_json_dump(table.describe())
