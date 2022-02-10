@@ -24,6 +24,7 @@ from moto.dynamodb2.exceptions import (
     EmptyKeyAttributeException,
     InvalidAttributeTypeError,
     MultipleTransactionsException,
+    TooManyTransactionsException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -388,12 +389,16 @@ class Table(CloudFormationModel):
     def __init__(
         self,
         table_name,
+        region,
         schema=None,
         attr=None,
         throughput=None,
+        billing_mode=None,
         indexes=None,
         global_indexes=None,
         streams=None,
+        sse_specification=None,
+        tags=None,
     ):
         self.name = table_name
         self.attr = attr
@@ -417,8 +422,9 @@ class Table(CloudFormationModel):
         self.table_key_attrs = [
             key for key in (self.hash_key_attr, self.range_key_attr) if key
         ]
+        self.billing_mode = billing_mode
         if throughput is None:
-            self.throughput = {"WriteCapacityUnits": 10, "ReadCapacityUnits": 10}
+            self.throughput = {"WriteCapacityUnits": 0, "ReadCapacityUnits": 0}
         else:
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
@@ -433,11 +439,14 @@ class Table(CloudFormationModel):
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
         self.table_arn = self._generate_arn(table_name)
-        self.tags = []
+        self.tags = tags or []
         self.ttl = {
             "TimeToLiveStatus": "DISABLED"  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
             # 'AttributeName': 'string'  # Can contain this
         }
+        self.stream_specification = {"StreamEnabled": False}
+        self.latest_stream_label = None
+        self.stream_shard = None
         self.set_stream_specification(streams)
         self.lambda_event_source_mappings = {}
         self.continuous_backups = {
@@ -446,6 +455,32 @@ class Table(CloudFormationModel):
                 "PointInTimeRecoveryStatus": "DISABLED"  # One of 'ENABLED'|'DISABLED'
             },
         }
+        self.sse_specification = sse_specification
+        if sse_specification and "KMSMasterKeyId" not in self.sse_specification:
+            self.sse_specification["KMSMasterKeyId"] = self._get_default_encryption_key(
+                region
+            )
+
+    def _get_default_encryption_key(self, region):
+        from moto.kms import kms_backends
+
+        # https://aws.amazon.com/kms/features/#AWS_Service_Integration
+        # An AWS managed CMK is created automatically when you first create
+        # an encrypted resource using an AWS service integrated with KMS.
+        kms = kms_backends[region]
+        ddb_alias = "alias/aws/dynamodb"
+        if not kms.alias_exists(ddb_alias):
+            key = kms.create_key(
+                policy="",
+                key_usage="ENCRYPT_DECRYPT",
+                customer_master_key_spec="SYMMETRIC_DEFAULT",
+                description="Default master key that protects my DynamoDB table storage",
+                tags=None,
+                region=region,
+            )
+            kms.add_alias(key.id, ddb_alias)
+        ebs_key = kms.describe_key(ddb_alias)
+        return ebs_key.arn
 
     @classmethod
     def has_cfn_attr(cls, attribute):
@@ -466,7 +501,7 @@ class Table(CloudFormationModel):
         return self.name
 
     @property
-    def key_attributes(self):
+    def attribute_keys(self):
         # A set of all the hash or range attributes for all indexes
         def keys_from_index(idx):
             schema = idx.schema
@@ -519,7 +554,7 @@ class Table(CloudFormationModel):
         return table
 
     def _generate_arn(self, name):
-        return "arn:aws:dynamodb:us-east-1:123456789011:table/" + name
+        return f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/{name}"
 
     def set_stream_specification(self, streams):
         self.stream_specification = streams
@@ -529,14 +564,13 @@ class Table(CloudFormationModel):
             self.stream_shard = StreamShard(self)
         else:
             self.stream_specification = {"StreamEnabled": False}
-            self.latest_stream_label = None
-            self.stream_shard = None
 
     def describe(self, base_key="TableDescription"):
         results = {
             base_key: {
                 "AttributeDefinitions": self.attr,
                 "ProvisionedThroughput": self.throughput,
+                "BillingModeSummary": {"BillingMode": self.billing_mode},
                 "TableSizeBytes": 0,
                 "TableName": self.name,
                 "TableStatus": "ACTIVE",
@@ -550,13 +584,19 @@ class Table(CloudFormationModel):
                 "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
             }
         }
+        if self.latest_stream_label:
+            results[base_key]["LatestStreamLabel"] = self.latest_stream_label
+            results[base_key][
+                "LatestStreamArn"
+            ] = f"{self.table_arn}/stream/{self.latest_stream_label}"
         if self.stream_specification and self.stream_specification["StreamEnabled"]:
             results[base_key]["StreamSpecification"] = self.stream_specification
-            if self.latest_stream_label:
-                results[base_key]["LatestStreamLabel"] = self.latest_stream_label
-                results[base_key]["LatestStreamArn"] = (
-                    self.table_arn + "/stream/" + self.latest_stream_label
-                )
+        if self.sse_specification and self.sse_specification.get("Enabled") is True:
+            results[base_key]["SSEDescription"] = {
+                "Status": "ENABLED",
+                "SSEType": "KMS",
+                "KMSMasterKeyArn": self.sse_specification.get("KMSMasterKeyId"),
+            }
         return results
 
     def __len__(self):
@@ -988,9 +1028,9 @@ class Table(CloudFormationModel):
 
 
 class RestoredTable(Table):
-    def __init__(self, name, backup):
+    def __init__(self, name, region, backup):
         params = self._parse_params_from_backup(backup)
-        super().__init__(name, **params)
+        super().__init__(name, region=region, **params)
         self.indexes = copy.deepcopy(backup.table.indexes)
         self.global_indexes = copy.deepcopy(backup.table.global_indexes)
         self.items = copy.deepcopy(backup.table.items)
@@ -1020,9 +1060,9 @@ class RestoredTable(Table):
 
 
 class RestoredPITTable(Table):
-    def __init__(self, name, source):
+    def __init__(self, name, region, source):
         params = self._parse_params_from_table(source)
-        super().__init__(name, **params)
+        super().__init__(name, region=region, **params)
         self.indexes = copy.deepcopy(source.indexes)
         self.global_indexes = copy.deepcopy(source.global_indexes)
         self.items = copy.deepcopy(source.items)
@@ -1145,7 +1185,7 @@ class DynamoDBBackend(BaseBackend):
     def create_table(self, name, **params):
         if name in self.tables:
             return None
-        table = Table(name, **params)
+        table = Table(name, region=self.region_name, **params)
         self.tables[name] = table
         return table
 
@@ -1205,12 +1245,24 @@ class DynamoDBBackend(BaseBackend):
         table = self.tables[name]
         return table.describe(base_key="Table")
 
-    def update_table(self, name, global_index, throughput, stream_spec):
+    def update_table(
+        self,
+        name,
+        attr_definitions,
+        global_index,
+        throughput,
+        billing_mode,
+        stream_spec,
+    ):
         table = self.get_table(name)
+        if attr_definitions:
+            table.attr = attr_definitions
         if global_index:
             table = self.update_table_global_indexes(name, global_index)
         if throughput:
             table = self.update_table_throughput(name, throughput)
+        if billing_mode:
+            table = self.update_table_billing_mode(name, billing_mode)
         if stream_spec:
             table = self.update_table_streams(name, stream_spec)
         return table
@@ -1218,6 +1270,11 @@ class DynamoDBBackend(BaseBackend):
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
         table.throughput = throughput
+        return table
+
+    def update_table_billing_mode(self, name, billing_mode):
+        table = self.tables[name]
+        table.billing_mode = billing_mode
         return table
 
     def update_table_streams(self, name, stream_specification):
@@ -1495,7 +1552,7 @@ class DynamoDBBackend(BaseBackend):
             item = table.get_item(hash_value, range_value)
 
         if attribute_updates:
-            item.validate_no_empty_key_values(attribute_updates, table.key_attributes)
+            item.validate_no_empty_key_values(attribute_updates, table.attribute_keys)
 
         if update_expression:
             validator = UpdateExpressionValidator(
@@ -1568,6 +1625,8 @@ class DynamoDBBackend(BaseBackend):
         return table.ttl
 
     def transact_write_items(self, transact_items):
+        if len(transact_items) > 25:
+            raise TooManyTransactionsException()
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
         target_items = set()
@@ -1739,7 +1798,9 @@ class DynamoDBBackend(BaseBackend):
         existing_table = self.get_table(target_table_name)
         if existing_table is not None:
             raise ValueError()
-        new_table = RestoredTable(target_table_name, backup)
+        new_table = RestoredTable(
+            target_table_name, region=self.region_name, backup=backup
+        )
         self.tables[target_table_name] = new_table
         return new_table
 
@@ -1755,7 +1816,9 @@ class DynamoDBBackend(BaseBackend):
         existing_table = self.get_table(target_table_name)
         if existing_table is not None:
             raise ValueError()
-        new_table = RestoredPITTable(target_table_name, source)
+        new_table = RestoredPITTable(
+            target_table_name, region=self.region_name, source=source
+        )
         self.tables[target_table_name] = new_table
         return new_table
 

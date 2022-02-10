@@ -410,6 +410,6 @@ class UpdateExpressionValidator(Validator):
             UpdateExpressionFunctionEvaluator(),
             NoneExistingPathChecker(),
             ExecuteOperations(),
-            EmptyStringKeyValueValidator(self.table.key_attributes),
+            EmptyStringKeyValueValidator(self.table.attribute_keys),
         ]
         return processors
