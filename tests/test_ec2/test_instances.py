@@ -174,6 +174,8 @@ def test_instance_terminate_keep_volumes_implicit():
     for volume in instance.volumes.all():
         instance_volume_ids.append(volume.volume_id)
 
+    instance_volume_ids.shouldnt.be.empty
+
     instance.terminate()
     instance.wait_until_terminated()
 
@@ -1528,6 +1530,32 @@ def test_run_instance_with_block_device_mappings_missing_ebs():
     ex.value.response["Error"]["Message"].should.equal(
         "The request must contain the parameter ebs"
     )
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_using_no_device():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": EXAMPLE_AMI_ID,
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "NoDevice": ""}],
+    }
+    resp = ec2_client.run_instances(**kwargs)
+    instance_id = resp["Instances"][0]["InstanceId"]
+
+    instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+    # Assuming that /dev/sda2 is not the root device and that there is a /dev/sda1, boto would
+    # create an instance with one block device instead of two.  However, moto's modeling of
+    # BlockDeviceMappings is simplified, so we will accept that moto creates an instance without
+    # block devices for now
+    # instances["Reservations"][0]["Instances"][0].shouldnt.have.key("BlockDeviceMappings")
+
+    # moto gives the key with an empty list instead of not having it at all, that's also fine
+    instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"].should.be.empty
 
 
 @mock_ec2

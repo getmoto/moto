@@ -320,6 +320,7 @@ class InstanceResponse(BaseResponse):
                 device_mapping.get("ebs._encrypted", False)
             )
             device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
+            device_template["NoDevice"] = device_mapping.get("no_device")
             mappings.append(device_template)
 
         return mappings
@@ -327,6 +328,8 @@ class InstanceResponse(BaseResponse):
     @staticmethod
     def _validate_block_device_mapping(device_mapping):
 
+        if "no_device" in device_mapping:
+            return
         if not any(mapping for mapping in device_mapping if mapping.startswith("ebs.")):
             raise MissingParameterError("ebs")
         if (
@@ -349,6 +352,7 @@ class InstanceResponse(BaseResponse):
 BLOCK_DEVICE_MAPPING_TEMPLATE = {
     "VirtualName": None,
     "DeviceName": None,
+    "NoDevice": None,
     "Ebs": {
         "SnapshotId": None,
         "VolumeSize": None,
