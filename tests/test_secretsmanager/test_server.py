@@ -774,6 +774,7 @@ def test_update_secret_version_stage(pass_arn):
         headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
     )
     put_secret = json.loads(put_secret.data.decode("utf-8"))
+    assert put_secret["VersionStages"] == [custom_stage]
     new_version = put_secret["VersionId"]
 
     describe_secret = test_client.post(
@@ -785,7 +786,7 @@ def test_update_secret_version_stage(pass_arn):
     json_data = json.loads(describe_secret.data.decode("utf-8"))
     stages = json_data["SecretVersionsToStages"]
     assert len(stages) == 2
-    assert stages[initial_version] == ["AWSPREVIOUS"]
+    assert stages[initial_version] == ["AWSCURRENT"]
     assert stages[new_version] == [custom_stage]
 
     test_client.post(
@@ -808,7 +809,7 @@ def test_update_secret_version_stage(pass_arn):
     json_data = json.loads(describe_secret.data.decode("utf-8"))
     stages = json_data["SecretVersionsToStages"]
     assert len(stages) == 2
-    assert stages[initial_version] == ["AWSPREVIOUS", custom_stage]
+    assert stages[initial_version] == ["AWSCURRENT", custom_stage]
     assert stages[new_version] == []
 
 
