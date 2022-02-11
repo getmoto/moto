@@ -111,6 +111,9 @@ mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
 mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
 mock_redshift = lazy_load(".redshift", "mock_redshift")
+mock_redshiftdata = lazy_load(
+    ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
+)
 mock_resourcegroups = lazy_load(
     ".resourcegroups", "mock_resourcegroups", boto3_name="resource-groups"
 )
