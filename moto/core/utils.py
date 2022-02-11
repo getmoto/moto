@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
+HEX_CHARS = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
 
 
 def camelcase_to_underscores(argument):
@@ -73,8 +74,7 @@ def method_names_from_class(clazz):
 
 
 def get_random_hex(length=8):
-    chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    return "".join(str(random.choice(chars)) for x in range(length))
+    return "".join(str(random.choice(HEX_CHARS)) for _ in range(length))
 
 
 def get_random_message_id():
