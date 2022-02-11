@@ -205,6 +205,13 @@ class MultipleTransactionsException(MockValidationException):
         super().__init__(self.msg)
 
 
+class TooManyTransactionsException(MockValidationException):
+    msg = "Validation error at transactItems: Member must have length less than or equal to 25."
+
+    def __init__(self):
+        super().__init__(self.msg)
+
+
 class EmptyKeyAttributeException(MockValidationException):
     empty_str_msg = "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     # AWS has a different message for empty index keys
