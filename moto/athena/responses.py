@@ -114,3 +114,40 @@ class AthenaResponse(BaseResponse):
                 }
             }
         )
+    
+    
+    def list_data_catalogs(self):
+        params = self._get_params()
+        next_token = params.get("NextToken")
+        max_results = params.get("MaxResults")
+        data_catalogs_summary, next_token = self.athena_backend.list_data_catalogs(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(dataCatalogsSummary=data_catalogs_summary, nextToken=next_token))
+    
+    def get_data_catalog(self):
+        params = self._get_params()
+        name = params.get("Name")
+        data_catalog = self.athena_backend.get_data_catalog(
+            name=name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(dataCatalog=data_catalog))
+    def create_data_catalog(self):
+        params = self._get_params()
+        name = params.get("Name")
+        type = params.get("Type")
+        description = params.get("Description")
+        parameters = params.get("Parameters")
+        tags = params.get("Tags")
+        self.athena_backend.create_data_catalog(
+            name=name,
+            type=type,
+            description=description,
+            parameters=parameters,
+            tags=tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())

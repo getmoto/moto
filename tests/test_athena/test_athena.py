@@ -216,3 +216,27 @@ def create_basic_workgroup(client, name):
             "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/",}
         },
     )
+
+
+@mock_athena
+def test_create_data_catalog():
+    client = boto3.client("athena", region_name="ap-southeast-1")
+    resp = client.create_data_catalog()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_athena
+def test_get_data_catalog():
+    client = boto3.client("athena", region_name="us-east-2")
+    resp = client.get_data_catalog()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_athena
+def test_list_data_catalogs():
+    client = boto3.client("athena", region_name="us-east-2")
+    resp = client.list_data_catalogs()
+
+    raise Exception("NotYetImplemented")
