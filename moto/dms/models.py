@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import json
 
-from boto3 import Session
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .exceptions import (
     InvalidResourceStateFault,
@@ -16,7 +14,7 @@ from .utils import filter_tasks
 
 class DatabaseMigrationServiceBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(DatabaseMigrationServiceBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.replication_tasks = {}
 
@@ -24,6 +22,13 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "dms"
+        )
 
     def create_replication_task(
         self,
@@ -190,10 +195,4 @@ class FakeReplicationTask(BaseModel):
         return self
 
 
-dms_backends = {}
-for region in Session().get_available_regions("dms"):
-    dms_backends[region] = DatabaseMigrationServiceBackend()
-for region in Session().get_available_regions("dms", partition_name="aws-us-gov"):
-    dms_backends[region] = DatabaseMigrationServiceBackend()
-for region in Session().get_available_regions("dms", partition_name="aws-cn"):
-    dms_backends[region] = DatabaseMigrationServiceBackend()
+dms_backends = BackendDict(DatabaseMigrationServiceBackend, "dms")

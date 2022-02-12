@@ -1,8 +1,7 @@
 import weakref
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core.utils import BackendDict
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
 from .utils import make_arn
 
@@ -79,6 +78,15 @@ class EBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk-health"
+        )
+
     def create_application(self, application_name):
         if application_name in self.applications:
             raise InvalidParameterValueError(
@@ -137,14 +145,4 @@ class EBBackend(BaseBackend):
         raise KeyError()
 
 
-eb_backends = {}
-for region in Session().get_available_regions("elasticbeanstalk"):
-    eb_backends[region] = EBBackend(region)
-for region in Session().get_available_regions(
-    "elasticbeanstalk", partition_name="aws-us-gov"
-):
-    eb_backends[region] = EBBackend(region)
-for region in Session().get_available_regions(
-    "elasticbeanstalk", partition_name="aws-cn"
-):
-    eb_backends[region] = EBBackend(region)
+eb_backends = BackendDict(EBBackend, "elasticbeanstalk")

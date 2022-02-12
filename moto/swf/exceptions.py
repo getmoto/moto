@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -13,21 +11,19 @@ class SWFUnknownResourceFault(SWFClientError):
             message = "Unknown {0}: {1}".format(resource_type, resource_name)
         else:
             message = "Unknown {0}".format(resource_type)
-        super(SWFUnknownResourceFault, self).__init__(
-            "com.amazonaws.swf.base.model#UnknownResourceFault", message
-        )
+        super().__init__("com.amazonaws.swf.base.model#UnknownResourceFault", message)
 
 
 class SWFDomainAlreadyExistsFault(SWFClientError):
     def __init__(self, domain_name):
-        super(SWFDomainAlreadyExistsFault, self).__init__(
+        super().__init__(
             "com.amazonaws.swf.base.model#DomainAlreadyExistsFault", domain_name
         )
 
 
 class SWFDomainDeprecatedFault(SWFClientError):
     def __init__(self, domain_name):
-        super(SWFDomainDeprecatedFault, self).__init__(
+        super().__init__(
             "com.amazonaws.swf.base.model#DomainDeprecatedFault", domain_name
         )
 
@@ -37,12 +33,12 @@ class SWFSerializationException(SWFClientError):
         message = "class java.lang.Foo can not be converted to an String "
         message += " (not a real SWF exception ; happened on: {0})".format(value)
         __type = "com.amazonaws.swf.base.model#SerializationException"
-        super(SWFSerializationException, self).__init__(__type, message)
+        super().__init__(__type, message)
 
 
 class SWFTypeAlreadyExistsFault(SWFClientError):
     def __init__(self, _type):
-        super(SWFTypeAlreadyExistsFault, self).__init__(
+        super().__init__(
             "com.amazonaws.swf.base.model#TypeAlreadyExistsFault",
             "{0}=[name={1}, version={2}]".format(
                 _type.__class__.__name__, _type.name, _type.version
@@ -52,7 +48,7 @@ class SWFTypeAlreadyExistsFault(SWFClientError):
 
 class SWFTypeDeprecatedFault(SWFClientError):
     def __init__(self, _type):
-        super(SWFTypeDeprecatedFault, self).__init__(
+        super().__init__(
             "com.amazonaws.swf.base.model#TypeDeprecatedFault",
             "{0}=[name={1}, version={2}]".format(
                 _type.__class__.__name__, _type.name, _type.version
@@ -62,7 +58,7 @@ class SWFTypeDeprecatedFault(SWFClientError):
 
 class SWFWorkflowExecutionAlreadyStartedFault(SWFClientError):
     def __init__(self):
-        super(SWFWorkflowExecutionAlreadyStartedFault, self).__init__(
+        super().__init__(
             "com.amazonaws.swf.base.model#WorkflowExecutionAlreadyStartedFault",
             "Already Started",
         )
@@ -75,16 +71,14 @@ class SWFDefaultUndefinedFault(SWFClientError):
         key_camel_case = words.pop(0)
         for word in words:
             key_camel_case += word.capitalize()
-        super(SWFDefaultUndefinedFault, self).__init__(
+        super().__init__(
             "com.amazonaws.swf.base.model#DefaultUndefinedFault", key_camel_case
         )
 
 
 class SWFValidationException(SWFClientError):
     def __init__(self, message):
-        super(SWFValidationException, self).__init__(
-            "com.amazon.coral.validate#ValidationException", message
-        )
+        super().__init__("com.amazon.coral.validate#ValidationException", message)
 
 
 class SWFDecisionValidationException(SWFClientError):
@@ -113,7 +107,7 @@ class SWFDecisionValidationException(SWFClientError):
             prefix = "{0} validation error detected: "
         else:
             prefix = "{0} validation errors detected: "
-        super(SWFDecisionValidationException, self).__init__(
+        super().__init__(
             "com.amazon.coral.validate#ValidationException",
             prefix.format(count) + "; ".join(messages),
         )

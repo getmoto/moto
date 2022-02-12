@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 from botocore.exceptions import ClientError
 import pytest
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_athena
 

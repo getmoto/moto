@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
 from .exceptions import (
@@ -8,7 +6,7 @@ from .exceptions import (
 )
 import random
 import string
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, BackendDict
 from moto.core import ACCOUNT_ID
 
 
@@ -66,7 +64,7 @@ class Stream(BaseModel):
 
 class KinesisVideoBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(KinesisVideoBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.streams = {}
 
@@ -136,12 +134,4 @@ class KinesisVideoBackend(BaseBackend):
     # add methods from here
 
 
-kinesisvideo_backends = {}
-for region in Session().get_available_regions("kinesisvideo"):
-    kinesisvideo_backends[region] = KinesisVideoBackend(region)
-for region in Session().get_available_regions(
-    "kinesisvideo", partition_name="aws-us-gov"
-):
-    kinesisvideo_backends[region] = KinesisVideoBackend(region)
-for region in Session().get_available_regions("kinesisvideo", partition_name="aws-cn"):
-    kinesisvideo_backends[region] = KinesisVideoBackend(region)
+kinesisvideo_backends = BackendDict(KinesisVideoBackend, "kinesisvideo")

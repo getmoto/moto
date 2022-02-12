@@ -1,5 +1,5 @@
 from freezegun import freeze_time
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import ActivityTask, ActivityType, Timeout
@@ -16,7 +16,7 @@ def test_activity_task_creation():
     task = ActivityTask(
         activity_id="my-activity-123",
         activity_type="foo",
-        input="optional",
+        workflow_input="optional",
         scheduled_event_id=117,
         workflow_execution=wfe,
         timeouts=ACTIVITY_TASK_TIMEOUTS,
@@ -45,7 +45,7 @@ def test_activity_task_full_dict_representation():
     at = ActivityTask(
         activity_id="my-activity-123",
         activity_type=ActivityType("foo", "v1.0"),
-        input="optional",
+        workflow_input="optional",
         scheduled_event_id=117,
         timeouts=ACTIVITY_TASK_TIMEOUTS,
         workflow_execution=wfe,
@@ -72,7 +72,7 @@ def test_activity_task_reset_heartbeat_clock():
         task = ActivityTask(
             activity_id="my-activity-123",
             activity_type="foo",
-            input="optional",
+            workflow_input="optional",
             scheduled_event_id=117,
             timeouts=ACTIVITY_TASK_TIMEOUTS,
             workflow_execution=wfe,
@@ -93,7 +93,7 @@ def test_activity_task_first_timeout():
         task = ActivityTask(
             activity_id="my-activity-123",
             activity_type="foo",
-            input="optional",
+            workflow_input="optional",
             scheduled_event_id=117,
             timeouts=ACTIVITY_TASK_TIMEOUTS,
             workflow_execution=wfe,
@@ -118,7 +118,7 @@ def test_activity_task_first_timeout_with_heartbeat_timeout_none():
         task = ActivityTask(
             activity_id="my-activity-123",
             activity_type="foo",
-            input="optional",
+            workflow_input="optional",
             scheduled_event_id=117,
             timeouts=activity_task_timeouts,
             workflow_execution=wfe,
@@ -135,7 +135,7 @@ def test_activity_task_cannot_timeout_on_closed_workflow_execution():
         task = ActivityTask(
             activity_id="my-activity-123",
             activity_type="foo",
-            input="optional",
+            workflow_input="optional",
             scheduled_event_id=117,
             timeouts=ACTIVITY_TASK_TIMEOUTS,
             workflow_execution=wfe,
@@ -155,7 +155,7 @@ def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     task = ActivityTask(
         activity_id="my-activity-123",
         activity_type="foo",
-        input="optional",
+        workflow_input="optional",
         scheduled_event_id=117,
         timeouts=ACTIVITY_TASK_TIMEOUTS,
         workflow_execution=wfe,

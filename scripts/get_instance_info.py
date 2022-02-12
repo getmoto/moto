@@ -26,9 +26,7 @@ def main():
             instances.extend(offerings["InstanceTypes"])
             next_token = offerings.get("NextToken", "")
             while next_token:
-                offerings = ec2.describe_instance_types(
-                    NextToken=next_token
-                )
+                offerings = ec2.describe_instance_types(NextToken=next_token)
                 instances.extend(offerings["InstanceTypes"])
                 next_token = offerings.get("NextToken", None)
         except Exception:
@@ -39,7 +37,7 @@ def main():
     print("Parsing data")
     result = {}
     for instance in instances:
-        result[instance.get('InstanceType')] = instance
+        result[instance.get("InstanceType")] = instance
 
     root_dir = (
         subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
@@ -49,7 +47,7 @@ def main():
     dest = os.path.join(root_dir, "moto/ec2/resources/instance_types.json")
     print("Writing data to {0}".format(dest))
     with open(dest, "w") as open_file:
-        json.dump(result, open_file, sort_keys=True)
+        json.dump(result, open_file, sort_keys=True, indent=1)
 
 
 if __name__ == "__main__":

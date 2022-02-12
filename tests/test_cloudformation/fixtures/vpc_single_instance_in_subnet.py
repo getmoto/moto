@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from tests import EXAMPLE_AMI_ID
 
 template = {
@@ -267,6 +265,7 @@ template = {
         "RegionMap": {
             "ap-southeast-1": {"AMI": EXAMPLE_AMI_ID},
             "ap-southeast-2": {"AMI": EXAMPLE_AMI_ID},
+            "ap-southeast-3": {"AMI": EXAMPLE_AMI_ID},
             "us-west-2": {"AMI": EXAMPLE_AMI_ID},
             "us-east-1": {"AMI": EXAMPLE_AMI_ID},
             "ap-northeast-1": {"AMI": EXAMPLE_AMI_ID},

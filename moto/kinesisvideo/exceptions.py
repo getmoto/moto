@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from moto.core.exceptions import RESTError
 
 
@@ -10,7 +8,7 @@ class KinesisvideoClientError(RESTError):
 class ResourceNotFoundException(KinesisvideoClientError):
     def __init__(self):
         self.code = 404
-        super(ResourceNotFoundException, self).__init__(
+        super().__init__(
             "ResourceNotFoundException",
             "The requested stream is not found or not active.",
         )
@@ -19,6 +17,6 @@ class ResourceNotFoundException(KinesisvideoClientError):
 class ResourceInUseException(KinesisvideoClientError):
     def __init__(self, message):
         self.code = 400
-        super(ResourceInUseException, self).__init__(
+        super().__init__(
             "ResourceInUseException", message,
         )

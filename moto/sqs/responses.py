@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
-
 import re
 
+from moto.core.exceptions import RESTError
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
     amz_crc32,
@@ -9,13 +8,14 @@ from moto.core.utils import (
     underscores_to_camelcase,
     camelcase_to_pascal,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from .exceptions import (
     EmptyBatchRequest,
+    InvalidAddress,
     InvalidAttributeName,
-    MessageNotInflight,
     ReceiptHandleIsInvalid,
+    BatchEntryIdsNotDistinct,
 )
 from .models import sqs_backends
 from .utils import parse_message_attributes, extract_input_message_attributes
@@ -49,11 +49,14 @@ class SQSResponse(BaseResponse):
 
     def _get_queue_name(self):
         try:
-            queue_name = self.querystring.get("QueueUrl")[0].split("/")[-1]
+            queue_url = self.querystring.get("QueueUrl")[0]
+            if queue_url.startswith("http://") or queue_url.startswith("https://"):
+                return queue_url.split("/")[-1]
+            else:
+                raise InvalidAddress(queue_url)
         except TypeError:
-            # Fallback to reading from the URL
-            queue_name = self.path.split("/")[-1]
-        return queue_name
+            # Fallback to reading from the URL for botocore
+            return self.path.split("/")[-1]
 
     def _get_validated_visibility_timeout(self, timeout=None):
         """
@@ -73,7 +76,7 @@ class SQSResponse(BaseResponse):
     @amz_crc32  # crc last as request_id can edit XML
     @amzn_request_id
     def call_action(self):
-        status_code, headers, body = super(SQSResponse, self).call_action()
+        status_code, headers, body = super().call_action()
         if status_code == 404:
             queue_name = self.querystring.get("QueueName", [""])[0]
             template = self.response_template(ERROR_INEXISTENT_QUEUE)
@@ -119,17 +122,11 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        try:
-            self.sqs_backend.change_message_visibility(
-                queue_name=queue_name,
-                receipt_handle=receipt_handle,
-                visibility_timeout=visibility_timeout,
-            )
-        except MessageNotInflight as e:
-            return (
-                "Invalid request: {0}".format(e.description),
-                dict(status=e.status_code),
-            )
+        self.sqs_backend.change_message_visibility(
+            queue_name=queue_name,
+            receipt_handle=receipt_handle,
+            visibility_timeout=visibility_timeout,
+        )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
@@ -172,15 +169,6 @@ class SQSResponse(BaseResponse):
                         "Message": e.description,
                     }
                 )
-            except MessageNotInflight as e:
-                error.append(
-                    {
-                        "Id": entry["id"],
-                        "SenderFault": "false",
-                        "Code": "AWS.SimpleQueueService.MessageNotInflight",
-                        "Message": e.description,
-                    }
-                )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
         return template.render(success=success, errors=error)
@@ -193,6 +181,10 @@ class SQSResponse(BaseResponse):
 
         attribute_names = self._get_multi_param("AttributeName")
 
+        # if connecting to AWS via boto, then 'AttributeName' is just a normal parameter
+        if not attribute_names:
+            attribute_names = self.querystring.get("AttributeName")
+
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
@@ -200,23 +192,28 @@ class SQSResponse(BaseResponse):
 
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
+        attribute = self.attribute
+
+        # Fixes issue with Policy set to empty str
+        attribute_names = self._get_multi_param("Attribute")
+        if attribute_names:
+            for attr in attribute_names:
+                if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
+                    attribute = {attr["Name"]: None}
+
         queue_name = self._get_queue_name()
-        self.sqs_backend.set_queue_attributes(queue_name, self.attribute)
+        self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        queue = self.sqs_backend.delete_queue(queue_name)
-        if not queue:
-            return (
-                "A queue with name {0} does not exist".format(queue_name),
-                dict(status=404),
-            )
+
+        self.sqs_backend.delete_queue(queue_name)
 
         template = self.response_template(DELETE_QUEUE_RESPONSE)
-        return template.render(queue=queue)
+        return template.render()
 
     def send_message(self):
         message = self._get_param("MessageBody")
@@ -234,23 +231,19 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        if not message_group_id:
-            queue = self.sqs_backend.get_queue(queue_name)
-            if queue.attributes.get("FifoQueue", False):
-                return self._error(
-                    "MissingParameter",
-                    "The request must contain the parameter MessageGroupId.",
-                )
+        try:
+            message = self.sqs_backend.send_message(
+                queue_name,
+                message,
+                message_attributes=message_attributes,
+                delay_seconds=delay_seconds,
+                deduplication_id=message_dedupe_id,
+                group_id=message_group_id,
+                system_attributes=system_message_attributes,
+            )
+        except RESTError as err:
+            return self._error(err.error_type, err.message)
 
-        message = self.sqs_backend.send_message(
-            queue_name,
-            message,
-            message_attributes=message_attributes,
-            delay_seconds=delay_seconds,
-            deduplication_id=message_dedupe_id,
-            group_id=message_group_id,
-            system_attributes=system_message_attributes,
-        )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
 
@@ -333,7 +326,8 @@ class SQSResponse(BaseResponse):
         """
         queue_name = self._get_queue_name()
 
-        message_ids = []
+        receipts = []
+
         for index in range(1, 11):
             # Loop through looking for messages
             receipt_key = "DeleteMessageBatchRequestEntry.{0}.ReceiptHandle".format(
@@ -344,14 +338,39 @@ class SQSResponse(BaseResponse):
                 # Found all messages
                 break
 
-            self.sqs_backend.delete_message(queue_name, receipt_handle[0])
-
             message_user_id_key = "DeleteMessageBatchRequestEntry.{0}.Id".format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
-            message_ids.append(message_user_id)
+            receipts.append(
+                {"receipt_handle": receipt_handle[0], "msg_user_id": message_user_id}
+            )
+
+        receipt_seen = set()
+        for receipt_and_id in receipts:
+            receipt = receipt_and_id["receipt_handle"]
+            if receipt in receipt_seen:
+                raise BatchEntryIdsNotDistinct(receipt_and_id["msg_user_id"])
+            receipt_seen.add(receipt)
+
+        success = []
+        errors = []
+        for receipt_and_id in receipts:
+            try:
+                self.sqs_backend.delete_message(
+                    queue_name, receipt_and_id["receipt_handle"]
+                )
+                success.append(receipt_and_id["msg_user_id"])
+            except ReceiptHandleIsInvalid:
+                errors.append(
+                    {
+                        "Id": receipt_and_id["msg_user_id"],
+                        "SenderFault": "true",
+                        "Code": "ReceiptHandleIsInvalid",
+                        "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
+                    }
+                )
 
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
-        return template.render(message_ids=message_ids)
+        return template.render(success=success, errors=errors)
 
     def purge_queue(self):
         queue_name = self._get_queue_name()
@@ -623,7 +642,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
                 {% if 'Binary' in value.data_type %}
                 <BinaryValue>{{ value.binary_value }}</BinaryValue>
                 {% else %}
-                <StringValue>{{ value.string_value }}</StringValue>
+                <StringValue><![CDATA[{{ value.string_value }}]]></StringValue>
                 {% endif %}
               </Value>
             </MessageAttribute>
@@ -662,10 +681,18 @@ DELETE_MESSAGE_RESPONSE = """<DeleteMessageResponse>
 
 DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
     <DeleteMessageBatchResult>
-        {% for message_id in message_ids %}
+        {% for message_id in success %}
             <DeleteMessageBatchResultEntry>
                 <Id>{{ message_id }}</Id>
             </DeleteMessageBatchResultEntry>
+        {% endfor %}
+        {% for error_dict in errors %}
+        <BatchResultErrorEntry>
+            <Id>{{ error_dict['Id'] }}</Id>
+            <Code>{{ error_dict['Code'] }}</Code>
+            <Message>{{ error_dict['Message'] }}</Message>
+            <SenderFault>{{ error_dict['SenderFault'] }}</SenderFault>
+        </BatchResultErrorEntry>
         {% endfor %}
     </DeleteMessageBatchResult>
     <ResponseMetadata>

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .account_attributes import AccountAttributes
 from .amazon_dev_pay import AmazonDevPay
 from .amis import AmisResponse
@@ -12,6 +10,7 @@ from .elastic_network_interfaces import ElasticNetworkInterfaces
 from .general import General
 from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
+from .egress_only_internet_gateways import EgressOnlyInternetGateway
 from .ip_addresses import IPAddresses
 from .key_pairs import KeyPairs
 from .launch_templates import LaunchTemplates
@@ -21,6 +20,7 @@ from .placement_groups import PlacementGroups
 from .reserved_instances import ReservedInstances
 from .route_tables import RouteTables
 from .security_groups import SecurityGroups
+from .settings import Settings
 from .spot_fleets import SpotFleets
 from .spot_instances import SpotInstances
 from .subnets import Subnets
@@ -30,11 +30,16 @@ from .virtual_private_gateways import VirtualPrivateGateways
 from .vm_export import VMExport
 from .vm_import import VMImport
 from .vpcs import VPCs
+from .vpc_service_configuration import VPCEndpointServiceConfiguration
 from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
 from .nat_gateways import NatGateways
+from .transit_gateways import TransitGateways
+from .transit_gateway_route_tables import TransitGatewayRouteTable
+from .transit_gateway_attachments import TransitGatewayAttachment
 from .iam_instance_profiles import IamInstanceProfiles
+from .carrier_gateways import CarrierGateway
 
 
 class EC2Response(
@@ -50,6 +55,7 @@ class EC2Response(
     General,
     InstanceResponse,
     InternetGateways,
+    EgressOnlyInternetGateway,
     IPAddresses,
     KeyPairs,
     LaunchTemplates,
@@ -59,6 +65,7 @@ class EC2Response(
     ReservedInstances,
     RouteTables,
     SecurityGroups,
+    Settings,
     SpotFleets,
     SpotInstances,
     Subnets,
@@ -68,11 +75,16 @@ class EC2Response(
     VMExport,
     VMImport,
     VPCs,
+    VPCEndpointServiceConfiguration,
     VPCPeeringConnections,
     VPNConnections,
     Windows,
     NatGateways,
+    TransitGateways,
+    TransitGatewayRouteTable,
+    TransitGatewayAttachment,
     IamInstanceProfiles,
+    CarrierGateway,
 ):
     @property
     def ec2_backend(self):

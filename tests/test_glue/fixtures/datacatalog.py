@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 TABLE_INPUT = {
     "Owner": "a_fake_owner",
     "Parameters": {"EXTERNAL": "TRUE"},

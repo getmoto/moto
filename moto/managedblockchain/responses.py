@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import json
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from moto.core.responses import BaseResponse
 from .exceptions import exception_handler
@@ -18,7 +16,7 @@ from .utils import (
 
 class ManagedBlockchainResponse(BaseResponse):
     def __init__(self, backend):
-        super(ManagedBlockchainResponse, self).__init__()
+        super().__init__()
         self.backend = backend
 
     @classmethod

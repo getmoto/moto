@@ -1,14 +1,17 @@
-from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
 
 import warnings
 
 import pytz
-from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.emr.exceptions import EmrError, InvalidRequestException
+from moto.core.utils import BackendDict
+from moto.emr.exceptions import (
+    InvalidRequestException,
+    ValidationException,
+    ResourceNotFoundException,
+)
 from .utils import (
     random_instance_group_id,
     random_cluster_id,
@@ -37,9 +40,9 @@ class FakeBootstrapAction(BaseModel):
 
 class FakeInstance(BaseModel):
     def __init__(
-        self, ec2_instance_id, instance_group, instance_fleet_id=None, id=None,
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None,
     ):
-        self.id = id or random_instance_group_id()
+        self.id = instance_id or random_instance_group_id()
         self.ec2_instance_id = ec2_instance_id
         self.instance_group = instance_group
         self.instance_fleet_id = instance_fleet_id
@@ -54,12 +57,12 @@ class FakeInstanceGroup(BaseModel):
         instance_type,
         market="ON_DEMAND",
         name=None,
-        id=None,
+        instance_group_id=None,
         bid_price=None,
         ebs_configuration=None,
         auto_scaling_policy=None,
     ):
-        self.id = id or random_instance_group_id()
+        self.id = instance_group_id or random_instance_group_id()
         self.cluster_id = cluster_id
 
         self.bid_price = bid_price
@@ -164,6 +167,7 @@ class FakeCluster(BaseModel):
         step_concurrency_level=1,
         security_configuration=None,
         kerberos_attributes=None,
+        auto_scaling_role=None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -271,6 +275,7 @@ class FakeCluster(BaseModel):
             security_configuration  # ToDo: Raise if doesn't already exist.
         )
         self.kerberos_attributes = kerberos_attributes
+        self.auto_scaling_role = auto_scaling_role
 
     @property
     def arn(self):
@@ -332,6 +337,15 @@ class FakeCluster(BaseModel):
             if self.master_instance_group_id:
                 raise Exception("Cannot add another master instance group")
             self.master_instance_group_id = instance_group.id
+            num_master_nodes = instance_group.num_instances
+            if num_master_nodes > 1:
+                # Cluster is HA
+                if num_master_nodes != 3:
+                    raise ValidationException(
+                        "Master instance group must have exactly 3 instances for HA clusters."
+                    )
+                self.keep_job_flow_alive_when_no_steps = True
+                self.termination_protected = True
         if instance_group.role == "CORE":
             if self.core_instance_group_id:
                 raise Exception("Cannot add another core instance group")
@@ -348,7 +362,7 @@ class FakeCluster(BaseModel):
                 # If we already have other steps, this one is pending
                 fake = FakeStep(state="PENDING", **step)
             else:
-                fake = FakeStep(state="STARTING", **step)
+                fake = FakeStep(state="RUNNING", **step)
             self.steps.append(fake)
             added_steps.append(fake)
         self.state = "RUNNING"
@@ -377,7 +391,7 @@ class FakeSecurityConfiguration(BaseModel):
 
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name):
-        super(ElasticMapReduceBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self.clusters = {}
         self.instance_groups = {}
@@ -387,6 +401,13 @@ class ElasticMapReduceBackend(BaseBackend):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticmapreduce"
+        )
 
     @property
     def ec2_backend(self):
@@ -399,7 +420,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return ec2_backends[self.region_name]
 
     def add_applications(self, cluster_id, applications):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_applications(applications)
 
     def add_instance_groups(self, cluster_id, instance_groups):
@@ -429,7 +450,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return steps
 
     def add_tags(self, cluster_id, tags):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.add_tags(tags)
 
     def describe_job_flows(
@@ -464,10 +485,10 @@ class ElasticMapReduceBackend(BaseBackend):
             if step.id == step_id:
                 return step
 
-    def get_cluster(self, cluster_id):
+    def describe_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
-        raise EmrError("ResourceNotFoundException", "", "error_json")
+        raise ResourceNotFoundException("")
 
     def get_instance_groups(self, instance_group_ids):
         return [
@@ -563,7 +584,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return result_groups
 
     def remove_tags(self, cluster_id, tag_keys):
-        cluster = self.get_cluster(cluster_id)
+        cluster = self.describe_cluster(cluster_id)
         cluster.remove_tags(tag_keys)
 
     def _manage_security_groups(
@@ -624,12 +645,20 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.set_termination_protection(value)
 
     def terminate_job_flows(self, job_flow_ids):
-        clusters = []
+        clusters_terminated = []
+        clusters_protected = []
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
+            if cluster.termination_protected:
+                clusters_protected.append(cluster)
+                continue
             cluster.terminate()
-            clusters.append(cluster)
-        return clusters
+            clusters_terminated.append(cluster)
+        if clusters_protected:
+            raise ValidationException(
+                "Could not shut down one or more job flows since they are termination protected."
+            )
+        return clusters_terminated
 
     def put_auto_scaling_policy(self, instance_group_id, auto_scaling_policy):
         instance_groups = self.get_instance_groups(
@@ -682,10 +711,4 @@ class ElasticMapReduceBackend(BaseBackend):
         del self.security_configurations[name]
 
 
-emr_backends = {}
-for region in Session().get_available_regions("emr"):
-    emr_backends[region] = ElasticMapReduceBackend(region)
-for region in Session().get_available_regions("emr", partition_name="aws-us-gov"):
-    emr_backends[region] = ElasticMapReduceBackend(region)
-for region in Session().get_available_regions("emr", partition_name="aws-cn"):
-    emr_backends[region] = ElasticMapReduceBackend(region)
+emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

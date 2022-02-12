@@ -1,5 +1,4 @@
 import json
-import six
 
 from moto.core.responses import BaseResponse
 
@@ -31,7 +30,7 @@ class SWFResponse(BaseResponse):
             self._check_string(parameter)
 
     def _check_string(self, parameter):
-        if not isinstance(parameter, six.string_types):
+        if not isinstance(parameter, str):
             raise SWFSerializationException(parameter)
 
     def _check_none_or_list_of_strings(self, parameter):
@@ -42,7 +41,7 @@ class SWFResponse(BaseResponse):
         if not isinstance(parameter, list):
             raise SWFSerializationException(parameter)
         for i in parameter:
-            if not isinstance(i, six.string_types):
+            if not isinstance(i, str):
                 raise SWFSerializationException(parameter)
 
     def _check_exclusivity(self, **kwargs):
@@ -397,7 +396,7 @@ class SWFResponse(BaseResponse):
             task_list=task_list,
             child_policy=child_policy,
             execution_start_to_close_timeout=execution_start_to_close_timeout,
-            input=input_,
+            workflow_input=input_,
             tag_list=tag_list,
             task_start_to_close_timeout=task_start_to_close_timeout,
         )

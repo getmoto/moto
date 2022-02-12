@@ -1,12 +1,10 @@
-from __future__ import unicode_literals
-
 import bisect
-from boto3 import Session
 import datetime
 from collections import defaultdict
 import json
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
+from moto.core.utils import BackendDict
 from .exceptions import BadSegmentException
 
 
@@ -232,9 +230,16 @@ class SegmentCollection(object):
 
 
 class XRayBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self._telemetry_records = []
         self._segment_collection = SegmentCollection()
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "xray"
+        )
 
     def add_telemetry_records(self, json):
         self._telemetry_records.append(TelemetryRecords.from_json(json))
@@ -287,10 +292,4 @@ class XRayBackend(BaseBackend):
         return result
 
 
-xray_backends = {}
-for region in Session().get_available_regions("xray"):
-    xray_backends[region] = XRayBackend()
-for region in Session().get_available_regions("xray", partition_name="aws-us-gov"):
-    xray_backends[region] = XRayBackend()
-for region in Session().get_available_regions("xray", partition_name="aws-cn"):
-    xray_backends[region] = XRayBackend()
+xray_backends = BackendDict(XRayBackend, "xray")

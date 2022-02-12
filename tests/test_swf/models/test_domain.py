@@ -1,5 +1,5 @@
 from collections import namedtuple
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto.core import ACCOUNT_ID
 from moto.swf.exceptions import SWFUnknownResourceFault

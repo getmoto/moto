@@ -1,4 +1,4 @@
-ACCOUNT_ID = "1234567890"
+from moto.core import ACCOUNT_ID
 
 
 def parameter_arn(region, parameter_name):

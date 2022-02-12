@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 from moto.core.responses import BaseResponse
@@ -27,6 +26,11 @@ class OrganizationsResponse(BaseResponse):
 
     def describe_organization(self):
         return json.dumps(self.organizations_backend.describe_organization())
+
+    def delete_organization(self):
+        return json.dumps(
+            self.organizations_backend.delete_organization(**self.request_params)
+        )
 
     def list_roots(self):
         return json.dumps(self.organizations_backend.list_roots())
@@ -210,4 +214,11 @@ class OrganizationsResponse(BaseResponse):
     def detach_policy(self):
         return json.dumps(
             self.organizations_backend.detach_policy(**self.request_params)
+        )
+
+    def remove_account_from_organization(self):
+        return json.dumps(
+            self.organizations_backend.remove_account_from_organization(
+                **self.request_params
+            )
         )

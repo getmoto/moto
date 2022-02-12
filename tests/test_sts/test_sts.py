@@ -1,55 +1,62 @@
-from __future__ import unicode_literals
 from base64 import b64encode
 import json
 
-import boto
 import boto3
 from botocore.client import ClientError
+from datetime import datetime
 from freezegun import freeze_time
 import pytest
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
-
-from moto import mock_sts, mock_sts_deprecated, mock_iam, settings
+from moto import mock_sts, mock_iam, settings
 from moto.core import ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts_deprecated
-def test_get_session_token():
-    conn = boto.connect_sts()
-    token = conn.get_session_token(duration=123)
+@mock_sts
+def test_get_session_token_boto3():
+    client = boto3.client("sts", region_name="us-east-1")
+    creds = client.get_session_token(DurationSeconds=903)["Credentials"]
 
-    token.expiration.should.equal("2012-01-01T12:02:03.000Z")
-    token.session_token.should.equal(
+    creds["Expiration"].should.be.a(datetime)
+
+    if not settings.TEST_SERVER_MODE:
+        fdate = creds["Expiration"].strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        fdate.should.equal("2012-01-01T12:15:03.000Z")
+    creds["SessionToken"].should.equal(
         "AQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/LTo6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3zrkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiBeb/AXlzBBko7b15fjrBs2+cTQtpZ3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE"
     )
-    token.access_key.should.equal("AKIAIOSFODNN7EXAMPLE")
-    token.secret_key.should.equal("wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
+    creds["AccessKeyId"].should.equal("AKIAIOSFODNN7EXAMPLE")
+    creds["SecretAccessKey"].should.equal("wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts_deprecated
-def test_get_federation_token():
-    conn = boto.connect_sts()
+@mock_sts
+def test_get_federation_token_boto3():
+    client = boto3.client("sts", region_name="us-east-1")
     token_name = "Bob"
-    token = conn.get_federation_token(duration=123, name=token_name)
+    fed_token = client.get_federation_token(DurationSeconds=903, Name=token_name)
+    creds = fed_token["Credentials"]
+    fed_user = fed_token["FederatedUser"]
 
-    token.credentials.expiration.should.equal("2012-01-01T12:02:03.000Z")
-    token.credentials.session_token.should.equal(
+    creds["Expiration"].should.be.a(datetime)
+
+    if not settings.TEST_SERVER_MODE:
+        fdate = creds["Expiration"].strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        fdate.should.equal("2012-01-01T12:15:03.000Z")
+    creds["SessionToken"].should.equal(
         "AQoDYXdzEPT//////////wEXAMPLEtc764bNrC9SAPBSM22wDOk4x4HIZ8j4FZTwdQWLWsKWHGBuFqwAeMicRXmxfpSPfIeoIYRqTflfKD8YUuwthAx7mSEI/qkPpKPi/kMcGdQrmGdeehM4IC1NtBmUpp2wUE8phUZampKsburEDy0KPkyQDYwT7WZ0wq5VSXDvp75YU9HFvlRd8Tx6q6fE8YQcHNVXAkiY9q6d+xo0rKwT38xVqr7ZD0u0iPPkUL64lIZbqBAz+scqKmlzm8FDrypNC9Yjc8fPOLn9FX9KSYvKTr4rvx3iSIlTJabIQwj2ICCR/oLxBA=="
     )
-    token.credentials.access_key.should.equal("AKIAIOSFODNN7EXAMPLE")
-    token.credentials.secret_key.should.equal(
-        "wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY"
-    )
-    token.federated_user_arn.should.equal(
+    creds["AccessKeyId"].should.equal("AKIAIOSFODNN7EXAMPLE")
+    creds["SecretAccessKey"].should.equal("wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
+
+    fed_user["Arn"].should.equal(
         "arn:aws:sts::{account_id}:federated-user/{token_name}".format(
             account_id=ACCOUNT_ID, token_name=token_name
         )
     )
-    token.federated_user_id.should.equal(str(ACCOUNT_ID) + ":" + token_name)
+    fed_user["FederatedUserId"].should.equal("{}:{}".format(ACCOUNT_ID, token_name))
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -467,17 +474,17 @@ def test_assume_role_with_saml_should_retrieve_attribute_value_from_text_when_xm
     <saml:AttributeStatement>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xsi:type="xs:string">{fed_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xsi:type="xs:string">arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</saml:AttributeValue>
       </saml:Attribute>
       <saml:Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
         <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
-                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xsi:type="xs:string">900</saml:AttributeValue>
       </saml:Attribute>
     </saml:AttributeStatement>
@@ -605,9 +612,9 @@ def test_assume_role_with_saml_should_default_session_duration_to_3600_seconds_w
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts_deprecated
-def test_assume_role_with_web_identity():
-    conn = boto.connect_sts()
+@mock_sts
+def test_assume_role_with_web_identity_boto3():
+    client = boto3.client("sts", region_name="us-east-1")
 
     policy = json.dumps(
         {
@@ -626,24 +633,35 @@ def test_assume_role_with_web_identity():
         account_id=ACCOUNT_ID, role_name=role_name
     )
     session_name = "session-name"
-    role = conn.assume_role_with_web_identity(
-        s3_role, session_name, policy, duration_seconds=123
+    role = client.assume_role_with_web_identity(
+        RoleArn=s3_role,
+        RoleSessionName=session_name,
+        WebIdentityToken="????",
+        Policy=policy,
+        DurationSeconds=903,
     )
 
-    credentials = role.credentials
-    credentials.expiration.should.equal("2012-01-01T12:02:03.000Z")
-    credentials.session_token.should.have.length_of(356)
-    assert credentials.session_token.startswith("FQoGZXIvYXdzE")
-    credentials.access_key.should.have.length_of(20)
-    assert credentials.access_key.startswith("ASIA")
-    credentials.secret_key.should.have.length_of(40)
+    creds = role["Credentials"]
+    user = role["AssumedRoleUser"]
 
-    role.user.arn.should.equal(
+    creds["Expiration"].should.be.a(datetime)
+
+    if not settings.TEST_SERVER_MODE:
+        fdate = creds["Expiration"].strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        fdate.should.equal("2012-01-01T12:15:03.000Z")
+
+    creds["SessionToken"].should.have.length_of(356)
+    creds["SessionToken"].should.match("^FQoGZXIvYXdzE")
+    creds["AccessKeyId"].should.have.length_of(20)
+    creds["AccessKeyId"].should.match("^ASIA")
+    creds["SecretAccessKey"].should.have.length_of(40)
+
+    user["Arn"].should.equal(
         "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
             account_id=ACCOUNT_ID, role_name=role_name, session_name=session_name
         )
     )
-    role.user.assume_role_id.should.contain("session-name")
+    user["AssumedRoleId"].should.contain("session-name")
 
 
 @mock_sts

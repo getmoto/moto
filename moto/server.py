@@ -1,28 +1,24 @@
-from __future__ import unicode_literals
-
 import argparse
 import io
 import json
 import os
-import re
 import signal
 import sys
 from threading import Lock
 
-import six
 from flask import Flask
 from flask_cors import CORS
 from flask.testing import FlaskClient
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
 import moto.backends as backends
-from moto.core.utils import convert_flask_to_httpretty_response
+import moto.backend_index as backend_index
+from moto.core.utils import convert_to_flask_response
 
-
-HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
+HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
 
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")
@@ -33,7 +29,10 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
-UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
+UNSIGNED_ACTIONS = {
+    "AssumeRoleWithSAML": ("sts", "us-east-1"),
+    "AssumeRoleWithWebIdentity": ("sts", "us-east-1"),
+}
 
 # Some services have v4 signing names that differ from the backend service name/id.
 SIGNING_ALIASES = {
@@ -41,6 +40,9 @@ SIGNING_ALIASES = {
     "execute-api": "iot",
     "iotdata": "data.iot",
 }
+
+# Some services are only recognizable by the version
+SERVICE_BY_VERSION = {"2009-04-15": "sdb"}
 
 
 class DomainDispatcherApplication(object):
@@ -54,8 +56,10 @@ class DomainDispatcherApplication(object):
         self.lock = Lock()
         self.app_instances = {}
         self.service = service
+        self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host):
+
         if host == "moto_api":
             return host
 
@@ -65,15 +69,22 @@ class DomainDispatcherApplication(object):
         if host in backends.BACKENDS:
             return host
 
-        return backends.search_backend(
-            lambda backend: any(
-                re.match(url_base, "http://%s" % host)
-                for url_base in list(backend.values())[0].url_bases
-            )
-        )
+        for backend, pattern in self.backend_url_patterns:
+            if pattern.match("http://%s" % host):
+                return backend
 
-    def infer_service_region_host(self, environ):
+        if "amazonaws.com" in host:
+            print(
+                "Unable to find appropriate backend for {}."
+                "Remember to add the URL to urls.py, and run scripts/update_backend_index.py to index it.".format(
+                    host
+                )
+            )
+
+    def infer_service_region_host(self, body, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
+        target = environ.get("HTTP_X_AMZ_TARGET")
+        service = None
         if auth:
             # Signed request
             # Parse auth header to find service assuming a SigV4 request
@@ -83,6 +94,7 @@ class DomainDispatcherApplication(object):
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
                 service = SIGNING_ALIASES.get(service.lower(), service)
+                service = service.lower()
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use
@@ -91,19 +103,31 @@ class DomainDispatcherApplication(object):
                 service, region = DEFAULT_SERVICE_REGION
         else:
             # Unsigned request
-            target = environ.get("HTTP_X_AMZ_TARGET")
-            action = self.get_action_from_body(environ)
+            action = self.get_action_from_body(body)
             if target:
                 service, _ = target.split(".", 1)
                 service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
             elif action and action in UNSIGNED_ACTIONS:
                 # See if we can match the Action to a known service
                 service, region = UNSIGNED_ACTIONS.get(action)
-            else:
+            if not service:
+                service, region = self.get_service_from_body(body, environ)
+            if not service:
+                service, region = self.get_service_from_path(environ)
+            if not service:
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
-        if service == "dynamodb":
+        if service in ["budgets", "cloudfront"]:
+            # Global Services - they do not have/expect a region
+            host = f"{service}.amazonaws.com"
+        elif service == "mediastore" and not target:
+            # All MediaStore API calls have a target header
+            # If no target is set, assume we're trying to reach the mediastore-data service
+            host = "data.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
+        elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
             else:
@@ -117,6 +141,10 @@ class DomainDispatcherApplication(object):
             host = "api.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
+        elif service == "timestream":
+            host = "ingest.{service}.{region}.amazonaws.com".format(
+                service=service, region=region
+            )
         else:
             host = "{service}.{region}.amazonaws.com".format(
                 service=service, region=region
@@ -128,9 +156,7 @@ class DomainDispatcherApplication(object):
         path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
-        if six.PY2 and isinstance(path_info, str):
-            path_info = six.u(path_info)
-        if six.PY3 and isinstance(path_info, six.binary_type):
+        if isinstance(path_info, bytes):
             path_info = path_info.decode("utf-8")
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
@@ -143,8 +169,9 @@ class DomainDispatcherApplication(object):
         with self.lock:
             backend = self.get_backend_for_host(host)
             if not backend:
-                # No regular backend found; try parsing other headers
-                host = self.infer_service_region_host(environ)
+                # No regular backend found; try parsing body/other headers
+                body = self._get_body(environ)
+                host = self.infer_service_region_host(body, environ)
                 backend = self.get_backend_for_host(host)
 
             app = self.app_instances.get(backend, None)
@@ -153,7 +180,7 @@ class DomainDispatcherApplication(object):
                 self.app_instances[backend] = app
             return app
 
-    def get_action_from_body(self, environ):
+    def _get_body(self, environ):
         body = None
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
@@ -163,15 +190,48 @@ class DomainDispatcherApplication(object):
             request_body_size = int(environ["CONTENT_LENGTH"])
             if simple_form and request_body_size:
                 body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
-                body_dict = dict(x.split("=") for x in body.split("&"))
-                return body_dict["Action"]
         except (KeyError, ValueError):
             pass
         finally:
             if body:
                 # We've consumed the body = need to reset it
                 environ["wsgi.input"] = io.StringIO(body)
-        return None
+        return body
+
+    def get_service_from_body(self, body, environ):
+        # Some services have the SDK Version in the body
+        # If the version is unique, we can derive the service from it
+        version = self.get_version_from_body(body)
+        if version and version in SERVICE_BY_VERSION:
+            # Boto3/1.20.7 Python/3.8.10 Linux/5.11.0-40-generic Botocore/1.23.7 region/eu-west-1
+            region = environ.get("HTTP_USER_AGENT", "").split("/")[-1]
+            return SERVICE_BY_VERSION[version], region
+        return None, None
+
+    def get_version_from_body(self, body):
+        try:
+            body_dict = dict(x.split("=") for x in body.split("&"))
+            return body_dict["Version"]
+        except (AttributeError, KeyError, ValueError):
+            return None
+
+    def get_action_from_body(self, body):
+        try:
+            # AWS requests use querystrings as the body (Action=x&Data=y&...)
+            body_dict = dict(x.split("=") for x in body.split("&"))
+            return body_dict["Action"]
+        except (AttributeError, KeyError, ValueError):
+            return None
+
+    def get_service_from_path(self, environ):
+        # Moto sometimes needs to send a HTTP request to itself
+        # In which case it will send a request to 'http://localhost/service_region/whatever'
+        try:
+            path_info = environ.get("PATH_INFO", "/")
+            service, region = path_info[1 : path_info.index("/", 1)].split("_")
+            return service, region
+        except (AttributeError, KeyError, ValueError):
+            return None, None
 
     def __call__(self, environ, start_response):
         backend_app = self.get_application(environ)
@@ -182,7 +242,7 @@ class RegexConverter(BaseConverter):
     # http://werkzeug.pocoo.org/docs/routing/#custom-converters
 
     def __init__(self, url_map, *items):
-        super(RegexConverter, self).__init__(url_map)
+        super().__init__(url_map)
         self.regex = items[0]
 
 
@@ -222,9 +282,15 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters["regex"] = RegexConverter
-    backend = list(backends.get_backend(service).values())[0]
+
+    backend_dict = backends.get_backend(service)
+    if "us-east-1" in backend_dict:
+        backend = backend_dict["us-east-1"]
+    else:
+        backend = backend_dict["global"]
+
     for url_path, handler in backend.flask_paths.items():
-        view_func = convert_flask_to_httpretty_response(handler)
+        view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
             endpoint = "{0}.dispatch".format(handler.__self__.__name__)
         else:
@@ -238,24 +304,28 @@ def create_backend_app(service):
             endpoint = original_endpoint + str(index)
             index += 1
 
-        backend_app.add_url_rule(
-            url_path,
-            endpoint=endpoint,
-            methods=HTTP_METHODS,
-            view_func=view_func,
-            strict_slashes=False,
-        )
+        # Some services do not provide a URL path
+        # I.e., boto3 sends a request to 'https://ingest.timestream.amazonaws.com'
+        # Which means we have a empty url_path to catch this request - but Flask can't handle that
+        if url_path:
+            backend_app.add_url_rule(
+                url_path,
+                endpoint=endpoint,
+                methods=HTTP_METHODS,
+                view_func=view_func,
+                strict_slashes=False,
+            )
 
     backend_app.test_client_class = AWSTestHelper
     return backend_app
 
 
 def signal_handler(signum, frame):
-    print("Received signal %d" % signum)
     sys.exit(0)
 
 
-def main(argv=sys.argv[1:]):
+def main(argv=None):
+    argv = argv or sys.argv[1:]
     parser = argparse.ArgumentParser()
 
     # Keep this for backwards compat
@@ -269,7 +339,11 @@ def main(argv=sys.argv[1:]):
         "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"
     )
     parser.add_argument(
-        "-p", "--port", type=int, help="Port number to use for connection", default=5000
+        "-p",
+        "--port",
+        type=int,
+        help="Port number to use for connection",
+        default=int(os.environ.get("MOTO_PORT", 5000)),
     )
     parser.add_argument(
         "-r",
@@ -294,8 +368,14 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args(argv)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    if "MOTO_PORT" not in os.environ:
+        os.environ["MOTO_PORT"] = f"{args.port}"
+
+    try:
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+    except Exception:
+        pass  # ignore "ValueError: signal only works in main thread"
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(create_backend_app, service=args.service)

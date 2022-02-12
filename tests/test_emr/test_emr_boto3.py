@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 import time
 from copy import deepcopy
 from datetime import datetime
@@ -7,8 +6,7 @@ from datetime import datetime
 import boto3
 import json
 import pytz
-import six
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -118,6 +116,7 @@ def test_describe_cluster():
     }
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
     args["SecurityConfiguration"] = "my-security-configuration"
+    args["AutoScalingRole"] = "EMR_AutoScaling_DefaultRole"
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
@@ -157,15 +156,16 @@ def test_describe_cluster():
     cl["Id"].should.equal(cluster_id)
     cl["KerberosAttributes"].should.equal(args["KerberosAttributes"])
     cl["LogUri"].should.equal(args["LogUri"])
-    cl["MasterPublicDnsName"].should.be.a(six.string_types)
+    cl["MasterPublicDnsName"].should.be.a(str)
     cl["Name"].should.equal(args["Name"])
     cl["NormalizedInstanceHours"].should.equal(0)
     # cl['ReleaseLabel'].should.equal('emr-5.0.0')
     cl.shouldnt.have.key("RequestedAmiVersion")
     cl["RunningAmiVersion"].should.equal("1.0.0")
-    cl["SecurityConfiguration"].should.be.a(six.string_types)
+    cl["SecurityConfiguration"].should.be.a(str)
     cl["SecurityConfiguration"].should.equal(args["SecurityConfiguration"])
     cl["ServiceRole"].should.equal(args["ServiceRole"])
+    cl["AutoScalingRole"].should.equal(args["AutoScalingRole"])
 
     status = cl["Status"]
     status["State"].should.equal("TERMINATED")
@@ -190,13 +190,10 @@ def test_describe_cluster():
 @mock_emr
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
-    raised = False
-    try:
-        cluster = conn.describe_cluster(ClusterId="DummyId")
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ResourceNotFoundException":
-            raised = True
-    raised.should.equal(True)
+    with pytest.raises(ClientError) as e:
+        conn.describe_cluster(ClusterId="DummyId")
+
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_emr
@@ -235,7 +232,7 @@ def test_describe_job_flows():
     resp = client.describe_job_flows()
     resp["JobFlows"].should.have.length_of(6)
 
-    for cluster_id, y in expected.items():
+    for cluster_id in expected:
         resp = client.describe_job_flows(JobFlowIds=[cluster_id])
         resp["JobFlows"].should.have.length_of(1)
         resp["JobFlows"][0]["JobFlowId"].should.equal(cluster_id)
@@ -276,7 +273,7 @@ def test_describe_job_flow():
     esd = jf["ExecutionStatusDetail"]
     esd["CreationDateTime"].should.be.a("datetime.datetime")
     # esd['EndDateTime'].should.be.a('datetime.datetime')
-    # esd['LastStateChangeReason'].should.be.a(six.string_types)
+    # esd['LastStateChangeReason'].should.be.a(str)
     esd["ReadyDateTime"].should.be.a("datetime.datetime")
     esd["StartDateTime"].should.be.a("datetime.datetime")
     esd["State"].should.equal("WAITING")
@@ -289,21 +286,21 @@ def test_describe_job_flow():
         # ig['BidPrice']
         ig["CreationDateTime"].should.be.a("datetime.datetime")
         # ig['EndDateTime'].should.be.a('datetime.datetime')
-        ig["InstanceGroupId"].should.be.a(six.string_types)
+        ig["InstanceGroupId"].should.be.a(str)
         ig["InstanceRequestCount"].should.be.a(int)
         ig["InstanceRole"].should.be.within(["MASTER", "CORE"])
         ig["InstanceRunningCount"].should.be.a(int)
         ig["InstanceType"].should.be.within(["c3.medium", "c3.xlarge"])
-        # ig['LastStateChangeReason'].should.be.a(six.string_types)
+        # ig['LastStateChangeReason'].should.be.a(str)
         ig["Market"].should.equal("ON_DEMAND")
-        ig["Name"].should.be.a(six.string_types)
+        ig["Name"].should.be.a(str)
         ig["ReadyDateTime"].should.be.a("datetime.datetime")
         ig["StartDateTime"].should.be.a("datetime.datetime")
         ig["State"].should.equal("RUNNING")
     attrs["KeepJobFlowAliveWhenNoSteps"].should.equal(True)
-    # attrs['MasterInstanceId'].should.be.a(six.string_types)
+    # attrs['MasterInstanceId'].should.be.a(str)
     attrs["MasterInstanceType"].should.equal(args["Instances"]["MasterInstanceType"])
-    attrs["MasterPublicDnsName"].should.be.a(six.string_types)
+    attrs["MasterPublicDnsName"].should.be.a(str)
     attrs["NormalizedInstanceHours"].should.equal(0)
     attrs["Placement"]["AvailabilityZone"].should.equal(
         args["Instances"]["Placement"]["AvailabilityZone"]
@@ -557,7 +554,6 @@ def test_run_job_flow_with_instance_groups_with_autoscaling():
 @mock_emr
 def test_put_remove_auto_scaling_policy():
     region_name = "us-east-1"
-    input_groups = dict((g["Name"], g) for g in input_instance_groups)
     client = boto3.client("emr", region_name=region_name)
     args = deepcopy(run_job_flow_args)
     args["Instances"] = {"InstanceGroups": input_instance_groups}
@@ -706,6 +702,25 @@ def test_set_termination_protection():
         )
         resp = client.describe_cluster(ClusterId=cluster_id)
         resp["Cluster"]["TerminationProtected"].should.equal(expected)
+
+
+@mock_emr
+def test_terminate_protected_job_flow_raises_error():
+    client = boto3.client("emr", region_name="us-east-1")
+    resp = client.run_job_flow(**run_job_flow_args)
+    cluster_id = resp["JobFlowId"]
+    client.set_termination_protection(
+        JobFlowIds=[cluster_id], TerminationProtected=True
+    )
+    with pytest.raises(ClientError) as ex:
+        client.terminate_job_flows(
+            JobFlowIds=[cluster_id,]
+        )
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ValidationException")
+    error["Message"].should.equal(
+        "Could not shut down one or more job flows since they are termination protected."
+    )
 
 
 @mock_emr
@@ -892,8 +907,8 @@ def test_instance_groups():
         x["RunningInstanceCount"].should.equal(y["InstanceCount"])
         # ShrinkPolicy
         x["Status"]["State"].should.equal("RUNNING")
-        x["Status"]["StateChangeReason"]["Code"].should.be.a(six.string_types)
-        # x['Status']['StateChangeReason']['Message'].should.be.a(six.string_types)
+        x["Status"]["StateChangeReason"]["Code"].should.be.a(str)
+        # x['Status']['StateChangeReason']['Message'].should.be.a(str)
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         x["Status"]["Timeline"]["ReadyDateTime"].should.be.a("datetime.datetime")
@@ -975,7 +990,7 @@ def test_steps():
         # x['ExecutionStatusDetail'].should.have.key('LastStateChangeReason')
         # x['ExecutionStatusDetail'].should.have.key('StartDateTime')
         x["ExecutionStatusDetail"]["State"].should.equal(
-            "STARTING" if idx == 0 else "PENDING"
+            "RUNNING" if idx == 0 else "PENDING"
         )
         x["StepConfig"]["ActionOnFailure"].should.equal("TERMINATE_CLUSTER")
         x["StepConfig"]["HadoopJarStep"]["Args"].should.equal(
@@ -1003,9 +1018,9 @@ def test_steps():
         x["Config"]["Jar"].should.equal(y["HadoopJarStep"]["Jar"])
         # x['Config']['MainClass'].should.equal(y['HadoopJarStep']['MainClass'])
         # Properties
-        x["Id"].should.be.a(six.string_types)
+        x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
-        x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
+        x["Status"]["State"].should.be.within(["RUNNING", "PENDING"])
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
@@ -1019,9 +1034,9 @@ def test_steps():
         x["Config"]["Jar"].should.equal(y["HadoopJarStep"]["Jar"])
         # x['Config']['MainClass'].should.equal(y['HadoopJarStep']['MainClass'])
         # Properties
-        x["Id"].should.be.a(six.string_types)
+        x["Id"].should.be.a(str)
         x["Name"].should.equal(y["Name"])
-        x["Status"]["State"].should.be.within(["STARTING", "PENDING"])
+        x["Status"]["State"].should.be.within(["RUNNING", "PENDING"])
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
@@ -1032,7 +1047,7 @@ def test_steps():
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
 
-    steps = client.list_steps(ClusterId=cluster_id, StepStates=["STARTING"])["Steps"]
+    steps = client.list_steps(ClusterId=cluster_id, StepStates=["RUNNING"])["Steps"]
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
 
@@ -1107,3 +1122,60 @@ def test_security_configurations():
     ex.value.response["Error"]["Message"].should.match(
         r"Security configuration with name .* does not exist."
     )
+
+
+@mock_emr
+def test_run_job_flow_with_invalid_number_of_master_nodes_raises_error():
+    client = boto3.client("emr", region_name="us-east-1")
+    params = dict(
+        Name="test-cluster",
+        Instances={
+            "InstanceGroups": [
+                {
+                    "InstanceCount": 2,
+                    "InstanceRole": "MASTER",
+                    "InstanceType": "c1.medium",
+                    "Market": "ON_DEMAND",
+                    "Name": "master",
+                }
+            ]
+        },
+    )
+    with pytest.raises(ClientError) as ex:
+        client.run_job_flow(**params)
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("ValidationException")
+    error["Message"].should.equal(
+        "Master instance group must have exactly 3 instances for HA clusters."
+    )
+
+
+@mock_emr
+def test_run_job_flow_with_multiple_master_nodes():
+    client = boto3.client("emr", region_name="us-east-1")
+    params = dict(
+        Name="test-cluster",
+        Instances={
+            "InstanceGroups": [
+                {
+                    "InstanceCount": 3,
+                    "InstanceRole": "MASTER",
+                    "InstanceType": "c1.medium",
+                    "Market": "ON_DEMAND",
+                    "Name": "master",
+                }
+            ],
+            "KeepJobFlowAliveWhenNoSteps": False,
+            "TerminationProtected": False,
+        },
+    )
+    cluster_id = client.run_job_flow(**params)["JobFlowId"]
+    cluster = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
+    cluster["AutoTerminate"].should.equal(False)
+    cluster["TerminationProtected"].should.equal(True)
+    groups = client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
+    master_instance_group = next(
+        group for group in groups if group["InstanceGroupType"] == "MASTER"
+    )
+    master_instance_group["RequestedInstanceCount"].should.equal(3)
+    master_instance_group["RunningInstanceCount"].should.equal(3)

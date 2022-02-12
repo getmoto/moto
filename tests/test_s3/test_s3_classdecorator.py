@@ -1,6 +1,6 @@
-import unittest
-
 import boto3
+import sure  # noqa  # pylint: disable=unused-import
+import unittest
 from moto import mock_s3
 
 

@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
 import logging
 
 import re
-import six
-from six.moves.urllib.parse import urlparse, unquote, quote
+from urllib.parse import urlparse, unquote, quote
 from requests.structures import CaseInsensitiveDict
 import sys
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
@@ -12,7 +10,7 @@ from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 log = logging.getLogger(__name__)
 
 
-bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
+bucket_name_regex = re.compile(r"(.+)\.s3(.*)\.amazonaws.com")
 user_settable_fields = {
     "content-md5",
     "content-language",
@@ -74,8 +72,8 @@ def parse_region_from_url(url):
 def metadata_from_headers(headers):
     metadata = CaseInsensitiveDict()
     meta_regex = re.compile(r"^x-amz-meta-([a-zA-Z0-9\-_.]+)$", flags=re.IGNORECASE)
-    for header, value in headers.items():
-        if isinstance(header, six.string_types):
+    for header in headers.keys():
+        if isinstance(header, str):
             result = meta_regex.match(header)
             meta_key = None
             if result:
@@ -94,14 +92,10 @@ def metadata_from_headers(headers):
 
 
 def clean_key_name(key_name):
-    if six.PY2:
-        return unquote(key_name.encode("utf-8")).decode("utf-8")
     return unquote(key_name)
 
 
 def undo_clean_key_name(key_name):
-    if six.PY2:
-        return quote(key_name.encode("utf-8")).decode("utf-8")
     return quote(key_name)
 
 
@@ -112,7 +106,7 @@ class _VersionedKeyStore(dict):
     """
 
     def __sgetitem__(self, key):
-        return super(_VersionedKeyStore, self).__getitem__(key)
+        return super().__getitem__(key)
 
     def __getitem__(self, key):
         return self.__sgetitem__(key)[-1]
@@ -124,7 +118,7 @@ class _VersionedKeyStore(dict):
         except (KeyError, IndexError):
             current = [value]
 
-        super(_VersionedKeyStore, self).__setitem__(key, current)
+        super().__setitem__(key, current)
 
     def get(self, key, default=None):
         try:
@@ -146,37 +140,31 @@ class _VersionedKeyStore(dict):
         elif not isinstance(list_, list):
             list_ = [list_]
 
-        super(_VersionedKeyStore, self).__setitem__(key, list_)
+        super().__setitem__(key, list_)
 
     def _iteritems(self):
-        for key in self:
+        for key in self._self_iterable():
             yield key, self[key]
 
     def _itervalues(self):
-        for key in self:
+        for key in self._self_iterable():
             yield self[key]
 
     def _iterlists(self):
-        for key in self:
+        for key in self._self_iterable():
             yield key, self.getlist(key)
 
     def item_size(self):
         size = 0
-        for val in self.values():
+        for val in self._self_iterable().values():
             size += sys.getsizeof(val)
         return size
+
+    def _self_iterable(self):
+        # to enable concurrency, return a copy, to avoid "dictionary changed size during iteration"
+        # TODO: look into replacing with a locking mechanism, potentially
+        return dict(self)
 
     items = iteritems = _iteritems
     lists = iterlists = _iterlists
     values = itervalues = _itervalues
-
-    if sys.version_info[0] < 3:
-
-        def items(self):
-            return list(self.iteritems())
-
-        def values(self):
-            return list(self.itervalues())
-
-        def lists(self):
-            return list(self.iterlists())

@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.exceptions import MissingParameterError
+from moto.ec2.exceptions import MissingParameterError, InvalidParameterCombination
 from moto.ec2.utils import (
     filters_from_querystring,
     dict_from_querystring,
@@ -12,11 +10,11 @@ from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
-import six
 
 
 class InstanceResponse(BaseResponse):
     def describe_instances(self):
+        self.error_on_dryrun()
         filter_dict = filters_from_querystring(self.querystring)
         instance_ids = self._get_multi_param("InstanceId")
         token = self._get_param("NextToken")
@@ -25,7 +23,7 @@ class InstanceResponse(BaseResponse):
                 instance_ids, filters=filter_dict
             )
         else:
-            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
+            reservations = self.ec2_backend.describe_instances(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
@@ -63,10 +61,19 @@ class InstanceResponse(BaseResponse):
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification("TagSpecification"),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
+            "instance_market_options": self._get_param(
+                "InstanceMarketOptions.MarketType"
+            )
+            or {},
             "instance_initiated_shutdown_behavior": self._get_param(
                 "InstanceInitiatedShutdownBehavior"
             ),
+            "launch_template": self._get_multi_param_dict("LaunchTemplate"),
         }
+        if len(kwargs["nics"]) and kwargs["subnet_id"]:
+            raise InvalidParameterCombination(
+                msg="Network interfaces and an instance-level subnet ID may not be specified on the same request"
+            )
 
         mappings = self._parse_block_device_mapping()
         if mappings:
@@ -130,14 +137,9 @@ class InstanceResponse(BaseResponse):
             for f in filters
         ]
 
-        if instance_ids:
-            instances = self.ec2_backend.get_multi_instances_by_id(
-                instance_ids, filters
-            )
-        elif include_all_instances:
-            instances = self.ec2_backend.all_instances(filters)
-        else:
-            instances = self.ec2_backend.all_running_instances(filters)
+        instances = self.ec2_backend.describe_instance_status(
+            instance_ids, include_all_instances, filters
+        )
 
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
@@ -183,6 +185,7 @@ class InstanceResponse(BaseResponse):
 
     def modify_instance_attribute(self):
         handlers = [
+            self._attribute_value_handler,
             self._dot_value_instance_attribute_handler,
             self._block_device_mapping_handler,
             self._security_grp_instance_attribute_handler,
@@ -264,9 +267,24 @@ class InstanceResponse(BaseResponse):
             )
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
+    def _attribute_value_handler(self):
+        attribute_key = self._get_param("Attribute")
+
+        if attribute_key is None:
+            return
+
+        if self.is_not_dryrun("ModifyInstanceAttribute"):
+            value = self._get_param("Value")
+            normalized_attribute = camelcase_to_underscores(attribute_key)
+            instance_id = self._get_param("InstanceId")
+            self.ec2_backend.modify_instance_attribute(
+                instance_id, normalized_attribute, value
+            )
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+
     def _security_grp_instance_attribute_handler(self):
         new_security_grp_list = []
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "GroupId." in key:
                 new_security_grp_list.append(self.querystring.get(key)[0])
 
@@ -322,7 +340,7 @@ class InstanceResponse(BaseResponse):
         if isinstance(bool_str, bool):
             return bool_str
 
-        if isinstance(bool_str, six.text_type):
+        if isinstance(bool_str, str):
             return str(bool_str).lower() == "true"
 
         return False
@@ -372,6 +390,9 @@ EC2_RUN_INSTANCES = (
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
+          {% if instance.lifecycle %}
+          <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
+          {% endif %}
           <placement>
             <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
@@ -523,6 +544,9 @@ EC2_DESCRIBE_INSTANCES = (
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
+                    {% if instance.lifecycle %}
+                    <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
+                    {% endif %}
                     <placement>
                       <availabilityZone>{{ instance.placement }}</availabilityZone>
                       <groupName/>
@@ -847,6 +871,23 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
                     {% endfor %}
                 </supportedArchitectures>
             </processorInfo>
+            {% if instance_type.get('GpuInfo', {})|length > 0 %}
+            <gpuInfo>
+                <gpus>
+                    {% for gpu in instance_type.get('GpuInfo').get('Gpus') %}
+                    <item>
+                        <count>{{ gpu['Count']|int }}</count>
+                        <manufacturer>{{ gpu['Manufacturer'] }}</manufacturer>
+                        <memoryInfo>
+                            <sizeInMiB>{{ gpu['MemoryInfo']['SizeInMiB']|int }}</sizeInMiB>
+                        </memoryInfo>
+                        <name>{{ gpu['Name'] }}</name>
+                    </item>
+                    {% endfor %}
+                </gpus>
+                <totalGpuMemoryInMiB>{{ instance_type['GpuInfo']['TotalGpuMemoryInMiB']|int }}</totalGpuMemoryInMiB>
+            </gpuInfo>
+            {% endif %}
         </item>
     {% endfor %}
     </instanceTypeSet>

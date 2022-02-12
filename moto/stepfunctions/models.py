@@ -3,10 +3,8 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from uuid import uuid4
 from .exceptions import (
     ExecutionAlreadyExists,
@@ -17,8 +15,9 @@ from .exceptions import (
     ResourceNotFound,
     StateMachineDoesNotExist,
 )
-from .utils import paginate, api_to_cfn_tags, cfn_to_api_tags
+from .utils import api_to_cfn_tags, cfn_to_api_tags, PAGINATION_MODEL
 from moto import settings
+from moto.utilities.paginator import paginate
 
 
 class StateMachine(CloudFormationModel):
@@ -124,6 +123,16 @@ class StateMachine(CloudFormationModel):
         properties["Tags"] = original_tags_to_include + prop_overrides.get("Tags", [])
         return properties
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "Name",
+            "DefinitionString",
+            "RoleArn",
+            "StateMachineName",
+            "Tags",
+        ]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -150,7 +159,7 @@ class StateMachine(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties.get("StateMachineName", resource_name)
@@ -457,7 +466,7 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
-    @paginate
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_state_machines(self):
         state_machines = sorted(self.state_machines, key=lambda x: x.creation_date)
         return state_machines
@@ -501,7 +510,7 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self._get_state_machine_for_execution(execution_arn)
         return state_machine.stop_execution(execution_arn)
 
-    @paginate
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_executions(self, state_machine_arn, status_filter=None):
         executions = self.describe_state_machine(state_machine_arn).executions
 
@@ -606,12 +615,4 @@ class StepFunctionBackend(BaseBackend):
         return ACCOUNT_ID
 
 
-stepfunction_backends = {}
-for region in Session().get_available_regions("stepfunctions"):
-    stepfunction_backends[region] = StepFunctionBackend(region)
-for region in Session().get_available_regions(
-    "stepfunctions", partition_name="aws-us-gov"
-):
-    stepfunction_backends[region] = StepFunctionBackend(region)
-for region in Session().get_available_regions("stepfunctions", partition_name="aws-cn"):
-    stepfunction_backends[region] = StepFunctionBackend(region)
+stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

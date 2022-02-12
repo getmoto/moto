@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -40,6 +39,7 @@ class AmisResponse(BaseResponse):
             return template.render(success=str(success).lower())
 
     def describe_images(self):
+        self.error_on_dryrun()
         ami_ids = self._get_multi_param("ImageId")
         filters = filters_from_querystring(self.querystring)
         owners = self._get_multi_param("Owner")

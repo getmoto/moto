@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 from uuid import uuid4
 
-from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
 
 
@@ -75,7 +73,7 @@ class Resource(BaseModel):
 
 class MediaConnectBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(MediaConnectBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
         self._flows = OrderedDict()
         self._resources = OrderedDict()
@@ -185,15 +183,55 @@ class MediaConnectBackend(BaseBackend):
             raise NotFoundException(message="Resource not found.")
         return resource.tags
 
+    def add_flow_vpc_interfaces(self, flow_arn, vpc_interfaces):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.vpc_interfaces = vpc_interfaces
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, flow.vpc_interfaces
+
+    def add_flow_outputs(self, flow_arn, outputs):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.outputs = outputs
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, flow.outputs
+
+    def remove_flow_vpc_interface(self, flow_arn, vpc_interface_name):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.vpc_interfaces = [
+                vpc_interface
+                for vpc_interface in self._flows[flow_arn].vpc_interfaces
+                if vpc_interface["name"] != vpc_interface_name
+            ]
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, vpc_interface_name
+
+    def remove_flow_output(self, flow_arn, output_name):
+        if flow_arn in self._flows:
+            flow = self._flows[flow_arn]
+            flow.outputs = [
+                output
+                for output in self._flows[flow_arn].outputs
+                if output["name"] != output_name
+            ]
+        else:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        return flow_arn, output_name
+
     # add methods from here
 
 
-mediaconnect_backends = {}
-for region in Session().get_available_regions("mediaconnect"):
-    mediaconnect_backends[region] = MediaConnectBackend()
-for region in Session().get_available_regions(
-    "mediaconnect", partition_name="aws-us-gov"
-):
-    mediaconnect_backends[region] = MediaConnectBackend()
-for region in Session().get_available_regions("mediaconnect", partition_name="aws-cn"):
-    mediaconnect_backends[region] = MediaConnectBackend()
+mediaconnect_backends = BackendDict(MediaConnectBackend, "mediaconnect")

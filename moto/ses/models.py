@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 import json
 import email
@@ -20,12 +18,13 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidRenderingParameterException,
     TemplateDoesNotExist,
+    RuleDoesNotExist,
     RuleSetNameAlreadyExists,
     RuleSetDoesNotExist,
     RuleAlreadyExists,
     MissingRenderingAttributeException,
 )
-from .utils import get_random_message_id
+from .utils import get_random_message_id, is_valid_address
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
 RECIPIENT_LIMIT = 50
@@ -44,6 +43,8 @@ class SESFeedback(BaseModel):
     FEEDBACK_SUCCESS_MSG = {"test": "success"}
     FEEDBACK_BOUNCE_MSG = {"test": "bounce"}
     FEEDBACK_COMPLAINT_MSG = {"test": "complaint"}
+
+    FORWARDING_ENABLED = "feedback_forwarding_enabled"
 
     @staticmethod
     def generate_message(msg_type):
@@ -116,6 +117,7 @@ class SESBackend(BaseBackend):
         self.config_set = {}
         self.config_set_event_destination = {}
         self.event_destinations = {}
+        self.identity_mail_from_domains = {}
         self.templates = {}
         self.receipt_rule_set = {}
 
@@ -125,7 +127,7 @@ class SESBackend(BaseBackend):
             return True
         if address in self.email_addresses:
             return True
-        user, host = address.split("@", 1)
+        _, host = address.split("@", 1)
         return host in self.domains
 
     def verify_email_identity(self, address):
@@ -137,7 +139,8 @@ class SESBackend(BaseBackend):
         self.email_addresses.append(address)
 
     def verify_domain(self, domain):
-        self.domains.append(domain)
+        if domain.lower() not in self.domains:
+            self.domains.append(domain.lower())
 
     def list_identities(self):
         return self.domains + self.addresses
@@ -158,6 +161,13 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+        destination_addresses = [
+            address for addresses in destinations.values() for address in addresses
+        ]
+        for address in [source, *destination_addresses]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -176,6 +186,13 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+        destination_addresses = [
+            address for addresses in destinations.values() for address in addresses
+        ]
+        for address in [source, *destination_addresses]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         if not self.templates.get(template[0]):
             raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
@@ -257,6 +274,10 @@ class SESBackend(BaseBackend):
             )
         if recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many recipients.")
+        for address in [addr for addr in [source, *destinations] if addr is not None]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -268,6 +289,17 @@ class SESBackend(BaseBackend):
 
     def get_send_quota(self):
         return SESQuota(self.sent_message_count)
+
+    def get_identity_notification_attributes(self, identities):
+        response = {}
+        for identity in identities:
+            response[identity] = self.sns_topics.get(identity, {})
+        return response
+
+    def set_identity_feedback_forwarding_enabled(self, identity, enabled):
+        identity_sns_topics = self.sns_topics.get(identity, {})
+        identity_sns_topics[SESFeedback.FORWARDING_ENABLED] = enabled
+        self.sns_topics[identity] = identity_sns_topics
 
     def set_identity_notification_topic(self, identity, notification_type, sns_topic):
         identity_sns_topics = self.sns_topics.get(identity, {})
@@ -401,7 +433,7 @@ class SESBackend(BaseBackend):
 
     def create_receipt_rule_set(self, rule_set_name):
         if self.receipt_rule_set.get(rule_set_name) is not None:
-            raise RuleSetNameAlreadyExists("Duplicate receipt rule set Name.")
+            raise RuleSetNameAlreadyExists("Duplicate Receipt Rule Set Name.")
         self.receipt_rule_set[rule_set_name] = []
 
     def create_receipt_rule(self, rule_set_name, rule):
@@ -412,6 +444,83 @@ class SESBackend(BaseBackend):
             raise RuleAlreadyExists("Duplicate Rule Name.")
         rule_set.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
+
+    def describe_receipt_rule_set(self, rule_set_name):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+
+        return rule_set
+
+    def describe_receipt_rule(self, rule_set_name, rule_name):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+
+        for receipt_rule in rule_set:
+            if receipt_rule["name"] == rule_name:
+                return receipt_rule
+        else:
+            raise RuleDoesNotExist("Invalid Rule Name.")
+
+    def update_receipt_rule(self, rule_set_name, rule):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+
+        if rule_set is None:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+
+        for i, receipt_rule in enumerate(rule_set):
+            if receipt_rule["name"] == rule["name"]:
+                rule_set[i] = rule
+                break
+        else:
+            raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
+
+    def set_identity_mail_from_domain(
+        self, identity, mail_from_domain=None, behavior_on_mx_failure=None
+    ):
+        if identity not in (self.domains + self.addresses):
+            raise InvalidParameterValue(
+                "Identity '{0}' does not exist.".format(identity)
+            )
+
+        if mail_from_domain is None:
+            self.identity_mail_from_domains.pop(identity)
+            return
+
+        if not mail_from_domain.endswith(identity):
+            raise InvalidParameterValue(
+                "Provided MAIL-FROM domain '{0}' is not subdomain of "
+                "the domain of the identity '{1}'.".format(mail_from_domain, identity)
+            )
+
+        if behavior_on_mx_failure not in (None, "RejectMessage", "UseDefaultValue"):
+            raise ValidationError(
+                "1 validation error detected: "
+                "Value '{0}' at 'behaviorOnMXFailure'"
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "[RejectMessage, UseDefaultValue]".format(behavior_on_mx_failure)
+            )
+
+        self.identity_mail_from_domains[identity] = {
+            "mail_from_domain": mail_from_domain,
+            "behavior_on_mx_failure": behavior_on_mx_failure,
+        }
+
+    def get_identity_mail_from_domain_attributes(self, identities=None):
+        if identities is None:
+            identities = []
+
+        attributes_by_identity = {}
+        for identity in identities:
+            if identity in (self.domains + self.addresses):
+                attributes_by_identity[identity] = self.identity_mail_from_domains.get(
+                    identity
+                ) or {"behavior_on_mx_failure": "UseDefaultValue"}
+
+        return attributes_by_identity
 
 
 ses_backend = SESBackend()

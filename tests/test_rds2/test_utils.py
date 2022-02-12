@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 
 from moto.rds2.utils import (

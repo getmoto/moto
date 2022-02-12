@@ -1,8 +1,7 @@
-from __future__ import unicode_literals
 import boto3
 
-import sure  # noqa
-from moto import mock_autoscaling, mock_ec2, mock_elbv2
+import sure  # noqa # pylint: disable=unused-import
+from moto import mock_autoscaling, mock_elbv2
 
 from .utils import setup_networking
 from tests import EXAMPLE_AMI_ID

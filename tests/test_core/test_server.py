@@ -1,8 +1,6 @@
-from __future__ import unicode_literals
+import sure  # noqa # pylint: disable=unused-import
 
-import sure  # noqa
-
-from tests.compat import patch
+from unittest.mock import patch
 from moto.server import main, create_backend_app, DomainDispatcherApplication
 
 
@@ -47,4 +45,4 @@ def test_domain_dispatched_with_service():
     dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")
     backend_app = dispatcher.get_application({"HTTP_HOST": "s3.us-east1.amazonaws.com"})
     keys = set(backend_app.view_functions.keys())
-    keys.should.contain("ResponseObject.key_or_control_response")
+    keys.should.contain("ResponseObject.key_response")

@@ -1,6 +1,6 @@
-from __future__ import unicode_literals
 import random
 import string
+from email.utils import parseaddr
 
 
 def random_hex(length):
@@ -17,3 +17,11 @@ def get_random_message_id():
         random_hex(12),
         random_hex(6),
     )
+
+
+def is_valid_address(addr):
+    _, address = parseaddr(addr)
+    address = address.split("@")
+    if len(address) != 2 or not address[1]:
+        return False, "Missing domain"
+    return True, None

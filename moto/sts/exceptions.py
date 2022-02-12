@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.exceptions import RESTError
 
 
@@ -8,4 +7,4 @@ class STSClientError(RESTError):
 
 class STSValidationError(STSClientError):
     def __init__(self, *args, **kwargs):
-        super(STSValidationError, self).__init__("ValidationError", *args, **kwargs)
+        super().__init__("ValidationError", *args, **kwargs)

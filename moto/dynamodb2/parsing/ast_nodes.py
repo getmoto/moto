@@ -2,13 +2,11 @@ import abc
 from abc import abstractmethod
 from collections import deque
 
-import six
-
 from moto.dynamodb2.models import DynamoType
+from ..exceptions import TooManyAddClauses
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Node:
+class Node(metaclass=abc.ABCMeta):
     def __init__(self, children=None):
         self.type = self.__class__.__name__
         assert children is None or isinstance(children, list)
@@ -23,16 +21,30 @@ class Node:
     def set_parent(self, parent_node):
         self.parent = parent_node
 
+    def validate(self):
+        if self.type == "UpdateExpression":
+            nr_of_clauses = len(self.find_clauses(UpdateExpressionAddClause))
+            if nr_of_clauses > 1:
+                raise TooManyAddClauses()
+
+    def find_clauses(self, clause_type):
+        clauses = []
+        for child in self.children or []:
+            if isinstance(child, clause_type):
+                clauses.append(child)
+            elif isinstance(child, Expression):
+                clauses.extend(child.find_clauses(clause_type))
+        return clauses
+
 
 class LeafNode(Node):
     """A LeafNode is a Node where none of the children are Nodes themselves."""
 
     def __init__(self, children=None):
-        super(LeafNode, self).__init__(children)
+        super().__init__(children)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Expression(Node):
+class Expression(Node, metaclass=abc.ABCMeta):
     """
     Abstract Syntax Tree representing the expression
 
@@ -51,8 +63,7 @@ class UpdateExpression(Expression):
     """
 
 
-@six.add_metaclass(abc.ABCMeta)
-class UpdateExpressionClause(UpdateExpression):
+class UpdateExpressionClause(UpdateExpression, metaclass=abc.ABCMeta):
     """
     UpdateExpressionClause* => UpdateExpressionSetClause
     UpdateExpressionClause* => UpdateExpressionRemoveClause
@@ -173,7 +184,7 @@ class ExpressionSelector(LeafNode):
 
     def __init__(self, selection_index):
         try:
-            super(ExpressionSelector, self).__init__(children=[int(selection_index)])
+            super().__init__(children=[int(selection_index)])
         except ValueError:
             assert (
                 False
@@ -187,7 +198,7 @@ class ExpressionAttribute(LeafNode):
     """An attribute identifier as used in the DDB item"""
 
     def __init__(self, attribute):
-        super(ExpressionAttribute, self).__init__(children=[attribute])
+        super().__init__(children=[attribute])
 
     def get_attribute_name(self):
         return self.children[0]
@@ -197,7 +208,7 @@ class ExpressionAttributeName(LeafNode):
     """An ExpressionAttributeName is an alias for an attribute identifier"""
 
     def __init__(self, attribute_name):
-        super(ExpressionAttributeName, self).__init__(children=[attribute_name])
+        super().__init__(children=[attribute_name])
 
     def get_attribute_name_placeholder(self):
         return self.children[0]
@@ -207,7 +218,7 @@ class ExpressionAttributeValue(LeafNode):
     """An ExpressionAttributeValue is an alias for an value"""
 
     def __init__(self, value):
-        super(ExpressionAttributeValue, self).__init__(children=[value])
+        super().__init__(children=[value])
 
     def get_value_name(self):
         return self.children[0]
@@ -217,7 +228,7 @@ class ExpressionValueOperator(LeafNode):
     """An ExpressionValueOperator is an operation that works on 2 values"""
 
     def __init__(self, value):
-        super(ExpressionValueOperator, self).__init__(children=[value])
+        super().__init__(children=[value])
 
     def get_operator(self):
         return self.children[0]
@@ -246,7 +257,7 @@ class DDBTypedValue(Node):
 
     def __init__(self, value):
         assert isinstance(value, DynamoType), "DDBTypedValue must be of DynamoType"
-        super(DDBTypedValue, self).__init__(children=[value])
+        super().__init__(children=[value])
 
     def get_value(self):
         return self.children[0]
@@ -256,7 +267,7 @@ class NoneExistingPath(LeafNode):
     """A placeholder for Paths that did not exist in the Item."""
 
     def __init__(self, creatable=False):
-        super(NoneExistingPath, self).__init__(children=[creatable])
+        super().__init__(children=[creatable])
 
     def is_creatable(self):
         """Can this path be created if need be. For example path creating element in a dictionary or creating a new
