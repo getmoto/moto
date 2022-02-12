@@ -2,12 +2,15 @@ import boto3
 import json
 import os
 import subprocess
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
+import time
 
 from moto.ssm.utils import convert_to_tree
 
 
 def retrieve_by_path(client, path):
+    print(f"Retrieving all parameters from {path}. "
+          f"AWS has around 14000 parameters, and we can only retrieve 10 at the time, so this may take a while.\n\n")
     x = client.get_parameters_by_path(Path=path, Recursive=True)
     parameters = x["Parameters"]
     next_token = x["NextToken"]
@@ -15,6 +18,9 @@ def retrieve_by_path(client, path):
         x = client.get_parameters_by_path(Path=path, Recursive=True, NextToken=next_token)
         parameters.extend(x["Parameters"])
         next_token = x.get("NextToken")
+        if len(parameters) % 100 == 0:
+            print(f"Retrieved {len(parameters)} from {path}...")
+            time.sleep(0.5)
 
     return parameters
 
@@ -48,7 +54,7 @@ def main():
         dest = os.path.join(root_dir, "moto/ssm/resources/{}".format(filename))
         print("Writing data to {0}".format(dest))
         with open(dest, "w") as open_file:
-            json.dump(tree, open_file, sort_keys=True)
+            json.dump(tree, open_file, sort_keys=True, indent=2)
 
 
 if __name__ == "__main__":

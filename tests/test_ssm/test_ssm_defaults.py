@@ -1,11 +1,8 @@
 import boto3
-import mock
-import os
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ssm
-from moto.settings import TEST_SERVER_MODE
-from unittest import SkipTest
+from moto.core import ACCOUNT_ID
 
 
 @mock_ssm
@@ -21,7 +18,7 @@ def test_ssm_get_by_path():
     pacific["Type"].should.equal("String")
     pacific["Version"].should.equal(1)
     pacific["ARN"].should.equal(
-        "arn:aws:ssm:us-west-1:1234567890:parameter/aws/service/global-infrastructure/regions/af-south-1"
+        f"arn:aws:ssm:us-west-1:{ACCOUNT_ID}:parameter/aws/service/global-infrastructure/regions/af-south-1"
     )
     pacific.should.have.key("LastModifiedDate")
 

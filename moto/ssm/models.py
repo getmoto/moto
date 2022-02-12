@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Dict
 
 from collections import defaultdict
-from pkg_resources import resource_filename
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
@@ -46,7 +45,7 @@ from .exceptions import (
 
 class ParameterDict(defaultdict):
     def __init__(self, *args, **kwargs):
-        super(ParameterDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.parameters_loaded = False
 
     def _check_loading_status(self, key):
@@ -54,8 +53,8 @@ class ParameterDict(defaultdict):
             self._load_global_parameters()
 
     def _load_global_parameters(self):
-        regions = load_resource(resource_filename(__name__, "resources/regions.json"))
-        services = load_resource(resource_filename(__name__, "resources/services.json"))
+        regions = load_resource(__name__, "resources/regions.json")
+        services = load_resource(__name__, "resources/services.json")
         params = []
         params.extend(convert_to_params(regions))
         params.extend(convert_to_params(services))
@@ -65,29 +64,30 @@ class ParameterDict(defaultdict):
             name = param["Name"]
             value = param["Value"]
             # Following were lost in translation/conversion - using sensible defaults
-            _type = "String"
+            parameter_type = "String"
             version = 1
-            super(ParameterDict, self).__getitem__(name).append(
+            super().__getitem__(name).append(
                 Parameter(
                     name=name,
                     value=value,
-                    type=_type,
+                    parameter_type=parameter_type,
                     description=None,
                     allowed_pattern=None,
                     keyid=None,
                     last_modified_date=last_modified_date,
                     version=version,
+                    data_type="text",
                 )
             )
         self.parameters_loaded = True
 
     def __getitem__(self, item):
         self._check_loading_status(item)
-        return super(ParameterDict, self).__getitem__(item)
+        return super().__getitem__(item)
 
     def __contains__(self, k):
         self._check_loading_status(k)
-        return super(ParameterDict, self).__contains__(k)
+        return super().__contains__(k)
 
     def get_keys_beginning_with(self, path, recursive):
         self._check_loading_status(path)
@@ -775,6 +775,15 @@ class FakeMaintenanceWindow:
 
 
 class SimpleSystemManagerBackend(BaseBackend):
+    """
+    Moto supports the following default parameters out of the box:
+
+     - /aws/service/global-infrastructure/regions
+     - /aws/service/global-infrastructure/services
+
+    Note that these are hardcoded, so they may be out of date for new services/regions.
+    """
+
     def __init__(self, region):
         super().__init__()
         # each value is a list of all of the versions for a parameter
