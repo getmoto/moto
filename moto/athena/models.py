@@ -47,12 +47,14 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
 
 
 class DataCatalog(TaggableResourceMixin, BaseModel):
-    def __init__(self, athena_backend, name, type, description, parameters, tags):
+    def __init__(
+        self, athena_backend, name, catalog_type, description, parameters, tags
+    ):
         self.region_name = athena_backend.region_name
         super().__init__(self.region_name, "datacatalog/{}".format(name), tags)
         self.athena_backend = athena_backend
         self.name = name
-        self.type = type
+        self.type = catalog_type
         self.description = description
         self.parameters = parameters
 
@@ -156,13 +158,10 @@ class AthenaBackend(BaseBackend):
 
     def list_data_catalogs(self):
         return [
-            {
-                "CatalogName": dc.name,
-                "Type": dc.type,
-            }
+            {"CatalogName": dc.name, "Type": dc.type,}
             for dc in self.data_catalogs.values()
         ]
-    
+
     def get_data_catalog(self, name):
         if name not in self.data_catalogs:
             return None
@@ -173,13 +172,15 @@ class AthenaBackend(BaseBackend):
             "Type": dc.state,
             "Parameters": dc.parameters,
         }
-    
-    def create_data_catalog(self, name, type, description, parameters, tags):
+
+    def create_data_catalog(self, name, catalog_type, description, parameters, tags):
         if name in self.data_catalogs:
             return None
-        data_catalog = DataCatalog(self, name, type, description, parameters, tags)
+        data_catalog = DataCatalog(
+            self, name, catalog_type, description, parameters, tags
+        )
         self.data_catalogs[name] = data_catalog
         return data_catalog
-    
+
 
 athena_backends = BackendDict(AthenaBackend, "athena")

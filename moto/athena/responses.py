@@ -114,40 +114,33 @@ class AthenaResponse(BaseResponse):
                 }
             }
         )
-    
-    
+
     def list_data_catalogs(self):
-        params = self._get_params()
-        next_token = params.get("NextToken")
-        max_results = params.get("MaxResults")
-        data_catalogs_summary, next_token = self.athena_backend.list_data_catalogs(
-            next_token=next_token,
-            max_results=max_results,
+        return json.dumps(
+            {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
         )
-        # TODO: adjust response
-        return json.dumps(dict(dataCatalogsSummary=data_catalogs_summary, nextToken=next_token))
-    
+
     def get_data_catalog(self):
-        params = self._get_params()
-        name = params.get("Name")
-        data_catalog = self.athena_backend.get_data_catalog(
-            name=name,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(dataCatalog=data_catalog))
+        name = self._get_params("Name")
+        return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
+
     def create_data_catalog(self):
-        params = self._get_params()
-        name = params.get("Name")
-        type = params.get("Type")
-        description = params.get("Description")
-        parameters = params.get("Parameters")
-        tags = params.get("Tags")
-        self.athena_backend.create_data_catalog(
-            name=name,
-            type=type,
-            description=description,
-            parameters=parameters,
-            tags=tags,
+        name = self.__get_params("Name")
+        catalog_type = self.__get_params("Type")
+        description = self.__get_params("Description")
+        parameters = self.__get_params("Parameters")
+        tags = self.__get_params("Tags")
+        data_catalog = self.athena_backend.create_data_catalog(
+            name, catalog_type, description, parameters, tags
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        if not data_catalog:
+            return self.error("DataCatalog already exists", 400)
+        return json.dumps(
+            {
+                "CreateDataCatalogResponse": {
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    }
+                }
+            }
+        )
