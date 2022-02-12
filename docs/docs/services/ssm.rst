@@ -12,6 +12,8 @@
 ssm
 ===
 
+.. autoclass:: moto.ssm.models.SimpleSystemManagerBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
