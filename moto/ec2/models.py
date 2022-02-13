@@ -1155,7 +1155,7 @@ class InstanceBackend(object):
                         "DeleteOnTermination", False
                     )
                     kms_key_id = block_device["Ebs"].get("KmsKeyId")
-                    if block_device["NoDevice"] != "":
+                    if block_device.get("NoDevice") != "":
                         new_instance.add_block_device(
                             volume_size,
                             device_name,
