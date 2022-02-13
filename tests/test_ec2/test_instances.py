@@ -1,4 +1,4 @@
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 
 import pytest
 from unittest import SkipTest
@@ -1556,6 +1556,22 @@ def test_run_instance_with_block_device_mappings_using_no_device():
 
     # moto gives the key with an empty list instead of not having it at all, that's also fine
     instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"].should.be.empty
+
+    # passing None with NoDevice should raise ParamValidationError
+    kwargs["BlockDeviceMappings"][0]["NoDevice"] = None
+    with pytest.raises(ParamValidationError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    # passing a string other than "" with NoDevice should raise InvalidRequest
+    kwargs["BlockDeviceMappings"][0]["NoDevice"] = "yes"
+    with pytest.raises(ClientError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("InvalidRequest")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "The request received was invalid"
+    )
 
 
 @mock_ec2

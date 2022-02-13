@@ -1,7 +1,11 @@
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.exceptions import MissingParameterError, InvalidParameterCombination
+from moto.ec2.exceptions import (
+    MissingParameterError,
+    InvalidParameterCombination,
+    InvalidRequest,
+)
 from moto.ec2.utils import (
     filters_from_querystring,
     dict_from_querystring,
@@ -328,8 +332,22 @@ class InstanceResponse(BaseResponse):
     @staticmethod
     def _validate_block_device_mapping(device_mapping):
 
+        from botocore import __version__ as botocore_version
+
         if "no_device" in device_mapping:
-            return
+            assert isinstance(
+                device_mapping["no_device"], str
+            ), "botocore {} isn't limiting NoDevice to str type anymore, it is type:{}".format(
+                botocore_version, type(device_mapping["no_device"])
+            )
+            if device_mapping["no_device"] == "":
+                # the only legit value it can have is empty string
+                # and none of the other checks here matter if NoDevice
+                # is being used
+                return
+            else:
+                raise InvalidRequest()
+
         if not any(mapping for mapping in device_mapping if mapping.startswith("ebs.")):
             raise MissingParameterError("ebs")
         if (
