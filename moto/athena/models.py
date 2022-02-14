@@ -46,6 +46,19 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         self.configuration = configuration
 
 
+class DataCatalog(TaggableResourceMixin, BaseModel):
+    def __init__(
+        self, athena_backend, name, catalog_type, description, parameters, tags
+    ):
+        self.region_name = athena_backend.region_name
+        super().__init__(self.region_name, "datacatalog/{}".format(name), tags)
+        self.athena_backend = athena_backend
+        self.name = name
+        self.type = catalog_type
+        self.description = description
+        self.parameters = parameters
+
+
 class Execution(BaseModel):
     def __init__(self, query, context, config, workgroup):
         self.id = str(uuid4())
@@ -76,6 +89,7 @@ class AthenaBackend(BaseBackend):
         self.work_groups = {}
         self.executions = {}
         self.named_queries = {}
+        self.data_catalogs = {}
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -141,6 +155,32 @@ class AthenaBackend(BaseBackend):
 
     def get_named_query(self, query_id):
         return self.named_queries[query_id] if query_id in self.named_queries else None
+
+    def list_data_catalogs(self):
+        return [
+            {"CatalogName": dc.name, "Type": dc.type,}
+            for dc in self.data_catalogs.values()
+        ]
+
+    def get_data_catalog(self, name):
+        if name not in self.data_catalogs:
+            return None
+        dc = self.data_catalogs[name]
+        return {
+            "Name": dc.name,
+            "Description": dc.description,
+            "Type": dc.type,
+            "Parameters": dc.parameters,
+        }
+
+    def create_data_catalog(self, name, catalog_type, description, parameters, tags):
+        if name in self.data_catalogs:
+            return None
+        data_catalog = DataCatalog(
+            self, name, catalog_type, description, parameters, tags
+        )
+        self.data_catalogs[name] = data_catalog
+        return data_catalog
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

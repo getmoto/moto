@@ -189,7 +189,6 @@ def test_get_named_query():
     database = "target_db"
     query_string = "SELECT * FROM tbl1"
     description = "description of this query"
-
     # craete named query
     res_create = client.create_named_query(
         Name=query_name,
@@ -215,4 +214,62 @@ def create_basic_workgroup(client, name):
         Configuration={
             "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/",}
         },
+    )
+
+
+@mock_athena
+def test_create_data_catalog():
+    client = boto3.client("athena", region_name="us-east-1")
+    response = client.create_data_catalog(
+        Name="athena_datacatalog",
+        Type="GLUE",
+        Description="Test data catalog",
+        Parameters={"catalog-id": "AWS Test account ID"},
+        Tags=[],
+    )
+
+    try:
+        # The second time should throw an error
+        response = client.create_data_catalog(
+            Name="athena_datacatalog",
+            Type="GLUE",
+            Description="Test data catalog",
+            Parameters={"catalog-id": "AWS Test account ID"},
+            Tags=[],
+        )
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("InvalidRequestException")
+        err.response["Error"]["Message"].should.equal("DataCatalog already exists")
+    else:
+        raise RuntimeError("Should have raised ResourceNotFoundException")
+
+    # Then test the work group appears in the work group list
+    response = client.list_data_catalogs()
+
+    response["DataCatalogsSummary"].should.have.length_of(1)
+    data_catalog = response["DataCatalogsSummary"][0]
+    data_catalog["CatalogName"].should.equal("athena_datacatalog")
+    data_catalog["Type"].should.equal("GLUE")
+
+
+@mock_athena
+def test_create_and_get_data_catalog():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    client.create_data_catalog(
+        Name="athena_datacatalog",
+        Type="GLUE",
+        Description="Test data catalog",
+        Parameters={"catalog-id": "AWS Test account ID"},
+        Tags=[],
+    )
+
+    data_catalog = client.get_data_catalog(Name="athena_datacatalog")
+    data_catalog["DataCatalog"].should.equal(
+        {
+            "Name": "athena_datacatalog",
+            "Description": "Test data catalog",
+            "Type": "GLUE",
+            "Parameters": {"catalog-id": "AWS Test account ID"},
+        }
     )
