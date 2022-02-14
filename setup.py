@@ -129,6 +129,7 @@ setup(
     url="https://github.com/spulec/moto",
     entry_points={"console_scripts": ["moto_server = moto.server:main"]},
     packages=find_packages(exclude=("tests", "tests.*")),
+    python_requires=">=3.6",
     install_requires=install_requires,
     extras_require=extras_require,
     include_package_data=True,
