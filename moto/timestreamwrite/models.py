@@ -14,7 +14,7 @@ class TimestreamTable(BaseModel):
         self.retention_properties = retention_properties
 
     def write_records(self, records):
-        self.records.append(records)
+        self.records.extend(records)
 
     @property
     def arn(self):

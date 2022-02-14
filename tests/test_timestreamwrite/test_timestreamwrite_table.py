@@ -1,6 +1,6 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_timestreamwrite
+from moto import mock_timestreamwrite, settings
 from moto.core import ACCOUNT_ID
 
 
@@ -179,5 +179,30 @@ def test_write_records():
     ts.write_records(
         DatabaseName="mydatabase",
         TableName="mytable",
-        Records=[{"Dimensions": [], "MeasureName": "mn", "MeasureValue": "mv"}],
+        Records=[{"Dimensions": [], "MeasureName": "mn1", "MeasureValue": "mv1"}],
     )
+
+    if not settings.TEST_SERVER_MODE:
+        from moto.timestreamwrite.models import timestreamwrite_backends
+
+        backend = timestreamwrite_backends["us-east-1"]
+        records = backend.databases["mydatabase"].tables["mytable"].records
+        records.should.equal(
+            [{"Dimensions": [], "MeasureName": "mn1", "MeasureValue": "mv1"}]
+        )
+
+        ts.write_records(
+            DatabaseName="mydatabase",
+            TableName="mytable",
+            Records=[
+                {"Dimensions": [], "MeasureName": "mn2", "MeasureValue": "mv2"},
+                {"Dimensions": [], "MeasureName": "mn3", "MeasureValue": "mv3"},
+            ],
+        )
+        records.should.equal(
+            [
+                {"Dimensions": [], "MeasureName": "mn1", "MeasureValue": "mv1"},
+                {"Dimensions": [], "MeasureName": "mn2", "MeasureValue": "mv2"},
+                {"Dimensions": [], "MeasureName": "mn3", "MeasureValue": "mv3"},
+            ]
+        )
