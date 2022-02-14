@@ -57,16 +57,15 @@ EC2_RESOURCE_TO_PREFIX = {
 
 
 EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
+HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
 
 
 def random_resource_id(size=8):
-    chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    resource_id = "".join(str(random.choice(chars)) for _ in range(size))
-    return resource_id
+    return "".join(random.choice(HEX_CHARS) for _ in range(size))
 
 
 def random_id(prefix="", size=8):
-    return "{0}-{1}".format(prefix, random_resource_id(size))
+    return f"{prefix}-{random_resource_id(size)}"
 
 
 def random_ami_id():

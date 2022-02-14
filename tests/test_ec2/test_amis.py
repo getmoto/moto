@@ -955,7 +955,7 @@ def test_ami_filter_wildcard():
     ec2_resource = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
 
-    image_name = str(uuid4())[0:6]
+    image_name = str(uuid4())[0:12]
 
     instance = ec2_resource.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
@@ -967,7 +967,7 @@ def test_ami_filter_wildcard():
 
     my_images = ec2_client.describe_images(
         Owners=[ACCOUNT_ID],
-        Filters=[{"Name": "name", "Values": [f"{image_name[0:4]}*"]}],
+        Filters=[{"Name": "name", "Values": [f"{image_name[0:8]}*"]}],
     )["Images"]
     my_images.should.have.length_of(1)
 

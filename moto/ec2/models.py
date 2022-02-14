@@ -217,7 +217,11 @@ DEFAULT_VPC_ENDPOINT_SERVICES = []
 
 
 def utc_date_and_time():
-    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    x = datetime.utcnow()
+    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return "{}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.000Z".format(
+        x.year, x.month, x.day, x.hour, x.minute, x.second
+    )
 
 
 def validate_resource_ids(resource_ids):
@@ -5477,13 +5481,11 @@ class VPCEndPoint(TaggedEC2Resource):
         self.add_tags(tags or {})
         self.destination_prefix_list_id = destination_prefix_list_id
 
+        self.created_at = utc_date_and_time()
+
     @property
     def owner_id(self):
         return ACCOUNT_ID
-
-    @property
-    def created_at(self):
-        return utc_date_and_time()
 
 
 class ManagedPrefixList(TaggedEC2Resource):

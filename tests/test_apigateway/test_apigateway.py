@@ -2066,9 +2066,8 @@ def test_update_usage_plan():
             {"op": "replace", "path": "/productCode", "value": "new-productionCode"},
         ],
     )
-    response["quota"]["limit"].should.equal("1000")
+    response["quota"]["limit"].should.equal(1000)
     response["quota"]["period"].should.equal("MONTH")
-    response["quota"]["limit"].should.equal("1000")
     response["name"].should.equal("new-name")
     response["description"].should.equal("new-description")
     response["productCode"].should.equal("new-productionCode")

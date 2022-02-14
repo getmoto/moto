@@ -1,4 +1,3 @@
-from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
@@ -10,7 +9,6 @@ from moto.ec2.utils import (
     filters_from_querystring,
     dict_from_querystring,
 )
-from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
@@ -95,6 +93,9 @@ class InstanceResponse(BaseResponse):
         instance_ids = self._get_multi_param("InstanceId")
         if self.is_not_dryrun("TerminateInstance"):
             instances = self.ec2_backend.terminate_instances(instance_ids)
+            from moto.autoscaling import autoscaling_backends
+            from moto.elbv2 import elbv2_backends
+
             autoscaling_backends[self.region].notify_terminate_instances(instance_ids)
             elbv2_backends[self.region].notify_terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
