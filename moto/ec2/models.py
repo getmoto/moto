@@ -1155,14 +1155,15 @@ class InstanceBackend(object):
                         "DeleteOnTermination", False
                     )
                     kms_key_id = block_device["Ebs"].get("KmsKeyId")
-                    new_instance.add_block_device(
-                        volume_size,
-                        device_name,
-                        snapshot_id,
-                        encrypted,
-                        delete_on_termination,
-                        kms_key_id,
-                    )
+                    if block_device.get("NoDevice") != "":
+                        new_instance.add_block_device(
+                            volume_size,
+                            device_name,
+                            snapshot_id,
+                            encrypted,
+                            delete_on_termination,
+                            kms_key_id,
+                        )
             else:
                 new_instance.setup_defaults()
             if kwargs.get("instance_market_options"):

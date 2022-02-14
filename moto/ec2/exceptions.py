@@ -49,6 +49,11 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
         )
 
 
+class InvalidRequest(EC2ClientError):
+    def __init__(self):
+        super().__init__("InvalidRequest", "The request received was invalid")
+
+
 class InvalidParameterCombination(EC2ClientError):
     def __init__(self, msg):
         super().__init__("InvalidParameterCombination", msg)
