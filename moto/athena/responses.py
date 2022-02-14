@@ -121,15 +121,15 @@ class AthenaResponse(BaseResponse):
         )
 
     def get_data_catalog(self):
-        name = self._get_params("Name")
+        name = self._get_param("Name")
         return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
 
     def create_data_catalog(self):
-        name = self.__get_params("Name")
-        catalog_type = self.__get_params("Type")
-        description = self.__get_params("Description")
-        parameters = self.__get_params("Parameters")
-        tags = self.__get_params("Tags")
+        name = self._get_param("Name")
+        catalog_type = self._get_param("Type")
+        description = self._get_param("Description")
+        parameters = self._get_param("Parameters")
+        tags = self._get_param("Tags")
         data_catalog = self.athena_backend.create_data_catalog(
             name, catalog_type, description, parameters, tags
         )

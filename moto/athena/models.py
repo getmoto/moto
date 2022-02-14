@@ -169,7 +169,7 @@ class AthenaBackend(BaseBackend):
         return {
             "Name": dc.name,
             "Description": dc.description,
-            "Type": dc.state,
+            "Type": dc.type,
             "Parameters": dc.parameters,
         }
 
