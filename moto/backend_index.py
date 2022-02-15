@@ -124,6 +124,10 @@ backend_url_patterns = [
     ("sagemaker", re.compile("https?://api.sagemaker\\.(.+)\\.amazonaws.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
+    (
+        "servicediscovery",
+        re.compile("https?://servicediscovery\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("ses", re.compile("https?://email\\.(.+)\\.amazonaws\\.com")),
     ("ses", re.compile("https?://ses\\.(.+)\\.amazonaws\\.com")),
     ("sns", re.compile("https?://sns\\.(.+)\\.amazonaws\\.com")),
