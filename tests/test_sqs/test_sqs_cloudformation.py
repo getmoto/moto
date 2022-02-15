@@ -62,7 +62,7 @@ def test_describe_stack_subresources():
     for s in stack.resource_summaries.all():
         s.resource_type.should.equal("AWS::SQS::Queue")
         s.logical_id.should.equal("QueueGroup")
-        s.physical_resource_id.should.equal(q_name)
+        s.physical_resource_id.should.contain(f"/{q_name}")
 
 
 @mock_sqs
@@ -83,7 +83,8 @@ def test_list_stack_resources():
 
     queue.should.have.key("ResourceType").equal("AWS::SQS::Queue")
     queue.should.have.key("LogicalResourceId").should.equal("QueueGroup")
-    queue.should.have.key("PhysicalResourceId").should.equal(q_name)
+    expected_url = f"https://sqs.us-east-1.amazonaws.com/{ACCOUNT_ID}/{q_name}"
+    queue.should.have.key("PhysicalResourceId").should.equal(expected_url)
 
 
 @mock_sqs
@@ -96,7 +97,7 @@ def test_create_from_cloudformation_json_with_tags():
     cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_with_tags)
 
     response = cf.describe_stack_resources(StackName=stack_name)
-    q_name = response["StackResources"][0]["PhysicalResourceId"]
+    q_name = response["StackResources"][0]["PhysicalResourceId"].split("/")[-1]
 
     all_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
     queue_url = [url for url in all_urls if url.endswith(q_name)][0]

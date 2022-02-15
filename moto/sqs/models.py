@@ -37,7 +37,7 @@ from .exceptions import (
     InvalidAttributeValue,
 )
 
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
@@ -262,7 +262,7 @@ class Queue(CloudFormationModel):
         now = unix_time()
         self.created_timestamp = now
         self.queue_arn = "arn:aws:sqs:{0}:{1}:{2}".format(
-            self.region, DEFAULT_ACCOUNT_ID, self.name
+            self.region, ACCOUNT_ID, self.name
         )
         self.dead_letter_queue = None
 
@@ -454,8 +454,11 @@ class Queue(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
+        # ResourceName will be the full queue URL - we only need the name
+        # https://sqs.us-west-1.amazonaws.com/123456789012/queue_name
+        queue_name = resource_name.split("/")[-1]
         sqs_backend = sqs_backends[region_name]
-        sqs_backend.delete_queue(resource_name)
+        sqs_backend.delete_queue(queue_name)
 
     @property
     def approximate_number_of_messages_delayed(self):
@@ -471,7 +474,7 @@ class Queue(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return self.name
+        return f"https://sqs.{self.region}.amazonaws.com/{ACCOUNT_ID}/{self.name}"
 
     @property
     def attributes(self):
@@ -505,7 +508,7 @@ class Queue(CloudFormationModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, DEFAULT_ACCOUNT_ID, self.name
+            request_url.scheme, request_url.netloc, ACCOUNT_ID, self.name
         )
 
     @property
