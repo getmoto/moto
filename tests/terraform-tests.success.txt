@@ -85,6 +85,7 @@ TestAccAWSRedshiftServiceAccount
 TestAccAWSRolePolicyAttachment
 TestAccAWSSNSSMSPreferences
 TestAccAWSSageMakerPrebuiltECRImage
+TestAccAWSServiceDiscovery
 TestAccAWSSQSQueuePolicy
 TestAccAWSSSMDocument
 TestValidateSSMDocumentPermissions

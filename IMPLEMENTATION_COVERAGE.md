@@ -4810,6 +4810,38 @@
 - [ ] validate_resource_policy
 </details>
 
+## servicediscovery
+<details>
+<summary>61% implemented</summary>
+
+- [X] create_http_namespace
+- [X] create_private_dns_namespace
+- [X] create_public_dns_namespace
+- [X] create_service
+- [X] delete_namespace
+- [X] delete_service
+- [ ] deregister_instance
+- [ ] discover_instances
+- [ ] get_instance
+- [ ] get_instances_health_status
+- [X] get_namespace
+- [X] get_operation
+- [X] get_service
+- [ ] list_instances
+- [X] list_namespaces
+- [X] list_operations
+- [X] list_services
+- [X] list_tags_for_resource
+- [ ] register_instance
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_http_namespace
+- [ ] update_instance_custom_health_status
+- [ ] update_private_dns_namespace
+- [ ] update_public_dns_namespace
+- [X] update_service
+</details>
+
 ## ses
 <details>
 <summary>32% implemented</summary>
@@ -5544,7 +5576,6 @@
 - service-quotas
 - servicecatalog
 - servicecatalog-appregistry
-- servicediscovery
 - sesv2
 - shield
 - signer
