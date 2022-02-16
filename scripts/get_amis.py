@@ -1,6 +1,8 @@
 import boto3
 import json
 
+from moto.ec2.utils import gen_moto_amis
+
 # Taken from free tier list when creating an instance
 instances = [
     "ami-760aaa0f",
@@ -43,27 +45,6 @@ client = boto3.client("ec2", region_name="eu-west-1")
 
 test = client.describe_images(ImageIds=instances)
 
-result = []
-for image in test["Images"]:
-    try:
-        tmp = {
-            "ami_id": image["ImageId"],
-            "name": image["Name"],
-            "description": image["Description"],
-            "owner_id": image["OwnerId"],
-            "public": image["Public"],
-            "virtualization_type": image["VirtualizationType"],
-            "architecture": image["Architecture"],
-            "state": image["State"],
-            "platform": image.get("Platform"),
-            "image_type": image["ImageType"],
-            "hypervisor": image["Hypervisor"],
-            "root_device_name": image["RootDeviceName"],
-            "root_device_type": image["RootDeviceType"],
-            "sriov": image.get("SriovNetSupport", "simple"),
-        }
-        result.append(tmp)
-    except Exception as err:
-        pass
+result = gen_moto_amis(test["Images"])
 
 print(json.dumps(result, indent=2))
