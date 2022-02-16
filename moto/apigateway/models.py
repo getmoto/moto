@@ -20,6 +20,8 @@ from .integration_parsers.aws_parser import TypeAwsParser
 from .integration_parsers.http_parser import TypeHttpParser
 from .integration_parsers.unknown_parser import TypeUnknownParser
 from .exceptions import (
+    ConflictException,
+    DeploymentNotFoundException,
     ApiKeyNotFoundException,
     UsagePlanNotFoundException,
     AwsProxyNotAllowed,
@@ -49,7 +51,9 @@ from .exceptions import (
     InvalidStageException,
     BasePathConflictException,
     BasePathNotFoundException,
+    StageStillActive,
     VpcLinkNotFound,
+    ValidationException,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -119,6 +123,7 @@ class Integration(BaseModel, dict):
         request_templates=None,
         tls_config=None,
         cache_namespace=None,
+        timeout_in_millis=None,
     ):
         super().__init__()
         self["type"] = integration_type
@@ -131,6 +136,7 @@ class Integration(BaseModel, dict):
         ] = None  # prevent json serialization from including them if none provided
         self["tlsConfig"] = tls_config
         self["cacheNamespace"] = cache_namespace
+        self["timeoutInMillis"] = timeout_in_millis
 
     def create_integration_response(
         self, status_code, selection_pattern, response_templates, content_handling
@@ -361,6 +367,7 @@ class Resource(CloudFormationModel):
         integration_method=None,
         tls_config=None,
         cache_namespace=None,
+        timeout_in_millis=None,
     ):
         integration_method = integration_method or method_type
         integration = Integration(
@@ -370,6 +377,7 @@ class Resource(CloudFormationModel):
             request_templates=request_templates,
             tls_config=tls_config,
             cache_namespace=cache_namespace,
+            timeout_in_millis=timeout_in_millis,
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
@@ -451,6 +459,7 @@ class Stage(BaseModel, dict):
         self["description"] = description
         self["cacheClusterEnabled"] = cacheClusterEnabled
         if self["cacheClusterEnabled"]:
+            self["cacheClusterStatus"] = "AVAILABLE"
             self["cacheClusterSize"] = str(0.5)
         if cacheClusterSize is not None:
             self["cacheClusterSize"] = str(cacheClusterSize)
@@ -465,25 +474,39 @@ class Stage(BaseModel, dict):
                 self._apply_operation_to_variables(op)
             elif "/cacheClusterEnabled" in op["path"]:
                 self["cacheClusterEnabled"] = self._str2bool(op["value"])
-                if "cacheClusterSize" not in self and self["cacheClusterEnabled"]:
-                    self["cacheClusterSize"] = str(0.5)
+                if self["cacheClusterEnabled"]:
+                    self["cacheClusterStatus"] = "AVAILABLE"
+                    if "cacheClusterSize" not in self:
+                        self["cacheClusterSize"] = str(0.5)
+                else:
+                    self["cacheClusterStatus"] = "NOT_AVAILABLE"
             elif "/cacheClusterSize" in op["path"]:
-                self["cacheClusterSize"] = str(float(op["value"]))
+                self["cacheClusterSize"] = str(op["value"])
             elif "/description" in op["path"]:
                 self["description"] = op["value"]
             elif "/deploymentId" in op["path"]:
                 self["deploymentId"] = op["value"]
             elif op["op"] == "replace":
-                # Method Settings drop into here
-                # (e.g., path could be '/*/*/logging/loglevel')
-                split_path = op["path"].split("/", 3)
-                if len(split_path) != 4:
-                    continue
-                self._patch_method_setting(
-                    "/".join(split_path[1:3]), split_path[3], op["value"]
-                )
+                if op["path"] == "/tracingEnabled":
+                    self["tracingEnabled"] = self._str2bool(op["value"])
+                elif op["path"].startswith("/accessLogSettings/"):
+                    self["accessLogSettings"] = self.get("accessLogSettings", {})
+                    self["accessLogSettings"][op["path"].split("/")[-1]] = op["value"]
+                else:
+                    # (e.g., path could be '/*/*/logging/loglevel')
+                    split_path = op["path"].split("/", 3)
+                    if len(split_path) != 4:
+                        continue
+                    self._patch_method_setting(
+                        "/".join(split_path[1:3]), split_path[3], op["value"]
+                    )
+            elif op["op"] == "remove":
+                if op["path"] == "/accessLogSettings":
+                    self["accessLogSettings"] = None
             else:
-                raise Exception('Patch operation "%s" not implemented' % op["op"])
+                raise ValidationException(
+                    "Member must satisfy enum value set: [add, remove, move, test, replace, copy]"
+                )
         return self
 
     def _patch_method_setting(self, resource_path_and_method, key, value):
@@ -972,6 +995,8 @@ class RestAPI(CloudFormationModel):
         tags=None,
         tracing_enabled=None,
     ):
+        if name in self.stages:
+            raise ConflictException("Stage already exists")
         if variables is None:
             variables = {}
         stage = Stage(
@@ -994,9 +1019,10 @@ class RestAPI(CloudFormationModel):
         deployment_id = create_id()
         deployment = Deployment(deployment_id, name, description)
         self.deployments[deployment_id] = deployment
-        self.stages[name] = Stage(
-            name=name, deployment_id=deployment_id, variables=stage_variables
-        )
+        if name:
+            self.stages[name] = Stage(
+                name=name, deployment_id=deployment_id, variables=stage_variables
+            )
         self.update_integration_mocks(name)
 
         return deployment
@@ -1014,6 +1040,13 @@ class RestAPI(CloudFormationModel):
         return list(self.deployments.values())
 
     def delete_deployment(self, deployment_id):
+        if deployment_id not in self.deployments:
+            raise DeploymentNotFoundException()
+        deployment = self.deployments[deployment_id]
+        if deployment["stageName"] and deployment["stageName"] in self.stages:
+            # Stage is still active
+            raise StageStillActive()
+
         return self.deployments.pop(deployment_id)
 
     def create_request_validator(
@@ -1423,6 +1456,7 @@ class APIGatewayBackend(BaseBackend):
         request_templates=None,
         tls_config=None,
         cache_namespace=None,
+        timeout_in_millis=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1462,6 +1496,7 @@ class APIGatewayBackend(BaseBackend):
             request_templates=request_templates,
             tls_config=tls_config,
             cache_namespace=cache_namespace,
+            timeout_in_millis=timeout_in_millis,
         )
         return integration
 
