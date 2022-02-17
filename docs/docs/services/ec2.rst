@@ -12,6 +12,8 @@
 ec2
 ===
 
+.. autoclass:: moto.ec2.models.EC2Backend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
