@@ -18,7 +18,7 @@ from moto import mock_textract
 
 @mock_textract
 def test_start_document_text_detection():
-    client = boto3.client("textract", region_name="us-east-2")
+    client = boto3.client("textract", region_name="us-east-1")
     resp = client.start_document_text_detection(
         DocumentLocation={
             'S3Object': {
