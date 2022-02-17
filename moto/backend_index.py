@@ -148,6 +148,7 @@ backend_url_patterns = [
         re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com/"),
     ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
+    ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
     ("xray", re.compile("https?://xray\\.(.+)\\.amazonaws.com")),
 ]
