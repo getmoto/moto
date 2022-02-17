@@ -57,5 +57,5 @@ def test_gen_moto_amis():
     amis.should.have.length_of(1)
 
     # with drop=False, it should raise KeyError because of the missing key
-    with raises(KeyError, match="KeyError: 'Public'"):
+    with raises(KeyError, match="'Public'"):
         utils.gen_moto_amis(images, drop_images_missing_keys=False)
