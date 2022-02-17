@@ -786,3 +786,55 @@ def describe_tag_filter(filters, instances):
                     if need_delete:
                         result.remove(instance)
     return result
+
+
+def gen_moto_amis(described_images, drop_images_missing_keys=True):
+    """Convert `boto3.EC2.Client.describe_images` output to form acceptable to `MOTO_AMIS_PATH`
+
+    Parameters
+    ==========
+    described_images : list of dicts
+        as returned by :ref:`boto3:EC2.Client.describe_images` in "Images" key
+    drop_images_missing_keys : bool, default=True
+        When `True` any entry in `images` that is missing a required key will silently
+        be excluded from the returned list
+
+    Throws
+    ======
+    `KeyError` when `drop_images_missing_keys` is `False` and a required key is missing
+    from an element of `images`
+
+    Returns
+    =======
+    list of dicts suitable to be serialized into JSON as a target for `MOTO_AMIS_PATH` environment
+    variable.
+
+    See Also
+    ========
+    * :ref:`moto.ec2.models.EC2Backend`
+    """
+    result = []
+    for image in described_images:
+        try:
+            tmp = {
+                "ami_id": image["ImageId"],
+                "name": image["Name"],
+                "description": image["Description"],
+                "owner_id": image["OwnerId"],
+                "public": image["Public"],
+                "virtualization_type": image["VirtualizationType"],
+                "architecture": image["Architecture"],
+                "state": image["State"],
+                "platform": image.get("Platform"),
+                "image_type": image["ImageType"],
+                "hypervisor": image["Hypervisor"],
+                "root_device_name": image["RootDeviceName"],
+                "root_device_type": image["RootDeviceType"],
+                "sriov": image.get("SriovNetSupport", "simple"),
+            }
+            result.append(tmp)
+        except Exception as err:
+            if not drop_images_missing_keys:
+                raise err
+
+    return result
