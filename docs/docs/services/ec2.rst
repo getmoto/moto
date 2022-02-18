@@ -454,6 +454,7 @@ ec2
 - [X] import_key_pair
 - [ ] import_snapshot
 - [ ] import_volume
+- [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
@@ -552,6 +553,7 @@ ec2
 - [ ] reset_network_interface_attribute
 - [ ] reset_snapshot_attribute
 - [ ] restore_address_to_classic
+- [ ] restore_image_from_recycle_bin
 - [ ] restore_managed_prefix_list_version
 - [ ] restore_snapshot_from_recycle_bin
 - [ ] restore_snapshot_tier

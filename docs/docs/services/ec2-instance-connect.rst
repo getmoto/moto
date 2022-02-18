@@ -17,7 +17,7 @@ ec2-instance-connect
 .. sourcecode:: python
 
             @mock_ec2instanceconnect
-            def test_ec2-instance-connect_behaviour:
+            def test_ec2instanceconnect_behaviour:
                 boto3.client("ec2-instance-connect")
                 ...
 

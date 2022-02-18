@@ -9,6 +9,9 @@ Non-Python SDK's / Server Mode
 
 Moto has a stand-alone server mode. This allows you to use Moto with any of the official AWS SDK's.
 
+Installation
+-------------
+
 Install the required dependencies using:
 
 .. code:: bash
@@ -41,10 +44,18 @@ interfaces with 0.0.0.0:
 Please be aware this might allow other network users to access your
 server.
 
-To use Moto in your tests, you can pass the `endpoint_url`-parameter to the SDK of your choice.
+Run using Docker
+----------------------
+You could also use the official Docker image from https://hub.docker.com/r/motoserver/moto/tags:
 
-Examples
---------
+.. code-block:: bash
+
+    docker run motoserver/moto:latest
+
+Example Usage
+--------------
+
+To use Moto in your tests, pass the `endpoint_url`-parameter to the SDK of your choice.
 
 In Python:
 

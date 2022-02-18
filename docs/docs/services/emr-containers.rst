@@ -19,7 +19,7 @@ emr-containers
 .. sourcecode:: python
 
             @mock_emrcontainers
-            def test_emr-containers_behaviour:
+            def test_emrcontainers_behaviour:
                 boto3.client("emr-containers")
                 ...
 

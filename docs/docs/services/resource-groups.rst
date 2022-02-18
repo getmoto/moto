@@ -17,7 +17,7 @@ resource-groups
 .. sourcecode:: python
 
             @mock_resourcegroups
-            def test_resource-groups_behaviour:
+            def test_resourcegroups_behaviour:
                 boto3.client("resource-groups")
                 ...
 

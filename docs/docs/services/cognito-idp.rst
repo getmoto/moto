@@ -17,7 +17,7 @@ cognito-idp
 .. sourcecode:: python
 
             @mock_cognitoidp
-            def test_cognito-idp_behaviour:
+            def test_cognitoidp_behaviour:
                 boto3.client("cognito-idp")
                 ...
 

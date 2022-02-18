@@ -81,7 +81,7 @@ class VPCServiceConfigurationBackend(object):
                 else:
                     raise UnknownVpcEndpointService(service_id)
             return found_configs
-        return self.configurations.values()
+        return self.configurations.copy().values()
 
     def delete_vpc_endpoint_service_configurations(self, service_ids):
         missing = [s for s in service_ids if s not in self.configurations]

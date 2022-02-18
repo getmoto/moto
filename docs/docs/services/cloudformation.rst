@@ -41,6 +41,7 @@ cloudformation
 - [ ] deregister_type
 - [ ] describe_account_limits
 - [X] describe_change_set
+- [ ] describe_change_set_hooks
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
 - [ ] describe_stack_events

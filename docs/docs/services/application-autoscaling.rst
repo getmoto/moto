@@ -17,7 +17,7 @@ application-autoscaling
 .. sourcecode:: python
 
             @mock_applicationautoscaling
-            def test_application-autoscaling_behaviour:
+            def test_applicationautoscaling_behaviour:
                 boto3.client("application-autoscaling")
                 ...
 

@@ -221,7 +221,7 @@ def write_implementation_coverage_to_docs(coverage):
             file.write(f""".. sourcecode:: python
 
             @{coverage[service_name]['name']}
-            def test_{service_name}_behaviour:
+            def test_{coverage[service_name]['name'][5:]}_behaviour:
                 boto3.client("{service_name}")
                 ...
 
