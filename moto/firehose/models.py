@@ -151,7 +151,7 @@ class DeliveryStream(
             del self.destinations[0][destination_name]["S3Configuration"]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
