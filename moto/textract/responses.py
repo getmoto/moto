@@ -27,7 +27,7 @@ class TextractResponse(BaseResponse):
 
     
     def start_document_text_detection(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         document_location = params.get("DocumentLocation")
         client_request_token = params.get("ClientRequestToken")
         job_tag = params.get("JobTag")

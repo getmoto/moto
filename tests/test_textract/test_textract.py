@@ -28,4 +28,4 @@ def test_start_document_text_detection():
         },
     )
 
-    raise Exception("NotYetImplemented")
+    resp.should.have.key("JobId")

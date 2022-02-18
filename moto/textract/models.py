@@ -53,7 +53,7 @@ class TextractBackend(BaseBackend):
     ):
         if not document_location:
             raise InvalidParameterException()
-        job_id = uuid.uuid4()
+        job_id = str(uuid.uuid4())
         self.async_text_detection_jobs[job_id] = TextractJob({
             "Blocks": TextractBackend.BLOCKS,
             "DetectDocumentTextModelVersion": "1.0",
