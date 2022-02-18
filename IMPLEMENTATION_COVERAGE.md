@@ -297,11 +297,11 @@
 
 ## athena
 <details>
-<summary>20% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_query_execution
-- [ ] create_data_catalog
+- [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_prepared_statement
 - [X] create_work_group
@@ -309,7 +309,7 @@
 - [ ] delete_named_query
 - [ ] delete_prepared_statement
 - [ ] delete_work_group
-- [ ] get_data_catalog
+- [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
 - [ ] get_prepared_statement
@@ -317,7 +317,7 @@
 - [ ] get_query_results
 - [ ] get_table_metadata
 - [X] get_work_group
-- [ ] list_data_catalogs
+- [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
 - [ ] list_named_queries
@@ -480,6 +480,7 @@
 - [ ] deregister_type
 - [ ] describe_account_limits
 - [X] describe_change_set
+- [ ] describe_change_set_hooks
 - [ ] describe_publisher
 - [ ] describe_stack_drift_detection_status
 - [ ] describe_stack_events
@@ -1760,6 +1761,7 @@
 - [X] import_key_pair
 - [ ] import_snapshot
 - [ ] import_volume
+- [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
@@ -1854,6 +1856,7 @@
 - [ ] reset_network_interface_attribute
 - [ ] reset_snapshot_attribute
 - [ ] restore_address_to_classic
+- [ ] restore_image_from_recycle_bin
 - [ ] restore_managed_prefix_list_version
 - [ ] restore_snapshot_from_recycle_bin
 - [ ] restore_snapshot_tier
@@ -2373,7 +2376,7 @@
 
 ## es
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] accept_inbound_cross_cluster_search_connection
 - [ ] add_tags
@@ -2388,6 +2391,7 @@
 - [ ] delete_outbound_cross_cluster_search_connection
 - [ ] delete_package
 - [ ] describe_domain_auto_tunes
+- [ ] describe_domain_change_progress
 - [X] describe_elasticsearch_domain
 - [ ] describe_elasticsearch_domain_config
 - [ ] describe_elasticsearch_domains
@@ -4152,17 +4156,14 @@
 
 ## redshift-data
 <details>
-<summary>30% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] batch_execute_statement
-- [ ] can_paginate
 - [X] cancel_statement
 - [X] describe_statement
 - [ ] describe_table
 - [X] execute_statement
-- [ ] get_paginator
 - [X] get_statement_result
-- [ ] get_waiter
 - [ ] list_databases
 - [ ] list_schemas
 - [ ] list_statements
@@ -4844,7 +4845,7 @@
 
 ## ses
 <details>
-<summary>32% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -5360,9 +5361,11 @@
 - [ ] delete_web_acl
 - [ ] describe_managed_rule_group
 - [ ] disassociate_web_acl
+- [ ] generate_mobile_sdk_release_url
 - [ ] get_ip_set
 - [ ] get_logging_configuration
 - [ ] get_managed_rule_set
+- [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
 - [ ] get_regex_pattern_set
@@ -5375,6 +5378,7 @@
 - [ ] list_ip_sets
 - [ ] list_logging_configurations
 - [ ] list_managed_rule_sets
+- [ ] list_mobile_sdk_releases
 - [ ] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [ ] list_rule_groups
@@ -5555,7 +5559,6 @@
 - quicksight
 - rbin
 - rds-data
-- redshift-data
 - rekognition
 - resiliencehub
 - robomaker

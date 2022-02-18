@@ -42,9 +42,11 @@ wafv2
 - [ ] delete_web_acl
 - [ ] describe_managed_rule_group
 - [ ] disassociate_web_acl
+- [ ] generate_mobile_sdk_release_url
 - [ ] get_ip_set
 - [ ] get_logging_configuration
 - [ ] get_managed_rule_set
+- [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
 - [ ] get_regex_pattern_set
@@ -57,6 +59,7 @@ wafv2
 - [ ] list_ip_sets
 - [ ] list_logging_configurations
 - [ ] list_managed_rule_sets
+- [ ] list_mobile_sdk_releases
 - [ ] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [ ] list_rule_groups

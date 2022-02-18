@@ -17,7 +17,7 @@ cognito-identity
 .. sourcecode:: python
 
             @mock_cognitoidentity
-            def test_cognito-identity_behaviour:
+            def test_cognitoidentity_behaviour:
                 boto3.client("cognito-identity")
                 ...
 

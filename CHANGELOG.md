@@ -1,6 +1,52 @@
 Moto Changelog
 ===================
 
+3.0.5
+-----
+Docker Digest for 3.0.5: <autopopulateddigest>
+
+    TBD
+
+3.0.4
+-----
+Docker Digest for 3.0.4: <autopopulateddigest>
+
+    New Services:
+        * Redshift-Data:
+            * cancel_statement()
+            * describe_statement()
+            * execute_statement()
+            * get_statement_result()
+        * Servicediscovery/Cloudmap:
+            * create_http_namespace()
+            * create_private_dns_namespace()
+            * create_public_dns_namespace()
+            * create_service()
+            * delete_namespace()
+            * delete_service()
+            * get_namespace()
+            * get_operation()
+            * get_service()
+            * list_namespaces()
+            * list_operations()
+            * list_services()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_service()
+
+    New Methods:
+        * Athena:
+            * create_data_catalog()
+            * get_data_catalog()
+            * list_data_catalogs()
+        * SES:
+            * get_identity_mail_from_domain_attributes()
+            * set_identity_mail_from_domain()
+
+    Miscellaneous:
+        * SSM: Global infrastructure parameters supplied by AWS are now available in Moto
+
 3.0.3
 -----
 

@@ -19,7 +19,7 @@ sso-admin
 .. sourcecode:: python
 
             @mock_ssoadmin
-            def test_sso-admin_behaviour:
+            def test_ssoadmin_behaviour:
                 boto3.client("sso-admin")
                 ...
 

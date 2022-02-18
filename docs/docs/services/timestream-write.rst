@@ -17,7 +17,7 @@ timestream-write
 .. sourcecode:: python
 
             @mock_timestreamwrite
-            def test_timestream-write_behaviour:
+            def test_timestreamwrite_behaviour:
                 boto3.client("timestream-write")
                 ...
 

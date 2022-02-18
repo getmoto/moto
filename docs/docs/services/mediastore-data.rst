@@ -17,7 +17,7 @@ mediastore-data
 .. sourcecode:: python
 
             @mock_mediastoredata
-            def test_mediastore-data_behaviour:
+            def test_mediastoredata_behaviour:
                 boto3.client("mediastore-data")
                 ...
 
