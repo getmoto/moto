@@ -26,8 +26,7 @@ format:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	pytest -sv --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
-	MOTO_CALL_RESET_API=false pytest -n 4 $(PARALLEL_TESTS)
+	pytest -sv --cov=moto --cov-report xml ./tests/test_core/test_responses_module.py
 
 test: lint test-only
 
