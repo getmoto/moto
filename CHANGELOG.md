@@ -9,7 +9,7 @@ Docker Digest for 3.0.5: <autopopulateddigest>
 
 3.0.4
 -----
-Docker Digest for 3.0.4: <autopopulateddigest>
+Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c57747fb292ffceee84b6_
 
     New Services:
         * Redshift-Data:
