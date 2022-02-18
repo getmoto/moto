@@ -54,6 +54,7 @@ from .exceptions import (
     StageStillActive,
     VpcLinkNotFound,
     ValidationException,
+    GatewayResponseNotFound,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -791,6 +792,7 @@ class RestAPI(CloudFormationModel):
         self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments = {}
         self.authorizers = {}
+        self.gateway_responses = {}
         self.stages = {}
         self.resources = {}
         self.models = {}
@@ -1079,6 +1081,29 @@ class RestAPI(CloudFormationModel):
         self.request_validators[validator_id].apply_patch_operations(patch_operations)
         return self.request_validators[validator_id]
 
+    def put_gateway_response(
+        self, response_type, status_code, response_parameters, response_templates
+    ):
+        response = GatewayResponse(
+            response_type=response_type,
+            status_code=status_code,
+            response_parameters=response_parameters,
+            response_templates=response_templates,
+        )
+        self.gateway_responses[response_type] = response
+        return response
+
+    def get_gateway_response(self, response_type):
+        if response_type not in self.gateway_responses:
+            raise GatewayResponseNotFound()
+        return self.gateway_responses[response_type]
+
+    def get_gateway_responses(self):
+        return list(self.gateway_responses.values())
+
+    def delete_gateway_response(self, response_type):
+        self.gateway_responses.pop(response_type, None)
+
 
 class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
@@ -1167,6 +1192,21 @@ class BasePathMapping(BaseModel, dict):
                     self["restApiId"] = value
                 if "/stage" in path:
                     self["stage"] = value
+
+
+class GatewayResponse(BaseModel, dict):
+    def __init__(
+        self, response_type, status_code, response_parameters, response_templates
+    ):
+        super().__init__()
+        self["responseType"] = response_type
+        if status_code is not None:
+            self["statusCode"] = status_code
+        if response_parameters is not None:
+            self["responseParameters"] = response_parameters
+        if response_templates is not None:
+            self["responseTemplates"] = response_templates
+        self["defaultResponse"] = False
 
 
 class APIGatewayBackend(BaseBackend):
@@ -1949,6 +1989,38 @@ class APIGatewayBackend(BaseBackend):
         Pagination has not yet been implemented
         """
         return list(self.vpc_links.values())
+
+    def put_gateway_response(
+        self,
+        rest_api_id,
+        response_type,
+        status_code,
+        response_parameters,
+        response_templates,
+    ):
+        api = self.get_rest_api(rest_api_id)
+        response = api.put_gateway_response(
+            response_type,
+            status_code=status_code,
+            response_parameters=response_parameters,
+            response_templates=response_templates,
+        )
+        return response
+
+    def get_gateway_response(self, rest_api_id, response_type):
+        api = self.get_rest_api(rest_api_id)
+        return api.get_gateway_response(response_type)
+
+    def get_gateway_responses(self, rest_api_id):
+        """
+        Pagination is not yet implemented
+        """
+        api = self.get_rest_api(rest_api_id)
+        return api.get_gateway_responses()
+
+    def delete_gateway_response(self, rest_api_id, response_type):
+        api = self.get_rest_api(rest_api_id)
+        api.delete_gateway_response(response_type)
 
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")

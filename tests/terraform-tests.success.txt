@@ -94,6 +94,7 @@ TestAccAWSUserGroupMembership
 TestAccAWSUserPolicyAttachment
 TestAccAWSUserSSHKey
 TestAccAWSVpc_
+TestAccAWSAPIGatewayGatewayResponse
 TestAccAWSAPIGatewayStage
 TestAccAWSSsmDocumentDataSource
 TestAccAwsEc2ManagedPrefixList

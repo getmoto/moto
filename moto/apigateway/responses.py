@@ -141,6 +141,21 @@ class APIGatewayResponse(BaseResponse):
             )
 
     @error_handler
+    def gateway_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "PUT":
+            return self.put_gateway_response()
+        elif request.method == "GET":
+            return self.get_gateway_response()
+        elif request.method == "DELETE":
+            return self.delete_gateway_response()
+
+    def gateway_responses(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self.get_gateway_responses()
+
+    @error_handler
     def resource_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
@@ -798,3 +813,40 @@ class APIGatewayResponse(BaseResponse):
                 name=name, description=description, target_arns=target_arns, tags=tags
             )
             return 200, {}, json.dumps(vpc_link)
+
+    def put_gateway_response(self):
+        rest_api_id = self.path.split("/")[-3]
+        response_type = self.path.split("/")[-1]
+        params = json.loads(self.body)
+        status_code = params.get("statusCode")
+        response_parameters = params.get("responseParameters")
+        response_templates = params.get("responseTemplates")
+        response = self.backend.put_gateway_response(
+            rest_api_id=rest_api_id,
+            response_type=response_type,
+            status_code=status_code,
+            response_parameters=response_parameters,
+            response_templates=response_templates,
+        )
+        return 200, {}, json.dumps(response)
+
+    def get_gateway_response(self):
+        rest_api_id = self.path.split("/")[-3]
+        response_type = self.path.split("/")[-1]
+        response = self.backend.get_gateway_response(
+            rest_api_id=rest_api_id, response_type=response_type,
+        )
+        return 200, {}, json.dumps(response)
+
+    def get_gateway_responses(self):
+        rest_api_id = self.path.split("/")[-2]
+        responses = self.backend.get_gateway_responses(rest_api_id=rest_api_id,)
+        return 200, {}, json.dumps(dict(item=responses))
+
+    def delete_gateway_response(self):
+        rest_api_id = self.path.split("/")[-3]
+        response_type = self.path.split("/")[-1]
+        self.backend.delete_gateway_response(
+            rest_api_id=rest_api_id, response_type=response_type,
+        )
+        return 202, {}, json.dumps(dict())

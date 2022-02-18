@@ -35,6 +35,8 @@ url_paths = {
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys/(?P<api_key_id>[^/]+)/?$": response.usage_plan_key_individual,
     "{0}/restapis/(?P<function_id>[^/]+)/requestvalidators$": response.request_validators,
     "{0}/restapis/(?P<api_id>[^/]+)/requestvalidators/(?P<validator_id>[^/]+)/?$": response.request_validator_individual,
+    "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/?$": response.gateway_responses,
+    "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/(?P<response_type>[^/]+)/?$": response.gateway_response,
     "{0}/vpclinks$": response.vpc_links,
     "{0}/vpclinks/(?P<vpclink_id>[^/]+)": response.vpc_link,
 }

@@ -252,3 +252,8 @@ class StageStillActive(BadRequestException):
         super().__init__(
             "Active stages pointing to this deployment must be moved or deleted"
         )
+
+
+class GatewayResponseNotFound(NotFoundException):
+    def __init__(self):
+        super().__init__("GatewayResponse not found")
