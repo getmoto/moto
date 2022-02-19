@@ -1812,10 +1812,7 @@ def test_enable_policy_type():
     )
     root["Name"].should.equal("Root")
     sorted(root["PolicyTypes"], key=lambda x: x["Type"]).should.equal(
-        [
-            {"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"},
-            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"},
-        ]
+        [{"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"}]
     )
 
 
@@ -1842,7 +1839,10 @@ def test_enable_policy_type_errors():
         "You specified a root that doesn't exist."
     )
 
-    # enable policy again ('SERVICE_CONTROL_POLICY' is enabled by default)
+    # enable policy again
+    # given
+    client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
+
     # when
     with pytest.raises(ClientError) as e:
         client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
@@ -1889,9 +1889,7 @@ def test_disable_policy_type():
         utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
     )
     root["Name"].should.equal("Root")
-    root["PolicyTypes"].should.equal(
-        [{"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}]
-    )
+    root["PolicyTypes"].should.equal([])
 
 
 @mock_organizations
