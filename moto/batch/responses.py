@@ -182,6 +182,8 @@ class BatchResponse(BaseResponse):
         retry_strategy = self._get_param("retryStrategy")
         _type = self._get_param("type")
         timeout = self._get_param("timeout")
+        platform_capabilities = self._get_param("platformCapabilities")
+        propagate_tags = self._get_param("propagateTags")
         try:
             name, arn, revision = self.batch_backend.register_job_definition(
                 def_name=def_name,
@@ -191,6 +193,8 @@ class BatchResponse(BaseResponse):
                 retry_strategy=retry_strategy,
                 container_properties=container_properties,
                 timeout=timeout,
+                platform_capabilities=platform_capabilities,
+                propagate_tags=propagate_tags,
             )
         except AWSError as err:
             return err.response()

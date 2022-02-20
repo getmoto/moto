@@ -199,7 +199,6 @@ class JobQueue(CloudFormationModel):
             priority=properties["Priority"],
             state=properties.get("State", "ENABLED"),
             compute_env_order=compute_envs,
-            backend=backend,
         )
         arn = queue[1]
 
@@ -218,29 +217,39 @@ class JobDefinition(CloudFormationModel):
         revision=0,
         retry_strategy=0,
         timeout=None,
+        backend=None,
+        platform_capabilities=None,
+        propagate_tags=None,
     ):
         self.name = name
-        self.retries = retry_strategy
+        self.retry_strategy = retry_strategy
         self.type = _type
         self.revision = revision
         self._region = region_name
         self.container_properties = container_properties
         self.arn = None
         self.status = "ACTIVE"
-        self.tagger = TaggingService()
         self.parameters = parameters or {}
         self.timeout = timeout
+        self.backend = backend
+        self.platform_capabilities = platform_capabilities
+        self.propagate_tags = propagate_tags
+
+        if "resourceRequirements" not in self.container_properties:
+            self.container_properties["resourceRequirements"] = []
+        if "secrets" not in self.container_properties:
+            self.container_properties["secrets"] = []
 
         self._validate()
         self._update_arn()
 
         tags = self._format_tags(tags or {})
         # Validate the tags before proceeding.
-        errmsg = self.tagger.validate_tags(tags)
+        errmsg = self.backend.tagger.validate_tags(tags)
         if errmsg:
             raise ValidationError(errmsg)
 
-        self.tagger.tag_resource(self.arn, tags)
+        self.backend.tagger.tag_resource(self.arn, tags)
 
     def _format_tags(self, tags):
         return [{"Key": k, "Value": v} for k, v in tags.items()]
@@ -314,20 +323,24 @@ class JobDefinition(CloudFormationModel):
         if vcpus <= 0:
             raise ClientException("container vcpus limit must be greater than 0")
 
+    def deregister(self):
+        self.status = "INACTIVE"
+
     def update(
         self, parameters, _type, container_properties, retry_strategy, tags, timeout
     ):
-        if parameters is None:
-            parameters = self.parameters
+        if self.status != "INACTIVE":
+            if parameters is None:
+                parameters = self.parameters
 
-        if _type is None:
-            _type = self.type
+            if _type is None:
+                _type = self.type
 
-        if container_properties is None:
-            container_properties = self.container_properties
+            if container_properties is None:
+                container_properties = self.container_properties
 
-        if retry_strategy is None:
-            retry_strategy = self.retries
+            if retry_strategy is None:
+                retry_strategy = self.retry_strategy
 
         return JobDefinition(
             self.name,
@@ -339,6 +352,9 @@ class JobDefinition(CloudFormationModel):
             retry_strategy=retry_strategy,
             tags=tags,
             timeout=timeout,
+            backend=self.backend,
+            platform_capabilities=self.platform_capabilities,
+            propagate_tags=self.propagate_tags,
         )
 
     def describe(self):
@@ -349,12 +365,13 @@ class JobDefinition(CloudFormationModel):
             "revision": self.revision,
             "status": self.status,
             "type": self.type,
-            "tags": self.tagger.get_tag_dict_for_resource(self.arn),
+            "tags": self.backend.tagger.get_tag_dict_for_resource(self.arn),
+            "platformCapabilities": self.platform_capabilities,
+            "retryStrategy": self.retry_strategy,
+            "propagateTags": self.propagate_tags,
         }
         if self.container_properties is not None:
             result["containerProperties"] = self.container_properties
-        if self.retries is not None and self.retries > 0:
-            result["retryStrategy"] = {"attempts": self.retries}
         if self.timeout:
             result["timeout"] = self.timeout
 
@@ -387,6 +404,8 @@ class JobDefinition(CloudFormationModel):
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=lowercase_first_key(properties["ContainerProperties"]),
             timeout=lowercase_first_key(properties.get("timeout", {})),
+            platform_capabilities=None,
+            propagate_tags=None,
         )
         arn = res[1]
 
@@ -1373,16 +1392,17 @@ class BatchBackend(BaseBackend):
         retry_strategy,
         container_properties,
         timeout,
+        platform_capabilities,
+        propagate_tags,
     ):
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
 
         job_def = self.get_job_definition_by_name(def_name)
-        if retry_strategy is not None:
-            try:
-                retry_strategy = retry_strategy["attempts"]
-            except Exception:
-                raise ClientException("retryStrategy is malformed")
+        if retry_strategy is not None and "evaluateOnExit" in retry_strategy:
+            for strat in retry_strategy["evaluateOnExit"]:
+                if "action" in strat:
+                    strat["action"] = strat["action"].lower()
         if not tags:
             tags = {}
         if job_def is None:
@@ -1395,6 +1415,9 @@ class BatchBackend(BaseBackend):
                 region_name=self.region_name,
                 retry_strategy=retry_strategy,
                 timeout=timeout,
+                backend=self,
+                platform_capabilities=platform_capabilities,
+                propagate_tags=propagate_tags,
             )
         else:
             # Make new jobdef
@@ -1413,7 +1436,7 @@ class BatchBackend(BaseBackend):
             job_def = self.get_job_definition_by_name_revision(name, revision)
 
         if job_def is not None:
-            del self._job_definitions[job_def.arn]
+            self._job_definitions[job_def.arn].deregister()
 
     def describe_job_definitions(
         self,
