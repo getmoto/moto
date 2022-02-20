@@ -30,7 +30,9 @@ class FakeOrganization(BaseModel):
         self.master_account_id = utils.MASTER_ACCOUNT_ID
         self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
-            # TODO: verify if this should be enabled by default (breaks TF tests for CloudTrail)
+            # This policy is available, but not applied
+            # User should use enable_policy_type/disable_policy_type to do anything else
+            # This field is deprecated in AWS, but we'll return it for old time's sake
             {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
         ]
 
@@ -140,10 +142,7 @@ class FakeRoot(FakeOrganizationalUnit):
         self.type = "ROOT"
         self.id = organization.root_id
         self.name = "Root"
-        self.policy_types = [
-            # TODO: verify if this should be enabled by default (breaks TF tests for CloudTrail)
-            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
-        ]
+        self.policy_types = []
         self._arn_format = utils.ROOT_ARN_FORMAT
         self.attached_policies = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}

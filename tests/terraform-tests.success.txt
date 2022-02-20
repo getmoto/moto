@@ -11,6 +11,7 @@ TestAccAWSAppsyncGraphqlApi
 TestAccAWSAvailabilityZones
 TestAccAWSBillingServiceAccount
 TestAccAWSCallerIdentity
+TestAccAWSCloudTrail
 TestAccAWSCloudTrailServiceAccount
 TestAccAWSCloudWatchDashboard
 TestAccAWSCloudWatchEventApiDestination
