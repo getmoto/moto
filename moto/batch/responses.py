@@ -1,6 +1,6 @@
 from moto.core.responses import BaseResponse
 from .models import batch_backends
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 
 from .exceptions import AWSError
 
@@ -114,6 +114,7 @@ class BatchResponse(BaseResponse):
         queue_name = self._get_param("jobQueueName")
         priority = self._get_param("priority")
         state = self._get_param("state")
+        tags = self._get_param("tags")
 
         try:
             name, arn = self.batch_backend.create_job_queue(
@@ -121,6 +122,7 @@ class BatchResponse(BaseResponse):
                 priority=priority,
                 state=state,
                 compute_env_order=compute_env_order,
+                tags=tags,
             )
         except AWSError as err:
             return err.response()
@@ -298,3 +300,16 @@ class BatchResponse(BaseResponse):
         self.batch_backend.cancel_job(job_id, reason)
 
         return ""
+
+    def tags(self):
+        resource_arn = unquote(self.path).split("/v1/tags/")[-1]
+        tags = self._get_param("tags")
+        if self.method == "POST":
+            self.batch_backend.tag_resource(resource_arn, tags)
+            return ""
+        if self.method == "GET":
+            tags = self.batch_backend.list_tags_for_resource(resource_arn)
+            return json.dumps({"tags": tags})
+        if self.method == "DELETE":
+            tag_keys = self.querystring.get("tagKeys")
+            self.batch_backend.untag_resource(resource_arn, tag_keys)

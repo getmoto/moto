@@ -9,6 +9,7 @@ TestAccAWSAPIGatewayV2VpcLink
 TestAccAWSAppsyncApiKey
 TestAccAWSAppsyncGraphqlApi
 TestAccAWSAvailabilityZones
+TestAccAWSBatchJobQueue
 TestAccAWSBillingServiceAccount
 TestAccAWSCallerIdentity
 TestAccAWSCloudTrailServiceAccount

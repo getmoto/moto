@@ -55,12 +55,12 @@ batch
 - [ ] describe_scheduling_policies
 - [X] list_jobs
 - [ ] list_scheduling_policies
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
-- [ ] tag_resource
+- [X] tag_resource
 - [X] terminate_job
-- [ ] untag_resource
+- [X] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
   

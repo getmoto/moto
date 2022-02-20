@@ -14,6 +14,7 @@ from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 from moto.logs import logs_backends
+from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import InvalidParameterValueException, ClientException, ValidationError
 from .utils import (
@@ -24,6 +25,7 @@ from .utils import (
 )
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
+from moto.ec2.models import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, BackendDict
@@ -114,7 +116,15 @@ class ComputeEnvironment(CloudFormationModel):
 
 class JobQueue(CloudFormationModel):
     def __init__(
-        self, name, priority, state, environments, env_order_json, region_name
+        self,
+        name,
+        priority,
+        state,
+        environments,
+        env_order_json,
+        region_name,
+        backend,
+        tags=None,
     ):
         """
         :param name: Job queue name
@@ -137,6 +147,10 @@ class JobQueue(CloudFormationModel):
         self.env_order_json = env_order_json
         self.arn = make_arn_for_job_queue(DEFAULT_ACCOUNT_ID, name, region_name)
         self.status = "VALID"
+        self.backend = backend
+
+        if tags:
+            backend.tag_resource(self.arn, tags)
 
         self.jobs = []
 
@@ -148,6 +162,7 @@ class JobQueue(CloudFormationModel):
             "priority": self.priority,
             "state": self.state,
             "status": self.status,
+            "tags": self.backend.list_tags_for_resource(self.arn),
         }
 
         return result
@@ -184,6 +199,7 @@ class JobQueue(CloudFormationModel):
             priority=properties["Priority"],
             state=properties.get("State", "ENABLED"),
             compute_env_order=compute_envs,
+            backend=backend,
         )
         arn = queue[1]
 
@@ -732,6 +748,7 @@ class BatchBackend(BaseBackend):
     def __init__(self, region_name=None):
         super().__init__()
         self.region_name = region_name
+        self.tagger = TaggingService()
 
         self._compute_environments = {}
         self._job_queues = {}
@@ -1054,7 +1071,10 @@ class BatchBackend(BaseBackend):
             for instance_type in cr["instanceTypes"]:
                 if instance_type == "optimal":
                     pass  # Optimal should pick from latest of current gen
-                elif instance_type not in EC2_INSTANCE_TYPES:
+                elif (
+                    instance_type not in EC2_INSTANCE_TYPES
+                    and instance_type not in EC2_INSTANCE_FAMILIES
+                ):
                     raise InvalidParameterValueException(
                         "Instance type {0} does not exist".format(instance_type)
                     )
@@ -1104,6 +1124,12 @@ class BatchBackend(BaseBackend):
             if instance_type == "optimal":
                 instance_type = "m4.4xlarge"
 
+            if "." not in instance_type:
+                # instance_type can be a family of instance types (c2, t3, etc)
+                # We'll just use the first instance_type in this family
+                instance_type = [
+                    i for i in EC2_INSTANCE_TYPES.keys() if i.startswith(instance_type)
+                ][0]
             instance_vcpus.append(
                 (
                     EC2_INSTANCE_TYPES[instance_type]["VCpuInfo"]["DefaultVCpus"],
@@ -1190,7 +1216,9 @@ class BatchBackend(BaseBackend):
 
         return compute_env.name, compute_env.arn
 
-    def create_job_queue(self, queue_name, priority, state, compute_env_order):
+    def create_job_queue(
+        self, queue_name, priority, state, compute_env_order, tags=None
+    ):
         """
         Create a job queue
 
@@ -1249,6 +1277,8 @@ class BatchBackend(BaseBackend):
             env_objects,
             compute_env_order,
             self.region_name,
+            backend=self,
+            tags=tags,
         )
         self._job_queues[queue.arn] = queue
 
@@ -1515,6 +1545,16 @@ class BatchBackend(BaseBackend):
             raise ClientException("Job not found")
 
         job.terminate(reason)
+
+    def tag_resource(self, resource_arn, tags):
+        tags = self.tagger.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def list_tags_for_resource(self, resource_arn):
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 batch_backends = BackendDict(BatchBackend, "batch")
