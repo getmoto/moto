@@ -561,8 +561,7 @@ def is_filter_matching(obj, _filter, filter_value):
         return False
 
     if isinstance(value, str):
-        if not isinstance(filter_value, list):
-            filter_value = [filter_value]
+        filter_value = [filter_value]
         if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
             return True
         return False
