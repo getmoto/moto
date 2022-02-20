@@ -1783,6 +1783,10 @@ class AmiBackend(object):
         self, ami_ids=(), filters=None, exec_users=None, owners=None, context=None
     ):
         images = self.amis.copy().values()
+        
+        if 'name' in filters and any(True for c in filters['name'] if c in ("*", "?")):
+            pattern = filters['name']
+            filters['name'] = [fnmatch.fnmatch(image, pattern) for image in images]
 
         if len(ami_ids):
             # boto3 seems to default to just searching based on ami ids if that parameter is passed
