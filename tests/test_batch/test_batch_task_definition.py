@@ -27,11 +27,10 @@ def test_register_task_definition(use_resource_reqs):
 def test_register_task_definition_with_tags(propagate_tags):
     _, _, _, _, batch_client = _get_clients()
 
-    resp = register_job_def_with_tags(batch_client, propagate_tags=propagate_tags)
+    job_def_name = str(uuid4())[0:8]
+    register_job_def_with_tags(batch_client, job_def_name, propagate_tags)
 
-    resp = batch_client.describe_job_definitions(
-        jobDefinitionName=resp["jobDefinitionName"]
-    )
+    resp = batch_client.describe_job_definitions(jobDefinitionName=job_def_name)
     job_def = resp["jobDefinitions"][0]
     if propagate_tags is None:
         job_def.shouldnt.have.key("propagateTags")

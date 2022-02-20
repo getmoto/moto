@@ -31,7 +31,6 @@ from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.docker_utilities import DockerModel
 from moto import settings
-from ..utilities.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -462,6 +461,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self._log_backend = log_backend
         self.log_stream_name = None
 
+        self.attempts = []
+        self.latest_attempt = None
+
     def describe_short(self):
         result = {
             "jobId": self.job_id,
@@ -504,6 +506,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
             result["container"]["logStreamName"] = self.log_stream_name
         if self.timeout:
             result["timeout"] = self.timeout
+        result["attempts"] = self.attempts
         return result
 
     def _get_container_property(self, p, default):
@@ -591,6 +594,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
+            self._start_attempt()
 
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
             #   for communication with other mock AWS services running on localhost
@@ -730,6 +734,27 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
         self.job_state = "SUCCEEDED" if success else "FAILED"
+        self._stop_attempt()
+
+    def _start_attempt(self):
+        self.latest_attempt = {
+            "container": {
+                "containerInstanceArn": "TBD",
+                "logStreamName": self.log_stream_name,
+                "networkInterfaces": [],
+                "taskArn": self.job_definition.arn,
+            }
+        }
+        self.latest_attempt["startedAt"] = datetime2int_milliseconds(
+            self.job_started_at
+        )
+        self.attempts.append(self.latest_attempt)
+
+    def _stop_attempt(self):
+        self.latest_attempt["container"]["logStreamName"] = self.log_stream_name
+        self.latest_attempt["stoppedAt"] = datetime2int_milliseconds(
+            self.job_stopped_at
+        )
 
     def terminate(self, reason):
         if not self.stop:
