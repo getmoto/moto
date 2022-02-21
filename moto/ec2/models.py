@@ -192,6 +192,7 @@ from .utils import (
 )
 
 INSTANCE_TYPES = load_resource(__name__, "resources/instance_types.json")
+INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 
 root = pathlib.Path(__file__).parent
 offerings_path = "resources/instance_type_offerings"
