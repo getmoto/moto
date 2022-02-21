@@ -455,6 +455,12 @@ class Database(CloudFormationModel):
                 )
             ]
         else:
+            if (
+                self.db_parameter_group_name
+                not in rds2_backends[self.region].db_parameter_groups
+            ):
+                raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
+
             return [
                 rds2_backends[self.region].db_parameter_groups[
                     self.db_parameter_group_name

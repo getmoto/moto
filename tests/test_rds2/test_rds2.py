@@ -397,6 +397,27 @@ def test_modify_db_instance():
 
 
 @mock_rds2
+def test_modify_db_instance_not_existent_db_parameter_group_name():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        DBInstanceClass="postgres",
+        Engine="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    instances["DBInstances"][0]["AllocatedStorage"].should.equal(10)
+    conn.modify_db_instance.when.called_with(
+        DBInstanceIdentifier="db-master-1",
+        DBParameterGroupName="test-sqlserver-se-2017",
+    ).should.throw(ClientError)
+
+
+@mock_rds2
 def test_rename_db_instance():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_instance(
