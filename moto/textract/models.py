@@ -9,18 +9,25 @@ from moto.core.utils import BackendDict
 
 from .exceptions import InvalidParameterException, InvalidJobIdException
 
+
 class TextractJobStatus:
     in_progress = "IN_PROGRESS"
     succeeded = "SUCCEEDED"
     failed = "FAILED"
     partial_success = "PARTIAL_SUCCESS"
 
+
 class TextractJob(BaseModel):
     def __init__(self, job):
         self.job = job
 
+    def to_dict(self):
+        return self.job
+
+
 class TextractBackend(BaseBackend):
     """Implementation of Textract APIs."""
+
     JOB_STATUS = TextractJobStatus.succeeded
     PAGES = {"Pages": randint(5, 500)}
     BLOCKS = []
@@ -54,12 +61,14 @@ class TextractBackend(BaseBackend):
         if not document_location:
             raise InvalidParameterException()
         job_id = str(uuid.uuid4())
-        self.async_text_detection_jobs[job_id] = TextractJob({
-            "Blocks": TextractBackend.BLOCKS,
-            "DetectDocumentTextModelVersion": "1.0",
-            "DocumentMetadata": {"Pages": TextractBackend.PAGES},
-            "JobStatus": TextractBackend.JOB_STATUS,
-        })
+        self.async_text_detection_jobs[job_id] = TextractJob(
+            {
+                "Blocks": TextractBackend.BLOCKS,
+                "DetectDocumentTextModelVersion": "1.0",
+                "DocumentMetadata": {"Pages": TextractBackend.PAGES},
+                "JobStatus": TextractBackend.JOB_STATUS,
+            }
+        )
         return job_id
 
 

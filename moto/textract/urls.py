@@ -5,8 +5,6 @@ url_bases = [
     r"https?://textract\.(.+)\.amazonaws\.com",
 ]
 
-
-
 url_paths = {
     "{0}/$": TextractResponse.dispatch,
 }
