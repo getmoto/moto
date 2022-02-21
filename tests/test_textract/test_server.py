@@ -76,6 +76,5 @@ def test_textract_get_text_detection_without_job_id():
     resp = test_client.post("/", headers=headers, json=request_body)
     resp.status_code.should.equal(400)
     data = json.loads(resp.data.decode("utf-8"))
-    print(data)
     data["__type"].should.equal("InvalidJobIdException")
     data["message"].should.equal("An invalid job identifier was passed.")
