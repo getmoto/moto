@@ -139,6 +139,7 @@ backend_url_patterns = [
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
+    ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
         "timestream-write",
         re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com"),
