@@ -238,6 +238,49 @@ def test_publish_to_sqs_msg_attr_number_type():
     message.body.should.equal("test message")
 
 
+@mock_sqs
+@mock_sns
+def test_publish_to_sqs_msg_attr_different_formats():
+    """
+    Verify different Number-formats are processed correctly
+    """
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="test-topic")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    queue_raw = sqs.create_queue(QueueName="test-queue-raw")
+
+    topic.subscribe(
+        Protocol="sqs",
+        Endpoint=queue_raw.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
+    )
+
+    topic.publish(
+        Message="test message",
+        MessageAttributes={
+            "integer": {"DataType": "Number", "StringValue": "123"},
+            "float": {"DataType": "Number", "StringValue": "12.34"},
+            "big-integer": {"DataType": "Number", "StringValue": "123456789"},
+            "big-float": {"DataType": "Number", "StringValue": "123456.789"},
+        },
+    )
+
+    messages_resp = sqs_client.receive_message(
+        QueueUrl=queue_raw.url, MessageAttributeNames=["All"]
+    )
+    message = messages_resp["Messages"][0]
+    message_attributes = message["MessageAttributes"]
+    message_attributes.should.equal(
+        {
+            "integer": {"DataType": "Number", "StringValue": "123"},
+            "float": {"DataType": "Number", "StringValue": "12.34"},
+            "big-integer": {"DataType": "Number", "StringValue": "123456789"},
+            "big-float": {"DataType": "Number", "StringValue": "123456.789"},
+        }
+    )
+
+
 @mock_sns
 def test_publish_sms():
     client = boto3.client("sns", region_name="us-east-1")
@@ -374,9 +417,14 @@ def test_publish_to_http():
         TopicArn=topic_arn, Protocol="http", Endpoint="http://example.com/foobar"
     )
 
-    response = conn.publish(
-        TopicArn=topic_arn, Message="my message", Subject="my subject"
-    )
+    conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
+
+    if not settings.TEST_SERVER_MODE:
+        sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
+        notification = sns_backend.topics[topic_arn].sent_notifications[0]
+        _, msg, subject, _, _ = notification
+        msg.should.equal("my message")
+        subject.should.equal("my subject")
 
 
 @mock_sqs

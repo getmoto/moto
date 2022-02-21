@@ -87,6 +87,7 @@ TestAccAWSProvider
 TestAccAWSRedshiftServiceAccount
 TestAccAWSRolePolicyAttachment
 TestAccAWSSNSSMSPreferences
+TestAccAWSSNSTopicPolicy
 TestAccAWSSageMakerPrebuiltECRImage
 TestAccAWSServiceDiscovery
 TestAccAWSSQSQueuePolicy

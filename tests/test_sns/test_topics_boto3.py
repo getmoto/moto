@@ -214,7 +214,7 @@ def test_topic_attributes():
     )
 
     attributes = conn.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
-    attributes["Policy"].should.equal('{"foo": "bar"}')
+    attributes["Policy"].should.equal('{"foo":"bar"}')
     attributes["DisplayName"].should.equal("My display name")
     attributes["DeliveryPolicy"].should.equal(
         '{"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}'

@@ -31,10 +31,13 @@ class SNSResponse(BaseResponse):
         tags = self._get_list_prefix("Tags.member")
         return {tag["key"]: tag["value"] for tag in tags}
 
-    def _parse_message_attributes(self, prefix="", value_namespace="Value."):
+    def _parse_message_attributes(self):
         message_attributes = self._get_object_map(
             "MessageAttributes.entry", name="Name", value="Value"
         )
+        return self._transform_message_attributes(message_attributes)
+
+    def _transform_message_attributes(self, message_attributes):
         # SNS converts some key names before forwarding messages
         # DataType -> Type, StringValue -> Value, BinaryValue -> Value
         transformed_message_attributes = {}
@@ -63,15 +66,18 @@ class SNSResponse(BaseResponse):
             if "StringValue" in value:
                 if data_type == "Number":
                     try:
-                        transform_value = float(value["StringValue"])
+                        transform_value = int(value["StringValue"])
                     except ValueError:
-                        raise InvalidParameterValue(
-                            "An error occurred (ParameterValueInvalid) "
-                            "when calling the Publish operation: "
-                            "Could not cast message attribute '{0}' value to number.".format(
-                                name
+                        try:
+                            transform_value = float(value["StringValue"])
+                        except ValueError:
+                            raise InvalidParameterValue(
+                                "An error occurred (ParameterValueInvalid) "
+                                "when calling the Publish operation: "
+                                "Could not cast message attribute '{0}' value to number.".format(
+                                    name
+                                )
                             )
-                        )
                 else:
                     transform_value = value["StringValue"]
             elif "BinaryValue" in value:
@@ -382,6 +388,16 @@ class SNSResponse(BaseResponse):
         publish_batch_request_entries = self._get_multi_param(
             "PublishBatchRequestEntries.member"
         )
+        for entry in publish_batch_request_entries:
+            if "MessageAttributes" in entry:
+                # Convert into the same format as the regular publish-method
+                # FROM: [{'Name': 'a', 'Value': {'DataType': 'String', 'StringValue': 'v'}}]
+                # TO  : {'name': {'DataType': 'Number', 'StringValue': '123'}}
+                msg_attrs = {y["Name"]: y["Value"] for y in entry["MessageAttributes"]}
+                # Use the same validation/processing as the regular publish-method
+                entry["MessageAttributes"] = self._transform_message_attributes(
+                    msg_attrs
+                )
         successful, failed = self.backend.publish_batch(
             topic_arn=topic_arn,
             publish_batch_request_entries=publish_batch_request_entries,
