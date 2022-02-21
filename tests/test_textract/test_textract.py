@@ -4,8 +4,9 @@ from botocore.exceptions import ClientError, ParamValidationError
 import pytest
 import boto3
 
+from unittest import SkipTest
 from moto.textract.models import TextractBackend
-from moto import mock_textract
+from moto import settings, mock_textract
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -13,6 +14,9 @@ from moto import mock_textract
 
 @mock_textract
 def test_get_document_text_detection():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set textract backend values in server mode")
+
     TextractBackend.JOB_STATUS = "SUCCEEDED"
     TextractBackend.PAGES = randint(5, 500)
     TextractBackend.BLOCKS = [
