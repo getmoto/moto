@@ -1568,6 +1568,32 @@ def test_list_tags_database_subnet_group():
     )
 
 
+@mock_rds2
+def test_modify_tags_parameter_group():
+    conn = boto3.client("rds", region_name="us-west-2")
+    client_tags = [{"Key": "character_set_client", "Value": "utf-8"}]
+    result = conn.create_db_parameter_group(
+        DBParameterGroupName="test-sqlserver-2017",
+        DBParameterGroupFamily="mysql5.6",
+        Description="MySQL Group",
+        Tags=client_tags,
+    )
+    resource = result["DBParameterGroup"]["DBParameterGroupArn"]
+    result = conn.list_tags_for_resource(ResourceName=resource)
+    result["TagList"].should.equal(client_tags)
+    server_tags = [{"Key": "character_set_server", "Value": "utf-8"}]
+    conn.add_tags_to_resource(ResourceName=resource, Tags=server_tags)
+    combined_tags = client_tags + server_tags
+    result = conn.list_tags_for_resource(ResourceName=resource)
+    result["TagList"].should.equal(combined_tags)
+
+    conn.remove_tags_from_resource(
+        ResourceName=resource, TagKeys=["character_set_client"]
+    )
+    result = conn.list_tags_for_resource(ResourceName=resource)
+    result["TagList"].should.equal(server_tags)
+
+
 @mock_ec2
 @mock_rds2
 def test_add_tags_database_subnet_group():
