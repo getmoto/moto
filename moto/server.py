@@ -145,6 +145,10 @@ class DomainDispatcherApplication(object):
             host = "ingest.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
+        elif service == "s3":
+            path = environ.get("PATH_INFO", "")
+            if "v20180820" in path or "s3-control" in environ["HTTP_HOST"]:
+                host = "s3control"
         else:
             host = "{service}.{region}.amazonaws.com".format(
                 service=service, region=region
