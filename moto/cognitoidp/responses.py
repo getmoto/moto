@@ -571,6 +571,16 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    def admin_set_user_mfa_preference(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        software_token_mfa_settings = self._get_param("SoftwareTokenMfaSettings")
+        sms_mfa_settings = self._get_param("SMSMfaSettings")
+        cognitoidp_backends[self.region].admin_set_user_mfa_preference(
+            user_pool_id, username, software_token_mfa_settings, sms_mfa_settings
+        )
+        return ""
+
     def admin_set_user_password(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")

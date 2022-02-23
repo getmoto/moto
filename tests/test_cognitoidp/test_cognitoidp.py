@@ -3628,6 +3628,30 @@ def test_setting_mfa():
         )
 
         result["UserMFASettingList"].should.have.length_of(1)
+        result["PreferredMFA"].should.equal("SOFTWARE_TOKEN_MFA")
+
+
+@mock_cognitoidp
+def test_admin_setting_mfa():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    username = "test@example.com"
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True}
+    )
+    result = conn.admin_get_user(
+        UserPoolId=user_pool_id,
+        Username=username
+    )
+    result["UserMFASettingList"].should.have.length_of(1)
+    result["PreferredMFA"].should.equal("SMS_MFA")
 
 
 @mock_cognitoidp

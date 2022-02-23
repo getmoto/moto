@@ -652,6 +652,7 @@ class CognitoIdpUser(BaseModel):
         self.software_token_mfa_enabled = False
         self.token_verified = False
         self.confirmation_code = None
+        self.preferred_mfa_setting = None
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
@@ -690,6 +691,7 @@ class CognitoIdpUser(BaseModel):
                     attributes_key: attrs,
                     "MFAOptions": [],
                     "UserMFASettingList": user_mfa_setting_list,
+                    "PreferredMfaSetting": self.preferred_mfa_setting or "",
                 }
             )
 
@@ -1643,12 +1645,36 @@ class CognitoIdpBackend(BaseBackend):
                             "User has not verified software token mfa"
                         )
 
+                    if software_token_mfa_settings["PreferredMfa"]:
+                        user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
                 elif sms_mfa_settings["Enabled"]:
                     user.sms_mfa_enabled = True
 
+                    if sms_mfa_settings["PreferredMfa"]:
+                        user.preferred_mfa_setting = "SMS_MFA"
                 return None
         else:
             raise NotAuthorizedError(access_token)
+
+    def admin_set_user_mfa_preference(self, user_pool_id, username, software_token_mfa_settings, sms_mfa_settings):
+        user = self.admin_get_user(user_pool_id, username)
+
+        if software_token_mfa_settings["Enabled"]:
+            if user.token_verified:
+                user.software_token_mfa_enabled = True
+            else:
+                raise InvalidParameterException(
+                    "User has not verified software token mfa"
+                )
+
+            if software_token_mfa_settings["PreferredMfa"]:
+                user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
+        elif sms_mfa_settings["Enabled"]:
+            user.sms_mfa_enabled = True
+
+            if sms_mfa_settings["PreferredMfa"]:
+                user.preferred_mfa_setting = "SMS_MFA"
+        return None
 
     def admin_set_user_password(self, user_pool_id, username, password, permanent):
         user = self.admin_get_user(user_pool_id, username)
