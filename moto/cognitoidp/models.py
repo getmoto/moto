@@ -1656,7 +1656,9 @@ class CognitoIdpBackend(BaseBackend):
         else:
             raise NotAuthorizedError(access_token)
 
-    def admin_set_user_mfa_preference(self, user_pool_id, username, software_token_mfa_settings, sms_mfa_settings):
+    def admin_set_user_mfa_preference(
+        self, user_pool_id, username, software_token_mfa_settings, sms_mfa_settings
+    ):
         user = self.admin_get_user(user_pool_id, username)
 
         if software_token_mfa_settings["Enabled"]:

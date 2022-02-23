@@ -3644,12 +3644,9 @@ def test_admin_setting_mfa():
     conn.admin_set_user_mfa_preference(
         Username=username,
         UserPoolId=user_pool_id,
-        SMSMfaSettings={"Enabled": True, "PreferredMfa": True}
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
     )
-    result = conn.admin_get_user(
-        UserPoolId=user_pool_id,
-        Username=username
-    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["UserMFASettingList"].should.have.length_of(1)
     result["PreferredMFA"].should.equal("SMS_MFA")
 
