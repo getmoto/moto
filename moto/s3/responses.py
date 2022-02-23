@@ -1468,6 +1468,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     == "true"
                 )
 
+                mdirective = request.headers.get("x-amz-metadata-directive")
+
                 self.backend.copy_object(
                     key,
                     bucket_name,
@@ -1477,12 +1479,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     kms_key_id=kms_key_id,
                     encryption=encryption,
                     bucket_key_enabled=bucket_key_enabled,
+                    mdirective=mdirective,
                 )
             else:
                 raise MissingKey(key=src_key)
 
             new_key = self.backend.get_object(bucket_name, key_name)
-            mdirective = request.headers.get("x-amz-metadata-directive")
             if mdirective is not None and mdirective == "REPLACE":
                 metadata = metadata_from_headers(request.headers)
                 new_key.set_metadata(metadata, replace=True)
