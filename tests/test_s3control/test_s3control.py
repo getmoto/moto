@@ -7,13 +7,6 @@ from boto3 import Session
 from botocore.client import ClientError
 from moto import settings, mock_s3control
 
-# All tests for s3-control cannot be run under the server without a modification of the
-# hosts file on your system. This is due to the fact that the URL to the host is in the form of:
-# ACCOUNT_ID.s3-control.amazonaws.com <-- That Account ID part is the problem. If you want to
-# make use of the moto server, update your hosts file for `THE_ACCOUNT_ID_FOR_MOTO.localhost`
-# and this will work fine.
-
-
 @mock_s3control
 def test_get_public_access_block_for_account():
     from moto.s3.models import ACCOUNT_ID
