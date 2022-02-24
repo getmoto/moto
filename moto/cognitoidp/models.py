@@ -1637,7 +1637,9 @@ class CognitoIdpBackend(BaseBackend):
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
 
-                if software_token_mfa_settings["Enabled"]:
+                if software_token_mfa_settings and software_token_mfa_settings.get(
+                    "Enabled"
+                ):
                     if user.token_verified:
                         user.software_token_mfa_enabled = True
                     else:
@@ -1645,12 +1647,12 @@ class CognitoIdpBackend(BaseBackend):
                             "User has not verified software token mfa"
                         )
 
-                    if software_token_mfa_settings["PreferredMfa"]:
+                    if software_token_mfa_settings.get("PreferredMfa"):
                         user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
-                elif sms_mfa_settings["Enabled"]:
+                elif sms_mfa_settings and sms_mfa_settings["Enabled"]:
                     user.sms_mfa_enabled = True
 
-                    if sms_mfa_settings["PreferredMfa"]:
+                    if sms_mfa_settings.get("PreferredMfa"):
                         user.preferred_mfa_setting = "SMS_MFA"
                 return None
         else:
@@ -1661,7 +1663,7 @@ class CognitoIdpBackend(BaseBackend):
     ):
         user = self.admin_get_user(user_pool_id, username)
 
-        if software_token_mfa_settings["Enabled"]:
+        if software_token_mfa_settings and software_token_mfa_settings.get("Enabled"):
             if user.token_verified:
                 user.software_token_mfa_enabled = True
             else:
@@ -1669,12 +1671,12 @@ class CognitoIdpBackend(BaseBackend):
                     "User has not verified software token mfa"
                 )
 
-            if software_token_mfa_settings["PreferredMfa"]:
+            if software_token_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
-        elif sms_mfa_settings["Enabled"]:
+        elif sms_mfa_settings and sms_mfa_settings.get("Enabled"):
             user.sms_mfa_enabled = True
 
-            if sms_mfa_settings["PreferredMfa"]:
+            if sms_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SMS_MFA"
         return None
 
