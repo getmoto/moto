@@ -1,11 +1,10 @@
-import http
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from boto3 import Session
 from botocore.client import ClientError
-from moto import settings, mock_s3control
+from moto import mock_s3control
 
 
 @mock_s3control
