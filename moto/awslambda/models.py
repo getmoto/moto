@@ -610,7 +610,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             "host.docker.internal": "host-gateway"
                         }
 
-                    image_ref = "lambci/lambda:{}".format(self.run_time)
+                    image_repo = settings.moto_lambda_image()
+                    image_ref = f"{image_repo}:{self.run_time}"
                     self.docker_client.images.pull(":".join(parse_image_ref(image_ref)))
                     container = self.docker_client.containers.run(
                         image_ref,
@@ -1171,6 +1172,7 @@ The following environment variables are available for fine-grained control over 
     # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
     MOTO_DOCKER_NETWORK_MODE=host moto_server
 
+The Docker image can be overridden using an environment variable: ``MOTO_DOCKER_LAMBDA_IMAGE``.
 
 .. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
