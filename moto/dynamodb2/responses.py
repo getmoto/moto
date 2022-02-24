@@ -947,7 +947,13 @@ class DynamoHandler(BaseResponse):
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}",
             )
         # We need to copy the item in order to avoid it being modified by the update_item operation
-        existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
+        try:
+            existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
+        except ValueError:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException",
+                "Requested resource not found",
+            )
         if existing_item:
             existing_attributes = existing_item.to_json()["Attributes"]
         else:

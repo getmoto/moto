@@ -534,3 +534,18 @@ def test_transact_write_items__too_many_transactions():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.match("Member must have length less than or equal to 25")
+
+
+@mock_dynamodb2
+def test_update_item_non_existent_table():
+    client = boto3.client("dynamodb", region_name="us-west-2")
+    with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
+        client.update_item(
+            TableName="non-existent",
+            Key={"forum_name": {"S": "LOLCat Forum"}},
+            UpdateExpression="set Body=:Body",
+            ExpressionAttributeValues={":Body": {"S": ""}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Message"].should.equal("Requested resource not found")
