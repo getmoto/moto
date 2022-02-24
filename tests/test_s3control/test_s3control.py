@@ -7,6 +7,7 @@ from boto3 import Session
 from botocore.client import ClientError
 from moto import settings, mock_s3control
 
+
 @mock_s3control
 def test_get_public_access_block_for_account():
     from moto.s3.models import ACCOUNT_ID
