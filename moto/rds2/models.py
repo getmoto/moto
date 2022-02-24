@@ -1971,14 +1971,16 @@ class RDS2Backend(BaseBackend):
             resource_name = arn_breakdown[len(arn_breakdown) - 1]
             if resource_type == "db":  # Database
                 if resource_name in self.databases:
-                    self.databases[resource_name].remove_tags(tag_keys)
+                    return self.databases[resource_name].remove_tags(tag_keys)
             elif resource_type == "es":  # Event Subscription
-                return None
+                if resource_name in self.event_subscriptions:
+                    return self.event_subscriptions[resource_name].remove_tags(tag_keys)
             elif resource_type == "og":  # Option Group
                 if resource_name in self.option_groups:
                     return self.option_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == "pg":  # Parameter Group
-                return None
+                if resource_name in self.db_parameter_groups:
+                    return self.db_parameter_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == "ri":  # Reserved DB instance
                 return None
             elif resource_type == "secgrp":  # DB security group
@@ -2007,12 +2009,14 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.databases:
                     return self.databases[resource_name].add_tags(tags)
             elif resource_type == "es":  # Event Subscription
-                return []
+                if resource_name in self.event_subscriptions:
+                    return self.event_subscriptions[resource_name].add_tags(tags)
             elif resource_type == "og":  # Option Group
                 if resource_name in self.option_groups:
                     return self.option_groups[resource_name].add_tags(tags)
             elif resource_type == "pg":  # Parameter Group
-                return []
+                if resource_name in self.db_parameter_groups:
+                    return self.db_parameter_groups[resource_name].add_tags(tags)
             elif resource_type == "ri":  # Reserved DB instance
                 return []
             elif resource_type == "secgrp":  # DB security group
