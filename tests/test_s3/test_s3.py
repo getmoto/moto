@@ -1,7 +1,6 @@
 import datetime
 import os
 from urllib.parse import urlparse, parse_qs
-from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
 import zlib
@@ -22,35 +21,9 @@ import pytest
 
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import settings, mock_s3, mock_config, mock_kms
+from moto import settings, mock_s3, mock_config
 import moto.s3.models as s3model
-from moto.core.exceptions import InvalidNextTokenException
-from moto.settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 from uuid import uuid4
-
-if settings.TEST_SERVER_MODE:
-    REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
-    EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
-else:
-    REDUCED_PART_SIZE = 256
-    EXPECTED_ETAG = '"66d1a1a2ed08fd05c137f316af4ff255-2"'
-
-
-def reduced_min_part_size(f):
-    """speed up tests by temporarily making the multipart minimum part size
-    small
-    """
-    orig_size = S3_UPLOAD_PART_MIN_SIZE
-
-    @wraps(f)
-    def wrapped(*args, **kwargs):
-        try:
-            s3model.S3_UPLOAD_PART_MIN_SIZE = REDUCED_PART_SIZE
-            return f(*args, **kwargs)
-        finally:
-            s3model.S3_UPLOAD_PART_MIN_SIZE = orig_size
-
-    return wrapped
 
 
 class MyModel(object):
@@ -111,7 +84,7 @@ def test_object_metadata():
 
 
 @mock_s3
-def test_key_etag():
+def test_resource_get_object_returns_etag():
     conn = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     conn.create_bucket(Bucket="mybucket")
 
@@ -124,348 +97,7 @@ def test_key_etag():
 
 
 @mock_s3
-def test_multipart_upload_too_small_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    mp = client.create_multipart_upload(Bucket="foobar", Key="the-key")
-    up1 = client.upload_part(
-        Body=BytesIO(b"hello"),
-        PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-    up2 = client.upload_part(
-        Body=BytesIO(b"world"),
-        PartNumber=2,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-    # Multipart with total size under 5MB is refused
-    with pytest.raises(ClientError) as ex:
-        client.complete_multipart_upload(
-            Bucket="foobar",
-            Key="the-key",
-            MultipartUpload={
-                "Parts": [
-                    {"ETag": up1["ETag"], "PartNumber": 1},
-                    {"ETag": up2["ETag"], "PartNumber": 2},
-                ]
-            },
-            UploadId=mp["UploadId"],
-        )
-    ex.value.response["Error"]["Code"].should.equal("EntityTooSmall")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Your proposed upload is smaller than the minimum allowed object size."
-    )
-
-
-@mock_s3
-@reduced_min_part_size
-def test_multipart_upload_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    part1 = b"0" * REDUCED_PART_SIZE
-    part2 = b"1"
-    mp = client.create_multipart_upload(Bucket="foobar", Key="the-key")
-    up1 = client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-    up2 = client.upload_part(
-        Body=BytesIO(part2),
-        PartNumber=2,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-
-    client.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
-        MultipartUpload={
-            "Parts": [
-                {"ETag": up1["ETag"], "PartNumber": 1},
-                {"ETag": up2["ETag"], "PartNumber": 2},
-            ]
-        },
-        UploadId=mp["UploadId"],
-    )
-    # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
-    response["Body"].read().should.equal(part1 + part2)
-
-
-@mock_s3
-@reduced_min_part_size
-def test_multipart_upload_out_of_order_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    part1 = b"0" * REDUCED_PART_SIZE
-    part2 = b"1"
-    mp = client.create_multipart_upload(Bucket="foobar", Key="the-key")
-    up1 = client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=4,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-    up2 = client.upload_part(
-        Body=BytesIO(part2),
-        PartNumber=2,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-
-    client.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
-        MultipartUpload={
-            "Parts": [
-                {"ETag": up1["ETag"], "PartNumber": 4},
-                {"ETag": up2["ETag"], "PartNumber": 2},
-            ]
-        },
-        UploadId=mp["UploadId"],
-    )
-    # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
-    response["Body"].read().should.equal(part1 + part2)
-
-
-@mock_s3
-@reduced_min_part_size
-def test_multipart_upload_with_headers_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    part1 = b"0" * REDUCED_PART_SIZE
-    mp = client.create_multipart_upload(
-        Bucket="foobar", Key="the-key", Metadata={"meta": "data"}
-    )
-    up1 = client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-
-    client.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
-        MultipartUpload={"Parts": [{"ETag": up1["ETag"], "PartNumber": 1}]},
-        UploadId=mp["UploadId"],
-    )
-    # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
-    response["Metadata"].should.equal({"meta": "data"})
-
-
-@pytest.mark.parametrize(
-    "original_key_name",
-    [
-        "original-key",
-        "the-unicode-💩-key",
-        "key-with?question-mark",
-        "key-with%2Fembedded%2Furl%2Fencoding",
-    ],
-)
-@mock_s3
-@reduced_min_part_size
-def test_multipart_upload_with_copy_key_boto3(original_key_name):
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-    s3.put_object(Bucket="foobar", Key=original_key_name, Body="key_value")
-
-    mpu = s3.create_multipart_upload(Bucket="foobar", Key="the-key")
-    part1 = b"0" * REDUCED_PART_SIZE
-    up1 = s3.upload_part(
-        Bucket="foobar",
-        Key="the-key",
-        PartNumber=1,
-        UploadId=mpu["UploadId"],
-        Body=BytesIO(part1),
-    )
-    up2 = s3.upload_part_copy(
-        Bucket="foobar",
-        Key="the-key",
-        CopySource={"Bucket": "foobar", "Key": original_key_name},
-        CopySourceRange="0-3",
-        PartNumber=2,
-        UploadId=mpu["UploadId"],
-    )
-    s3.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
-        MultipartUpload={
-            "Parts": [
-                {"ETag": up1["ETag"], "PartNumber": 1},
-                {"ETag": up2["CopyPartResult"]["ETag"], "PartNumber": 2},
-            ]
-        },
-        UploadId=mpu["UploadId"],
-    )
-    response = s3.get_object(Bucket="foobar", Key="the-key")
-    response["Body"].read().should.equal(part1 + b"key_")
-
-
-@mock_s3
-@reduced_min_part_size
-def test_multipart_upload_cancel_boto3():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    mpu = s3.create_multipart_upload(Bucket="foobar", Key="the-key")
-    part1 = b"0" * REDUCED_PART_SIZE
-    s3.upload_part(
-        Bucket="foobar",
-        Key="the-key",
-        PartNumber=1,
-        UploadId=mpu["UploadId"],
-        Body=BytesIO(part1),
-    )
-
-    uploads = s3.list_multipart_uploads(Bucket="foobar")["Uploads"]
-    uploads.should.have.length_of(1)
-    uploads[0]["Key"].should.equal("the-key")
-
-    s3.abort_multipart_upload(Bucket="foobar", Key="the-key", UploadId=mpu["UploadId"])
-
-    s3.list_multipart_uploads(Bucket="foobar").shouldnt.have.key("Uploads")
-
-
-@mock_s3
-@reduced_min_part_size
-def test_multipart_etag_quotes_stripped_boto3():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-    s3.put_object(Bucket="foobar", Key="original-key", Body="key_value")
-
-    mpu = s3.create_multipart_upload(Bucket="foobar", Key="the-key")
-    part1 = b"0" * REDUCED_PART_SIZE
-    up1 = s3.upload_part(
-        Bucket="foobar",
-        Key="the-key",
-        PartNumber=1,
-        UploadId=mpu["UploadId"],
-        Body=BytesIO(part1),
-    )
-    etag1 = up1["ETag"].replace('"', "")
-    up2 = s3.upload_part_copy(
-        Bucket="foobar",
-        Key="the-key",
-        CopySource={"Bucket": "foobar", "Key": "original-key"},
-        CopySourceRange="0-3",
-        PartNumber=2,
-        UploadId=mpu["UploadId"],
-    )
-    etag2 = up2["CopyPartResult"]["ETag"].replace('"', "")
-    s3.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
-        MultipartUpload={
-            "Parts": [
-                {"ETag": etag1, "PartNumber": 1},
-                {"ETag": etag2, "PartNumber": 2},
-            ]
-        },
-        UploadId=mpu["UploadId"],
-    )
-    response = s3.get_object(Bucket="foobar", Key="the-key")
-    response["Body"].read().should.equal(part1 + b"key_")
-
-
-@mock_s3
-@reduced_min_part_size
-def test_multipart_duplicate_upload_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    part1 = b"0" * REDUCED_PART_SIZE
-    part2 = b"1"
-    mp = client.create_multipart_upload(Bucket="foobar", Key="the-key")
-    client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-    # same part again
-    up1 = client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-    up2 = client.upload_part(
-        Body=BytesIO(part2),
-        PartNumber=2,
-        Bucket="foobar",
-        Key="the-key",
-        UploadId=mp["UploadId"],
-    )
-
-    client.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
-        MultipartUpload={
-            "Parts": [
-                {"ETag": up1["ETag"], "PartNumber": 1},
-                {"ETag": up2["ETag"], "PartNumber": 2},
-            ]
-        },
-        UploadId=mp["UploadId"],
-    )
-    # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
-    response["Body"].read().should.equal(part1 + part2)
-
-
-@mock_s3
-def test_list_multiparts_boto3():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    mpu1 = s3.create_multipart_upload(Bucket="foobar", Key="one-key")
-    mpu2 = s3.create_multipart_upload(Bucket="foobar", Key="two-key")
-
-    uploads = s3.list_multipart_uploads(Bucket="foobar")["Uploads"]
-    uploads.should.have.length_of(2)
-    {u["Key"]: u["UploadId"] for u in uploads}.should.equal(
-        {"one-key": mpu1["UploadId"], "two-key": mpu2["UploadId"]}
-    )
-
-    s3.abort_multipart_upload(Bucket="foobar", Key="the-key", UploadId=mpu2["UploadId"])
-
-    uploads = s3.list_multipart_uploads(Bucket="foobar")["Uploads"]
-    uploads.should.have.length_of(1)
-    uploads[0]["Key"].should.equal("one-key")
-
-    s3.abort_multipart_upload(Bucket="foobar", Key="the-key", UploadId=mpu1["UploadId"])
-
-    res = s3.list_multipart_uploads(Bucket="foobar")
-    res.shouldnt.have.key("Uploads")
-
-
-@mock_s3
-def test_key_save_to_missing_bucket_boto3():
+def test_key_save_to_missing_bucket():
     s3 = boto3.resource("s3")
 
     key = s3.Object("mybucket", "the-key")
@@ -478,7 +110,7 @@ def test_key_save_to_missing_bucket_boto3():
 
 
 @mock_s3
-def test_missing_key_request_boto3():
+def test_missing_key_request():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Only test status code in non-ServerMode")
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -489,7 +121,7 @@ def test_missing_key_request_boto3():
 
 
 @mock_s3
-def test_empty_key_boto3():
+def test_empty_key():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
@@ -503,7 +135,7 @@ def test_empty_key_boto3():
 
 
 @mock_s3
-def test_empty_key_set_on_existing_key_boto3():
+def test_empty_key_set_on_existing_key():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
@@ -523,7 +155,7 @@ def test_empty_key_set_on_existing_key_boto3():
 
 
 @mock_s3
-def test_large_key_save_boto3():
+def test_large_key_save():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
@@ -535,99 +167,8 @@ def test_large_key_save_boto3():
     resp["Body"].read().should.equal(b"foobar" * 100000)
 
 
-@pytest.mark.parametrize(
-    "key_name",
-    [
-        "the-key",
-        "the-unicode-💩-key",
-        "key-with?question-mark",
-        "key-with%2Fembedded%2Furl%2Fencoding",
-    ],
-)
 @mock_s3
-def test_copy_key_boto3(key_name):
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    key = s3.Object("foobar", key_name)
-    key.put(Body=b"some value")
-
-    key2 = s3.Object("foobar", "new-key")
-    key2.copy_from(CopySource="foobar/{}".format(key_name))
-
-    resp = client.get_object(Bucket="foobar", Key=key_name)
-    resp["Body"].read().should.equal(b"some value")
-    resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Body"].read().should.equal(b"some value")
-
-
-@mock_s3
-def test_copy_key_with_version_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-    client.put_bucket_versioning(
-        Bucket="foobar", VersioningConfiguration={"Status": "Enabled"}
-    )
-
-    key = s3.Object("foobar", "the-key")
-    key.put(Body=b"some value")
-    key.put(Body=b"another value")
-
-    all_versions = client.list_object_versions(Bucket="foobar", Prefix="the-key")[
-        "Versions"
-    ]
-    old_version = [v for v in all_versions if not v["IsLatest"]][0]
-
-    key2 = s3.Object("foobar", "new-key")
-    key2.copy_from(
-        CopySource="foobar/the-key?versionId={}".format(old_version["VersionId"])
-    )
-
-    resp = client.get_object(Bucket="foobar", Key="the-key")
-    resp["Body"].read().should.equal(b"another value")
-    resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Body"].read().should.equal(b"some value")
-
-
-@mock_s3
-def test_copy_object_with_bucketkeyenabled_returns_the_value():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "test-copy-object-with-bucketkeyenabled"
-    s3.create_bucket(Bucket=bucket_name)
-
-    key = s3.Object(bucket_name, "the-key")
-    key.put(Body=b"some value")
-
-    key2 = s3.Object(bucket_name, "new-key")
-    key2.copy_from(
-        CopySource=f"{bucket_name}/the-key",
-        BucketKeyEnabled=True,
-        ServerSideEncryption="aws:kms",
-    )
-
-    resp = client.get_object(Bucket=bucket_name, Key="the-key")
-    src_headers = resp["ResponseMetadata"]["HTTPHeaders"]
-    src_headers.shouldnt.have.key("x-amz-server-side-encryption")
-    src_headers.shouldnt.have.key("x-amz-server-side-encryption-aws-kms-key-id")
-    src_headers.shouldnt.have.key("x-amz-server-side-encryption-bucket-key-enabled")
-
-    resp = client.get_object(Bucket=bucket_name, Key="new-key")
-    target_headers = resp["ResponseMetadata"]["HTTPHeaders"]
-    target_headers.should.have.key("x-amz-server-side-encryption")
-    # AWS will also return the KMS default key id - not yet implemented
-    # target_headers.should.have.key("x-amz-server-side-encryption-aws-kms-key-id")
-    # This field is only returned if encryption is set to 'aws:kms'
-    target_headers.should.have.key("x-amz-server-side-encryption-bucket-key-enabled")
-    str(
-        target_headers["x-amz-server-side-encryption-bucket-key-enabled"]
-    ).lower().should.equal("true")
-
-
-@mock_s3
-def test_set_metadata_boto3():
+def test_set_metadata():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="foobar")
@@ -639,98 +180,9 @@ def test_set_metadata_boto3():
     resp["Metadata"].should.equal({"md": "Metadatastring"})
 
 
-@mock_s3
-def test_copy_key_with_metadata_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    key = s3.Object("foobar", "the-key")
-    metadata = {"md": "Metadatastring"}
-    content_type = "application/json"
-    initial = key.put(Body=b"{}", Metadata=metadata, ContentType=content_type)
-
-    client.copy_object(
-        Bucket="foobar", CopySource="foobar/the-key", Key="new-key",
-    )
-
-    resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Metadata"].should.equal(metadata)
-    resp["ContentType"].should.equal(content_type)
-    resp["ETag"].should.equal(initial["ETag"])
-
-
-@mock_s3
-def test_copy_key_replace_metadata_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
-
-    key = s3.Object("foobar", "the-key")
-    initial = key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
-
-    client.copy_object(
-        Bucket="foobar",
-        CopySource="foobar/the-key",
-        Key="new-key",
-        Metadata={"momd": "Mometadatastring"},
-        MetadataDirective="REPLACE",
-    )
-
-    resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Metadata"].should.equal({"momd": "Mometadatastring"})
-    resp["ETag"].should.equal(initial["ETag"])
-
-
-@mock_s3
-def test_copy_key_without_changes_should_error_boto3():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "my_bucket"
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    key_name = "my_key"
-    key = s3.Object(bucket_name, key_name)
-
-    s3.create_bucket(Bucket=bucket_name)
-    key.put(Body=b"some value")
-
-    with pytest.raises(ClientError) as e:
-        client.copy_object(
-            Bucket=bucket_name,
-            CopySource="{}/{}".format(bucket_name, key_name),
-            Key=key_name,
-        )
-        e.value.response["Error"]["Message"].should.equal(
-            "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes."
-        )
-
-
-@mock_s3
-def test_copy_key_without_changes_should_not_error_boto3():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "my_bucket"
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    key_name = "my_key"
-    key = s3.Object(bucket_name, key_name)
-
-    s3.create_bucket(Bucket=bucket_name)
-    key.put(Body=b"some value")
-
-    client.copy_object(
-        Bucket=bucket_name,
-        CopySource="{}/{}".format(bucket_name, key_name),
-        Key=key_name,
-        Metadata={"some-key": "some-value"},
-        MetadataDirective="REPLACE",
-    )
-
-    new_object = client.get_object(Bucket=bucket_name, Key=key_name)
-
-    assert new_object["Metadata"] == {"some-key": "some-value"}
-
-
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3
-def test_last_modified_boto3():
+def test_last_modified():
     # See https://github.com/boto/boto/issues/466
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -751,7 +203,7 @@ def test_last_modified_boto3():
 
 
 @mock_s3
-def test_missing_bucket_boto3():
+def test_missing_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as ex:
         client.head_bucket(Bucket="mybucket")
@@ -765,7 +217,7 @@ def test_missing_bucket_boto3():
 
 
 @mock_s3
-def test_create_existing_bucket_boto3():
+def test_create_existing_bucket():
     "Trying to create a bucket that already exists should raise an Error"
     client = boto3.client("s3", region_name="us-west-2")
     kwargs = {
@@ -782,7 +234,7 @@ def test_create_existing_bucket_boto3():
 
 
 @mock_s3
-def test_create_existing_bucket_in_us_east_1_boto3():
+def test_create_existing_bucket_in_us_east_1():
     "Trying to create a bucket that already exists in us-east-1 returns the bucket"
 
     """"
@@ -798,7 +250,7 @@ def test_create_existing_bucket_in_us_east_1_boto3():
 
 
 @mock_s3
-def test_bucket_deletion_boto3():
+def test_bucket_deletion():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
@@ -817,14 +269,6 @@ def test_bucket_deletion_boto3():
     client.delete_object(Bucket="foobar", Key="the-key")
     client.delete_bucket(Bucket="foobar")
 
-    # Get non-existing bucket details
-    with pytest.raises(ClientError) as ex:
-        client.get_bucket_tagging(Bucket="foobar")
-    ex.value.response["Error"]["Code"].should.equal("NoSuchBucket")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The specified bucket does not exist"
-    )
-
     # Delete non-existent bucket
     with pytest.raises(ClientError) as ex:
         client.delete_bucket(Bucket="foobar")
@@ -835,7 +279,7 @@ def test_bucket_deletion_boto3():
 
 
 @mock_s3
-def test_get_all_buckets_boto3():
+def test_get_all_buckets():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
     client.create_bucket(Bucket="foobar2")
@@ -844,7 +288,7 @@ def test_get_all_buckets_boto3():
 
 
 @mock_s3
-def test_post_to_bucket_boto3():
+def test_post_to_bucket():
     if settings.TEST_SERVER_MODE:
         # ServerMode does not allow unauthorized requests
         raise SkipTest()
@@ -861,7 +305,7 @@ def test_post_to_bucket_boto3():
 
 
 @mock_s3
-def test_post_with_metadata_to_bucket_boto3():
+def test_post_with_metadata_to_bucket():
     if settings.TEST_SERVER_MODE:
         # ServerMode does not allow unauthorized requests
         raise SkipTest()
@@ -935,7 +379,7 @@ def test_delete_versioned_objects():
 
 
 @mock_s3
-def test_delete_missing_key_boto3():
+def test_delete_missing_key():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
@@ -965,7 +409,7 @@ def test_delete_missing_key_boto3():
 
 
 @mock_s3
-def test_boto3_delete_empty_keys_list():
+def test_delete_empty_keys_list():
     with pytest.raises(ClientError) as err:
         boto3.client("s3").delete_objects(Bucket="foobar", Delete={"Objects": []})
     assert err.value.response["Error"]["Code"] == "MalformedXML"
@@ -973,7 +417,7 @@ def test_boto3_delete_empty_keys_list():
 
 @pytest.mark.parametrize("name", ["firstname.lastname", "with-dash"])
 @mock_s3
-def test_bucket_name_with_special_chars_boto3(name):
+def test_bucket_name_with_special_chars(name):
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket(name)
@@ -989,7 +433,7 @@ def test_bucket_name_with_special_chars_boto3(name):
     "key", ["normal", "test_list_keys_2/x?y", "/the-key-unîcode/test"]
 )
 @mock_s3
-def test_key_with_special_characters_boto3(key):
+def test_key_with_special_characters(key):
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("testname")
@@ -1005,7 +449,7 @@ def test_key_with_special_characters_boto3(key):
 
 
 @mock_s3
-def test_bucket_key_listing_order_boto3():
+def test_bucket_key_listing_order():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test_bucket"
     bucket = s3.Bucket(bucket_name)
@@ -1047,7 +491,7 @@ def test_bucket_key_listing_order_boto3():
 
 
 @mock_s3
-def test_key_with_reduced_redundancy_boto3():
+def test_key_with_reduced_redundancy():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test_bucket"
     bucket = s3.Bucket(bucket_name)
@@ -1062,30 +506,9 @@ def test_key_with_reduced_redundancy_boto3():
     [x.storage_class for x in bucket.objects.all()].should.equal(["REDUCED_REDUNDANCY"])
 
 
-@mock_s3
-def test_copy_key_reduced_redundancy_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3.Bucket("test_bucket")
-    bucket.create()
-
-    bucket.put_object(Key="the-key", Body=b"somedata")
-
-    client.copy_object(
-        Bucket="test_bucket",
-        CopySource="test_bucket/the-key",
-        Key="new-key",
-        StorageClass="REDUCED_REDUNDANCY",
-    )
-
-    keys = dict([(k.key, k) for k in bucket.objects.all()])
-    keys["new-key"].storage_class.should.equal("REDUCED_REDUNDANCY")
-    keys["the-key"].storage_class.should.equal("STANDARD")
-
-
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3
-def test_restore_key_boto3():
+def test_restore_key():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
@@ -1111,7 +534,7 @@ def test_restore_key_boto3():
 
 
 @mock_s3
-def test_cannot_restore_standard_class_object_boto3():
+def test_cannot_restore_standard_class_object():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
@@ -1129,7 +552,7 @@ def test_cannot_restore_standard_class_object_boto3():
 
 
 @mock_s3
-def test_get_versioning_status_boto3():
+def test_get_versioning_status():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
     bucket.create()
@@ -1145,7 +568,7 @@ def test_get_versioning_status_boto3():
 
 
 @mock_s3
-def test_key_version_boto3():
+def test_key_version():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
@@ -1165,7 +588,7 @@ def test_key_version_boto3():
 
 
 @mock_s3
-def test_list_versions_boto3():
+def test_list_versions():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
@@ -1207,7 +630,7 @@ def test_list_versions_boto3():
 
 
 @mock_s3
-def test_acl_setting_boto3():
+def test_acl_setting():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
@@ -1232,7 +655,7 @@ def test_acl_setting_boto3():
 
 
 @mock_s3
-def test_acl_setting_via_headers_boto3():
+def test_acl_setting_via_headers():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
@@ -1256,7 +679,7 @@ def test_acl_setting_via_headers_boto3():
 
 
 @mock_s3
-def test_acl_switching_boto3():
+def test_acl_switching():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
@@ -1306,7 +729,7 @@ def test_streaming_upload_from_file_to_presigned_url():
 
 
 @mock_s3
-def test_multipart_upload_from_file_to_presigned_url():
+def test_upload_from_file_to_presigned_url():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
 
@@ -1368,33 +791,6 @@ def test_put_chunked_with_v4_signature_in_body():
 
 
 @mock_s3
-def test_default_key_buffer_size():
-    # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
-    original_default_key_buffer_size = os.environ.get(
-        "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", None
-    )
-
-    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
-    assert get_s3_default_key_buffer_size() == 2
-    fk = s3model.FakeKey("a", os.urandom(1))  # 1 byte string
-    assert fk._value_buffer._rolled == False
-
-    os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
-    assert get_s3_default_key_buffer_size() == 1
-    fk = s3model.FakeKey("a", os.urandom(3))  # 3 byte string
-    assert fk._value_buffer._rolled == True
-
-    # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the buffer size should be less than
-    # S3_UPLOAD_PART_MIN_SIZE to prevent in memory caching of multi part uploads
-    del os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"]
-    assert get_s3_default_key_buffer_size() < S3_UPLOAD_PART_MIN_SIZE
-
-    # restore original environment variable content
-    if original_default_key_buffer_size:
-        os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
-
-
-@mock_s3
 def test_s3_object_in_private_bucket():
     s3 = boto3.resource("s3")
     bucket = s3.Bucket("test-bucket")
@@ -1420,7 +816,7 @@ def test_s3_object_in_private_bucket():
 
 
 @mock_s3
-def test_unicode_key_boto3():
+def test_unicode_key():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("mybucket")
     bucket.create()
@@ -1434,7 +830,7 @@ def test_unicode_key_boto3():
 
 
 @mock_s3
-def test_unicode_value_boto3():
+def test_unicode_value():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("mybucket")
     bucket.create()
@@ -1446,7 +842,7 @@ def test_unicode_value_boto3():
 
 
 @mock_s3
-def test_setting_content_encoding_boto3():
+def test_setting_content_encoding():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("mybucket")
     bucket.create()
@@ -1499,7 +895,7 @@ if not settings.TEST_SERVER_MODE:
 
 
 @mock_s3
-def test_ranged_get_boto3():
+def test_ranged_get():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("mybucket")
     bucket.create()
@@ -1540,7 +936,7 @@ def test_ranged_get_boto3():
 
 
 @mock_s3
-def test_policy_boto3():
+def test_policy():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -1589,7 +985,7 @@ def test_policy_boto3():
 
 
 @mock_s3
-def test_website_configuration_xml_boto3():
+def test_website_configuration_xml():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -1621,7 +1017,7 @@ def test_website_configuration_xml_boto3():
 
 
 @mock_s3
-def test_boto3_key_etag():
+def test_client_get_object_returns_etag():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     s3.put_object(Bucket="mybucket", Key="steve", Body=b"is awesome")
@@ -1669,7 +1065,7 @@ def test_list_objects_with_pagesize_0():
 
 
 @mock_s3
-def test_boto3_list_objects_truncated_response():
+def test_list_objects_truncated_response():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     s3.put_object(Bucket="mybucket", Key="one", Body=b"1")
@@ -1715,7 +1111,7 @@ def test_boto3_list_objects_truncated_response():
 
 
 @mock_s3
-def test_boto3_list_keys_xml_escaped():
+def test_list_keys_xml_escaped():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     key_name = "Q&A.txt"
@@ -1735,7 +1131,7 @@ def test_boto3_list_keys_xml_escaped():
 
 
 @mock_s3
-def test_boto3_list_objects_v2_common_prefix_pagination():
+def test_list_objects_v2_common_prefix_pagination():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
 
@@ -1764,7 +1160,7 @@ def test_boto3_list_objects_v2_common_prefix_pagination():
 
 
 @mock_s3
-def test_boto3_list_objects_v2_common_invalid_continuation_token():
+def test_list_objects_v2_common_invalid_continuation_token():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
 
@@ -1790,7 +1186,7 @@ def test_boto3_list_objects_v2_common_invalid_continuation_token():
 
 
 @mock_s3
-def test_boto3_list_objects_v2_truncated_response():
+def test_list_objects_v2_truncated_response():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     s3.put_object(Bucket="mybucket", Key="one", Body=b"1")
@@ -1847,7 +1243,7 @@ def test_boto3_list_objects_v2_truncated_response():
 
 
 @mock_s3
-def test_boto3_list_objects_v2_truncated_response_start_after():
+def test_list_objects_v2_truncated_response_start_after():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     s3.put_object(Bucket="mybucket", Key="one", Body=b"1")
@@ -1889,7 +1285,7 @@ def test_boto3_list_objects_v2_truncated_response_start_after():
 
 
 @mock_s3
-def test_boto3_list_objects_v2_fetch_owner():
+def test_list_objects_v2_fetch_owner():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     s3.put_object(Bucket="mybucket", Key="one", Body=b"11")
@@ -1903,7 +1299,7 @@ def test_boto3_list_objects_v2_fetch_owner():
 
 
 @mock_s3
-def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
+def test_list_objects_v2_truncate_combined_keys_and_folders():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
     s3.put_object(Bucket="mybucket", Key="1/2", Body="")
@@ -1933,7 +1329,7 @@ def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
 
 
 @mock_s3
-def test_boto3_bucket_create():
+def test_bucket_create():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="blah")
 
@@ -1956,7 +1352,7 @@ def test_bucket_create_force_us_east_1():
 
 
 @mock_s3
-def test_boto3_bucket_create_eu_central():
+def test_bucket_create_eu_central():
     s3 = boto3.resource("s3", region_name="eu-central-1")
     s3.create_bucket(
         Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-central-1"}
@@ -1979,7 +1375,7 @@ def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_er
 
 
 @mock_s3
-def test_boto3_head_object():
+def test_head_object():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="blah")
 
@@ -1997,38 +1393,7 @@ def test_boto3_head_object():
 
 
 @mock_s3
-def test_boto3_bucket_deletion():
-    cli = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    cli.create_bucket(Bucket="foobar")
-
-    cli.put_object(Bucket="foobar", Key="the-key", Body="some value")
-
-    # Try to delete a bucket that still has keys
-    cli.delete_bucket.when.called_with(Bucket="foobar").should.throw(
-        cli.exceptions.ClientError,
-        (
-            "An error occurred (BucketNotEmpty) when calling the DeleteBucket operation: "
-            "The bucket you tried to delete is not empty"
-        ),
-    )
-
-    cli.delete_object(Bucket="foobar", Key="the-key")
-    cli.delete_bucket(Bucket="foobar")
-
-    # Get non-existing bucket
-    cli.head_bucket.when.called_with(Bucket="foobar").should.throw(
-        cli.exceptions.ClientError,
-        "An error occurred (404) when calling the HeadBucket operation: Not Found",
-    )
-
-    # Delete non-existing bucket
-    cli.delete_bucket.when.called_with(Bucket="foobar").should.throw(
-        cli.exceptions.NoSuchBucket
-    )
-
-
-@mock_s3
-def test_boto3_get_object():
+def test_get_object():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="blah")
 
@@ -2045,7 +1410,7 @@ def test_boto3_get_object():
 
 
 @mock_s3
-def test_boto3_s3_content_type():
+def test_s3_content_type():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     my_bucket = s3.Bucket("my-cool-bucket")
     my_bucket.create()
@@ -2061,7 +1426,7 @@ def test_boto3_s3_content_type():
 
 
 @mock_s3
-def test_boto3_get_missing_object_with_part_number():
+def test_get_missing_object_with_part_number():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="blah")
 
@@ -2074,7 +1439,7 @@ def test_boto3_get_missing_object_with_part_number():
 
 
 @mock_s3
-def test_boto3_head_object_with_versioning():
+def test_head_object_with_versioning():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.create_bucket(Bucket="blah")
     bucket.Versioning().enable()
@@ -2104,173 +1469,7 @@ def test_boto3_head_object_with_versioning():
 
 
 @mock_s3
-def test_boto3_copy_non_existing_file():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    src = "srcbucket"
-    target = "target"
-    s3.create_bucket(Bucket=src)
-    s3.create_bucket(Bucket=target)
-
-    s3_client = boto3.client("s3")
-    with pytest.raises(ClientError) as exc:
-        s3_client.copy_object(
-            Bucket=target, CopySource={"Bucket": src, "Key": "foofoofoo"}, Key="newkey"
-        )
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchKey")
-    err["Message"].should.equal("The specified key does not exist.")
-    err["Key"].should.equal("foofoofoo")
-
-
-@mock_s3
-def test_boto3_copy_object_with_versioning():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-
-    client.create_bucket(
-        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
-    client.put_bucket_versioning(
-        Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
-    )
-
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1")
-    client.put_object(Bucket="blah", Key="test2", Body=b"test2")
-
-    client.get_object(Bucket="blah", Key="test1")["VersionId"]
-    obj2_version = client.get_object(Bucket="blah", Key="test2")["VersionId"]
-
-    client.copy_object(
-        CopySource={"Bucket": "blah", "Key": "test1"}, Bucket="blah", Key="test2"
-    )
-    obj2_version_new = client.get_object(Bucket="blah", Key="test2")["VersionId"]
-
-    # Version should be different to previous version
-    obj2_version_new.should_not.equal(obj2_version)
-
-    client.copy_object(
-        CopySource={"Bucket": "blah", "Key": "test2", "VersionId": obj2_version},
-        Bucket="blah",
-        Key="test3",
-    )
-    obj3_version_new = client.get_object(Bucket="blah", Key="test3")["VersionId"]
-    obj3_version_new.should_not.equal(obj2_version_new)
-
-    # Copy file that doesn't exist
-    with pytest.raises(ClientError) as e:
-        client.copy_object(
-            CopySource={"Bucket": "blah", "Key": "test4", "VersionId": obj2_version},
-            Bucket="blah",
-            Key="test5",
-        )
-    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
-
-    response = client.create_multipart_upload(Bucket="blah", Key="test4")
-    upload_id = response["UploadId"]
-    response = client.upload_part_copy(
-        Bucket="blah",
-        Key="test4",
-        CopySource={"Bucket": "blah", "Key": "test3", "VersionId": obj3_version_new},
-        UploadId=upload_id,
-        PartNumber=1,
-    )
-    etag = response["CopyPartResult"]["ETag"]
-    client.complete_multipart_upload(
-        Bucket="blah",
-        Key="test4",
-        UploadId=upload_id,
-        MultipartUpload={"Parts": [{"ETag": etag, "PartNumber": 1}]},
-    )
-
-    response = client.get_object(Bucket="blah", Key="test4")
-    data = response["Body"].read()
-    data.should.equal(b"test2")
-
-
-@mock_s3
-def test_s3_abort_multipart_data_with_invalid_upload_and_key():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-
-    client.create_bucket(Bucket="blah")
-
-    with pytest.raises(Exception) as err:
-        client.abort_multipart_upload(
-            Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
-        )
-    err = err.value.response["Error"]
-    err["Code"].should.equal("NoSuchUpload")
-    err["Message"].should.equal(
-        "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed."
-    )
-    err["UploadId"].should.equal("dummy_upload_id")
-
-
-@mock_s3
-def test_boto3_copy_object_from_unversioned_to_versioned_bucket():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-
-    client.create_bucket(
-        Bucket="src", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
-    client.create_bucket(
-        Bucket="dest", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
-    client.put_bucket_versioning(
-        Bucket="dest", VersioningConfiguration={"Status": "Enabled"}
-    )
-
-    client.put_object(Bucket="src", Key="test", Body=b"content")
-
-    obj2_version_new = client.copy_object(
-        CopySource={"Bucket": "src", "Key": "test"}, Bucket="dest", Key="test"
-    ).get("VersionId")
-
-    # VersionId should be present in the response
-    obj2_version_new.should_not.equal(None)
-
-
-@mock_s3
-def test_boto3_copy_object_with_replacement_tagging():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="mybucket")
-    client.put_object(
-        Bucket="mybucket", Key="original", Body=b"test", Tagging="tag=old"
-    )
-
-    # using system tags will fail
-    with pytest.raises(ClientError) as err:
-        client.copy_object(
-            CopySource={"Bucket": "mybucket", "Key": "original"},
-            Bucket="mybucket",
-            Key="copy1",
-            TaggingDirective="REPLACE",
-            Tagging="aws:tag=invalid_key",
-        )
-
-    e = err.value
-    e.response["Error"]["Code"].should.equal("InvalidTag")
-
-    client.copy_object(
-        CopySource={"Bucket": "mybucket", "Key": "original"},
-        Bucket="mybucket",
-        Key="copy1",
-        TaggingDirective="REPLACE",
-        Tagging="tag=new",
-    )
-    client.copy_object(
-        CopySource={"Bucket": "mybucket", "Key": "original"},
-        Bucket="mybucket",
-        Key="copy2",
-        TaggingDirective="COPY",
-    )
-
-    tags1 = client.get_object_tagging(Bucket="mybucket", Key="copy1")["TagSet"]
-    tags1.should.equal([{"Key": "tag", "Value": "new"}])
-    tags2 = client.get_object_tagging(Bucket="mybucket", Key="copy2")["TagSet"]
-    tags2.should.equal([{"Key": "tag", "Value": "old"}])
-
-
-@mock_s3
-def test_boto3_deleted_versionings_list():
+def test_deleted_versionings_list():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
     client.create_bucket(Bucket="blah")
@@ -2287,7 +1486,7 @@ def test_boto3_deleted_versionings_list():
 
 
 @mock_s3
-def test_boto3_delete_objects_for_specific_version_id():
+def test_delete_objects_for_specific_version_id():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="blah")
     client.put_bucket_versioning(
@@ -2310,7 +1509,7 @@ def test_boto3_delete_objects_for_specific_version_id():
 
 
 @mock_s3
-def test_boto3_delete_versioned_bucket():
+def test_delete_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
     client.create_bucket(Bucket="blah")
@@ -2325,7 +1524,7 @@ def test_boto3_delete_versioned_bucket():
 
 
 @mock_s3
-def test_boto3_delete_versioned_bucket_returns_meta():
+def test_delete_versioned_bucket_returns_meta():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
     client.create_bucket(Bucket="blah")
@@ -2349,7 +1548,7 @@ def test_boto3_delete_versioned_bucket_returns_meta():
 
 
 @mock_s3
-def test_boto3_get_object_if_modified_since():
+def test_get_object_if_modified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2369,7 +1568,7 @@ def test_boto3_get_object_if_modified_since():
 
 
 @mock_s3
-def test_boto3_get_object_if_unmodified_since():
+def test_get_object_if_unmodified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2390,7 +1589,7 @@ def test_boto3_get_object_if_unmodified_since():
 
 
 @mock_s3
-def test_boto3_get_object_if_match():
+def test_get_object_if_match():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2409,7 +1608,7 @@ def test_boto3_get_object_if_match():
 
 
 @mock_s3
-def test_boto3_get_object_if_none_match():
+def test_get_object_if_none_match():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2427,7 +1626,7 @@ def test_boto3_get_object_if_none_match():
 
 
 @mock_s3
-def test_boto3_head_object_if_modified_since():
+def test_head_object_if_modified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2447,7 +1646,7 @@ def test_boto3_head_object_if_modified_since():
 
 
 @mock_s3
-def test_boto3_head_object_if_unmodified_since():
+def test_head_object_if_unmodified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2467,7 +1666,7 @@ def test_boto3_head_object_if_unmodified_since():
 
 
 @mock_s3
-def test_boto3_head_object_if_match():
+def test_head_object_if_match():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2485,7 +1684,7 @@ def test_boto3_head_object_if_match():
 
 
 @mock_s3
-def test_boto3_head_object_if_none_match():
+def test_head_object_if_none_match():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
     s3.create_bucket(Bucket=bucket_name)
@@ -2503,435 +1702,7 @@ def test_boto3_head_object_if_none_match():
 
 
 @mock_s3
-@reduced_min_part_size
-def test_boto3_multipart_etag():
-    # Create Bucket so that test can run
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="mybucket")
-
-    upload_id = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")["UploadId"]
-    part1 = b"0" * REDUCED_PART_SIZE
-    etags = []
-    etags.append(
-        s3.upload_part(
-            Bucket="mybucket",
-            Key="the-key",
-            PartNumber=1,
-            UploadId=upload_id,
-            Body=part1,
-        )["ETag"]
-    )
-    # last part, can be less than 5 MB
-    part2 = b"1"
-    etags.append(
-        s3.upload_part(
-            Bucket="mybucket",
-            Key="the-key",
-            PartNumber=2,
-            UploadId=upload_id,
-            Body=part2,
-        )["ETag"]
-    )
-
-    s3.complete_multipart_upload(
-        Bucket="mybucket",
-        Key="the-key",
-        UploadId=upload_id,
-        MultipartUpload={
-            "Parts": [
-                {"ETag": etag, "PartNumber": i} for i, etag in enumerate(etags, 1)
-            ]
-        },
-    )
-    # we should get both parts as the key contents
-    resp = s3.get_object(Bucket="mybucket", Key="the-key")
-    resp["ETag"].should.equal(EXPECTED_ETAG)
-
-
-@mock_s3
-@reduced_min_part_size
-def test_boto3_multipart_version():
-    # Create Bucket so that test can run
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="mybucket")
-
-    s3.put_bucket_versioning(
-        Bucket="mybucket", VersioningConfiguration={"Status": "Enabled"}
-    )
-
-    upload_id = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")["UploadId"]
-    part1 = b"0" * REDUCED_PART_SIZE
-    etags = []
-    etags.append(
-        s3.upload_part(
-            Bucket="mybucket",
-            Key="the-key",
-            PartNumber=1,
-            UploadId=upload_id,
-            Body=part1,
-        )["ETag"]
-    )
-    # last part, can be less than 5 MB
-    part2 = b"1"
-    etags.append(
-        s3.upload_part(
-            Bucket="mybucket",
-            Key="the-key",
-            PartNumber=2,
-            UploadId=upload_id,
-            Body=part2,
-        )["ETag"]
-    )
-    response = s3.complete_multipart_upload(
-        Bucket="mybucket",
-        Key="the-key",
-        UploadId=upload_id,
-        MultipartUpload={
-            "Parts": [
-                {"ETag": etag, "PartNumber": i} for i, etag in enumerate(etags, 1)
-            ]
-        },
-    )
-
-    response["VersionId"].should.should_not.be.none
-
-
-@mock_s3
-@pytest.mark.parametrize(
-    "part_nr,msg,msg2",
-    [
-        (
-            -42,
-            "Argument max-parts must be an integer between 0 and 2147483647",
-            "Argument part-number-marker must be an integer between 0 and 2147483647",
-        ),
-        (
-            2147483647 + 42,
-            "Provided max-parts not an integer or within integer range",
-            "Provided part-number-marker not an integer or within integer range",
-        ),
-    ],
-)
-def test_boto3_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
-    s3 = boto3.client("s3", region_name="us-east-1")
-    bucket_name = "mybucketasdfljoqwerasdfas"
-    s3.create_bucket(Bucket=bucket_name)
-
-    mpu = s3.create_multipart_upload(Bucket=bucket_name, Key="the-key")
-    mpu_id = mpu["UploadId"]
-
-    def get_parts(**kwarg):
-        s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id, **kwarg)
-
-    with pytest.raises(ClientError) as err:
-        get_parts(**{"MaxParts": part_nr})
-    e = err.value.response["Error"]
-    e["Code"].should.equal("InvalidArgument")
-    e["Message"].should.equal(msg)
-
-    with pytest.raises(ClientError) as err:
-        get_parts(**{"PartNumberMarker": part_nr})
-    e = err.value.response["Error"]
-    e["Code"].should.equal("InvalidArgument")
-    e["Message"].should.equal(msg2)
-
-
-@mock_s3
-@reduced_min_part_size
-def test_boto3_multipart_list_parts():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    bucket_name = "mybucketasdfljoqwerasdfas"
-    s3.create_bucket(Bucket=bucket_name)
-
-    mpu = s3.create_multipart_upload(Bucket=bucket_name, Key="the-key")
-    mpu_id = mpu["UploadId"]
-
-    parts = []
-    n_parts = 10
-
-    def get_parts_all(i):
-        # Get uploaded parts using default values
-        uploaded_parts = []
-
-        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id,)
-
-        assert uploaded["PartNumberMarker"] == 0
-
-        # Parts content check
-        if i > 0:
-            for part in uploaded["Parts"]:
-                uploaded_parts.append(
-                    {"ETag": part["ETag"], "PartNumber": part["PartNumber"]}
-                )
-            assert uploaded_parts == parts
-
-            next_part_number_marker = uploaded["Parts"][-1]["PartNumber"]
-        else:
-            next_part_number_marker = 0
-
-        assert uploaded["NextPartNumberMarker"] == next_part_number_marker
-
-        assert not uploaded["IsTruncated"]
-
-    def get_parts_by_batch(i):
-        # Get uploaded parts by batch of 2
-        part_number_marker = 0
-        uploaded_parts = []
-
-        while "there are parts":
-            uploaded = s3.list_parts(
-                Bucket=bucket_name,
-                Key="the-key",
-                UploadId=mpu_id,
-                PartNumberMarker=part_number_marker,
-                MaxParts=2,
-            )
-
-            assert uploaded["PartNumberMarker"] == part_number_marker
-
-            if i > 0:
-                # We should received maximum 2 parts
-                assert len(uploaded["Parts"]) <= 2
-
-                # Store parts content for the final check
-                for part in uploaded["Parts"]:
-                    uploaded_parts.append(
-                        {"ETag": part["ETag"], "PartNumber": part["PartNumber"]}
-                    )
-
-            # No more parts, get out the loop
-            if not uploaded["IsTruncated"]:
-                break
-
-            # Next parts batch will start with that number
-            part_number_marker = uploaded["NextPartNumberMarker"]
-            assert part_number_marker == i + 1 if len(parts) > i else i
-
-        # Final check: we received all uploaded parts
-        assert uploaded_parts == parts
-
-    # Check ListParts API parameters when no part was uploaded
-    get_parts_all(0)
-    get_parts_by_batch(0)
-
-    for i in range(1, n_parts + 1):
-        part_size = REDUCED_PART_SIZE + i
-        body = b"1" * part_size
-        part = s3.upload_part(
-            Bucket=bucket_name,
-            Key="the-key",
-            PartNumber=i,
-            UploadId=mpu_id,
-            Body=body,
-            ContentLength=len(body),
-        )
-        parts.append({"PartNumber": i, "ETag": part["ETag"]})
-
-        # Check ListParts API parameters while there are uploaded parts
-        get_parts_all(i)
-        get_parts_by_batch(i)
-
-    # Check ListParts API parameters when all parts were uploaded
-    get_parts_all(11)
-    get_parts_by_batch(11)
-
-    s3.complete_multipart_upload(
-        Bucket=bucket_name,
-        Key="the-key",
-        UploadId=mpu_id,
-        MultipartUpload={"Parts": parts},
-    )
-
-
-@mock_s3
-@reduced_min_part_size
-def test_boto3_multipart_part_size():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="mybucket")
-
-    mpu = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")
-    mpu_id = mpu["UploadId"]
-
-    parts = []
-    n_parts = 10
-    for i in range(1, n_parts + 1):
-        part_size = REDUCED_PART_SIZE + i
-        body = b"1" * part_size
-        part = s3.upload_part(
-            Bucket="mybucket",
-            Key="the-key",
-            PartNumber=i,
-            UploadId=mpu_id,
-            Body=body,
-            ContentLength=len(body),
-        )
-        parts.append({"PartNumber": i, "ETag": part["ETag"]})
-
-    s3.complete_multipart_upload(
-        Bucket="mybucket",
-        Key="the-key",
-        UploadId=mpu_id,
-        MultipartUpload={"Parts": parts},
-    )
-
-    for i in range(1, n_parts + 1):
-        obj = s3.head_object(Bucket="mybucket", Key="the-key", PartNumber=i)
-        assert obj["ContentLength"] == REDUCED_PART_SIZE + i
-
-
-@mock_s3
-def test_boto3_put_object_with_tagging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-tags"
-    s3.create_bucket(Bucket=bucket_name)
-
-    # using system tags will fail
-    with pytest.raises(ClientError) as err:
-        s3.put_object(Bucket=bucket_name, Key=key, Body="test", Tagging="aws:foo=bar")
-
-    e = err.value
-    e.response["Error"]["Code"].should.equal("InvalidTag")
-
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test", Tagging="foo=bar")
-
-    s3.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"].should.contain(
-        {"Key": "foo", "Value": "bar"}
-    )
-
-    resp = s3.get_object(Bucket=bucket_name, Key=key)
-    resp.should.have.key("TagCount").equals(1)
-
-    s3.delete_object_tagging(Bucket=bucket_name, Key=key)
-
-    s3.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"].should.equal([])
-
-
-@mock_s3
-def test_boto3_put_bucket_tagging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    s3.create_bucket(Bucket=bucket_name)
-
-    # With 1 tag:
-    resp = s3.put_bucket_tagging(
-        Bucket=bucket_name, Tagging={"TagSet": [{"Key": "TagOne", "Value": "ValueOne"}]}
-    )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    # With multiple tags:
-    resp = s3.put_bucket_tagging(
-        Bucket=bucket_name,
-        Tagging={
-            "TagSet": [
-                {"Key": "TagOne", "Value": "ValueOne"},
-                {"Key": "TagTwo", "Value": "ValueTwo"},
-            ]
-        },
-    )
-
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    # No tags is also OK:
-    resp = s3.put_bucket_tagging(Bucket=bucket_name, Tagging={"TagSet": []})
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    # With duplicate tag keys:
-    with pytest.raises(ClientError) as err:
-        resp = s3.put_bucket_tagging(
-            Bucket=bucket_name,
-            Tagging={
-                "TagSet": [
-                    {"Key": "TagOne", "Value": "ValueOne"},
-                    {"Key": "TagOne", "Value": "ValueOneAgain"},
-                ]
-            },
-        )
-    e = err.value
-    e.response["Error"]["Code"].should.equal("InvalidTag")
-    e.response["Error"]["Message"].should.equal(
-        "Cannot provide multiple Tags with the same key"
-    )
-
-    # Cannot put tags that are "system" tags - i.e. tags that start with "aws:"
-    with pytest.raises(ClientError) as ce:
-        s3.put_bucket_tagging(
-            Bucket=bucket_name,
-            Tagging={"TagSet": [{"Key": "aws:sometag", "Value": "nope"}]},
-        )
-    e = ce.value
-    e.response["Error"]["Code"].should.equal("InvalidTag")
-    e.response["Error"]["Message"].should.equal(
-        "System tags cannot be added/updated by requester"
-    )
-
-    # This is OK though:
-    s3.put_bucket_tagging(
-        Bucket=bucket_name,
-        Tagging={"TagSet": [{"Key": "something:aws:stuff", "Value": "this is fine"}]},
-    )
-
-
-@mock_s3
-def test_boto3_get_bucket_tagging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    s3.create_bucket(Bucket=bucket_name)
-    s3.put_bucket_tagging(
-        Bucket=bucket_name,
-        Tagging={
-            "TagSet": [
-                {"Key": "TagOne", "Value": "ValueOne"},
-                {"Key": "TagTwo", "Value": "ValueTwo"},
-            ]
-        },
-    )
-
-    # Get the tags for the bucket:
-    resp = s3.get_bucket_tagging(Bucket=bucket_name)
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(resp["TagSet"]).should.equal(2)
-
-    # With no tags:
-    s3.put_bucket_tagging(Bucket=bucket_name, Tagging={"TagSet": []})
-
-    with pytest.raises(ClientError) as err:
-        s3.get_bucket_tagging(Bucket=bucket_name)
-
-    e = err.value
-    e.response["Error"]["Code"].should.equal("NoSuchTagSet")
-    e.response["Error"]["Message"].should.equal("The TagSet does not exist")
-
-
-@mock_s3
-def test_boto3_delete_bucket_tagging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    s3.create_bucket(Bucket=bucket_name)
-
-    s3.put_bucket_tagging(
-        Bucket=bucket_name,
-        Tagging={
-            "TagSet": [
-                {"Key": "TagOne", "Value": "ValueOne"},
-                {"Key": "TagTwo", "Value": "ValueTwo"},
-            ]
-        },
-    )
-
-    resp = s3.delete_bucket_tagging(Bucket=bucket_name)
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
-
-    with pytest.raises(ClientError) as err:
-        s3.get_bucket_tagging(Bucket=bucket_name)
-
-    e = err.value
-    e.response["Error"]["Code"].should.equal("NoSuchTagSet")
-    e.response["Error"]["Message"].should.equal("The TagSet does not exist")
-
-
-@mock_s3
-def test_boto3_put_bucket_cors():
+def test_put_bucket_cors():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     s3.create_bucket(Bucket=bucket_name)
@@ -2991,7 +1762,7 @@ def test_boto3_put_bucket_cors():
 
 
 @mock_s3
-def test_boto3_get_bucket_cors():
+def test_get_bucket_cors():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     s3.create_bucket(Bucket=bucket_name)
@@ -3032,7 +1803,7 @@ def test_boto3_get_bucket_cors():
 
 
 @mock_s3
-def test_boto3_delete_bucket_cors():
+def test_delete_bucket_cors():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     s3.create_bucket(Bucket=bucket_name)
@@ -3317,7 +2088,7 @@ def test_put_bucket_notification_errors():
 
 
 @mock_s3
-def test_boto3_put_bucket_logging():
+def test_put_bucket_logging():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     log_bucket = "logbucket"
@@ -3496,264 +2267,7 @@ def test_boto3_put_bucket_logging():
 
 
 @mock_s3
-def test_boto3_put_object_tagging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-tags"
-    s3.create_bucket(Bucket=bucket_name)
-
-    with pytest.raises(ClientError) as err:
-        s3.put_object_tagging(
-            Bucket=bucket_name,
-            Key=key,
-            Tagging={
-                "TagSet": [
-                    {"Key": "item1", "Value": "foo"},
-                    {"Key": "item2", "Value": "bar"},
-                ]
-            },
-        )
-
-    e = err.value
-    e.response["Error"].should.equal(
-        {
-            "Code": "NoSuchKey",
-            "Message": "The specified key does not exist.",
-            "Key": "key-with-tags",
-            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-        }
-    )
-
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    # using system tags will fail
-    with pytest.raises(ClientError) as err:
-        s3.put_object_tagging(
-            Bucket=bucket_name,
-            Key=key,
-            Tagging={"TagSet": [{"Key": "aws:item1", "Value": "foo"},]},
-        )
-
-    e = err.value
-    e.response["Error"]["Code"].should.equal("InvalidTag")
-
-    resp = s3.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={
-            "TagSet": [
-                {"Key": "item1", "Value": "foo"},
-                {"Key": "item2", "Value": "bar"},
-            ]
-        },
-    )
-
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-
-@mock_s3
-def test_boto3_put_object_tagging_on_earliest_version():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-tags"
-    s3.create_bucket(Bucket=bucket_name)
-    s3_resource = boto3.resource("s3")
-    bucket_versioning = s3_resource.BucketVersioning(bucket_name)
-    bucket_versioning.enable()
-    bucket_versioning.status.should.equal("Enabled")
-
-    with pytest.raises(ClientError) as err:
-        s3.put_object_tagging(
-            Bucket=bucket_name,
-            Key=key,
-            Tagging={
-                "TagSet": [
-                    {"Key": "item1", "Value": "foo"},
-                    {"Key": "item2", "Value": "bar"},
-                ]
-            },
-        )
-
-    e = err.value
-    e.response["Error"].should.equal(
-        {
-            "Code": "NoSuchKey",
-            "Message": "The specified key does not exist.",
-            "Key": "key-with-tags",
-            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-        }
-    )
-
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test_updated")
-
-    object_versions = list(s3_resource.Bucket(bucket_name).object_versions.all())
-    first_object = object_versions[0]
-    second_object = object_versions[1]
-
-    resp = s3.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={
-            "TagSet": [
-                {"Key": "item1", "Value": "foo"},
-                {"Key": "item2", "Value": "bar"},
-            ]
-        },
-        VersionId=first_object.id,
-    )
-
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    # Older version has tags while the most recent does not
-    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key, VersionId=first_object.id)
-    resp["VersionId"].should.equal(first_object.id)
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
-    sorted_tagset.should.equal(
-        [{"Key": "item1", "Value": "foo"}, {"Key": "item2", "Value": "bar"}]
-    )
-
-    resp = s3.get_object_tagging(
-        Bucket=bucket_name, Key=key, VersionId=second_object.id
-    )
-    resp["VersionId"].should.equal(second_object.id)
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    resp["TagSet"].should.equal([])
-
-
-@mock_s3
-def test_boto3_put_object_tagging_on_both_version():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-tags"
-    s3.create_bucket(Bucket=bucket_name)
-    s3_resource = boto3.resource("s3")
-    bucket_versioning = s3_resource.BucketVersioning(bucket_name)
-    bucket_versioning.enable()
-    bucket_versioning.status.should.equal("Enabled")
-
-    with pytest.raises(ClientError) as err:
-        s3.put_object_tagging(
-            Bucket=bucket_name,
-            Key=key,
-            Tagging={
-                "TagSet": [
-                    {"Key": "item1", "Value": "foo"},
-                    {"Key": "item2", "Value": "bar"},
-                ]
-            },
-        )
-
-    e = err.value
-    e.response["Error"].should.equal(
-        {
-            "Code": "NoSuchKey",
-            "Message": "The specified key does not exist.",
-            "Key": "key-with-tags",
-            "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-        }
-    )
-
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test_updated")
-
-    object_versions = list(s3_resource.Bucket(bucket_name).object_versions.all())
-    first_object = object_versions[0]
-    second_object = object_versions[1]
-
-    resp = s3.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={
-            "TagSet": [
-                {"Key": "item1", "Value": "foo"},
-                {"Key": "item2", "Value": "bar"},
-            ]
-        },
-        VersionId=first_object.id,
-    )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    resp = s3.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={
-            "TagSet": [
-                {"Key": "item1", "Value": "baz"},
-                {"Key": "item2", "Value": "bin"},
-            ]
-        },
-        VersionId=second_object.id,
-    )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key, VersionId=first_object.id)
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
-    sorted_tagset.should.equal(
-        [{"Key": "item1", "Value": "foo"}, {"Key": "item2", "Value": "bar"}]
-    )
-
-    resp = s3.get_object_tagging(
-        Bucket=bucket_name, Key=key, VersionId=second_object.id
-    )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
-    sorted_tagset.should.equal(
-        [{"Key": "item1", "Value": "baz"}, {"Key": "item2", "Value": "bin"}]
-    )
-
-
-@mock_s3
-def test_boto3_put_object_tagging_with_single_tag():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-tags"
-    s3.create_bucket(Bucket=bucket_name)
-
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    resp = s3.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={"TagSet": [{"Key": "item1", "Value": "foo"}]},
-    )
-
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-
-@mock_s3
-def test_boto3_get_object_tagging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-tags"
-    s3.create_bucket(Bucket=bucket_name)
-
-    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
-    resp["TagSet"].should.have.length_of(0)
-
-    resp = s3.put_object_tagging(
-        Bucket=bucket_name,
-        Key=key,
-        Tagging={
-            "TagSet": [
-                {"Key": "item1", "Value": "foo"},
-                {"Key": "item2", "Value": "bar"},
-            ]
-        },
-    )
-    resp = s3.get_object_tagging(Bucket=bucket_name, Key=key)
-
-    resp["TagSet"].should.have.length_of(2)
-    resp["TagSet"].should.contain({"Key": "item1", "Value": "foo"})
-    resp["TagSet"].should.contain({"Key": "item2", "Value": "bar"})
-
-
-@mock_s3
-def test_boto3_list_object_versions():
+def test_list_object_versions():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "000" + str(uuid4())
     key = "key-with-versions"
@@ -3779,7 +2293,7 @@ def test_boto3_list_object_versions():
 
 
 @mock_s3
-def test_boto3_list_object_versions_with_delimiter():
+def test_list_object_versions_with_delimiter():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "000" + str(uuid4())
     s3.create_bucket(Bucket=bucket_name)
@@ -3889,7 +2403,7 @@ def test_boto3_list_object_versions_with_delimiter():
 
 
 @mock_s3
-def test_boto3_list_object_versions_with_versioning_disabled():
+def test_list_object_versions_with_versioning_disabled():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     key = "key-with-versions"
@@ -3912,7 +2426,7 @@ def test_boto3_list_object_versions_with_versioning_disabled():
 
 
 @mock_s3
-def test_boto3_list_object_versions_with_versioning_enabled_late():
+def test_list_object_versions_with_versioning_enabled_late():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     key = "key-with-versions"
@@ -3940,7 +2454,7 @@ def test_boto3_list_object_versions_with_versioning_enabled_late():
 
 
 @mock_s3
-def test_boto3_bad_prefix_list_object_versions():
+def test_bad_prefix_list_object_versions():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     key = "key-with-versions"
@@ -3959,7 +2473,7 @@ def test_boto3_bad_prefix_list_object_versions():
 
 
 @mock_s3
-def test_boto3_delete_markers():
+def test_delete_markers():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     key = "key-with-versions-and-unicode-ó"
@@ -4002,7 +2516,7 @@ def test_boto3_delete_markers():
 
 
 @mock_s3
-def test_boto3_multiple_delete_markers():
+def test_multiple_delete_markers():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     key = "key-with-versions-and-unicode-ó"
@@ -4091,7 +2605,7 @@ TEST_XML = """\
 
 
 @mock_s3
-def test_boto3_bucket_name_too_long():
+def test_bucket_name_too_long():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
         s3.create_bucket(Bucket="x" * 64)
@@ -4099,7 +2613,7 @@ def test_boto3_bucket_name_too_long():
 
 
 @mock_s3
-def test_boto3_bucket_name_too_short():
+def test_bucket_name_too_short():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
         s3.create_bucket(Bucket="x" * 2)
@@ -4374,577 +2888,6 @@ def test_public_access_block():
     with pytest.raises(ClientError) as ce:
         client.get_public_access_block(Bucket="mybucket")
     assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
-
-
-@mock_s3
-def test_s3_public_access_block_to_config_dict():
-    from moto.s3.config import s3_config_query
-
-    # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-
-    public_access_block = {
-        "BlockPublicAcls": "True",
-        "IgnorePublicAcls": "False",
-        "BlockPublicPolicy": "True",
-        "RestrictPublicBuckets": "False",
-    }
-
-    # Add a public access block:
-    s3_config_query.backends["global"].put_bucket_public_access_block(
-        "bucket1", public_access_block
-    )
-
-    result = (
-        s3_config_query.backends["global"]
-        .buckets["bucket1"]
-        .public_access_block.to_config_dict()
-    )
-
-    convert_bool = lambda x: x == "True"
-    for key, value in public_access_block.items():
-        assert result[
-            "{lowercase}{rest}".format(lowercase=key[0].lower(), rest=key[1:])
-        ] == convert_bool(value)
-
-    # Verify that this resides in the full bucket's to_config_dict:
-    full_result = s3_config_query.backends["global"].buckets["bucket1"].to_config_dict()
-    assert (
-        json.loads(
-            full_result["supplementaryConfiguration"]["PublicAccessBlockConfiguration"]
-        )
-        == result
-    )
-
-
-@mock_s3
-def test_list_config_discovered_resources():
-    from moto.s3.config import s3_config_query
-
-    # Without any buckets:
-    assert s3_config_query.list_config_service_resources(
-        "global", "global", None, None, 100, None
-    ) == ([], None)
-
-    # With 10 buckets in us-west-2:
-    for x in range(0, 10):
-        s3_config_query.backends["global"].create_bucket(
-            "bucket{}".format(x), "us-west-2"
-        )
-
-    # With 2 buckets in eu-west-1:
-    for x in range(10, 12):
-        s3_config_query.backends["global"].create_bucket(
-            "eu-bucket{}".format(x), "eu-west-1"
-        )
-
-    result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 100, None
-    )
-    assert not next_token
-    assert len(result) == 12
-    for x in range(0, 10):
-        assert result[x] == {
-            "type": "AWS::S3::Bucket",
-            "id": "bucket{}".format(x),
-            "name": "bucket{}".format(x),
-            "region": "us-west-2",
-        }
-    for x in range(10, 12):
-        assert result[x] == {
-            "type": "AWS::S3::Bucket",
-            "id": "eu-bucket{}".format(x),
-            "name": "eu-bucket{}".format(x),
-            "region": "eu-west-1",
-        }
-
-    # With a name:
-    result, next_token = s3_config_query.list_config_service_resources(
-        None, "bucket0", 100, None
-    )
-    assert len(result) == 1 and result[0]["name"] == "bucket0" and not next_token
-
-    # With a region:
-    result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 100, None, resource_region="eu-west-1"
-    )
-    assert len(result) == 2 and not next_token and result[1]["name"] == "eu-bucket11"
-
-    # With resource ids:
-    result, next_token = s3_config_query.list_config_service_resources(
-        ["bucket0", "bucket1"], None, 100, None
-    )
-    assert (
-        len(result) == 2
-        and result[0]["name"] == "bucket0"
-        and result[1]["name"] == "bucket1"
-        and not next_token
-    )
-
-    # With duplicated resource ids:
-    result, next_token = s3_config_query.list_config_service_resources(
-        ["bucket0", "bucket0"], None, 100, None
-    )
-    assert len(result) == 1 and result[0]["name"] == "bucket0" and not next_token
-
-    # Pagination:
-    result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 1, None
-    )
-    assert (
-        len(result) == 1 and result[0]["name"] == "bucket0" and next_token == "bucket1"
-    )
-
-    # Last Page:
-    result, next_token = s3_config_query.list_config_service_resources(
-        None, None, 1, "eu-bucket11", resource_region="eu-west-1"
-    )
-    assert len(result) == 1 and result[0]["name"] == "eu-bucket11" and not next_token
-
-    # With a list of buckets:
-    result, next_token = s3_config_query.list_config_service_resources(
-        ["bucket0", "bucket1"], None, 1, None
-    )
-    assert (
-        len(result) == 1 and result[0]["name"] == "bucket0" and next_token == "bucket1"
-    )
-
-    # With an invalid page:
-    with pytest.raises(InvalidNextTokenException) as inte:
-        s3_config_query.list_config_service_resources(None, None, 1, "notabucket")
-
-    assert "The nextToken provided is invalid" in inte.value.message
-
-
-@mock_s3
-def test_s3_lifecycle_config_dict():
-    from moto.s3.config import s3_config_query
-
-    # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-
-    # And a lifecycle policy
-    lifecycle = [
-        {
-            "ID": "rule1",
-            "Status": "Enabled",
-            "Filter": {"Prefix": ""},
-            "Expiration": {"Days": 1},
-        },
-        {
-            "ID": "rule2",
-            "Status": "Enabled",
-            "Filter": {
-                "And": {
-                    "Prefix": "some/path",
-                    "Tag": [{"Key": "TheKey", "Value": "TheValue"}],
-                }
-            },
-            "Expiration": {"Days": 1},
-        },
-        {"ID": "rule3", "Status": "Enabled", "Filter": {}, "Expiration": {"Days": 1}},
-        {
-            "ID": "rule4",
-            "Status": "Enabled",
-            "Filter": {"Prefix": ""},
-            "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
-        },
-    ]
-    s3_config_query.backends["global"].put_bucket_lifecycle("bucket1", lifecycle)
-
-    # Get the rules for this:
-    lifecycles = [
-        rule.to_config_dict()
-        for rule in s3_config_query.backends["global"].buckets["bucket1"].rules
-    ]
-
-    # Verify the first:
-    assert lifecycles[0] == {
-        "id": "rule1",
-        "prefix": None,
-        "status": "Enabled",
-        "expirationInDays": 1,
-        "expiredObjectDeleteMarker": None,
-        "noncurrentVersionExpirationInDays": -1,
-        "expirationDate": None,
-        "transitions": None,
-        "noncurrentVersionTransitions": None,
-        "abortIncompleteMultipartUpload": None,
-        "filter": {"predicate": {"type": "LifecyclePrefixPredicate", "prefix": ""}},
-    }
-
-    # Verify the second:
-    assert lifecycles[1] == {
-        "id": "rule2",
-        "prefix": None,
-        "status": "Enabled",
-        "expirationInDays": 1,
-        "expiredObjectDeleteMarker": None,
-        "noncurrentVersionExpirationInDays": -1,
-        "expirationDate": None,
-        "transitions": None,
-        "noncurrentVersionTransitions": None,
-        "abortIncompleteMultipartUpload": None,
-        "filter": {
-            "predicate": {
-                "type": "LifecycleAndOperator",
-                "operands": [
-                    {"type": "LifecyclePrefixPredicate", "prefix": "some/path"},
-                    {
-                        "type": "LifecycleTagPredicate",
-                        "tag": {"key": "TheKey", "value": "TheValue"},
-                    },
-                ],
-            }
-        },
-    }
-
-    # And the third:
-    assert lifecycles[2] == {
-        "id": "rule3",
-        "prefix": None,
-        "status": "Enabled",
-        "expirationInDays": 1,
-        "expiredObjectDeleteMarker": None,
-        "noncurrentVersionExpirationInDays": -1,
-        "expirationDate": None,
-        "transitions": None,
-        "noncurrentVersionTransitions": None,
-        "abortIncompleteMultipartUpload": None,
-        "filter": {"predicate": None},
-    }
-
-    # And the last:
-    assert lifecycles[3] == {
-        "id": "rule4",
-        "prefix": None,
-        "status": "Enabled",
-        "expirationInDays": None,
-        "expiredObjectDeleteMarker": None,
-        "noncurrentVersionExpirationInDays": -1,
-        "expirationDate": None,
-        "transitions": None,
-        "noncurrentVersionTransitions": None,
-        "abortIncompleteMultipartUpload": {"daysAfterInitiation": 1},
-        "filter": {"predicate": {"type": "LifecyclePrefixPredicate", "prefix": ""}},
-    }
-
-
-@mock_s3
-def test_s3_notification_config_dict():
-    from moto.s3.config import s3_config_query
-
-    # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-
-    # And some notifications:
-    notifications = {
-        "TopicConfiguration": [
-            {
-                "Id": "Topic",
-                "Topic": "arn:aws:sns:us-west-2:012345678910:mytopic",
-                "Event": [
-                    "s3:ReducedRedundancyLostObject",
-                    "s3:ObjectRestore:Completed",
-                ],
-            }
-        ],
-        "QueueConfiguration": [
-            {
-                "Id": "Queue",
-                "Queue": "arn:aws:sqs:us-west-2:012345678910:myqueue",
-                "Event": ["s3:ObjectRemoved:Delete"],
-                "Filter": {
-                    "S3Key": {
-                        "FilterRule": [{"Name": "prefix", "Value": "stuff/here/"}]
-                    }
-                },
-            }
-        ],
-        "CloudFunctionConfiguration": [
-            {
-                "Id": "Lambda",
-                "CloudFunction": "arn:aws:lambda:us-west-2:012345678910:function:mylambda",
-                "Event": [
-                    "s3:ObjectCreated:Post",
-                    "s3:ObjectCreated:Copy",
-                    "s3:ObjectCreated:Put",
-                ],
-                "Filter": {
-                    "S3Key": {"FilterRule": [{"Name": "suffix", "Value": ".png"}]}
-                },
-            }
-        ],
-    }
-
-    s3_config_query.backends["global"].put_bucket_notification_configuration(
-        "bucket1", notifications
-    )
-
-    # Get the notifications for this:
-    notifications = (
-        s3_config_query.backends["global"]
-        .buckets["bucket1"]
-        .notification_configuration.to_config_dict()
-    )
-
-    # Verify it all:
-    assert notifications == {
-        "configurations": {
-            "Topic": {
-                "events": [
-                    "s3:ReducedRedundancyLostObject",
-                    "s3:ObjectRestore:Completed",
-                ],
-                "filter": None,
-                "objectPrefixes": [],
-                "topicARN": "arn:aws:sns:us-west-2:012345678910:mytopic",
-                "type": "TopicConfiguration",
-            },
-            "Queue": {
-                "events": ["s3:ObjectRemoved:Delete"],
-                "filter": {
-                    "s3KeyFilter": {
-                        "filterRules": [{"name": "prefix", "value": "stuff/here/"}]
-                    }
-                },
-                "objectPrefixes": [],
-                "queueARN": "arn:aws:sqs:us-west-2:012345678910:myqueue",
-                "type": "QueueConfiguration",
-            },
-            "Lambda": {
-                "events": [
-                    "s3:ObjectCreated:Post",
-                    "s3:ObjectCreated:Copy",
-                    "s3:ObjectCreated:Put",
-                ],
-                "filter": {
-                    "s3KeyFilter": {
-                        "filterRules": [{"name": "suffix", "value": ".png"}]
-                    }
-                },
-                "objectPrefixes": [],
-                "queueARN": "arn:aws:lambda:us-west-2:012345678910:function:mylambda",
-                "type": "LambdaConfiguration",
-            },
-        }
-    }
-
-
-@mock_s3
-def test_s3_acl_to_config_dict():
-    from moto.s3.config import s3_config_query
-    from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
-
-    # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("logbucket", "us-west-2")
-
-    # Get the config dict with nothing other than the owner details:
-    acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
-    owner_acl = {
-        "grantee": {"id": OWNER, "displayName": None},
-        "permission": "FullControl",
-    }
-    assert acls == {
-        "grantSet": None,
-        "owner": {"displayName": None, "id": OWNER},
-        "grantList": [owner_acl],
-    }
-
-    # Add some Log Bucket ACLs:
-    log_acls = FakeAcl(
-        [
-            FakeGrant(
-                [FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")],
-                "WRITE",
-            ),
-            FakeGrant(
-                [FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")],
-                "READ_ACP",
-            ),
-            FakeGrant([FakeGrantee(grantee_id=OWNER)], "FULL_CONTROL"),
-        ]
-    )
-    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
-
-    acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
-    assert acls == {
-        "grantSet": None,
-        "grantList": [
-            {"grantee": "LogDelivery", "permission": "Write"},
-            {"grantee": "LogDelivery", "permission": "ReadAcp"},
-            {
-                "grantee": {
-                    "displayName": None,
-                    "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
-                },
-                "permission": "FullControl",
-            },
-        ],
-        "owner": {"displayName": None, "id": OWNER},
-    }
-
-    # Give the owner less than full_control permissions:
-    log_acls = FakeAcl(
-        [
-            FakeGrant([FakeGrantee(grantee_id=OWNER)], "READ_ACP"),
-            FakeGrant([FakeGrantee(grantee_id=OWNER)], "WRITE_ACP"),
-        ]
-    )
-    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
-    acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
-    assert acls == {
-        "grantSet": None,
-        "grantList": [
-            {"grantee": {"id": OWNER, "displayName": None}, "permission": "ReadAcp"},
-            {"grantee": {"id": OWNER, "displayName": None}, "permission": "WriteAcp"},
-        ],
-        "owner": {"displayName": None, "id": OWNER},
-    }
-
-
-@mock_s3
-def test_s3_config_dict():
-    from moto.s3.config import s3_config_query
-    from moto.s3.models import (
-        FakeAcl,
-        FakeGrant,
-        FakeGrantee,
-        OWNER,
-    )
-
-    # Without any buckets:
-    assert not s3_config_query.get_config_resource("some_bucket")
-
-    tags = {"someTag": "someValue", "someOtherTag": "someOtherValue"}
-
-    # With 1 bucket in us-west-2:
-    s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-    s3_config_query.backends["global"].put_bucket_tagging("bucket1", tags)
-
-    # With a log bucket:
-    s3_config_query.backends["global"].create_bucket("logbucket", "us-west-2")
-    log_acls = FakeAcl(
-        [
-            FakeGrant(
-                [FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")],
-                "WRITE",
-            ),
-            FakeGrant(
-                [FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")],
-                "READ_ACP",
-            ),
-            FakeGrant([FakeGrantee(grantee_id=OWNER)], "FULL_CONTROL"),
-        ]
-    )
-
-    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
-    s3_config_query.backends["global"].put_bucket_logging(
-        "bucket1", {"TargetBucket": "logbucket", "TargetPrefix": ""}
-    )
-
-    policy = json.dumps(
-        {
-            "Statement": [
-                {
-                    "Effect": "Deny",
-                    "Action": "s3:DeleteObject",
-                    "Principal": "*",
-                    "Resource": "arn:aws:s3:::bucket1/*",
-                }
-            ]
-        }
-    )
-
-    # The policy is a byte array -- need to encode in Python 3
-    pass_policy = bytes(policy, "utf-8")
-    s3_config_query.backends["global"].put_bucket_policy("bucket1", pass_policy)
-
-    # Get the us-west-2 bucket and verify that it works properly:
-    bucket1_result = s3_config_query.get_config_resource("bucket1")
-
-    # Just verify a few things:
-    assert bucket1_result["arn"] == "arn:aws:s3:::bucket1"
-    assert bucket1_result["awsRegion"] == "us-west-2"
-    assert bucket1_result["resourceName"] == bucket1_result["resourceId"] == "bucket1"
-    assert bucket1_result["tags"] == {
-        "someTag": "someValue",
-        "someOtherTag": "someOtherValue",
-    }
-    assert json.loads(
-        bucket1_result["supplementaryConfiguration"]["BucketTaggingConfiguration"]
-    ) == {"tagSets": [{"tags": bucket1_result["tags"]}]}
-    assert isinstance(bucket1_result["configuration"], str)
-    exist_list = [
-        "AccessControlList",
-        "BucketAccelerateConfiguration",
-        "BucketLoggingConfiguration",
-        "BucketPolicy",
-        "IsRequesterPaysEnabled",
-        "BucketNotificationConfiguration",
-    ]
-    for exist in exist_list:
-        assert isinstance(bucket1_result["supplementaryConfiguration"][exist], str)
-
-    # Verify the logging config:
-    assert json.loads(
-        bucket1_result["supplementaryConfiguration"]["BucketLoggingConfiguration"]
-    ) == {"destinationBucketName": "logbucket", "logFilePrefix": ""}
-
-    # Verify that the AccessControlList is a double-wrapped JSON string:
-    assert json.loads(
-        json.loads(bucket1_result["supplementaryConfiguration"]["AccessControlList"])
-    ) == {
-        "grantSet": None,
-        "grantList": [
-            {
-                "grantee": {
-                    "displayName": None,
-                    "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
-                },
-                "permission": "FullControl",
-            },
-        ],
-        "owner": {
-            "displayName": None,
-            "id": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a",
-        },
-    }
-
-    # Verify the policy:
-    assert json.loads(bucket1_result["supplementaryConfiguration"]["BucketPolicy"]) == {
-        "policyText": policy
-    }
-
-    # Filter by correct region:
-    assert bucket1_result == s3_config_query.get_config_resource(
-        "bucket1", resource_region="us-west-2"
-    )
-
-    # By incorrect region:
-    assert not s3_config_query.get_config_resource(
-        "bucket1", resource_region="eu-west-1"
-    )
-
-    # With correct resource ID and name:
-    assert bucket1_result == s3_config_query.get_config_resource(
-        "bucket1", resource_name="bucket1"
-    )
-
-    # With an incorrect resource name:
-    assert not s3_config_query.get_config_resource(
-        "bucket1", resource_name="eu-bucket-1"
-    )
-
-    # Verify that no bucket policy returns the proper value:
-    logging_bucket = s3_config_query.get_config_resource("logbucket")
-    assert json.loads(logging_bucket["supplementaryConfiguration"]["BucketPolicy"]) == {
-        "policyText": None
-    }
-    assert not logging_bucket["tags"]
-    assert not logging_bucket["supplementaryConfiguration"].get(
-        "BucketTaggingConfiguration"
-    )
 
 
 @mock_s3
@@ -5324,31 +3267,6 @@ def test_request_partial_content_should_contain_all_metadata():
 
 
 @mock_s3
-@mock_kms
-def test_boto3_copy_object_with_kms_encryption():
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
-    kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
-
-    client.create_bucket(
-        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
-
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1")
-
-    client.copy_object(
-        CopySource={"Bucket": "blah", "Key": "test1"},
-        Bucket="blah",
-        Key="test2",
-        SSEKMSKeyId=kms_key,
-        ServerSideEncryption="aws:kms",
-    )
-    result = client.head_object(Bucket="blah", Key="test2")
-    assert result["SSEKMSKeyId"] == kms_key
-    assert result["ServerSideEncryption"] == "aws:kms"
-
-
-@mock_s3
 def test_head_versioned_key_in_not_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="simple-bucked")
@@ -5360,31 +3278,3 @@ def test_head_versioned_key_in_not_versioned_bucket():
 
     response = ex.value.response
     assert response["Error"]["Code"] == "400"
-
-
-@mock_s3
-def test_objects_tagging_with_same_key_name():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    key_name = "file.txt"
-
-    bucket1 = "bucket-1"
-    s3.create_bucket(Bucket=bucket1)
-    tagging = "variable=one"
-
-    s3.put_object(Bucket=bucket1, Body=b"test", Key=key_name, Tagging=tagging)
-
-    bucket2 = "bucket-2"
-    s3.create_bucket(Bucket=bucket2)
-    tagging2 = "variable=two"
-
-    s3.put_object(Bucket=bucket2, Body=b"test", Key=key_name, Tagging=tagging2)
-
-    variable1 = s3.get_object_tagging(Bucket=bucket1, Key=key_name)["TagSet"][0][
-        "Value"
-    ]
-    variable2 = s3.get_object_tagging(Bucket=bucket2, Key=key_name)["TagSet"][0][
-        "Value"
-    ]
-
-    assert variable1 == "one"
-    assert variable2 == "two"
