@@ -118,6 +118,7 @@ class DomainDispatcherApplication(object):
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
 
+        path = environ.get("PATH_INFO", "")
         if service in ["budgets", "cloudfront"]:
             # Global Services - they do not have/expect a region
             host = f"{service}.amazonaws.com"
@@ -145,6 +146,10 @@ class DomainDispatcherApplication(object):
             host = "ingest.{service}.{region}.amazonaws.com".format(
                 service=service, region=region
             )
+        elif service == "s3" and (
+            path.startswith("/v20180820/") or "s3-control" in environ["HTTP_HOST"]
+        ):
+            host = "s3control"
         else:
             host = "{service}.{region}.amazonaws.com".format(
                 service=service, region=region
