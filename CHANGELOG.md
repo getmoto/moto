@@ -1,11 +1,12 @@
 Moto Changelog
-===================
+==============
 
 3.0.5
 -----
 Docker Digest for 3.0.5: <autopopulateddigest>
 
-    TBD
+    Miscellaneous:
+        * AWSLambda: Made the docker image repository selectable via the `MOTO_DOCKER_LAMBDA_IMAGE` environment variable.
 
 3.0.4
 -----

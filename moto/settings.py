@@ -66,6 +66,10 @@ def moto_server_host():
         return "http://host.docker.internal"
 
 
+def moto_lambda_image():
+    return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "lambci/lambda")
+
+
 def moto_network_name():
     return os.environ.get("MOTO_DOCKER_NETWORK_NAME")
 
