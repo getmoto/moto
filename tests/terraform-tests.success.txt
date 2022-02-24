@@ -120,9 +120,7 @@ TestAccAWSENI_Tags
 TestAccAWSENI_basic
 TestAccAWSENI_IPv6
 TestAccAWSENI_disappears
-TestAccAWSS3BucketObject
 TestAccAWSS3BucketPolicy
-TestAccAWSS3AccessPoint
 TestAccAWSS3BucketPublicAccessBlock
 TestAccAWSS3ObjectCopy
 TestAccAWSIAMPolicy_

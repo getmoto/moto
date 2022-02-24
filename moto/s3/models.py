@@ -365,6 +365,9 @@ class FakeMultipart(BaseModel):
             last = part
             count += 1
 
+        if count == 0:
+            raise MalformedXML
+
         etag = hashlib.md5()
         etag.update(bytes(md5s))
         return total, "{0}-{1}".format(etag.hexdigest(), count)
