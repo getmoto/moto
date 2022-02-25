@@ -1,10 +1,10 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_table__billing_mode():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -33,7 +33,7 @@ def test_update_table__billing_mode():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_table_throughput():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -53,7 +53,7 @@ def test_update_table_throughput():
     table.provisioned_throughput["WriteCapacityUnits"].should.equal(6)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_table__enable_stream():
     conn = boto3.client("dynamodb", region_name="us-east-1")
 

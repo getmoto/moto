@@ -4,7 +4,7 @@ See docstring class Validator below for more details on validation
 from abc import abstractmethod
 from copy import deepcopy
 
-from moto.dynamodb2.exceptions import (
+from moto.dynamodb.exceptions import (
     AttributeIsReservedKeyword,
     ExpressionAttributeValueNotDefined,
     AttributeDoesNotExist,
@@ -15,8 +15,8 @@ from moto.dynamodb2.exceptions import (
     EmptyKeyAttributeException,
     UpdateHashRangeKeyException,
 )
-from moto.dynamodb2.models import DynamoType
-from moto.dynamodb2.parsing.ast_nodes import (
+from moto.dynamodb.models import DynamoType
+from moto.dynamodb.parsing.ast_nodes import (
     ExpressionAttribute,
     UpdateExpressionPath,
     UpdateExpressionSetAction,
@@ -34,7 +34,7 @@ from moto.dynamodb2.parsing.ast_nodes import (
     ExpressionValueOperator,
     ExpressionSelector,
 )
-from moto.dynamodb2.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
 class ExpressionAttributeValueProcessor(DepthFirstTraverser):

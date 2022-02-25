@@ -4,7 +4,7 @@ import base64
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
-from moto.dynamodb2.models import dynamodb_backends, DynamoJsonEncoder
+from moto.dynamodb.models import dynamodb_backends, DynamoJsonEncoder
 
 
 class ShardIterator(BaseModel):

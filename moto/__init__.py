@@ -4,7 +4,12 @@ from contextlib import ContextDecorator
 
 
 def lazy_load(
-    module_name, element, boto3_name=None, backend=None, warn_repurpose=False
+    module_name,
+    element,
+    boto3_name=None,
+    backend=None,
+    warn_repurpose=False,
+    use_instead=None,
 ):
     def f(*args, **kwargs):
         if warn_repurpose:
@@ -13,6 +18,14 @@ def lazy_load(
             warnings.warn(
                 f"Module {element} has been deprecated, and will be repurposed in a later release. "
                 "Please see https://github.com/spulec/moto/issues/4526 for more information."
+            )
+        if use_instead:
+            import warnings
+
+            used, recommended = use_instead
+            warnings.warn(
+                f"Module {used} has been deprecated, and will be removed in a later release. Please use {recommended} instead. "
+                "See https://github.com/spulec/moto/issues/4526 for more information."
             )
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
@@ -40,7 +53,7 @@ mock_batch = lazy_load(".batch", "mock_batch")
 mock_budgets = lazy_load(".budgets", "mock_budgets")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
-mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail", boto3_name="cloudtrail")
+mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
 mock_codepipeline = lazy_load(".codepipeline", "mock_codepipeline")
@@ -53,9 +66,11 @@ mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
 mock_datasync = lazy_load(".datasync", "mock_datasync")
 mock_dax = lazy_load(".dax", "mock_dax")
 mock_dms = lazy_load(".dms", "mock_dms")
-mock_ds = lazy_load(".ds", "mock_ds", boto3_name="ds")
-mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb", warn_repurpose=True)
-mock_dynamodb2 = lazy_load(".dynamodb2", "mock_dynamodb2", backend="dynamodb_backends2")
+mock_ds = lazy_load(".ds", "mock_ds")
+mock_dynamodb = lazy_load(".dynamodb", "mock_dynamodb")
+mock_dynamodb2 = lazy_load(
+    ".dynamodb", "mock_dynamodb", use_instead=("mock_dynamodb2", "mock_dynamodb")
+)
 mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(
     ".elasticbeanstalk", "mock_elasticbeanstalk", backend="eb_backends"

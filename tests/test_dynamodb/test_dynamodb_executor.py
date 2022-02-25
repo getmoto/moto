@@ -1,10 +1,10 @@
 import pytest
 
-from moto.dynamodb2.exceptions import IncorrectOperandType, IncorrectDataType
-from moto.dynamodb2.models import Item, DynamoType
-from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
-from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
-from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
+from moto.dynamodb.exceptions import IncorrectOperandType, IncorrectDataType
+from moto.dynamodb.models import Item, DynamoType
+from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
+from moto.dynamodb.parsing.expressions import UpdateExpressionParser
+from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 
 
 def test_execution_of_if_not_exists_not_existing_value(table):

@@ -135,9 +135,9 @@ class DomainDispatcherApplication(object):
                 dynamo_api_version = (
                     environ["HTTP_X_AMZ_TARGET"].split("_")[1].split(".")[0]
                 )
-                # If Newer API version, use dynamodb2
-                if dynamo_api_version > "20111205":
-                    host = "dynamodb2"
+                # Support for older API version
+                if dynamo_api_version <= "20111205":
+                    host = "dynamodb_v20111205"
         elif service == "sagemaker":
             host = "api.{service}.{region}.amazonaws.com".format(
                 service=service, region=region

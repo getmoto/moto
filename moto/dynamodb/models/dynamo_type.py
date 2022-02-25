@@ -1,6 +1,6 @@
-from moto.dynamodb2.comparisons import get_comparison_func
-from moto.dynamodb2.exceptions import IncorrectDataType
-from moto.dynamodb2.models.utilities import bytesize
+from moto.dynamodb.comparisons import get_comparison_func
+from moto.dynamodb.exceptions import IncorrectDataType
+from moto.dynamodb.models.utilities import bytesize
 
 
 class DDBType(object):

@@ -3,7 +3,7 @@ from abc import abstractmethod
 import abc
 from collections import deque
 
-from moto.dynamodb2.parsing.ast_nodes import (
+from moto.dynamodb.parsing.ast_nodes import (
     UpdateExpression,
     UpdateExpressionSetClause,
     UpdateExpressionSetActions,
@@ -28,8 +28,8 @@ from moto.dynamodb2.parsing.ast_nodes import (
     UpdateExpressionDeleteActions,
     UpdateExpressionDeleteClause,
 )
-from moto.dynamodb2.exceptions import InvalidTokenException, InvalidUpdateExpression
-from moto.dynamodb2.parsing.tokens import Token, ExpressionTokenizer
+from moto.dynamodb.exceptions import InvalidTokenException, InvalidUpdateExpression
+from moto.dynamodb.parsing.tokens import Token, ExpressionTokenizer
 
 
 logger = logging.getLogger(__name__)

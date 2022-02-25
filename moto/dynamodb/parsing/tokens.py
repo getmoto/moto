@@ -1,6 +1,6 @@
 import re
 
-from moto.dynamodb2.exceptions import (
+from moto.dynamodb.exceptions import (
     InvalidTokenException,
     InvalidExpressionAttributeNameKey,
 )

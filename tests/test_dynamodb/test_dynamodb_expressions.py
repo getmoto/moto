@@ -1,6 +1,6 @@
-from moto.dynamodb2.exceptions import InvalidTokenException
-from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
-from moto.dynamodb2.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.exceptions import InvalidTokenException
+from moto.dynamodb.parsing.expressions import UpdateExpressionParser
+from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
 def test_get_reserved_keywords():
