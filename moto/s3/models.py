@@ -365,6 +365,9 @@ class FakeMultipart(BaseModel):
             last = part
             count += 1
 
+        if count == 0:
+            raise MalformedXML
+
         etag = hashlib.md5()
         etag.update(bytes(md5s))
         return total, "{0}-{1}".format(etag.hexdigest(), count)
@@ -1488,10 +1491,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             version.is_latest = name != last_name
             if version.is_latest:
                 last_name = name
-            # Differentiate between FakeKey and FakeDeleteMarkers
-            if not isinstance(version, FakeKey):
-                delete_markers.append(version)
-                continue
             # skip all keys that alphabetically come before keymarker
             if key_marker and name < key_marker:
                 continue
@@ -1503,6 +1502,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 index = name.index(delimiter) + len(delimiter)
                 prefix_including_delimiter = name[0:index]
                 common_prefixes.append(prefix_including_delimiter)
+                continue
+
+            # Differentiate between FakeKey and FakeDeleteMarkers
+            if not isinstance(version, FakeKey):
+                delete_markers.append(version)
                 continue
 
             requested_versions.append(version)
