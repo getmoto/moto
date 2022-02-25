@@ -12,8 +12,6 @@
 s3control
 =========
 
-.. autoclass:: moto.s3control.models.S3ControlBackend
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -27,14 +25,14 @@ s3control
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_access_point
+- [X] create_access_point
 - [ ] create_access_point_for_object_lambda
 - [ ] create_bucket
 - [ ] create_job
 - [ ] create_multi_region_access_point
-- [ ] delete_access_point
+- [X] delete_access_point
 - [ ] delete_access_point_for_object_lambda
-- [ ] delete_access_point_policy
+- [X] delete_access_point_policy
 - [ ] delete_access_point_policy_for_object_lambda
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
@@ -47,12 +45,16 @@ s3control
 - [ ] delete_storage_lens_configuration_tagging
 - [ ] describe_job
 - [ ] describe_multi_region_access_point_operation
-- [ ] get_access_point
+- [X] get_access_point
 - [ ] get_access_point_configuration_for_object_lambda
 - [ ] get_access_point_for_object_lambda
-- [ ] get_access_point_policy
+- [X] get_access_point_policy
 - [ ] get_access_point_policy_for_object_lambda
-- [ ] get_access_point_policy_status
+- [X] get_access_point_policy_status
+  
+        We assume the policy status is always public
+        
+
 - [ ] get_access_point_policy_status_for_object_lambda
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration

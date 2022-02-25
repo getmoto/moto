@@ -434,7 +434,7 @@
 
 ## budgets
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] create_budget
 - [ ] create_budget_action
@@ -449,6 +449,7 @@
 - [ ] describe_budget_action_histories
 - [ ] describe_budget_actions_for_account
 - [ ] describe_budget_actions_for_budget
+- [ ] describe_budget_notifications_for_account
 - [ ] describe_budget_performance_history
 - [X] describe_budgets
 - [X] describe_notifications_for_budget
@@ -866,7 +867,7 @@
 
 ## cognito-idp
 <details>
-<summary>54% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -888,7 +889,7 @@
 - [X] admin_remove_user_from_group
 - [X] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
-- [ ] admin_set_user_mfa_preference
+- [X] admin_set_user_mfa_preference
 - [X] admin_set_user_password
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
@@ -4347,7 +4348,7 @@
 
 ## s3
 <details>
-<summary>59% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -4395,6 +4396,7 @@
 - [ ] get_bucket_website
 - [X] get_object
 - [X] get_object_acl
+- [ ] get_object_attributes
 - [X] get_object_legal_hold
 - [X] get_object_lock_configuration
 - [ ] get_object_retention
@@ -4449,16 +4451,16 @@
 
 ## s3control
 <details>
-<summary>5% implemented</summary>
+<summary>15% implemented</summary>
 
-- [ ] create_access_point
+- [X] create_access_point
 - [ ] create_access_point_for_object_lambda
 - [ ] create_bucket
 - [ ] create_job
 - [ ] create_multi_region_access_point
-- [ ] delete_access_point
+- [X] delete_access_point
 - [ ] delete_access_point_for_object_lambda
-- [ ] delete_access_point_policy
+- [X] delete_access_point_policy
 - [ ] delete_access_point_policy_for_object_lambda
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
@@ -4471,12 +4473,12 @@
 - [ ] delete_storage_lens_configuration_tagging
 - [ ] describe_job
 - [ ] describe_multi_region_access_point_operation
-- [ ] get_access_point
+- [X] get_access_point
 - [ ] get_access_point_configuration_for_object_lambda
 - [ ] get_access_point_for_object_lambda
-- [ ] get_access_point_policy
+- [X] get_access_point_policy
 - [ ] get_access_point_policy_for_object_lambda
-- [ ] get_access_point_policy_status
+- [X] get_access_point_policy_status
 - [ ] get_access_point_policy_status_for_object_lambda
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
@@ -5276,6 +5278,22 @@
 - [ ] untag_resource
 </details>
 
+## textract
+<details>
+<summary>20% implemented</summary>
+
+- [ ] analyze_document
+- [ ] analyze_expense
+- [ ] analyze_id
+- [ ] detect_document_text
+- [ ] get_document_analysis
+- [X] get_document_text_detection
+- [ ] get_expense_analysis
+- [ ] start_document_analysis
+- [X] start_document_text_detection
+- [ ] start_expense_analysis
+</details>
+
 ## timestream-write
 <details>
 <summary>80% implemented</summary>
@@ -5592,7 +5610,6 @@
 - sso-oidc
 - storagegateway
 - synthetics
-- textract
 - timestream-query
 - transfer
 - translate
