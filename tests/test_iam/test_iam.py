@@ -2815,7 +2815,8 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="Role",
     )
-    assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
+    assert response["PolicyRoles"][0]["RoleName"] == "my-role"
+    response["PolicyRoles"][0].should.have.key("RoleId")
     response["PolicyGroups"].should.equal([])
     response["PolicyUsers"].should.equal([])
 
@@ -2823,7 +2824,8 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="User",
     )
-    assert response["PolicyUsers"] == [{"UserName": "testUser"}]
+    assert response["PolicyUsers"][0]["UserName"] == "testUser"
+    response["PolicyUsers"][0].should.have.key("UserId")
     response["PolicyGroups"].should.equal([])
     response["PolicyRoles"].should.equal([])
 
@@ -2831,7 +2833,8 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="Group",
     )
-    assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
+    assert response["PolicyGroups"][0]["GroupName"] == "testGroup"
+    response["PolicyGroups"][0].should.have.key("GroupId")
     response["PolicyRoles"].should.equal([])
     response["PolicyUsers"].should.equal([])
 
@@ -2839,17 +2842,25 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="LocalManagedPolicy",
     )
-    assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
-    assert response["PolicyUsers"] == [{"UserName": "testUser"}]
-    assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
+    assert response["PolicyGroups"][0]["GroupName"] == "testGroup"
+    assert response["PolicyUsers"][0]["UserName"] == "testUser"
+    assert response["PolicyRoles"][0]["RoleName"] == "my-role"
+
+    response["PolicyGroups"][0].should.have.key("GroupId")
+    response["PolicyUsers"][0].should.have.key("UserId")
+    response["PolicyRoles"][0].should.have.key("RoleId")
 
     # Return everything when no entity is specified
     response = conn.list_entities_for_policy(
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
     )
-    response["PolicyGroups"].should.equal([{"GroupName": "testGroup"}])
-    response["PolicyUsers"].should.equal([{"UserName": "testUser"}])
-    response["PolicyRoles"].should.equal([{"RoleName": "my-role"}])
+    response["PolicyGroups"][0]["GroupName"].should.equal("testGroup")
+    response["PolicyUsers"][0]["UserName"].should.equal("testUser")
+    response["PolicyRoles"][0]["RoleName"].should.equal("my-role")
+
+    response["PolicyGroups"][0].should.have.key("GroupId")
+    response["PolicyUsers"][0].should.have.key("UserId")
+    response["PolicyRoles"][0].should.have.key("RoleId")
 
 
 @mock_iam()

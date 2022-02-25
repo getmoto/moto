@@ -473,9 +473,11 @@ Resources:
     )
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
-    response.should.have.key("PolicyGroups").equal([{"GroupName": group_name}])
     response.should.have.key("PolicyUsers").equal([])
     response.should.have.key("PolicyRoles").equal([])
+
+    response["PolicyGroups"][0]["GroupName"].should.be.equal(group_name)
+    response["PolicyGroups"][0].should.have.key("GroupId")
 
 
 @mock_iam
@@ -523,8 +525,10 @@ Resources:
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
     response.should.have.key("PolicyGroups").equal([])
-    response.should.have.key("PolicyUsers").equal([{"UserName": user_name}])
     response.should.have.key("PolicyRoles").equal([])
+
+    response["PolicyUsers"][0]["UserName"].should.be.equal(user_name)
+    response["PolicyUsers"][0].should.have.key("UserId")
 
 
 @mock_iam
@@ -573,7 +577,9 @@ Resources:
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
     response.should.have.key("PolicyGroups").equal([])
     response.should.have.key("PolicyUsers").equal([])
-    response.should.have.key("PolicyRoles").equal([{"RoleName": role_name}])
+
+    response["PolicyRoles"][0]["RoleName"].should.be.equal(role_name)
+    response["PolicyRoles"][0].should.have.key("RoleId")
 
 
 # AWS::IAM::Policy Tests
