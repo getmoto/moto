@@ -5,8 +5,42 @@ Moto Changelog
 -----
 Docker Digest for 3.0.5: <autopopulateddigest>
 
+    New Services:
+        * Textract:
+            * get_document_text_detection()
+            * start_document_text_detection()
+
+    New Methods:
+        * APIGateway:
+            * delete_gateway_responses()
+            * get_gateway_response()
+            * get_gateway_responses()
+            * put_gateway_response()
+        * CloudTrail:
+            * add_tags()
+            * get_event_selectors()
+            * get_insight_selectors()
+            * list_tags()
+            * put_event_selectors()
+            * put_insight_selectors()
+            * remove_tags()
+            * update_trail()
+        * CognitoIDP:
+            * admin_set_user_mfa_preference()
+        * S3Control:
+            * create_access_point()
+            * delete_access_point()
+            * delete_access_point_policy()
+            * get_access_point()
+            * get_access_point_policy()
+            * get_access_point_policy_status()
+
     Miscellaneous:
+        * APIGateway: put_integration() now supports the timeoutInMillis-parameter
         * AWSLambda: Made the docker image repository selectable via the `MOTO_DOCKER_LAMBDA_IMAGE` environment variable.
+        * Batch: register_job_definition() now supports the parameters `platformCapabilities`, `propagateTags` and `retryStrategy`
+        * IAM: list_entities_for_policy() now returns the RoleId/GroupId/UserId-attributes
+        * S3Control is now available in ServerMode.
 
 3.0.4
 -----
