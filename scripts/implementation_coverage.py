@@ -7,7 +7,7 @@ import boto3
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-alternative_service_names = {"lambda": "awslambda", "dynamodb": "dynamodb2", "rds": "rds2"}
+alternative_service_names = {"lambda": "awslambda", "dynamodb": "dynamodb2"}
 
 
 def get_moto_implementation(service_name):

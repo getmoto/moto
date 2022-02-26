@@ -1,13 +1,13 @@
 import boto3
 import json
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_cloudformation, mock_ec2, mock_rds2
+from moto import mock_cloudformation, mock_ec2, mock_rds
 from tests.test_cloudformation.fixtures import rds_mysql_with_db_parameter_group
 from tests.test_cloudformation.fixtures import rds_mysql_with_read_replica
 
 
 @mock_ec2
-@mock_rds2
+@mock_rds
 @mock_cloudformation
 def test_create_subnetgroup_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
@@ -45,7 +45,7 @@ def test_create_subnetgroup_via_cf():
 
 
 @mock_ec2
-@mock_rds2
+@mock_rds
 @mock_cloudformation
 def test_create_dbinstance_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
@@ -87,7 +87,7 @@ def test_create_dbinstance_via_cf():
 
 
 @mock_ec2
-@mock_rds2
+@mock_rds
 @mock_cloudformation
 def test_create_dbsecuritygroup_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
@@ -118,7 +118,7 @@ def test_create_dbsecuritygroup_via_cf():
 
 @mock_cloudformation
 @mock_ec2
-@mock_rds2
+@mock_rds
 def test_rds_db_parameter_groups():
     ec2_conn = boto3.client("ec2", region_name="us-west-1")
     ec2_conn.create_security_group(
@@ -168,7 +168,7 @@ def test_rds_db_parameter_groups():
 
 @mock_cloudformation
 @mock_ec2
-@mock_rds2
+@mock_rds
 def test_rds_mysql_with_read_replica():
     ec2_conn = boto3.client("ec2", region_name="us-west-1")
     ec2_conn.create_security_group(
@@ -220,7 +220,7 @@ def test_rds_mysql_with_read_replica():
 
 @mock_cloudformation
 @mock_ec2
-@mock_rds2
+@mock_rds
 def test_rds_mysql_with_read_replica_in_vpc():
     template_json = json.dumps(rds_mysql_with_read_replica.template)
     cf = boto3.client("cloudformation", "eu-central-1")
