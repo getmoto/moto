@@ -3,7 +3,7 @@ Moto Changelog
 
 3.0.5
 -----
-Docker Digest for 3.0.5: <autopopulateddigest>
+Docker Digest for 3.0.5: _sha256:914ba446c1aad3917029fefe5d1c4a7a6a3866173391fb470151fe4a2163efcb_
 
     New Services:
         * Textract:
