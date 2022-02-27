@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-import sure  # noqa
-from nose.tools import assert_raises
+import sure  # noqa # pylint: disable=unused-import
 import requests
 
 import boto3

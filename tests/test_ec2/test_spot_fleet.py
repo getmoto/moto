@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 from moto.core import ACCOUNT_ID
+from tests import EXAMPLE_AMI_ID
 
 
 def get_subnet_id(conn):
@@ -24,7 +23,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
         "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
         "LaunchSpecifications": [
             {
-                "ImageId": "ami-123",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "my-key",
                 "SecurityGroups": [{"GroupId": "sg-123"}],
                 "UserData": "some user data",
@@ -54,7 +53,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
                 "SpotPrice": "0.13",
             },
             {
-                "ImageId": "ami-123",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "my-key",
                 "SecurityGroups": [{"GroupId": "sg-123"}],
                 "UserData": "some user data",
@@ -108,7 +107,7 @@ def test_create_spot_fleet_with_lowest_price():
     launch_spec["IamInstanceProfile"].should.equal(
         {"Arn": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)}
     )
-    launch_spec["ImageId"].should.equal("ami-123")
+    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
     launch_spec["InstanceType"].should.equal("t2.small")
     launch_spec["KeyName"].should.equal("my-key")
     launch_spec["Monitoring"].should.equal({"Enabled": True})

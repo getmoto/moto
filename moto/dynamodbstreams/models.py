@@ -1,12 +1,9 @@
-from __future__ import unicode_literals
-
 import os
 import json
 import base64
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.dynamodb2.models import dynamodb_backends, DynamoJsonEncoder
 
 
@@ -140,14 +137,4 @@ class DynamoDBStreamsBackend(BaseBackend):
         return json.dumps(shard_iterator.get(limit), cls=DynamoJsonEncoder)
 
 
-dynamodbstreams_backends = {}
-for region in Session().get_available_regions("dynamodbstreams"):
-    dynamodbstreams_backends[region] = DynamoDBStreamsBackend(region)
-for region in Session().get_available_regions(
-    "dynamodbstreams", partition_name="aws-us-gov"
-):
-    dynamodbstreams_backends[region] = DynamoDBStreamsBackend(region)
-for region in Session().get_available_regions(
-    "dynamodbstreams", partition_name="aws-cn"
-):
-    dynamodbstreams_backends[region] = DynamoDBStreamsBackend(region)
+dynamodbstreams_backends = BackendDict(DynamoDBStreamsBackend, "dynamodbstreams")

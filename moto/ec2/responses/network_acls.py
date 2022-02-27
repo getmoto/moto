@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -6,7 +5,10 @@ from moto.ec2.utils import filters_from_querystring
 class NetworkACLs(BaseResponse):
     def create_network_acl(self):
         vpc_id = self._get_param("VpcId")
-        network_acl = self.ec2_backend.create_network_acl(vpc_id)
+        tags = self._get_multi_param("TagSpecification")
+        if tags:
+            tags = tags[0].get("Tag")
+        network_acl = self.ec2_backend.create_network_acl(vpc_id, tags=tags)
         template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
@@ -129,6 +131,7 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
    <item>
      <networkAclId>{{ network_acl.id }}</networkAclId>
      <vpcId>{{ network_acl.vpc_id }}</vpcId>
+     <ownerId>{{ network_acl.owner_id }}</ownerId>
      <default>{{ network_acl.default }}</default>
      <entrySet>
        {% for entry in network_acl.network_acl_entries %}
@@ -161,7 +164,7 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
         <item>
           <resourceId>{{ tag.resource_id }}</resourceId>
           <resourceType>{{ tag.resource_type }}</resourceType>
-          <key>{{ tag.key }}</key>
+          <key>{{ tag.key}}</key>
           <value>{{ tag.value }}</value>
         </item>
       {% endfor %}

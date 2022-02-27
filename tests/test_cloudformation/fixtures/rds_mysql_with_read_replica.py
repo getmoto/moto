@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "AWS CloudFormation Sample Template RDS_MySQL_With_Read_Replica: Sample template showing how to create a highly-available, RDS DBInstance with a read replica. **WARNING** This template creates an Amazon Relational Database Service database instance and Amazon CloudWatch alarms. You will be billed for the AWS resources used if you create a stack from this template.",

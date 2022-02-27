@@ -1,23 +1,22 @@
-from __future__ import unicode_literals
-from boto.ec2.instancetype import InstanceType
-
-from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.exceptions import MissingParameterError
+from moto.ec2.exceptions import (
+    MissingParameterError,
+    InvalidParameterCombination,
+    InvalidRequest,
+)
 from moto.ec2.utils import (
     filters_from_querystring,
     dict_from_querystring,
 )
-from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
-import six
 
 
 class InstanceResponse(BaseResponse):
     def describe_instances(self):
+        self.error_on_dryrun()
         filter_dict = filters_from_querystring(self.querystring)
         instance_ids = self._get_multi_param("InstanceId")
         token = self._get_param("NextToken")
@@ -26,7 +25,7 @@ class InstanceResponse(BaseResponse):
                 instance_ids, filters=filter_dict
             )
         else:
-            reservations = self.ec2_backend.all_reservations(filters=filter_dict)
+            reservations = self.ec2_backend.describe_instances(filters=filter_dict)
 
         reservation_ids = [reservation.id for reservation in reservations]
         if token:
@@ -64,10 +63,19 @@ class InstanceResponse(BaseResponse):
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification("TagSpecification"),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
+            "instance_market_options": self._get_param(
+                "InstanceMarketOptions.MarketType"
+            )
+            or {},
             "instance_initiated_shutdown_behavior": self._get_param(
                 "InstanceInitiatedShutdownBehavior"
             ),
+            "launch_template": self._get_multi_param_dict("LaunchTemplate"),
         }
+        if len(kwargs["nics"]) and kwargs["subnet_id"]:
+            raise InvalidParameterCombination(
+                msg="Network interfaces and an instance-level subnet ID may not be specified on the same request"
+            )
 
         mappings = self._parse_block_device_mapping()
         if mappings:
@@ -85,6 +93,9 @@ class InstanceResponse(BaseResponse):
         instance_ids = self._get_multi_param("InstanceId")
         if self.is_not_dryrun("TerminateInstance"):
             instances = self.ec2_backend.terminate_instances(instance_ids)
+            from moto.autoscaling import autoscaling_backends
+            from moto.elbv2 import elbv2_backends
+
             autoscaling_backends[self.region].notify_terminate_instances(instance_ids)
             elbv2_backends[self.region].notify_terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
@@ -131,24 +142,27 @@ class InstanceResponse(BaseResponse):
             for f in filters
         ]
 
-        if instance_ids:
-            instances = self.ec2_backend.get_multi_instances_by_id(
-                instance_ids, filters
-            )
-        elif include_all_instances:
-            instances = self.ec2_backend.all_instances(filters)
-        else:
-            instances = self.ec2_backend.all_running_instances(filters)
+        instances = self.ec2_backend.describe_instance_status(
+            instance_ids, include_all_instances, filters
+        )
 
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
 
     def describe_instance_types(self):
-        instance_types = [
-            InstanceType(name="t1.micro", cores=1, memory=644874240, disk=0)
-        ]
+        instance_type_filters = self._get_multi_param("InstanceType")
+        instance_types = self.ec2_backend.describe_instance_types(instance_type_filters)
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
+
+    def describe_instance_type_offerings(self):
+        location_type_filters = self._get_param("LocationType")
+        filter_dict = filters_from_querystring(self.querystring)
+        offerings = self.ec2_backend.describe_instance_type_offerings(
+            location_type_filters, filter_dict
+        )
+        template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
+        return template.render(instance_type_offerings=offerings)
 
     def describe_instance_attribute(self):
         # TODO this and modify below should raise IncorrectInstanceState if
@@ -176,6 +190,7 @@ class InstanceResponse(BaseResponse):
 
     def modify_instance_attribute(self):
         handlers = [
+            self._attribute_value_handler,
             self._dot_value_instance_attribute_handler,
             self._block_device_mapping_handler,
             self._security_grp_instance_attribute_handler,
@@ -257,9 +272,24 @@ class InstanceResponse(BaseResponse):
             )
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
+    def _attribute_value_handler(self):
+        attribute_key = self._get_param("Attribute")
+
+        if attribute_key is None:
+            return
+
+        if self.is_not_dryrun("ModifyInstanceAttribute"):
+            value = self._get_param("Value")
+            normalized_attribute = camelcase_to_underscores(attribute_key)
+            instance_id = self._get_param("InstanceId")
+            self.ec2_backend.modify_instance_attribute(
+                instance_id, normalized_attribute, value
+            )
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+
     def _security_grp_instance_attribute_handler(self):
         new_security_grp_list = []
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "GroupId." in key:
                 new_security_grp_list.append(self.querystring.get(key)[0])
 
@@ -294,12 +324,30 @@ class InstanceResponse(BaseResponse):
             device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
                 device_mapping.get("ebs._encrypted", False)
             )
+            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
+            device_template["NoDevice"] = device_mapping.get("no_device")
             mappings.append(device_template)
 
         return mappings
 
     @staticmethod
     def _validate_block_device_mapping(device_mapping):
+
+        from botocore import __version__ as botocore_version
+
+        if "no_device" in device_mapping:
+            assert isinstance(
+                device_mapping["no_device"], str
+            ), "botocore {} isn't limiting NoDevice to str type anymore, it is type:{}".format(
+                botocore_version, type(device_mapping["no_device"])
+            )
+            if device_mapping["no_device"] == "":
+                # the only legit value it can have is empty string
+                # and none of the other checks here matter if NoDevice
+                # is being used
+                return
+            else:
+                raise InvalidRequest()
 
         if not any(mapping for mapping in device_mapping if mapping.startswith("ebs.")):
             raise MissingParameterError("ebs")
@@ -314,7 +362,7 @@ class InstanceResponse(BaseResponse):
         if isinstance(bool_str, bool):
             return bool_str
 
-        if isinstance(bool_str, six.text_type):
+        if isinstance(bool_str, str):
             return str(bool_str).lower() == "true"
 
         return False
@@ -323,6 +371,7 @@ class InstanceResponse(BaseResponse):
 BLOCK_DEVICE_MAPPING_TEMPLATE = {
     "VirtualName": None,
     "DeviceName": None,
+    "NoDevice": None,
     "Ebs": {
         "SnapshotId": None,
         "VolumeSize": None,
@@ -364,6 +413,9 @@ EC2_RUN_INSTANCES = (
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
+          {% if instance.lifecycle %}
+          <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
+          {% endif %}
           <placement>
             <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
@@ -515,6 +567,9 @@ EC2_DESCRIBE_INSTANCES = (
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
+                    {% if instance.lifecycle %}
+                    <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
+                    {% endif %}
                     <placement>
                       <availabilityZone>{{ instance.placement }}</availabilityZone>
                       <groupName/>
@@ -818,26 +873,60 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeSet>
     {% for instance_type in instance_types %}
         <item>
-            <instanceType>{{ instance_type.name }}</instanceType>
+            <instanceType>{{ instance_type.InstanceType }}</instanceType>
             <vCpuInfo>
-                <defaultVCpus>{{ instance_type.cores }}</defaultVCpus>
-                <defaultCores>{{ instance_type.cores }}</defaultCores>
-                <defaultThreadsPerCore>1</defaultThreadsPerCore>
+                <defaultVCpus>{{ instance_type.get('VCpuInfo', {}).get('DefaultVCpus', 0)|int }}</defaultVCpus>
+                <defaultCores>{{ instance_type.get('VCpuInfo', {}).get('DefaultCores', 0)|int }}</defaultCores>
+                <defaultThreadsPerCore>{{ instance_type.get('VCpuInfo').get('DefaultThreadsPerCore', 0)|int }}</defaultThreadsPerCore>
             </vCpuInfo>
             <memoryInfo>
-                <sizeInMiB>{{ instance_type.memory }}</sizeInMiB>
+                <sizeInMiB>{{ instance_type.get('MemoryInfo', {}).get('SizeInMiB', 0)|int }}</sizeInMiB>
             </memoryInfo>
             <instanceStorageInfo>
-                <totalSizeInGB>{{ instance_type.disk }}</totalSizeInGB>
+                <totalSizeInGB>{{ instance_type.get('InstanceStorageInfo', {}).get('TotalSizeInGB', 0)|int }}</totalSizeInGB>
             </instanceStorageInfo>
             <processorInfo>
                 <supportedArchitectures>
+                    {% for arch in instance_type.get('ProcessorInfo', {}).get('SupportedArchitectures', []) %}
                     <item>
-                        x86_64
+                        {{ arch }}
                     </item>
+                    {% endfor %}
                 </supportedArchitectures>
             </processorInfo>
+            {% if instance_type.get('GpuInfo', {})|length > 0 %}
+            <gpuInfo>
+                <gpus>
+                    {% for gpu in instance_type.get('GpuInfo').get('Gpus') %}
+                    <item>
+                        <count>{{ gpu['Count']|int }}</count>
+                        <manufacturer>{{ gpu['Manufacturer'] }}</manufacturer>
+                        <memoryInfo>
+                            <sizeInMiB>{{ gpu['MemoryInfo']['SizeInMiB']|int }}</sizeInMiB>
+                        </memoryInfo>
+                        <name>{{ gpu['Name'] }}</name>
+                    </item>
+                    {% endfor %}
+                </gpus>
+                <totalGpuMemoryInMiB>{{ instance_type['GpuInfo']['TotalGpuMemoryInMiB']|int }}</totalGpuMemoryInMiB>
+            </gpuInfo>
+            {% endif %}
         </item>
     {% endfor %}
     </instanceTypeSet>
 </DescribeInstanceTypesResponse>"""
+
+
+EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
+<DescribeInstanceTypeOfferingsResponse xmlns="http://api.outscale.com/wsdl/fcuext/2014-04-15/">
+    <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
+    <instanceTypeOfferingSet>
+    {% for offering in instance_type_offerings %}
+        <item>
+            <instanceType>{{ offering.InstanceType }}</instanceType>
+            <location>{{ offering.Location }}</location>
+            <locationType>{{ offering.LocationType }}</locationType>
+        </item>
+    {% endfor %}
+    </instanceTypeOfferingSet>
+</DescribeInstanceTypeOfferingsResponse>"""

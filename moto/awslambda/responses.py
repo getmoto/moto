@@ -1,15 +1,27 @@
-from __future__ import unicode_literals
-
 import json
+import sys
 
 try:
     from urllib import unquote
 except ImportError:
     from urllib.parse import unquote
 
+from functools import wraps
 from moto.core.utils import amz_crc32, amzn_request_id, path_url
 from moto.core.responses import BaseResponse
+from .exceptions import LambdaClientError
 from .models import lambda_backends
+
+
+def error_handler(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except LambdaClientError as e:
+            return e.code, e.get_headers(), e.get_body()
+
+    return _wrapper
 
 
 class LambdaResponse(BaseResponse):
@@ -30,6 +42,7 @@ class LambdaResponse(BaseResponse):
         """
         return lambda_backends[self.region]
 
+    @error_handler
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -63,6 +76,18 @@ class LambdaResponse(BaseResponse):
             return self._delete_event_source_mapping(uuid)
         else:
             raise ValueError("Cannot handle request")
+
+    def list_layers(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._list_layers(request, headers)
+
+    def layers_versions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._get_layer_versions(request, full_url, headers)
+        if request.method == "POST":
+            return self._publish_layer_version(request, full_url, headers)
 
     def function(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -116,6 +141,7 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
+    @error_handler
     def policy(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -131,6 +157,8 @@ class LambdaResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self._put_configuration(request)
+        if request.method == "GET":
+            return self._get_function_configuration(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
@@ -140,6 +168,11 @@ class LambdaResponse(BaseResponse):
             return self._put_code()
         else:
             raise ValueError("Cannot handle request")
+
+    def code_signing_config(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._get_code_signing_config()
 
     def function_concurrency(self, request, full_url, headers):
         http_method = request.method
@@ -156,7 +189,7 @@ class LambdaResponse(BaseResponse):
 
     def _add_policy(self, request, full_url, headers):
         path = request.path if hasattr(request, "path") else path_url(request.url)
-        function_name = path.split("/")[-2]
+        function_name = unquote(path.split("/")[-2])
         if self.lambda_backend.get_function(function_name):
             statement = self.body
             self.lambda_backend.add_permission(function_name, statement)
@@ -166,7 +199,7 @@ class LambdaResponse(BaseResponse):
 
     def _get_policy(self, request, full_url, headers):
         path = request.path if hasattr(request, "path") else path_url(request.url)
-        function_name = path.split("/")[-2]
+        function_name = unquote(path.split("/")[-2])
         if self.lambda_backend.get_function(function_name):
             out = self.lambda_backend.get_policy_wire_format(function_name)
             return 200, {}, out
@@ -175,7 +208,7 @@ class LambdaResponse(BaseResponse):
 
     def _del_policy(self, request, full_url, headers, querystring):
         path = request.path if hasattr(request, "path") else path_url(request.url)
-        function_name = path.split("/")[-3]
+        function_name = unquote(path.split("/")[-3])
         statement_id = path.split("/")[-1].split("?")[0]
         revision = querystring.get("RevisionId", "")
         if self.lambda_backend.get_function(function_name):
@@ -195,6 +228,17 @@ class LambdaResponse(BaseResponse):
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
+            if request.headers.get("X-Amz-Invocation-Type") != "Event":
+                if sys.getsizeof(payload) > 6000000:
+                    response_headers["Content-Length"] = "142"
+                    response_headers["x-amz-function-error"] = "Unhandled"
+                    error_dict = {
+                        "errorMessage": "Response payload size exceeded maximum allowed payload size (6291556 bytes).",
+                        "errorType": "Function.ResponseSizeTooLarge",
+                    }
+                    payload = json.dumps(error_dict).encode("utf-8")
+
+            response_headers["content-type"] = "application/json"
             if request.headers.get("X-Amz-Invocation-Type") == "Event":
                 status_code = 202
             elif request.headers.get("X-Amz-Invocation-Type") == "DryRun":
@@ -210,7 +254,7 @@ class LambdaResponse(BaseResponse):
     def _invoke_async(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit("/", 3)[-3]
+        function_name = unquote(self.path.rsplit("/", 3)[-3])
 
         fn = self.lambda_backend.get_function(function_name, None)
         if fn:
@@ -221,11 +265,12 @@ class LambdaResponse(BaseResponse):
             return 404, response_headers, "{}"
 
     def _list_functions(self, request, full_url, headers):
+        querystring = self.querystring
+        func_version = querystring.get("FunctionVersion", [None])[0]
         result = {"Functions": []}
 
-        for fn in self.lambda_backend.list_functions():
+        for fn in self.lambda_backend.list_functions(func_version):
             json_data = fn.get_configuration()
-            json_data["Version"] = "$LATEST"
             result["Functions"].append(json_data)
 
         return 200, {}, json.dumps(result)
@@ -283,8 +328,9 @@ class LambdaResponse(BaseResponse):
 
     def _publish_function(self, request, full_url, headers):
         function_name = self.path.rsplit("/", 2)[-2]
+        description = self._get_param("Description")
 
-        fn = self.lambda_backend.publish_function(function_name)
+        fn = self.lambda_backend.publish_function(function_name, description)
         if fn:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)
@@ -300,6 +346,14 @@ class LambdaResponse(BaseResponse):
         else:
             return 404, {}, "{}"
 
+    @staticmethod
+    def _set_configuration_qualifier(configuration, qualifier):
+        if qualifier is None or qualifier == "$LATEST":
+            configuration["Version"] = "$LATEST"
+        if qualifier == "$LATEST":
+            configuration["FunctionArn"] += ":$LATEST"
+        return configuration
+
     def _get_function(self, request, full_url, headers):
         function_name = unquote(self.path.rsplit("/", 1)[-1])
         qualifier = self._get_param("Qualifier", None)
@@ -308,11 +362,24 @@ class LambdaResponse(BaseResponse):
 
         if fn:
             code = fn.get_code()
-            if qualifier is None or qualifier == "$LATEST":
-                code["Configuration"]["Version"] = "$LATEST"
-            if qualifier == "$LATEST":
-                code["Configuration"]["FunctionArn"] += ":$LATEST"
+            code["Configuration"] = self._set_configuration_qualifier(
+                code["Configuration"], qualifier
+            )
             return 200, {}, json.dumps(code)
+        else:
+            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
+
+    def _get_function_configuration(self, request, full_url, headers):
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        qualifier = self._get_param("Qualifier", None)
+
+        fn = self.lambda_backend.get_function(function_name, qualifier)
+
+        if fn:
+            configuration = self._set_configuration_qualifier(
+                fn.get_configuration(), qualifier
+            )
+            return 200, {}, json.dumps(configuration)
         else:
             return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
 
@@ -350,7 +417,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _put_configuration(self, request):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
         resp = self.lambda_backend.update_function_configuration(
             function_name, qualifier, body=self.json_body
@@ -362,7 +429,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _put_code(self):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
         resp = self.lambda_backend.update_function_code(
             function_name, qualifier, body=self.json_body
@@ -373,8 +440,13 @@ class LambdaResponse(BaseResponse):
         else:
             return 404, {}, "{}"
 
+    def _get_code_signing_config(self):
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        resp = self.lambda_backend.get_code_signing_config(function_name)
+        return 200, {}, json.dumps(resp)
+
     def _get_function_concurrency(self, request):
-        path_function_name = self.path.rsplit("/", 2)[-2]
+        path_function_name = unquote(self.path.rsplit("/", 2)[-2])
         function_name = self.lambda_backend.get_function(path_function_name)
 
         if function_name is None:
@@ -384,7 +456,7 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
 
     def _delete_function_concurrency(self, request):
-        path_function_name = self.path.rsplit("/", 2)[-2]
+        path_function_name = unquote(self.path.rsplit("/", 2)[-2])
         function_name = self.lambda_backend.get_function(path_function_name)
 
         if function_name is None:
@@ -395,7 +467,7 @@ class LambdaResponse(BaseResponse):
         return 204, {}, "{}"
 
     def _put_function_concurrency(self, request):
-        path_function_name = self.path.rsplit("/", 2)[-2]
+        path_function_name = unquote(self.path.rsplit("/", 2)[-2])
         function = self.lambda_backend.get_function(path_function_name)
 
         if function is None:
@@ -407,3 +479,26 @@ class LambdaResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
+
+    def _list_layers(self, request, headers):
+        layers = self.lambda_backend.list_layers()
+        return (200, {}, json.dumps({"Layers": layers}))
+
+    def _get_layer_versions(self, request, full_url, headers):
+        layer_name = self.path.rsplit("/", 2)[-2]
+        layer_versions = self.lambda_backend.get_layer_versions(layer_name)
+        return (
+            200,
+            {},
+            json.dumps(
+                {"LayerVersions": [lv.get_layer_version() for lv in layer_versions]}
+            ),
+        )
+
+    def _publish_layer_version(self, request, full_url, headers):
+        spec = self.json_body
+        if "LayerName" not in spec:
+            spec["LayerName"] = self.path.rsplit("/", 2)[-2]
+        layer_version = self.lambda_backend.publish_layer_version(spec)
+        config = layer_version.get_layer_version()
+        return 201, {}, json.dumps(config)

@@ -1,0 +1,15 @@
+codecov:
+  notify:
+    # Leave a GitHub comment after all builds have passed
+    after_n_builds: 8
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # this allows a drop from the previous base commit coverage
+        threshold: 0.5%
+    patch:
+      default:
+        # New code must have a 90% coverage
+        target: 90%

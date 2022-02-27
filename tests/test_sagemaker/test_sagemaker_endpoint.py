@@ -1,14 +1,11 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import datetime
 import boto3
-from botocore.exceptions import ClientError, ParamValidationError
-import sure  # noqa
+from botocore.exceptions import ClientError
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
-from nose.tools import assert_true, assert_equal, assert_raises
+import pytest
 
 TEST_REGION_NAME = "us-east-1"
 FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
@@ -33,14 +30,12 @@ def test_create_endpoint_config():
     ]
 
     endpoint_config_name = "MyEndpointConfig"
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.create_endpoint_config(
             EndpointConfigName=endpoint_config_name,
             ProductionVariants=production_variants,
         )
-    assert_true(
-        e.exception.response["Error"]["Message"].startswith("Could not find model")
-    )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
 
     _create_model(sagemaker, model_name)
     resp = sagemaker.create_endpoint_config(
@@ -88,22 +83,17 @@ def test_delete_endpoint_config():
     )
 
     resp = sagemaker.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.describe_endpoint_config(EndpointConfigName=endpoint_config_name)
-    assert_true(
-        e.exception.response["Error"]["Message"].startswith(
-            "Could not find endpoint configuration"
-        )
+    assert e.value.response["Error"]["Message"].startswith(
+        "Could not find endpoint configuration"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
-    assert_true(
-        e.exception.response["Error"]["Message"].startswith(
-            "Could not find endpoint configuration"
-        )
+    assert e.value.response["Error"]["Message"].startswith(
+        "Could not find endpoint configuration"
     )
-    pass
 
 
 @mock_sagemaker
@@ -124,16 +114,16 @@ def test_create_endpoint_invalid_instance_type():
     ]
 
     endpoint_config_name = "MyEndpointConfig"
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.create_endpoint_config(
             EndpointConfigName=endpoint_config_name,
             ProductionVariants=production_variants,
         )
-    assert_equal(e.exception.response["Error"]["Code"], "ValidationException")
+    assert e.value.response["Error"]["Code"] == "ValidationException"
     expected_message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: [".format(
         instance_type
     )
-    assert_true(expected_message in e.exception.response["Error"]["Message"])
+    assert expected_message in e.value.response["Error"]["Message"]
 
 
 @mock_sagemaker
@@ -141,14 +131,12 @@ def test_create_endpoint():
     sagemaker = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
     endpoint_name = "MyEndpoint"
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.create_endpoint(
             EndpointName=endpoint_name, EndpointConfigName="NonexistentEndpointConfig"
         )
-    assert_true(
-        e.exception.response["Error"]["Message"].startswith(
-            "Could not find endpoint configuration"
-        )
+    assert e.value.response["Error"]["Message"].startswith(
+        "Could not find endpoint configuration"
     )
 
     model_name = "MyModel"
@@ -173,12 +161,12 @@ def test_create_endpoint():
     resp["EndpointName"].should.equal(endpoint_name)
     resp["EndpointConfigName"].should.equal(endpoint_config_name)
     resp["EndpointStatus"].should.equal("InService")
-    assert_true(isinstance(resp["CreationTime"], datetime.datetime))
-    assert_true(isinstance(resp["LastModifiedTime"], datetime.datetime))
+    assert isinstance(resp["CreationTime"], datetime.datetime)
+    assert isinstance(resp["LastModifiedTime"], datetime.datetime)
     resp["ProductionVariants"][0]["VariantName"].should.equal("MyProductionVariant")
 
     resp = sagemaker.list_tags(ResourceArn=resp["EndpointArn"])
-    assert_equal(resp["Tags"], GENERIC_TAGS_PARAM)
+    assert resp["Tags"] == GENERIC_TAGS_PARAM
 
 
 @mock_sagemaker
@@ -195,17 +183,13 @@ def test_delete_endpoint():
     _create_endpoint(sagemaker, endpoint_name, endpoint_config_name)
 
     sagemaker.delete_endpoint(EndpointName=endpoint_name)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.describe_endpoint(EndpointName=endpoint_name)
-    assert_true(
-        e.exception.response["Error"]["Message"].startswith("Could not find endpoint")
-    )
+    assert e.value.response["Error"]["Message"].startswith("Could not find endpoint")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         sagemaker.delete_endpoint(EndpointName=endpoint_name)
-    assert_true(
-        e.exception.response["Error"]["Message"].startswith("Could not find endpoint")
-    )
+    assert e.value.response["Error"]["Message"].startswith("Could not find endpoint")
 
 
 def _create_model(boto_client, model_name):
@@ -217,7 +201,7 @@ def _create_model(boto_client, model_name):
         },
         ExecutionRoleArn=FAKE_ROLE_ARN,
     )
-    assert_equal(resp["ResponseMetadata"]["HTTPStatusCode"], 200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 def _create_endpoint_config(boto_client, endpoint_config_name, model_name):

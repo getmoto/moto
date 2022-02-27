@@ -1,7 +1,7 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import iotdata_backends
 import json
+from urllib.parse import unquote
 
 
 class IoTDataPlaneResponse(BaseResponse):
@@ -29,9 +29,19 @@ class IoTDataPlaneResponse(BaseResponse):
         payload = self.iotdata_backend.delete_thing_shadow(thing_name=thing_name)
         return json.dumps(payload.to_dict())
 
+    def dispatch_publish(self, request, full_url, headers):
+        # This endpoint requires specialized handling because it has
+        # a uri parameter containing forward slashes that is not
+        # correctly url encoded when we're running in server mode.
+        # https://github.com/pallets/flask/issues/900
+        self.setup_class(request, full_url, headers)
+        self.querystring["Action"] = ["Publish"]
+        topic = self.path.partition("/topics/")[-1]
+        self.querystring["target"] = [unquote(topic)] if "%" in topic else [topic]
+        return self.call_action()
+
     def publish(self):
-        topic = self._get_param("topic")
+        topic = self._get_param("target")
         qos = self._get_int_param("qos")
-        payload = self._get_param("payload")
-        self.iotdata_backend.publish(topic=topic, qos=qos, payload=payload)
+        self.iotdata_backend.publish(topic=topic, qos=qos, payload=self.body)
         return json.dumps(dict())

@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
 
@@ -8,9 +7,14 @@ class AmisResponse(BaseResponse):
         name = self.querystring.get("Name")[0]
         description = self._get_param("Description", if_none="")
         instance_id = self._get_param("InstanceId")
+        tag_specifications = self._get_multi_param("TagSpecification")
         if self.is_not_dryrun("CreateImage"):
             image = self.ec2_backend.create_image(
-                instance_id, name, description, context=self
+                instance_id,
+                name,
+                description,
+                context=self,
+                tag_specifications=tag_specifications,
             )
             template = self.response_template(CREATE_IMAGE_RESPONSE)
             return template.render(image=image)
@@ -35,6 +39,7 @@ class AmisResponse(BaseResponse):
             return template.render(success=str(success).lower())
 
     def describe_images(self):
+        self.error_on_dryrun()
         ami_ids = self._get_multi_param("ImageId")
         filters = filters_from_querystring(self.querystring)
         owners = self._get_multi_param("Owner")

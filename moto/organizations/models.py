@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import datetime
 import re
 import json
@@ -32,6 +30,9 @@ class FakeOrganization(BaseModel):
         self.master_account_id = utils.MASTER_ACCOUNT_ID
         self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
+            # This policy is available, but not applied
+            # User should use enable_policy_type/disable_policy_type to do anything else
+            # This field is deprecated in AWS, but we'll return it for old time's sake
             {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
         ]
 
@@ -71,7 +72,7 @@ class FakeAccount(BaseModel):
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
         self.attached_policies = []
-        self.tags = {}
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     @property
     def arn(self):
@@ -114,6 +115,7 @@ class FakeOrganizationalUnit(BaseModel):
         self.parent_id = kwargs.get("ParentId")
         self._arn_format = utils.OU_ARN_FORMAT
         self.attached_policies = []
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     @property
     def arn(self):
@@ -136,13 +138,14 @@ class FakeRoot(FakeOrganizationalUnit):
     ]
 
     def __init__(self, organization, **kwargs):
-        super(FakeRoot, self).__init__(organization, **kwargs)
+        super().__init__(organization, **kwargs)
         self.type = "ROOT"
         self.id = organization.root_id
         self.name = "Root"
-        self.policy_types = [{"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}]
+        self.policy_types = []
         self._arn_format = utils.ROOT_ARN_FORMAT
         self.attached_policies = []
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
     def describe(self):
         return {
@@ -326,6 +329,9 @@ class FakeDelegatedAdministrator(BaseModel):
 
 class OrganizationsBackend(BaseBackend):
     def __init__(self):
+        self._reset()
+
+    def _reset(self):
         self.org = None
         self.accounts = []
         self.ou = []
@@ -372,6 +378,15 @@ class OrganizationsBackend(BaseBackend):
         if not self.org:
             raise AWSOrganizationsNotInUseException
         return self.org.describe()
+
+    def delete_organization(self, **kwargs):
+        if [account for account in self.accounts if account.name != "master"]:
+            raise RESTError(
+                "OrganizationNotEmptyException",
+                "To delete an organization you must first remove all member accounts (except the master).",
+            )
+        self._reset()
+        return {}
 
     def list_roots(self):
         return dict(Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)])
@@ -458,6 +473,27 @@ class OrganizationsBackend(BaseBackend):
             "create_account_status_id", kwargs["CreateAccountRequestId"]
         )
         return account.create_account_status
+
+    def list_create_account_status(self, **kwargs):
+        requested_states = kwargs.get("States")
+        if not requested_states:
+            requested_states = ["IN_PROGRESS", "SUCCEEDED", "FAILED"]
+        accountStatuses = []
+        for account in self.accounts:
+            create_account_status = account.create_account_status["CreateAccountStatus"]
+            if create_account_status["State"] in requested_states:
+                accountStatuses.append(create_account_status)
+        token = kwargs.get("NextToken")
+        if token:
+            start = int(token)
+        else:
+            start = 0
+        max_results = int(kwargs.get("MaxResults", 123))
+        accounts_resp = accountStatuses[start : start + max_results]
+        next_token = None
+        if max_results and len(accountStatuses) > (start + max_results):
+            next_token = str(len(accounts_resp))
+        return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
     def list_accounts(self):
         return dict(Accounts=[account.describe() for account in self.accounts])
@@ -555,7 +591,7 @@ class OrganizationsBackend(BaseBackend):
         ).match(kwargs["TargetId"]):
             ou = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
             if ou is not None:
-                if ou not in ou.attached_policies:
+                if policy not in ou.attached_policies:
                     ou.attached_policies.append(policy)
                     policy.attachments.append(ou)
             else:
@@ -568,7 +604,7 @@ class OrganizationsBackend(BaseBackend):
                 (a for a in self.accounts if a.id == kwargs["TargetId"]), None
             )
             if account is not None:
-                if account not in account.attached_policies:
+                if policy not in account.attached_policies:
                     account.attached_policies.append(policy)
                     policy.attachments.append(account)
             else:
@@ -597,7 +633,7 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def list_policies_for_target(self, **kwargs):
-        filter = kwargs["Filter"]
+        _filter = kwargs["Filter"]
 
         if re.match(utils.ROOT_ID_REGEX, kwargs["TargetId"]):
             obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
@@ -617,21 +653,40 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-        if not FakePolicy.supported_policy_type(filter):
+        if not FakePolicy.supported_policy_type(_filter):
             raise InvalidInputException("You specified an invalid value.")
 
-        if filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
+        if _filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
             raise NotImplementedError(
-                "The {0} policy type has not been implemented".format(filter)
+                "The {0} policy type has not been implemented".format(_filter)
             )
 
         return dict(
             Policies=[
                 p.describe()["Policy"]["PolicySummary"]
                 for p in obj.attached_policies
-                if p.type == filter
+                if p.type == _filter
             ]
         )
+
+    def _get_resource_for_tagging(self, resource_id):
+        if utils.fullmatch(
+            re.compile(utils.OU_ID_REGEX), resource_id
+        ) or utils.fullmatch(utils.ROOT_ID_REGEX, resource_id):
+            resource = next((a for a in self.ou if a.id == resource_id), None)
+        elif utils.fullmatch(re.compile(utils.ACCOUNT_ID_REGEX), resource_id):
+            resource = next((a for a in self.accounts if a.id == resource_id), None)
+        elif utils.fullmatch(re.compile(utils.POLICY_ID_REGEX), resource_id):
+            resource = next((a for a in self.policies if a.id == resource_id), None)
+        else:
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
+
+        if resource is None:
+            raise TargetNotFoundException
+
+        return resource
 
     def list_targets_for_policy(self, **kwargs):
         if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
@@ -652,37 +707,19 @@ class OrganizationsBackend(BaseBackend):
         return dict(Targets=objects)
 
     def tag_resource(self, **kwargs):
-        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
-
-        if account is None:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
-        account.tags.update(new_tags)
+        resource.tags.update(new_tags)
 
     def list_tags_for_resource(self, **kwargs):
-        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
-
-        if account is None:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
-        tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
+        tags = [{"Key": key, "Value": value} for key, value in resource.tags.items()]
         return dict(Tags=tags)
 
     def untag_resource(self, **kwargs):
-        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
-
-        if account is None:
-            raise InvalidInputException(
-                "You provided a value that does not match the required pattern."
-            )
-
+        resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         for key in kwargs["TagKeys"]:
-            account.tags.pop(key, None)
+            resource.tags.pop(key, None)
 
     def enable_aws_service_access(self, **kwargs):
         service = FakeServiceAccess(**kwargs)
@@ -820,6 +857,43 @@ class OrganizationsBackend(BaseBackend):
         root.remove_policy_type(kwargs["PolicyType"])
 
         return dict(Root=root.describe())
+
+    def detach_policy(self, **kwargs):
+        policy = self.get_policy_by_id(kwargs["PolicyId"])
+        root_id_regex = utils.ROOT_ID_REGEX
+        ou_id_regex = utils.OU_ID_REGEX
+        account_id_regex = utils.ACCOUNT_ID_REGEX
+        target_id = kwargs["TargetId"]
+
+        if re.match(root_id_regex, target_id) or re.match(ou_id_regex, target_id):
+            ou = next((ou for ou in self.ou if ou.id == target_id), None)
+            if ou is not None:
+                if policy in ou.attached_policies:
+                    ou.attached_policies.remove(policy)
+                    policy.attachments.remove(ou)
+            else:
+                raise RESTError(
+                    "OrganizationalUnitNotFoundException",
+                    "You specified an organizational unit that doesn't exist.",
+                )
+        elif re.match(account_id_regex, target_id):
+            account = next(
+                (account for account in self.accounts if account.id == target_id), None,
+            )
+            if account is not None:
+                if policy in account.attached_policies:
+                    account.attached_policies.remove(policy)
+                    policy.attachments.remove(account)
+            else:
+                raise AccountNotFoundException
+        else:
+            raise InvalidInputException("You specified an invalid value.")
+
+    def remove_account_from_organization(self, **kwargs):
+        account = self.get_account_by_id(kwargs["AccountId"])
+        for policy in account.attached_policies:
+            policy.attachments.remove(account)
+        self.accounts.remove(account)
 
 
 organizations_backend = OrganizationsBackend()

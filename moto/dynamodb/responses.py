@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
 import json
-import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -28,7 +26,7 @@ class DynamoHandler(BaseResponse):
         if endpoint:
             endpoint = camelcase_to_underscores(endpoint)
             response = getattr(self, endpoint)()
-            if isinstance(response, six.string_types):
+            if isinstance(response, str):
                 return 200, self.response_headers, response
 
             else:
@@ -204,7 +202,7 @@ class DynamoHandler(BaseResponse):
             range_comparison = None
             range_values = []
 
-        items, last_page = dynamodb_backend.query(
+        items, _ = dynamodb_backend.query(
             name, hash_key, range_comparison, range_values
         )
 
@@ -238,7 +236,7 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
-        items, scanned_count, last_page = dynamodb_backend.scan(name, filters)
+        items, scanned_count, _ = dynamodb_backend.scan(name, filters)
 
         if items is None:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
@@ -272,6 +270,24 @@ class DynamoHandler(BaseResponse):
             else:
                 item_dict = {"Attributes": []}
             item_dict["ConsumedCapacityUnits"] = 0.5
+            return dynamo_json_dump(item_dict)
+        else:
+            er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+            return self.error(er)
+
+    def update_item(self):
+        name = self.body["TableName"]
+        key = self.body["Key"]
+        hash_key = key["HashKeyElement"]
+        range_key = key.get("RangeKeyElement")
+        updates = self.body["AttributeUpdates"]
+
+        item = dynamodb_backend.update_item(name, hash_key, range_key, updates)
+
+        if item:
+            item_dict = item.to_json()
+            item_dict["ConsumedCapacityUnits"] = 0.5
+
             return dynamo_json_dump(item_dict)
         else:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"

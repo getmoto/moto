@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
 import uuid
-import six
 import random
 import yaml
 import os
@@ -37,15 +35,16 @@ def generate_stackset_arn(stackset_id, region_name):
 def random_suffix():
     size = 12
     chars = list(range(10)) + list(string.ascii_uppercase)
-    return "".join(six.text_type(random.choice(chars)) for x in range(size))
+    return "".join(str(random.choice(chars)) for x in range(size))
 
 
 def yaml_tag_constructor(loader, tag, node):
-    """convert shorthand intrinsic function to full name
-    """
+    """convert shorthand intrinsic function to full name"""
 
     def _f(loader, tag, node):
         if tag == "!GetAtt":
+            if isinstance(node.value, list):
+                return node.value
             return node.value.split(".")
         elif type(node) == yaml.SequenceNode:
             return loader.construct_sequence(node)
@@ -71,7 +70,12 @@ def validate_template_cfn_lint(template):
     abs_filename = os.path.abspath(filename)
 
     # decode handles both yaml and json
-    template, matches = decode.decode(abs_filename, False)
+    try:
+        template, matches = decode.decode(abs_filename, False)
+    except TypeError:
+        # As of cfn-lint 0.39.0, the second argument (ignore_bad_template) was dropped
+        # https://github.com/aws-cloudformation/cfn-python-lint/pull/1580
+        template, matches = decode.decode(abs_filename)
 
     # Set cfn-lint to info
     core.configure_logging(None)

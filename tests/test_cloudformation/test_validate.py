@@ -1,25 +1,10 @@
-from collections import OrderedDict
 import json
-import yaml
-import os
 import boto3
-from nose.tools import raises
 import botocore
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
-
-from moto.cloudformation.exceptions import ValidationError
-from moto.cloudformation.models import FakeStack
-from moto.cloudformation.parsing import (
-    resource_class_from_type,
-    parse_condition,
-    Export,
-)
-from moto.sqs.models import Queue
-from moto.s3.models import FakeBucket
-from moto.cloudformation.utils import yaml_tag_constructor
-from boto.cloudformation.stack import Output
-from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from moto import mock_cloudformation, mock_s3
+from tests import EXAMPLE_AMI_ID
 
 json_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -28,7 +13,7 @@ json_template = {
         "EC2Instance1": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
-                "ImageId": "ami-d3adb33f",
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [

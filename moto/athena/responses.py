@@ -43,10 +43,10 @@ class AthenaResponse(BaseResponse):
         workgroup = self._get_param("WorkGroup")
         if workgroup and not self.athena_backend.get_work_group(workgroup):
             return self.error("WorkGroup does not exist", 400)
-        id = self.athena_backend.start_query_execution(
+        q_exec_id = self.athena_backend.start_query_execution(
             query=query, context=context, config=config, workgroup=workgroup
         )
-        return json.dumps({"QueryExecutionId": id})
+        return json.dumps({"QueryExecutionId": q_exec_id})
 
     def get_query_execution(self):
         exec_id = self._get_param("QueryExecutionId")
@@ -82,7 +82,7 @@ class AthenaResponse(BaseResponse):
 
     def error(self, msg, status):
         return (
-            json.dumps({"__type": "InvalidRequestException", "Message": msg,}),
+            json.dumps({"__type": "InvalidRequestException", "Message": msg}),
             dict(status=status),
         )
 
@@ -111,6 +111,36 @@ class AthenaResponse(BaseResponse):
                     "QueryString": nq.query_string,
                     "NamedQueryId": nq.id,
                     "WorkGroup": nq.workgroup,
+                }
+            }
+        )
+
+    def list_data_catalogs(self):
+        return json.dumps(
+            {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
+        )
+
+    def get_data_catalog(self):
+        name = self._get_param("Name")
+        return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
+
+    def create_data_catalog(self):
+        name = self._get_param("Name")
+        catalog_type = self._get_param("Type")
+        description = self._get_param("Description")
+        parameters = self._get_param("Parameters")
+        tags = self._get_param("Tags")
+        data_catalog = self.athena_backend.create_data_catalog(
+            name, catalog_type, description, parameters, tags
+        )
+        if not data_catalog:
+            return self.error("DataCatalog already exists", 400)
+        return json.dumps(
+            {
+                "CreateDataCatalogResponse": {
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    }
                 }
             }
         )

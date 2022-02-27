@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from sure import expect
 from moto.s3bucket_path.utils import bucket_name_from_url
 

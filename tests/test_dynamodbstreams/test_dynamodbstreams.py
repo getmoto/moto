@@ -1,6 +1,6 @@
-from __future__ import unicode_literals, print_function
+from __future__ import print_function
 
-from nose.tools import assert_raises
+import pytest
 
 import boto3
 from moto import mock_dynamodb2, mock_dynamodbstreams
@@ -36,7 +36,10 @@ class TestCore:
         self.stream_arn = None
 
         for m in self.mocks:
-            m.stop()
+            try:
+                m.stop()
+            except RuntimeError:
+                pass
 
     def test_verify_stream(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")
@@ -155,7 +158,7 @@ class TestCore:
         assert len(resp["Records"]) == 3
         assert resp["Records"][0]["eventName"] == "INSERT"
         assert resp["Records"][1]["eventName"] == "MODIFY"
-        assert resp["Records"][2]["eventName"] == "DELETE"
+        assert resp["Records"][2]["eventName"] == "REMOVE"
 
         sequence_number_modify = resp["Records"][1]["dynamodb"]["SequenceNumber"]
 
@@ -175,7 +178,7 @@ class TestCore:
         resp = conn.get_records(ShardIterator=iterator_id)
         assert len(resp["Records"]) == 2
         assert resp["Records"][0]["eventName"] == "MODIFY"
-        assert resp["Records"][1]["eventName"] == "DELETE"
+        assert resp["Records"][1]["eventName"] == "REMOVE"
 
         # check that if we get the shard iterator AFTER_SEQUENCE_NUMBER will get the DELETE event
         resp = conn.get_shard_iterator(
@@ -187,7 +190,7 @@ class TestCore:
         iterator_id = resp["ShardIterator"]
         resp = conn.get_records(ShardIterator=iterator_id)
         assert len(resp["Records"]) == 1
-        assert resp["Records"][0]["eventName"] == "DELETE"
+        assert resp["Records"][0]["eventName"] == "REMOVE"
 
 
 class TestEdges:
@@ -200,7 +203,10 @@ class TestEdges:
 
     def teardown(self):
         for m in self.mocks:
-            m.stop()
+            try:
+                m.stop()
+            except RuntimeError:
+                pass
 
     def test_enable_stream_on_table(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")
@@ -224,7 +230,7 @@ class TestEdges:
         assert "LatestStreamLabel" in resp["TableDescription"]
 
         # now try to enable it again
-        with assert_raises(conn.exceptions.ResourceInUseException):
+        with pytest.raises(conn.exceptions.ResourceInUseException):
             resp = conn.update_table(
                 TableName="test-streams",
                 StreamSpecification={

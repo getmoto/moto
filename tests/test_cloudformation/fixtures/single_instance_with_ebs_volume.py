@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 template = {
     "Description": "AWS CloudFormation Sample Template Gollum_Single_Instance_With_EBS_Volume: Gollum is a simple wiki system built on top of Git that powers GitHub Wikis. This template installs a Gollum Wiki stack on a single EC2 instance with an EBS volume for storage and demonstrates using the AWS CloudFormation bootstrap scripts to install the packages and files necessary at instance launch time. **WARNING** This template creates an Amazon EC2 instance and an EBS volume. You will be billed for the AWS resources used if you create a stack from this template.",
@@ -217,43 +217,48 @@ template = {
         "AWSRegionArch2AMI": {
             "ap-southeast-1": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-b4b0cae6",
-                "64": "ami-beb0caec",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "ap-southeast-2": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-b3990e89",
-                "64": "ami-bd990e87",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
+            },
+            "ap-southeast-3": {
+                "64HVM": "NOT_YET_SUPPORTED",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "us-west-2": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-38fe7308",
-                "64": "ami-30fe7300",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "us-east-1": {
                 "64HVM": "ami-0da96764",
-                "32": "ami-31814f58",
-                "64": "ami-1b814f72",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "ap-northeast-1": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-0644f007",
-                "64": "ami-0a44f00b",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "us-west-1": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-11d68a54",
-                "64": "ami-1bd68a5e",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "eu-west-1": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-973b06e3",
-                "64": "ami-953b06e1",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
             "sa-east-1": {
                 "64HVM": "NOT_YET_SUPPORTED",
-                "32": "ami-3e3be423",
-                "64": "ami-3c3be421",
+                "32": EXAMPLE_AMI_ID,
+                "64": EXAMPLE_AMI_ID2,
             },
         },
     },

@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 from .responses import ManagedBlockchainResponse
 
-url_bases = ["https?://managedblockchain.(.+).amazonaws.com"]
+url_bases = [r"https?://managedblockchain\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/networks$": ManagedBlockchainResponse.network_response,
@@ -16,4 +15,7 @@ url_paths = {
     "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)/nodes$": ManagedBlockchainResponse.node_response,
     "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)/nodes?(?P<querys>[^/.]+)$": ManagedBlockchainResponse.node_response,
     "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)/nodes/(?P<nodeid>[^/.]+)$": ManagedBlockchainResponse.nodeid_response,
+    # >= botocore 1.19.41 (API change - memberId is now part of query-string or body)
+    "{0}/networks/(?P<networkid>[^/.]+)/nodes$": ManagedBlockchainResponse.node_response,
+    "{0}/networks/(?P<networkid>[^/.]+)/nodes/(?P<nodeid>[^/.]+)$": ManagedBlockchainResponse.nodeid_response,
 }

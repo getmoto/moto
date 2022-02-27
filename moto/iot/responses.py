@@ -1,7 +1,5 @@
-from __future__ import unicode_literals
-
 import json
-from six.moves.urllib.parse import unquote
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import iot_backends
@@ -13,6 +11,20 @@ class IoTResponse(BaseResponse):
     @property
     def iot_backend(self):
         return iot_backends[self.region]
+
+    def create_certificate_from_csr(self):
+        certificate_signing_request = self._get_param("certificateSigningRequest")
+        set_as_active = self._get_param("setAsActive")
+        cert = self.iot_backend.create_certificate_from_csr(
+            certificate_signing_request, set_as_active=set_as_active
+        )
+        return json.dumps(
+            {
+                "certificateId": cert.certificate_id,
+                "certificateArn": cert.arn,
+                "certificatePem": cert.certificate_pem,
+            }
+        )
 
     def create_thing(self):
         thing_name = self._get_param("thingName")
@@ -88,6 +100,11 @@ class IoTResponse(BaseResponse):
         )
         return json.dumps(thing_type.to_dict())
 
+    def describe_endpoint(self):
+        endpoint_type = self._get_param("endpointType", "iot:Data-ATS")
+        endpoint = self.iot_backend.describe_endpoint(endpoint_type=endpoint_type)
+        return json.dumps(endpoint.to_dict())
+
     def delete_thing(self):
         thing_name = self._get_param("thingName")
         expected_version = self._get_param("expectedVersion")
@@ -100,6 +117,14 @@ class IoTResponse(BaseResponse):
         thing_type_name = self._get_param("thingTypeName")
         self.iot_backend.delete_thing_type(thing_type_name=thing_type_name)
         return json.dumps(dict())
+
+    def deprecate_thing_type(self):
+        thing_type_name = self._get_param("thingTypeName")
+        undo_deprecate = self._get_param("undoDeprecate")
+        thing_type = self.iot_backend.deprecate_thing_type(
+            thing_type_name=thing_type_name, undo_deprecate=undo_deprecate
+        )
+        return json.dumps(thing_type.to_dict())
 
     def update_thing(self):
         thing_name = self._get_param("thingName")
@@ -292,10 +317,27 @@ class IoTResponse(BaseResponse):
             )
         )
 
+    def delete_ca_certificate(self):
+        certificate_id = self.path.split("/")[-1]
+        self.iot_backend.delete_ca_certificate(certificate_id=certificate_id)
+        return json.dumps(dict())
+
     def delete_certificate(self):
         certificate_id = self._get_param("certificateId")
         self.iot_backend.delete_certificate(certificate_id=certificate_id)
         return json.dumps(dict())
+
+    def describe_ca_certificate(self):
+        certificate_id = self.path.split("/")[-1]
+        certificate = self.iot_backend.describe_ca_certificate(
+            certificate_id=certificate_id
+        )
+        return json.dumps(
+            {
+                "certificateDescription": certificate.to_description_dict(),
+                "registrationConfig": certificate.registration_config,
+            }
+        )
 
     def describe_certificate(self):
         certificate_id = self._get_param("certificateId")
@@ -306,13 +348,37 @@ class IoTResponse(BaseResponse):
             dict(certificateDescription=certificate.to_description_dict())
         )
 
+    def get_registration_code(self):
+        code = self.iot_backend.get_registration_code()
+        return json.dumps(dict(registrationCode=code))
+
     def list_certificates(self):
         # page_size = self._get_int_param("pageSize")
         # marker = self._get_param("marker")
         # ascending_order = self._get_param("ascendingOrder")
         certificates = self.iot_backend.list_certificates()
-        # TODO: implement pagination in the future
         return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
+
+    def list_certificates_by_ca(self):
+        ca_certificate_id = self._get_param("caCertificateId")
+        certificates = self.iot_backend.list_certificates_by_ca(ca_certificate_id)
+        return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
+
+    def register_ca_certificate(self):
+        ca_certificate = self._get_param("caCertificate")
+        verification_certificate = self._get_param("verificationCertificate")
+        set_as_active = self._get_bool_param("setAsActive")
+        registration_config = self._get_param("registrationConfig")
+
+        cert = self.iot_backend.register_ca_certificate(
+            ca_certificate=ca_certificate,
+            verification_certificate=verification_certificate,
+            set_as_active=set_as_active,
+            registration_config=registration_config,
+        )
+        return json.dumps(
+            dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
+        )
 
     def register_certificate(self):
         certificate_pem = self._get_param("certificatePem")
@@ -329,6 +395,26 @@ class IoTResponse(BaseResponse):
         return json.dumps(
             dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
         )
+
+    def register_certificate_without_ca(self):
+        certificate_pem = self._get_param("certificatePem")
+        status = self._get_param("status")
+
+        cert = self.iot_backend.register_certificate_without_ca(
+            certificate_pem=certificate_pem, status=status,
+        )
+        return json.dumps(
+            dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
+        )
+
+    def update_ca_certificate(self):
+        certificate_id = self.path.split("/")[-1]
+        new_status = self._get_param("newStatus")
+        config = self._get_param("registrationConfig")
+        self.iot_backend.update_ca_certificate(
+            certificate_id=certificate_id, new_status=new_status, config=config
+        )
+        return json.dumps(dict())
 
     def update_certificate(self):
         certificate_id = self._get_param("certificateId")
@@ -409,8 +495,19 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
         return json.dumps(dict())
 
+    def dispatch_attached_policies(self, request, full_url, headers):
+        # This endpoint requires specialized handling because it has
+        # a uri parameter containing forward slashes that is not
+        # correctly url encoded when we're running in server mode.
+        # https://github.com/pallets/flask/issues/900
+        self.setup_class(request, full_url, headers)
+        self.querystring["Action"] = ["ListAttachedPolicies"]
+        target = self.path.partition("/attached-policies/")[-1]
+        self.querystring["target"] = [unquote(target)] if "%" in target else [target]
+        return self.call_action()
+
     def list_attached_policies(self):
-        principal = unquote(self._get_param("target"))
+        principal = self._get_param("target")
         # marker = self._get_param("marker")
         # page_size = self._get_int_param("pageSize")
         policies = self.iot_backend.list_attached_policies(target=principal)
@@ -606,7 +703,6 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name
         )
         next_token = None
-        # TODO: implement pagination in the future
         return json.dumps(dict(thingGroups=thing_groups, nextToken=next_token))
 
     def update_thing_groups_for_thing(self):
@@ -619,3 +715,89 @@ class IoTResponse(BaseResponse):
             thing_groups_to_remove=thing_groups_to_remove,
         )
         return json.dumps(dict())
+
+    def list_topic_rules(self):
+        return json.dumps(dict(rules=self.iot_backend.list_topic_rules()))
+
+    def get_topic_rule(self):
+        return json.dumps(
+            self.iot_backend.get_topic_rule(rule_name=self._get_param("ruleName"))
+        )
+
+    def create_topic_rule(self):
+        self.iot_backend.create_topic_rule(
+            rule_name=self._get_param("ruleName"),
+            description=self._get_param("description"),
+            rule_disabled=self._get_param("ruleDisabled"),
+            actions=self._get_param("actions"),
+            error_action=self._get_param("errorAction"),
+            sql=self._get_param("sql"),
+            aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
+        )
+        return json.dumps(dict())
+
+    def replace_topic_rule(self):
+        self.iot_backend.replace_topic_rule(
+            rule_name=self._get_param("ruleName"),
+            description=self._get_param("description"),
+            rule_disabled=self._get_param("ruleDisabled"),
+            actions=self._get_param("actions"),
+            error_action=self._get_param("errorAction"),
+            sql=self._get_param("sql"),
+            aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
+        )
+        return json.dumps(dict())
+
+    def delete_topic_rule(self):
+        self.iot_backend.delete_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def enable_topic_rule(self):
+        self.iot_backend.enable_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def disable_topic_rule(self):
+        self.iot_backend.disable_topic_rule(rule_name=self._get_param("ruleName"))
+        return json.dumps(dict())
+
+    def create_domain_configuration(self):
+        domain_configuration = self.iot_backend.create_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName"),
+            domain_name=self._get_param("domainName"),
+            server_certificate_arns=self._get_param("serverCertificateArns"),
+            validation_certificate_arn=self._get_param("validationCertificateArn"),
+            authorizer_config=self._get_param("authorizerConfig"),
+            service_type=self._get_param("serviceType"),
+        )
+        return json.dumps(domain_configuration.to_dict())
+
+    def delete_domain_configuration(self):
+        self.iot_backend.delete_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName")
+        )
+        return json.dumps(dict())
+
+    def describe_domain_configuration(self):
+        domain_configuration = self.iot_backend.describe_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName")
+        )
+        return json.dumps(domain_configuration.to_description_dict())
+
+    def list_domain_configurations(self):
+        return json.dumps(
+            dict(domainConfigurations=self.iot_backend.list_domain_configurations())
+        )
+
+    def update_domain_configuration(self):
+        domain_configuration = self.iot_backend.update_domain_configuration(
+            domain_configuration_name=self._get_param("domainConfigurationName"),
+            authorizer_config=self._get_param("authorizerConfig"),
+            domain_configuration_status=self._get_param("domainConfigurationStatus"),
+            remove_authorizer_config=self._get_bool_param("removeAuthorizerConfig"),
+        )
+        return json.dumps(domain_configuration.to_dict())
+
+    def search_index(self):
+        query = self._get_param("queryString")
+        things, groups = self.iot_backend.search_index(query)
+        return json.dumps({"things": things, "thingGroups": groups})

@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-import os
+import pytest
 from sure import expect
 from moto.s3.utils import (
     bucket_name_from_url,
@@ -8,7 +7,7 @@ from moto.s3.utils import (
     clean_key_name,
     undo_clean_key_name,
 )
-from parameterized import parameterized
+from unittest.mock import patch
 
 
 def test_base_url():
@@ -25,12 +24,11 @@ def test_localhost_without_bucket():
     expect(bucket_name_from_url("https://www.localhost:5000/def")).should.equal(None)
 
 
-def test_force_ignore_subdomain_for_bucketnames():
-    os.environ["S3_IGNORE_SUBDOMAIN_BUCKETNAME"] = "1"
-    expect(
-        bucket_name_from_url("https://subdomain.localhost:5000/abc/resource")
-    ).should.equal(None)
-    del os.environ["S3_IGNORE_SUBDOMAIN_BUCKETNAME"]
+def test_force_ignore_subdomain_for_bucketnames(monkeypatch):
+    with patch("moto.s3.utils.S3_IGNORE_SUBDOMAIN_BUCKETNAME", True):
+        expect(
+            bucket_name_from_url("https://subdomain.localhost:5000/abc/resource")
+        ).should.equal(None)
 
 
 def test_versioned_key_store():
@@ -93,7 +91,8 @@ def test_parse_region_from_url():
         parse_region_from_url(url).should.equal(expected)
 
 
-@parameterized(
+@pytest.mark.parametrize(
+    "key,expected",
     [
         ("foo/bar/baz", "foo/bar/baz"),
         ("foo", "foo"),
@@ -101,13 +100,14 @@ def test_parse_region_from_url():
             "foo/run_dt%3D2019-01-01%252012%253A30%253A00",
             "foo/run_dt=2019-01-01%2012%3A30%3A00",
         ),
-    ]
+    ],
 )
 def test_clean_key_name(key, expected):
     clean_key_name(key).should.equal(expected)
 
 
-@parameterized(
+@pytest.mark.parametrize(
+    "key,expected",
     [
         ("foo/bar/baz", "foo/bar/baz"),
         ("foo", "foo"),
@@ -115,7 +115,7 @@ def test_clean_key_name(key, expected):
             "foo/run_dt%3D2019-01-01%252012%253A30%253A00",
             "foo/run_dt%253D2019-01-01%25252012%25253A30%25253A00",
         ),
-    ]
+    ],
 )
 def test_undo_clean_key_name(key, expected):
     undo_clean_key_name(key).should.equal(expected)

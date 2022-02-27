@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "VPC ENI Test CloudFormation",
