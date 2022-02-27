@@ -161,6 +161,23 @@ class DeleteExecutor(NodeExecutor):
                 # DynamoDB does not mind if value is not present
                 pass
 
+        # DynamoDB does not support empty sets.  If we've deleted
+        # the last item in the set, we have to remove the attribute.
+        if not string_set_list:
+            element = self.get_element_to_action()
+            if isinstance(element, ExpressionAttributeName):
+                attribute_name = self.expression_attribute_names[
+                    element.get_attribute_name_placeholder()
+                ]
+            elif isinstance(element, ExpressionAttribute):
+                attribute_name = element.get_attribute_name()
+            else:
+                raise NotImplementedError(
+                    "Moto does not support deleting {t} yet".format(t=type(element))
+                )
+            container = self.get_item_before_end_of_path(item)
+            del container[attribute_name]
+
 
 class RemoveExecutor(NodeExecutor):
     def execute(self, item):

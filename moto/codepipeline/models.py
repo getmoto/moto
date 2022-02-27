@@ -1,8 +1,7 @@
 import json
 from datetime import datetime
 
-from boto3 import Session
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 
 from moto.iam.exceptions import IAMNotFoundException
 
@@ -15,9 +14,7 @@ from moto.codepipeline.exceptions import (
     InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import BaseBackend, BaseModel
-
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 
 
 class CodePipeline(BaseModel):
@@ -70,8 +67,15 @@ class CodePipeline(BaseModel):
 
 
 class CodePipelineBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.pipelines = {}
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "codepipeline", policy_supported=False
+        )
 
     @property
     def iam_backend(self):
@@ -207,12 +211,4 @@ class CodePipelineBackend(BaseBackend):
             pipeline.tags.pop(key, None)
 
 
-codepipeline_backends = {}
-for region in Session().get_available_regions("codepipeline"):
-    codepipeline_backends[region] = CodePipelineBackend()
-for region in Session().get_available_regions(
-    "codepipeline", partition_name="aws-us-gov"
-):
-    codepipeline_backends[region] = CodePipelineBackend()
-for region in Session().get_available_regions("codepipeline", partition_name="aws-cn"):
-    codepipeline_backends[region] = CodePipelineBackend()
+codepipeline_backends = BackendDict(CodePipelineBackend, "codepipeline")

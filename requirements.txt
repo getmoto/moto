@@ -1,2 +1,2 @@
 #  Please add requirements to setup.py
--e .
+-e .[all]

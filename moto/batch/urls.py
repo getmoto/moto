@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
 from .responses import BatchResponse
 
-url_bases = ["https?://batch.(.+).amazonaws.com"]
+url_bases = [r"https?://batch\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/v1/createcomputeenvironment$": BatchResponse.dispatch,
@@ -20,4 +19,6 @@ url_paths = {
     "{0}/v1/listjobs": BatchResponse.dispatch,
     "{0}/v1/terminatejob": BatchResponse.dispatch,
     "{0}/v1/canceljob": BatchResponse.dispatch,
+    "{0}/v1/tags/(?P<arn_part_1>[^/]+)/(?P<arn_part_2>[^/]+)/?$": BatchResponse.dispatch,
+    "{0}/v1/tags/(?P<arn>[^/]+)/?$": BatchResponse.dispatch,
 }

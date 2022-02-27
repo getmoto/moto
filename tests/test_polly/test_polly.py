@@ -1,21 +1,18 @@
-from __future__ import unicode_literals
-
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa
-from nose.tools import assert_raises
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_polly
 
 # Polly only available in a few regions
 DEFAULT_REGION = "eu-west-1"
 
 LEXICON_XML = """<?xml version="1.0" encoding="UTF-8"?>
-<lexicon version="1.0" 
+<lexicon version="1.0"
       xmlns="http://www.w3.org/2005/01/pronunciation-lexicon"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-      xsi:schemaLocation="http://www.w3.org/2005/01/pronunciation-lexicon 
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.w3.org/2005/01/pronunciation-lexicon
         http://www.w3.org/TR/2007/CR-pronunciation-lexicon-20071212/pls.xsd"
-      alphabet="ipa" 
+      alphabet="ipa"
       xml:lang="en-US">
   <lexeme>
     <grapheme>W3C</grapheme>

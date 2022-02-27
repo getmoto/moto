@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 from .models import sagemaker_backends
 
 sagemaker_backend = sagemaker_backends["us-east-1"]

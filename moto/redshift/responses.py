@@ -1,11 +1,8 @@
-from __future__ import unicode_literals
-
 import json
 
 import xmltodict
 
 from jinja2 import Template
-from six import iteritems
 
 from moto.core.responses import BaseResponse
 from .models import redshift_backends
@@ -62,7 +59,7 @@ class RedshiftResponse(BaseResponse):
             return xml
 
     def call_action(self):
-        status, headers, body = super(RedshiftResponse, self).call_action()
+        status, headers, body = super().call_action()
         if status >= 400 and not self.request_json:
             body = convert_json_error_to_xml(body)
         return status, headers, body
@@ -147,6 +144,7 @@ class RedshiftResponse(BaseResponse):
             "tags": self.unpack_complex_list_params("Tags.Tag", ("Key", "Value")),
             "iam_roles_arn": self._get_iam_roles(),
             "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
+            "kms_key_id": self._get_param("KmsKeyId"),
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster["ClusterStatus"] = "creating"
@@ -161,8 +159,38 @@ class RedshiftResponse(BaseResponse):
             }
         )
 
+    def pause_cluster(self):
+        cluster_id = self._get_param("ClusterIdentifier")
+        cluster = self.redshift_backend.pause_cluster(cluster_id).to_json()
+        return self.get_response(
+            {
+                "PauseClusterResponse": {
+                    "PauseClusterResult": {"Cluster": cluster},
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
+    def resume_cluster(self):
+        cluster_id = self._get_param("ClusterIdentifier")
+        cluster = self.redshift_backend.resume_cluster(cluster_id).to_json()
+        return self.get_response(
+            {
+                "ResumeClusterResponse": {
+                    "ResumeClusterResult": {"Cluster": cluster},
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
     def restore_from_cluster_snapshot(self):
         enhanced_vpc_routing = self._get_bool_param("EnhancedVpcRouting")
+        node_type = self._get_param("NodeType")
+        number_of_nodes = self._get_int_param("NumberOfNodes")
         restore_kwargs = {
             "snapshot_identifier": self._get_param("SnapshotIdentifier"),
             "cluster_identifier": self._get_param("ClusterIdentifier"),
@@ -187,6 +215,10 @@ class RedshiftResponse(BaseResponse):
         }
         if enhanced_vpc_routing is not None:
             restore_kwargs["enhanced_vpc_routing"] = enhanced_vpc_routing
+        if node_type is not None:
+            restore_kwargs["node_type"] = node_type
+        if number_of_nodes is not None:
+            restore_kwargs["number_of_nodes"] = number_of_nodes
         cluster = self.redshift_backend.restore_from_cluster_snapshot(
             **restore_kwargs
         ).to_json()
@@ -249,7 +281,7 @@ class RedshiftResponse(BaseResponse):
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise
         # we'll stomp all over our cluster metadata with None values.
-        for (key, value) in iteritems(request_kwargs):
+        for (key, value) in request_kwargs.items():
             if value is not None and value != []:
                 cluster_kwargs[key] = value
 
@@ -411,6 +443,34 @@ class RedshiftResponse(BaseResponse):
             }
         )
 
+    def authorize_cluster_security_group_ingress(self):
+        cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
+        cidr_ip = self._get_param("CIDRIP")
+
+        security_group = self.redshift_backend.authorize_cluster_security_group_ingress(
+            cluster_security_group_name, cidr_ip
+        )
+
+        return self.get_response(
+            {
+                "AuthorizeClusterSecurityGroupIngressResponse": {
+                    "AuthorizeClusterSecurityGroupIngressResult": {
+                        "ClusterSecurityGroup": {
+                            "ClusterSecurityGroupName": cluster_security_group_name,
+                            "Description": security_group.description,
+                            "IPRanges": [
+                                {
+                                    "Status": "authorized",
+                                    "CIDRIP": cidr_ip,
+                                    "Tags": security_group.tags,
+                                },
+                            ],
+                        }
+                    }
+                }
+            }
+        )
+
     def create_cluster_parameter_group(self):
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         group_family = self._get_param("ParameterGroupFamily")
@@ -494,8 +554,9 @@ class RedshiftResponse(BaseResponse):
     def describe_cluster_snapshots(self):
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
+        snapshot_type = self._get_param("SnapshotType")
         snapshots = self.redshift_backend.describe_cluster_snapshots(
-            cluster_identifier, snapshot_identifier
+            cluster_identifier, snapshot_identifier, snapshot_type
         )
         return self.get_response(
             {
@@ -688,6 +749,27 @@ class RedshiftResponse(BaseResponse):
                     "ModifySnapshotCopyRetentionPeriodResult": {
                         "Clusters": [cluster.to_json()]
                     },
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
+    def get_cluster_credentials(self):
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        db_user = self._get_param("DbUser")
+        auto_create = self._get_bool_param("AutoCreate", False)
+        duration_seconds = self._get_int_param("DurationSeconds", 900)
+
+        cluster_credentials = self.redshift_backend.get_cluster_credentials(
+            cluster_identifier, db_user, auto_create, duration_seconds
+        )
+
+        return self.get_response(
+            {
+                "GetClusterCredentialsResponse": {
+                    "GetClusterCredentialsResult": cluster_credentials,
                     "ResponseMetadata": {
                         "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
                     },

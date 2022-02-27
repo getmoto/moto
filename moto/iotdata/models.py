@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
 import json
 import time
 import jsondiff
-from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import merge_dicts, BackendDict
 from moto.iot import iot_backends
 from .exceptions import (
     ConflictException,
@@ -50,13 +49,12 @@ class FakeShadow(BaseModel):
             shadow = FakeShadow(None, None, None, version, deleted=True)
             return shadow
 
-        # we can make sure that payload has 'state' key
-        desired = payload["state"].get(
-            "desired", previous_payload.get("state", {}).get("desired", None)
-        )
-        reported = payload["state"].get(
-            "reported", previous_payload.get("state", {}).get("reported", None)
-        )
+        # Updates affect only the fields specified in the request state document.
+        # Any field with a value of None is removed from the device's shadow.
+        state_document = previous_payload.copy()
+        merge_dicts(state_document, payload, remove_nulls=True)
+        desired = state_document.get("state", {}).get("desired")
+        reported = state_document.get("state", {}).get("reported")
         shadow = FakeShadow(desired, reported, payload, version)
         return shadow
 
@@ -114,8 +112,7 @@ class FakeShadow(BaseModel):
         }
 
     def to_dict(self, include_delta=True):
-        """returning nothing except for just top-level keys for now.
-        """
+        """returning nothing except for just top-level keys for now."""
         if self.deleted:
             return {"timestamp": self.timestamp, "version": self.version}
         delta = self.parse_payload(self.desired, self.reported)
@@ -143,8 +140,9 @@ class FakeShadow(BaseModel):
 
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(IoTDataPlaneBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
+        self.published_payloads = list()
 
     def reset(self):
         region_name = self.region_name
@@ -202,14 +200,7 @@ class IoTDataPlaneBackend(BaseBackend):
         return thing.thing_shadow
 
     def publish(self, topic, qos, payload):
-        # do nothing because client won't know about the result
-        return None
+        self.published_payloads.append((topic, payload))
 
 
-iotdata_backends = {}
-for region in Session().get_available_regions("iot-data"):
-    iotdata_backends[region] = IoTDataPlaneBackend(region)
-for region in Session().get_available_regions("iot-data", partition_name="aws-us-gov"):
-    iotdata_backends[region] = IoTDataPlaneBackend(region)
-for region in Session().get_available_regions("iot-data", partition_name="aws-cn"):
-    iotdata_backends[region] = IoTDataPlaneBackend(region)
+iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")

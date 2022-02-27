@@ -1,13 +1,11 @@
-from __future__ import unicode_literals
-
 import base64
 import json
 import os
 import re
 
-import six
-
+from moto.core import ACCOUNT_ID
 from moto.core.responses import BaseResponse
+from moto.kms.utils import RESERVED_ALIASES
 from .models import kms_backends
 from .exceptions import (
     NotFoundException,
@@ -15,14 +13,6 @@ from .exceptions import (
     AlreadyExistsException,
     NotAuthorizedException,
 )
-
-ACCOUNT_ID = "012345678912"
-reserved_aliases = [
-    "alias/aws/ebs",
-    "alias/aws/s3",
-    "alias/aws/redshift",
-    "alias/aws/rds",
-]
 
 
 class KmsResponse(BaseResponse):
@@ -190,13 +180,20 @@ class KmsResponse(BaseResponse):
 
     def create_alias(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateAlias.html"""
+        return self._set_alias()
+
+    def update_alias(self):
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateAlias.html"""
+        return self._set_alias(update=True)
+
+    def _set_alias(self, update=False):
         alias_name = self.parameters["AliasName"]
         target_key_id = self.parameters["TargetKeyId"]
 
         if not alias_name.startswith("alias/"):
             raise ValidationException("Invalid identifier")
 
-        if alias_name in reserved_aliases:
+        if alias_name in RESERVED_ALIASES:
             raise NotAuthorizedException()
 
         if ":" in alias_name:
@@ -216,10 +213,16 @@ class KmsResponse(BaseResponse):
         if self.kms_backend.alias_exists(target_key_id):
             raise ValidationException("Aliases must refer to keys. Not aliases")
 
+        if update:
+            # delete any existing aliases with that name (should be a no-op if none exist)
+            self.kms_backend.delete_alias(alias_name)
+
         if self.kms_backend.alias_exists(alias_name):
             raise AlreadyExistsException(
-                "An alias with the name arn:aws:kms:{region}:012345678912:{alias_name} "
-                "already exists".format(region=self.region, alias_name=alias_name)
+                "An alias with the name arn:aws:kms:{region}:{account_id}:{alias_name} "
+                "already exists".format(
+                    region=self.region, account_id=ACCOUNT_ID, alias_name=alias_name
+                )
             )
 
         self._validate_cmk_id(target_key_id)
@@ -244,29 +247,34 @@ class KmsResponse(BaseResponse):
     def list_aliases(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html"""
         region = self.region
-
-        # TODO: The actual API can filter on KeyId.
-
-        response_aliases = [
-            {
-                "AliasArn": "arn:aws:kms:{region}:012345678912:{reserved_alias}".format(
-                    region=region, reserved_alias=reserved_alias
-                ),
-                "AliasName": reserved_alias,
-            }
-            for reserved_alias in reserved_aliases
-        ]
+        response_aliases = []
 
         backend_aliases = self.kms_backend.get_all_aliases()
         for target_key_id, aliases in backend_aliases.items():
             for alias_name in aliases:
+                # TODO: add creation date and last updated in response_aliases
                 response_aliases.append(
                     {
-                        "AliasArn": "arn:aws:kms:{region}:012345678912:{alias_name}".format(
-                            region=region, alias_name=alias_name
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{alias_name}".format(
+                            region=region, account_id=ACCOUNT_ID, alias_name=alias_name
                         ),
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
+                    }
+                )
+        for reserved_alias in RESERVED_ALIASES:
+            exsisting = [
+                a for a in response_aliases if a["AliasName"] == reserved_alias
+            ]
+            if not exsisting:
+                response_aliases.append(
+                    {
+                        "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
+                            region=region,
+                            account_id=ACCOUNT_ID,
+                            reserved_alias=reserved_alias,
+                        ),
+                        "AliasName": reserved_alias,
                     }
                 )
 
@@ -323,7 +331,8 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
-        return json.dumps({"Policy": self.kms_backend.get_key_policy(key_id)})
+        policy = self.kms_backend.get_key_policy(key_id) or "{}"
+        return json.dumps({"Policy": policy})
 
     def list_key_policies(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeyPolicies.html"""
@@ -343,7 +352,7 @@ class KmsResponse(BaseResponse):
 
         self._validate_key_id(key_id)
 
-        if isinstance(plaintext, six.text_type):
+        if isinstance(plaintext, str):
             plaintext = plaintext.encode("utf-8")
 
         ciphertext_blob, arn = self.kms_backend.encrypt(

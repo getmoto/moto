@@ -1,6 +1,5 @@
-from __future__ import unicode_literals
-
 import random
+import re
 import string
 from moto.core import ACCOUNT_ID
 
@@ -84,3 +83,10 @@ def make_random_policy_id():
     # from 8 to 128 lower-case letters or digits.
     # e.g. 'p-k2av4a8a'
     return "p-" + "".join(random.choice(CHARSET) for x in range(POLICY_ID_SIZE))
+
+
+def fullmatch(regex, s, flags=0):
+    """Emulate python-3.4 re.fullmatch()."""
+    m = re.match(regex, s, flags=flags)
+    if m and m.span()[1] == len(s):
+        return m

@@ -1,28 +1,32 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import absolute_import
-
+import botocore
+import boto3
 import functools
 import inspect
+import itertools
 import os
+import random
 import re
-import six
-import types
+import string
 from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
+
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
-from six.moves.urllib.parse import urlparse
-from werkzeug.wrappers import Request
+from types import FunctionType
 
-import mock
 from moto import settings
 import responses
-from moto.packages.httpretty import HTTPretty
+import unittest
+from unittest.mock import patch
+from .custom_responses_mock import (
+    get_response_mock,
+    CallbackResponse,
+    not_implemented_callback,
+    reset_responses_mock,
+)
 from .utils import (
-    convert_httpretty_response,
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
@@ -31,8 +35,9 @@ from .utils import (
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
 
-class BaseMockAWS(object):
+class BaseMockAWS:
     nested_count = 0
+    mocks_active = False
 
     def __init__(self, backends):
         from moto.instance_metadata import instance_metadata_backend
@@ -45,16 +50,22 @@ class BaseMockAWS(object):
             "instance_metadata": instance_metadata_backend,
             "moto_api": moto_api_backend,
         }
-        self.backends_for_urls.update(self.backends)
+        if "us-east-1" in self.backends:
+            # We only need to know the URL for a single region
+            # They will be the same everywhere
+            self.backends_for_urls["us-east-1"] = self.backends["us-east-1"]
+        else:
+            # If us-east-1 is not available, it's probably a global service
+            # Global services will only have a single region anyway
+            self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
 
-        # "Mock" the AWS credentials as they can't be mocked in Botocore currently
-        FAKE_KEYS = {
+        self.FAKE_KEYS = {
             "AWS_ACCESS_KEY_ID": "foobar_key",
             "AWS_SECRET_ACCESS_KEY": "foobar_secret",
         }
-        self.default_session_mock = mock.patch("boto3.DEFAULT_SESSION", None)
-        self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
+        self.ORIG_KEYS = {}
+        self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
 
         if self.__class__.nested_count == 0:
             self.reset()
@@ -72,25 +83,34 @@ class BaseMockAWS(object):
         self.stop()
 
     def start(self, reset=True):
-        self.default_session_mock.start()
-        self.env_variables_mocks.start()
+        if not self.__class__.mocks_active:
+            self.default_session_mock.start()
+            self.mock_env_variables()
+            self.__class__.mocks_active = True
 
         self.__class__.nested_count += 1
         if reset:
             for backend in self.backends.values():
                 backend.reset()
 
-        self.enable_patching()
+        self.enable_patching(reset)
 
     def stop(self):
-        self.default_session_mock.stop()
-        self.env_variables_mocks.stop()
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
             raise RuntimeError("Called stop() before start().")
 
         if self.__class__.nested_count == 0:
+            if self.__class__.mocks_active:
+                try:
+                    self.default_session_mock.stop()
+                except RuntimeError:
+                    # We only need to check for this exception in Python 3.6 and 3.7
+                    # https://bugs.python.org/issue36366
+                    pass
+                self.unmock_env_variables()
+                self.__class__.mocks_active = False
             self.disable_patching()
 
     def decorate_callable(self, func, reset):
@@ -107,12 +127,34 @@ class BaseMockAWS(object):
         return wrapper
 
     def decorate_class(self, klass):
-        for attr in dir(klass):
+        direct_methods = get_direct_methods_of(klass)
+        defined_classes = set(
+            x for x, y in klass.__dict__.items() if inspect.isclass(y)
+        )
+
+        # Get a list of all userdefined superclasses
+        superclasses = [
+            c for c in klass.__mro__ if c not in [unittest.TestCase, object]
+        ]
+        # Get a list of all userdefined methods
+        supermethods = list(
+            itertools.chain(*[get_direct_methods_of(c) for c in superclasses])
+        )
+        # Check whether the user has overridden the setUp-method
+        has_setup_method = (
+            ("setUp" in supermethods and unittest.TestCase in klass.__mro__)
+            or "setup" in supermethods
+            or "setup_method" in supermethods
+        )
+
+        for attr in itertools.chain(direct_methods, defined_classes):
             if attr.startswith("_"):
                 continue
 
             attr_value = getattr(klass, attr)
             if not hasattr(attr_value, "__call__"):
+                continue
+            if not hasattr(attr_value, "__name__"):
                 continue
 
             # Check if this is a classmethod. If so, skip patching
@@ -131,33 +173,48 @@ class BaseMockAWS(object):
                 continue
 
             try:
-                setattr(klass, attr, self(attr_value, reset=False))
+                # Special case for UnitTests-class
+                is_test_method = attr.startswith(unittest.TestLoader.testMethodPrefix)
+                should_reset = False
+                if attr == "setUp":
+                    should_reset = True
+                elif not has_setup_method and is_test_method:
+                    should_reset = True
+                else:
+                    # Method is unrelated to the test setup
+                    # Method is a test, but was already reset while executing the setUp-method
+                    pass
+                setattr(klass, attr, self(attr_value, reset=should_reset))
             except TypeError:
                 # Sometimes we can't set this for built-in types
                 continue
         return klass
 
+    def mock_env_variables(self):
+        # "Mock" the AWS credentials as they can't be mocked in Botocore currently
+        # self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
+        # self.env_variables_mocks.start()
+        for k, v in self.FAKE_KEYS.items():
+            self.ORIG_KEYS[k] = os.environ.get(k, None)
+            os.environ[k] = v
 
-class HttprettyMockAWS(BaseMockAWS):
-    def reset(self):
-        HTTPretty.reset()
+    def unmock_env_variables(self):
+        # This doesn't work in Python2 - for some reason, unmocking clears the entire os.environ dict
+        # Obviously bad user experience, and also breaks pytest - as it uses PYTEST_CURRENT_TEST as an env var
+        # self.env_variables_mocks.stop()
+        for k, v in self.ORIG_KEYS.items():
+            if v:
+                os.environ[k] = v
+            else:
+                del os.environ[k]
 
-    def enable_patching(self):
-        if not HTTPretty.is_enabled():
-            HTTPretty.enable()
 
-        for method in HTTPretty.METHODS:
-            for backend in self.backends_for_urls.values():
-                for key, value in backend.urls.items():
-                    HTTPretty.register_uri(
-                        method=method,
-                        uri=re.compile(key),
-                        body=convert_httpretty_response(value),
-                    )
-
-    def disable_patching(self):
-        HTTPretty.disable()
-        HTTPretty.reset()
+def get_direct_methods_of(klass):
+    return set(
+        x
+        for x, y in klass.__dict__.items()
+        if isinstance(y, (FunctionType, classmethod, staticmethod))
+    )
 
 
 RESPONSES_METHODS = [
@@ -171,111 +228,22 @@ RESPONSES_METHODS = [
 ]
 
 
-class CallbackResponse(responses.CallbackResponse):
-    """
-    Need to subclass so we can change a couple things
-    """
-
-    def get_response(self, request):
-        """
-        Need to override this so we can pass decode_content=False
-        """
-        if not isinstance(request, Request):
-            url = urlparse(request.url)
-            if request.body is None:
-                body = None
-            elif isinstance(request.body, six.text_type):
-                body = six.BytesIO(six.b(request.body))
-            elif hasattr(request.body, "read"):
-                body = six.BytesIO(request.body.read())
-            else:
-                body = six.BytesIO(request.body)
-            req = Request.from_values(
-                path="?".join([url.path, url.query]),
-                input_stream=body,
-                content_length=request.headers.get("Content-Length"),
-                content_type=request.headers.get("Content-Type"),
-                method=request.method,
-                base_url="{scheme}://{netloc}".format(
-                    scheme=url.scheme, netloc=url.netloc
-                ),
-                headers=[(k, v) for k, v in six.iteritems(request.headers)],
-            )
-            request = req
-        headers = self.get_headers()
-
-        result = self.callback(request)
-        if isinstance(result, Exception):
-            raise result
-
-        status, r_headers, body = result
-        body = responses._handle_body(body)
-        headers.update(r_headers)
-
-        return responses.HTTPResponse(
-            status=status,
-            reason=six.moves.http_client.responses.get(status),
-            body=body,
-            headers=headers,
-            preload_content=False,
-            # Need to not decode_content to mimic requests
-            decode_content=False,
-        )
-
-    def _url_matches(self, url, other, match_querystring=False):
-        """
-        Need to override this so we can fix querystrings breaking regex matching
-        """
-        if not match_querystring:
-            other = other.split("?", 1)[0]
-
-        if responses._is_string(url):
-            if responses._has_unicode(url):
-                url = responses._clean_unicode(url)
-                if not isinstance(other, six.text_type):
-                    other = other.encode("ascii").decode("utf8")
-            return self._url_matches_strict(url, other)
-        elif isinstance(url, responses.Pattern) and url.match(other):
-            return True
-        else:
-            return False
-
-
 botocore_mock = responses.RequestsMock(
     assert_all_requests_are_fired=False,
     target="botocore.vendored.requests.adapters.HTTPAdapter.send",
 )
 
-responses_mock = responses._default_mock
-# Add passthrough to allow any other requests to work
-# Since this uses .startswith, it applies to http and https requests.
-responses_mock.add_passthru("http")
-
-
-def _find_first_match(self, request):
-    for i, match in enumerate(self._matches):
-        if match.matches(request):
-            return match
-
-    return None
-
-
-# Modify behaviour of the matcher to only/always return the first match
-# Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/spulec/moto/issues/2567
-#  - First request matches on the appropriate S3 URL
-#  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
-# Fix: Always return the first match
-responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
+responses_mock = get_response_mock()
 
 
 BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
 
 
 class MockRawResponse(BytesIO):
-    def __init__(self, input):
-        if isinstance(input, six.text_type):
-            input = input.encode("utf-8")
-        super(MockRawResponse, self).__init__(input)
+    def __init__(self, response_input):
+        if isinstance(response_input, str):
+            response_input = response_input.encode("utf-8")
+        super().__init__(response_input)
 
     def stream(self, **kwargs):
         contents = self.read()
@@ -284,7 +252,7 @@ class MockRawResponse(BytesIO):
             contents = self.read()
 
 
-class BotocoreStubber(object):
+class BotocoreStubber:
     def __init__(self):
         self.enabled = False
         self.methods = defaultdict(list)
@@ -299,7 +267,6 @@ class BotocoreStubber(object):
     def __call__(self, event_name, request, **kwargs):
         if not self.enabled:
             return None
-
         response = None
         response_callback = None
         found_index = None
@@ -317,7 +284,7 @@ class BotocoreStubber(object):
 
         if response_callback is not None:
             for header, value in request.headers.items():
-                if isinstance(value, six.binary_type):
+                if isinstance(value, bytes):
                     request.headers[header] = value.decode("utf-8")
             status, headers, body = response_callback(
                 request, request.url, request.headers
@@ -332,20 +299,46 @@ botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
 
 
-def not_implemented_callback(request):
-    status = 400
-    headers = {}
-    response = "The method is not implemented"
+def patch_client(client):
+    """
+    Explicitly patch a boto3-client
+    """
+    """
+    Adding the botocore_stubber to the BUILTIN_HANDLERS, as above, will mock everything as long as the import ordering is correct
+     - user:   start mock_service decorator
+     - system: imports core.model
+     - system: adds the stubber to the BUILTIN_HANDLERS
+     - user:   create a boto3 client - which will use the BUILTIN_HANDLERS
 
-    return status, headers, response
+    But, if for whatever reason the imports are wrong and the client is created first, it doesn't know about our stub yet
+    This method can be used to tell a client that it needs to be mocked, and append the botocore_stubber after creation
+    :param client:
+    :return:
+    """
+    if isinstance(client, botocore.client.BaseClient):
+        client.meta.events.register("before-send", botocore_stubber)
+    else:
+        raise Exception(f"Argument {client} should be of type boto3.client")
+
+
+def patch_resource(resource):
+    """
+    Explicitly patch a boto3-resource
+    """
+    if hasattr(resource, "meta") and isinstance(
+        resource.meta, boto3.resources.factory.ResourceMeta
+    ):
+        patch_client(resource.meta.client)
+    else:
+        raise Exception(f"Argument {resource} should be of type boto3.resource")
 
 
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self):
         botocore_stubber.reset()
-        responses_mock.reset()
+        reset_responses_mock(responses_mock)
 
-    def enable_patching(self):
+    def enable_patching(self, reset=True):
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
             for backend in self.backends_for_urls.values():
@@ -367,26 +360,20 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             method=method,
                             url=re.compile(key),
                             callback=convert_flask_to_responses_response(value),
-                            stream=True,
-                            match_querystring=False,
                         )
                     )
             responses_mock.add(
                 CallbackResponse(
                     method=method,
-                    url=re.compile(r"https?://.+.amazonaws.com/.*"),
+                    url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
-                    match_querystring=False,
                 )
             )
             botocore_mock.add(
                 CallbackResponse(
                     method=method,
-                    url=re.compile(r"https?://.+.amazonaws.com/.*"),
+                    url=re.compile(r"https?://.+\.amazonaws.com/.*"),
                     callback=not_implemented_callback,
-                    stream=True,
-                    match_querystring=False,
                 )
             )
 
@@ -404,18 +391,23 @@ MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
+    def __init__(self, *args, **kwargs):
+        self.test_server_mode_endpoint = settings.test_server_mode_endpoint()
+        super().__init__(*args, **kwargs)
+
     def reset(self):
-        import requests
+        call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
+        if not call_reset_api or call_reset_api.lower() != "false":
+            import requests
 
-        requests.post("http://localhost:5000/moto-api/reset")
+            requests.post(f"{self.test_server_mode_endpoint}/moto-api/reset")
 
-    def enable_patching(self):
-        if self.__class__.nested_count == 1:
+    def enable_patching(self, reset=True):
+        if self.__class__.nested_count == 1 and reset:
             # Just started
             self.reset()
 
         from boto3 import client as real_boto3_client, resource as real_boto3_resource
-        import mock
 
         def fake_boto3_client(*args, **kwargs):
             region = self._get_region(*args, **kwargs)
@@ -426,57 +418,24 @@ class ServerModeMockAWS(BaseMockAWS):
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = self.test_server_mode_endpoint
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args, **kwargs):
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = "http://localhost:5000"
+                kwargs["endpoint_url"] = self.test_server_mode_endpoint
             return real_boto3_resource(*args, **kwargs)
 
-        def fake_httplib_send_output(self, message_body=None, *args, **kwargs):
-            def _convert_to_bytes(mixed_buffer):
-                bytes_buffer = []
-                for chunk in mixed_buffer:
-                    if isinstance(chunk, six.text_type):
-                        bytes_buffer.append(chunk.encode("utf-8"))
-                    else:
-                        bytes_buffer.append(chunk)
-                msg = b"\r\n".join(bytes_buffer)
-                return msg
-
-            self._buffer.extend((b"", b""))
-            msg = _convert_to_bytes(self._buffer)
-            del self._buffer[:]
-            if isinstance(message_body, bytes):
-                msg += message_body
-                message_body = None
-            self.send(msg)
-            # if self._expect_header_set:
-            #     read, write, exc = select.select([self.sock], [], [self.sock], 1)
-            #     if read:
-            #         self._handle_expect_response(message_body)
-            #         return
-            if message_body is not None:
-                self.send(message_body)
-
-        self._client_patcher = mock.patch("boto3.client", fake_boto3_client)
-        self._resource_patcher = mock.patch("boto3.resource", fake_boto3_resource)
-        if six.PY2:
-            self._httplib_patcher = mock.patch(
-                "httplib.HTTPConnection._send_output", fake_httplib_send_output
-            )
-
+        self._client_patcher = patch("boto3.client", fake_boto3_client)
+        self._resource_patcher = patch("boto3.resource", fake_boto3_resource)
         self._client_patcher.start()
         self._resource_patcher.start()
-        if six.PY2:
-            self._httplib_patcher.start()
 
     def _get_region(self, *args, **kwargs):
         if "region_name" in kwargs:
             return kwargs["region_name"]
         if type(args) == tuple and len(args) == 2:
-            service, region = args
+            _, region = args
             return region
         return None
 
@@ -484,13 +443,11 @@ class ServerModeMockAWS(BaseMockAWS):
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
-            if six.PY2:
-                self._httplib_patcher.stop()
 
 
 class Model(type):
     def __new__(self, clsname, bases, namespace):
-        cls = super(Model, self).__new__(self, clsname, bases, namespace)
+        cls = super().__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
         for name, value in namespace.items():
             model = getattr(value, "__returns_model__", False)
@@ -502,7 +459,7 @@ class Model(type):
 
     @staticmethod
     def prop(model_name):
-        """ decorator to mark a class method as returning model values """
+        """decorator to mark a class method as returning model values"""
 
         def dec(f):
             f.__returns_model__ = model_name
@@ -527,8 +484,7 @@ class InstanceTrackerMeta(type):
         return cls
 
 
-@six.add_metaclass(InstanceTrackerMeta)
-class BaseModel(object):
+class BaseModel(metaclass=InstanceTrackerMeta):
     def __new__(cls, *args, **kwargs):
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
@@ -553,9 +509,17 @@ class CloudFormationModel(BaseModel):
         # See for example https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
         return "AWS::SERVICE::RESOURCE"
 
+    @classmethod
+    @abstractmethod
+    def has_cfn_attr(cls, attr):
+        # Used for validation
+        # If a template creates an Output for an attribute that does not exist, an error should be thrown
+        return True
+
+    @classmethod
     @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
@@ -563,6 +527,7 @@ class CloudFormationModel(BaseModel):
         # and return an instance of the resource class
         pass
 
+    @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
@@ -574,6 +539,7 @@ class CloudFormationModel(BaseModel):
         # the change in parameters and no-op when nothing has changed.
         pass
 
+    @classmethod
     @abstractmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -584,12 +550,19 @@ class CloudFormationModel(BaseModel):
         # and delete the resource. Do not include a return statement.
         pass
 
+    @abstractmethod
+    def is_created(self):
+        # Verify whether the resource was created successfully
+        # Assume True after initialization
+        # Custom resources may need time after init before they are created successfully
+        return True
 
-class BaseBackend(object):
+
+class BaseBackend:
     def _reset_model_refs(self):
         # Remove all references to the models stored
-        for service, models in model_data.items():
-            for model_name, model in models.items():
+        for models in model_data.values():
+            for model in models.values():
                 model.instances = []
 
     def reset(self):
@@ -612,14 +585,19 @@ class BaseBackend(object):
         A dictionary of the urls to be mocked with this service and the handlers
         that should be called in their place
         """
-        url_bases = self._url_module.url_bases
+        url_bases = self.url_bases
         unformatted_paths = self._url_module.url_paths
 
         urls = {}
         for url_base in url_bases:
+            # The default URL_base will look like: http://service.[..].amazonaws.com/...
+            # This extension ensures support for the China regions
+            cn_url_base = re.sub(r"amazonaws\\?.com$", "amazonaws.com.cn", url_base)
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
                 urls[url] = handler
+                cn_url = url_path.format(cn_url_base)
+                urls[cn_url] = handler
 
         return urls
 
@@ -657,6 +635,63 @@ class BaseBackend(object):
 
         return paths
 
+    @staticmethod
+    def default_vpc_endpoint_service(
+        service_region, zones,
+    ):  # pylint: disable=unused-argument
+        """Invoke the factory method for any VPC endpoint(s) services."""
+        return None
+
+    @staticmethod
+    def vpce_random_number():
+        """Return random number for a VPC endpoint service ID."""
+        return "".join([random.choice(string.hexdigits.lower()) for i in range(17)])
+
+    @staticmethod
+    def default_vpc_endpoint_service_factory(
+        service_region,
+        zones,
+        service="",
+        service_type="Interface",
+        private_dns_names=True,
+        special_service_name="",
+        policy_supported=True,
+        base_endpoint_dns_names=None,
+    ):  # pylint: disable=too-many-arguments
+        """List of dicts representing default VPC endpoints for this service."""
+        if special_service_name:
+            service_name = f"com.amazonaws.{service_region}.{special_service_name}"
+        else:
+            service_name = f"com.amazonaws.{service_region}.{service}"
+
+        if not base_endpoint_dns_names:
+            base_endpoint_dns_names = [f"{service}.{service_region}.vpce.amazonaws.com"]
+
+        endpoint_service = {
+            "AcceptanceRequired": False,
+            "AvailabilityZones": zones,
+            "BaseEndpointDnsNames": base_endpoint_dns_names,
+            "ManagesVpcEndpoints": False,
+            "Owner": "amazon",
+            "ServiceId": f"vpce-svc-{BaseBackend.vpce_random_number()}",
+            "ServiceName": service_name,
+            "ServiceType": [{"ServiceType": service_type}],
+            "Tags": [],
+            "VpcEndpointPolicySupported": policy_supported,
+        }
+
+        # Don't know how private DNS names are different, so for now just
+        # one will be added.
+        if private_dns_names:
+            endpoint_service[
+                "PrivateDnsName"
+            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsNameVerificationState"] = "verified"
+            endpoint_service["PrivateDnsNames"] = [
+                {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}
+            ]
+        return [endpoint_service]
+
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:
             mocked_backend = ServerModeMockAWS({"global": self})
@@ -668,18 +703,12 @@ class BaseBackend(object):
         else:
             return mocked_backend
 
-    def deprecated_decorator(self, func=None):
-        if func:
-            return HttprettyMockAWS({"global": self})(func)
-        else:
-            return HttprettyMockAWS({"global": self})
-
     # def list_config_service_resources(self, resource_ids, resource_name, limit, next_token):
     #     """For AWS Config. This will list all of the resources of the given type and optional resource name and region"""
     #     raise NotImplementedError()
 
 
-class ConfigQueryModel(object):
+class ConfigQueryModel:
     def __init__(self, backends):
         """Inits based on the resource type's backends (1 for each region if applicable)"""
         self.backends = backends
@@ -692,6 +721,7 @@ class ConfigQueryModel(object):
         next_token,
         backend_region=None,
         resource_region=None,
+        aggregator=None,
     ):
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
@@ -723,6 +753,10 @@ class ConfigQueryModel(object):
         :param backend_region: The region for the backend to pull results from. Set to `None` if this is an aggregated query.
         :param resource_region: The region for where the resources reside to pull results from. Set to `None` if this is a
                                 non-aggregated query.
+        :param aggregator: If the query is an aggregated query, *AND* the resource has "non-standard" aggregation logic (mainly, IAM),
+                                you'll need to pass aggregator used. In most cases, this should be omitted/set to `None`. See the
+                                conditional logic under `if aggregator` in the moto/iam/config.py for the IAM example.
+
         :return: This should return a list of Dicts that have the following fields:
             [
                 {
@@ -767,14 +801,14 @@ class ConfigQueryModel(object):
         raise NotImplementedError()
 
 
-class base_decorator(object):
+class base_decorator:
     mock_backend = MockAWS
 
     def __init__(self, backends):
         self.backends = backends
 
     def __call__(self, func=None):
-        if self.mock_backend != HttprettyMockAWS and settings.TEST_SERVER_MODE:
+        if settings.TEST_SERVER_MODE:
             mocked_backend = ServerModeMockAWS(self.backends)
         else:
             mocked_backend = self.mock_backend(self.backends)
@@ -785,20 +819,23 @@ class base_decorator(object):
             return mocked_backend
 
 
-class deprecated_base_decorator(base_decorator):
-    mock_backend = HttprettyMockAWS
-
-
 class MotoAPIBackend(BaseBackend):
     def reset(self):
         import moto.backends as backends
 
-        for name, backends_ in backends.named_backends():
+        for name, backends_ in backends.loaded_backends():
             if name == "moto_api":
                 continue
-            for region_name, backend in backends_.items():
+            for backend in backends_.values():
                 backend.reset()
         self.__init__()
+
+
+class CloudWatchMetricProvider(object):
+    @staticmethod
+    @abstractmethod
+    def get_cloudwatch_metrics():
+        pass
 
 
 moto_api_backend = MotoAPIBackend()

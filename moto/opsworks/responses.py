@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -47,7 +45,7 @@ class OpsWorksResponse(BaseResponse):
     def create_layer(self):
         kwargs = dict(
             stack_id=self.parameters.get("StackId"),
-            type=self.parameters.get("Type"),
+            layer_type=self.parameters.get("Type"),
             name=self.parameters.get("Name"),
             shortname=self.parameters.get("Shortname"),
             attributes=self.parameters.get("Attributes"),
@@ -73,7 +71,7 @@ class OpsWorksResponse(BaseResponse):
         kwargs = dict(
             stack_id=self.parameters.get("StackId"),
             name=self.parameters.get("Name"),
-            type=self.parameters.get("Type"),
+            app_type=self.parameters.get("Type"),
             shortname=self.parameters.get("Shortname"),
             description=self.parameters.get("Description"),
             datasources=self.parameters.get("DataSources"),

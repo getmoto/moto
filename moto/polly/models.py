@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
 from xml.etree import ElementTree as ET
 import datetime
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 from .resources import VOICE_DATA
 from .utils import make_arn_for_lexicon
@@ -67,7 +65,7 @@ class Lexicon(BaseModel):
 
 class PollyBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(PollyBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
 
         self._lexicons = {}
@@ -114,10 +112,4 @@ class PollyBackend(BaseBackend):
             self._lexicons[name] = lexicon
 
 
-polly_backends = {}
-for region in Session().get_available_regions("polly"):
-    polly_backends[region] = PollyBackend(region)
-for region in Session().get_available_regions("polly", partition_name="aws-us-gov"):
-    polly_backends[region] = PollyBackend(region)
-for region in Session().get_available_regions("polly", partition_name="aws-cn"):
-    polly_backends[region] = PollyBackend(region)
+polly_backends = BackendDict(PollyBackend, "polly")

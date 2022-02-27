@@ -1,4 +1,4 @@
-moto.egg-info/*
+moto*.egg-info/*
 dist/*
 .cache
 .tox
@@ -23,3 +23,7 @@ tests/file.tmp
 .mypy_cache/
 *.tmp
 .venv/
+htmlcov/
+.~c9_*
+.coverage*
+docs/_build

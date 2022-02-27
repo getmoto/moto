@@ -1,7 +1,6 @@
 import logging
 from abc import abstractmethod
 import abc
-import six
 from collections import deque
 
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -33,6 +32,9 @@ from moto.dynamodb2.exceptions import InvalidTokenException, InvalidUpdateExpres
 from moto.dynamodb2.parsing.tokens import Token, ExpressionTokenizer
 
 
+logger = logging.getLogger(__name__)
+
+
 class NestableExpressionParserMixin(object):
     """
     For nodes that can be nested in themselves (recursive). Take for example UpdateExpression's grammar:
@@ -62,7 +64,7 @@ class NestableExpressionParserMixin(object):
         Returns:
 
         """
-        logging.debug(
+        logger.debug(
             "Move token pos {pos} to continue parsing with specific factory class {fc}".format(
                 pos=self.token_pos, fc=factory_class.__class__.__name__
             )
@@ -70,7 +72,7 @@ class NestableExpressionParserMixin(object):
         # noinspection PyProtectedMember
         ast, token_pos = factory_class(**self._initializer_args())._parse_with_pos()
         self.target_clauses.append(ast)
-        logging.debug(
+        logger.debug(
             "Continue where previous parsing ended {token_pos}".format(
                 token_pos=token_pos
             )
@@ -127,8 +129,7 @@ class NestableExpressionParserMixin(object):
         return target_node
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ExpressionParser:
+class ExpressionParser(metaclass=abc.ABCMeta):
     """Abstract class"""
 
     def __init__(self, expression_token_list, token_pos=0):
@@ -277,7 +278,7 @@ class ExpressionParser:
                 self.token_pos += 1
         except IndexError:
             assert self.token_pos > 0, "We should always have positive indexes"
-            logging.debug("We are out of range so end is reached")
+            logger.debug("We are out of range so end is reached")
 
     def process_token_of_type(self, token_type):
         """
@@ -340,7 +341,7 @@ class NestableBinExpressionParser(ExpressionParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(NestableBinExpressionParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.target_nodes = deque()
 
     def _parse_target_clause(self, factory_class):
@@ -357,7 +358,7 @@ class NestableBinExpressionParser(ExpressionParser):
             **self._initializer_args()
         )._parse_with_pos()
         self.target_nodes.append(ast)
-        logging.debug(
+        logger.debug(
             "Continue where previous parsing ended {token_pos}".format(
                 token_pos=self.token_pos
             )
@@ -455,7 +456,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
         pass
 
     def __init__(self, *args, **kwargs):
-        super(UpdateExpressionParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         NestableExpressionParserMixin.__init__(self)
 
     @classmethod
@@ -479,7 +480,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
         while True:
             self.skip_white_space()
             if self.is_at_end():
-                logging.debug("End reached")
+                logger.debug("End reached")
                 break
             elif self._parse_by_a_subfactory():
                 continue
@@ -519,7 +520,7 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
     """
 
     def __init__(self, *args, **kwargs):
-        super(UpdateExpressionActionsParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         NestableExpressionParserMixin.__init__(self)
 
     @classmethod
@@ -558,7 +559,7 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
                 break
 
         if len(self.target_clauses) == 0:
-            logging.debug(
+            logger.debug(
                 "Didn't encounter a single {nc} in {nepc}.".format(
                     nc=self._nestable_class().__name__,
                     nepc=self._nested_expression_parser_class().__name__,
@@ -625,7 +626,7 @@ class UpdateExpressionPathParser(ExpressionParser):
     """
 
     def __init__(self, *args, **kwargs):
-        super(UpdateExpressionPathParser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.path_nodes = []
 
     @classmethod
@@ -968,8 +969,7 @@ class UpdateExpressionAddActionsParser(UpdateExpressionActionsParser):
         return UpdateExpressionAddActions
 
 
-@six.add_metaclass(abc.ABCMeta)
-class UpdateExpressionPathValueParser(ExpressionParser):
+class UpdateExpressionPathValueParser(ExpressionParser, metaclass=abc.ABCMeta):
     def _parse_path_and_value(self):
         """
         UpdateExpressionAddActionParser only gets called when expecting an AddAction. So we should be aggressive on
