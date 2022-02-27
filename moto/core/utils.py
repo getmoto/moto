@@ -416,6 +416,8 @@ class BackendDict(dict):
         return item in self.regions or item in self.keys()
 
     def __getitem__(self, item):
+        if item in self.keys():
+            return super().__getitem__(item)
         # Create the backend for a specific region
         if item in self.regions and item not in self.keys():
             super().__setitem__(item, self.fn(item))
