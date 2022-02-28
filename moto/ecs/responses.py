@@ -115,7 +115,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster", "default")
         overrides = self._get_param("overrides")
         task_definition_str = self._get_param("taskDefinition")
-        count = self._get_int_param("count")
+        count = self._get_int_param("count", 1)
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
         launch_type = self._get_param("launchType")
