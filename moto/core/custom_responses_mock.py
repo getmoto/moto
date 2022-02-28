@@ -100,7 +100,8 @@ def not_implemented_callback(request):
 #  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
 # Fix: Always return the first match
 def _find_first_match_legacy(self, request):
-    matches = [match for match in self._matches if match.matches(request)]
+    all_possibles = self._matches + responses._default_mock._matches
+    matches = [match for match in all_possibles if match.matches(request)]
 
     # Look for implemented callbacks first
     implemented_matches = [
@@ -120,7 +121,8 @@ def _find_first_match_legacy(self, request):
 def _find_first_match(self, request):
     matches = []
     match_failed_reasons = []
-    for match in self._matches:
+    all_possibles = self._matches + responses._default_mock._matches
+    for match in all_possibles:
         match_result, reason = match.matches(request)
         if match_result:
             matches.append(match)

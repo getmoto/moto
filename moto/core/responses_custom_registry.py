@@ -1,9 +1,9 @@
 # This will only exist in responses >= 0.17
-from responses import registries
+import responses
 from .custom_responses_mock import CallbackResponse, not_implemented_callback
 
 
-class CustomRegistry(registries.FirstMatchRegistry):
+class CustomRegistry(responses.registries.FirstMatchRegistry):
     """
     Custom Registry that returns requests in an order that makes sense for Moto:
      - Implemented callbacks take precedence over non-implemented-callbacks
@@ -11,9 +11,10 @@ class CustomRegistry(registries.FirstMatchRegistry):
     """
 
     def find(self, request):
+        all_possibles = responses._default_mock._registry.registered + self.registered
         found = []
         match_failed_reasons = []
-        for response in self.registered:
+        for response in all_possibles:
             match_result, reason = response.matches(request)
             if match_result:
                 found.append(response)
