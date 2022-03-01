@@ -1282,14 +1282,16 @@ def test_tag_resource(pass_arn):
     conn.tag_resource(
         SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
     )
-
+    conn.tag_resource(
+        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeOtherValue"},],
+    )
     conn.tag_resource(
         SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
     )
 
     secrets = conn.list_secrets()
     assert secrets["SecretList"][0].get("Tags") == [
-        {"Key": "FirstTag", "Value": "SomeValue"},
+        {"Key": "FirstTag", "Value": "SomeOtherValue"},
         {"Key": "SecondTag", "Value": "AnotherValue"},
     ]
 

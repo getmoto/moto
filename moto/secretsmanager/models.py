@@ -735,6 +735,16 @@ class SecretsManagerBackend(BaseBackend):
         old_tags = secret.tags
 
         for tag in tags:
+            existing_key_name = next(
+                (
+                    old_key
+                    for old_key in old_tags
+                    if old_key.get("Key") == tag.get("Key")
+                ),
+                None,
+            )
+            if existing_key_name:
+                old_tags.remove(existing_key_name)
             old_tags.append(tag)
 
         return secret_id
