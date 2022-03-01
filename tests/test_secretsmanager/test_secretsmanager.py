@@ -1283,7 +1283,7 @@ def test_tag_resource(pass_arn):
         SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
     )
     conn.tag_resource(
-        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeOtherValue"}, ],
+        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeOtherValue"},],
     )
     conn.tag_resource(
         SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
