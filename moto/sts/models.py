@@ -102,22 +102,23 @@ class STSBackend(BaseBackend):
             force_cdata=True,
             process_namespaces=True,
             namespaces=namespaces,
+            namespace_separator="|",
         )
 
-        saml_assertion_attributes = saml_assertion["samlp:Response"]["saml:Assertion"][
-            "saml:AttributeStatement"
-        ]["saml:Attribute"]
+        saml_assertion_attributes = saml_assertion["samlp|Response"]["saml|Assertion"][
+            "saml|AttributeStatement"
+        ]["saml|Attribute"]
         for attribute in saml_assertion_attributes:
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/RoleSessionName"
             ):
-                kwargs["role_session_name"] = attribute["saml:AttributeValue"]["#text"]
+                kwargs["role_session_name"] = attribute["saml|AttributeValue"]["#text"]
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
             ):
-                kwargs["duration"] = int(attribute["saml:AttributeValue"]["#text"])
+                kwargs["duration"] = int(attribute["saml|AttributeValue"]["#text"])
 
         if "duration" not in kwargs:
             kwargs["duration"] = DEFAULT_STS_SESSION_DURATION
