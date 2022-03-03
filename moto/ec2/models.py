@@ -4142,7 +4142,7 @@ class VPCBackend(object):
         for vpce_id in vpce_ids or []:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
-                if vpc_endpoint.type.lower() == "interface":
+                if vpc_endpoint.endpoint_type.lower() == "interface":
                     for eni_id in vpc_endpoint.network_interface_ids:
                         self.enis.pop(eni_id, None)
                 else:
@@ -5446,7 +5446,7 @@ class Route(CloudFormationModel):
         return route_table
 
 
-class VPCEndPoint(TaggedEC2Resource):
+class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         ec2_backend,
@@ -5469,7 +5469,7 @@ class VPCEndPoint(TaggedEC2Resource):
         self.id = endpoint_id
         self.vpc_id = vpc_id
         self.service_name = service_name
-        self.type = endpoint_type
+        self.endpoint_type = endpoint_type
         self.state = "available"
         self.policy_document = policy_document
         self.route_table_ids = route_table_ids
@@ -5487,6 +5487,46 @@ class VPCEndPoint(TaggedEC2Resource):
     @property
     def owner_id(self):
         return ACCOUNT_ID
+
+    @property
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::EC2::VPCEndpoint"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name, **kwargs
+    ):
+        properties = cloudformation_json["Properties"]
+
+        service_name = properties.get("ServiceName")
+        subnet_ids = properties.get("SubnetIds")
+        vpc_endpoint_type = properties.get("VpcEndpointType")
+        vpc_id = properties.get("VpcId")
+        policy_document = properties.get("PolicyDocument")
+        private_dns_enabled = properties.get("PrivateDnsEnabled")
+        route_table_ids = properties.get("RouteTableIds")
+        security_group_ids = properties.get("SecurityGroupIds")
+
+        ec2_backend = ec2_backends[region_name]
+        vpc_endpoint = ec2_backend.create_vpc_endpoint(
+            vpc_id=vpc_id,
+            service_name=service_name,
+            endpoint_type=vpc_endpoint_type,
+            subnet_ids=subnet_ids,
+            policy_document=policy_document,
+            private_dns_enabled=private_dns_enabled,
+            route_table_ids=route_table_ids,
+            security_group_ids=security_group_ids,
+        )
+        return vpc_endpoint
 
 
 class ManagedPrefixList(TaggedEC2Resource):
