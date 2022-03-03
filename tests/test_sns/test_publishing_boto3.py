@@ -11,7 +11,7 @@ import pytest
 from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
 from moto.core.models import responses_mock
-from moto.sns import sns_backend
+from moto.sns import sns_backends
 
 MESSAGE_FROM_SQS_TEMPLATE = (
     '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:'
@@ -289,6 +289,7 @@ def test_publish_sms():
 
     result.should.contain("MessageId")
     if not settings.TEST_SERVER_MODE:
+        sns_backend = sns_backends["us-east-1"]
         sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
             ("+15551234567", "my message")
         )
@@ -420,6 +421,7 @@ def test_publish_to_http():
     conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
 
     if not settings.TEST_SERVER_MODE:
+        sns_backend = sns_backends["us-east-1"]
         sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
         notification = sns_backend.topics[topic_arn].sent_notifications[0]
         _, msg, subject, _, _ = notification
