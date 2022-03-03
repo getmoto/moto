@@ -669,7 +669,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
                 <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
-                <vpcEndpointType>{{ vpc_end_point.type }}</vpcEndpointType>
+                <vpcEndpointType>{{ vpc_end_point.endpoint_type }}</vpcEndpointType>
                 {% if vpc_end_point.subnet_ids %}
                     <subnetIdSet>
                         {% for subnet_id in vpc_end_point.subnet_ids %}
