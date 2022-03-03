@@ -1092,6 +1092,7 @@ def test_after_put_secret_value_version_stages_can_get_current_with_custom_versi
         VersionStages=["SAMPLESTAGE1", "SAMPLESTAGE0"],
         ClientRequestToken=second_version_id,
     )
+    # Create a third version with one of the old stages
     third_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce73"
     third_secret_string = "third_secret_string"
     conn.put_secret_value(
@@ -1101,16 +1102,18 @@ def test_after_put_secret_value_version_stages_can_get_current_with_custom_versi
         ClientRequestToken=third_version_id,
     )
 
-    # Get current.
+    # Get current with the stage label of the third version.
     get_dict = conn.get_secret_value(
         SecretId=DEFAULT_SECRET_NAME, VersionStage="SAMPLESTAGE1"
     )
     versions = conn.list_secret_version_ids(SecretId=DEFAULT_SECRET_NAME)["Versions"]
     versions_by_key = {version["VersionId"]: version for version in versions}
+    # Check if indeed the third version is returned
     assert get_dict
     assert get_dict["VersionId"] == third_version_id
     assert get_dict["SecretString"] == third_secret_string
     assert get_dict["VersionStages"] == ["SAMPLESTAGE1"]
+    # Check if all the versions have the proper labels
     assert versions_by_key[first_version_id]["VersionStages"] == ["AWSCURRENT"]
     assert versions_by_key[second_version_id]["VersionStages"] == ["SAMPLESTAGE0"]
     assert versions_by_key[third_version_id]["VersionStages"] == ["SAMPLESTAGE1"]
