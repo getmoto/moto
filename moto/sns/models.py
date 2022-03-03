@@ -415,7 +415,8 @@ class SNSBackend(BaseBackend):
 
     .. sourcecode:: python
 
-        from moto.sns import sns_backend
+        from moto.sns import sns_backends
+        sns_backend = sns_backends["us-east-1"]  # Use the appropriate region
         all_send_notifications = sns_backend.topics[topic_arn].sent_notifications
 
     Note that, as this is an internal API, the exact format may differ per versions.
