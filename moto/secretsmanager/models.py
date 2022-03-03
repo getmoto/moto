@@ -111,6 +111,12 @@ class FakeSecret:
         self.versions[version_id] = secret_version
         self.default_version_id = version_id
 
+    def remove_version_stages_from_old_versions(self, version_stages):
+        for version_stage in version_stages:
+            for old_version in self.versions.values():
+                if version_stage in old_version["version_stages"]:
+                    old_version["version_stages"].remove(version_stage)
+
     def delete(self, deleted_date):
         self.deleted_date = deleted_date
 
@@ -377,6 +383,7 @@ class SecretsManagerBackend(BaseBackend):
             if "AWSCURRENT" in version_stages:
                 secret.reset_default_version(secret_version, version_id)
             else:
+                secret.remove_version_stages_from_old_versions(version_stages)
                 secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
