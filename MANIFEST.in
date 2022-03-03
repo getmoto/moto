@@ -9,5 +9,5 @@ include moto/cognitoidp/resources/*.json
 include moto/dynamodb2/parsing/reserved_keywords.txt
 include moto/ssm/resources/*.json
 include moto/support/resources/*.json
-recursive-include moto/templates *
+recursive-include moto/moto_server *
 recursive-include tests *
