@@ -5,7 +5,6 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_databrew
-from moto.databrew.exceptions import RecipeNotFoundException
 
 
 def _create_databrew_client():
@@ -101,10 +100,11 @@ def test_describe_recipe():
 def test_describe_recipe_that_does_not_exist():
     client = _create_databrew_client()
 
-    with pytest.raises(RecipeNotFoundException) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_recipe(Name="DoseNotExist")
-
-    exc.value.message.should.equal("Recipe DoseNotExist not found.")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.equal("Recipe DoseNotExist not found.")
 
 
 @mock_databrew
