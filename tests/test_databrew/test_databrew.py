@@ -2,6 +2,8 @@ import uuid
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
+
 from moto import mock_databrew
 from moto.databrew.exceptions import RecipeNotFoundException
 
@@ -11,8 +13,9 @@ def _create_databrew_client():
     return client
 
 
-def _create_test_recipe(client, tags=None):
-    recipe_name = str(uuid.uuid4())
+def _create_test_recipe(client, tags=None, recipe_name=None):
+    if recipe_name is None:
+        recipe_name = str(uuid.uuid4())
 
     return client.create_recipe(
         Name=recipe_name,
@@ -102,3 +105,16 @@ def test_describe_recipe_that_does_not_exist():
         client.describe_recipe(Name="DoseNotExist")
 
     exc.value.message.should.equal("Recipe DoseNotExist not found.")
+
+
+@mock_databrew
+def test_create_recipe_that_already_exists():
+    client = _create_databrew_client()
+
+    response = _create_test_recipe(client)
+
+    with pytest.raises(ClientError) as exc:
+        _create_test_recipe(client, recipe_name=response["Name"])
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("AlreadyExistsException")
+    err["Message"].should.equal("Recipe already exists.")

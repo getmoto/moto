@@ -1,12 +1,10 @@
 from collections import OrderedDict
 from datetime import datetime
 
-from moto.core import BaseBackend
-from moto.core import BaseModel
+from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
-
-from .exceptions import RecipeAlreadyExistsException
-from .exceptions import RecipeNotFoundException
+from .exceptions import RecipeAlreadyExistsException, RecipeNotFoundException
 
 
 class DataBrewBackend(BaseBackend):
@@ -19,15 +17,23 @@ class DataBrewBackend(BaseBackend):
         },
     }
 
-    def __init__(self):
+    def __init__(self, region_name):
+        self.region_name = region_name
         self.recipes = OrderedDict()
+
+    def reset(self):
+        """Re-initialize all attributes for this instance."""
+        region_name = self.region_name
+        self.__init__(region_name)
 
     def create_recipe(self, recipe_name, recipe_description, recipe_steps, tags):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipe.html
         if recipe_name in self.recipes:
             raise RecipeAlreadyExistsException()
 
-        recipe = FakeRecipe(recipe_name, recipe_description, recipe_steps, tags)
+        recipe = FakeRecipe(
+            self.region_name, recipe_name, recipe_description, recipe_steps, tags
+        )
         self.recipes[recipe_name] = recipe
         return recipe
 
@@ -42,7 +48,10 @@ class DataBrewBackend(BaseBackend):
 
 
 class FakeRecipe(BaseModel):
-    def __init__(self, recipe_name, recipe_description, recipe_steps, tags):
+    def __init__(
+        self, region_name, recipe_name, recipe_description, recipe_steps, tags
+    ):
+        self.region_name = region_name
         self.name = recipe_name
         self.description = recipe_description
         self.steps = recipe_steps
@@ -59,4 +68,4 @@ class FakeRecipe(BaseModel):
         }
 
 
-databrew_backend = DataBrewBackend()
+databrew_backends = BackendDict(DataBrewBackend, "databrew")

@@ -3,8 +3,7 @@ from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
-
-from .models import databrew_backend
+from .models import databrew_backends
 
 
 class DataBrewResponse(BaseResponse):
@@ -12,7 +11,8 @@ class DataBrewResponse(BaseResponse):
 
     @property
     def databrew_backend(self):
-        return databrew_backend
+        """Return backend instance specific for this region."""
+        return databrew_backends[self.region]
 
     @property
     def parameters(self):
