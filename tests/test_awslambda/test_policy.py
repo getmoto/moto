@@ -26,7 +26,7 @@ def test_policy():
         "FunctionName": "function_name",
         "Principal": {"Service": "events.amazonaws.com"},
         "Effect": "Allow",
-        "Resource": "arn:$LATEST",
+        "Resource": "arn",
         "Sid": "statement0",
         "Condition": {
             "ArnLike": {
@@ -40,7 +40,7 @@ def test_policy():
     expected.should.be.equal(policy.statements[0])
 
     sid = statement.get("StatementId", None)
-    if sid == None:
+    if sid is None:
         raise "TestCase.statement does not contain StatementId"
 
     policy.del_statement(sid)

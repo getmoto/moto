@@ -37,6 +37,9 @@ class Policy:
                 " for the Lambda function or alias. Call the GetFunction or the GetAlias API to retrieve"
                 " the latest RevisionId for your resource."
             )
+        # Remove #LATEST from the Resource (Lambda ARN)
+        if policy.statements[0].get("Resource", "").endswith("$LATEST"):
+            policy.statements[0]["Resource"] = policy.statements[0]["Resource"][0:-8]
         self.statements.append(policy.statements[0])
         self.revision = str(uuid.uuid4())
 

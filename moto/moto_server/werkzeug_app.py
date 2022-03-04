@@ -33,6 +33,7 @@ SIGNING_ALIASES = {
     "eventbridge": "events",
     "execute-api": "iot",
     "iotdata": "data.iot",
+    "mobiletargeting": "pinpoint",
 }
 
 # Some services are only recognizable by the version
