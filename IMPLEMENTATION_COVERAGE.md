@@ -297,7 +297,7 @@
 
 ## athena
 <details>
-<summary>29% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_query_execution
@@ -331,6 +331,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_data_catalog
+- [ ] update_named_query
 - [ ] update_prepared_statement
 - [ ] update_work_group
 </details>
@@ -5521,6 +5522,7 @@
 - kafka
 - kafkaconnect
 - kendra
+- keyspaces
 - kinesis-video-media
 - kinesis-video-signaling
 - kinesisanalytics
