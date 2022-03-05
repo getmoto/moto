@@ -1,6 +1,17 @@
 Moto Changelog
 ==============
 
+3.0.6
+-----
+Docker Digest for 3.0.6: <autopopulateddigest>
+
+    General:
+        * Feature to start the MotoServer from within Python (in beta)
+
+    Miscellaneous:
+        * CloudFormation now supports creation of type AWS::EC2::VPCEndpoint
+        * ECS: run_task() - The task count now defaults to 1
+
 3.0.5
 -----
 Docker Digest for 3.0.5: _sha256:914ba446c1aad3917029fefe5d1c4a7a6a3866173391fb470151fe4a2163efcb_

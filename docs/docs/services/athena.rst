@@ -57,6 +57,7 @@ athena
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_data_catalog
+- [ ] update_named_query
 - [ ] update_prepared_statement
 - [ ] update_work_group
 

@@ -79,7 +79,6 @@ TestAccAWSENI_IPv6
 TestAccAWSENI_PrivateIpsCount
 TestAccAWSENI_SourceDestCheck
 TestAccAWSENI_Tags
-TestAccAWSFms
 TestAccAWSGroupMembership
 TestAccAWSIAMAccountAlias
 TestAccAWSIAMGroup_
