@@ -3,7 +3,7 @@ Moto Changelog
 
 3.0.6
 -----
-Docker Digest for 3.0.6: <autopopulateddigest>
+Docker Digest for 3.0.6: _sha256:de6b4ba576e143b3bbae250186b563c836f233afea5b3579629d3565824de74d_
 
     General:
         * Feature to start the MotoServer from within Python (in beta)
