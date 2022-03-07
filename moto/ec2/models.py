@@ -1284,9 +1284,10 @@ class InstanceBackend(object):
                     if instance.applies(filters):
                         result.append(instance)
 
-        # TODO: Trim error message down to specific invalid id.
         if instance_ids and len(instance_ids) > len(result):
-            raise InvalidInstanceIdError(instance_ids)
+            result_ids = [i.id for i in result]
+            missing_instance_ids = [i for i in instance_ids if i not in result_ids]
+            raise InvalidInstanceIdError(missing_instance_ids)
 
         return result
 
