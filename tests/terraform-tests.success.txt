@@ -99,6 +99,8 @@ TestAccAWSKmsSecretDataSource
 TestAccAWSMq
 TestAccAWSNatGateway
 TestAccAWSPartition
+TestAccAWSPinpointApp
+TestAccAWSPinpointEventStream
 TestAccAWSProvider
 TestAccAWSRedshiftServiceAccount
 TestAccAWSRolePolicyAttachment

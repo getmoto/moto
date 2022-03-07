@@ -95,6 +95,7 @@ backend_url_patterns = [
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
+    ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
     ("ram", re.compile("https?://ram\\.(.+)\\.amazonaws.com")),
     ("rds", re.compile("https?://rds\\.(.+)\\.amazonaws\\.com")),

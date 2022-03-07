@@ -107,6 +107,7 @@ mock_mediastoredata = lazy_load(
 mock_mq = lazy_load(".mq", "mock_mq", boto3_name="mq")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
+mock_pinpoint = lazy_load(".pinpoint", "mock_pinpoint")
 mock_polly = lazy_load(".polly", "mock_polly")
 mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
