@@ -3,7 +3,7 @@ Moto Changelog
 
 3.0.7
 -----
-Docker Digest for 3.0.7: <autopopulateddigest>
+Docker Digest for 3.0.7: _sha256:4db9433e741de635606fd2d997e555c26f51fc82e69d5043d0d9de90bbade229_
 
     General:
         * Compatible with the latest `responses`-release (0.19.0)
