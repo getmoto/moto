@@ -227,6 +227,25 @@ def test_delete_secret():
 
 
 @mock_secretsmanager
+def test_delete_secret_by_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    deleted_secret = conn.delete_secret(SecretId=secret["ARN"])
+
+    assert deleted_secret["ARN"] == secret["ARN"]
+    assert deleted_secret["Name"] == "test-secret"
+    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+
+    assert secret_details["ARN"] == secret["ARN"]
+    assert secret_details["Name"] == "test-secret"
+    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
+
+
+@mock_secretsmanager
 def test_delete_secret_force():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
