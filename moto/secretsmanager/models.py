@@ -180,6 +180,10 @@ class SecretsStore(dict):
         new_key = get_secret_name_from_arn(key)
         return dict.__contains__(self, new_key)
 
+    def get(self, key, *args, **kwargs):
+        new_key = get_secret_name_from_arn(key)
+        return super().get(new_key, *args, **kwargs)
+
     def pop(self, key, *args, **kwargs):
         new_key = get_secret_name_from_arn(key)
         return super().pop(new_key, *args, **kwargs)
