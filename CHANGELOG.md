@@ -1,6 +1,33 @@
 Moto Changelog
 ==============
 
+3.0.7
+-----
+Docker Digest for 3.0.7: <autopopulateddigest>
+
+    General:
+        * Compatible with the latest `responses`-release (0.19.0)
+
+    New Services:
+        * DataBrew:
+            * create_recipe()
+            * get_recipe()
+            * list_recipes()
+
+        * Pinpoint:
+            * create_app()
+            * delete_app()
+            * delete_event_stream()
+            * get_app()
+            * get_application_settings()
+            * get_apps()
+            * get_event_stream()
+            * list_tags_for_resource()
+            * put_event_stream()
+            * tag_resource()
+            * untag_resource()
+            * update_application_settings()
+
 3.0.6
 -----
 Docker Digest for 3.0.6: _sha256:de6b4ba576e143b3bbae250186b563c836f233afea5b3579629d3565824de74d_
