@@ -19,7 +19,7 @@ class TextractResponse(BaseResponse):
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")
         job = self.textract_backend.get_document_text_detection(
-            job_id=job_id, max_results=max_results, next_token=next_token,
+            job_id=job_id, max_results=max_results, next_token=next_token
         ).to_dict()
         return json.dumps(job)
 

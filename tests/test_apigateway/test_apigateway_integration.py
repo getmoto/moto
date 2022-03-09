@@ -46,8 +46,8 @@ def test_http_integration():
     stage_name = "staging"
     client.create_deployment(restApiId=api_id, stageName=stage_name)
 
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
+    deploy_url = (
+        f"https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
     )
 
     requests.get(deploy_url).content.should.equal(b"a fake response")
@@ -195,10 +195,7 @@ def create_integration_test_api(
         authorizationType="NONE",
     )
     client.put_method_response(
-        restApiId=api_id,
-        resourceId=parent_id,
-        httpMethod=http_method,
-        statusCode="200",
+        restApiId=api_id, resourceId=parent_id, httpMethod=http_method, statusCode="200"
     )
     client.put_integration(
         restApiId=api_id,

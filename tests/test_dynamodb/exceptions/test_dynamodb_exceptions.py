@@ -14,7 +14,7 @@ table_schema = {
                 {"AttributeName": "gsiK1PartitionKey", "KeyType": "HASH"},
                 {"AttributeName": "gsiK1SortKey", "KeyType": "RANGE"},
             ],
-            "Projection": {"ProjectionType": "KEYS_ONLY",},
+            "Projection": {"ProjectionType": "KEYS_ONLY"},
         }
     ],
     "AttributeDefinitions": [
@@ -106,9 +106,7 @@ def test_empty_expressionattributenames():
     )
     table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
-        table.get_item(
-            Key={"id": "my_id"}, ExpressionAttributeNames={},
-        )
+        table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.equal(
@@ -125,7 +123,7 @@ def test_empty_expressionattributenames_with_empty_projection():
     table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
-            Key={"id": "my_id"}, ProjectionExpression="", ExpressionAttributeNames={},
+            Key={"id": "my_id"}, ProjectionExpression="", ExpressionAttributeNames={}
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
@@ -141,7 +139,7 @@ def test_empty_expressionattributenames_with_projection():
     table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
-            Key={"id": "my_id"}, ProjectionExpression="id", ExpressionAttributeNames={},
+            Key={"id": "my_id"}, ProjectionExpression="id", ExpressionAttributeNames={}
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
@@ -250,7 +248,7 @@ def test_create_table_with_missing_attributes():
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
             TableName="test-table",
-            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"},],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             KeySchema=[
                 {"AttributeName": "id", "KeyType": "HASH"},
                 {"AttributeName": "created_at", "KeyType": "RANGE"},
@@ -267,7 +265,7 @@ def test_create_table_with_missing_attributes():
     with pytest.raises(ClientError) as exc:
         dynamodb.create_table(
             TableName="test-table",
-            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"},],
+            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
             GlobalSecondaryIndexes=[
                 {
@@ -470,7 +468,7 @@ def test_creating_table_with_0_global_indexes():
 def test_multiple_transactions_on_same_item():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -508,7 +506,7 @@ def test_multiple_transactions_on_same_item():
 def test_transact_write_items__too_many_transactions():
     table_schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
-        "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"},],
+        "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.create_table(

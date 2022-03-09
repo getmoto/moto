@@ -16,7 +16,7 @@ def validate_param(
         assert constraint_expression(param_value)
     except (AssertionError, TypeError):
         raise InvalidParameterException(
-            constraint=constraint, parameter=param_name, value=param_value,
+            constraint=constraint, parameter=param_name, value=param_value
         )
     if pattern and param_value:
         try:

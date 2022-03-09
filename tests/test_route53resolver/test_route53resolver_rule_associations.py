@@ -41,7 +41,7 @@ def test_route53resolver_invalid_associate_resolver_rule_args():
     long_vpc_id = random_num * 6 + "fghij"
     with pytest.raises(ClientError) as exc:
         client.associate_resolver_rule(
-            ResolverRuleId=long_id, Name=long_name, VPCId=long_vpc_id,
+            ResolverRuleId=long_id, Name=long_name, VPCId=long_vpc_id
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -71,7 +71,7 @@ def test_route53resolver_associate_resolver_rule():
     name = "X" + get_random_hex(10)
     vpc_id = create_vpc(ec2_client)
     rule_association = client.associate_resolver_rule(
-        ResolverRuleId=resolver_rule_id, Name=name, VPCId=vpc_id,
+        ResolverRuleId=resolver_rule_id, Name=name, VPCId=vpc_id
     )["ResolverRuleAssociation"]
     assert rule_association["Id"].startswith("rslvr-rrassoc-")
     assert rule_association["ResolverRuleId"] == resolver_rule_id

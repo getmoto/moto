@@ -1090,9 +1090,7 @@ class RestoredPITTable(Table):
 
 
 class Backup(object):
-    def __init__(
-        self, backend, name, table, status=None, type_=None,
-    ):
+    def __init__(self, backend, name, table, status=None, type_=None):
         self.backend = backend
         self.name = name
         self.table = copy.deepcopy(table)
@@ -1322,7 +1320,7 @@ class DynamoDBBackend(BaseBackend):
                     )
 
                 gsis_by_name[gsi_to_create["IndexName"]] = GlobalSecondaryIndex.create(
-                    gsi_to_create, table.table_key_attrs,
+                    gsi_to_create, table.table_key_attrs
                 )
 
         # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
@@ -1534,7 +1532,7 @@ class DynamoDBBackend(BaseBackend):
         if item is None:
             if update_expression:
                 # Validate AST before creating anything
-                item = Item(hash_value, range_value, attrs={},)
+                item = Item(hash_value, range_value, attrs={})
                 UpdateExpressionValidator(
                     update_expression_ast,
                     expression_attribute_names=expression_attribute_names,

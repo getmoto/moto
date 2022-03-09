@@ -156,7 +156,7 @@ def test_redshiftdata_execute_statement_and_get_statement_result(client):
     # ExecuteStatement
     execute_response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({"Database": database, "Sql": sql,}),
+        data=json.dumps({"Database": database, "Sql": sql}),
         headers=headers("ExecuteStatement"),
     )
     execute_response.status_code.should.equal(200)
@@ -192,7 +192,7 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
     # ExecuteStatement
     execute_response = client.post(
         CLIENT_ENDPOINT,
-        data=json.dumps({"Database": database, "Sql": sql,}),
+        data=json.dumps({"Database": database, "Sql": sql}),
         headers=headers("ExecuteStatement"),
     )
     execute_response.status_code.should.equal(200)

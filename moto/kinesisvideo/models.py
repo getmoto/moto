@@ -1,9 +1,6 @@
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
-from .exceptions import (
-    ResourceNotFoundException,
-    ResourceInUseException,
-)
+from .exceptions import ResourceNotFoundException, ResourceInUseException
 import random
 import string
 from moto.core.utils import get_random_hex, BackendDict

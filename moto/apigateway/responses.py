@@ -5,10 +5,7 @@ from urllib.parse import unquote
 from moto.utilities.utils import merge_multiple_dicts
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
-from .exceptions import (
-    ApiGatewayException,
-    InvalidRequestInput,
-)
+from .exceptions import ApiGatewayException, InvalidRequestInput
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
 AUTHORIZER_TYPES = ["TOKEN", "REQUEST", "COGNITO_USER_POOLS"]
@@ -30,11 +27,7 @@ class APIGatewayResponse(BaseResponse):
     def error(self, type_, message, status=400):
         headers = self.response_headers or {}
         headers["X-Amzn-Errortype"] = type_
-        return (
-            status,
-            headers,
-            json.dumps({"__type": type_, "message": message}),
-        )
+        return (status, headers, json.dumps({"__type": type_, "message": message}))
 
     @property
     def backend(self):
@@ -757,7 +750,7 @@ class APIGatewayResponse(BaseResponse):
             stage = self._get_param("stage")
 
             base_path_mapping_resp = self.backend.create_base_path_mapping(
-                domain_name, rest_api_id, base_path, stage,
+                domain_name, rest_api_id, base_path, stage
             )
             return 201, {}, json.dumps(base_path_mapping_resp)
 
@@ -834,19 +827,19 @@ class APIGatewayResponse(BaseResponse):
         rest_api_id = self.path.split("/")[-3]
         response_type = self.path.split("/")[-1]
         response = self.backend.get_gateway_response(
-            rest_api_id=rest_api_id, response_type=response_type,
+            rest_api_id=rest_api_id, response_type=response_type
         )
         return 200, {}, json.dumps(response)
 
     def get_gateway_responses(self):
         rest_api_id = self.path.split("/")[-2]
-        responses = self.backend.get_gateway_responses(rest_api_id=rest_api_id,)
+        responses = self.backend.get_gateway_responses(rest_api_id=rest_api_id)
         return 200, {}, json.dumps(dict(item=responses))
 
     def delete_gateway_response(self):
         rest_api_id = self.path.split("/")[-3]
         response_type = self.path.split("/")[-1]
         self.backend.delete_gateway_response(
-            rest_api_id=rest_api_id, response_type=response_type,
+            rest_api_id=rest_api_id, response_type=response_type
         )
         return 202, {}, json.dumps(dict())

@@ -534,7 +534,7 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         confirmation_code = self._get_param("ConfirmationCode")
         cognitoidp_backends[self.region].confirm_sign_up(
-            client_id=client_id, username=username, confirmation_code=confirmation_code,
+            client_id=client_id, username=username, confirmation_code=confirmation_code
         )
         return ""
 

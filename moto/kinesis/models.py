@@ -193,10 +193,10 @@ class Stream(CloudFormationModel):
     def init_shards(self, shard_count):
         self.shard_count = shard_count
 
-        step = 2 ** 128 // shard_count
+        step = 2**128 // shard_count
         hash_ranges = itertools.chain(
             map(lambda i: (i, i * step, (i + 1) * step - 1), range(shard_count - 1)),
-            [(shard_count - 1, (shard_count - 1) * step, 2 ** 128)],
+            [(shard_count - 1, (shard_count - 1) * step, 2**128)],
         )
         for index, start, end in hash_ranges:
             shard = Shard(index, start, end)
@@ -361,7 +361,7 @@ class Stream(CloudFormationModel):
 
             key = int(explicit_hash_key)
 
-            if key >= 2 ** 128:
+            if key >= 2**128:
                 raise InvalidArgumentError("explicit_hash_key")
 
         else:
@@ -439,7 +439,7 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 

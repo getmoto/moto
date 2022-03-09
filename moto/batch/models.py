@@ -599,7 +599,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # add host.docker.internal host on linux to emulate Mac + Windows behavior
             #   for communication with other mock AWS services running on localhost
             extra_hosts = (
-                {"host.docker.internal": "host-gateway",}
+                {"host.docker.internal": "host-gateway"}
                 if platform == "linux" or platform == "linux2"
                 else {}
             )
@@ -751,10 +751,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.attempts.append(self.latest_attempt)
 
     def _stop_attempt(self):
-        self.latest_attempt["container"]["logStreamName"] = self.log_stream_name
-        self.latest_attempt["stoppedAt"] = datetime2int_milliseconds(
-            self.job_stopped_at
-        )
+        if self.latest_attempt:
+            self.latest_attempt["container"]["logStreamName"] = self.log_stream_name
+            self.latest_attempt["stoppedAt"] = datetime2int_milliseconds(
+                self.job_stopped_at
+            )
 
     def terminate(self, reason):
         if not self.stop:

@@ -14,7 +14,7 @@ def test_s3_bucket_cloudformation_basic():
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket", "Properties": {},}},
+        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket", "Properties": {}}},
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)

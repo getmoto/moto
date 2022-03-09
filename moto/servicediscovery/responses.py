@@ -33,7 +33,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         params = json.loads(self.body)
         namespace_id = params.get("Id")
         operation_id = self.servicediscovery_backend.delete_namespace(
-            namespace_id=namespace_id,
+            namespace_id=namespace_id
         )
         return json.dumps(dict(OperationId=operation_id))
 
@@ -49,7 +49,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         params = json.loads(self.body)
         operation_id = params.get("OperationId")
         operation = self.servicediscovery_backend.get_operation(
-            operation_id=operation_id,
+            operation_id=operation_id
         )
         return json.dumps(dict(Operation=operation.to_json()))
 
@@ -57,7 +57,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         params = json.loads(self.body)
         namespace_id = params.get("Id")
         namespace = self.servicediscovery_backend.get_namespace(
-            namespace_id=namespace_id,
+            namespace_id=namespace_id
         )
         return json.dumps(dict(Namespace=namespace.to_json()))
 
@@ -65,9 +65,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = params.get("Tags")
-        self.servicediscovery_backend.tag_resource(
-            resource_arn=resource_arn, tags=tags,
-        )
+        self.servicediscovery_backend.tag_resource(resource_arn=resource_arn, tags=tags)
         return json.dumps(dict())
 
     def untag_resource(self):
@@ -75,7 +73,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         resource_arn = params.get("ResourceARN")
         tag_keys = params.get("TagKeys")
         self.servicediscovery_backend.untag_resource(
-            resource_arn=resource_arn, tag_keys=tag_keys,
+            resource_arn=resource_arn, tag_keys=tag_keys
         )
         return json.dumps(dict())
 
@@ -83,7 +81,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = self.servicediscovery_backend.list_tags_for_resource(
-            resource_arn=resource_arn,
+            resource_arn=resource_arn
         )
         return 200, {}, json.dumps(tags)
 
@@ -166,6 +164,6 @@ class ServiceDiscoveryResponse(BaseResponse):
         service_id = params.get("Id")
         details = params.get("Service")
         operation_id = self.servicediscovery_backend.update_service(
-            service_id=service_id, details=details,
+            service_id=service_id, details=details
         )
         return json.dumps(dict(OperationId=operation_id))

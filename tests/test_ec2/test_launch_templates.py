@@ -317,7 +317,7 @@ def test_describe_launch_templates():
 
     template_name2 = str(uuid4())
     r = cli.create_launch_template(
-        LaunchTemplateName=template_name2, LaunchTemplateData={"ImageId": "ami-abc123"},
+        LaunchTemplateName=template_name2, LaunchTemplateData={"ImageId": "ami-abc123"}
     )
     lt_ids.append(r["LaunchTemplate"]["LaunchTemplateId"])
 

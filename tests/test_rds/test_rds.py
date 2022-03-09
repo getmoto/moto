@@ -932,8 +932,7 @@ def test_modify_option_group_no_options():
 def test_modify_non_existent_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.modify_option_group.when.called_with(
-        OptionGroupName="non-existent",
-        OptionsToInclude=[{"OptionName": "test-option"}],
+        OptionGroupName="non-existent", OptionsToInclude=[{"OptionName": "test-option"}]
     ).should.throw(ClientError, "Specified OptionGroupName: non-existent not found.")
 
 

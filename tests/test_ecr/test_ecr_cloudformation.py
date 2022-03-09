@@ -16,7 +16,7 @@ repo_template = Template(
             "Resources": {
                 "Repo": {
                     "Type": "AWS::ECR::Repository",
-                    "Properties": {"RepositoryName": "${repo_name}",},
+                    "Properties": {"RepositoryName": "${repo_name}"},
                 }
             },
             "Outputs": {

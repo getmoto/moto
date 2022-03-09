@@ -8,10 +8,7 @@ from copy import copy
 
 import time
 
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
+from urllib.parse import urlparse
 import responses
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
@@ -1221,7 +1218,7 @@ class APIGatewayBackend(BaseBackend):
             restApiId=api_id,
             ...,
             uri="http://httpbin.org/robots.txt",
-            integrationHttpMethod="GET",
+            integrationHttpMethod="GET"
         )
         deploy_url = f"https://{api_id}.execute-api.us-east-1.amazonaws.com/dev"
         requests.get(deploy_url).content.should.equal(b"a fake response")
@@ -1847,7 +1844,7 @@ class APIGatewayBackend(BaseBackend):
     def create_request_validator(self, restapi_id, name, body, params):
         restApi = self.get_rest_api(restapi_id)
         return restApi.create_request_validator(
-            name=name, validateRequestBody=body, validateRequestParameters=params,
+            name=name, validateRequestBody=body, validateRequestParameters=params
         )
 
     def get_request_validator(self, restapi_id, validator_id):

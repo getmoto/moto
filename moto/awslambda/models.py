@@ -271,11 +271,7 @@ class LayerVersion(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        optional_properties = (
-            "Description",
-            "CompatibleRuntimes",
-            "LicenseInfo",
-        )
+        optional_properties = ("Description", "CompatibleRuntimes", "LicenseInfo")
 
         # required
         spec = {
@@ -661,8 +657,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def save_logs(self, output):
         # Send output to "logs" backend
         invoke_id = uuid.uuid4().hex
-        log_stream_name = "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
-            date=datetime.datetime.utcnow(), version=self.version, invoke_id=invoke_id,
+        log_stream_name = (
+            "{date.year}/{date.month:02d}/{date.day:02d}/[{version}]{invoke_id}".format(
+                date=datetime.datetime.utcnow(),
+                version=self.version,
+                invoke_id=invoke_id,
+            )
         )
         self.logs_backend.create_log_stream(self.logs_group_name, log_stream_name)
         log_events = [
@@ -1132,53 +1132,53 @@ class LayerStorage(object):
 
 class LambdaBackend(BaseBackend):
     """
-Implementation of the AWS Lambda endpoint.
-Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
+    Implementation of the AWS Lambda endpoint.
+    Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
 
-It is possible to connect from AWS Lambdas to other services, as long as you are running Moto in ServerMode.
-The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to build the url that MotoServer runs on:
+    It is possible to connect from AWS Lambdas to other services, as long as you are running Moto in ServerMode.
+    The Lambda has access to environment variables `MOTO_HOST` and `MOTO_PORT`, which can be used to build the url that MotoServer runs on:
 
-.. sourcecode:: python
+    .. sourcecode:: python
 
-    def lambda_handler(event, context):
-        host = os.environ.get("MOTO_HOST")
-        port = os.environ.get("MOTO_PORT")
-        url = host + ":" + port
-        ec2 = boto3.client('ec2', region_name='us-west-2', endpoint_url=url)
+        def lambda_handler(event, context):
+            host = os.environ.get("MOTO_HOST")
+            port = os.environ.get("MOTO_PORT")
+            url = host + ":" + port
+            ec2 = boto3.client('ec2', region_name='us-west-2', endpoint_url=url)
 
-        # Or even simpler:
-        full_url = os.environ.get("MOTO_HTTP_ENDPOINT")
-        ec2 = boto3.client("ec2", region_name="eu-west-1", endpoint_url=full_url)
+            # Or even simpler:
+            full_url = os.environ.get("MOTO_HTTP_ENDPOINT")
+            ec2 = boto3.client("ec2", region_name="eu-west-1", endpoint_url=full_url)
 
-        ec2.do_whatever_inside_the_existing_moto_server()
+            ec2.do_whatever_inside_the_existing_moto_server()
 
-Moto will run on port 5000 by default. This can be overwritten by setting an environment variable when starting Moto:
+    Moto will run on port 5000 by default. This can be overwritten by setting an environment variable when starting Moto:
 
-.. sourcecode:: bash
+    .. sourcecode:: bash
 
-    # This env var will be propagated to the Docker container running the Lambda functions
-    MOTO_PORT=5000 moto_server
+        # This env var will be propagated to the Docker container running the Lambda functions
+        MOTO_PORT=5000 moto_server
 
-The Docker container uses the default network mode, `bridge`.
-The following environment variables are available for fine-grained control over the Docker connection options:
+    The Docker container uses the default network mode, `bridge`.
+    The following environment variables are available for fine-grained control over the Docker connection options:
 
-.. sourcecode:: bash
+    .. sourcecode:: bash
 
-    # Provide the name of a custom network to connect to
-    MOTO_DOCKER_NETWORK_NAME=mycustomnetwork moto_server
+        # Provide the name of a custom network to connect to
+        MOTO_DOCKER_NETWORK_NAME=mycustomnetwork moto_server
 
-    # Override the network mode
-    # For example, network_mode=host would use the network of the host machine
-    # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
-    MOTO_DOCKER_NETWORK_MODE=host moto_server
+        # Override the network mode
+        # For example, network_mode=host would use the network of the host machine
+        # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
+        MOTO_DOCKER_NETWORK_MODE=host moto_server
 
-The Docker images used by Moto are taken from the `lambci/lambda`-repo by default. Use the following environment variable to configure a different repo:
+    The Docker images used by Moto are taken from the `lambci/lambda`-repo by default. Use the following environment variable to configure a different repo:
 
-.. sourcecode:: bash
+    .. sourcecode:: bash
 
-    MOTO_DOCKER_LAMBDA_IMAGE=mLupin/docker-lambda
+        MOTO_DOCKER_LAMBDA_IMAGE=mLupin/docker-lambda
 
-.. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
+    .. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
 
     def __init__(self, region_name):

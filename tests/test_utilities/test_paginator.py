@@ -160,7 +160,7 @@ class TestDecorator(unittest.TestCase):
             "limit_default": 1,
             "unique_attribute": "name",
         },
-        "method_with_list_as_kwarg": {"limit_default": 1, "unique_attribute": "name",},
+        "method_with_list_as_kwarg": {"limit_default": 1, "unique_attribute": "name"},
     }
 
     @paginate(pagination_model=PAGINATION_MODEL)

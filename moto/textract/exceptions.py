@@ -6,9 +6,7 @@ class InvalidJobIdException(JsonRESTError):
     code = 400
 
     def __init__(self):
-        super().__init__(
-            __class__.__name__, "An invalid job identifier was passed.",
-        )
+        super().__init__(__class__.__name__, "An invalid job identifier was passed.")
 
 
 class InvalidS3ObjectException(JsonRESTError):

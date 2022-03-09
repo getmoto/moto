@@ -167,7 +167,7 @@ class TaggingService:
 
     @staticmethod
     def convert_dict_to_tags_input(tags):
-        """ Given a dictionary, return generic boto params for tags """
+        """Given a dictionary, return generic boto params for tags"""
         if not tags:
             return []
         return [{"Key": k, "Value": v} for (k, v) in tags.items()]

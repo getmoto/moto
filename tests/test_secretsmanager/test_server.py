@@ -460,7 +460,7 @@ if not settings.TEST_SERVER_MODE:
         conn = boto3.client("iam", region_name="us-east-1")
         logs_conn = boto3.client("logs", region_name="us-east-1")
         role = conn.create_role(
-            RoleName="role", AssumeRolePolicyDocument="some policy", Path="/my-path/",
+            RoleName="role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
         )
 
         conn = boto3.client("lambda", region_name="us-east-1")
@@ -514,7 +514,7 @@ if not settings.TEST_SERVER_MODE:
 
         resp = secretsmanager_client.post(
             "/",
-            data={"SecretId": DEFAULT_SECRET_NAME, "RotationLambdaARN": "notarealarn",},
+            data={"SecretId": DEFAULT_SECRET_NAME, "RotationLambdaARN": "notarealarn"},
             headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
         )
         json_data = json.loads(resp.data.decode("utf-8"))
@@ -828,7 +828,7 @@ def test_update_secret_version_stage_currentversion_handling():
     # Create a new version
     put_secret = test_client.post(
         "/",
-        data={"SecretId": DEFAULT_SECRET_NAME, "SecretString": "secret",},
+        data={"SecretId": DEFAULT_SECRET_NAME, "SecretString": "secret"},
         headers={"X-Amz-Target": "secretsmanager.PutSecretValue"},
     )
     put_secret = json.loads(put_secret.data.decode("utf-8"))
@@ -914,7 +914,7 @@ def test_update_secret_version_stage_validation():
     # "Move to" version ID that doesn't exist
     resp = test_client.post(
         "/",
-        data={"SecretId": DEFAULT_SECRET_NAME, "MoveToVersionId": "nonexistent",},
+        data={"SecretId": DEFAULT_SECRET_NAME, "MoveToVersionId": "nonexistent"},
         headers={"X-Amz-Target": "secretsmanager.UpdateSecretVersionStage"},
     )
     assert resp.status_code == 400

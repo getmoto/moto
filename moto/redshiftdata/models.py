@@ -59,9 +59,7 @@ class Statement:
 
 
 class StatementResult:
-    def __init__(
-        self, column_metadata, records, total_number_rows, next_token=None,
-    ):
+    def __init__(self, column_metadata, records, total_number_rows, next_token=None):
         self.column_metadata = column_metadata
         self.records = records
         self.total_number_rows = total_number_rows
@@ -91,9 +89,7 @@ class ColumnMetadata:
 
 
 class Record:
-    def __init__(
-        self, **kwargs,
-    ):
+    def __init__(self, **kwargs):
         self.kwargs = kwargs
 
     def __iter__(self):
@@ -145,7 +141,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
             raise ResourceNotFoundException()
 
     def execute_statement(
-        self, cluster_identifier, database, db_user, parameters, secret_arn, sql,
+        self, cluster_identifier, database, db_user, parameters, secret_arn, sql
     ):
         """
         Runs an SQL statement

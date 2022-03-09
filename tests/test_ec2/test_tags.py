@@ -181,7 +181,7 @@ def test_get_all_tags_resource_filter_boto3():
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
     inst_tag_key = str(uuid4())[0:6]
     client.create_tags(
-        Resources=[instance.id], Tags=[{"Key": inst_tag_key, "Value": "some value"}],
+        Resources=[instance.id], Tags=[{"Key": inst_tag_key, "Value": "some value"}]
     )
     image = instance.create_image(Name="test-ami", Description="this is a test ami")
     image.create_tags(Tags=[{"Key": "an image key", "Value": "some value"}])

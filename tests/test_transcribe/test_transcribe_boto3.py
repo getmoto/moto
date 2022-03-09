@@ -15,7 +15,7 @@ def test_run_medical_transcription_job_minimal_params():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "OutputBucketName": "my-output-bucket",
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -96,7 +96,7 @@ def test_run_medical_transcription_job_all_params():
         "LanguageCode": "en-US",
         "MediaSampleRateHertz": 48000,
         "MediaFormat": "flac",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat"},
         "OutputBucketName": "my-output-bucket",
         "OutputEncryptionKMSKeyId": "arn:aws:kms:us-east-1:012345678901:key/37111b5e-8eff-4706-ae3a-d4f9d1d559fc",
         "Settings": {
@@ -197,7 +197,7 @@ def test_run_transcription_job_all_params():
         "LanguageCode": "en-US",
         "MediaSampleRateHertz": 48000,
         "MediaFormat": "flac",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat"},
         "OutputBucketName": "my-output-bucket",
         "OutputEncryptionKMSKeyId": "arn:aws:kms:us-east-1:012345678901:key/37111b5e-8eff-4706-ae3a-d4f9d1d559fc",
         "Settings": {
@@ -263,7 +263,7 @@ def test_run_transcription_job_all_params():
     transcription_job["Transcript"].should.equal(
         {
             "TranscriptFileUri": "https://s3.{}.amazonaws.com/{}/{}.json".format(
-                region_name, args["OutputBucketName"], args["TranscriptionJobName"],
+                region_name, args["OutputBucketName"], args["TranscriptionJobName"]
             )
         }
     )
@@ -279,7 +279,7 @@ def test_run_transcription_job_minimal_params():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
     }
     resp = client.start_transcription_job(**args)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -345,7 +345,7 @@ def test_run_transcription_job_s3output_params():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "OutputBucketName": "my-output-bucket",
         "OutputKey": "bucket-key",
     }
@@ -387,7 +387,7 @@ def test_run_transcription_job_s3output_params():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "OutputBucketName": "my-output-bucket",
     }
     client.start_transcription_job(**args)
@@ -417,7 +417,7 @@ def test_run_transcription_job_identify_language_params():
     job_name = "MyJob"
     args = {
         "TranscriptionJobName": job_name,
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "IdentifyLanguage": True,
         "LanguageOptions": ["en-US", "en-GB", "es-ES", "de-DE"],
     }
@@ -465,7 +465,7 @@ def test_run_medical_transcription_job_with_existing_job_name():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "OutputBucketName": "my-output-bucket",
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -488,7 +488,7 @@ def test_run_transcription_job_with_existing_job_name():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
     }
     resp = client.start_transcription_job(**args)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -508,7 +508,7 @@ def test_run_medical_transcription_job_nonexistent_vocabulary():
     args = {
         "MedicalTranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat"},
         "OutputBucketName": "my-output-bucket",
         "Settings": {"VocabularyName": "NonexistentVocabulary"},
         "Specialty": "PRIMARYCARE",
@@ -529,7 +529,7 @@ def test_run_transcription_job_nonexistent_vocabulary():
     args = {
         "TranscriptionJobName": job_name,
         "LanguageCode": "en-US",
-        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat"},
         "OutputBucketName": "my-output-bucket",
         "Settings": {"VocabularyName": "NonexistentVocabulary"},
     }
@@ -549,7 +549,7 @@ def test_list_medical_transcription_jobs():
         args = {
             "MedicalTranscriptionJobName": job_name,
             "LanguageCode": "en-US",
-            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
             "OutputBucketName": "my-output-bucket",
             "Specialty": "PRIMARYCARE",
             "Type": "CONVERSATION",
@@ -640,7 +640,7 @@ def test_list_transcription_jobs():
         job_name = "Job_{}".format(index)
         args = {
             "TranscriptionJobName": job_name,
-            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
             "OutputBucketName": "my-output-bucket",
             "IdentifyLanguage": True,
         }

@@ -701,7 +701,7 @@ def test_run_instances_should_attach_to_default_subnet():
     )
     # run_instances
     instances = client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=[sec_group_name],
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SecurityGroups=[sec_group_name]
     )
     # Assert subnet is created appropriately
     subnets = client.describe_subnets(

@@ -298,7 +298,7 @@ class BatchResponse(BaseResponse):
         return ""
 
     # CancelJob
-    def canceljob(self,):
+    def canceljob(self):
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
         self.batch_backend.cancel_job(job_id, reason)

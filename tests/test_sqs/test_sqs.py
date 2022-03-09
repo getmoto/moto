@@ -210,12 +210,12 @@ def test_create_queue_with_tags():
     client = boto3.client("sqs", region_name="us-east-1")
     q_name = str(uuid4())[0:6]
     response = client.create_queue(
-        QueueName=q_name, tags={"tag_key_1": "tag_value_1", "tag_key_2": ""},
+        QueueName=q_name, tags={"tag_key_1": "tag_value_1", "tag_key_2": ""}
     )
     queue_url = response["QueueUrl"]
 
     client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1", "tag_key_2": "",}
+        {"tag_key_1": "tag_value_1", "tag_key_2": ""}
     )
 
 
@@ -599,9 +599,7 @@ def test_send_message_with_message_group_id_standard_queue():
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     with pytest.raises(ClientError) as ex:
-        queue.send_message(
-            MessageBody="mydata", MessageGroupId="group_id_1",
-        )
+        queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
 
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidParameterValue")
@@ -976,7 +974,7 @@ def test_send_receive_message_with_attributes_with_labels():
     response = queue.send_message(
         MessageBody="test message",
         MessageAttributes={
-            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom",}
+            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom"}
         },
     )
 
@@ -1555,7 +1553,7 @@ def test_change_message_visibility_on_unknown_receipt_handle():
 
     with pytest.raises(ClientError) as exc:
         conn.change_message_visibility(
-            QueueUrl=queue.url, ReceiptHandle="unknown-stuff", VisibilityTimeout=432,
+            QueueUrl=queue.url, ReceiptHandle="unknown-stuff", VisibilityTimeout=432
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ReceiptHandleIsInvalid")
@@ -1786,7 +1784,7 @@ def test_delete_message_using_old_receipt_handle():
 def test_send_message_batch():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
-        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"},
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
     )
     queue_url = response["QueueUrl"]
 
@@ -2837,9 +2835,7 @@ def test_send_messages_to_fifo_without_message_group_id():
     )
 
     with pytest.raises(Exception) as e:
-        queue.send_messages(
-            Entries=[{"Id": "id_1", "MessageBody": "body_1",},]
-        )
+        queue.send_messages(Entries=[{"Id": "id_1", "MessageBody": "body_1"}])
     ex = e.value
     ex.response["Error"]["Code"].should.equal("MissingParameter")
     ex.response["Error"]["Message"].should.equal(
@@ -2850,7 +2846,7 @@ def test_send_messages_to_fifo_without_message_group_id():
 @mock_sqs
 def test_maximum_message_size_attribute_default():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
-    queue = sqs.create_queue(QueueName=str(uuid4()),)
+    queue = sqs.create_queue(QueueName=str(uuid4()))
     int(queue.attributes["MaximumMessageSize"]).should.equal(MAXIMUM_MESSAGE_LENGTH)
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
@@ -2926,7 +2922,7 @@ def test_fifo_queue_deduplication_with_id(
 
 @mock_sqs
 @pytest.mark.parametrize(
-    "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2),],
+    "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2)]
 )
 def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 
@@ -3002,7 +2998,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
         Attributes={
             "FifoQueue": "true",
             "RedrivePolicy": json.dumps(
-                {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1},
+                {"deadLetterTargetArn": dead_letter_queue_arn, "maxReceiveCount": 1}
             ),
             "VisibilityTimeout": "1",
         },
@@ -3107,7 +3103,7 @@ def test_receive_message_again_preserves_attributes():
     assert first_messages[0]["MessageAttributes"].get("Custom2") is None
 
     second_messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"],
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
     )["Messages"]
     assert len(second_messages[0]["MessageAttributes"]) == 2
     assert second_messages[0]["MessageAttributes"].get("Custom1") is not None

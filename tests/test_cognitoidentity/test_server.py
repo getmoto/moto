@@ -94,7 +94,7 @@ def test_list_identities():
 
     res = test_client.post(
         "/",
-        data=json.dumps({"IdentityPoolId": identity_pool_id,}),
+        data=json.dumps({"IdentityPoolId": identity_pool_id}),
         headers={
             "X-Amz-Target": "com.amazonaws.cognito.identity.model.AWSCognitoIdentityService.ListIdentities"
         },

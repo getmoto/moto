@@ -31,7 +31,7 @@ class KinesisVideoResponse(BaseResponse):
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         stream_info = self.kinesisvideo_backend.describe_stream(
-            stream_name=stream_name, stream_arn=stream_arn,
+            stream_name=stream_name, stream_arn=stream_arn
         )
         return json.dumps(dict(StreamInfo=stream_info))
 
@@ -50,7 +50,7 @@ class KinesisVideoResponse(BaseResponse):
         stream_arn = self._get_param("StreamARN")
         current_version = self._get_param("CurrentVersion")
         self.kinesisvideo_backend.delete_stream(
-            stream_arn=stream_arn, current_version=current_version,
+            stream_arn=stream_arn, current_version=current_version
         )
         return json.dumps(dict())
 
@@ -59,6 +59,6 @@ class KinesisVideoResponse(BaseResponse):
         stream_arn = self._get_param("StreamARN")
         api_name = self._get_param("APIName")
         data_endpoint = self.kinesisvideo_backend.get_data_endpoint(
-            stream_name=stream_name, stream_arn=stream_arn, api_name=api_name,
+            stream_name=stream_name, stream_arn=stream_arn, api_name=api_name
         )
         return json.dumps(dict(DataEndpoint=data_endpoint))

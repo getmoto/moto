@@ -363,7 +363,7 @@ def test_create_db_cluster_snapshot():
     )
 
     snapshot = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1",
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
     ).get("DBClusterSnapshot")
 
     snapshot.get("Engine").should.equal("postgres")
@@ -434,7 +434,7 @@ def test_copy_db_cluster_snapshot():
     )
 
     conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1",
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
     ).get("DBClusterSnapshot")
 
     target_snapshot = conn.copy_db_cluster_snapshot(
@@ -467,11 +467,11 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
     )
 
     conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1",
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
     ).get("DBClusterSnapshot")
 
     conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2",
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
     ).get("DBClusterSnapshot")
 
     with pytest.raises(ClientError) as exc:

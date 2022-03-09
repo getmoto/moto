@@ -402,7 +402,7 @@ class FakeCrawler(BaseModel):
 
 class LastCrawlInfo(BaseModel):
     def __init__(
-        self, error_message, log_group, log_stream, message_prefix, start_time, status,
+        self, error_message, log_group, log_stream, message_prefix, start_time, status
     ):
         self.error_message = error_message
         self.log_group = log_group

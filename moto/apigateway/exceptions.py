@@ -29,7 +29,7 @@ class ConflictException(ApiGatewayException):
 class AwsProxyNotAllowed(BadRequestException):
     def __init__(self):
         super().__init__(
-            "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations.",
+            "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations."
         )
 
 
@@ -53,7 +53,7 @@ class IntegrationMethodNotDefined(BadRequestException):
 class InvalidResourcePathException(BadRequestException):
     def __init__(self):
         super().__init__(
-            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace.",
+            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace."
         )
 
 
@@ -198,7 +198,7 @@ class InvalidBasePathException(BadRequestException):
     def __init__(self):
         super().__init__(
             "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
-            "To create a multi-level base path mapping, use API Gateway V2.",
+            "To create a multi-level base path mapping, use API Gateway V2."
         )
 
 

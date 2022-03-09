@@ -125,9 +125,7 @@ def test_publish_batch_to_sqs():
     queue = sqs_conn.create_queue(QueueName="test-queue")
 
     queue_url = "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID)
-    client.subscribe(
-        TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_url,
-    )
+    client.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_url)
 
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
@@ -166,19 +164,19 @@ def test_publish_batch_to_sqs_raw():
     )
 
     entries = [
-        {"Id": "1", "Message": "foo",},
+        {"Id": "1", "Message": "foo"},
         {
             "Id": "2",
             "Message": "bar",
             "MessageAttributes": {"a": {"DataType": "String", "StringValue": "v"}},
         },
     ]
-    resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries,)
+    resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
     resp.should.have.key("Successful").length_of(2)
 
     received = queue.receive_messages(
-        MaxNumberOfMessages=10, MessageAttributeNames=["All"],
+        MaxNumberOfMessages=10, MessageAttributeNames=["All"]
     )
 
     messages = [(message.body, message.message_attributes) for message in received]

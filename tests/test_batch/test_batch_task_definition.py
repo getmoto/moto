@@ -292,9 +292,7 @@ def test_describe_task_definition(use_resource_reqs):
     resp["jobDefinitions"][0]["tags"].should.equal({})
 
     resp = batch_client.describe_job_definitions(jobDefinitionName=tagged_name)
-    resp["jobDefinitions"][0]["tags"].should.equal(
-        {"foo": "123", "bar": "456",}
-    )
+    resp["jobDefinitions"][0]["tags"].should.equal({"foo": "123", "bar": "456"})
 
     for job_definition in resp["jobDefinitions"]:
         job_definition["status"].should.equal("ACTIVE")
@@ -303,10 +301,7 @@ def test_describe_task_definition(use_resource_reqs):
 
 
 def register_job_def(batch_client, definition_name="sleep10", use_resource_reqs=True):
-    container_properties = {
-        "image": "busybox",
-        "command": ["sleep", "10"],
-    }
+    container_properties = {"image": "busybox", "command": ["sleep", "10"]}
 
     if use_resource_reqs:
         container_properties.update(
@@ -318,9 +313,7 @@ def register_job_def(batch_client, definition_name="sleep10", use_resource_reqs=
             }
         )
     else:
-        container_properties.update(
-            {"memory": 128, "vcpus": 1,}
-        )
+        container_properties.update({"memory": 128, "vcpus": 1})
 
     return batch_client.register_job_definition(
         jobDefinitionName=definition_name,
@@ -342,6 +335,6 @@ def register_job_def_with_tags(
             "memory": random.randint(4, 128),
             "command": ["sleep", "10"],
         },
-        tags={"foo": "123", "bar": "456",},
+        tags={"foo": "123", "bar": "456"},
         **kwargs,
     )

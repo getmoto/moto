@@ -88,7 +88,7 @@ def test_create_user_pool_unknown_attribute_data_type():
     with pytest.raises(ClientError) as ex:
         conn.create_user_pool(
             PoolName=name,
-            Schema=[{"Name": "custom", "AttributeDataType": attribute_data_type,},],
+            Schema=[{"Name": "custom", "AttributeDataType": attribute_data_type}],
         )
 
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -102,7 +102,7 @@ def test_create_user_pool_unknown_attribute_data_type():
 def test_create_user_pool_custom_attribute_without_data_type():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
-        conn.create_user_pool(PoolName=str(uuid.uuid4()), Schema=[{"Name": "custom",},])
+        conn.create_user_pool(PoolName=str(uuid.uuid4()), Schema=[{"Name": "custom"}])
 
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
     ex.value.response["Error"]["Message"].should.equal(
@@ -117,8 +117,8 @@ def test_create_user_pool_custom_attribute_defaults():
     res = conn.create_user_pool(
         PoolName=str(uuid.uuid4()),
         Schema=[
-            {"Name": "string", "AttributeDataType": "String",},
-            {"Name": "number", "AttributeDataType": "Number",},
+            {"Name": "string", "AttributeDataType": "String"},
+            {"Name": "number", "AttributeDataType": "Number"},
         ],
     )
     string_attribute = next(
@@ -508,9 +508,7 @@ def test_set_user_pool_mfa_config():
 
     # Test error for when neither token nor sms configuration is provided
     with pytest.raises(ClientError) as ex:
-        conn.set_user_pool_mfa_config(
-            UserPoolId=user_pool_id, MfaConfiguration="ON",
-        )
+        conn.set_user_pool_mfa_config(UserPoolId=user_pool_id, MfaConfiguration="ON")
 
     ex.value.operation_name.should.equal("SetUserPoolMfaConfig")
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -522,7 +520,7 @@ def test_set_user_pool_mfa_config():
     # Test error for when sms config is missing `SmsConfiguration`
     with pytest.raises(ClientError) as ex:
         conn.set_user_pool_mfa_config(
-            UserPoolId=user_pool_id, SmsMfaConfiguration={}, MfaConfiguration="ON",
+            UserPoolId=user_pool_id, SmsMfaConfiguration={}, MfaConfiguration="ON"
         )
 
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -571,7 +569,7 @@ def test_set_user_pool_mfa_config():
 
     # Disable MFA
     mfa_config = conn.set_user_pool_mfa_config(
-        UserPoolId=user_pool_id, MfaConfiguration="OFF",
+        UserPoolId=user_pool_id, MfaConfiguration="OFF"
     )
 
     mfa_config.shouldnt.have.key("SmsMfaConfiguration")
@@ -587,7 +585,7 @@ def test_set_user_pool_mfa_config():
 
     # Enable SMS MFA
     mfa_config = conn.set_user_pool_mfa_config(
-        UserPoolId=user_pool_id, SmsMfaConfiguration=sms_config, MfaConfiguration="ON",
+        UserPoolId=user_pool_id, SmsMfaConfiguration=sms_config, MfaConfiguration="ON"
     )
 
     mfa_config.shouldnt.have.key("SoftwareTokenMfaConfiguration")
@@ -1817,7 +1815,7 @@ def test_admin_confirm_sign_up():
     user["UserStatus"].should.equal("UNCONFIRMED")
 
     conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
-    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username,)
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
 
     user["UserStatus"].should.equal("CONFIRMED")
 
@@ -2474,7 +2472,7 @@ def test_authentication_flow_invalid_flow():
 
 @mock_cognitoidp
 def test_authentication_flow_invalid_user_flow():
-    """ Pass a user authFlow to admin_initiate_auth """
+    """Pass a user authFlow to admin_initiate_auth"""
     conn = boto3.client("cognito-idp", "us-west-2")
 
     with pytest.raises(ClientError) as ex:
@@ -2498,16 +2496,14 @@ def user_authentication_flow(conn):
         GenerateSecret=True,
     )["UserPoolClient"]["ClientId"]
 
-    conn.sign_up(
-        ClientId=client_id, Username=username, Password=password,
-    )
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
     client_secret = conn.describe_user_pool_client(
-        UserPoolId=user_pool_id, ClientId=client_id,
+        UserPoolId=user_pool_id, ClientId=client_id
     )["UserPoolClient"]["ClientSecret"]
 
     conn.confirm_sign_up(
-        ClientId=client_id, Username=username, ConfirmationCode="123456",
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
     # generating secret hash
@@ -2541,22 +2537,22 @@ def user_authentication_flow(conn):
 
     # add mfa token
     conn.associate_software_token(
-        AccessToken=result["AuthenticationResult"]["AccessToken"],
+        AccessToken=result["AuthenticationResult"]["AccessToken"]
     )
 
     conn.verify_software_token(
-        AccessToken=result["AuthenticationResult"]["AccessToken"], UserCode="123456",
+        AccessToken=result["AuthenticationResult"]["AccessToken"], UserCode="123456"
     )
 
     conn.set_user_mfa_preference(
         AccessToken=result["AuthenticationResult"]["AccessToken"],
-        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True,},
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
     )
 
     result = conn.initiate_auth(
         ClientId=client_id,
         AuthFlow="REFRESH_TOKEN",
-        AuthParameters={"SECRET_HASH": secret_hash, "REFRESH_TOKEN": refresh_token,},
+        AuthParameters={"SECRET_HASH": secret_hash, "REFRESH_TOKEN": refresh_token},
     )
 
     result["AuthenticationResult"]["IdToken"].should_not.be.none
@@ -2920,7 +2916,7 @@ def test_admin_user_global_sign_out():
     result = user_authentication_flow(conn)
 
     conn.admin_user_global_sign_out(
-        UserPoolId=result["user_pool_id"], Username=result["username"],
+        UserPoolId=result["user_pool_id"], Username=result["username"]
     )
 
     with pytest.raises(ClientError) as ex:
@@ -2943,11 +2939,11 @@ def test_admin_user_global_sign_out_twice():
     result = user_authentication_flow(conn)
 
     conn.admin_user_global_sign_out(
-        UserPoolId=result["user_pool_id"], Username=result["username"],
+        UserPoolId=result["user_pool_id"], Username=result["username"]
     )
 
     conn.admin_user_global_sign_out(
-        UserPoolId=result["user_pool_id"], Username=result["username"],
+        UserPoolId=result["user_pool_id"], Username=result["username"]
     )
 
     with pytest.raises(ClientError) as ex:
@@ -2969,9 +2965,7 @@ def test_admin_user_global_sign_out_unknown_userpool():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
     with pytest.raises(ClientError) as ex:
-        conn.admin_user_global_sign_out(
-            UserPoolId="n/a", Username=result["username"],
-        )
+        conn.admin_user_global_sign_out(UserPoolId="n/a", Username=result["username"])
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
 
@@ -2982,7 +2976,7 @@ def test_admin_user_global_sign_out_unknown_user():
     result = user_authentication_flow(conn)
     with pytest.raises(ClientError) as ex:
         conn.admin_user_global_sign_out(
-            UserPoolId=result["user_pool_id"], Username="n/a",
+            UserPoolId=result["user_pool_id"], Username="n/a"
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
@@ -3187,7 +3181,7 @@ def test_sign_up():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
@@ -3203,7 +3197,7 @@ def test_sign_up_with_username_attributes():
         PoolName=str(uuid.uuid4()), UsernameAttributes=["email", "phone_number"]
     )["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
@@ -3229,7 +3223,7 @@ def test_sign_up_existing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
@@ -3251,12 +3245,12 @@ def test_confirm_sign_up():
     password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
     conn.confirm_sign_up(
-        ClientId=client_id, Username=username, ConfirmationCode="123456",
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
@@ -3272,12 +3266,12 @@ def test_confirm_sign_up_with_username_attributes():
         PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
     )["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
     conn.confirm_sign_up(
-        ClientId=client_id, Username=username, ConfirmationCode="123456",
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
@@ -3291,14 +3285,14 @@ def test_initiate_auth_USER_SRP_AUTH():
     password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
     client_secret = conn.describe_user_pool_client(
-        UserPoolId=user_pool_id, ClientId=client_id,
+        UserPoolId=user_pool_id, ClientId=client_id
     )["UserPoolClient"]["ClientSecret"]
     conn.confirm_sign_up(
-        ClientId=client_id, Username=username, ConfirmationCode="123456",
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
     key = bytes(str(client_secret).encode("latin-1"))
@@ -3328,14 +3322,14 @@ def test_initiate_auth_USER_SRP_AUTH_with_username_attributes():
         PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
     )["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
     client_secret = conn.describe_user_pool_client(
-        UserPoolId=user_pool_id, ClientId=client_id,
+        UserPoolId=user_pool_id, ClientId=client_id
     )["UserPoolClient"]["ClientSecret"]
     conn.confirm_sign_up(
-        ClientId=client_id, Username=username, ConfirmationCode="123456",
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
     key = bytes(str(client_secret).encode("latin-1"))
@@ -3415,7 +3409,7 @@ def test_initiate_auth_invalid_auth_flow():
 
 @mock_cognitoidp
 def test_initiate_auth_invalid_admin_auth_flow():
-    """ Pass an admin auth_flow to the regular initiate_auth"""
+    """Pass an admin auth_flow to the regular initiate_auth"""
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
 
@@ -3452,7 +3446,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
     user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
     client_id = client.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
 
     # Create user in status FORCE_CHANGE_PASSWORD
@@ -3525,7 +3519,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_unconfirmed_user():
     password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
@@ -3546,11 +3540,11 @@ def test_initiate_auth_for_unconfirmed_user():
     password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
     client_secret = conn.describe_user_pool_client(
-        UserPoolId=user_pool_id, ClientId=client_id,
+        UserPoolId=user_pool_id, ClientId=client_id
     )["UserPoolClient"]["ClientSecret"]
 
     key = bytes(str(client_secret).encode("latin-1"))
@@ -3582,12 +3576,12 @@ def test_initiate_auth_with_invalid_secret_hash():
     password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
     conn.describe_user_pool_client(UserPoolId=user_pool_id, ClientId=client_id)
     conn.confirm_sign_up(
-        ClientId=client_id, Username=username, ConfirmationCode="123456",
+        ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
     invalid_secret_hash = str(uuid.uuid4())
@@ -3797,7 +3791,7 @@ def test_admin_reset_password_and_change_password():
     # Create pool and client
     user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = client.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     # Create CONFIRMED user with verified email
     client.admin_create_user(
@@ -3889,7 +3883,7 @@ def test_admin_reset_password_no_verified_notification_channel():
     # Create pool and client
     user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = client.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     # Create CONFIRMED user without verified email or phone
     client.admin_create_user(
@@ -3915,7 +3909,7 @@ def test_admin_reset_password_multiple_invocations():
     # Create pool and client
     user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = client.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
     # Create CONFIRMED user with verified email
     client.admin_create_user(

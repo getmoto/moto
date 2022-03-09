@@ -33,13 +33,13 @@ class TestResponsesModule(TestCase):
 
     def moto_responses_compatibility(self):
         responses.add(
-            responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"},
+            responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"}
         )
         s3 = boto3.client("s3")
         s3.create_bucket(Bucket="mybucket")
         s3.put_object(Bucket="mybucket", Key="name", Body="value")
         s3.get_object(Bucket="mybucket", Key="name")["Body"].read()
-        with requests.get("http://127.0.0.1/lkdsfjlkdsa",) as r:
+        with requests.get("http://127.0.0.1/lkdsfjlkdsa") as r:
             assert r.json() == {"a": "4"}
 
     @responses.activate
@@ -48,16 +48,16 @@ class TestResponsesModule(TestCase):
         Verify we can load moto after registering a response
         """
         responses.add(
-            responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"},
+            responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"}
         )
         with mock_s3():
             s3 = boto3.client("s3")
             s3.create_bucket(Bucket="mybucket")
             s3.put_object(Bucket="mybucket", Key="name", Body="value")
             # This mock exists within Moto
-            with requests.get("http://127.0.0.1/lkdsfjlkdsa",) as r:
+            with requests.get("http://127.0.0.1/lkdsfjlkdsa") as r:
                 assert r.json() == {"a": "4"}
 
         # And outside of Moto
-        with requests.get("http://127.0.0.1/lkdsfjlkdsa",) as r:
+        with requests.get("http://127.0.0.1/lkdsfjlkdsa") as r:
             assert r.json() == {"a": "4"}

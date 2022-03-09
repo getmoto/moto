@@ -180,7 +180,7 @@ class KmsBackend(BaseBackend):
         )
 
     def _generate_default_keys(self, alias_name):
-        """Creates default kms keys """
+        """Creates default kms keys"""
         if alias_name in RESERVED_ALIASES:
             key = self.create_key(
                 None,

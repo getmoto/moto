@@ -17,8 +17,8 @@ class InvalidConfigurationRecorderNameException(JsonRESTError):
     code = 400
 
     def __init__(self, name):
-        message = "The configuration recorder name '{name}' is not valid, blank string.".format(
-            name=name
+        message = (
+            f"The configuration recorder name '{name}' is not valid, blank string."
         )
         super().__init__("InvalidConfigurationRecorderNameException", message)
 
@@ -28,8 +28,8 @@ class MaxNumberOfConfigurationRecordersExceededException(JsonRESTError):
 
     def __init__(self, name):
         message = (
-            "Failed to put configuration recorder '{name}' because the maximum number of "
-            "configuration recorders: 1 is reached.".format(name=name)
+            f"Failed to put configuration recorder '{name}' because the maximum number of "
+            "configuration recorders: 1 is reached."
         )
         super().__init__("MaxNumberOfConfigurationRecordersExceededException", message)
 
@@ -47,11 +47,9 @@ class InvalidResourceTypeException(JsonRESTError):
 
     def __init__(self, bad_list, good_list):
         message = (
-            "{num} validation error detected: Value '{bad_list}' at "
+            f"{len(bad_list)} validation error detected: Value '{bad_list}' at "
             "'configurationRecorder.recordingGroup.resourceTypes' failed to satisfy constraint: "
-            "Member must satisfy constraint: [Member must satisfy enum value set: {good_list}]".format(
-                num=len(bad_list), bad_list=bad_list, good_list=good_list
-            )
+            f"Member must satisfy constraint: [Member must satisfy enum value set: {good_list}]"
         )
         # For PY2:
         message = str(message)
@@ -77,8 +75,8 @@ class NoSuchConfigurationRecorderException(JsonRESTError):
     code = 400
 
     def __init__(self, name):
-        message = "Cannot find configuration recorder with the specified name '{name}'.".format(
-            name=name
+        message = (
+            f"Cannot find configuration recorder with the specified name '{name}'."
         )
         super().__init__("NoSuchConfigurationRecorderException", message)
 
@@ -87,9 +85,7 @@ class InvalidDeliveryChannelNameException(JsonRESTError):
     code = 400
 
     def __init__(self, name):
-        message = "The delivery channel name '{name}' is not valid, blank string.".format(
-            name=name
-        )
+        message = f"The delivery channel name '{name}' is not valid, blank string."
         super().__init__("InvalidDeliveryChannelNameException", message)
 
 
@@ -134,11 +130,9 @@ class InvalidDeliveryFrequency(JsonRESTError):
 
     def __init__(self, value, good_list):
         message = (
-            "1 validation error detected: Value '{value}' at "
+            f"1 validation error detected: Value '{value}' at "
             "'deliveryChannel.configSnapshotDeliveryProperties.deliveryFrequency' failed to satisfy "
-            "constraint: Member must satisfy enum value set: {good_list}".format(
-                value=value, good_list=good_list
-            )
+            f"constraint: Member must satisfy enum value set: {good_list}"
         )
         super().__init__("InvalidDeliveryFrequency", message)
 
@@ -147,10 +141,7 @@ class MaxNumberOfDeliveryChannelsExceededException(JsonRESTError):
     code = 400
 
     def __init__(self, name):
-        message = (
-            "Failed to put delivery channel '{name}' because the maximum number of "
-            "delivery channels: 1 is reached.".format(name=name)
-        )
+        message = f"Failed to put delivery channel '{name}' because the maximum number of delivery channels: 1 is reached."
         super().__init__("MaxNumberOfDeliveryChannelsExceededException", message)
 
 
@@ -158,9 +149,7 @@ class NoSuchDeliveryChannelException(JsonRESTError):
     code = 400
 
     def __init__(self, name):
-        message = "Cannot find delivery channel with specified name '{name}'.".format(
-            name=name
-        )
+        message = f"Cannot find delivery channel with specified name '{name}'."
         super().__init__("NoSuchDeliveryChannelException", message)
 
 
@@ -185,8 +174,8 @@ class LastDeliveryChannelDeleteFailedException(JsonRESTError):
 
     def __init__(self, name):
         message = (
-            "Failed to delete last specified delivery channel with name '{name}', because there, "
-            "because there is a running configuration recorder.".format(name=name)
+            f"Failed to delete last specified delivery channel with name '{name}', because there, "
+            "because there is a running configuration recorder."
         )
         super().__init__("LastDeliveryChannelDeleteFailedException", message)
 
@@ -222,10 +211,8 @@ class TagKeyTooBig(JsonRESTError):
     def __init__(self, tag, param="tags.X.member.key"):
         super().__init__(
             "ValidationException",
-            "1 validation error detected: Value '{}' at '{}' failed to satisfy "
-            "constraint: Member must have length less than or equal to 128".format(
-                tag, param
-            ),
+            f"1 validation error detected: Value '{tag}' at '{param}' failed to satisfy "
+            "constraint: Member must have length less than or equal to 128",
         )
 
 
@@ -235,10 +222,8 @@ class TagValueTooBig(JsonRESTError):
     def __init__(self, tag, param="tags.X.member.value"):
         super().__init__(
             "ValidationException",
-            "1 validation error detected: Value '{}' at '{}' failed to satisfy "
-            "constraint: Member must have length less than or equal to 256".format(
-                tag, param
-            ),
+            f"1 validation error detected: Value '{tag}' at '{param}' failed to satisfy "
+            "constraint: Member must have length less than or equal to 256",
         )
 
 
@@ -253,9 +238,7 @@ class InvalidTagCharacters(JsonRESTError):
     code = 400
 
     def __init__(self, tag, param="tags.X.member.key"):
-        message = "1 validation error detected: Value '{}' at '{}' failed to satisfy ".format(
-            tag, param
-        )
+        message = f"1 validation error detected: Value '{tag}' at '{param}' failed to satisfy "
         message += "constraint: Member must satisfy regular expression pattern: [\\\\p{L}\\\\p{Z}\\\\p{N}_.:/=+\\\\-@]+"
 
         super().__init__("ValidationException", message)
@@ -267,10 +250,8 @@ class TooManyTags(JsonRESTError):
     def __init__(self, tags, param="tags"):
         super().__init__(
             "ValidationException",
-            "1 validation error detected: Value '{}' at '{}' failed to satisfy "
-            "constraint: Member must have length less than or equal to 50.".format(
-                tags, param
-            ),
+            f"1 validation error detected: Value '{tags}' at '{param}' failed to satisfy "
+            "constraint: Member must have length less than or equal to 50.",
         )
 
 
@@ -290,8 +271,8 @@ class InvalidLimitException(JsonRESTError):
     def __init__(self, value):
         super().__init__(
             "InvalidLimitException",
-            "Value '{value}' at 'limit' failed to satisfy constraint: Member"
-            " must have value less than or equal to 100".format(value=value),
+            f"Value '{value}' at 'limit' failed to satisfy constraint: Member"
+            " must have value less than or equal to 100",
         )
 
 
@@ -312,8 +293,7 @@ class ResourceNotDiscoveredException(JsonRESTError):
     def __init__(self, resource_type, resource):
         super().__init__(
             "ResourceNotDiscoveredException",
-            "Resource {resource} of resourceType:{type} is unknown or has not been "
-            "discovered".format(resource=resource, type=resource_type),
+            f"Resource {resource} of resourceType:{resource_type} is unknown or has not been discovered",
         )
 
 
@@ -322,10 +302,7 @@ class ResourceNotFoundException(JsonRESTError):
 
     def __init__(self, resource_arn):
         super().__init__(
-            "ResourceNotFoundException",
-            "ResourceArn '{resource_arn}' does not exist".format(
-                resource_arn=resource_arn
-            ),
+            "ResourceNotFoundException", f"ResourceArn '{resource_arn}' does not exist"
         )
 
 
@@ -334,11 +311,9 @@ class TooManyResourceKeys(JsonRESTError):
 
     def __init__(self, bad_list):
         message = (
-            "1 validation error detected: Value '{bad_list}' at "
+            f"1 validation error detected: Value '{bad_list}' at "
             "'resourceKeys' failed to satisfy constraint: "
-            "Member must have length less than or equal to 100".format(
-                bad_list=bad_list
-            )
+            "Member must have length less than or equal to 100"
         )
         super().__init__("ValidationException", message)
 
@@ -369,10 +344,7 @@ class MaxNumberOfConfigRulesExceededException(JsonRESTError):
     code = 400
 
     def __init__(self, name, max_limit):
-        message = (
-            f"Failed to put config rule '{name}' because the maximum number "
-            f"of config rules: {max_limit} is reached."
-        )
+        message = f"Failed to put config rule '{name}' because the maximum number of config rules: {max_limit} is reached."
         super().__init__("MaxNumberOfConfigRulesExceededException", message)
 
 
@@ -394,10 +366,7 @@ class NoSuchConfigRuleException(JsonRESTError):
     code = 400
 
     def __init__(self, rule_name):
-        message = (
-            f"The ConfigRule '{rule_name}' provided in the request is "
-            f"invalid. Please check the configRule name"
-        )
+        message = f"The ConfigRule '{rule_name}' provided in the request is invalid. Please check the configRule name"
         super().__init__("NoSuchConfigRuleException", message)
 
 

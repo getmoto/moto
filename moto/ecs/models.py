@@ -240,7 +240,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         family = properties.get(
-            "Family", "task-definition-{0}".format(int(random() * 10 ** 6))
+            "Family", "task-definition-{0}".format(int(random() * 10**6))
         )
         container_definitions = remap_nested_keys(
             properties.get("ContainerDefinitions", []), pascal_to_camelcase
@@ -258,7 +258,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         family = properties.get(
-            "Family", "task-definition-{0}".format(int(random() * 10 ** 6))
+            "Family", "task-definition-{0}".format(int(random() * 10**6))
         )
         container_definitions = properties["ContainerDefinitions"]
         volumes = properties.get("Volumes")
@@ -361,7 +361,7 @@ class Service(BaseObject, CloudFormationModel):
                 {
                     "createdAt": datetime.now(pytz.utc),
                     "desiredCount": self.desired_count,
-                    "id": "ecs-svc/{}".format(randint(0, 32 ** 12)),
+                    "id": "ecs-svc/{}".format(randint(0, 32**12)),
                     "launchType": self.launch_type,
                     "pendingCount": self.desired_count,
                     "runningCount": 0,
@@ -685,7 +685,7 @@ class TaskSet(BaseObject):
         self.createdAt = datetime.now(pytz.utc)
         self.updatedAt = datetime.now(pytz.utc)
         self.stabilityStatusAt = datetime.now(pytz.utc)
-        self.id = "ecs-svc/{}".format(randint(0, 32 ** 12))
+        self.id = "ecs-svc/{}".format(randint(0, 32**12))
         self.service_arn = ""
         self.cluster_arn = ""
 

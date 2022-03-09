@@ -213,7 +213,7 @@ def test_create_table_with_stream_specification():
 
     resp["TableDescription"].should.have.key("StreamSpecification")
     resp["TableDescription"]["StreamSpecification"].should.equal(
-        {"StreamEnabled": True, "StreamViewType": "NEW_AND_OLD_IMAGES",}
+        {"StreamEnabled": True, "StreamViewType": "NEW_AND_OLD_IMAGES"}
     )
     resp["TableDescription"].should.contain("LatestStreamLabel")
     resp["TableDescription"].should.contain("LatestStreamArn")
@@ -232,7 +232,7 @@ def test_create_table_with_tags():
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-        Tags=[{"Key": "tk", "Value": "tv",}],
+        Tags=[{"Key": "tk", "Value": "tv"}],
     )
 
     resp = client.list_tags_of_resource(

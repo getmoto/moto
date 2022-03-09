@@ -544,8 +544,10 @@ def test_run_job_flow_with_instance_groups_with_autoscaling():
         if "AutoScalingPolicy" in y:
             x["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
             returned_policy = deepcopy(x["AutoScalingPolicy"])
-            auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
-                y["AutoScalingPolicy"], cluster_id
+            auto_scaling_policy_with_cluster_id = (
+                _patch_cluster_id_placeholder_in_autoscaling_policy(
+                    y["AutoScalingPolicy"], cluster_id
+                )
             )
             del returned_policy["Status"]
             returned_policy.should.equal(auto_scaling_policy_with_cluster_id)
@@ -571,8 +573,10 @@ def test_put_remove_auto_scaling_policy():
         AutoScalingPolicy=auto_scaling_policy,
     )
 
-    auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
-        auto_scaling_policy, cluster_id
+    auto_scaling_policy_with_cluster_id = (
+        _patch_cluster_id_placeholder_in_autoscaling_policy(
+            auto_scaling_policy, cluster_id
+        )
     )
     del resp["AutoScalingPolicy"]["Status"]
     resp["AutoScalingPolicy"].should.equal(auto_scaling_policy_with_cluster_id)
@@ -713,9 +717,7 @@ def test_terminate_protected_job_flow_raises_error():
         JobFlowIds=[cluster_id], TerminationProtected=True
     )
     with pytest.raises(ClientError) as ex:
-        client.terminate_job_flows(
-            JobFlowIds=[cluster_id,]
-        )
+        client.terminate_job_flows(JobFlowIds=[cluster_id])
     error = ex.value.response["Error"]
     error["Code"].should.equal("ValidationException")
     error["Message"].should.equal(

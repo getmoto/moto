@@ -792,8 +792,8 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
     <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
 
-ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(
-    MAXIMUM_VISIBILTY_TIMEOUT
+ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = (
+    f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILTY_TIMEOUT}"
 )
 
 ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">

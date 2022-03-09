@@ -182,10 +182,10 @@ def test_put_long_string_gsi_range_key_exception():
                 "Create": {
                     "IndexName": "random-table-index",
                     "KeySchema": [
-                        {"AttributeName": "sort_key", "KeyType": "HASH",},
-                        {"AttributeName": "partition_key", "KeyType": "RANGE",},
+                        {"AttributeName": "sort_key", "KeyType": "HASH"},
+                        {"AttributeName": "partition_key", "KeyType": "RANGE"},
                     ],
-                    "Projection": {"ProjectionType": "KEYS_ONLY",},
+                    "Projection": {"ProjectionType": "KEYS_ONLY"},
                     "ProvisionedThroughput": {
                         "ReadCapacityUnits": 20,
                         "WriteCapacityUnits": 20,

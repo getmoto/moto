@@ -310,7 +310,7 @@ def test_authorize_ip_range_and_revoke_boto3():
     # Actually revoke
     with pytest.raises(ClientError) as ex:
         egress_security_group.revoke_egress(
-            IpPermissions=egress_permissions, DryRun=True,
+            IpPermissions=egress_permissions, DryRun=True
         )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
     ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
@@ -563,9 +563,7 @@ def test_authorize_all_protocols_with_no_port_specification_boto3():
 
 
 @mock_ec2
-@pytest.mark.parametrize(
-    "use_vpc", [True, False], ids=["Use VPC", "Without VPC"],
-)
+@pytest.mark.parametrize("use_vpc", [True, False], ids=["Use VPC", "Without VPC"])
 def test_sec_group_rule_limit_boto3(use_vpc):
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -628,7 +626,7 @@ def test_sec_group_rule_limit_boto3(use_vpc):
     client.authorize_security_group_ingress(GroupId=sg.id, IpPermissions=permissions)
     # verify that we cannot authorize past the limit for a CIDR IP
     with pytest.raises(ClientError) as ex:
-        permissions = [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "100.0.0.0/0"}],}]
+        permissions = [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "100.0.0.0/0"}]}]
         client.authorize_security_group_ingress(
             GroupId=sg.id, IpPermissions=permissions
         )
@@ -663,7 +661,7 @@ def test_sec_group_rule_limit_boto3(use_vpc):
     client.authorize_security_group_egress(GroupId=sg.id, IpPermissions=permissions)
     # verify that we cannot authorize past the limit for a CIDR IP
     with pytest.raises(ClientError) as ex:
-        permissions = [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "101.0.0.0/0"}],}]
+        permissions = [{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "101.0.0.0/0"}]}]
         client.authorize_security_group_egress(GroupId=sg.id, IpPermissions=permissions)
     ex.value.response["Error"]["Code"].should.equal(
         "RulesPerSecurityGroupLimitExceeded"

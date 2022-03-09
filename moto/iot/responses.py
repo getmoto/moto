@@ -401,7 +401,7 @@ class IoTResponse(BaseResponse):
         status = self._get_param("status")
 
         cert = self.iot_backend.register_certificate_without_ca(
-            certificate_pem=certificate_pem, status=status,
+            certificate_pem=certificate_pem, status=status
         )
         return json.dumps(
             dict(certificateId=cert.certificate_id, certificateArn=cert.arn)

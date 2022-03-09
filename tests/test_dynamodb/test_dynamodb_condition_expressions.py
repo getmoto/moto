@@ -20,10 +20,7 @@ def test_condition_expression_with_dot_in_attr_name():
     table = dynamodb.Table(table_name)
 
     email_like_str = "test@foo.com"
-    record = {
-        "id": "key-0",
-        "first": {email_like_str: {"third": {"VALUE"}},},
-    }
+    record = {"id": "key-0", "first": {email_like_str: {"third": {"VALUE"}}}}
     table.put_item(Item=record)
 
     table.update_item(
@@ -41,9 +38,7 @@ def test_condition_expression_with_dot_in_attr_name():
     )
 
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal(
-        {"id": "key-0", "first": {},}
-    )
+    item.should.equal({"id": "key-0", "first": {}})
 
 
 @mock_dynamodb
@@ -383,10 +378,7 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
     table = dynamodb.Table(table_name)
 
     email_like_str = "test@foo.com"
-    record = {
-        "id": "key-0",
-        "first": {email_like_str: {"end": {"VALUE"}},},
-    }
+    record = {"id": "key-0", "first": {email_like_str: {"end": {"VALUE"}}}}
     table.put_item(Item=record)
 
     expected_error_message = re.escape(
@@ -430,6 +422,4 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
     )
 
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal(
-        {"id": "key-0", "first": {},}
-    )
+    item.should.equal({"id": "key-0", "first": {}})

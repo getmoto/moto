@@ -136,7 +136,7 @@ class ManagedBlockchainResponse(BaseResponse):
         description = json_body.get("Description", None)
 
         response = self.backend.create_proposal(
-            network_id, memberid, actions, description,
+            network_id, memberid, actions, description
         )
         return 200, headers, json.dumps(response)
 
@@ -201,9 +201,7 @@ class ManagedBlockchainResponse(BaseResponse):
         votermemberid = json_body["VoterMemberId"]
         vote = json_body["Vote"]
 
-        self.backend.vote_on_proposal(
-            network_id, proposal_id, votermemberid, vote,
-        )
+        self.backend.vote_on_proposal(network_id, proposal_id, votermemberid, vote)
         return 200, headers, ""
 
     @classmethod
@@ -285,7 +283,7 @@ class ManagedBlockchainResponse(BaseResponse):
         member_configuration = json_body["MemberConfiguration"]
 
         response = self.backend.create_member(
-            invitationid, network_id, member_configuration,
+            invitationid, network_id, member_configuration
         )
         return 200, headers, json.dumps(response)
 
@@ -324,9 +322,7 @@ class ManagedBlockchainResponse(BaseResponse):
 
     def _memberid_response_patch(self, network_id, member_id, json_body, headers):
         logpublishingconfiguration = json_body["LogPublishingConfiguration"]
-        self.backend.update_member(
-            network_id, member_id, logpublishingconfiguration,
-        )
+        self.backend.update_member(network_id, member_id, logpublishingconfiguration)
         return 200, headers, ""
 
     def _memberid_response_delete(self, network_id, member_id, headers):
@@ -427,7 +423,7 @@ class ManagedBlockchainResponse(BaseResponse):
     ):
         logpublishingconfiguration = json_body
         self.backend.update_node(
-            network_id, member_id, node_id, logpublishingconfiguration,
+            network_id, member_id, node_id, logpublishingconfiguration
         )
         return 200, headers, ""
 

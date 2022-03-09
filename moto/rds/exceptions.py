@@ -30,8 +30,7 @@ class DBInstanceNotFoundError(RDSClientError):
 class DBSnapshotNotFoundError(RDSClientError):
     def __init__(self, snapshot_identifier):
         super().__init__(
-            "DBSnapshotNotFound",
-            "DBSnapshot {} not found.".format(snapshot_identifier),
+            "DBSnapshotNotFound", f"DBSnapshot {snapshot_identifier} not found."
         )
 
 
@@ -39,15 +38,14 @@ class DBSecurityGroupNotFoundError(RDSClientError):
     def __init__(self, security_group_name):
         super().__init__(
             "DBSecurityGroupNotFound",
-            "Security Group {0} not found.".format(security_group_name),
+            f"Security Group {security_group_name} not found.",
         )
 
 
 class DBSubnetGroupNotFoundError(RDSClientError):
     def __init__(self, subnet_group_name):
         super().__init__(
-            "DBSubnetGroupNotFound",
-            "Subnet Group {0} not found.".format(subnet_group_name),
+            "DBSubnetGroupNotFound", f"Subnet Group {subnet_group_name} not found."
         )
 
 
@@ -55,7 +53,7 @@ class DBParameterGroupNotFoundError(RDSClientError):
     def __init__(self, db_parameter_group_name):
         super().__init__(
             "DBParameterGroupNotFound",
-            "DB Parameter Group {0} not found.".format(db_parameter_group_name),
+            f"DB Parameter Group {db_parameter_group_name} not found.",
         )
 
 
@@ -63,7 +61,7 @@ class OptionGroupNotFoundFaultError(RDSClientError):
     def __init__(self, option_group_name):
         super().__init__(
             "OptionGroupNotFoundFault",
-            "Specified OptionGroupName: {0} not found.".format(option_group_name),
+            f"Specified OptionGroupName: {option_group_name} not found.",
         )
 
 

@@ -742,7 +742,7 @@ def test_batch_update_partition():
         )
 
     response = client.batch_update_partition(
-        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values
     )
 
     for value in values:
@@ -810,7 +810,7 @@ def test_batch_update_partition_missing_partition():
     )
 
     response = client.batch_update_partition(
-        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values,
+        DatabaseName=database_name, TableName=table_name, Entries=batch_update_values
     )
 
     response.should.have.key("Errors")

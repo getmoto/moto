@@ -53,7 +53,7 @@ def test_create_query_logging_config_bad_args():
     # Check exception:  NoSuchHostedZone
     with pytest.raises(ClientError) as exc:
         client.create_query_logging_config(
-            HostedZoneId="foo", CloudWatchLogsLogGroupArn=log_group_arn,
+            HostedZoneId="foo", CloudWatchLogsLogGroupArn=log_group_arn
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchHostedZone"
@@ -93,11 +93,11 @@ def test_create_query_logging_config_bad_args():
 
     # Check exception:  QueryLoggingConfigAlreadyExists
     client.create_query_logging_config(
-        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
     )
     with pytest.raises(ClientError) as exc:
         client.create_query_logging_config(
-            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "QueryLoggingConfigAlreadyExists"
@@ -119,7 +119,7 @@ def test_create_query_logging_config_good_args():
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     response = client.create_query_logging_config(
-        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
     )
     config = response["QueryLoggingConfig"]
     assert config["HostedZoneId"] == hosted_zone_id.split("/")[-1]
@@ -146,7 +146,7 @@ def test_delete_query_logging_config():
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     query_response = client.create_query_logging_config(
-        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
     )
 
     # Test the deletion.
@@ -177,7 +177,7 @@ def test_get_query_logging_config():
     log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
 
     query_response = client.create_query_logging_config(
-        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+        HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
     )
 
     # Test the retrieval.
@@ -216,7 +216,7 @@ def test_list_query_logging_configs_bad_args():
         hosted_zone_id = create_hosted_zone_id(client, hosted_zone_test_name)
         log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
         client.create_query_logging_config(
-            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
         )
 
     # Retrieve a query logging config, then request more with an invalid token.
@@ -252,7 +252,7 @@ def test_list_query_logging_configs_good_args():
 
         log_group_arn = create_log_group_arn(logs_client, hosted_zone_test_name)
         client.create_query_logging_config(
-            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn,
+            HostedZoneId=hosted_zone_id, CloudWatchLogsLogGroupArn=log_group_arn
         )
 
     # Verify all 10 of the query logging configs can be retrieved in one go.

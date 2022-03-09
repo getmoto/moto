@@ -6,13 +6,7 @@ import time
 import sure  # noqa # pylint: disable=unused-import
 import uuid
 
-from moto import (
-    mock_dynamodb2,
-    mock_lambda,
-    mock_logs,
-    mock_sns,
-    mock_sqs,
-)
+from moto import mock_dynamodb2, mock_lambda, mock_logs, mock_sns, mock_sqs
 from uuid import uuid4
 from .utilities import (
     get_role_name,

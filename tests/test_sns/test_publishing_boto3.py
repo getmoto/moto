@@ -89,17 +89,15 @@ def test_publish_to_sqs_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
         Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
     )
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName="queue.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
-    topic.subscribe(
-        Protocol="sqs", Endpoint=queue.attributes["QueueArn"],
-    )
+    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
 
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
@@ -507,7 +505,7 @@ def test_publish_fifo_needs_group_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
         Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
     )
 
     with pytest.raises(

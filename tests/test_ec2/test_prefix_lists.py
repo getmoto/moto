@@ -89,10 +89,7 @@ def test_describe_managed_prefix_lists_with_tags():
         MaxEntries=2,
         AddressFamily="?",
         TagSpecifications=[
-            {
-                "ResourceType": "prefix-list",
-                "Tags": [{"Key": "key", "Value": "value"},],
-            },
+            {"ResourceType": "prefix-list", "Tags": [{"Key": "key", "Value": "value"}]}
         ],
     )
     tagged_pl_id = tagged_prefix_list["PrefixList"]["PrefixListId"]

@@ -180,7 +180,7 @@ def test_create_rest_api_valid_apikeysources():
 
     # 1. test creating rest api with HEADER apiKeySource
     response = client.create_rest_api(
-        name="my_api", description="this is my api", apiKeySource="HEADER",
+        name="my_api", description="this is my api", apiKeySource="HEADER"
     )
     api_id = response["id"]
 
@@ -189,7 +189,7 @@ def test_create_rest_api_valid_apikeysources():
 
     # 2. test creating rest api with AUTHORIZER apiKeySource
     response = client.create_rest_api(
-        name="my_api2", description="this is my api", apiKeySource="AUTHORIZER",
+        name="my_api2", description="this is my api", apiKeySource="AUTHORIZER"
     )
     api_id = response["id"]
 
@@ -223,9 +223,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["endpointConfiguration"].should.equal(
-        {"types": ["PRIVATE"],}
-    )
+    response["endpointConfiguration"].should.equal({"types": ["PRIVATE"]})
 
     # 2. test creating rest api with REGIONAL endpointConfiguration
     response = client.create_rest_api(
@@ -236,9 +234,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["endpointConfiguration"].should.equal(
-        {"types": ["REGIONAL"],}
-    )
+    response["endpointConfiguration"].should.equal({"types": ["REGIONAL"]})
 
     # 3. test creating rest api with EDGE endpointConfiguration
     response = client.create_rest_api(
@@ -249,9 +245,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     api_id = response["id"]
 
     response = client.get_rest_api(restApiId=api_id)
-    response["endpointConfiguration"].should.equal(
-        {"types": ["EDGE"],}
-    )
+    response["endpointConfiguration"].should.equal({"types": ["EDGE"]})
 
 
 @mock_apigateway
@@ -296,7 +290,7 @@ def test_create_resource():
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
     root_resource.should.equal(
-        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200},}
+        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200}}
     )
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
@@ -545,7 +539,7 @@ def test_integrations():
     response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
     response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
     response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt",}
+        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt"}
     )
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -2368,7 +2362,7 @@ def test_update_path_mapping_with_unknown_stage():
         client.update_base_path_mapping(
             domainName=domain_name,
             basePath=base_path,
-            patchOperations=[{"op": "replace", "path": "/stage", "value": "unknown"},],
+            patchOperations=[{"op": "replace", "path": "/stage", "value": "unknown"}],
         )
 
     ex.value.response["Error"]["Message"].should.equal(

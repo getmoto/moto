@@ -22,16 +22,18 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
         max_media_playlist_fragment_results = self._get_param(
             "MaxMediaPlaylistFragmentResults"
         )
-        hls_streaming_session_url = self.kinesisvideoarchivedmedia_backend.get_hls_streaming_session_url(
-            stream_name=stream_name,
-            stream_arn=stream_arn,
-            playback_mode=playback_mode,
-            hls_fragment_selector=hls_fragment_selector,
-            container_format=container_format,
-            discontinuity_mode=discontinuity_mode,
-            display_fragment_timestamp=display_fragment_timestamp,
-            expires=expires,
-            max_media_playlist_fragment_results=max_media_playlist_fragment_results,
+        hls_streaming_session_url = (
+            self.kinesisvideoarchivedmedia_backend.get_hls_streaming_session_url(
+                stream_name=stream_name,
+                stream_arn=stream_arn,
+                playback_mode=playback_mode,
+                hls_fragment_selector=hls_fragment_selector,
+                container_format=container_format,
+                discontinuity_mode=discontinuity_mode,
+                display_fragment_timestamp=display_fragment_timestamp,
+                expires=expires,
+                max_media_playlist_fragment_results=max_media_playlist_fragment_results,
+            )
         )
         return json.dumps(dict(HLSStreamingSessionURL=hls_streaming_session_url))
 
@@ -44,15 +46,17 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
         dash_fragment_selector = self._get_param("DASHFragmentSelector")
         expires = self._get_int_param("Expires")
         max_manifest_fragment_results = self._get_param("MaxManifestFragmentResults")
-        dash_streaming_session_url = self.kinesisvideoarchivedmedia_backend.get_dash_streaming_session_url(
-            stream_name=stream_name,
-            stream_arn=stream_arn,
-            playback_mode=playback_mode,
-            display_fragment_timestamp=display_fragment_timestamp,
-            display_fragment_number=display_fragment_number,
-            dash_fragment_selector=dash_fragment_selector,
-            expires=expires,
-            max_manifest_fragment_results=max_manifest_fragment_results,
+        dash_streaming_session_url = (
+            self.kinesisvideoarchivedmedia_backend.get_dash_streaming_session_url(
+                stream_name=stream_name,
+                stream_arn=stream_arn,
+                playback_mode=playback_mode,
+                display_fragment_timestamp=display_fragment_timestamp,
+                display_fragment_number=display_fragment_number,
+                dash_fragment_selector=dash_fragment_selector,
+                expires=expires,
+                max_manifest_fragment_results=max_manifest_fragment_results,
+            )
         )
         return json.dumps(dict(DASHStreamingSessionURL=dash_streaming_session_url))
 

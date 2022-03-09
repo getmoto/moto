@@ -158,7 +158,7 @@ class AthenaBackend(BaseBackend):
 
     def list_data_catalogs(self):
         return [
-            {"CatalogName": dc.name, "Type": dc.type,}
+            {"CatalogName": dc.name, "Type": dc.type}
             for dc in self.data_catalogs.values()
         ]
 

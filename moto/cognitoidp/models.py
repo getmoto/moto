@@ -234,8 +234,7 @@ class CognitoIdpUserPoolAttribute(BaseModel):
         else:
             self.developer_only = False
         self.mutable = schema.get(
-            "Mutable",
-            CognitoIdpUserPoolAttribute.STANDARD_SCHEMA[self.name]["Mutable"],
+            "Mutable", CognitoIdpUserPoolAttribute.STANDARD_SCHEMA[self.name]["Mutable"]
         )
         self.required = schema.get(
             "Required",
@@ -1131,7 +1130,7 @@ class CognitoIdpBackend(BaseBackend):
     def _validate_auth_flow(
         self, auth_flow: str, valid_flows: typing.List[AuthFlow]
     ) -> AuthFlow:
-        """ validate auth_flow value and convert auth_flow to enum """
+        """validate auth_flow value and convert auth_flow to enum"""
 
         try:
             auth_flow = AuthFlow[auth_flow]
@@ -1304,11 +1303,11 @@ class CognitoIdpBackend(BaseBackend):
 
     def forgot_password(self, client_id, username):
         """The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
-            Otherwise you get semi-random garbage and HTTP 200 OK, for example:
-            - recovery for username which is not registered in any cognito pool
-            - recovery for username belonging to a different user pool than the client id is registered to
-            - phone-based recovery for a user without phone_number / phone_number_verified attributes
-            - same as above, but email / email_verified
+        Otherwise you get semi-random garbage and HTTP 200 OK, for example:
+        - recovery for username which is not registered in any cognito pool
+        - recovery for username belonging to a different user pool than the client id is registered to
+        - phone-based recovery for a user without phone_number / phone_number_verified attributes
+        - same as above, but email / email_verified
         """
         for user_pool in self.user_pools.values():
             if client_id in user_pool.clients:

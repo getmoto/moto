@@ -162,7 +162,7 @@ def test_modify_vpc_peering_connections_accepter_only():
     #
     client.modify_vpc_peering_connection_options(
         VpcPeeringConnectionId=vpc_pcx_usw1.id,
-        AccepterPeeringConnectionOptions={"AllowDnsResolutionFromRemoteVpc": True,},
+        AccepterPeeringConnectionOptions={"AllowDnsResolutionFromRemoteVpc": True},
     )
     # Accepter options are different
     vpc_pcx_usw1.reload()

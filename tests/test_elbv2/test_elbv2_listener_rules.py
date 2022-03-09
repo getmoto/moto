@@ -271,7 +271,7 @@ def test_modify_rule_condition(create_condition, modify_condition):
             "A 'source-ip' value must be specified",
         ),
         (
-            {"Field": "source-ip",},
+            {"Field": "source-ip"},
             "A 'SourceIpConfig' must be specified with 'source-ip'",
         ),
     ],

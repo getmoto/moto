@@ -89,7 +89,7 @@ def test_send_email_when_verify_source():
     conn = boto3.client("ses", region_name="us-east-1")
 
     kwargs = dict(
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={"ToAddresses": ["test_to@example.com"]},
         Message={
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
@@ -388,7 +388,7 @@ def test_send_email_notification_with_encoded_sender():
     response = conn.send_email(
         Source=sender,
         Destination={"ToAddresses": ["your.friend@hotmail.com"]},
-        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}},},
+        Message={"Subject": {"Data": "hi"}, "Body": {"Text": {"Data": "there"}}},
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
@@ -403,7 +403,7 @@ def test_create_configuration_set():
         EventDestination={
             "Name": "snsEvent",
             "Enabled": True,
-            "MatchingEventTypes": ["send",],
+            "MatchingEventTypes": ["send"],
             "SNSDestination": {
                 "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
             },
@@ -416,7 +416,7 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send",],
+                "MatchingEventTypes": ["send"],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },
@@ -431,7 +431,7 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send",],
+                "MatchingEventTypes": ["send"],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },
@@ -1129,7 +1129,7 @@ def test_render_template():
     result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
 
     kwargs = dict(
-        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"}),
+        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"})
     )
 
     with pytest.raises(ClientError) as ex:
@@ -1197,7 +1197,7 @@ def test_get_send_statistics():
 
     kwargs = dict(
         Source="test@example.com",
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={"ToAddresses": ["test_to@example.com"]},
         Message={
             "Subject": {"Data": "test subject"},
             "Body": {"Html": {"Data": "<span>test body</span>"}},
@@ -1222,7 +1222,7 @@ def test_get_send_statistics():
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
         },
-        Destination={"ToAddresses": ["test_to@example.com"],},
+        Destination={"ToAddresses": ["test_to@example.com"]},
     )
 
     # tests to delivery attempts in get_send_statistics

@@ -25,7 +25,7 @@ def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return
 
     with pytest.raises(ClientError) as ex:
         client.describe_scalable_targets(
-            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo",
+            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo"
         )
     err = ex.value.response
     err["Error"]["Code"].should.equal("ValidationException")
@@ -41,7 +41,7 @@ def test_describe_scalable_targets_with_invalid_service_namespace_should_return_
 
     with pytest.raises(ClientError) as ex:
         client.describe_scalable_targets(
-            ServiceNamespace="foo", ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
+            ServiceNamespace="foo", ScalableDimension=DEFAULT_SCALABLE_DIMENSION
         )
     err = ex.value.response
     err["Error"]["Code"].should.equal("ValidationException")
@@ -57,7 +57,7 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
 
     with pytest.raises(ClientError) as ex:
         client.describe_scalable_targets(
-            ServiceNamespace="foo", ScalableDimension="bar",
+            ServiceNamespace="foo", ScalableDimension="bar"
         )
     err = ex.value.response
     err["Error"]["Code"].should.equal("ValidationException")

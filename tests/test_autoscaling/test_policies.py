@@ -143,13 +143,13 @@ def test_execute_policy_positive_change_in_capacity_boto3():
 
 
 @pytest.mark.parametrize(
-    "adjustment,nr_of_instances", [(1, 3), (50, 3), (100, 4), (250, 7)],
+    "adjustment,nr_of_instances", [(1, 3), (50, 3), (100, 4), (250, 7)]
 )
 @mock_autoscaling
 def test_execute_policy_percent_change_in_capacity_boto3(adjustment, nr_of_instances):
     """http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
-        If PercentChangeInCapacity returns a value between 0 and 1,
-        Auto Scaling will round it off to 1."""
+    If PercentChangeInCapacity returns a value between 0 and 1,
+    Auto Scaling will round it off to 1."""
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.put_scaling_policy(

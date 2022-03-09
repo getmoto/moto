@@ -383,7 +383,7 @@ def test_eip_reassociate_nic_boto3():
 
 @mock_ec2
 def test_eip_associate_invalid_args_boto3():
-    """Associate EIP, invalid args """
+    """Associate EIP, invalid args"""
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 

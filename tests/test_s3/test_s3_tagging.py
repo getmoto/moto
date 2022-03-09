@@ -208,7 +208,7 @@ def test_put_object_tagging():
         s3.put_object_tagging(
             Bucket=bucket_name,
             Key=key,
-            Tagging={"TagSet": [{"Key": "aws:item1", "Value": "foo"},]},
+            Tagging={"TagSet": [{"Key": "aws:item1", "Value": "foo"}]},
         )
 
     e = err.value

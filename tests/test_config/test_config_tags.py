@@ -39,7 +39,7 @@ def config_aggregators_info(client):
         )
         config_info = response["ConfigurationAggregator"]
         config_aggs.append(
-            {"arn": config_info["ConfigurationAggregatorArn"], "tags": tags,}
+            {"arn": config_info["ConfigurationAggregatorArn"], "tags": tags}
         )
     return config_aggs
 
@@ -186,7 +186,7 @@ def test_untag_resource():
     # Try specifying more than 50 keys.
     with pytest.raises(ClientError) as cerr:
         client.untag_resource(
-            ResourceArn=good_arn, TagKeys=[f"{x}" for x in range(MAX_TAGS_IN_ARG + 1)],
+            ResourceArn=good_arn, TagKeys=[f"{x}" for x in range(MAX_TAGS_IN_ARG + 1)]
         )
     assert cerr.value.response["Error"]["Code"] == "ValidationException"
     assert (

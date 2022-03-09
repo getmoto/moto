@@ -46,7 +46,7 @@ def test_ds_add_tags_to_resource():
     # Bad tags.
     with pytest.raises(ClientError) as exc:
         client.add_tags_to_resource(
-            ResourceId=directory_id, Tags=[{"Key": "foo!", "Value": "bar"}],
+            ResourceId=directory_id, Tags=[{"Key": "foo!", "Value": "bar"}]
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"

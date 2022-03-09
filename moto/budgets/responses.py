@@ -30,9 +30,7 @@ class BudgetsResponse(BaseResponse):
     def delete_budget(self):
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
-        budgets_backend.delete_budget(
-            account_id=account_id, budget_name=budget_name,
-        )
+        budgets_backend.delete_budget(account_id=account_id, budget_name=budget_name)
         return json.dumps(dict())
 
     def create_notification(self):
@@ -53,7 +51,7 @@ class BudgetsResponse(BaseResponse):
         budget_name = self._get_param("BudgetName")
         notification = self._get_param("Notification")
         budgets_backend.delete_notification(
-            account_id=account_id, budget_name=budget_name, notification=notification,
+            account_id=account_id, budget_name=budget_name, notification=notification
         )
         return json.dumps(dict())
 
@@ -61,6 +59,6 @@ class BudgetsResponse(BaseResponse):
         account_id = self._get_param("AccountId")
         budget_name = self._get_param("BudgetName")
         notifications = budgets_backend.describe_notifications_for_budget(
-            account_id=account_id, budget_name=budget_name,
+            account_id=account_id, budget_name=budget_name
         )
         return json.dumps(dict(Notifications=notifications, NextToken=None))

@@ -46,7 +46,7 @@ class MediaLiveResponse(BaseResponse):
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         channels, next_token = self.medialive_backend.list_channels(
-            max_results=max_results, next_token=next_token,
+            max_results=max_results, next_token=next_token
         )
 
         return json.dumps(dict(channels=channels, nextToken=next_token))
@@ -54,20 +54,20 @@ class MediaLiveResponse(BaseResponse):
     def describe_channel(self):
         channel_id = self._get_param("channelId")
         return json.dumps(
-            self.medialive_backend.describe_channel(channel_id=channel_id,)
+            self.medialive_backend.describe_channel(channel_id=channel_id)
         )
 
     def delete_channel(self):
         channel_id = self._get_param("channelId")
-        return json.dumps(self.medialive_backend.delete_channel(channel_id=channel_id,))
+        return json.dumps(self.medialive_backend.delete_channel(channel_id=channel_id))
 
     def start_channel(self):
         channel_id = self._get_param("channelId")
-        return json.dumps(self.medialive_backend.start_channel(channel_id=channel_id,))
+        return json.dumps(self.medialive_backend.start_channel(channel_id=channel_id))
 
     def stop_channel(self):
         channel_id = self._get_param("channelId")
-        return json.dumps(self.medialive_backend.stop_channel(channel_id=channel_id,))
+        return json.dumps(self.medialive_backend.stop_channel(channel_id=channel_id))
 
     def update_channel(self):
         channel_id = self._get_param("channelId")
@@ -121,20 +121,20 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_input(self):
         input_id = self._get_param("inputId")
-        return json.dumps(self.medialive_backend.describe_input(input_id=input_id,))
+        return json.dumps(self.medialive_backend.describe_input(input_id=input_id))
 
     def list_inputs(self):
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         inputs, next_token = self.medialive_backend.list_inputs(
-            max_results=max_results, next_token=next_token,
+            max_results=max_results, next_token=next_token
         )
 
         return json.dumps(dict(inputs=inputs, nextToken=next_token))
 
     def delete_input(self):
         input_id = self._get_param("inputId")
-        self.medialive_backend.delete_input(input_id=input_id,)
+        self.medialive_backend.delete_input(input_id=input_id)
         return json.dumps({})
 
     def update_input(self):

@@ -303,12 +303,14 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def create_notebook_instance_lifecycle_config(self):
         try:
-            lifecycle_configuration = self.sagemaker_backend.create_notebook_instance_lifecycle_config(
-                notebook_instance_lifecycle_config_name=self._get_param(
-                    "NotebookInstanceLifecycleConfigName"
-                ),
-                on_create=self._get_param("OnCreate"),
-                on_start=self._get_param("OnStart"),
+            lifecycle_configuration = (
+                self.sagemaker_backend.create_notebook_instance_lifecycle_config(
+                    notebook_instance_lifecycle_config_name=self._get_param(
+                        "NotebookInstanceLifecycleConfigName"
+                    ),
+                    on_create=self._get_param("OnCreate"),
+                    on_start=self._get_param("OnStart"),
+                )
             )
             response = {
                 "NotebookInstanceLifecycleConfigArn": lifecycle_configuration.notebook_instance_lifecycle_config_arn,
@@ -349,7 +351,7 @@ class SageMakerResponse(BaseResponse):
         NextToken = self._get_param("NextToken")
 
         paged_results, next_token = self.sagemaker_backend.list_experiments(
-            MaxResults=MaxResults, NextToken=NextToken,
+            MaxResults=MaxResults, NextToken=NextToken
         )
 
         experiment_summaries = [
@@ -374,21 +376,21 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def delete_experiment(self):
         self.sagemaker_backend.delete_experiment(
-            experiment_name=self._get_param("ExperimentName"),
+            experiment_name=self._get_param("ExperimentName")
         )
         return 200, {}, json.dumps({})
 
     @amzn_request_id
     def create_experiment(self, *args, **kwargs):
         response = self.sagemaker_backend.create_experiment(
-            experiment_name=self._get_param("ExperimentName"),
+            experiment_name=self._get_param("ExperimentName")
         )
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def describe_experiment(self, *args, **kwargs):
         response = self.sagemaker_backend.describe_experiment(
-            experiment_name=self._get_param("ExperimentName"),
+            experiment_name=self._get_param("ExperimentName")
         )
         return 200, {}, json.dumps(response)
 

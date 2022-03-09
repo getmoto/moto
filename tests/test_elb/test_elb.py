@@ -423,7 +423,7 @@ def test_set_sslcertificate_boto3():
     )
 
     client.set_load_balancer_listener_ssl_certificate(
-        LoadBalancerName=lb_name, LoadBalancerPort=81, SSLCertificateId=certificate_arn,
+        LoadBalancerName=lb_name, LoadBalancerPort=81, SSLCertificateId=certificate_arn
     )
 
     elb = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
@@ -870,9 +870,7 @@ def test_create_lb_policy_boto3():
         LoadBalancerName=lb_name,
         PolicyName="ProxyPolicy",
         PolicyTypeName="ProxyProtocolPolicyType",
-        PolicyAttributes=[
-            {"AttributeName": "ProxyProtocol", "AttributeValue": "true",},
-        ],
+        PolicyAttributes=[{"AttributeName": "ProxyProtocol", "AttributeValue": "true"}],
     )
 
     balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[

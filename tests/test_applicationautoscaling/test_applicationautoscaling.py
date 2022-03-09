@@ -331,7 +331,7 @@ def test_register_scalable_target_updates_existing_target():
             {
                 "StepScalingPolicyConfiguration": {
                     "AdjustmentType": "ChangeCapacity",
-                    "StepAdjustments": [{"ScalingAdjustment": 10,},],
+                    "StepAdjustments": [{"ScalingAdjustment": 10}],
                     "MinAdjustmentMagnitude": 2,
                 },
             },

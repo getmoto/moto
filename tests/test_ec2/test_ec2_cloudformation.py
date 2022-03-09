@@ -246,7 +246,7 @@ def test_attach_vpn_gateway():
             },
             "DEVLAB1DCGateway": {
                 "Type": "AWS::EC2::VPNGateway",
-                "Properties": {"Type": "ipsec.1",},
+                "Properties": {"Type": "ipsec.1"},
             },
             "DEVLAB1VPGAttaching": {
                 "Type": "AWS::EC2::VPCGatewayAttachment",
@@ -709,9 +709,9 @@ def test_vpc_endpoint_creation():
     subnet_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Parameters": {
-            "EndpointSubnetId": {"Type": "String",},
-            "EndpointVpcId": {"Type": "String",},
-            "EndpointServiceName": {"Type": "String",},
+            "EndpointSubnetId": {"Type": "String"},
+            "EndpointVpcId": {"Type": "String"},
+            "EndpointServiceName": {"Type": "String"},
         },
         "Resources": {
             "GwlbVpcEndpoint": {

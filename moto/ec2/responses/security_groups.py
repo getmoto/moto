@@ -65,14 +65,7 @@ def parse_sg_attributes_from_dict(sg_attributes):
             pl_item["Description"] = pl_dict.get("Description")[0]
         if pl_item:
             prefix_list_ids.append(pl_item)
-    return (
-        ip_protocol,
-        from_port,
-        to_port,
-        ip_ranges,
-        source_groups,
-        prefix_list_ids,
-    )
+    return (ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids)
 
 
 class SecurityGroups(BaseResponse):

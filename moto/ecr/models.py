@@ -244,7 +244,7 @@ class Image(BaseObject):
         self.last_scan = None
 
     def _create_digest(self):
-        image_contents = "docker_image{0}".format(int(random() * 10 ** 6))
+        image_contents = "docker_image{0}".format(int(random() * 10**6))
         self.image_digest = (
             "sha256:%s" % hashlib.sha256(image_contents.encode("utf-8")).hexdigest()
         )
@@ -359,7 +359,7 @@ class ECRBackend(BaseBackend):
             "VpcEndpointPolicySupported": True,
         }
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "api.ecr", special_service_name="ecr.api",
+            service_region, zones, "api.ecr", special_service_name="ecr.api"
         ) + [docker_endpoint]
 
     def _get_repository(self, name, registry_id=None) -> Repository:

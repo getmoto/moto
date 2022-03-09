@@ -50,7 +50,7 @@ def test_ami_create_and_delete_boto3():
     )
 
     image_id = ec2.create_image(
-        InstanceId=instance_id, Name="test-ami", Description="this is a test ami",
+        InstanceId=instance_id, Name="test-ami", Description="this is a test ami"
     )["ImageId"]
 
     all_images = ec2.describe_images()["Images"]
@@ -1053,7 +1053,7 @@ def test_create_image_with_tag_specification():
                     "Key": "Base_AMI_Name",
                     "Value": "Deep Learning Base AMI (Amazon Linux 2) Version 31.0",
                 },
-                {"Key": "OS_Version", "Value": "AWS Linux 2",},
+                {"Key": "OS_Version", "Value": "AWS Linux 2"},
             ],
         },
     ]
@@ -1135,8 +1135,8 @@ def test_ami_filter_by_ownerid():
 
     images = ec2_connection.describe_images(
         Filters=[
-            {"Name": "name", "Values": ["amzn-ami-*",]},
-            {"Name": "owner-alias", "Values": ["amazon",]},
+            {"Name": "name", "Values": ["amzn-ami-*"]},
+            {"Name": "owner-alias", "Values": ["amazon"]},
         ]
     )["Images"]
     assert len(images) > 0, "We should have at least 1 image created by amazon"
@@ -1147,7 +1147,7 @@ def test_ami_filter_by_unknown_ownerid():
     ec2_connection = boto3.client("ec2", region_name="us-east-1")
 
     images = ec2_connection.describe_images(
-        Filters=[{"Name": "owner-alias", "Values": ["unknown",]},]
+        Filters=[{"Name": "owner-alias", "Values": ["unknown"]}]
     )["Images"]
     images.should.have.length_of(0)
 

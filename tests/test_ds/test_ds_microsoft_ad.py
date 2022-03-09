@@ -77,9 +77,9 @@ def test_ds_create_microsoft_ad_validations():
         f"Member must satisfy enum value set: [Enterprise, Standard]" in err["Message"]
     )
     assert (
-        fr"Value '{bad_name}' at 'name' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
+        rf"Value '{bad_name}' at 'name' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
     )
 
     too_long = (
@@ -120,10 +120,10 @@ def test_ds_create_microsoft_ad_validations():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '['{bad_vpc_settings['SubnetIds'][0]}']' at "
-        fr"'vpcSettings.subnetIds' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
+        rf"Value '['{bad_vpc_settings['SubnetIds'][0]}']' at "
+        rf"'vpcSettings.subnetIds' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
     )
 
 

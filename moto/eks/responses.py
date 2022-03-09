@@ -146,7 +146,7 @@ class EKSResponse(BaseResponse):
 
         try:
             fargate_profile = self.eks_backend.describe_fargate_profile(
-                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name,
+                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name
             )
             return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
         except (ResourceInUseException, ResourceNotFoundException) as e:
@@ -158,7 +158,7 @@ class EKSResponse(BaseResponse):
 
         try:
             nodegroup = self.eks_backend.describe_nodegroup(
-                cluster_name=cluster_name, nodegroup_name=nodegroup_name,
+                cluster_name=cluster_name, nodegroup_name=nodegroup_name
             )
 
             return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})
@@ -170,7 +170,7 @@ class EKSResponse(BaseResponse):
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
 
         clusters, next_token = self.eks_backend.list_clusters(
-            max_results=max_results, next_token=next_token,
+            max_results=max_results, next_token=next_token
         )
 
         return 200, {}, json.dumps(dict(clusters=clusters, nextToken=next_token))
@@ -181,7 +181,7 @@ class EKSResponse(BaseResponse):
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
 
         fargate_profile_names, next_token = self.eks_backend.list_fargate_profiles(
-            cluster_name=cluster_name, max_results=max_results, next_token=next_token,
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token
         )
 
         return (
@@ -198,20 +198,16 @@ class EKSResponse(BaseResponse):
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
 
         nodegroups, next_token = self.eks_backend.list_nodegroups(
-            cluster_name=cluster_name, max_results=max_results, next_token=next_token,
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token
         )
 
-        return (
-            200,
-            {},
-            json.dumps(dict(nodegroups=nodegroups, nextToken=next_token)),
-        )
+        return 200, {}, json.dumps(dict(nodegroups=nodegroups, nextToken=next_token))
 
     def delete_cluster(self):
         name = self._get_param("name")
 
         try:
-            cluster = self.eks_backend.delete_cluster(name=name,)
+            cluster = self.eks_backend.delete_cluster(name=name)
 
             return 200, {}, json.dumps({"cluster": dict(cluster)})
         except (ResourceInUseException, ResourceNotFoundException) as e:
@@ -223,7 +219,7 @@ class EKSResponse(BaseResponse):
 
         try:
             fargate_profile = self.eks_backend.delete_fargate_profile(
-                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name,
+                cluster_name=cluster_name, fargate_profile_name=fargate_profile_name
             )
 
             return 200, {}, json.dumps({"fargateProfile": dict(fargate_profile)})
@@ -236,7 +232,7 @@ class EKSResponse(BaseResponse):
 
         try:
             nodegroup = self.eks_backend.delete_nodegroup(
-                cluster_name=cluster_name, nodegroup_name=nodegroup_name,
+                cluster_name=cluster_name, nodegroup_name=nodegroup_name
             )
 
             return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})

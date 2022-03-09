@@ -183,9 +183,9 @@ def test_ds_create_alias():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        fr"Value '{bad_alias}' at 'alias' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
+        rf"Value '{bad_alias}' at 'alias' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^(?!D-|d-)([\da-zA-Z]+)([-]*[\da-zA-Z])*$"
     ) in err["Message"]
 
     # Too long.
@@ -275,8 +275,8 @@ def test_ds_enable_sso():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        fr"Value '{bad_username}' at 'userName' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: ^[a-zA-Z0-9._-]+$"
+        rf"Value '{bad_username}' at 'userName' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: ^[a-zA-Z0-9._-]+$"
     ) in err["Message"]
 
     # Valid execution.
@@ -320,8 +320,8 @@ def test_ds_disable_sso():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        fr"Value '{bad_username}' at 'userName' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: ^[a-zA-Z0-9._-]+$"
+        rf"Value '{bad_username}' at 'userName' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: ^[a-zA-Z0-9._-]+$"
     ) in err["Message"]
 
     # Valid execution.  First enable SSO, as the default is disabled SSO.

@@ -257,7 +257,7 @@ def test_create_rule_forward_config_as_second_arg():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = elbv2.create_listener(
-        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[],
+        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[]
     )
     http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
 
@@ -280,7 +280,7 @@ def test_create_rule_forward_config_as_second_arg():
     elbv2.create_rule(
         ListenerArn=http_listener_arn,
         Conditions=[
-            {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*",]},},
+            {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*"]}}
         ],
         Priority=priority,
         Actions=[
@@ -304,7 +304,7 @@ def test_create_rule_forward_config_as_second_arg():
                     "TargetGroups": [
                         {"TargetGroupArn": target_group_arn, "Weight": 1},
                     ],
-                    "TargetGroupStickinessConfig": {"Enabled": False,},
+                    "TargetGroupStickinessConfig": {"Enabled": False},
                 },
             },
         ],
@@ -613,19 +613,19 @@ def test_create_rule_priority_in_use():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = elbv2.create_listener(
-        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[],
+        LoadBalancerArn=load_balancer_arn, Protocol="HTTP", Port=80, DefaultActions=[]
     )
     http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
 
     priority = 100
     elbv2.create_rule(
-        ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[],
+        ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[]
     )
 
     # test for PriorityInUse
     with pytest.raises(ClientError) as ex:
         elbv2.create_rule(
-            ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[],
+            ListenerArn=http_listener_arn, Priority=priority, Conditions=[], Actions=[]
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("PriorityInUse")
@@ -646,10 +646,7 @@ def test_modify_rule_conditions():
             "StatusCode": "HTTP_301",
         },
     }
-    condition = {
-        "Field": "path-pattern",
-        "PathPatternConfig": {"Values": [f"/sth*",]},
-    }
+    condition = {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*"]}}
 
     response = elbv2.create_listener(
         LoadBalancerArn=load_balancer_arn,
@@ -660,14 +657,14 @@ def test_modify_rule_conditions():
     http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
 
     response = elbv2.create_rule(
-        ListenerArn=http_listener_arn, Priority=100, Conditions=[], Actions=[],
+        ListenerArn=http_listener_arn, Priority=100, Conditions=[], Actions=[]
     )
     rule = response["Rules"][0]
 
     assert len(rule["Actions"]) == 0
     assert len(rule["Conditions"]) == 0
 
-    response = elbv2.modify_rule(RuleArn=rule["RuleArn"], Actions=[action],)
+    response = elbv2.modify_rule(RuleArn=rule["RuleArn"], Actions=[action])
     rule = response["Rules"][0]
 
     assert len(rule["Actions"]) == 1
@@ -919,7 +916,7 @@ def test_handle_listener_rules():
             },
         ],
         Actions=[
-            {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward",}
+            {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}
         ],
     )
 
@@ -1054,7 +1051,7 @@ def test_describe_ssl_policies():
     len(resp["SslPolicies"]).should.equal(6)
 
     resp = client.describe_ssl_policies(
-        Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08",]
+        Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08"]
     )
     len(resp["SslPolicies"]).should.equal(2)
 
@@ -1218,7 +1215,7 @@ def test_modify_load_balancer_attributes_routing_http2_enabled():
     response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
     routing_http2_enabled = list(
         filter(
-            lambda item: item["Key"] == "routing.http2.enabled", response["Attributes"],
+            lambda item: item["Key"] == "routing.http2.enabled", response["Attributes"]
         )
     )[0]
     routing_http2_enabled["Value"].should.equal("false")
@@ -1337,7 +1334,7 @@ def test_modify_listener_http_to_https():
         Port=443,
         Protocol="HTTPS",
         SslPolicy="ELBSecurityPolicy-TLS-1-2-2017-01",
-        Certificates=[{"CertificateArn": yahoo_arn,},],
+        Certificates=[{"CertificateArn": yahoo_arn}],
         DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
     )
     response["Listeners"][0]["Port"].should.equal(443)
@@ -1427,14 +1424,14 @@ def test_modify_listener_of_https_target_group():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id
     )
     target_group = response.get("TargetGroups")[0]
     target_group_arn = target_group["TargetGroupArn"]
 
     # HTTPS listener
     response = acm.request_certificate(
-        DomainName="google.com", SubjectAlternativeNames=["google.com"],
+        DomainName="google.com", SubjectAlternativeNames=["google.com"]
     )
     google_arn = response["CertificateArn"]
     response = client.create_listener(
@@ -1448,13 +1445,13 @@ def test_modify_listener_of_https_target_group():
 
     # Now modify the HTTPS listener with a different certificate
     response = acm.request_certificate(
-        DomainName="yahoo.com", SubjectAlternativeNames=["yahoo.com"],
+        DomainName="yahoo.com", SubjectAlternativeNames=["yahoo.com"]
     )
     yahoo_arn = response["CertificateArn"]
 
     listener = client.modify_listener(
         ListenerArn=listener_arn,
-        Certificates=[{"CertificateArn": yahoo_arn,},],
+        Certificates=[{"CertificateArn": yahoo_arn}],
         DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
     )["Listeners"][0]
     listener["Certificates"].should.equal([{"CertificateArn": yahoo_arn}])
@@ -1501,7 +1498,7 @@ def test_redirect_action_listener_rule():
 
     conn.create_rule(
         ListenerArn=listener_arn,
-        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]}],
         Priority=3,
         Actions=[action],
     )
@@ -1550,7 +1547,7 @@ def test_cognito_action_listener_rule():
 
     conn.create_rule(
         ListenerArn=listener_arn,
-        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]}],
         Priority=3,
         Actions=[action],
     )
@@ -1591,7 +1588,7 @@ def test_fixed_response_action_listener_rule():
 
     conn.create_rule(
         ListenerArn=listener_arn,
-        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]}],
         Priority=3,
         Actions=[action],
     )

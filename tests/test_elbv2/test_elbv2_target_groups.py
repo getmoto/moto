@@ -142,7 +142,7 @@ def test_create_target_group_and_listeners():
 
     conn.create_rule(
         ListenerArn=http_listener_arn,
-        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]}],
         Priority=3,
         Actions=[actions],
     )
@@ -537,12 +537,12 @@ def test_delete_target_group_after_modifying_listener():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
     )
     target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
     response = client.create_target_group(
-        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id,
+        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id
     )
     target_group_arn2 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
@@ -556,7 +556,7 @@ def test_delete_target_group_after_modifying_listener():
 
     client.modify_listener(
         ListenerArn=listener_arn,
-        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn2,}],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn2}],
     )
 
     response = conn.describe_listeners(LoadBalancerArn=load_balancer_arn)
@@ -586,12 +586,12 @@ def test_create_listener_with_multiple_target_groups():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
     )
     target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
     response = client.create_target_group(
-        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id,
+        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id
     )
     target_group_arn2 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
@@ -660,7 +660,7 @@ def test_delete_target_group_while_listener_still_exists():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
     )
     target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
