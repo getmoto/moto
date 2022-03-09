@@ -20,6 +20,7 @@ def test_table_list():
         "X-Amz-Target": "DynamoDB_20111205.ListTables",
         "Host": "dynamodb.us-east-1.amazonaws.com",
     }
+    requests.post(settings.test_server_mode_endpoint() + "/moto-api/reset")
     res = requests.get(settings.test_server_mode_endpoint(), headers=headers)
     res.status_code.should.equal(200)
     json.loads(res.content).should.equal({"TableNames": []})
