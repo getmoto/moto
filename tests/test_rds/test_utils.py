@@ -1,6 +1,6 @@
 import pytest
 
-from moto.rds2.utils import (
+from moto.rds.utils import (
     FilterDef,
     apply_filter,
     merge_filters,

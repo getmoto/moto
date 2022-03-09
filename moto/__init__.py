@@ -4,7 +4,12 @@ from contextlib import ContextDecorator
 
 
 def lazy_load(
-    module_name, element, boto3_name=None, backend=None, warn_repurpose=False
+    module_name,
+    element,
+    boto3_name=None,
+    backend=None,
+    warn_repurpose=False,
+    use_instead=None,
 ):
     def f(*args, **kwargs):
         if warn_repurpose:
@@ -13,6 +18,14 @@ def lazy_load(
             warnings.warn(
                 f"Module {element} has been deprecated, and will be repurposed in a later release. "
                 "Please see https://github.com/spulec/moto/issues/4526 for more information."
+            )
+        if use_instead:
+            import warnings
+
+            used, recommended = use_instead
+            warnings.warn(
+                f"Module {used} has been deprecated, and will be removed in a later release. Please use {recommended} instead. "
+                "See https://github.com/spulec/moto/issues/4526 for more information."
             )
         module = importlib.import_module(module_name, "moto")
         return getattr(module, element)(*args, **kwargs)
@@ -110,8 +123,8 @@ mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_pinpoint = lazy_load(".pinpoint", "mock_pinpoint")
 mock_polly = lazy_load(".polly", "mock_polly")
 mock_ram = lazy_load(".ram", "mock_ram")
-mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
-mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
+mock_rds = lazy_load(".rds", "mock_rds")
+mock_rds2 = lazy_load(".rds", "mock_rds", use_instead=("mock_rds2", "mock_rds"))
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"

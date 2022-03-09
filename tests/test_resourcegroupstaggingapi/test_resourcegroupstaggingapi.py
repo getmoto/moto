@@ -3,7 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2
 from moto import mock_elbv2
 from moto import mock_kms
-from moto import mock_rds2
+from moto import mock_rds
 from moto import mock_resourcegroupstaggingapi
 from moto import mock_s3
 from moto import mock_lambda
@@ -12,7 +12,7 @@ from botocore.client import ClientError
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
-@mock_rds2
+@mock_rds
 @mock_ec2
 @mock_resourcegroupstaggingapi
 def test_get_resources_ec2():
@@ -379,7 +379,7 @@ def test_multiple_tag_filters():
     instance_2_id.shouldnt.be.within(results[0]["ResourceARN"])
 
 
-@mock_rds2
+@mock_rds
 @mock_resourcegroupstaggingapi
 def test_get_resources_rds():
     client = boto3.client("rds", region_name="us-west-2")

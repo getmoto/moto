@@ -3,16 +3,16 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
-from moto import mock_rds2
+from moto import mock_rds
 
 
 class TestDBInstanceFilters(object):
 
-    mock_rds = mock_rds2()
+    mock = mock_rds()
 
     @classmethod
     def setup_class(cls):
-        cls.mock_rds.start()
+        cls.mock.start()
         client = boto3.client("rds", region_name="us-west-2")
         for i in range(10):
             identifier = "db-instance-{}".format(i)
@@ -27,7 +27,7 @@ class TestDBInstanceFilters(object):
     @classmethod
     def teardown_class(cls):
         try:
-            cls.mock_rds.stop()
+            cls.mock.stop()
         except RuntimeError:
             pass
 
@@ -179,11 +179,11 @@ class TestDBInstanceFilters(object):
 
 class TestDBSnapshotFilters(object):
 
-    mock_rds = mock_rds2()
+    mock = mock_rds()
 
     @classmethod
     def setup_class(cls):
-        cls.mock_rds.start()
+        cls.mock.start()
         client = boto3.client("rds", region_name="us-west-2")
         # We'll set up two instances (one postgres, one mysql)
         # with two snapshots each.
@@ -205,7 +205,7 @@ class TestDBSnapshotFilters(object):
     @classmethod
     def teardown_class(cls):
         try:
-            cls.mock_rds.stop()
+            cls.mock.stop()
         except RuntimeError:
             pass
 

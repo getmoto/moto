@@ -11,7 +11,7 @@ from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.kinesis import kinesis_backends
 from moto.kms import kms_backends
-from moto.rds2 import rds2_backends
+from moto.rds import rds_backends
 from moto.glacier import glacier_backends
 from moto.redshift import redshift_backends
 from moto.emr import emr_backends
@@ -83,9 +83,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def rds_backend(self):
         """
-        :rtype: moto.rds2.models.RDS2Backend
+        :rtype: moto.rds.models.RDSBackend
         """
-        return rds2_backends[self.region_name]
+        return rds_backends[self.region_name]
 
     @property
     def glacier_backend(self):
