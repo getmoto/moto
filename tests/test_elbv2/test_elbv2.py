@@ -90,6 +90,20 @@ def test_describe_load_balancers():
 
 @mock_elbv2
 @mock_ec2
+def test_describe_listeners():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        conn.describe_listeners()
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "You must specify either listener ARNs or a load balancer ARN"
+    )
+
+
+@mock_elbv2
+@mock_ec2
 def test_add_remove_tags():
     _, _, _, _, _, conn = create_load_balancer()
 
