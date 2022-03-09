@@ -1,13 +1,13 @@
 from abc import abstractmethod
 
-from moto.dynamodb2.exceptions import (
+from moto.dynamodb.exceptions import (
     IncorrectOperandType,
     IncorrectDataType,
     ProvidedKeyDoesNotExist,
 )
-from moto.dynamodb2.models import DynamoType
-from moto.dynamodb2.models.dynamo_type import DDBTypeConversion, DDBType
-from moto.dynamodb2.parsing.ast_nodes import (
+from moto.dynamodb.models import DynamoType
+from moto.dynamodb.models.dynamo_type import DDBTypeConversion, DDBType
+from moto.dynamodb.parsing.ast_nodes import (
     UpdateExpressionSetAction,
     UpdateExpressionDeleteAction,
     UpdateExpressionRemoveAction,
@@ -18,7 +18,7 @@ from moto.dynamodb2.parsing.ast_nodes import (
     ExpressionSelector,
     ExpressionAttributeName,
 )
-from moto.dynamodb2.parsing.validators import ExpressionPathResolver
+from moto.dynamodb.parsing.validators import ExpressionPathResolver
 
 
 class NodeExecutor(object):

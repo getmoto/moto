@@ -21,7 +21,7 @@ from moto.batch import models  # noqa  # pylint: disable=all
 from moto.cloudformation.custom_model import CustomModel
 from moto.cloudwatch import models  # noqa  # pylint: disable=all
 from moto.datapipeline import models  # noqa  # pylint: disable=all
-from moto.dynamodb2 import models  # noqa  # pylint: disable=all
+from moto.dynamodb import models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models
 from moto.ecr import models  # noqa  # pylint: disable=all
 from moto.ecs import models  # noqa  # pylint: disable=all

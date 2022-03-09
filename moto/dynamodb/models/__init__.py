@@ -11,9 +11,9 @@ from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, BackendDict
 from moto.core.exceptions import JsonRESTError
-from moto.dynamodb2.comparisons import get_filter_expression
-from moto.dynamodb2.comparisons import get_expected
-from moto.dynamodb2.exceptions import (
+from moto.dynamodb.comparisons import get_filter_expression
+from moto.dynamodb.comparisons import get_expected
+from moto.dynamodb.exceptions import (
     InvalidIndexNameError,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
@@ -26,12 +26,12 @@ from moto.dynamodb2.exceptions import (
     MultipleTransactionsException,
     TooManyTransactionsException,
 )
-from moto.dynamodb2.models.utilities import bytesize
-from moto.dynamodb2.models.dynamo_type import DynamoType
-from moto.dynamodb2.parsing.executors import UpdateExpressionExecutor
-from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
-from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
-from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.dynamodb.models.utilities import bytesize
+from moto.dynamodb.models.dynamo_type import DynamoType
+from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
+from moto.dynamodb.parsing.expressions import UpdateExpressionParser
+from moto.dynamodb.parsing.validators import UpdateExpressionValidator
+from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
 class DynamoJsonEncoder(json.JSONEncoder):

@@ -2,7 +2,7 @@ import boto3
 import json
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import mock_cloudformation, mock_dynamodb2
+from moto import mock_cloudformation, mock_dynamodb
 
 
 template_create_table = {
@@ -30,7 +30,7 @@ template_create_table = {
 }
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @mock_cloudformation
 def test_delete_stack_dynamo_template_boto3():
     conn = boto3.client("cloudformation", region_name="us-east-1")

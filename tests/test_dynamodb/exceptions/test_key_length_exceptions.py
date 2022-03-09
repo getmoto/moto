@@ -6,7 +6,7 @@ import pytest
 
 from moto import mock_dynamodb2
 from botocore.exceptions import ClientError
-from moto.dynamodb2.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
 @mock_dynamodb2

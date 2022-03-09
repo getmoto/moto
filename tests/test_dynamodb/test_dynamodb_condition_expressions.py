@@ -4,10 +4,10 @@ import re
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expression_with_dot_in_attr_name():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
     table_name = "Test"
@@ -46,7 +46,7 @@ def test_condition_expression_with_dot_in_attr_name():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expressions():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -241,7 +241,7 @@ def _assert_conditional_check_failed_exception(exc):
     err["Message"].should.equal("The conditional request failed")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expression_numerical_attribute():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -284,7 +284,7 @@ def update_numerical_con_expr(key, con_expr, res, table):
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expression__attr_doesnt_exist():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -322,7 +322,7 @@ def test_condition_expression__attr_doesnt_exist():
     _assert_conditional_check_failed_exception(exc)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expression__or_order():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -345,7 +345,7 @@ def test_condition_expression__or_order():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expression__and_order():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -370,7 +370,7 @@ def test_condition_expression__and_order():
     _assert_conditional_check_failed_exception(exc)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_condition_expression_with_reserved_keyword_as_attr_name():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
     table_name = "Test"

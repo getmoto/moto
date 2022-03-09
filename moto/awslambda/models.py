@@ -45,7 +45,7 @@ from .utils import (
     split_layer_arn,
 )
 from moto.sqs import sqs_backends
-from moto.dynamodb2 import dynamodb_backends2
+from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
@@ -1259,7 +1259,7 @@ The Docker images used by Moto are taken from the `lambci/lambda`-repo by defaul
                 esm = EventSourceMapping(spec)
                 self._event_source_mappings[esm.uuid] = esm
                 table_name = stream["TableName"]
-                table = dynamodb_backends2[self.region_name].get_table(table_name)
+                table = dynamodb_backends[self.region_name].get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
         raise RESTError("ResourceNotFoundException", "Invalid EventSourceArn")

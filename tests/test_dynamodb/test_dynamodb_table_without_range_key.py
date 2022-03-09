@@ -4,12 +4,12 @@ import sure  # noqa # pylint: disable=unused-import
 import pytest
 from datetime import datetime
 from botocore.exceptions import ClientError
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 from moto.core import ACCOUNT_ID
 import botocore
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_create_table_boto3():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -72,7 +72,7 @@ def test_create_table_boto3():
     actual.should.have.key("ItemCount").equal(0)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_delete_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
@@ -94,7 +94,7 @@ def test_delete_table_boto3():
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_item_add_and_describe_and_update_boto3():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -130,7 +130,7 @@ def test_item_add_and_describe_and_update_boto3():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_item_put_without_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -149,7 +149,7 @@ def test_item_put_without_table_boto3():
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_get_item_with_undeclared_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -161,7 +161,7 @@ def test_get_item_with_undeclared_table_boto3():
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_delete_item_boto3():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -188,7 +188,7 @@ def test_delete_item_boto3():
     table.delete_item(Key={"id": "LOLCat Forum"})
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_delete_item_with_undeclared_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -204,7 +204,7 @@ def test_delete_item_with_undeclared_table_boto3():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_scan_with_undeclared_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -216,7 +216,7 @@ def test_scan_with_undeclared_table_boto3():
     ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_get_key_schema():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -229,7 +229,7 @@ def test_get_key_schema():
     table.key_schema.should.equal([{"AttributeName": "id", "KeyType": "HASH"}])
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_item_double_nested_remove():
     conn = boto3.client("dynamodb", region_name="us-east-1")
     conn.create_table(
@@ -264,7 +264,7 @@ def test_update_item_double_nested_remove():
     dict(returned_item["Item"]).should.equal(expected_item)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_item_set_boto3():
     conn = boto3.resource("dynamodb", region_name="us-east-1")
     table = conn.create_table(
@@ -288,7 +288,7 @@ def test_update_item_set_boto3():
     dict(returned_item).should.equal({"username": "steve", "foo": "bar", "blah": "baz"})
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_create_table():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -313,7 +313,7 @@ def _create_user_table():
     return dynamodb.Table("users")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_conditions():
     table = _create_user_table()
 
@@ -326,7 +326,7 @@ def test_boto3_conditions():
     response["Items"][0].should.equal({"username": "johndoe"})
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_put_item_conditions_pass():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -338,7 +338,7 @@ def test_boto3_put_item_conditions_pass():
     assert dict(final_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_put_item_conditions_pass_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -350,7 +350,7 @@ def test_boto3_put_item_conditions_pass_because_expect_not_exists_by_compare_to_
     assert dict(final_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_put_item_conditions_pass_because_expect_exists_by_compare_to_not_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -362,7 +362,7 @@ def test_boto3_put_item_conditions_pass_because_expect_exists_by_compare_to_not_
     assert dict(final_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_put_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -372,7 +372,7 @@ def test_boto3_put_item_conditions_fail():
     ).should.throw(botocore.client.ClientError)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
@@ -384,7 +384,7 @@ def test_boto3_update_item_conditions_fail():
     ).should.throw(botocore.client.ClientError)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_fail_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
@@ -396,7 +396,7 @@ def test_boto3_update_item_conditions_fail_because_expect_not_exists():
     ).should.throw(botocore.client.ClientError)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_fail_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
@@ -408,7 +408,7 @@ def test_boto3_update_item_conditions_fail_because_expect_not_exists_by_compare_
     ).should.throw(botocore.client.ClientError)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_pass():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -422,7 +422,7 @@ def test_boto3_update_item_conditions_pass():
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_pass_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -436,7 +436,7 @@ def test_boto3_update_item_conditions_pass_because_expect_not_exists():
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_pass_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -450,7 +450,7 @@ def test_boto3_update_item_conditions_pass_because_expect_not_exists_by_compare_
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_item_conditions_pass_because_expect_exists_by_compare_to_not_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -464,7 +464,7 @@ def test_boto3_update_item_conditions_pass_because_expect_exists_by_compare_to_n
     assert dict(returned_item)["Item"]["foo"].should.equal("baz")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_boto3_update_settype_item_with_conditions():
     class OrderedSet(set):
         """A set with predictable iteration order"""
@@ -501,7 +501,7 @@ def test_boto3_update_settype_item_with_conditions():
     assert dict(returned_item)["Item"]["foo"].should.equal(set(["baz"]))
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_scan_pagination():
     table = _create_user_table()
 
@@ -524,7 +524,7 @@ def test_scan_pagination():
     usernames.should.equal(set(expected_usernames))
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_scan_by_index():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 

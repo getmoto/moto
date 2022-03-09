@@ -1,5 +1,5 @@
 import pytest
-from moto.dynamodb2.models import Table
+from moto.dynamodb.models import Table
 
 
 @pytest.fixture

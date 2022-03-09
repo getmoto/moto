@@ -1,8 +1,8 @@
-from moto.dynamodb2.exceptions import (
+from moto.dynamodb.exceptions import (
     InvalidTokenException,
     InvalidExpressionAttributeNameKey,
 )
-from moto.dynamodb2.parsing.tokens import ExpressionTokenizer, Token
+from moto.dynamodb.parsing.tokens import ExpressionTokenizer, Token
 
 
 def test_expression_tokenizer_single_set_action():

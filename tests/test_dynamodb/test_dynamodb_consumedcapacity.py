@@ -3,10 +3,10 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_error_on_wrong_value_for_consumed_capacity():
     resource = boto3.resource("dynamodb", region_name="ap-northeast-3")
     client = boto3.client("dynamodb", region_name="ap-northeast-3")
@@ -30,7 +30,7 @@ def test_error_on_wrong_value_for_consumed_capacity():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_consumed_capacity_get_unknown_item():
     conn = boto3.client("dynamodb", region_name="us-east-1")
     conn.create_table(
@@ -52,7 +52,7 @@ def test_consumed_capacity_get_unknown_item():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @pytest.mark.parametrize(
     "capacity,should_have_capacity,should_have_table",
     [
