@@ -1305,6 +1305,59 @@ def test_create_group():
 
 
 @mock_cognitoidp
+def test_group_in_access_token():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
+    group_name = str(uuid.uuid4())
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name],
+    )["UserPoolClient"]["ClientId"]
+
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": user_attribute_name, "Value": user_attribute_value}],
+    )
+
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    # A newly created user is forced to set a new password
+    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
+    result["Session"].should_not.be.none
+
+    # This sets a new password and logs the user in (creates tokens)
+    new_password = str(uuid.uuid4())
+    result = conn.respond_to_auth_challenge(
+        Session=result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
+    )
+
+    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["AccessToken"])
+    claims["cognito:groups"].should.equal([group_name])
+
+
+@mock_cognitoidp
 def test_create_group_with_duplicate_name_raises_error():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2211,6 +2264,33 @@ def test_list_users_when_limit_more_than_total_items():
 
 
 @mock_cognitoidp
+def test_list_users_with_attributes_to_get():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    for _ in range(5):
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=str(uuid.uuid4()),
+            UserAttributes=[
+                {"Name": "family_name", "Value": "Doe"},
+                {"Name": "given_name", "Value": "Jane"},
+                {"Name": "custom:foo", "Value": "bar"},
+            ],
+        )
+
+    result = conn.list_users(
+        UserPoolId=user_pool_id, AttributesToGet=["given_name", "custom:foo", "unknown"]
+    )
+    users = result["Users"]
+    users.should.have.length_of(5)
+    for user in users:
+        user["Attributes"].should.have.length_of(2)
+        user["Attributes"].should.contain({"Name": "given_name", "Value": "Jane"})
+        user["Attributes"].should.contain({"Name": "custom:foo", "Value": "bar"})
+
+
+@mock_cognitoidp
 def test_admin_disable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2373,6 +2453,36 @@ def test_authentication_flow():
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
         authentication_flow(conn, auth_flow)
+
+
+@mock_cognitoidp
+def test_authentication_flow_invalid_flow():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        authentication_flow(conn, "NO_SUCH_FLOW")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: "
+        "Member must satisfy enum value set: "
+        "['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', 'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', "
+        "'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
+    )
+
+
+@mock_cognitoidp
+def test_authentication_flow_invalid_user_flow():
+    """ Pass a user authFlow to admin_initiate_auth """
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        authentication_flow(conn, "USER_PASSWORD_AUTH")
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal("Initiate Auth method not supported")
 
 
 def user_authentication_flow(conn):
@@ -2829,6 +2939,33 @@ def test_admin_user_global_sign_out():
 
 
 @mock_cognitoidp
+def test_admin_user_global_sign_out_twice():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result["user_pool_id"], Username=result["username"],
+    )
+
+    conn.admin_user_global_sign_out(
+        UserPoolId=result["user_pool_id"], Username=result["username"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="REFRESH_TOKEN",
+            AuthParameters={
+                "REFRESH_TOKEN": result["refresh_token"],
+                "SECRET_HASH": result["secret_hash"],
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
+    err["Message"].should.equal("Refresh Token has been revoked")
+
+
+@mock_cognitoidp
 def test_admin_user_global_sign_out_unknown_userpool():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -2959,6 +3096,18 @@ def test_admin_delete_user_attributes_non_existing_attribute():
     err["Code"].should.equal("InvalidParameterException")
     err["Message"].should.equal(
         "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\n"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.admin_delete_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributeNames=["nickname", "custom:foo", "custom:bar"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "Invalid user attributes: user.custom:foo: Attribute does not exist in the schema.\nuser.custom:bar: Attribute does not exist in the schema.\n"
     )
 
 
@@ -3242,6 +3391,106 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
 
 
 @mock_cognitoidp
+def test_initiate_auth_invalid_auth_flow():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    with pytest.raises(ClientError) as ex:
+        user_authentication_flow(conn)
+
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="NO_SUCH_FLOW",
+            AuthParameters={
+                "USERNAME": result["username"],
+                "PASSWORD": result["password"],
+            },
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'NO_SUCH_FLOW' at 'authFlow' failed to satisfy constraint: "
+        "Member must satisfy enum value set: ['ADMIN_NO_SRP_AUTH', 'ADMIN_USER_PASSWORD_AUTH', 'USER_SRP_AUTH', "
+        "'REFRESH_TOKEN_AUTH', 'REFRESH_TOKEN', 'CUSTOM_AUTH', 'USER_PASSWORD_AUTH']"
+    )
+
+
+@mock_cognitoidp
+def test_initiate_auth_invalid_admin_auth_flow():
+    """ Pass an admin auth_flow to the regular initiate_auth"""
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    with pytest.raises(ClientError) as ex:
+        user_authentication_flow(conn)
+
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
+            AuthParameters={
+                "USERNAME": result["username"],
+                "PASSWORD": result["password"],
+            },
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterException")
+    err["Message"].should.equal("Initiate Auth method not supported")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
+    # Test flow:
+    # 1. Create user with FORCE_CHANGE_PASSWORD status
+    # 2. Login with temporary password
+    # 3. Check that the right challenge is received
+    # 4. Respond to challenge with new password
+    # 5. Check that the access tokens are received
+
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+
+    # Create pool and client
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+
+    # Create user in status FORCE_CHANGE_PASSWORD
+    temporary_password = str(uuid.uuid4())
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=temporary_password
+    )
+
+    result = client.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
+    result["ChallengeParameters"]["USERNAME"].should.equal(username)
+    result["Session"].should_not.be.none
+    assert result.get("AuthenticationResult") is None
+
+    new_password = str(uuid.uuid4())
+    result = client.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        Session=result["Session"],
+        ChallengeResponses={
+            "NEW_PASSWORD": new_password,
+            "USERNAME": result["ChallengeParameters"]["USERNAME"],
+        },
+    )
+
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+
+
+@mock_cognitoidp
 def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -3382,6 +3631,7 @@ def test_setting_mfa():
         )
 
         result["UserMFASettingList"].should.have.length_of(1)
+        result["PreferredMfaSetting"].should.equal("SOFTWARE_TOKEN_MFA")
 
 
 @mock_cognitoidp
@@ -3402,6 +3652,44 @@ def test_setting_mfa_when_token_not_verified():
             caught = True
 
         caught.should.be.true
+
+
+@mock_cognitoidp
+def test_admin_setting_mfa():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    username = "test@example.com"
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserMFASettingList"].should.have.length_of(1)
+    result["PreferredMfaSetting"].should.equal("SMS_MFA")
+
+
+@mock_cognitoidp
+def test_admin_setting_mfa_when_token_not_verified():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    username = "test@example.com"
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    with pytest.raises(conn.exceptions.InvalidParameterException):
+        conn.admin_set_user_mfa_preference(
+            Username=username,
+            UserPoolId=user_pool_id,
+            SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+        )
 
 
 @mock_cognitoidp

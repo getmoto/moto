@@ -2,40 +2,16 @@ import pytest
 from botocore.exceptions import ClientError
 
 import boto3
-import boto
-from boto.exception import EC2ResponseError
 
 import sure  # noqa # pylint: disable=unused-import
 import random
 
-from moto import mock_ec2, mock_ec2_deprecated
+from moto import mock_ec2
 from uuid import uuid4
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
 SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpcs():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    vpc.cidr_block.should.equal("10.0.0.0/16")
-
-    all_vpcs = conn.get_all_vpcs()
-    all_vpcs.should.have.length_of(2)
-
-    vpc.delete()
-
-    all_vpcs = conn.get_all_vpcs()
-    all_vpcs.should.have.length_of(1)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.delete_vpc("vpc-1234abcd")
-    cm.value.code.should.equal("InvalidVpcID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -58,23 +34,6 @@ def test_create_and_delete_vpc():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_defaults():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-
-    conn.get_all_vpcs().should.have.length_of(2)
-    conn.get_all_route_tables().should.have.length_of(2)
-    conn.get_all_security_groups(filters={"vpc-id": [vpc.id]}).should.have.length_of(1)
-
-    vpc.delete()
-
-    conn.get_all_vpcs().should.have.length_of(1)
-    conn.get_all_route_tables().should.have.length_of(1)
-    conn.get_all_security_groups(filters={"vpc-id": [vpc.id]}).should.have.length_of(0)
 
 
 @mock_ec2
@@ -102,16 +61,6 @@ def test_vpc_defaults_boto3():
     ].should.have.length_of(0)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_isdefault_filter():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    conn.get_all_vpcs(filters={"isDefault": "true"}).should.have.length_of(1)
-    vpc.delete()
-    conn.get_all_vpcs(filters={"isDefault": "true"}).should.have.length_of(1)
-
-
 @mock_ec2
 def test_vpc_isdefault_filter_boto3():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
@@ -128,19 +77,6 @@ def test_vpc_isdefault_filter_boto3():
     ].should.have.length_of(1)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_multiple_vpcs_default_filter():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    conn.create_vpc("10.8.0.0/16")
-    conn.create_vpc("10.0.0.0/16")
-    conn.create_vpc("192.168.0.0/16")
-    conn.get_all_vpcs().should.have.length_of(4)
-    vpc = conn.get_all_vpcs(filters={"isDefault": "true"})
-    vpc.should.have.length_of(1)
-    vpc[0].cidr_block.should.equal("172.31.0.0/16")
-
-
 @mock_ec2
 def test_multiple_vpcs_default_filter_boto3():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
@@ -152,17 +88,6 @@ def test_multiple_vpcs_default_filter_boto3():
         client, [{"Name": "isDefault", "Values": ["true"]}]
     )
     [v["CidrBlock"] for v in default_vpcs].should.contain("172.31.0.0/16")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_state_available_filter():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    conn.create_vpc("10.1.0.0/16")
-    conn.get_all_vpcs(filters={"state": "available"}).should.have.length_of(3)
-    vpc.delete()
-    conn.get_all_vpcs(filters={"state": "available"}).should.have.length_of(2)
 
 
 @mock_ec2
@@ -194,23 +119,6 @@ def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
     return all_vpcs
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_tagging():
-    conn = boto.connect_vpc()
-    vpc = conn.create_vpc("10.0.0.0/16")
-
-    vpc.add_tag("a key", "some value")
-    tag = conn.get_all_tags()[0]
-    tag.name.should.equal("a key")
-    tag.value.should.equal("some value")
-
-    # Refresh the vpc
-    vpc = conn.get_all_vpcs(vpc_ids=[vpc.id])[0]
-    vpc.tags.should.have.length_of(1)
-    vpc.tags["a key"].should.equal("some value")
-
-
 @mock_ec2
 def test_vpc_tagging_boto3():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
@@ -227,27 +135,6 @@ def test_vpc_tagging_boto3():
     # Refresh the vpc
     vpc = client.describe_vpcs(VpcIds=[vpc.id])["Vpcs"][0]
     vpc["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_id():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    conn.create_vpc("10.0.0.0/16")
-
-    vpcs = conn.get_all_vpcs(vpc_ids=[vpc1.id, vpc2.id])
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_vpcs(vpc_ids=["vpc-does_not_exist"])
-    cm.value.code.should.equal("InvalidVpcID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -271,21 +158,6 @@ def test_vpc_get_by_id_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_cidr_block():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    conn.create_vpc("10.0.0.0/24")
-
-    vpcs = conn.get_all_vpcs(filters={"cidr": "10.0.0.0/16"})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
-
-
 @mock_ec2
 def test_vpc_get_by_cidr_block_boto3():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
@@ -300,25 +172,6 @@ def test_vpc_get_by_cidr_block_boto3():
         "Vpcs"
     ]
     set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_dhcp_options_id():
-    conn = boto.connect_vpc()
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    conn.create_vpc("10.0.0.0/24")
-
-    conn.associate_dhcp_options(dhcp_options.id, vpc1.id)
-    conn.associate_dhcp_options(dhcp_options.id, vpc2.id)
-
-    vpcs = conn.get_all_vpcs(filters={"dhcp-options-id": dhcp_options.id})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
 
 
 @mock_ec2
@@ -347,25 +200,6 @@ def test_vpc_get_by_dhcp_options_id_boto3():
     vpc2.id.should.be.within(vpc_ids)
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_tag():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
-
-    vpc1.add_tag("Name", "TestVPC")
-    vpc2.add_tag("Name", "TestVPC")
-    vpc3.add_tag("Name", "TestVPC2")
-
-    vpcs = conn.get_all_vpcs(filters={"tag:Name": "TestVPC"})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
-
-
 @mock_ec2
 def test_vpc_get_by_tag_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -384,27 +218,6 @@ def test_vpc_get_by_tag_boto3():
     ]
     vpcs.should.have.length_of(2)
     set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_tag_key_superset():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
-
-    vpc1.add_tag("Name", "TestVPC")
-    vpc1.add_tag("Key", "TestVPC2")
-    vpc2.add_tag("Name", "TestVPC")
-    vpc2.add_tag("Key", "TestVPC2")
-    vpc3.add_tag("Key", "TestVPC2")
-
-    vpcs = conn.get_all_vpcs(filters={"tag-key": "Name"})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
 
 
 @mock_ec2
@@ -427,27 +240,6 @@ def test_vpc_get_by_tag_key_superset_boto3():
     ]
     vpcs.should.have.length_of(2)
     set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_tag_key_subset():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
-
-    vpc1.add_tag("Name", "TestVPC")
-    vpc1.add_tag("Key", "TestVPC2")
-    vpc2.add_tag("Name", "TestVPC")
-    vpc2.add_tag("Key", "TestVPC2")
-    vpc3.add_tag("Test", "TestVPC2")
-
-    vpcs = conn.get_all_vpcs(filters={"tag-key": ["Name", "Key"]})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
 
 
 @mock_ec2
@@ -473,27 +265,6 @@ def test_vpc_get_by_tag_key_subset_boto3():
     set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_tag_value_superset():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    vpc3 = conn.create_vpc("10.0.0.0/24")
-
-    vpc1.add_tag("Name", "TestVPC")
-    vpc1.add_tag("Key", "TestVPC2")
-    vpc2.add_tag("Name", "TestVPC")
-    vpc2.add_tag("Key", "TestVPC2")
-    vpc3.add_tag("Key", "TestVPC2")
-
-    vpcs = conn.get_all_vpcs(filters={"tag-value": "TestVPC"})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
-
-
 @mock_ec2
 def test_vpc_get_by_tag_value_superset_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -514,26 +285,6 @@ def test_vpc_get_by_tag_value_superset_boto3():
     ]
     vpcs.should.have.length_of(2)
     set([vpc["VpcId"] for vpc in vpcs]).should.equal(set([vpc1.id, vpc2.id]))
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_get_by_tag_value_subset():
-    conn = boto.connect_vpc()
-    vpc1 = conn.create_vpc("10.0.0.0/16")
-    vpc2 = conn.create_vpc("10.0.0.0/16")
-    conn.create_vpc("10.0.0.0/24")
-
-    vpc1.add_tag("Name", "TestVPC")
-    vpc1.add_tag("Key", "TestVPC2")
-    vpc2.add_tag("Name", "TestVPC")
-    vpc2.add_tag("Key", "TestVPC2")
-
-    vpcs = conn.get_all_vpcs(filters={"tag-value": ["TestVPC", "TestVPC2"]})
-    vpcs.should.have.length_of(2)
-    vpc_ids = tuple(map(lambda v: v.id, vpcs))
-    vpc1.id.should.be.within(vpc_ids)
-    vpc2.id.should.be.within(vpc_ids)
 
 
 @mock_ec2
@@ -691,19 +442,6 @@ def test_vpc_modify_enable_dns_hostnames():
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
     attr.get("Value").should.be.ok
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_vpc_associate_dhcp_options():
-    conn = boto.connect_vpc()
-    dhcp_options = conn.create_dhcp_options(SAMPLE_DOMAIN_NAME, SAMPLE_NAME_SERVERS)
-    vpc = conn.create_vpc("10.0.0.0/16")
-
-    conn.associate_dhcp_options(dhcp_options.id, vpc.id)
-
-    vpc.update()
-    dhcp_options.id.should.equal(vpc.dhcp_options_id)
 
 
 @mock_ec2
@@ -1200,7 +938,7 @@ def test_describe_classic_link_dns_support_multiple():
 
 
 @mock_ec2
-def test_describe_vpc_end_points():
+def test_describe_vpc_gateway_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
 
@@ -1235,6 +973,59 @@ def test_describe_vpc_end_points():
     endpoint_by_id["VpcEndpointType"].should.equal("gateway")
     endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
     endpoint_by_id["State"].should.equal("available")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidVpcEndpointId.NotFound")
+
+
+@mock_ec2
+def test_describe_vpc_interface_end_points():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = ec2.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    route_table = ec2.create_route_table(VpcId=vpc["VpcId"])["RouteTable"]
+    vpc_end_point = ec2.create_vpc_endpoint(
+        VpcId=vpc["VpcId"],
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SubnetIds=[subnet["SubnetId"]],
+    )["VpcEndpoint"]
+    our_id = vpc_end_point["VpcEndpointId"]
+
+    vpc_end_point["DnsEntries"].should.have.length_of(1)
+    vpc_end_point["DnsEntries"][0].should.have.key("DnsName").should.match(
+        r".*com\.tester\.my-test-endpoint$"
+    )
+    vpc_end_point["DnsEntries"][0].should.have.key("HostedZoneId")
+
+    all_endpoints = retrieve_all_endpoints(ec2)
+    [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
+    our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
+    vpc_end_point["PrivateDnsEnabled"].should.be.true
+    our_endpoint["PrivateDnsEnabled"].should.be.true
+
+    our_endpoint["VpcId"].should.equal(vpc["VpcId"])
+    our_endpoint.should_not.have.key("RouteTableIds")
+
+    our_endpoint["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
+
+    our_endpoint.should.have.key("VpcEndpointType").equal("interface")
+    our_endpoint.should.have.key("ServiceName").equal("com.tester.my-test-endpoint")
+    our_endpoint.should.have.key("State").equal("available")
+
+    endpoint_by_id = ec2.describe_vpc_endpoints(VpcEndpointIds=[our_id])[
+        "VpcEndpoints"
+    ][0]
+    endpoint_by_id["VpcEndpointId"].should.equal(our_id)
+    endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
+    endpoint_by_id.should_not.have.key("RouteTableIds")
+    endpoint_by_id["VpcEndpointType"].should.equal("interface")
+    endpoint_by_id["ServiceName"].should.equal("com.tester.my-test-endpoint")
+    endpoint_by_id["State"].should.equal("available")
+    endpoint_by_id["DnsEntries"].should.equal(vpc_end_point["DnsEntries"])
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])
@@ -1306,3 +1097,16 @@ def test_describe_vpcs_dryrun():
     ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
     )
+
+
+@mock_ec2
+def test_describe_prefix_lists():
+    client = boto3.client("ec2", region_name="us-east-1")
+    result_unfiltered = client.describe_prefix_lists()
+    assert len(result_unfiltered["PrefixLists"]) > 1
+    result_filtered = client.describe_prefix_lists(
+        Filters=[
+            {"Name": "prefix-list-name", "Values": ["com.amazonaws.us-east-1.s3"]},
+        ]
+    )
+    assert len(result_filtered["PrefixLists"]) == 1

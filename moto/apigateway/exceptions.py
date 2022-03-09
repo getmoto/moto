@@ -1,267 +1,259 @@
 from moto.core.exceptions import JsonRESTError
 
 
-class BadRequestException(JsonRESTError):
+class ApiGatewayException(JsonRESTError):
     pass
 
 
-class NotFoundException(JsonRESTError):
+class BadRequestException(ApiGatewayException):
+    def __init__(self, message):
+        super().__init__("BadRequestException", message)
+
+
+class NotFoundException(ApiGatewayException):
+    def __init__(self, message):
+        super().__init__("NotFoundException", message)
+
+
+class AccessDeniedException(ApiGatewayException):
     pass
 
 
-class AccessDeniedException(JsonRESTError):
-    pass
-
-
-class ConflictException(JsonRESTError):
+class ConflictException(ApiGatewayException):
     code = 409
+
+    def __init__(self, message):
+        super().__init__("ConflictException", message)
 
 
 class AwsProxyNotAllowed(BadRequestException):
     def __init__(self):
-        super(AwsProxyNotAllowed, self).__init__(
-            "BadRequestException",
+        super().__init__(
             "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations.",
         )
 
 
 class CrossAccountNotAllowed(AccessDeniedException):
     def __init__(self):
-        super(CrossAccountNotAllowed, self).__init__(
+        super().__init__(
             "AccessDeniedException", "Cross-account pass role is not allowed."
         )
 
 
 class RoleNotSpecified(BadRequestException):
     def __init__(self):
-        super(RoleNotSpecified, self).__init__(
-            "BadRequestException", "Role ARN must be specified for AWS integrations"
-        )
+        super().__init__("Role ARN must be specified for AWS integrations")
 
 
 class IntegrationMethodNotDefined(BadRequestException):
     def __init__(self):
-        super(IntegrationMethodNotDefined, self).__init__(
-            "BadRequestException", "Enumeration value for HttpMethod must be non-empty"
-        )
+        super().__init__("Enumeration value for HttpMethod must be non-empty")
 
 
 class InvalidResourcePathException(BadRequestException):
     def __init__(self):
-        super(InvalidResourcePathException, self).__init__(
-            "BadRequestException",
+        super().__init__(
             "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace.",
         )
 
 
 class InvalidHttpEndpoint(BadRequestException):
     def __init__(self):
-        super(InvalidHttpEndpoint, self).__init__(
-            "BadRequestException", "Invalid HTTP endpoint specified for URI"
-        )
+        super().__init__("Invalid HTTP endpoint specified for URI")
 
 
 class InvalidArn(BadRequestException):
     def __init__(self):
-        super(InvalidArn, self).__init__(
-            "BadRequestException", "Invalid ARN specified in the request"
-        )
+        super().__init__("Invalid ARN specified in the request")
 
 
 class InvalidIntegrationArn(BadRequestException):
     def __init__(self):
-        super(InvalidIntegrationArn, self).__init__(
-            "BadRequestException", "AWS ARN for integration must contain path or action"
-        )
+        super().__init__("AWS ARN for integration must contain path or action")
 
 
 class InvalidRequestInput(BadRequestException):
     def __init__(self):
-        super(InvalidRequestInput, self).__init__(
-            "BadRequestException", "Invalid request input"
-        )
+        super().__init__("Invalid request input")
 
 
 class NoIntegrationDefined(NotFoundException):
     def __init__(self):
-        super(NoIntegrationDefined, self).__init__(
-            "NotFoundException", "No integration defined for method"
-        )
+        super().__init__("No integration defined for method")
 
 
 class NoIntegrationResponseDefined(NotFoundException):
     code = 404
 
     def __init__(self, code=None):
-        super(NoIntegrationResponseDefined, self).__init__(
-            "NotFoundException", "Invalid Response status code specified"
-        )
+        super().__init__("Invalid Response status code specified")
 
 
 class NoMethodDefined(BadRequestException):
     def __init__(self):
-        super(NoMethodDefined, self).__init__(
-            "BadRequestException", "The REST API doesn't contain any methods"
-        )
+        super().__init__("The REST API doesn't contain any methods")
 
 
 class AuthorizerNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(AuthorizerNotFoundException, self).__init__(
-            "NotFoundException", "Invalid Authorizer identifier specified"
-        )
+        super().__init__("Invalid Authorizer identifier specified")
 
 
 class StageNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(StageNotFoundException, self).__init__(
-            "NotFoundException", "Invalid stage identifier specified"
-        )
+        super().__init__("Invalid stage identifier specified")
 
 
 class ApiKeyNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(ApiKeyNotFoundException, self).__init__(
-            "NotFoundException", "Invalid API Key identifier specified"
-        )
+        super().__init__("Invalid API Key identifier specified")
 
 
 class UsagePlanNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(UsagePlanNotFoundException, self).__init__(
-            "NotFoundException", "Invalid Usage Plan ID specified"
-        )
+        super().__init__("Invalid Usage Plan ID specified")
 
 
-class ApiKeyAlreadyExists(JsonRESTError):
+class ApiKeyAlreadyExists(ApiGatewayException):
     code = 409
 
     def __init__(self):
-        super(ApiKeyAlreadyExists, self).__init__(
-            "ConflictException", "API Key already exists"
-        )
+        super().__init__("ConflictException", "API Key already exists")
 
 
 class InvalidDomainName(BadRequestException):
     code = 404
 
     def __init__(self):
-        super(InvalidDomainName, self).__init__(
-            "BadRequestException", "No Domain Name specified"
-        )
+        super().__init__("No Domain Name specified")
 
 
 class DomainNameNotFound(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(DomainNameNotFound, self).__init__(
-            "NotFoundException", "Invalid domain name identifier specified"
-        )
+        super().__init__("Invalid domain name identifier specified")
 
 
 class InvalidRestApiId(BadRequestException):
     code = 404
 
     def __init__(self):
-        super(InvalidRestApiId, self).__init__(
-            "BadRequestException", "No Rest API Id specified"
-        )
+        super().__init__("No Rest API Id specified")
 
 
 class InvalidModelName(BadRequestException):
     code = 404
 
     def __init__(self):
-        super(InvalidModelName, self).__init__(
-            "BadRequestException", "No Model Name specified"
-        )
+        super().__init__("No Model Name specified")
 
 
 class RestAPINotFound(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(RestAPINotFound, self).__init__(
-            "NotFoundException", "Invalid Rest API Id specified"
-        )
+        super().__init__("Invalid Rest API Id specified")
 
 
 class RequestValidatorNotFound(BadRequestException):
     code = 400
 
     def __init__(self):
-        super(RequestValidatorNotFound, self).__init__(
-            "NotFoundException", "Invalid Request Validator Id specified"
-        )
+        super().__init__("Invalid Request Validator Id specified")
 
 
 class ModelNotFound(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(ModelNotFound, self).__init__(
-            "NotFoundException", "Invalid Model Name specified"
-        )
+        super().__init__("Invalid Model Name specified")
 
 
 class ApiKeyValueMinLength(BadRequestException):
     code = 400
 
     def __init__(self):
-        super(ApiKeyValueMinLength, self).__init__(
-            "BadRequestException", "API Key value should be at least 20 characters"
-        )
+        super().__init__("API Key value should be at least 20 characters")
 
 
 class MethodNotFoundException(NotFoundException):
     code = 404
 
     def __init__(self):
-        super(MethodNotFoundException, self).__init__(
-            "NotFoundException", "Invalid Method identifier specified"
-        )
+        super().__init__("Invalid Method identifier specified")
 
 
 class InvalidBasePathException(BadRequestException):
     code = 400
 
     def __init__(self):
-        super(InvalidBasePathException, self).__init__(
-            "BadRequestException",
+        super().__init__(
             "API Gateway V1 doesn't support the slash character (/) in base path mappings. "
             "To create a multi-level base path mapping, use API Gateway V2.",
         )
+
+
+class DeploymentNotFoundException(NotFoundException):
+    def __init__(self):
+        super().__init__("Invalid Deployment identifier specified")
 
 
 class InvalidRestApiIdForBasePathMappingException(BadRequestException):
     code = 400
 
     def __init__(self):
-        super(InvalidRestApiIdForBasePathMappingException, self).__init__(
-            "BadRequestException", "Invalid REST API identifier specified"
-        )
+        super().__init__("Invalid REST API identifier specified")
 
 
 class InvalidStageException(BadRequestException):
     code = 400
 
     def __init__(self):
-        super(InvalidStageException, self).__init__(
-            "BadRequestException", "Invalid stage identifier specified"
-        )
+        super().__init__("Invalid stage identifier specified")
 
 
 class BasePathConflictException(ConflictException):
     def __init__(self):
-        super(BasePathConflictException, self).__init__(
-            "ConflictException", "Base path already exists for this domain name"
+        super().__init__("Base path already exists for this domain name")
+
+
+class BasePathNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self):
+        super().__init__("Invalid base path mapping identifier specified")
+
+
+class VpcLinkNotFound(NotFoundException):
+    code = 404
+
+    def __init__(self):
+        super().__init__("VPCLink not found")
+
+
+class ValidationException(ApiGatewayException):
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("ValidationException", message)
+
+
+class StageStillActive(BadRequestException):
+    def __init__(self):
+        super().__init__(
+            "Active stages pointing to this deployment must be moved or deleted"
         )
+
+
+class GatewayResponseNotFound(NotFoundException):
+    def __init__(self):
+        super().__init__("GatewayResponse not found")

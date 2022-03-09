@@ -1,8 +1,8 @@
 import datetime
-from boto3 import Session
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import BackendDict
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
@@ -83,7 +83,7 @@ class Pipeline(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         datapipeline_backend = datapipeline_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -102,7 +102,7 @@ class Pipeline(CloudFormationModel):
 
 
 class DataPipelineBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.pipelines = OrderedDict()
 
     def create_pipeline(self, name, unique_id, **kwargs):
@@ -149,12 +149,4 @@ class DataPipelineBackend(BaseBackend):
         pipeline.activate()
 
 
-datapipeline_backends = {}
-for region in Session().get_available_regions("datapipeline"):
-    datapipeline_backends[region] = DataPipelineBackend()
-for region in Session().get_available_regions(
-    "datapipeline", partition_name="aws-us-gov"
-):
-    datapipeline_backends[region] = DataPipelineBackend()
-for region in Session().get_available_regions("datapipeline", partition_name="aws-cn"):
-    datapipeline_backends[region] = DataPipelineBackend(region)
+datapipeline_backends = BackendDict(DataPipelineBackend, "datapipeline")

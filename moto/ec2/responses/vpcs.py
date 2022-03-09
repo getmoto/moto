@@ -193,7 +193,7 @@ class VPCs(BaseResponse):
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
-            type=endpoint_type,
+            endpoint_type=endpoint_type,
             policy_document=policy_document,
             route_table_ids=route_table_ids,
             subnet_ids=subnet_ids,
@@ -669,7 +669,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                 <serviceName>{{ vpc_end_point.service_name }}</serviceName>
                 <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
                 <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
-                <vpcEndpointType>{{ vpc_end_point.type }}</vpcEndpointType>
+                <vpcEndpointType>{{ vpc_end_point.endpoint_type }}</vpcEndpointType>
                 {% if vpc_end_point.subnet_ids %}
                     <subnetIdSet>
                         {% for subnet_id in vpc_end_point.subnet_ids %}
@@ -691,13 +691,16 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                         {% endfor %}
                     </networkInterfaceIdSet>
                 {% endif %}
-                {% if vpc_end_point.dns_entries %}
-                    <dnsEntries>
-                        {% for dns_entry in vpc_end_point.dns_entries %}
-                            <item>{{ dns_entry }}</item>
-                        {% endfor %}
-                    </dnsEntries>
+                <dnsEntrySet>
+                {% if vpc_end_point.dns_entries  %}
+                    {% for entry in vpc_end_point.dns_entries %}
+                    <item>
+                        <hostedZoneId>{{ entry["hosted_zone_id"] }}</hostedZoneId>
+                        <dnsName>{{ entry["dns_name"] }}</dnsName>
+                    </item>
+                    {% endfor %}
                 {% endif %}
+                </dnsEntrySet>
                 {% if vpc_end_point.security_group_ids %}
                     <groupSet>
                         {% for group_id in vpc_end_point.security_group_ids %}

@@ -11,11 +11,12 @@ from jinja2 import Template
 from moto.route53.exceptions import (
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
+    NoSuchDelegationSet,
     NoSuchHostedZone,
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -25,6 +26,21 @@ ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 def create_route53_zone_id():
     # New ID's look like this Z1RWWTK7Y8UDDQ
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
+
+
+class DelegationSet(BaseModel):
+    def __init__(self, caller_reference, name_servers, delegation_set_id):
+        self.caller_reference = caller_reference
+        self.name_servers = name_servers or [
+            "ns-2048.awsdns-64.com",
+            "ns-2049.awsdns-65.net",
+            "ns-2050.awsdns-66.org",
+            "ns-2051.awsdns-67.co.uk",
+        ]
+        self.id = delegation_set_id or "".join(
+            [random.choice(ROUTE53_ID_CHOICE) for _ in range(5)]
+        )
+        self.location = f"https://route53.amazonaws.com/delegationset/{self.id}"
 
 
 class HealthCheck(CloudFormationModel):
@@ -61,7 +77,7 @@ class HealthCheck(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]["HealthCheckConfig"]
         health_check_args = {
@@ -128,10 +144,10 @@ class RecordSet(CloudFormationModel):
     def __init__(self, kwargs):
         self.name = kwargs.get("Name")
         self.type_ = kwargs.get("Type")
-        self.ttl = kwargs.get("TTL")
+        self.ttl = kwargs.get("TTL", 0)
         self.records = kwargs.get("ResourceRecords", [])
         self.set_identifier = kwargs.get("SetIdentifier")
-        self.weight = kwargs.get("Weight")
+        self.weight = kwargs.get("Weight", 0)
         self.region = kwargs.get("Region")
         self.health_check = kwargs.get("HealthCheckId")
         self.hosted_zone_name = kwargs.get("HostedZoneName")
@@ -151,7 +167,7 @@ class RecordSet(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -197,55 +213,6 @@ class RecordSet(CloudFormationModel):
     def physical_resource_id(self):
         return self.name
 
-    def to_xml(self):
-        template = Template(
-            """<ResourceRecordSet>
-                <Name>{{ record_set.name }}</Name>
-                <Type>{{ record_set.type_ }}</Type>
-                {% if record_set.set_identifier %}
-                    <SetIdentifier>{{ record_set.set_identifier }}</SetIdentifier>
-                {% endif %}
-                {% if record_set.weight %}
-                    <Weight>{{ record_set.weight }}</Weight>
-                {% endif %}
-                {% if record_set.region %}
-                    <Region>{{ record_set.region }}</Region>
-                {% endif %}
-                {% if record_set.ttl %}
-                    <TTL>{{ record_set.ttl }}</TTL>
-                {% endif %}
-                {% if record_set.failover %}
-                    <Failover>{{ record_set.failover }}</Failover>
-                {% endif %}
-                {% if record_set.geo_location %}
-                <GeoLocation>
-                {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
-                  {% if record_set.geo_location[geo_key] %}<{{ geo_key }}>{{ record_set.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
-                {% endfor %}
-                </GeoLocation>
-                {% endif %}
-                {% if record_set.alias_target %}
-                <AliasTarget>
-                    <HostedZoneId>{{ record_set.alias_target['HostedZoneId'] }}</HostedZoneId>
-                    <DNSName>{{ record_set.alias_target['DNSName'] }}</DNSName>
-                    <EvaluateTargetHealth>{{ record_set.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
-                </AliasTarget>
-                {% else %}
-                <ResourceRecords>
-                    {% for record in record_set.records %}
-                    <ResourceRecord>
-                        <Value>{{ record|e }}</Value>
-                    </ResourceRecord>
-                    {% endfor %}
-                </ResourceRecords>
-                {% endif %}
-                {% if record_set.health_check %}
-                    <HealthCheckId>{{ record_set.health_check }}</HealthCheckId>
-                {% endif %}
-            </ResourceRecordSet>"""
-        )
-        return template.render(record_set=self)
-
     def delete(self, *args, **kwargs):
         """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
         hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
@@ -261,13 +228,27 @@ def reverse_domain_name(domain_name):
 
 
 class FakeZone(CloudFormationModel):
-    def __init__(self, name, id_, private_zone, comment=None):
+    def __init__(
+        self,
+        name,
+        id_,
+        private_zone,
+        vpcid=None,
+        vpcregion=None,
+        comment=None,
+        delegation_set=None,
+    ):
         self.name = name
         self.id = id_
         if comment is not None:
             self.comment = comment
+        if vpcid is not None:
+            self.vpcid = vpcid
+        if vpcregion is not None:
+            self.vpcregion = vpcregion
         self.private_zone = private_zone
         self.rrsets = []
+        self.delegation_set = delegation_set
 
     def add_rrset(self, record_set):
         record_set = RecordSet(record_set)
@@ -337,7 +318,7 @@ class FakeZone(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         hosted_zone = route53_backend.create_hosted_zone(
             resource_name, private_zone=False
@@ -365,7 +346,7 @@ class RecordSetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -413,10 +394,30 @@ class Route53Backend(BaseBackend):
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
         self.query_logging_configs = {}
+        self.delegation_sets = dict()
 
-    def create_hosted_zone(self, name, private_zone, comment=None):
+    def create_hosted_zone(
+        self,
+        name,
+        private_zone,
+        vpcid=None,
+        vpcregion=None,
+        comment=None,
+        delegation_set_id=None,
+    ):
         new_id = create_route53_zone_id()
-        new_zone = FakeZone(name, new_id, private_zone=private_zone, comment=comment)
+        delegation_set = self.create_reusable_delegation_set(
+            caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
+        )
+        new_zone = FakeZone(
+            name,
+            new_id,
+            private_zone=private_zone,
+            vpcid=vpcid,
+            vpcregion=vpcregion,
+            comment=comment,
+            delegation_set=delegation_set,
+        )
         self.zones[new_id] = new_zone
         return new_zone
 
@@ -441,7 +442,21 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def change_resource_record_sets(self, the_zone, change_list):
+    def list_resource_record_sets(self, zone_id, start_type, start_name, max_items):
+        """
+        The StartRecordIdentifier-parameter is not yet implemented
+        """
+        the_zone = self.get_hosted_zone(zone_id)
+        all_records = list(the_zone.get_record_sets(start_type, start_name))
+        records = all_records[0:max_items]
+        next_record = all_records[max_items] if len(all_records) > max_items else None
+        next_start_name = next_record.name if next_record else None
+        next_start_type = next_record.type_ if next_record else None
+        is_truncated = next_record is not None
+        return records, next_start_name, next_start_type, is_truncated
+
+    def change_resource_record_sets(self, zoneid, change_list):
+        the_zone = self.get_hosted_zone(zoneid)
         for value in change_list:
             action = value["Action"]
             record_set = value["ResourceRecordSet"]
@@ -503,8 +518,32 @@ class Route53Backend(BaseBackend):
             zones = sorted(zones, key=sort_key)
         return dnsname, zones
 
+    def list_hosted_zones_by_vpc(self, VPCId, VPCRegion, MaxItems=None, NextToken=None):
+
+        zone_list = []
+        for zone in self.list_hosted_zones():
+            if zone.private_zone == "true":
+                this_zone = self.get_hosted_zone(zone.id)
+                if this_zone.vpcid == VPCId:
+                    this_id = f"/hostedzone/{zone.id}"
+                    zone_list.append(
+                        {
+                            "HostedZoneId": this_id,
+                            "Name": zone.name,
+                            "Owner": {"OwningAccount": ACCOUNT_ID},
+                        }
+                    )
+
+        return zone_list
+
     def get_hosted_zone(self, id_):
-        return self.zones.get(id_.replace("/hostedzone/", ""))
+        the_zone = self.zones.get(id_.replace("/hostedzone/", ""))
+        if not the_zone:
+            raise NoSuchHostedZone(id_)
+        return the_zone
+
+    def get_hosted_zone_count(self):
+        return len(self.list_hosted_zones())
 
     def get_hosted_zone_by_name(self, name):
         for zone in self.list_hosted_zones():
@@ -513,6 +552,8 @@ class Route53Backend(BaseBackend):
         return None
 
     def delete_hosted_zone(self, id_):
+        # Verify it exists
+        self.get_hosted_zone(id_)
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
     def create_health_check(self, caller_reference, health_check_args):
@@ -598,9 +639,7 @@ class Route53Backend(BaseBackend):
         return self.query_logging_configs[query_logging_config_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_query_logging_configs(
-        self, hosted_zone_id=None, next_token=None, max_results=None,
-    ):  # pylint: disable=unused-argument
+    def list_query_logging_configs(self, hosted_zone_id=None):
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
@@ -613,6 +652,33 @@ class Route53Backend(BaseBackend):
                 raise NoSuchHostedZone(hosted_zone_id)
 
         return list(self.query_logging_configs.values())
+
+    def create_reusable_delegation_set(
+        self, caller_reference, delegation_set_id=None, hosted_zone_id=None
+    ):
+        name_servers = None
+        if hosted_zone_id:
+            hosted_zone = self.get_hosted_zone(hosted_zone_id)
+            name_servers = hosted_zone.delegation_set.name_servers
+        delegation_set = DelegationSet(
+            caller_reference, name_servers, delegation_set_id
+        )
+        self.delegation_sets[delegation_set.id] = delegation_set
+        return delegation_set
+
+    def list_reusable_delegation_sets(self):
+        """
+        Pagination is not yet implemented
+        """
+        return self.delegation_sets.values()
+
+    def delete_reusable_delegation_set(self, delegation_set_id):
+        self.delegation_sets.pop(delegation_set_id, None)
+
+    def get_reusable_delegation_set(self, delegation_set_id):
+        if delegation_set_id not in self.delegation_sets:
+            raise NoSuchDelegationSet(delegation_set_id)
+        return self.delegation_sets[delegation_set_id]
 
 
 route53_backend = Route53Backend()

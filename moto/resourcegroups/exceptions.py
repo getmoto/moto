@@ -7,7 +7,7 @@ class BadRequestException(HTTPException):
     code = 400
 
     def __init__(self, message, **kwargs):
-        super(BadRequestException, self).__init__(
+        super().__init__(
             description=json.dumps({"Message": message, "Code": "BadRequestException"}),
             **kwargs
         )

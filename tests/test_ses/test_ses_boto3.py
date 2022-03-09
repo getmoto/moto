@@ -140,6 +140,29 @@ def test_send_unverified_email_with_chevrons():
 
 
 @mock_ses
+def test_send_email_invalid_address():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_email(
+            Source="test@example.com",
+            Destination={
+                "ToAddresses": ["test_to@example.com", "invalid_address"],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            },
+            Message={
+                "Subject": {"Data": "test subject"},
+                "Body": {"Text": {"Data": "test body"}},
+            },
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Missing domain")
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -182,6 +205,35 @@ def test_send_templated_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(3)
+
+
+@mock_ses
+def test_send_templated_email_invalid_address():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_identity(Domain="example.com")
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_templated_email(
+            Source="test@example.com",
+            Destination={
+                "ToAddresses": ["test_to@example.com", "invalid_address"],
+                "CcAddresses": [],
+                "BccAddresses": [],
+            },
+            Template="test_template",
+            TemplateData='{"name": "test"}',
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Missing domain")
 
 
 @mock_ses
@@ -241,6 +293,25 @@ def test_send_raw_email_validate_domain():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(2)
+
+
+@mock_ses
+def test_send_raw_email_invalid_address():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_domain_identity(Domain="example.com")
+
+    message = get_raw_email()
+    del message["To"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_raw_email(
+            Source=message["From"],
+            Destinations=["test_to@example.com", "invalid_address"],
+            RawMessage={"Data": message.as_string()},
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Missing domain")
 
 
 def get_raw_email():
@@ -1159,3 +1230,104 @@ def test_get_send_statistics():
 
     stats[0]["Rejects"].should.equal(1)
     stats[0]["DeliveryAttempts"].should.equal(1)
+
+
+@mock_ses
+def test_set_identity_mail_from_domain():
+    conn = boto3.client("ses", region_name="eu-central-1")
+
+    # Must raise if provided identity does not exist
+    with pytest.raises(ClientError) as exc:
+        conn.set_identity_mail_from_domain(Identity="foo.com")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Identity 'foo.com' does not exist.")
+
+    conn.verify_domain_identity(Domain="foo.com")
+
+    # Must raise if MAILFROM is not a subdomain of identity
+    with pytest.raises(ClientError) as exc:
+        conn.set_identity_mail_from_domain(
+            Identity="foo.com", MailFromDomain="lorem.ipsum.com"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal(
+        "Provided MAIL-FROM domain 'lorem.ipsum.com' is not subdomain of "
+        "the domain of the identity 'foo.com'."
+    )
+
+    # Must raise if BehaviorOnMXFailure is not a valid choice
+    with pytest.raises(ClientError) as exc:
+        conn.set_identity_mail_from_domain(
+            Identity="foo.com",
+            MailFromDomain="lorem.foo.com",
+            BehaviorOnMXFailure="SelfDestruct",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationError")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'SelfDestruct' at "
+        "'behaviorOnMXFailure'failed to satisfy constraint: Member must "
+        "satisfy enum value set: [RejectMessage, UseDefaultValue]"
+    )
+
+    # Must set config for valid input
+    behaviour_on_mx_failure = "RejectMessage"
+    mail_from_domain = "lorem.foo.com"
+
+    conn.set_identity_mail_from_domain(
+        Identity="foo.com",
+        MailFromDomain=mail_from_domain,
+        BehaviorOnMXFailure=behaviour_on_mx_failure,
+    )
+
+    attributes = conn.get_identity_mail_from_domain_attributes(Identities=["foo.com"])
+    actual_attributes = attributes["MailFromDomainAttributes"]["foo.com"]
+    actual_attributes.should.have.key("MailFromDomain").being.equal(mail_from_domain)
+    actual_attributes.should.have.key("BehaviorOnMXFailure").being.equal(
+        behaviour_on_mx_failure
+    )
+    actual_attributes.should.have.key("MailFromDomainStatus").being.equal("Success")
+
+    # Must unset config when MailFromDomain is null
+    conn.set_identity_mail_from_domain(Identity="foo.com")
+
+    attributes = conn.get_identity_mail_from_domain_attributes(Identities=["foo.com"])
+    actual_attributes = attributes["MailFromDomainAttributes"]["foo.com"]
+    actual_attributes.should.have.key("BehaviorOnMXFailure").being.equal(
+        "UseDefaultValue"
+    )
+    actual_attributes.should_not.have.key("MailFromDomain")
+    actual_attributes.should_not.have.key("MailFromDomainStatus")
+
+
+@mock_ses
+def test_get_identity_mail_from_domain_attributes():
+    conn = boto3.client("ses", region_name="eu-central-1")
+
+    # Must return empty for non-existent identities
+    attributes = conn.get_identity_mail_from_domain_attributes(
+        Identities=["bar@foo.com", "lorem.com"]
+    )
+    attributes["MailFromDomainAttributes"].should.have.length_of(0)
+
+    # Must return default options for non-configured identities
+    conn.verify_email_identity(EmailAddress="bar@foo.com")
+    attributes = conn.get_identity_mail_from_domain_attributes(
+        Identities=["bar@foo.com", "lorem.com"]
+    )
+    attributes["MailFromDomainAttributes"].should.have.length_of(1)
+    attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.length_of(1)
+    attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.key(
+        "BehaviorOnMXFailure"
+    ).being.equal("UseDefaultValue")
+
+    # Must return multiple configured identities
+    conn.verify_domain_identity(Domain="lorem.com")
+    attributes = conn.get_identity_mail_from_domain_attributes(
+        Identities=["bar@foo.com", "lorem.com"]
+    )
+    attributes["MailFromDomainAttributes"].should.have.length_of(2)
+    attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.length_of(1)
+    attributes["MailFromDomainAttributes"]["lorem.com"].should.have.length_of(1)

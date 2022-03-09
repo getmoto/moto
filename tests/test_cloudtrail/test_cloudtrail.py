@@ -147,7 +147,9 @@ def test_create_trail_advanced():
     )
     resp.should.have.key("LogFileValidationEnabled").equal(True)
     resp.should.have.key("IsOrganizationTrail").equal(True)
-    return resp
+    resp.should.have.key("CloudWatchLogsLogGroupArn").equals("cwllga")
+    resp.should.have.key("CloudWatchLogsRoleArn").equals("cwlra")
+    resp.should.have.key("KmsKeyId").equals("kki")
 
 
 def create_trail_advanced(region_name="us-east-1"):
@@ -168,6 +170,9 @@ def create_trail_advanced(region_name="us-east-1"):
         IsMultiRegionTrail=True,
         EnableLogFileValidation=True,
         IsOrganizationTrail=True,
+        CloudWatchLogsLogGroupArn="cwllga",
+        CloudWatchLogsRoleArn="cwlra",
+        KmsKeyId="kki",
         TagsList=[{"Key": "tk", "Value": "tv"}, {"Key": "tk2", "Value": "tv2"}],
     )
     return bucket_name, resp, sns_topic_name, trail_name
@@ -253,6 +258,22 @@ def test_get_trail_status_inactive():
 
 @mock_cloudtrail
 @mock_s3
+def test_get_trail_status_arn_inactive():
+    client = boto3.client("cloudtrail", region_name="us-east-1")
+    _, resp, _ = create_trail_simple()
+    status = client.get_trail_status(Name=resp["TrailARN"])
+    status.should.have.key("IsLogging").equal(False)
+    status.should.have.key("LatestDeliveryAttemptTime").equal("")
+    status.should.have.key("LatestNotificationAttemptTime").equal("")
+    status.should.have.key("LatestNotificationAttemptSucceeded").equal("")
+    status.should.have.key("LatestDeliveryAttemptSucceeded").equal("")
+    status.should.have.key("TimeLoggingStarted").equal("")
+    status.should.have.key("TimeLoggingStopped").equal("")
+    status.shouldnt.have.key("StartLoggingTime")
+
+
+@mock_cloudtrail
+@mock_s3
 def test_get_trail_status_after_starting():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
     _, _, trail_name = create_trail_simple(region_name="eu-west-3")
@@ -315,20 +336,28 @@ def test_list_trails():
 
     all_trails = client.list_trails()["Trails"]
     all_trails.should.have.length_of(3)
-    for trail in all_trails:
-        set(trail.keys()).should.equal({"TrailARN", "Name", "HomeRegion"})
 
-    all_trails[0]["TrailARN"].should.equal(trail2["TrailARN"])
-    all_trails[0]["Name"].should.equal(trail2["Name"])
-    all_trails[0]["HomeRegion"].should.equal("ap-southeast-2")
-
-    all_trails[1]["TrailARN"].should.equal(trail3["TrailARN"])
-    all_trails[1]["Name"].should.equal(trail3["Name"])
-    all_trails[1]["HomeRegion"].should.equal("eu-west-1")
-
-    all_trails[2]["TrailARN"].should.equal(trail1["TrailARN"])
-    all_trails[2]["Name"].should.equal(trail1["Name"])
-    all_trails[2]["HomeRegion"].should.equal("us-east-1")
+    all_trails.should.contain(
+        {
+            "TrailARN": trail1["TrailARN"],
+            "Name": trail1["Name"],
+            "HomeRegion": "us-east-1",
+        }
+    )
+    all_trails.should.contain(
+        {
+            "TrailARN": trail2["TrailARN"],
+            "Name": trail2["Name"],
+            "HomeRegion": "ap-southeast-2",
+        }
+    )
+    all_trails.should.contain(
+        {
+            "TrailARN": trail3["TrailARN"],
+            "Name": trail3["Name"],
+            "HomeRegion": "eu-west-1",
+        }
+    )
 
 
 @mock_cloudtrail
@@ -437,3 +466,72 @@ def test_delete_trail():
 
     trails = client.describe_trails()["trailList"]
     trails.should.have.length_of(0)
+
+
+@mock_cloudtrail
+@mock_s3
+def test_update_trail_simple():
+    client = boto3.client("cloudtrail", region_name="ap-southeast-2")
+    bucket_name, trail, name = create_trail_simple(region_name="ap-southeast-2")
+    resp = client.update_trail(Name=name)
+    resp.should.have.key("Name").equal(name)
+    resp.should.have.key("S3BucketName").equal(bucket_name)
+    resp.should.have.key("IncludeGlobalServiceEvents").equal(True)
+    resp.should.have.key("IsMultiRegionTrail").equal(False)
+    resp.should.have.key("LogFileValidationEnabled").equal(False)
+    resp.should.have.key("IsOrganizationTrail").equal(False)
+    resp.shouldnt.have.key("S3KeyPrefix")
+    resp.shouldnt.have.key("SnsTopicName")
+    resp.shouldnt.have.key("SnsTopicARN")
+
+    trail = client.get_trail(Name=name)["Trail"]
+    trail.should.have.key("Name").equal(name)
+    trail.should.have.key("S3BucketName").equal(bucket_name)
+    trail.should.have.key("IncludeGlobalServiceEvents").equal(True)
+    trail.should.have.key("IsMultiRegionTrail").equal(False)
+    trail.should.have.key("LogFileValidationEnabled").equal(False)
+    trail.should.have.key("IsOrganizationTrail").equal(False)
+    trail.shouldnt.have.key("S3KeyPrefix")
+    trail.shouldnt.have.key("SnsTopicName")
+    trail.shouldnt.have.key("SnsTopicARN")
+
+
+@mock_cloudtrail
+@mock_s3
+def test_update_trail_full():
+    client = boto3.client("cloudtrail", region_name="ap-southeast-1")
+    _, trail, name = create_trail_simple(region_name="ap-southeast-1")
+    resp = client.update_trail(
+        Name=name,
+        S3BucketName="updated_bucket",
+        S3KeyPrefix="s3kp",
+        SnsTopicName="stn",
+        IncludeGlobalServiceEvents=False,
+        IsMultiRegionTrail=True,
+        EnableLogFileValidation=True,
+        CloudWatchLogsLogGroupArn="cwllga",
+        CloudWatchLogsRoleArn="cwlra",
+        KmsKeyId="kki",
+        IsOrganizationTrail=True,
+    )
+    resp.should.have.key("Name").equal(name)
+    resp.should.have.key("S3BucketName").equal("updated_bucket")
+    resp.should.have.key("S3KeyPrefix").equals("s3kp")
+    resp.should.have.key("SnsTopicName").equals("stn")
+    resp.should.have.key("IncludeGlobalServiceEvents").equal(False)
+    resp.should.have.key("IsMultiRegionTrail").equal(True)
+    resp.should.have.key("LogFileValidationEnabled").equal(True)
+    resp.should.have.key("IsOrganizationTrail").equal(True)
+
+    trail = client.get_trail(Name=name)["Trail"]
+    trail.should.have.key("Name").equal(name)
+    trail.should.have.key("S3BucketName").equal("updated_bucket")
+    trail.should.have.key("S3KeyPrefix").equals("s3kp")
+    trail.should.have.key("SnsTopicName").equals("stn")
+    trail.should.have.key("IncludeGlobalServiceEvents").equal(False)
+    trail.should.have.key("IsMultiRegionTrail").equal(True)
+    trail.should.have.key("LogFileValidationEnabled").equal(True)
+    trail.should.have.key("IsOrganizationTrail").equal(True)
+    trail.should.have.key("CloudWatchLogsLogGroupArn").equals("cwllga")
+    trail.should.have.key("CloudWatchLogsRoleArn").equals("cwlra")
+    trail.should.have.key("KmsKeyId").equals("kki")

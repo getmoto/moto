@@ -12,8 +12,8 @@ def test_passthrough_requests():
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
-    res = requests.get("https://httpbin.org/ip")
-    assert res.status_code == 200
+    res = requests.get("https://google.com/")
+    assert res.status_code < 400
 
 
 if not settings.TEST_SERVER_MODE:

@@ -10,14 +10,21 @@ import random
 import string
 import tempfile
 import threading
+import pytz
 import sys
 import time
 import uuid
 
 from bisect import insort
-import pytz
+from importlib import reload
+from moto.core import (
+    ACCOUNT_ID,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
@@ -30,6 +37,7 @@ from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
+    CopyObjectMustChangeSomething,
     MissingBucket,
     InvalidBucketName,
     InvalidPart,
@@ -43,7 +51,6 @@ from moto.s3.exceptions import (
     CrossLocationLoggingProhibitted,
     NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
-    WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
     InvalidTagError,
@@ -109,6 +116,7 @@ class FakeKey(BaseModel):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
+        s3_backend=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -140,6 +148,8 @@ class FakeKey(BaseModel):
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
+
+        self.s3_backend = s3_backend
 
     @property
     def version_id(self):
@@ -173,15 +183,6 @@ class FakeKey(BaseModel):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
-    def copy(self, new_name=None, new_is_versioned=None):
-        r = copy.deepcopy(self)
-        if new_name is not None:
-            r.name = new_name
-        if new_is_versioned is not None:
-            r._is_versioned = new_is_versioned
-            r.refresh_version()
-        return r
-
     def set_metadata(self, metadata, replace=False):
         if replace:
             self._metadata = {}
@@ -198,24 +199,8 @@ class FakeKey(BaseModel):
     def set_acl(self, acl):
         self.acl = acl
 
-    def append_to_value(self, value):
-        self.contentsize += len(value)
-        self._value_buffer.seek(0, os.SEEK_END)
-        self._value_buffer.write(value)
-
-        self.last_modified = datetime.datetime.utcnow()
-        self._etag = None  # must recalculate etag
-        if self._is_versioned:
-            self._version_id = str(uuid.uuid4())
-        else:
-            self._version_id = None
-
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
-
-    def refresh_version(self):
-        self._version_id = str(uuid.uuid4())
-        self.last_modified = datetime.datetime.utcnow()
 
     @property
     def etag(self):
@@ -284,6 +269,9 @@ class FakeKey(BaseModel):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
+        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        if tags:
+            res["x-amz-tagging-count"] = len(tags.keys())
 
         return res
 
@@ -343,9 +331,11 @@ class FakeKey(BaseModel):
 
 
 class FakeMultipart(BaseModel):
-    def __init__(self, key_name, metadata):
+    def __init__(self, key_name, metadata, storage=None, tags=None):
         self.key_name = key_name
         self.metadata = metadata
+        self.storage = storage
+        self.tags = tags
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
@@ -375,6 +365,9 @@ class FakeMultipart(BaseModel):
             last = part
             count += 1
 
+        if count == 0:
+            raise MalformedXML
+
         etag = hashlib.md5()
         etag.update(bytes(md5s))
         return total, "{0}-{1}".format(etag.hexdigest(), count)
@@ -390,15 +383,14 @@ class FakeMultipart(BaseModel):
         return key
 
     def list_parts(self, part_number_marker, max_parts):
-        for part_id in self.partlist:
-            part = self.parts[part_id]
-            if part_number_marker <= part.name < part_number_marker + max_parts:
-                yield part
+        max_marker = part_number_marker + max_parts
+        for part_id in self.partlist[part_number_marker:max_marker]:
+            yield self.parts[part_id]
 
 
 class FakeGrantee(BaseModel):
-    def __init__(self, id="", uri="", display_name=""):
-        self.id = id
+    def __init__(self, grantee_id="", uri="", display_name=""):
+        self.id = grantee_id
         self.uri = uri
         self.display_name = display_name
 
@@ -517,7 +509,7 @@ class FakeAcl(BaseModel):
 
 
 def get_canned_acl(acl):
-    owner_grantee = FakeGrantee(id=OWNER)
+    owner_grantee = FakeGrantee(grantee_id=OWNER)
     grants = [FakeGrant([owner_grantee], [PERMISSION_FULL_CONTROL])]
     if acl == "private":
         pass  # no other permissions
@@ -595,7 +587,7 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleRule(BaseModel):
     def __init__(
         self,
-        id=None,
+        rule_id=None,
         prefix=None,
         lc_filter=None,
         status=None,
@@ -610,7 +602,7 @@ class LifecycleRule(BaseModel):
         nvt_storage_class=None,
         aimu_days=None,
     ):
-        self.id = id
+        self.id = rule_id
         self.prefix = prefix
         self.filter = lc_filter
         self.status = status
@@ -694,13 +686,9 @@ class CorsRule(BaseModel):
 
 
 class Notification(BaseModel):
-    def __init__(self, arn, events, filters=None, id=None):
-        self.id = (
-            id
-            if id
-            else "".join(
-                random.choice(string.ascii_letters + string.digits) for _ in range(50)
-            )
+    def __init__(self, arn, events, filters=None, notification_id=None):
+        self.id = notification_id or "".join(
+            random.choice(string.ascii_letters + string.digits) for _ in range(50)
         )
         self.arn = arn
         self.events = events
@@ -735,7 +723,10 @@ class NotificationConfiguration(BaseModel):
         self.topic = (
             [
                 Notification(
-                    t["Topic"], t["Event"], filters=t.get("Filter"), id=t.get("Id")
+                    t["Topic"],
+                    t["Event"],
+                    filters=t.get("Filter"),
+                    notification_id=t.get("Id"),
                 )
                 for t in topic
             ]
@@ -745,7 +736,10 @@ class NotificationConfiguration(BaseModel):
         self.queue = (
             [
                 Notification(
-                    q["Queue"], q["Event"], filters=q.get("Filter"), id=q.get("Id")
+                    q["Queue"],
+                    q["Event"],
+                    filters=q.get("Filter"),
+                    notification_id=q.get("Id"),
                 )
                 for q in queue
             ]
@@ -758,7 +752,7 @@ class NotificationConfiguration(BaseModel):
                     c["CloudFunction"],
                     c["Event"],
                     filters=c.get("Filter"),
-                    id=c.get("Id"),
+                    notification_id=c.get("Id"),
                 )
                 for c in cloud_function
             ]
@@ -977,7 +971,7 @@ class FakeBucket(CloudFormationModel):
 
             self.rules.append(
                 LifecycleRule(
-                    id=rule.get("ID"),
+                    rule_id=rule.get("ID"),
                     prefix=top_level_prefix,
                     lc_filter=lc_filter,
                     status=rule["Status"],
@@ -1114,6 +1108,16 @@ class FakeBucket(CloudFormationModel):
 
         self.accelerate_configuration = accelerate_config
 
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in [
+            "Arn",
+            "DomainName",
+            "DualStackDomainName",
+            "RegionalDomainName",
+            "WebsiteURL",
+        ]
+
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
@@ -1169,7 +1173,7 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         bucket = s3_backend.create_bucket(resource_name, region_name)
 
@@ -1315,11 +1319,36 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-class S3Backend(BaseBackend):
+class S3Backend(BaseBackend, CloudWatchMetricProvider):
+    """
+    Moto implementation for S3.
+
+    Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
+    Example usage:
+
+    .. sourcecode:: python
+
+        os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
+        @mock_s3
+        def test_my_custom_endpoint():
+            boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
+            ...
+
+    Note that this only works if the environment variable is set **before** the mock is initialized.
+    """
+
     def __init__(self):
         self.buckets = {}
-        self.account_public_access_block = None
         self.tagger = TaggingService()
+
+    @property
+    def _url_module(self):
+        # The urls-property can be different depending on env variables
+        # Force a reload, to retrieve the correct set of URLs
+        import moto.s3.urls as backend_urls_module
+
+        reload(backend_urls_module)
+        return backend_urls_module
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1359,9 +1388,10 @@ class S3Backend(BaseBackend):
         # Must provide a method 'get_cloudwatch_metrics' that will return a list of metrics, based on the data available
         # metric_providers["S3"] = self
 
-    def get_cloudwatch_metrics(self):
+    @classmethod
+    def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in self.buckets.items():
+        for name, bucket in s3_backend.buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1371,7 +1401,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Bytes",
                 )
             )
             metrics.append(
@@ -1383,7 +1416,10 @@ class S3Backend(BaseBackend):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(),
+                    timestamp=datetime.datetime.now(tz=pytz.utc).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    ),
+                    unit="Count",
                 )
             )
         return metrics
@@ -1455,10 +1491,6 @@ class S3Backend(BaseBackend):
             version.is_latest = name != last_name
             if version.is_latest:
                 last_name = name
-            # Differentiate between FakeKey and FakeDeleteMarkers
-            if not isinstance(version, FakeKey):
-                delete_markers.append(version)
-                continue
             # skip all keys that alphabetically come before keymarker
             if key_marker and name < key_marker:
                 continue
@@ -1470,6 +1502,11 @@ class S3Backend(BaseBackend):
                 index = name.index(delimiter) + len(delimiter)
                 prefix_including_delimiter = name[0:index]
                 common_prefixes.append(prefix_including_delimiter)
+                continue
+
+            # Differentiate between FakeKey and FakeDeleteMarkers
+            if not isinstance(version, FakeKey):
+                delete_markers.append(version)
                 continue
 
             requested_versions.append(version)
@@ -1544,16 +1581,6 @@ class S3Backend(BaseBackend):
 
         return bucket.public_access_block
 
-    def get_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not self.account_public_access_block:
-            raise NoSuchPublicAccessBlockConfiguration()
-
-        return self.account_public_access_block
-
     def put_object(
         self,
         bucket_name,
@@ -1577,15 +1604,12 @@ class S3Backend(BaseBackend):
 
         # getting default config from bucket if not included in put request
         if bucket.encryption:
-            bucket_key_enabled = (
-                bucket_key_enabled or bucket.encryption["Rule"]["BucketKeyEnabled"]
+            bucket_key_enabled = bucket_key_enabled or bucket.encryption["Rule"].get(
+                "BucketKeyEnabled", False
             )
-            kms_key_id = (
-                kms_key_id
-                or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
-                    "KMSMasterKeyID"
-                ]
-            )
+            kms_key_id = kms_key_id or bucket.encryption["Rule"][
+                "ApplyServerSideEncryptionByDefault"
+            ].get("KMSMasterKeyID")
             encryption = (
                 encryption
                 or bucket.encryption["Rule"]["ApplyServerSideEncryptionByDefault"][
@@ -1595,11 +1619,12 @@ class S3Backend(BaseBackend):
 
         new_key = FakeKey(
             name=key_name,
+            bucket_name=bucket_name,
             value=value,
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=str(uuid.uuid4()) if bucket.is_versioned else None,
+            version_id=str(uuid.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,
@@ -1607,6 +1632,7 @@ class S3Backend(BaseBackend):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            s3_backend=s3_backend,
         )
 
         keys = [
@@ -1624,7 +1650,7 @@ class S3Backend(BaseBackend):
         if key is not None:
             key.set_acl(acl)
         else:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
 
     def put_object_legal_hold(
         self, bucket_name, key_name, version_id, legal_hold_status
@@ -1637,13 +1663,16 @@ class S3Backend(BaseBackend):
         key.lock_mode = retention[0]
         key.lock_until = retention[1]
 
-    def append_to_key(self, bucket_name, key_name, value):
-        key = self.get_object(bucket_name, key_name)
-        key.append_to_value(value)
-        return key
-
-    def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
-        key_name = clean_key_name(key_name)
+    def get_object(
+        self,
+        bucket_name,
+        key_name,
+        version_id=None,
+        part_number=None,
+        key_is_clean=False,
+    ):
+        if not key_is_clean:
+            key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None
 
@@ -1690,7 +1719,7 @@ class S3Backend(BaseBackend):
 
     def set_key_tags(self, key, tags, key_name=None):
         if key is None:
-            raise MissingKey(key_name)
+            raise MissingKey(key=key_name)
         boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
         errmsg = self.tagger.validate_tags(boto_tags_dict)
         if errmsg:
@@ -1748,13 +1777,6 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.public_access_block = None
 
-    def delete_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        self.account_public_access_block = None
-
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -1777,21 +1799,6 @@ class S3Backend(BaseBackend):
             raise InvalidPublicAccessBlockConfiguration()
 
         bucket.public_access_block = PublicAccessBlock(
-            pub_block_config.get("BlockPublicAcls"),
-            pub_block_config.get("IgnorePublicAcls"),
-            pub_block_config.get("BlockPublicPolicy"),
-            pub_block_config.get("RestrictPublicBuckets"),
-        )
-
-    def put_account_public_access_block(self, account_id, pub_block_config):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not pub_block_config:
-            raise InvalidPublicAccessBlockConfiguration()
-
-        self.account_public_access_block = PublicAccessBlock(
             pub_block_config.get("BlockPublicAcls"),
             pub_block_config.get("IgnorePublicAcls"),
             pub_block_config.get("BlockPublicPolicy"),
@@ -1838,11 +1845,12 @@ class S3Backend(BaseBackend):
 
     def is_truncated(self, bucket_name, multipart_id, next_part_number_marker):
         bucket = self.get_bucket(bucket_name)
-        return len(bucket.multiparts[multipart_id].parts) >= next_part_number_marker
+        return len(bucket.multiparts[multipart_id].parts) > next_part_number_marker
 
-    def create_multipart_upload(self, bucket_name, key_name, metadata, storage_type):
-        multipart = FakeMultipart(key_name, metadata)
-        multipart.storage = storage_type
+    def create_multipart_upload(
+        self, bucket_name, key_name, metadata, storage_type, tags
+    ):
+        multipart = FakeMultipart(key_name, metadata, storage=storage_type, tags=tags)
 
         bucket = self.get_bucket(bucket_name)
         bucket.multiparts[multipart.id] = multipart
@@ -2004,30 +2012,49 @@ class S3Backend(BaseBackend):
 
     def copy_object(
         self,
-        src_bucket_name,
-        src_key_name,
+        src_key,
         dest_bucket_name,
         dest_key_name,
         storage=None,
         acl=None,
-        src_version_id=None,
+        encryption=None,
+        kms_key_id=None,
+        bucket_key_enabled=False,
+        mdirective=None,
     ):
-        dest_key_name = clean_key_name(dest_key_name)
-        dest_bucket = self.get_bucket(dest_bucket_name)
-        key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
+        if (
+            src_key.name == dest_key_name
+            and src_key.bucket_name == dest_bucket_name
+            and storage == src_key.storage_class
+            and acl == src_key.acl
+            and encryption == src_key.encryption
+            and kms_key_id == src_key.kms_key_id
+            and bucket_key_enabled == (src_key.bucket_key_enabled or False)
+            and mdirective != "REPLACE"
+        ):
+            raise CopyObjectMustChangeSomething
 
-        new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
-        self.tagger.copy_tags(key.arn, new_key.arn)
+        new_key = self.put_object(
+            bucket_name=dest_bucket_name,
+            key_name=dest_key_name,
+            value=src_key.value,
+            storage=storage or src_key.storage_class,
+            multipart=src_key.multipart,
+            encryption=encryption or src_key.encryption,
+            kms_key_id=kms_key_id or src_key.kms_key_id,
+            bucket_key_enabled=bucket_key_enabled or src_key.bucket_key_enabled,
+            lock_mode=src_key.lock_mode,
+            lock_legal_status=src_key.lock_legal_status,
+            lock_until=src_key.lock_until,
+        )
+        self.tagger.copy_tags(src_key.arn, new_key.arn)
+        new_key.set_metadata(src_key.metadata)
 
-        if storage is not None:
-            new_key.set_storage_class(storage)
         if acl is not None:
             new_key.set_acl(acl)
-        if key.storage_class in "GLACIER":
+        if src_key.storage_class in "GLACIER":
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
-
-        dest_bucket.keys[dest_key_name] = new_key
 
     def put_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)

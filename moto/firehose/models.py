@@ -26,10 +26,9 @@ import warnings
 
 import requests
 
-from boto3 import Session
-
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID
+from moto.core.utils import BackendDict
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
     InvalidArgumentException,
@@ -152,7 +151,7 @@ class DeliveryStream(
             del self.destinations[0][destination_name]["S3Configuration"]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
@@ -672,14 +671,4 @@ class FirehoseBackend(BaseBackend):
         )
 
 
-firehose_backends = {}
-for available_region in Session().get_available_regions("firehose"):
-    firehose_backends[available_region] = FirehoseBackend()
-for available_region in Session().get_available_regions(
-    "firehose", partition_name="aws-us-gov"
-):
-    firehose_backends[available_region] = FirehoseBackend()
-for available_region in Session().get_available_regions(
-    "firehose", partition_name="aws-cn"
-):
-    firehose_backends[available_region] = FirehoseBackend()
+firehose_backends = BackendDict(FirehoseBackend, "firehose")

@@ -2,13 +2,11 @@ import json
 
 import boto3
 from freezegun import freeze_time
-import requests
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway, mock_cognitoidp, settings
+from moto import mock_apigateway, mock_cognitoidp
 from moto.core import ACCOUNT_ID
-from moto.core.models import responses_mock
 import pytest
 
 
@@ -578,17 +576,15 @@ def test_integrations():
         uri=test_uri,
         requestTemplates=templates,
         integrationHttpMethod="POST",
+        timeoutInMillis=29000,
     )
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-    response["ResponseMetadata"].should.equal({"HTTPStatusCode": 200})
 
     response = client.get_integration(
         restApiId=api_id, resourceId=root_id, httpMethod="POST"
     )
     response["uri"].should.equal(test_uri)
     response["requestTemplates"].should.equal(templates)
+    response.should.have.key("timeoutInMillis").equals(29000)
 
 
 @mock_apigateway
@@ -983,354 +979,6 @@ def test_delete_authorizer():
 
 
 @mock_apigateway
-def test_update_stage_configuration():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    create_method_integration(client, api_id)
-
-    response = client.create_deployment(
-        restApiId=api_id, stageName=stage_name, description="1.0.1"
-    )
-    deployment_id = response["id"]
-
-    response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)
-    # createdDate is hard to match against, remove it
-    response.pop("createdDate", None)
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "id": deployment_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "1.0.1",
-        }
-    )
-
-    response = client.create_deployment(
-        restApiId=api_id, stageName=stage_name, description="1.0.2"
-    )
-    deployment_id2 = response["id"]
-
-    stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage["stageName"].should.equal(stage_name)
-    stage["deploymentId"].should.equal(deployment_id2)
-    stage.shouldnt.have.key("cacheClusterSize")
-
-    client.update_stage(
-        restApiId=api_id,
-        stageName=stage_name,
-        patchOperations=[
-            {"op": "replace", "path": "/cacheClusterEnabled", "value": "True"}
-        ],
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-
-    stage.should.have.key("cacheClusterSize").which.should.equal("0.5")
-
-    client.update_stage(
-        restApiId=api_id,
-        stageName=stage_name,
-        patchOperations=[
-            {"op": "replace", "path": "/cacheClusterSize", "value": "1.6"}
-        ],
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-
-    stage.should.have.key("cacheClusterSize").which.should.equal("1.6")
-
-    client.update_stage(
-        restApiId=api_id,
-        stageName=stage_name,
-        patchOperations=[
-            {"op": "replace", "path": "/deploymentId", "value": deployment_id},
-            {"op": "replace", "path": "/variables/environment", "value": "dev"},
-            {"op": "replace", "path": "/variables/region", "value": "eu-west-1"},
-            {"op": "replace", "path": "/*/*/caching/dataEncrypted", "value": "True"},
-            {"op": "replace", "path": "/cacheClusterEnabled", "value": "True"},
-            {
-                "op": "replace",
-                "path": "/description",
-                "value": "stage description update",
-            },
-            {"op": "replace", "path": "/cacheClusterSize", "value": "1.6"},
-        ],
-    )
-
-    client.update_stage(
-        restApiId=api_id,
-        stageName=stage_name,
-        patchOperations=[
-            {"op": "remove", "path": "/variables/region", "value": "eu-west-1"}
-        ],
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-
-    stage["description"].should.match("stage description update")
-    stage["cacheClusterSize"].should.equal("1.6")
-    stage["variables"]["environment"].should.match("dev")
-    stage["variables"].should_not.have.key("region")
-    stage["cacheClusterEnabled"].should.be.true
-    stage["deploymentId"].should.match(deployment_id)
-    stage["methodSettings"].should.have.key("*/*")
-    stage["methodSettings"]["*/*"].should.have.key(
-        "cacheDataEncrypted"
-    ).which.should.be.true
-
-    try:
-        client.update_stage(
-            restApiId=api_id,
-            stageName=stage_name,
-            patchOperations=[
-                {"op": "add", "path": "/notasetting", "value": "eu-west-1"}
-            ],
-        )
-        assert False.should.be.ok  # Fail, should not be here
-    except Exception:
-        assert True.should.be.ok
-
-
-@mock_apigateway
-def test_non_existent_stage():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    client.get_stage.when.called_with(restApiId=api_id, stageName="xxx").should.throw(
-        ClientError
-    )
-
-
-@mock_apigateway
-def test_create_stage():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    create_method_integration(client, api_id)
-    response = client.create_deployment(restApiId=api_id, stageName=stage_name)
-    deployment_id = response["id"]
-
-    response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)
-    # createdDate is hard to match against, remove it
-    response.pop("createdDate", None)
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "id": deployment_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "",
-        }
-    )
-
-    response = client.create_deployment(restApiId=api_id, stageName=stage_name)
-
-    deployment_id2 = response["id"]
-
-    response = client.get_deployments(restApiId=api_id)
-
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-
-    response["items"][0].pop("createdDate")
-    response["items"][1].pop("createdDate")
-    response["items"][0]["id"].should.match(
-        r"{0}|{1}".format(deployment_id2, deployment_id)
-    )
-    response["items"][1]["id"].should.match(
-        r"{0}|{1}".format(deployment_id2, deployment_id)
-    )
-
-    new_stage_name = "current"
-    response = client.create_stage(
-        restApiId=api_id, stageName=new_stage_name, deploymentId=deployment_id2
-    )
-
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-
-    response.should.equal(
-        {
-            "stageName": new_stage_name,
-            "deploymentId": deployment_id2,
-            "methodSettings": {},
-            "variables": {},
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "",
-            "cacheClusterEnabled": False,
-        }
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
-    stage["stageName"].should.equal(new_stage_name)
-    stage["deploymentId"].should.equal(deployment_id2)
-
-    new_stage_name_with_vars = "stage_with_vars"
-    response = client.create_stage(
-        restApiId=api_id,
-        stageName=new_stage_name_with_vars,
-        deploymentId=deployment_id2,
-        variables={"env": "dev"},
-    )
-
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-
-    response.should.equal(
-        {
-            "stageName": new_stage_name_with_vars,
-            "deploymentId": deployment_id2,
-            "methodSettings": {},
-            "variables": {"env": "dev"},
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "",
-            "cacheClusterEnabled": False,
-        }
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=new_stage_name_with_vars)
-    stage["stageName"].should.equal(new_stage_name_with_vars)
-    stage["deploymentId"].should.equal(deployment_id2)
-    stage["variables"].should.have.key("env").which.should.match("dev")
-
-    new_stage_name = "stage_with_vars_and_cache_settings"
-    response = client.create_stage(
-        restApiId=api_id,
-        stageName=new_stage_name,
-        deploymentId=deployment_id2,
-        variables={"env": "dev"},
-        cacheClusterEnabled=True,
-        description="hello moto",
-    )
-
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-
-    response.should.equal(
-        {
-            "stageName": new_stage_name,
-            "deploymentId": deployment_id2,
-            "methodSettings": {},
-            "variables": {"env": "dev"},
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "hello moto",
-            "cacheClusterEnabled": True,
-            "cacheClusterSize": "0.5",
-        }
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
-
-    stage["cacheClusterSize"].should.equal("0.5")
-
-    new_stage_name = "stage_with_vars_and_cache_settings_and_size"
-    response = client.create_stage(
-        restApiId=api_id,
-        stageName=new_stage_name,
-        deploymentId=deployment_id2,
-        variables={"env": "dev"},
-        cacheClusterEnabled=True,
-        cacheClusterSize="1.6",
-        description="hello moto",
-    )
-
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-
-    response.should.equal(
-        {
-            "stageName": new_stage_name,
-            "deploymentId": deployment_id2,
-            "methodSettings": {},
-            "variables": {"env": "dev"},
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "hello moto",
-            "cacheClusterEnabled": True,
-            "cacheClusterSize": "1.6",
-        }
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
-    stage["stageName"].should.equal(new_stage_name)
-    stage["deploymentId"].should.equal(deployment_id2)
-    stage["variables"].should.have.key("env").which.should.match("dev")
-    stage["cacheClusterSize"].should.equal("1.6")
-
-
-@mock_apigateway
-def test_create_deployment_requires_REST_methods():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    with pytest.raises(ClientError) as ex:
-        client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The REST API doesn't contain any methods"
-    )
-
-
-@mock_apigateway
-def test_create_deployment_requires_REST_method_integrations():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
-    )
-
-    with pytest.raises(ClientError) as ex:
-        client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "No integration defined for method"
-    )
-
-
-@mock_apigateway
-def test_create_simple_deployment_with_get_method():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    create_method_integration(client, api_id)
-    deployment = client.create_deployment(restApiId=api_id, stageName=stage_name)
-    assert "id" in deployment
-
-
-@mock_apigateway
-def test_create_simple_deployment_with_post_method():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    create_method_integration(client, api_id, httpMethod="POST")
-    deployment = client.create_deployment(restApiId=api_id, stageName=stage_name)
-    assert "id" in deployment
-
-
-@mock_apigateway
 def test_put_integration_response_with_response_template():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1556,101 +1204,6 @@ def test_put_integration_validation():
 
 
 @mock_apigateway
-def test_delete_stage():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    create_method_integration(client, api_id)
-    deployment_id1 = client.create_deployment(restApiId=api_id, stageName=stage_name)[
-        "id"
-    ]
-    deployment_id2 = client.create_deployment(restApiId=api_id, stageName=stage_name)[
-        "id"
-    ]
-
-    new_stage_name = "current"
-    client.create_stage(
-        restApiId=api_id, stageName=new_stage_name, deploymentId=deployment_id1
-    )
-
-    new_stage_name_with_vars = "stage_with_vars"
-    client.create_stage(
-        restApiId=api_id,
-        stageName=new_stage_name_with_vars,
-        deploymentId=deployment_id2,
-        variables={"env": "dev"},
-    )
-    stages = client.get_stages(restApiId=api_id)["item"]
-    sorted([stage["stageName"] for stage in stages]).should.equal(
-        sorted([new_stage_name, new_stage_name_with_vars, stage_name])
-    )
-    # delete stage
-    response = client.delete_stage(restApiId=api_id, stageName=new_stage_name_with_vars)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
-    # verify other stage still exists
-    stages = client.get_stages(restApiId=api_id)["item"]
-    sorted([stage["stageName"] for stage in stages]).should.equal(
-        sorted([new_stage_name, stage_name])
-    )
-
-
-@mock_apigateway
-def test_deployment():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    stage_name = "staging"
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    create_method_integration(client, api_id)
-
-    response = client.create_deployment(restApiId=api_id, stageName=stage_name)
-    deployment_id = response["id"]
-
-    response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)
-    # createdDate is hard to match against, remove it
-    response.pop("createdDate", None)
-    # this is hard to match against, so remove it
-    response["ResponseMetadata"].pop("HTTPHeaders", None)
-    response["ResponseMetadata"].pop("RetryAttempts", None)
-    response.should.equal(
-        {
-            "id": deployment_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "description": "",
-        }
-    )
-
-    response = client.get_deployments(restApiId=api_id)
-
-    response["items"][0].pop("createdDate")
-    response["items"].should.equal([{"id": deployment_id, "description": ""}])
-
-    client.delete_deployment(restApiId=api_id, deploymentId=deployment_id)
-
-    response = client.get_deployments(restApiId=api_id)
-    len(response["items"]).should.equal(0)
-
-    # test deployment stages
-
-    stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage["stageName"].should.equal(stage_name)
-    stage["deploymentId"].should.equal(deployment_id)
-
-    client.update_stage(
-        restApiId=api_id,
-        stageName=stage_name,
-        patchOperations=[
-            {"op": "replace", "path": "/description", "value": "_new_description_"}
-        ],
-    )
-
-    stage = client.get_stage(restApiId=api_id, stageName=stage_name)
-    stage["stageName"].should.equal(stage_name)
-    stage["deploymentId"].should.equal(deployment_id)
-    stage["description"].should.equal("_new_description_")
-
-
-@mock_apigateway
 def test_create_domain_names():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -1812,50 +1365,6 @@ def test_get_model_with_invalid_name():
 
 
 @mock_apigateway
-def test_http_proxying_integration():
-    responses_mock.add(
-        responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
-    )
-
-    region_name = "us-west-2"
-    client = boto3.client("apigateway", region_name=region_name)
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
-    )
-
-    client.put_method_response(
-        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
-    )
-
-    response = client.put_integration(
-        restApiId=api_id,
-        resourceId=root_id,
-        httpMethod="GET",
-        type="HTTP",
-        uri="http://httpbin.org/robots.txt",
-        integrationHttpMethod="GET",
-    )
-
-    stage_name = "staging"
-    client.create_deployment(restApiId=api_id, stageName=stage_name)
-
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
-    )
-
-    if not settings.TEST_SERVER_MODE:
-        requests.get(deploy_url).content.should.equal(b"a fake response")
-
-
-@mock_apigateway
 def test_api_key_value_min_length():
     region_name = "us-east-1"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1954,11 +1463,9 @@ def test_create_api_key():
     response = client.get_api_keys()
     len(response["items"]).should.equal(1)
 
-    client.create_api_key.when.called_with(**payload).should.throw(ClientError)
-
 
 @mock_apigateway
-def test_create_api_headers():
+def test_create_api_key_twice():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
@@ -1970,8 +1477,6 @@ def test_create_api_headers():
     with pytest.raises(ClientError) as ex:
         client.create_api_key(**payload)
     ex.value.response["Error"]["Code"].should.equal("ConflictException")
-    if not settings.TEST_SERVER_MODE:
-        ex.value.response["ResponseMetadata"]["HTTPHeaders"].should.equal({})
 
 
 @mock_apigateway
@@ -2112,9 +1617,8 @@ def test_update_usage_plan():
             {"op": "replace", "path": "/productCode", "value": "new-productionCode"},
         ],
     )
-    response["quota"]["limit"].should.equal("1000")
+    response["quota"]["limit"].should.equal(1000)
     response["quota"]["period"].should.equal("MONTH")
-    response["quota"]["limit"].should.equal("1000")
     response["name"].should.equal("new-name")
     response["description"].should.equal("new-description")
     response["productCode"].should.equal("new-productionCode")
@@ -2285,20 +1789,6 @@ def test_get_integration_response_unknown_response():
 
     ex.value.response["Error"]["Message"].should.equal(
         "Invalid Response status code specified"
-    )
-    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
-
-
-@mock_apigateway
-def test_delete_stage_unknown_stage():
-    client = boto3.client("apigateway", region_name="us-west-2")
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-    with pytest.raises(ClientError) as ex:
-        client.delete_stage(restApiId=api_id, stageName="unknown")
-
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid stage identifier specified"
     )
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
@@ -2559,3 +2049,330 @@ def test_get_base_path_mappings_with_unknown_domain():
     )
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_get_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    stage_name = "dev"
+    create_method_integration(client, api_id)
+    client.create_deployment(
+        restApiId=api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, stage=stage_name
+    )
+
+    response = client.get_base_path_mapping(domainName=domain_name, basePath="(none)")
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal("(none)")
+    response["restApiId"].should.equal(api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_get_base_path_mapping_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName="unknown-domain", basePath="v1")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_get_base_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName=domain_name, basePath="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_delete_base_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+
+    client.get_base_path_mapping(domainName=domain_name, basePath=base_path)
+    response = client.delete_base_path_mapping(
+        domainName=domain_name, basePath=base_path
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+
+    with pytest.raises(ClientError) as ex:
+        client.get_base_path_mapping(domainName=domain_name, basePath=base_path)
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_delete_base_path_mapping_with_unknown_domain():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_base_path_mapping(domainName="unknown-domain", basePath="v1")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_delete_base_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_base_path_mapping(domainName=domain_name, basePath="unknown")
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_update_path_mapping():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    stage_name = "dev"
+
+    client.create_base_path_mapping(domainName=domain_name, restApiId=api_id)
+
+    response = client.create_rest_api(
+        name="new_my_api", description="this is new my api"
+    )
+    new_api_id = response["id"]
+    create_method_integration(client, new_api_id)
+    client.create_deployment(
+        restApiId=new_api_id, stageName=stage_name, description="1.0.1"
+    )
+
+    base_path = "v1"
+    patch_operations = [
+        {"op": "replace", "path": "/stage", "value": stage_name},
+        {"op": "replace", "path": "/basePath", "value": base_path},
+        {"op": "replace", "path": "/restapiId", "value": new_api_id},
+    ]
+    response = client.update_base_path_mapping(
+        domainName=domain_name, basePath="(none)", patchOperations=patch_operations
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal(base_path)
+    response["restApiId"].should.equal(new_api_id)
+    response["stage"].should.equal(stage_name)
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_domain():
+
+    client = boto3.client("apigateway", region_name="us-west-2")
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName="unknown-domain", basePath="(none)", patchOperations=[]
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid domain name identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath="v1"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName=domain_name, basePath="unknown", patchOperations=[]
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid base path mapping identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_apigateway
+def test_update_path_mapping_to_same_base_path():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id_1 = response["id"]
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id_2 = response["id"]
+
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id_1, basePath="v1"
+    )
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id_2, basePath="v2"
+    )
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    items = response["items"]
+    len(items).should.equal(2)
+
+    patch_operations = [
+        {"op": "replace", "path": "/basePath", "value": "v2"},
+    ]
+    response = client.update_base_path_mapping(
+        domainName=domain_name, basePath="v1", patchOperations=patch_operations
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["basePath"].should.equal("v2")
+    response["restApiId"].should.equal(api_id_1)
+
+    response = client.get_base_path_mappings(domainName=domain_name)
+    items = response["items"]
+    len(items).should.equal(1)
+    items[0]["basePath"].should.equal("v2")
+    items[0]["restApiId"].should.equal(api_id_1)
+    items[0].should_not.have.key("stage")
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName=domain_name,
+            basePath=base_path,
+            patchOperations=[
+                {"op": "replace", "path": "/restapiId", "value": "unknown"},
+            ],
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid REST API identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_apigateway
+def test_update_path_mapping_with_unknown_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    base_path = "v1"
+    client.create_base_path_mapping(
+        domainName=domain_name, restApiId=api_id, basePath=base_path
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_base_path_mapping(
+            domainName=domain_name,
+            basePath=base_path,
+            patchOperations=[{"op": "replace", "path": "/stage", "value": "unknown"},],
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid stage identifier specified"
+    )
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)

@@ -19,7 +19,7 @@ def test_create_load_balancer():
     lb = response.get("LoadBalancers")[0]
     lb.get("DNSName").should.equal("my-lb-1.us-east-1.elb.amazonaws.com")
     lb.get("LoadBalancerArn").should.equal(
-        "arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188"
+        f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/my-lb/50dc6c495c0c9188"
     )
     lb.get("SecurityGroups").should.equal([security_group.id])
     lb.get("AvailabilityZones").should.equal(
@@ -634,6 +634,64 @@ def test_create_rule_priority_in_use():
 
 @mock_elbv2
 @mock_ec2
+def test_modify_rule_conditions():
+    response, _, _, _, _, elbv2 = create_load_balancer()
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    action = {
+        "Type": "redirect",
+        "RedirectConfig": {
+            "Protocol": "HTTPS",
+            "Port": "443",
+            "StatusCode": "HTTP_301",
+        },
+    }
+    condition = {
+        "Field": "path-pattern",
+        "PathPatternConfig": {"Values": [f"/sth*",]},
+    }
+
+    response = elbv2.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTP",
+        Port=80,
+        DefaultActions=[action],
+    )
+    http_listener_arn = response.get("Listeners")[0]["ListenerArn"]
+
+    response = elbv2.create_rule(
+        ListenerArn=http_listener_arn, Priority=100, Conditions=[], Actions=[],
+    )
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 0
+    assert len(rule["Conditions"]) == 0
+
+    response = elbv2.modify_rule(RuleArn=rule["RuleArn"], Actions=[action],)
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 1
+    assert len(rule["Conditions"]) == 0
+
+    response = elbv2.modify_rule(RuleArn=rule["RuleArn"], Conditions=[condition])
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 1
+    assert len(rule["Conditions"]) == 1
+
+    response = elbv2.modify_rule(
+        RuleArn=rule["RuleArn"],
+        Conditions=[condition, condition],
+        Actions=[action, action],
+    )
+    rule = response["Rules"][0]
+
+    assert len(rule["Actions"]) == 2
+    assert len(rule["Conditions"]) == 2
+
+
+@mock_elbv2
+@mock_ec2
 def test_handle_listener_rules():
     response, vpc, _, _, _, conn = create_load_balancer()
 
@@ -1148,6 +1206,69 @@ def test_modify_load_balancer_attributes_idle_timeout():
 
 @mock_elbv2
 @mock_ec2
+def test_modify_load_balancer_attributes_routing_http2_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "routing.http2.enabled", "Value": "false"}],
+    )
+
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    routing_http2_enabled = list(
+        filter(
+            lambda item: item["Key"] == "routing.http2.enabled", response["Attributes"],
+        )
+    )[0]
+    routing_http2_enabled["Value"].should.equal("false")
+
+
+@mock_elbv2
+@mock_ec2
+def test_modify_load_balancer_attributes_crosszone_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[
+            {"Key": "load_balancing.cross_zone.enabled", "Value": "false"},
+            {"Key": "deletion_protection.enabled", "Value": "false"},
+        ],
+    )
+
+    attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
+    attrs.should.contain({"Key": "deletion_protection.enabled", "Value": "false"})
+    attrs.should.contain({"Key": "load_balancing.cross_zone.enabled", "Value": "false"})
+
+
+@mock_elbv2
+@mock_ec2
+def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields_enabled():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[
+            {"Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "false"}
+        ],
+    )
+
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    routing_http_drop_invalid_header_fields_enabled = list(
+        filter(
+            lambda item: item["Key"]
+            == "routing.http.drop_invalid_header_fields.enabled",
+            response["Attributes"],
+        )
+    )[0]
+    routing_http_drop_invalid_header_fields_enabled["Value"].should.equal("false")
+
+
+@mock_elbv2
+@mock_ec2
 @mock_acm
 def test_modify_listener_http_to_https():
     client = boto3.client("elbv2", region_name="eu-central-1")
@@ -1252,7 +1373,7 @@ def test_modify_listener_http_to_https():
     )
 
     # Bad cert
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         client.modify_listener(
             ListenerArn=listener_arn,
             Port=443,
@@ -1261,6 +1382,85 @@ def test_modify_listener_http_to_https():
             Certificates=[{"CertificateArn": "lalala", "IsDefault": True}],
             DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
         )
+    err = exc.value.response["Error"]
+    err["Message"].should.equal("Certificate lalala not found")
+
+    # Unknown protocol
+    with pytest.raises(ClientError) as exc:
+        client.modify_listener(
+            ListenerArn=listener_arn,
+            Port=443,
+            Protocol="HTP",
+            SslPolicy="ELBSecurityPolicy-TLS-1-2-2017-01",
+            Certificates=[{"CertificateArn": yahoo_arn, "IsDefault": True}],
+            DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+        )
+    err = exc.value.response["Error"]
+    err["Message"].should.equal("Protocol HTP is not supported")
+
+
+@mock_acm
+@mock_ec2
+@mock_elbv2
+def test_modify_listener_of_https_target_group():
+    # Verify we can add a listener for a TargetGroup that is already HTTPS
+    client = boto3.client("elbv2", region_name="eu-central-1")
+    acm = boto3.client("acm", region_name="eu-central-1")
+    ec2 = boto3.resource("ec2", region_name="eu-central-1")
+
+    security_group = ec2.create_security_group(
+        GroupName="a-security-group", Description="First One"
+    )
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="172.28.7.192/26", AvailabilityZone="eu-central-1a"
+    )
+
+    response = client.create_load_balancer(
+        Name="my-lb",
+        Subnets=[subnet1.id],
+        SecurityGroups=[security_group.id],
+        Scheme="internal",
+        Tags=[{"Key": "key_name", "Value": "a_value"}],
+    )
+
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    response = client.create_target_group(
+        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id,
+    )
+    target_group = response.get("TargetGroups")[0]
+    target_group_arn = target_group["TargetGroupArn"]
+
+    # HTTPS listener
+    response = acm.request_certificate(
+        DomainName="google.com", SubjectAlternativeNames=["google.com"],
+    )
+    google_arn = response["CertificateArn"]
+    response = client.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTPS",
+        Port=443,
+        Certificates=[{"CertificateArn": google_arn}],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+    )
+    listener_arn = response["Listeners"][0]["ListenerArn"]
+
+    # Now modify the HTTPS listener with a different certificate
+    response = acm.request_certificate(
+        DomainName="yahoo.com", SubjectAlternativeNames=["yahoo.com"],
+    )
+    yahoo_arn = response["CertificateArn"]
+
+    listener = client.modify_listener(
+        ListenerArn=listener_arn,
+        Certificates=[{"CertificateArn": yahoo_arn,},],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+    )["Listeners"][0]
+    listener["Certificates"].should.equal([{"CertificateArn": yahoo_arn}])
+
+    listener = client.describe_listeners(ListenerArns=[listener_arn])["Listeners"][0]
+    listener["Certificates"].should.equal([{"CertificateArn": yahoo_arn}])
 
 
 @mock_elbv2

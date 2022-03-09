@@ -1,6 +1,5 @@
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 
 
 class TimestreamTable(BaseModel):
@@ -15,7 +14,7 @@ class TimestreamTable(BaseModel):
         self.retention_properties = retention_properties
 
     def write_records(self, records):
-        self.records.append(records)
+        self.records.extend(records)
 
     @property
     def arn(self):
@@ -154,27 +153,10 @@ class TimestreamWriteBackend(BaseBackend):
         self.__init__(region_name)
 
 
-timestreamwrite_backends = {}
-for available_region in Session().get_available_regions("timestream-write"):
-    timestreamwrite_backends[available_region] = TimestreamWriteBackend(
-        available_region
-    )
-for available_region in Session().get_available_regions(
-    "timestream-write", partition_name="aws-us-gov"
-):
-    timestreamwrite_backends[available_region] = TimestreamWriteBackend(
-        available_region
-    )
-for available_region in Session().get_available_regions(
-    "timestream-write", partition_name="aws-cn"
-):
-    timestreamwrite_backends[available_region] = TimestreamWriteBackend(
-        available_region
-    )
+timestreamwrite_backends = BackendDict(TimestreamWriteBackend, "timestream-write")
 
-if len(timestreamwrite_backends) == 0:
-    # Boto does not return any regions at the time of writing (20/10/2021)
-    # Hardcoding the known regions for now
-    # Thanks, Jeff
-    for r in ["us-east-1", "us-east-2", "us-west-2", "eu-central-1", "eu-west-1"]:
-        timestreamwrite_backends[r] = TimestreamWriteBackend(r)
+# Boto does not return any regions at the time of writing (20/10/2021)
+# Hardcoding the known regions for now
+# Thanks, Jeff
+for r in ["us-east-1", "us-east-2", "us-west-2", "eu-central-1", "eu-west-1"]:
+    timestreamwrite_backends[r] = TimestreamWriteBackend(r)

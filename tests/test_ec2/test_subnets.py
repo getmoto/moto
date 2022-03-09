@@ -1,40 +1,14 @@
 import random
 
-import boto
 import boto3
-import boto.vpc
 
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
-from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto import mock_ec2, settings
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 from unittest import SkipTest
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_subnets():
-    ec2 = boto.connect_ec2("the_key", "the_secret")
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-
-    all_subnets = conn.get_all_subnets()
-    all_subnets.should.have.length_of(1 + len(ec2.get_all_zones()))
-
-    conn.delete_subnet(subnet.id)
-
-    all_subnets = conn.get_all_subnets()
-    all_subnets.should.have.length_of(0 + len(ec2.get_all_zones()))
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.delete_subnet(subnet.id)
-    cm.value.code.should.equal("InvalidSubnetID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -61,18 +35,6 @@ def test_subnets_boto3():
     ex.value.response["Error"]["Code"].should.equal("InvalidSubnetID.NotFound")
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_subnet_create_vpc_validation():
-    conn = boto.connect_vpc("the_key", "the_secret")
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.create_subnet("vpc-abcd1234", "10.0.0.0/18")
-    cm.value.code.should.equal("InvalidVpcID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_subnet_create_vpc_validation_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -82,25 +44,6 @@ def test_subnet_create_vpc_validation_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_subnet_tagging():
-    conn = boto.connect_vpc("the_key", "the_secret")
-    vpc = conn.create_vpc("10.0.0.0/16")
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
-
-    subnet.add_tag("a key", "some value")
-
-    tag = conn.get_all_tags()[0]
-    tag.name.should.equal("a key")
-    tag.value.should.equal("some value")
-
-    # Refresh the subnet
-    subnet = conn.get_all_subnets(subnet_ids=[subnet.id])[0]
-    subnet.tags.should.have.length_of(1)
-    subnet.tags["a key"].should.equal("some value")
 
 
 @mock_ec2
@@ -121,15 +64,6 @@ def test_subnet_tagging_boto3():
     # Refresh the subnet
     subnet = client.describe_subnets(SubnetIds=[subnet.id])["Subnets"][0]
     subnet["Tags"].should.equal([{"Key": "a key", "Value": "some value"}])
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_subnet_should_have_proper_availability_zone_set():
-    conn = boto.vpc.connect_to_region("us-west-1")
-    vpcA = conn.create_vpc("10.0.0.0/16")
-    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone="us-west-1b")
-    subnetA.availability_zone.should.equal("us-west-1b")
 
 
 @mock_ec2
@@ -170,20 +104,6 @@ def test_default_subnet():
     )
     subnet.reload()
     subnet.map_public_ip_on_launch.shouldnt.be.ok
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_non_default_subnet():
-    vpc_cli = boto.vpc.connect_to_region("us-west-1")
-
-    # Create the non default VPC
-    vpc = vpc_cli.create_vpc("10.0.0.0/16")
-    vpc.is_default.shouldnt.be.ok
-
-    subnet = vpc_cli.create_subnet(vpc.id, "10.0.0.0/24")
-    subnet = vpc_cli.get_all_subnets(subnet_ids=[subnet.id])[0]
-    subnet.mapPublicIpOnLaunch.should.equal("false")
 
 
 @mock_ec2
@@ -279,31 +199,6 @@ def test_modify_subnet_attribute_validation():
     )
 
 
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_subnet_get_by_id():
-    conn = boto.vpc.connect_to_region("us-west-1")
-    vpcA = conn.create_vpc("10.0.0.0/16")
-    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone="us-west-1a")
-    vpcB = conn.create_vpc("10.0.0.0/16")
-    subnetB1 = conn.create_subnet(
-        vpcB.id, "10.0.0.0/24", availability_zone="us-west-1a"
-    )
-    conn.create_subnet(vpcB.id, "10.0.1.0/24", availability_zone="us-west-1b")
-
-    subnets_by_id = conn.get_all_subnets(subnet_ids=[subnetA.id, subnetB1.id])
-    subnets_by_id.should.have.length_of(2)
-    subnets_by_id = tuple(map(lambda s: s.id, subnets_by_id))
-    subnetA.id.should.be.within(subnets_by_id)
-    subnetB1.id.should.be.within(subnets_by_id)
-
-    with pytest.raises(EC2ResponseError) as cm:
-        conn.get_all_subnets(subnet_ids=["subnet-does_not_exist"])
-    cm.value.code.should.equal("InvalidSubnetID.NotFound")
-    cm.value.status.should.equal(400)
-    cm.value.request_id.should_not.be.none
-
-
 @mock_ec2
 def test_subnet_get_by_id_boto3():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -333,82 +228,6 @@ def test_subnet_get_by_id_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidSubnetID.NotFound")
-
-
-# Has boto3 equivalent
-@mock_ec2_deprecated
-def test_get_subnets_filtering():
-    ec2 = boto.ec2.connect_to_region("us-west-1")
-    conn = boto.vpc.connect_to_region("us-west-1")
-    vpcA = conn.create_vpc("10.0.0.0/16")
-    subnetA = conn.create_subnet(vpcA.id, "10.0.0.0/24", availability_zone="us-west-1a")
-    vpcB = conn.create_vpc("10.0.0.0/16")
-    subnetB1 = conn.create_subnet(
-        vpcB.id, "10.0.0.0/24", availability_zone="us-west-1a"
-    )
-    subnetB2 = conn.create_subnet(
-        vpcB.id, "10.0.1.0/24", availability_zone="us-west-1b"
-    )
-
-    all_subnets = conn.get_all_subnets()
-    all_subnets.should.have.length_of(3 + len(ec2.get_all_zones()))
-
-    # Filter by VPC ID
-    subnets_by_vpc = conn.get_all_subnets(filters={"vpc-id": vpcB.id})
-    subnets_by_vpc.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_vpc]).should.equal(
-        set([subnetB1.id, subnetB2.id])
-    )
-
-    # Filter by CIDR variations
-    subnets_by_cidr1 = conn.get_all_subnets(filters={"cidr": "10.0.0.0/24"})
-    subnets_by_cidr1.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_cidr1]).should.equal(
-        set([subnetA.id, subnetB1.id])
-    )
-
-    subnets_by_cidr2 = conn.get_all_subnets(filters={"cidr-block": "10.0.0.0/24"})
-    subnets_by_cidr2.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_cidr2]).should.equal(
-        set([subnetA.id, subnetB1.id])
-    )
-
-    subnets_by_cidr3 = conn.get_all_subnets(filters={"cidrBlock": "10.0.0.0/24"})
-    subnets_by_cidr3.should.have.length_of(2)
-    set([subnet.id for subnet in subnets_by_cidr3]).should.equal(
-        set([subnetA.id, subnetB1.id])
-    )
-
-    # Filter by VPC ID and CIDR
-    subnets_by_vpc_and_cidr = conn.get_all_subnets(
-        filters={"vpc-id": vpcB.id, "cidr": "10.0.0.0/24"}
-    )
-    subnets_by_vpc_and_cidr.should.have.length_of(1)
-    set([subnet.id for subnet in subnets_by_vpc_and_cidr]).should.equal(
-        set([subnetB1.id])
-    )
-
-    # Filter by subnet ID
-    subnets_by_id = conn.get_all_subnets(filters={"subnet-id": subnetA.id})
-    subnets_by_id.should.have.length_of(1)
-    set([subnet.id for subnet in subnets_by_id]).should.equal(set([subnetA.id]))
-
-    # Filter by availabilityZone
-    subnets_by_az = conn.get_all_subnets(
-        filters={"availabilityZone": "us-west-1a", "vpc-id": vpcB.id}
-    )
-    subnets_by_az.should.have.length_of(1)
-    set([subnet.id for subnet in subnets_by_az]).should.equal(set([subnetB1.id]))
-
-    # Filter by defaultForAz
-
-    subnets_by_az = conn.get_all_subnets(filters={"defaultForAz": "true"})
-    subnets_by_az.should.have.length_of(len(conn.get_all_zones()))
-
-    # Unsupported filter
-    conn.get_all_subnets.when.called_with(
-        filters={"not-implemented-filter": "foobar"}
-    ).should.throw(NotImplementedError)
 
 
 @mock_ec2

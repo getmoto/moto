@@ -20,6 +20,7 @@ from .placement_groups import PlacementGroups
 from .reserved_instances import ReservedInstances
 from .route_tables import RouteTables
 from .security_groups import SecurityGroups
+from .settings import Settings
 from .spot_fleets import SpotFleets
 from .spot_instances import SpotInstances
 from .subnets import Subnets
@@ -29,6 +30,7 @@ from .virtual_private_gateways import VirtualPrivateGateways
 from .vm_export import VMExport
 from .vm_import import VMImport
 from .vpcs import VPCs
+from .vpc_service_configuration import VPCEndpointServiceConfiguration
 from .vpc_peering_connections import VPCPeeringConnections
 from .vpn_connections import VPNConnections
 from .windows import Windows
@@ -63,6 +65,7 @@ class EC2Response(
     ReservedInstances,
     RouteTables,
     SecurityGroups,
+    Settings,
     SpotFleets,
     SpotInstances,
     Subnets,
@@ -72,6 +75,7 @@ class EC2Response(
     VMExport,
     VMImport,
     VPCs,
+    VPCEndpointServiceConfiguration,
     VPCPeeringConnections,
     VPNConnections,
     Windows,

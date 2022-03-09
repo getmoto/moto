@@ -30,7 +30,9 @@ class FakeOrganization(BaseModel):
         self.master_account_id = utils.MASTER_ACCOUNT_ID
         self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
-            # TODO: verify if this should be enabled by default (breaks TF tests for CloudTrail)
+            # This policy is available, but not applied
+            # User should use enable_policy_type/disable_policy_type to do anything else
+            # This field is deprecated in AWS, but we'll return it for old time's sake
             {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
         ]
 
@@ -136,14 +138,11 @@ class FakeRoot(FakeOrganizationalUnit):
     ]
 
     def __init__(self, organization, **kwargs):
-        super(FakeRoot, self).__init__(organization, **kwargs)
+        super().__init__(organization, **kwargs)
         self.type = "ROOT"
         self.id = organization.root_id
         self.name = "Root"
-        self.policy_types = [
-            # TODO: verify if this should be enabled by default (breaks TF tests for CloudTrail)
-            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
-        ]
+        self.policy_types = []
         self._arn_format = utils.ROOT_ARN_FORMAT
         self.attached_policies = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
@@ -381,6 +380,11 @@ class OrganizationsBackend(BaseBackend):
         return self.org.describe()
 
     def delete_organization(self, **kwargs):
+        if [account for account in self.accounts if account.name != "master"]:
+            raise RESTError(
+                "OrganizationNotEmptyException",
+                "To delete an organization you must first remove all member accounts (except the master).",
+            )
         self._reset()
         return {}
 
@@ -629,7 +633,7 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def list_policies_for_target(self, **kwargs):
-        filter = kwargs["Filter"]
+        _filter = kwargs["Filter"]
 
         if re.match(utils.ROOT_ID_REGEX, kwargs["TargetId"]):
             obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
@@ -649,19 +653,19 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-        if not FakePolicy.supported_policy_type(filter):
+        if not FakePolicy.supported_policy_type(_filter):
             raise InvalidInputException("You specified an invalid value.")
 
-        if filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
+        if _filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
             raise NotImplementedError(
-                "The {0} policy type has not been implemented".format(filter)
+                "The {0} policy type has not been implemented".format(_filter)
             )
 
         return dict(
             Policies=[
                 p.describe()["Policy"]["PolicySummary"]
                 for p in obj.attached_policies
-                if p.type == filter
+                if p.type == _filter
             ]
         )
 
@@ -884,6 +888,12 @@ class OrganizationsBackend(BaseBackend):
                 raise AccountNotFoundException
         else:
             raise InvalidInputException("You specified an invalid value.")
+
+    def remove_account_from_organization(self, **kwargs):
+        account = self.get_account_by_id(kwargs["AccountId"])
+        for policy in account.attached_policies:
+            policy.attachments.remove(account)
+        self.accounts.remove(account)
 
 
 organizations_backend = OrganizationsBackend()

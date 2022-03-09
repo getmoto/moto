@@ -5,14 +5,14 @@ from xml.sax.saxutils import escape
 
 class VPNConnections(BaseResponse):
     def create_vpn_connection(self):
-        type = self._get_param("Type")
+        vpn_conn_type = self._get_param("Type")
         cgw_id = self._get_param("CustomerGatewayId")
         vgw_id = self._get_param("VpnGatewayId")
         tgw_id = self._get_param("TransitGatewayId")
         static_routes = self._get_param("StaticRoutesOnly")
         tags = add_tag_specification(self._get_multi_param("TagSpecification"))
         vpn_connection = self.ec2_backend.create_vpn_connection(
-            type,
+            vpn_conn_type,
             cgw_id,
             vpn_gateway_id=vgw_id,
             transit_gateway_id=tgw_id,

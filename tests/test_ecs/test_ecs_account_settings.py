@@ -103,7 +103,7 @@ def test_delete_account_setting():
 @mock_ecs
 def test_put_account_setting_changes_service_arn():
     client = boto3.client("ecs", region_name="eu-west-1")
-    client.put_account_setting(name="serviceLongArnFormat", value="enabled")
+    client.put_account_setting(name="serviceLongArnFormat", value="disabled")
 
     _ = client.create_cluster(clusterName="dummy-cluster")
     _ = client.register_task_definition(
@@ -126,21 +126,21 @@ def test_put_account_setting_changes_service_arn():
         tags=[{"key": "ResourceOwner", "value": "Dummy"}],
     )
 
-    # Initial response is long
+    # Initial response is short (setting serviceLongArnFormat=disabled)
+    response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
+    service_arn = response["serviceArns"][0]
+    service_arn.should.equal(
+        "arn:aws:ecs:eu-west-1:{}:service/test-ecs-service".format(ACCOUNT_ID)
+    )
+
+    # Second invocation returns long ARN's by default, after deleting the preference
+    client.delete_account_setting(name="serviceLongArnFormat")
     response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
     service_arn = response["serviceArns"][0]
     service_arn.should.equal(
         "arn:aws:ecs:eu-west-1:{}:service/dummy-cluster/test-ecs-service".format(
             ACCOUNT_ID
         )
-    )
-
-    # Second invocation returns short ARN's, after deleting the longArn-preference
-    client.delete_account_setting(name="serviceLongArnFormat")
-    response = client.list_services(cluster="dummy-cluster", launchType="FARGATE")
-    service_arn = response["serviceArns"][0]
-    service_arn.should.equal(
-        "arn:aws:ecs:eu-west-1:{}:service/test-ecs-service".format(ACCOUNT_ID)
     )
 
 
@@ -162,25 +162,25 @@ def test_put_account_setting_changes_containerinstance_arn():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    # Initial ARN should be short
-    response = ecs_client.register_container_instance(
-        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
-    )
-    full_arn = response["containerInstance"]["containerInstanceArn"]
-    full_arn.should.match(
-        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/[a-z0-9-]+$"
-    )
-
-    # Now enable long-format
-    ecs_client.put_account_setting(
-        name="containerInstanceLongArnFormat", value="enabled"
-    )
+    # Initial ARN should be long
     response = ecs_client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
     full_arn = response["containerInstance"]["containerInstanceArn"]
     full_arn.should.match(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/{test_cluster_name}/[a-z0-9-]+$"
+    )
+
+    # Now disable long-format
+    ecs_client.put_account_setting(
+        name="containerInstanceLongArnFormat", value="disabled"
+    )
+    response = ecs_client.register_container_instance(
+        cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
+    )
+    full_arn = response["containerInstance"]["containerInstanceArn"]
+    full_arn.should.match(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:container-instance/[a-z0-9-]+$"
     )
 
 
@@ -217,20 +217,7 @@ def test_run_task_default_cluster_new_arn_format():
             }
         ],
     )
-    # Initial ARN is short-format
-    client.put_account_setting(name="taskLongArnFormat", value="disabled")
-    response = client.run_task(
-        launchType="FARGATE",
-        overrides={},
-        taskDefinition="test_ecs_task",
-        count=1,
-        startedBy="moto",
-    )
-    response["tasks"][0]["taskArn"].should.match(
-        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/[a-z0-9-]+$"
-    )
-
-    # Enable long-format for the next task
+    # Initial ARN is long-format
     client.put_account_setting(name="taskLongArnFormat", value="enabled")
     response = client.run_task(
         launchType="FARGATE",
@@ -241,4 +228,17 @@ def test_run_task_default_cluster_new_arn_format():
     )
     response["tasks"][0]["taskArn"].should.match(
         f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/{test_cluster_name}/[a-z0-9-]+$"
+    )
+
+    # Enable short-format for the next task
+    client.put_account_setting(name="taskLongArnFormat", value="disabled")
+    response = client.run_task(
+        launchType="FARGATE",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        count=1,
+        startedBy="moto",
+    )
+    response["tasks"][0]["taskArn"].should.match(
+        f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task/[a-z0-9-]+$"
     )

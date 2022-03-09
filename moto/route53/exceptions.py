@@ -33,6 +33,17 @@ class InvalidPaginationToken(Route53ClientError):
         super().__init__("InvalidPaginationToken", message)
 
 
+class InvalidVPCId(Route53ClientError):
+    """Missing/Invalid VPC ID"""
+
+    code = 400
+
+    def __init__(self):
+        message = "Invalid or missing VPC Id."
+        super().__init__("InvalidVPCId", message)
+        self.content_type = "text/xml"
+
+
 class NoSuchCloudWatchLogsLogGroup(Route53ClientError):
     """CloudWatch LogGroup has a permissions policy, but does not exist."""
 
@@ -51,6 +62,7 @@ class NoSuchHostedZone(Route53ClientError):
     def __init__(self, host_zone_id):
         message = f"No hosted zone found with ID: {host_zone_id}"
         super().__init__("NoSuchHostedZone", message)
+        self.content_type = "text/xml"
 
 
 class NoSuchQueryLoggingConfig(Route53ClientError):
@@ -71,3 +83,20 @@ class QueryLoggingConfigAlreadyExists(Route53ClientError):
     def __init__(self):
         message = "A query logging configuration already exists for this hosted zone"
         super().__init__("QueryLoggingConfigAlreadyExists", message)
+
+
+class InvalidChangeBatch(Route53ClientError):
+
+    code = 400
+
+    def __init__(self):
+        message = "Number of records limit of 1000 exceeded."
+        super().__init__("InvalidChangeBatch", message)
+
+
+class NoSuchDelegationSet(Route53ClientError):
+    code = 400
+
+    def __init__(self, delegation_set_id):
+        super().__init__("NoSuchDelegationSet", delegation_set_id)
+        self.content_type = "text/xml"

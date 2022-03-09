@@ -56,6 +56,37 @@ def test_list_clusters():
 @mock_ecs
 def test_describe_clusters():
     client = boto3.client("ecs", region_name="us-east-1")
+    tag_list = [{"key": "tagName", "value": "TagValue"}]
+    _ = client.create_cluster(clusterName="c_with_tags", tags=tag_list)
+    _ = client.create_cluster(clusterName="c_without")
+    clusters = client.describe_clusters(clusters=["c_with_tags"], include=["TAGS",])[
+        "clusters"
+    ]
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster["clusterName"].should.equal("c_with_tags")
+    cluster.should.have.key("tags")
+    cluster["tags"].should.equal(tag_list)
+
+    clusters = client.describe_clusters(clusters=["c_without"], include=["TAGS",])[
+        "clusters"
+    ]
+    clusters.should.have.length_of(1)
+    cluster = clusters[0]
+    cluster["clusterName"].should.equal("c_without")
+    cluster.shouldnt.have.key("tags")
+
+    clusters = client.describe_clusters(clusters=["c_with_tags", "c_without"])[
+        "clusters"
+    ]
+    clusters.should.have.length_of(2)
+    clusters[0].shouldnt.have.key("tags")
+    clusters[1].shouldnt.have.key("tags")
+
+
+@mock_ecs
+def test_describe_clusters_missing():
+    client = boto3.client("ecs", region_name="us-east-1")
     response = client.describe_clusters(clusters=["some-cluster"])
     response["failures"].should.contain(
         {
@@ -489,7 +520,9 @@ def test_create_service():
     response["service"]["pendingCount"].should.equal(0)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service".format(
+            ACCOUNT_ID
+        )
     )
     response["service"]["serviceName"].should.equal("test_ecs_service")
     response["service"]["status"].should.equal("ACTIVE")
@@ -579,7 +612,9 @@ def test_create_service_scheduling_strategy():
     response["service"]["pendingCount"].should.equal(0)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service".format(
+            ACCOUNT_ID
+        )
     )
     response["service"]["serviceName"].should.equal("test_ecs_service")
     response["service"]["status"].should.equal("ACTIVE")
@@ -626,10 +661,14 @@ def test_list_services():
     unfiltered_response = client.list_services(cluster="test_ecs_cluster")
     len(unfiltered_response["serviceArns"]).should.equal(2)
     unfiltered_response["serviceArns"][0].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service1".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
+            ACCOUNT_ID
+        )
     )
     unfiltered_response["serviceArns"][1].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service2".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+            ACCOUNT_ID
+        )
     )
 
     filtered_response = client.list_services(
@@ -637,7 +676,9 @@ def test_list_services():
     )
     len(filtered_response["serviceArns"]).should.equal(1)
     filtered_response["serviceArns"][0].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service1".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
+            ACCOUNT_ID
+        )
     )
 
 
@@ -684,16 +725,22 @@ def test_describe_services():
         cluster="test_ecs_cluster",
         services=[
             "test_ecs_service1",
-            "arn:aws:ecs:us-east-1:{}:service/test_ecs_service2".format(ACCOUNT_ID),
+            "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+                ACCOUNT_ID
+            ),
         ],
     )
     len(response["services"]).should.equal(2)
     response["services"][0]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service1".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
+            ACCOUNT_ID
+        )
     )
     response["services"][0]["serviceName"].should.equal("test_ecs_service1")
     response["services"][1]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service2".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+            ACCOUNT_ID
+        )
     )
     response["services"][1]["serviceName"].should.equal("test_ecs_service2")
 
@@ -714,7 +761,9 @@ def test_describe_services():
         cluster="test_ecs_cluster",
         services=[
             "test_ecs_service1",
-            "arn:aws:ecs:us-east-1:{}:service/test_ecs_service2".format(ACCOUNT_ID),
+            "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+                ACCOUNT_ID
+            ),
         ],
         include=["TAGS"],
     )
@@ -799,17 +848,23 @@ def test_describe_services_scheduling_strategy():
         cluster="test_ecs_cluster",
         services=[
             "test_ecs_service1",
-            "arn:aws:ecs:us-east-1:{}:service/test_ecs_service2".format(ACCOUNT_ID),
+            "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+                ACCOUNT_ID
+            ),
             "test_ecs_service3",
         ],
     )
     len(response["services"]).should.equal(3)
     response["services"][0]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service1".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service1".format(
+            ACCOUNT_ID
+        )
     )
     response["services"][0]["serviceName"].should.equal("test_ecs_service1")
     response["services"][1]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service2".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service2".format(
+            ACCOUNT_ID
+        )
     )
     response["services"][1]["serviceName"].should.equal("test_ecs_service2")
 
@@ -1007,7 +1062,9 @@ def test_delete_service():
     response["service"]["pendingCount"].should.equal(0)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service".format(
+            ACCOUNT_ID
+        )
     )
     response["service"]["serviceName"].should.equal("test_ecs_service")
     response["service"]["status"].should.equal("ACTIVE")
@@ -1054,7 +1111,9 @@ def test_delete_service_force():
     response["service"]["pendingCount"].should.equal(0)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service".format(
+            ACCOUNT_ID
+        )
     )
     response["service"]["serviceName"].should.equal("test_ecs_service")
     response["service"]["status"].should.equal("ACTIVE")
@@ -1145,7 +1204,8 @@ def test_register_container_instance():
     arn_part[0].should.equal(
         "arn:aws:ecs:us-east-1:{}:container-instance".format(ACCOUNT_ID)
     )
-    arn_part[1].should.equal(str(UUID(arn_part[1])))
+    arn_part[1].should.equal("test_ecs_cluster")
+    arn_part[2].should.equal(str(UUID(arn_part[2])))
     response["containerInstance"]["status"].should.equal("ACTIVE")
     len(response["containerInstance"]["registeredResources"]).should.equal(4)
     len(response["containerInstance"]["remainingResources"]).should.equal(4)
@@ -1325,7 +1385,7 @@ def test_describe_container_instances():
 
         test_instance_arns.append(response["containerInstance"]["containerInstanceArn"])
 
-    test_instance_ids = list(map((lambda x: x.split("/")[1]), test_instance_arns))
+    test_instance_ids = list(map((lambda x: x.split("/")[-1]), test_instance_arns))
     response = ecs_client.describe_container_instances(
         cluster=test_cluster_name, containerInstances=test_instance_ids
     )
@@ -1393,7 +1453,7 @@ def test_update_container_instances_state():
 
         test_instance_arns.append(response["containerInstance"]["containerInstanceArn"])
 
-    test_instance_ids = list(map((lambda x: x.split("/")[1]), test_instance_arns))
+    test_instance_ids = list(map((lambda x: x.split("/")[-1]), test_instance_arns))
     response = ecs_client.update_container_instances_state(
         cluster=test_cluster_name,
         containerInstances=test_instance_ids,
@@ -1534,6 +1594,13 @@ def test_run_task():
         cluster="test_ecs_cluster",
         overrides={},
         taskDefinition="test_ecs_task",
+        startedBy="moto",
+    )
+    len(response["tasks"]).should.equal(1)
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
         count=2,
         startedBy="moto",
         tags=[
@@ -1580,7 +1647,7 @@ def test_run_task_default_cluster():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -1608,8 +1675,9 @@ def test_run_task_default_cluster():
         startedBy="moto",
     )
     len(response["tasks"]).should.equal(2)
+    response["tasks"][0].should.have.key("launchType").equals("FARGATE")
     response["tasks"][0]["taskArn"].should.match(
-        "arn:aws:ecs:us-east-1:{}:task/[a-z0-9-]+$".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:task/default/[a-z0-9-]+$".format(ACCOUNT_ID)
     )
     response["tasks"][0]["clusterArn"].should.equal(
         "arn:aws:ecs:us-east-1:{}:cluster/default".format(ACCOUNT_ID)
@@ -1713,7 +1781,7 @@ def test_start_task():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -1758,7 +1826,7 @@ def test_start_task():
         "arn:aws:ecs:us-east-1:{}:task-definition/test_ecs_task:1".format(ACCOUNT_ID)
     )
     response["tasks"][0]["containerInstanceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{0}:container-instance/{1}".format(
+        "arn:aws:ecs:us-east-1:{0}:container-instance/test_ecs_cluster/{1}".format(
             ACCOUNT_ID, container_instance_id
         )
     )
@@ -1882,7 +1950,7 @@ def test_describe_tasks():
         ec2_utils.generate_instance_identity_document(test_instance)
     )
 
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
 
@@ -2649,7 +2717,9 @@ def test_create_service_load_balancing():
     response["service"]["pendingCount"].should.equal(0)
     response["service"]["runningCount"].should.equal(0)
     response["service"]["serviceArn"].should.equal(
-        "arn:aws:ecs:us-east-1:{}:service/test_ecs_service".format(ACCOUNT_ID)
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster/test_ecs_service".format(
+            ACCOUNT_ID
+        )
     )
     response["service"]["serviceName"].should.equal("test_ecs_service")
     response["service"]["status"].should.equal("ACTIVE")
@@ -2747,8 +2817,14 @@ def test_list_tags_for_resource_ecs_service():
 
 
 @mock_ecs
-def test_ecs_service_tag_resource():
+@pytest.mark.parametrize("long_arn", ["disabled", "enabled"])
+def test_ecs_service_tag_resource(long_arn):
+    """
+    Tagging does some weird ARN parsing - ensure it works with both long and short formats
+    """
     client = boto3.client("ecs", region_name="us-east-1")
+    client.put_account_setting(name="serviceLongArnFormat", value=long_arn)
+
     _ = client.create_cluster(clusterName="test_ecs_cluster")
     _ = client.register_task_definition(
         family="test_ecs_task",
@@ -2766,25 +2842,49 @@ def test_ecs_service_tag_resource():
             }
         ],
     )
-    response = client.create_service(
+    create_response2 = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service_2",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+    )
+    create_response = client.create_service(
         cluster="test_ecs_cluster",
         serviceName="test_ecs_service",
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
+
     client.tag_resource(
-        resourceArn=response["service"]["serviceArn"],
+        resourceArn=create_response["service"]["serviceArn"],
         tags=[
             {"key": "createdBy", "value": "moto-unittest"},
             {"key": "foo", "value": "bar"},
         ],
     )
+    client.tag_resource(
+        resourceArn=create_response2["service"]["serviceArn"],
+        tags=[
+            {"key": "createdBy-2", "value": "moto-unittest-2"},
+            {"key": "foo-2", "value": "bar-2"},
+        ],
+    )
     response = client.list_tags_for_resource(
-        resourceArn=response["service"]["serviceArn"]
+        resourceArn=create_response["service"]["serviceArn"]
     )
     type(response["tags"]).should.be(list)
     response["tags"].should.equal(
         [{"key": "createdBy", "value": "moto-unittest"}, {"key": "foo", "value": "bar"}]
+    )
+    response2 = client.list_tags_for_resource(
+        resourceArn=create_response2["service"]["serviceArn"]
+    )
+    type(response2["tags"]).should.be(list)
+    response2["tags"].should.equal(
+        [
+            {"key": "createdBy-2", "value": "moto-unittest-2"},
+            {"key": "foo-2", "value": "bar-2"},
+        ]
     )
 
 

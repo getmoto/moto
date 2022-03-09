@@ -7,13 +7,14 @@ import logging
 import docker
 import threading
 import dateutil.parser
-from boto3 import Session
+from sys import platform
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
 from moto.logs import logs_backends
+from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import InvalidParameterValueException, ClientException, ValidationError
 from .utils import (
@@ -24,10 +25,12 @@ from .utils import (
 )
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
+from moto.ec2.models import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
-from moto.utilities.docker_utilities import DockerModel, parse_image_ref
-from ..utilities.tagging_service import TaggingService
+from moto.core.utils import unix_time_millis, BackendDict
+from moto.utilities.docker_utilities import DockerModel
+from moto import settings
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -93,7 +96,7 @@ class ComputeEnvironment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -112,7 +115,15 @@ class ComputeEnvironment(CloudFormationModel):
 
 class JobQueue(CloudFormationModel):
     def __init__(
-        self, name, priority, state, environments, env_order_json, region_name
+        self,
+        name,
+        priority,
+        state,
+        environments,
+        env_order_json,
+        region_name,
+        backend,
+        tags=None,
     ):
         """
         :param name: Job queue name
@@ -135,6 +146,10 @@ class JobQueue(CloudFormationModel):
         self.env_order_json = env_order_json
         self.arn = make_arn_for_job_queue(DEFAULT_ACCOUNT_ID, name, region_name)
         self.status = "VALID"
+        self.backend = backend
+
+        if tags:
+            backend.tag_resource(self.arn, tags)
 
         self.jobs = []
 
@@ -146,6 +161,7 @@ class JobQueue(CloudFormationModel):
             "priority": self.priority,
             "state": self.state,
             "status": self.status,
+            "tags": self.backend.list_tags_for_resource(self.arn),
         }
 
         return result
@@ -165,7 +181,7 @@ class JobQueue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -196,33 +212,43 @@ class JobDefinition(CloudFormationModel):
         _type,
         container_properties,
         region_name,
-        tags={},
+        tags=None,
         revision=0,
         retry_strategy=0,
+        timeout=None,
+        backend=None,
+        platform_capabilities=None,
+        propagate_tags=None,
     ):
         self.name = name
-        self.retries = retry_strategy
+        self.retry_strategy = retry_strategy
         self.type = _type
         self.revision = revision
         self._region = region_name
         self.container_properties = container_properties
         self.arn = None
         self.status = "ACTIVE"
-        self.tagger = TaggingService()
-        if parameters is None:
-            parameters = {}
-        self.parameters = parameters
+        self.parameters = parameters or {}
+        self.timeout = timeout
+        self.backend = backend
+        self.platform_capabilities = platform_capabilities
+        self.propagate_tags = propagate_tags
+
+        if "resourceRequirements" not in self.container_properties:
+            self.container_properties["resourceRequirements"] = []
+        if "secrets" not in self.container_properties:
+            self.container_properties["secrets"] = []
 
         self._validate()
         self._update_arn()
 
-        tags = self._format_tags(tags)
+        tags = self._format_tags(tags or {})
         # Validate the tags before proceeding.
-        errmsg = self.tagger.validate_tags(tags or [])
+        errmsg = self.backend.tagger.validate_tags(tags)
         if errmsg:
             raise ValidationError(errmsg)
 
-        self.tagger.tag_resource(self.arn, tags or [])
+        self.backend.tagger.tag_resource(self.arn, tags)
 
     def _format_tags(self, tags):
         return [{"Key": k, "Value": v} for k, v in tags.items()]
@@ -264,17 +290,19 @@ class JobDefinition(CloudFormationModel):
         )
 
         if required_resource:
-            return required_resource[0]["value"]
+            if req_type == "vcpus":
+                return float(required_resource[0]["value"])
+            elif req_type == "memory":
+                return int(required_resource[0]["value"])
+            else:
+                return required_resource[0]["value"]
         else:
             return self.container_properties.get(req_type, default)
 
     def _validate(self):
+        # For future use when containers arnt the only thing in batch
         if self.type not in ("container",):
             raise ClientException('type must be one of "container"')
-
-        # For future use when containers arnt the only thing in batch
-        if self.type != "container":
-            raise NotImplementedError()
 
         if not isinstance(self.parameters, dict):
             raise ClientException("parameters must be a string to string map")
@@ -291,21 +319,27 @@ class JobDefinition(CloudFormationModel):
         vcpus = self._get_resource_requirement("vcpus")
         if vcpus is None:
             raise ClientException("containerProperties must contain vcpus")
-        if vcpus < 1:
+        if vcpus <= 0:
             raise ClientException("container vcpus limit must be greater than 0")
 
-    def update(self, parameters, _type, container_properties, retry_strategy):
-        if parameters is None:
-            parameters = self.parameters
+    def deregister(self):
+        self.status = "INACTIVE"
 
-        if _type is None:
-            _type = self.type
+    def update(
+        self, parameters, _type, container_properties, retry_strategy, tags, timeout
+    ):
+        if self.status != "INACTIVE":
+            if parameters is None:
+                parameters = self.parameters
 
-        if container_properties is None:
-            container_properties = self.container_properties
+            if _type is None:
+                _type = self.type
 
-        if retry_strategy is None:
-            retry_strategy = self.retries
+            if container_properties is None:
+                container_properties = self.container_properties
+
+            if retry_strategy is None:
+                retry_strategy = self.retry_strategy
 
         return JobDefinition(
             self.name,
@@ -315,6 +349,11 @@ class JobDefinition(CloudFormationModel):
             region_name=self._region,
             revision=self.revision,
             retry_strategy=retry_strategy,
+            tags=tags,
+            timeout=timeout,
+            backend=self.backend,
+            platform_capabilities=self.platform_capabilities,
+            propagate_tags=self.propagate_tags,
         )
 
     def describe(self):
@@ -325,12 +364,15 @@ class JobDefinition(CloudFormationModel):
             "revision": self.revision,
             "status": self.status,
             "type": self.type,
-            "tags": self.tagger.get_tag_dict_for_resource(self.arn),
+            "tags": self.backend.tagger.get_tag_dict_for_resource(self.arn),
+            "platformCapabilities": self.platform_capabilities,
+            "retryStrategy": self.retry_strategy,
+            "propagateTags": self.propagate_tags,
         }
         if self.container_properties is not None:
             result["containerProperties"] = self.container_properties
-        if self.retries is not None and self.retries > 0:
-            result["retryStrategy"] = {"attempts": self.retries}
+        if self.timeout:
+            result["timeout"] = self.timeout
 
         return result
 
@@ -349,7 +391,7 @@ class JobDefinition(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -360,6 +402,9 @@ class JobDefinition(CloudFormationModel):
             tags=lowercase_first_key(properties.get("Tags", {})),
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=lowercase_first_key(properties["ContainerProperties"]),
+            timeout=lowercase_first_key(properties.get("timeout", {})),
+            platform_capabilities=None,
+            propagate_tags=None,
         )
         arn = res[1]
 
@@ -376,6 +421,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
         container_overrides,
         depends_on,
         all_jobs,
+        timeout,
     ):
         """
         Docker Job
@@ -403,9 +449,11 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_stopped = False
         self.job_stopped_reason = None
         self.depends_on = depends_on
+        self.timeout = timeout
         self.all_jobs = all_jobs
 
         self.stop = False
+        self.exit_code = None
 
         self.daemon = True
         self.name = "MOTO-BATCH-" + self.job_id
@@ -413,18 +461,31 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self._log_backend = log_backend
         self.log_stream_name = None
 
-    def describe(self):
+        self.attempts = []
+        self.latest_attempt = None
+
+    def describe_short(self):
         result = {
-            "jobDefinition": self.job_definition.arn,
             "jobId": self.job_id,
             "jobName": self.job_name,
-            "jobQueue": self.job_queue.arn,
-            "status": self.job_state,
-            "dependsOn": self.depends_on if self.depends_on else [],
             "createdAt": datetime2int_milliseconds(self.job_created_at),
+            "status": self.job_state,
+            "jobDefinition": self.job_definition.arn,
         }
+        if self.job_stopped_reason is not None:
+            result["statusReason"] = self.job_stopped_reason
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
             result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
+        if self.job_stopped:
+            result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
+            if self.exit_code is not None:
+                result["container"] = {"exitCode": self.exit_code}
+        return result
+
+    def describe(self):
+        result = self.describe_short()
+        result["jobQueue"] = self.job_queue.arn
+        result["dependsOn"] = self.depends_on if self.depends_on else []
         if self.job_stopped:
             result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
             result["container"] = {}
@@ -443,8 +504,9 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 "environment", []
             )
             result["container"]["logStreamName"] = self.log_stream_name
-        if self.job_stopped_reason is not None:
-            result["statusReason"] = self.job_stopped_reason
+        if self.timeout:
+            result["timeout"] = self.timeout
+        result["attempts"] = self.attempts
         return result
 
     def _get_container_property(self, p, default):
@@ -471,6 +533,13 @@ class Job(threading.Thread, BaseModel, DockerModel):
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
         )
+
+    def _get_attempt_duration(self):
+        if self.timeout:
+            return self.timeout["attemptDurationSeconds"]
+        if self.job_definition.timeout:
+            return self.job_definition.timeout["attemptDurationSeconds"]
+        return None
 
     def run(self):
         """
@@ -525,11 +594,31 @@ class Job(threading.Thread, BaseModel, DockerModel):
             # TODO setup ecs container instance
 
             self.job_started_at = datetime.datetime.now()
+            self._start_attempt()
+
+            # add host.docker.internal host on linux to emulate Mac + Windows behavior
+            #   for communication with other mock AWS services running on localhost
+            extra_hosts = (
+                {"host.docker.internal": "host-gateway",}
+                if platform == "linux" or platform == "linux2"
+                else {}
+            )
+
+            environment["MOTO_HOST"] = settings.moto_server_host()
+            environment["MOTO_PORT"] = settings.moto_server_port()
+            environment[
+                "MOTO_HTTP_ENDPOINT"
+            ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+
+            run_kwargs = dict()
+            network_name = settings.moto_network_name()
+            network_mode = settings.moto_network_mode()
+            if network_name:
+                run_kwargs["network"] = network_name
+            elif network_mode:
+                run_kwargs["network_mode"] = network_mode
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
-            image_repository, image_tag = parse_image_ref(image)
-            # avoid explicit pulling here, to allow using cached images
-            # self.docker_client.images.pull(image_repository, image_tag)
             self.job_state = "STARTING"
             container = self.docker_client.containers.run(
                 image,
@@ -540,13 +629,28 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 environment=environment,
                 mounts=mounts,
                 privileged=privileged,
+                extra_hosts=extra_hosts,
+                **run_kwargs,
             )
             self.job_state = "RUNNING"
             try:
                 container.reload()
+
+                max_time = None
+                if self._get_attempt_duration():
+                    attempt_duration = self._get_attempt_duration()
+                    max_time = self.job_started_at + datetime.timedelta(
+                        seconds=attempt_duration
+                    )
+
                 while container.status == "running" and not self.stop:
                     container.reload()
                     time.sleep(0.5)
+
+                    if max_time and datetime.datetime.now() > max_time:
+                        raise Exception(
+                            "Job time exceeded the configured attemptDurationSeconds"
+                        )
 
                 # Container should be stopped by this point... unless asked to stop
                 if container.status == "running":
@@ -582,12 +686,14 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 logs = []
                 for line in logs_stdout + logs_stderr:
                     date, line = line.split(" ", 1)
-                    date = dateutil.parser.parse(date)
-                    # TODO: Replace with int(date.timestamp()) once we yeet Python2 out of the window
-                    date = int(
-                        (time.mktime(date.timetuple()) + date.microsecond / 1000000.0)
+                    date_obj = (
+                        dateutil.parser.parse(date)
+                        .astimezone(datetime.timezone.utc)
+                        .replace(tzinfo=None)
                     )
+                    date = unix_time_millis(date_obj)
                     logs.append({"timestamp": date, "message": line.strip()})
+                logs = sorted(logs, key=lambda l: l["timestamp"])
 
                 # Send to cloudwatch
                 log_group = "/aws/batch/job"
@@ -600,7 +706,8 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)
 
                 result = container.wait() or {}
-                job_failed = self.stop or result.get("StatusCode", 0) > 0
+                self.exit_code = result.get("StatusCode", 0)
+                job_failed = self.stop or self.exit_code > 0
                 self._mark_stopped(success=not job_failed)
 
             except Exception as err:
@@ -627,6 +734,27 @@ class Job(threading.Thread, BaseModel, DockerModel):
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
         self.job_state = "SUCCEEDED" if success else "FAILED"
+        self._stop_attempt()
+
+    def _start_attempt(self):
+        self.latest_attempt = {
+            "container": {
+                "containerInstanceArn": "TBD",
+                "logStreamName": self.log_stream_name,
+                "networkInterfaces": [],
+                "taskArn": self.job_definition.arn,
+            }
+        }
+        self.latest_attempt["startedAt"] = datetime2int_milliseconds(
+            self.job_started_at
+        )
+        self.attempts.append(self.latest_attempt)
+
+    def _stop_attempt(self):
+        self.latest_attempt["container"]["logStreamName"] = self.log_stream_name
+        self.latest_attempt["stoppedAt"] = datetime2int_milliseconds(
+            self.job_stopped_at
+        )
 
     def terminate(self, reason):
         if not self.stop:
@@ -652,14 +780,19 @@ class Job(threading.Thread, BaseModel, DockerModel):
                         return False
 
             time.sleep(1)
+            if self.stop:
+                # This job has been cancelled while it was waiting for a dependency
+                self._mark_stopped(success=False)
+                return False
 
         return True
 
 
 class BatchBackend(BaseBackend):
     def __init__(self, region_name=None):
-        super(BatchBackend, self).__init__()
+        super().__init__()
         self.region_name = region_name
+        self.tagger = TaggingService()
 
         self._compute_environments = {}
         self._job_queues = {}
@@ -982,7 +1115,10 @@ class BatchBackend(BaseBackend):
             for instance_type in cr["instanceTypes"]:
                 if instance_type == "optimal":
                     pass  # Optimal should pick from latest of current gen
-                elif instance_type not in EC2_INSTANCE_TYPES:
+                elif (
+                    instance_type not in EC2_INSTANCE_TYPES
+                    and instance_type not in EC2_INSTANCE_FAMILIES
+                ):
                     raise InvalidParameterValueException(
                         "Instance type {0} does not exist".format(instance_type)
                     )
@@ -1032,6 +1168,12 @@ class BatchBackend(BaseBackend):
             if instance_type == "optimal":
                 instance_type = "m4.4xlarge"
 
+            if "." not in instance_type:
+                # instance_type can be a family of instance types (c2, t3, etc)
+                # We'll just use the first instance_type in this family
+                instance_type = [
+                    i for i in EC2_INSTANCE_TYPES.keys() if i.startswith(instance_type)
+                ][0]
             instance_vcpus.append(
                 (
                     EC2_INSTANCE_TYPES[instance_type]["VCpuInfo"]["DefaultVCpus"],
@@ -1118,7 +1260,9 @@ class BatchBackend(BaseBackend):
 
         return compute_env.name, compute_env.arn
 
-    def create_job_queue(self, queue_name, priority, state, compute_env_order):
+    def create_job_queue(
+        self, queue_name, priority, state, compute_env_order, tags=None
+    ):
         """
         Create a job queue
 
@@ -1177,6 +1321,8 @@ class BatchBackend(BaseBackend):
             env_objects,
             compute_env_order,
             self.region_name,
+            backend=self,
+            tags=tags,
         )
         self._job_queues[queue.arn] = queue
 
@@ -1263,20 +1409,28 @@ class BatchBackend(BaseBackend):
             del self._job_queues[job_queue.arn]
 
     def register_job_definition(
-        self, def_name, parameters, _type, tags, retry_strategy, container_properties
+        self,
+        def_name,
+        parameters,
+        _type,
+        tags,
+        retry_strategy,
+        container_properties,
+        timeout,
+        platform_capabilities,
+        propagate_tags,
     ):
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
 
         job_def = self.get_job_definition_by_name(def_name)
-        if retry_strategy is not None:
-            try:
-                retry_strategy = retry_strategy["attempts"]
-            except Exception:
-                raise ClientException("retryStrategy is malformed")
+        if retry_strategy is not None and "evaluateOnExit" in retry_strategy:
+            for strat in retry_strategy["evaluateOnExit"]:
+                if "action" in strat:
+                    strat["action"] = strat["action"].lower()
+        if not tags:
+            tags = {}
         if job_def is None:
-            if not tags:
-                tags = {}
             job_def = JobDefinition(
                 def_name,
                 parameters,
@@ -1285,11 +1439,15 @@ class BatchBackend(BaseBackend):
                 tags=tags,
                 region_name=self.region_name,
                 retry_strategy=retry_strategy,
+                timeout=timeout,
+                backend=self,
+                platform_capabilities=platform_capabilities,
+                propagate_tags=propagate_tags,
             )
         else:
             # Make new jobdef
             job_def = job_def.update(
-                parameters, _type, container_properties, retry_strategy
+                parameters, _type, container_properties, retry_strategy, tags, timeout
             )
 
         self._job_definitions[job_def.arn] = job_def
@@ -1303,7 +1461,7 @@ class BatchBackend(BaseBackend):
             job_def = self.get_job_definition_by_name_revision(name, revision)
 
         if job_def is not None:
-            del self._job_definitions[job_def.arn]
+            self._job_definitions[job_def.arn].deregister()
 
     def describe_job_definitions(
         self,
@@ -1344,6 +1502,7 @@ class BatchBackend(BaseBackend):
         retries=None,
         depends_on=None,
         container_overrides=None,
+        timeout=None,
     ):
         # TODO parameters, retries (which is a dict raw from request), job dependencies and container overrides are ignored for now
 
@@ -1366,6 +1525,7 @@ class BatchBackend(BaseBackend):
             container_overrides=container_overrides,
             depends_on=depends_on,
             all_jobs=self._jobs,
+            timeout=timeout,
         )
         self._jobs[job.job_id] = job
 
@@ -1434,11 +1594,15 @@ class BatchBackend(BaseBackend):
 
         job.terminate(reason)
 
+    def tag_resource(self, resource_arn, tags):
+        tags = self.tagger.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags)
 
-batch_backends = {}
-for region in Session().get_available_regions("batch"):
-    batch_backends[region] = BatchBackend(region)
-for region in Session().get_available_regions("batch", partition_name="aws-us-gov"):
-    batch_backends[region] = BatchBackend(region)
-for region in Session().get_available_regions("batch", partition_name="aws-cn"):
-    batch_backends[region] = BatchBackend(region)
+    def list_tags_for_resource(self, resource_arn):
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+
+batch_backends = BackendDict(BatchBackend, "batch")

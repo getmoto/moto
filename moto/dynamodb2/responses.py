@@ -69,7 +69,7 @@ def include_consumed_capacity(val=1.0):
 
 def put_has_empty_keys(field_updates, table):
     if table:
-        key_names = table.key_attributes
+        key_names = table.attribute_keys
 
         # string/binary fields with empty string as value
         empty_str_fields = [
@@ -168,19 +168,39 @@ class DynamoHandler(BaseResponse):
                 er = "com.amazonaws.dynamodb.v20111205#ValidationException"
                 return self.error(
                     er,
-                    "ProvisionedThroughput cannot be specified \
-                                   when BillingMode is PAY_PER_REQUEST",
+                    "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST",
                 )
             throughput = None
+            billing_mode = "PAY_PER_REQUEST"
         else:  # Provisioned (default billing mode)
             throughput = body.get("ProvisionedThroughput")
+            if throughput is None:
+                return self.error(
+                    "ValidationException",
+                    "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED",
+                )
+            billing_mode = "PROVISIONED"
+        # getting ServerSideEncryption details
+        sse_spec = body.get("SSESpecification")
         # getting the schema
         key_schema = body["KeySchema"]
         # getting attribute definition
         attr = body["AttributeDefinitions"]
         # getting the indexes
-        global_indexes = body.get("GlobalSecondaryIndexes", [])
-        local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
+        global_indexes = body.get("GlobalSecondaryIndexes")
+        if global_indexes == []:
+            return self.error(
+                "ValidationException",
+                "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty",
+            )
+        global_indexes = global_indexes or []
+        local_secondary_indexes = body.get("LocalSecondaryIndexes")
+        if local_secondary_indexes == []:
+            return self.error(
+                "ValidationException",
+                "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty",
+            )
+        local_secondary_indexes = local_secondary_indexes or []
         # Verify AttributeDefinitions list all
         expected_attrs = []
         expected_attrs.extend([key["AttributeName"] for key in key_schema])
@@ -206,6 +226,8 @@ class DynamoHandler(BaseResponse):
             )
         # get the stream specification
         streams = body.get("StreamSpecification")
+        # Get any tags
+        tags = body.get("Tags", [])
 
         table = self.dynamodb_backend.create_table(
             table_name,
@@ -215,6 +237,9 @@ class DynamoHandler(BaseResponse):
             global_indexes=global_indexes,
             indexes=local_secondary_indexes,
             streams=streams,
+            billing_mode=billing_mode,
+            sse_specification=sse_spec,
+            tags=tags,
         )
         if table is not None:
             return dynamo_json_dump(table.describe())
@@ -327,14 +352,18 @@ class DynamoHandler(BaseResponse):
 
     def update_table(self):
         name = self.body["TableName"]
+        attr_definitions = self.body.get("AttributeDefinitions", None)
         global_index = self.body.get("GlobalSecondaryIndexUpdates", None)
         throughput = self.body.get("ProvisionedThroughput", None)
+        billing_mode = self.body.get("BillingMode", None)
         stream_spec = self.body.get("StreamSpecification", None)
         try:
             table = self.dynamodb_backend.update_table(
                 name=name,
+                attr_definitions=attr_definitions,
                 global_index=global_index,
                 throughput=throughput,
+                billing_mode=billing_mode,
                 stream_spec=stream_spec,
             )
             return dynamo_json_dump(table.describe())
@@ -698,7 +727,7 @@ class DynamoHandler(BaseResponse):
                 range_comparison = None
                 range_values = []
 
-            if "=" not in hash_key_expression:
+            if not re.search("[^<>]=", hash_key_expression):
                 return self.error(
                     "com.amazonaws.dynamodb.v20111205#ValidationException",
                     "Query key condition not supported",
@@ -918,7 +947,13 @@ class DynamoHandler(BaseResponse):
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}",
             )
         # We need to copy the item in order to avoid it being modified by the update_item operation
-        existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
+        try:
+            existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
+        except ValueError:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException",
+                "Requested resource not found",
+            )
         if existing_item:
             existing_attributes = existing_item.to_json()["Attributes"]
         else:
@@ -1115,6 +1150,9 @@ class DynamoHandler(BaseResponse):
         except TransactionCanceledException as e:
             er = "com.amazonaws.dynamodb.v20111205#TransactionCanceledException"
             return self.error(er, str(e))
+        except MockValidationException as mve:
+            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+            return self.error(er, mve.exception_msg)
         response = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
 
@@ -1200,6 +1238,22 @@ class DynamoHandler(BaseResponse):
         except KeyError:
             er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
             return self.error(er, "Backup not found: %s" % backup_arn)
+        except ValueError:
+            er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
+            return self.error(er, "Table already exists: %s" % target_table_name)
+
+    def restore_table_to_point_in_time(self):
+        body = self.body
+        target_table_name = body.get("TargetTableName")
+        source_table_name = body.get("SourceTableName")
+        try:
+            restored_table = self.dynamodb_backend.restore_table_to_point_in_time(
+                target_table_name, source_table_name
+            )
+            return dynamo_json_dump(restored_table.describe())
+        except KeyError:
+            er = "com.amazonaws.dynamodb.v20111205#SourceTableNotFoundException"
+            return self.error(er, "Source table not found: %s" % source_table_name)
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
             return self.error(er, "Table already exists: %s" % target_table_name)

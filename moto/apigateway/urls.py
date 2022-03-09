@@ -1,4 +1,5 @@
 from .responses import APIGatewayResponse
+from ..apigatewayv2.urls import url_paths as url_paths_v2
 
 response = APIGatewayResponse()
 
@@ -28,9 +29,17 @@ url_paths = {
     "{0}/restapis/(?P<function_id>[^/]+)/models/(?P<model_name>[^/]+)/?$": response.model_induvidual,
     "{0}/domainnames/(?P<domain_name>[^/]+)/?$": response.domain_name_induvidual,
     "{0}/domainnames/(?P<domain_name>[^/]+)/basepathmappings$": response.base_path_mappings,
+    "{0}/domainnames/(?P<domain_name>[^/]+)/basepathmappings/(?P<base_path_mapping>[^/]+)$": response.base_path_mapping_individual,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/?$": response.usage_plan_individual,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys$": response.usage_plan_keys,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys/(?P<api_key_id>[^/]+)/?$": response.usage_plan_key_individual,
     "{0}/restapis/(?P<function_id>[^/]+)/requestvalidators$": response.request_validators,
     "{0}/restapis/(?P<api_id>[^/]+)/requestvalidators/(?P<validator_id>[^/]+)/?$": response.request_validator_individual,
+    "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/?$": response.gateway_responses,
+    "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/(?P<response_type>[^/]+)/?$": response.gateway_response,
+    "{0}/vpclinks$": response.vpc_links,
+    "{0}/vpclinks/(?P<vpclink_id>[^/]+)": response.vpc_link,
 }
+
+# Also manages the APIGatewayV2
+url_paths.update(url_paths_v2)

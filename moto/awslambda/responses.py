@@ -1,13 +1,27 @@
 import json
+import sys
 
 try:
     from urllib import unquote
 except ImportError:
     from urllib.parse import unquote
 
+from functools import wraps
 from moto.core.utils import amz_crc32, amzn_request_id, path_url
 from moto.core.responses import BaseResponse
+from .exceptions import LambdaClientError
 from .models import lambda_backends
+
+
+def error_handler(f):
+    @wraps(f)
+    def _wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except LambdaClientError as e:
+            return e.code, e.get_headers(), e.get_body()
+
+    return _wrapper
 
 
 class LambdaResponse(BaseResponse):
@@ -28,6 +42,7 @@ class LambdaResponse(BaseResponse):
         """
         return lambda_backends[self.region]
 
+    @error_handler
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -126,6 +141,7 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
+    @error_handler
     def policy(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -152,6 +168,11 @@ class LambdaResponse(BaseResponse):
             return self._put_code()
         else:
             raise ValueError("Cannot handle request")
+
+    def code_signing_config(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self._get_code_signing_config()
 
     def function_concurrency(self, request, full_url, headers):
         http_method = request.method
@@ -207,6 +228,16 @@ class LambdaResponse(BaseResponse):
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
+            if request.headers.get("X-Amz-Invocation-Type") != "Event":
+                if sys.getsizeof(payload) > 6000000:
+                    response_headers["Content-Length"] = "142"
+                    response_headers["x-amz-function-error"] = "Unhandled"
+                    error_dict = {
+                        "errorMessage": "Response payload size exceeded maximum allowed payload size (6291556 bytes).",
+                        "errorType": "Function.ResponseSizeTooLarge",
+                    }
+                    payload = json.dumps(error_dict).encode("utf-8")
+
             response_headers["content-type"] = "application/json"
             if request.headers.get("X-Amz-Invocation-Type") == "Event":
                 status_code = 202
@@ -408,6 +439,11 @@ class LambdaResponse(BaseResponse):
             return 200, {}, json.dumps(resp)
         else:
             return 404, {}, "{}"
+
+    def _get_code_signing_config(self):
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        resp = self.lambda_backend.get_code_signing_config(function_name)
+        return 200, {}, json.dumps(resp)
 
     def _get_function_concurrency(self, request):
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])

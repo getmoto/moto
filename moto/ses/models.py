@@ -24,7 +24,7 @@ from .exceptions import (
     RuleAlreadyExists,
     MissingRenderingAttributeException,
 )
-from .utils import get_random_message_id
+from .utils import get_random_message_id, is_valid_address
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
 RECIPIENT_LIMIT = 50
@@ -117,6 +117,7 @@ class SESBackend(BaseBackend):
         self.config_set = {}
         self.config_set_event_destination = {}
         self.event_destinations = {}
+        self.identity_mail_from_domains = {}
         self.templates = {}
         self.receipt_rule_set = {}
 
@@ -126,7 +127,7 @@ class SESBackend(BaseBackend):
             return True
         if address in self.email_addresses:
             return True
-        user, host = address.split("@", 1)
+        _, host = address.split("@", 1)
         return host in self.domains
 
     def verify_email_identity(self, address):
@@ -160,6 +161,13 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+        destination_addresses = [
+            address for addresses in destinations.values() for address in addresses
+        ]
+        for address in [source, *destination_addresses]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -178,6 +186,13 @@ class SESBackend(BaseBackend):
         if not self._is_verified_address(source):
             self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
+        destination_addresses = [
+            address for addresses in destinations.values() for address in addresses
+        ]
+        for address in [source, *destination_addresses]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         if not self.templates.get(template[0]):
             raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
@@ -259,6 +274,10 @@ class SESBackend(BaseBackend):
             )
         if recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many recipients.")
+        for address in [addr for addr in [source, *destinations] if addr is not None]:
+            valid, msg = is_valid_address(address)
+            if not valid:
+                raise InvalidParameterValue(msg)
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -458,6 +477,50 @@ class SESBackend(BaseBackend):
                 break
         else:
             raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
+
+    def set_identity_mail_from_domain(
+        self, identity, mail_from_domain=None, behavior_on_mx_failure=None
+    ):
+        if identity not in (self.domains + self.addresses):
+            raise InvalidParameterValue(
+                "Identity '{0}' does not exist.".format(identity)
+            )
+
+        if mail_from_domain is None:
+            self.identity_mail_from_domains.pop(identity)
+            return
+
+        if not mail_from_domain.endswith(identity):
+            raise InvalidParameterValue(
+                "Provided MAIL-FROM domain '{0}' is not subdomain of "
+                "the domain of the identity '{1}'.".format(mail_from_domain, identity)
+            )
+
+        if behavior_on_mx_failure not in (None, "RejectMessage", "UseDefaultValue"):
+            raise ValidationError(
+                "1 validation error detected: "
+                "Value '{0}' at 'behaviorOnMXFailure'"
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "[RejectMessage, UseDefaultValue]".format(behavior_on_mx_failure)
+            )
+
+        self.identity_mail_from_domains[identity] = {
+            "mail_from_domain": mail_from_domain,
+            "behavior_on_mx_failure": behavior_on_mx_failure,
+        }
+
+    def get_identity_mail_from_domain_attributes(self, identities=None):
+        if identities is None:
+            identities = []
+
+        attributes_by_identity = {}
+        for identity in identities:
+            if identity in (self.domains + self.addresses):
+                attributes_by_identity[identity] = self.identity_mail_from_domains.get(
+                    identity
+                ) or {"behavior_on_mx_failure": "UseDefaultValue"}
+
+        return attributes_by_identity
 
 
 ses_backend = SESBackend()

@@ -22,7 +22,7 @@ class DsValidationException(JsonRESTError):
         )
         msgs = []
         for arg_name, arg_value, constraint in error_tuples:
-            value = "at" if arg_name == "password" else f"'{arg_value}' at"
+            value = "at" if "assword" in arg_name else f"'{arg_value}' at"
             msgs.append(
                 f"Value {value} '{arg_name}' failed to satisfy constraint: "
                 f"Member must {constraint}"
@@ -55,6 +55,15 @@ class EntityDoesNotExistException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__("EntityDoesNotExistException", message)
+
+
+class EntityAlreadyExistsException(JsonRESTError):
+    """The specified entity already exists."""
+
+    code = 400
+
+    def __init__(self, message):
+        super().__init__("EntityAlreadyExistsException", message)
 
 
 class InvalidNextTokenException(JsonRESTError):

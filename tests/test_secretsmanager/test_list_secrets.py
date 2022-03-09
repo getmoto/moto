@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
+
 import boto3
+from dateutil.tz import tzlocal
 
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
@@ -41,6 +44,10 @@ def test_list_secrets():
     assert secrets["SecretList"][1]["Name"] == "test-secret-2"
     assert secrets["SecretList"][1]["Tags"] == [{"Key": "a", "Value": "1"}]
     assert secrets["SecretList"][1]["SecretVersionsToStages"] is not None
+    assert secrets["SecretList"][0]["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][1]["CreatedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][0]["LastChangedDate"] <= datetime.now(tz=tzlocal())
+    assert secrets["SecretList"][1]["LastChangedDate"] <= datetime.now(tz=tzlocal())
 
 
 @mock_secretsmanager
@@ -244,3 +251,21 @@ def test_with_filter_with_value_with_multiple_words():
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert secret_names == ["foo", "bar"]
+
+
+@mock_secretsmanager
+def test_with_filter_with_negation():
+    conn = boto_client()
+
+    conn.create_secret(Name="foo", SecretString="secret", Description="one two")
+    conn.create_secret(Name="bar", SecretString="secret", Description="one and two")
+    conn.create_secret(Name="baz", SecretString="secret", Description="one")
+    conn.create_secret(Name="qux", SecretString="secret", Description="two")
+    conn.create_secret(Name="none", SecretString="secret", Description="unrelated")
+
+    secrets = conn.list_secrets(
+        Filters=[{"Key": "description", "Values": ["one", "!two"]}]
+    )
+
+    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    assert secret_names == ["baz"]

@@ -3,14 +3,15 @@ import hashlib
 import json
 import os
 import time
+import typing
 import uuid
 import enum
 import random
-from boto3 import Session
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
     NotAuthorizedError,
@@ -37,6 +38,21 @@ class UserStatus(str, enum.Enum):
     CONFIRMED = "CONFIRMED"
     UNCONFIRMED = "UNCONFIRMED"
     RESET_REQUIRED = "RESET_REQUIRED"
+
+
+class AuthFlow(str, enum.Enum):
+    # Order follows AWS' order
+    ADMIN_NO_SRP_AUTH = "ADMIN_NO_SRP_AUTH"
+    ADMIN_USER_PASSWORD_AUTH = "ADMIN_USER_PASSWORD_AUTH"
+    USER_SRP_AUTH = "USER_SRP_AUTH"
+    REFRESH_TOKEN_AUTH = "REFRESH_TOKEN_AUTH"
+    REFRESH_TOKEN = "REFRESH_TOKEN"
+    CUSTOM_AUTH = "CUSTOM_AUTH"
+    USER_PASSWORD_AUTH = "USER_PASSWORD_AUTH"
+
+    @classmethod
+    def list(cls):
+        return [e.value for e in cls]
 
 
 class CognitoIdpUserPoolAttribute(BaseModel):
@@ -421,7 +437,7 @@ class CognitoIdpUserPool(BaseModel):
         return self.users.get(username)
 
     def create_jwt(
-        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data=None
     ):
         now = int(time.time())
         payload = {
@@ -435,7 +451,7 @@ class CognitoIdpUserPool(BaseModel):
             "exp": now + expires_in,
             "email": flatten_attrs(self._get_user(username).attributes).get("email"),
         }
-        payload.update(extra_data)
+        payload.update(extra_data or {})
         headers = {"kid": "dummy"}  # KID as present in jwks-public.json
 
         return (
@@ -473,7 +489,14 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token
 
     def create_access_token(self, client_id, username):
-        access_token, expires_in = self.create_jwt(client_id, username, "access")
+        extra_data = {}
+        user = self._get_user(username)
+        if len(user.groups) > 0:
+            extra_data["cognito:groups"] = [group.group_name for group in user.groups]
+
+        access_token, expires_in = self.create_jwt(
+            client_id, username, "access", extra_data=extra_data
+        )
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
@@ -510,12 +533,12 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
     def _distribution_name(self):
         if self.custom_domain_config and "CertificateArn" in self.custom_domain_config:
-            hash = hashlib.md5(
+            unique_hash = hashlib.md5(
                 self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
-            return "{hash}.cloudfront.net".format(hash=hash[:16])
-        hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
-        return "{hash}.amazoncognito.com".format(hash=hash[:16])
+            return f"{unique_hash[:16]}.cloudfront.net"
+        unique_hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
+        return f"{unique_hash[:16]}.amazoncognito.com"
 
     def to_json(self, extended=True):
         distribution = self._distribution_name()
@@ -629,6 +652,7 @@ class CognitoIdpUser(BaseModel):
         self.software_token_mfa_enabled = False
         self.token_verified = False
         self.confirmation_code = None
+        self.preferred_mfa_setting = None
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
@@ -646,7 +670,9 @@ class CognitoIdpUser(BaseModel):
         }
 
     # list_users brings back "Attributes" while admin_get_user brings back "UserAttributes".
-    def to_json(self, extended=False, attributes_key="Attributes"):
+    def to_json(
+        self, extended=False, attributes_key="Attributes", attributes_to_get=None
+    ):
         user_mfa_setting_list = []
         if self.software_token_mfa_enabled:
             user_mfa_setting_list.append("SOFTWARE_TOKEN_MFA")
@@ -654,12 +680,18 @@ class CognitoIdpUser(BaseModel):
             user_mfa_setting_list.append("SMS_MFA")
         user_json = self._base_json()
         if extended:
+            attrs = [
+                attr
+                for attr in self.attributes
+                if not attributes_to_get or attr["Name"] in attributes_to_get
+            ]
             user_json.update(
                 {
                     "Enabled": self.enabled,
-                    attributes_key: self.attributes,
+                    attributes_key: attrs,
                     "MFAOptions": [],
                     "UserMFASettingList": user_mfa_setting_list,
+                    "PreferredMfaSetting": self.preferred_mfa_setting or "",
                 }
             )
 
@@ -688,7 +720,7 @@ class CognitoIdpUser(BaseModel):
                         for w in wrong_attrs
                     ]
                 )
-                + "\\n"
+                + "\n"
             )
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
@@ -716,7 +748,7 @@ class CognitoResourceServer(BaseModel):
 
 class CognitoIdpBackend(BaseBackend):
     def __init__(self, region):
-        super(CognitoIdpBackend, self).__init__()
+        super().__init__()
         self.region = region
         self.user_pools = OrderedDict()
         self.user_pool_domains = OrderedDict()
@@ -753,7 +785,7 @@ class CognitoIdpBackend(BaseBackend):
         }
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_user_pools(self, max_results=None, next_token=None):
+    def list_user_pools(self):
         return list(self.user_pools.values())
 
     def describe_user_pool(self, user_pool_id):
@@ -813,7 +845,7 @@ class CognitoIdpBackend(BaseBackend):
         return user_pool_client
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
+    def list_user_pool_clients(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.clients.values())
@@ -854,7 +886,7 @@ class CognitoIdpBackend(BaseBackend):
         return identity_provider
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
+    def list_identity_providers(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.identity_providers.values())
@@ -1057,7 +1089,7 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError("Invalid token")
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_users(self, user_pool_id, pagination_token=None, limit=None):
+    def list_users(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
         return list(user_pool.users.values())
@@ -1096,14 +1128,43 @@ class CognitoIdpBackend(BaseBackend):
             }
         }
 
+    def _validate_auth_flow(
+        self, auth_flow: str, valid_flows: typing.List[AuthFlow]
+    ) -> AuthFlow:
+        """ validate auth_flow value and convert auth_flow to enum """
+
+        try:
+            auth_flow = AuthFlow[auth_flow]
+        except KeyError:
+            raise InvalidParameterException(
+                f"1 validation error detected: Value '{auth_flow}' at 'authFlow' failed to satisfy constraint: "
+                f"Member must satisfy enum value set: "
+                f"{AuthFlow.list()}"
+            )
+
+        if auth_flow not in valid_flows:
+            raise InvalidParameterException("Initiate Auth method not supported")
+
+        return auth_flow
+
     def admin_initiate_auth(self, user_pool_id, client_id, auth_flow, auth_parameters):
+        admin_auth_flows = [
+            AuthFlow.ADMIN_NO_SRP_AUTH,
+            AuthFlow.ADMIN_USER_PASSWORD_AUTH,
+            AuthFlow.REFRESH_TOKEN_AUTH,
+            AuthFlow.REFRESH_TOKEN,
+        ]
+        auth_flow = self._validate_auth_flow(
+            auth_flow=auth_flow, valid_flows=admin_auth_flows
+        )
+
         user_pool = self.describe_user_pool(user_pool_id)
 
         client = user_pool.clients.get(client_id)
         if not client:
             raise ResourceNotFoundError(client_id)
 
-        if auth_flow in ("ADMIN_USER_PASSWORD_AUTH", "ADMIN_NO_SRP_AUTH"):
+        if auth_flow in (AuthFlow.ADMIN_USER_PASSWORD_AUTH, AuthFlow.ADMIN_NO_SRP_AUTH):
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
             user = self.admin_get_user(user_pool_id, username)
@@ -1125,7 +1186,7 @@ class CognitoIdpBackend(BaseBackend):
                 }
 
             return self._log_user_in(user_pool, client, username)
-        elif auth_flow == "REFRESH_TOKEN":
+        elif auth_flow is AuthFlow.REFRESH_TOKEN:
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             (
                 id_token,
@@ -1138,10 +1199,12 @@ class CognitoIdpBackend(BaseBackend):
                     "IdToken": id_token,
                     "AccessToken": access_token,
                     "ExpiresIn": expires_in,
+                    "TokenType": "Bearer",
                 }
             }
         else:
-            return {}
+            # We shouldn't get here due to enum validation of auth_flow
+            return None
 
     def respond_to_auth_challenge(
         self, session, client_id, challenge_name, challenge_responses
@@ -1322,6 +1385,8 @@ class CognitoIdpBackend(BaseBackend):
         self.admin_get_user(user_pool_id, username)
 
         for token, token_tuple in list(user_pool.refresh_tokens.items()):
+            if token_tuple is None:
+                continue
             _, username = token_tuple
             if username == username:
                 user_pool.refresh_tokens[token] = None
@@ -1413,6 +1478,18 @@ class CognitoIdpBackend(BaseBackend):
         return ""
 
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
+        user_auth_flows = [
+            AuthFlow.USER_SRP_AUTH,
+            AuthFlow.REFRESH_TOKEN_AUTH,
+            AuthFlow.REFRESH_TOKEN,
+            AuthFlow.CUSTOM_AUTH,
+            AuthFlow.USER_PASSWORD_AUTH,
+        ]
+
+        auth_flow = self._validate_auth_flow(
+            auth_flow=auth_flow, valid_flows=user_auth_flows
+        )
+
         user_pool = None
         for p in self.user_pools.values():
             if client_id in p.clients:
@@ -1422,7 +1499,7 @@ class CognitoIdpBackend(BaseBackend):
 
         client = p.clients.get(client_id)
 
-        if auth_flow == "USER_SRP_AUTH":
+        if auth_flow is AuthFlow.USER_SRP_AUTH:
             username = auth_parameters.get("USERNAME")
             srp_a = auth_parameters.get("SRP_A")
             if not srp_a:
@@ -1453,7 +1530,7 @@ class CognitoIdpBackend(BaseBackend):
                     "SECRET_BLOCK": session,
                 },
             }
-        elif auth_flow == "USER_PASSWORD_AUTH":
+        elif auth_flow is AuthFlow.USER_PASSWORD_AUTH:
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
 
@@ -1471,6 +1548,13 @@ class CognitoIdpBackend(BaseBackend):
             session = str(uuid.uuid4())
             self.sessions[session] = user_pool
 
+            if user.status is UserStatus.FORCE_CHANGE_PASSWORD:
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {"USERNAME": user.username},
+                    "Session": session,
+                }
+
             access_token, expires_in = user_pool.create_access_token(
                 client_id, username
             )
@@ -1486,7 +1570,7 @@ class CognitoIdpBackend(BaseBackend):
                     "TokenType": "Bearer",
                 }
             }
-        elif auth_flow == "REFRESH_TOKEN":
+        elif auth_flow in (AuthFlow.REFRESH_TOKEN, AuthFlow.REFRESH_TOKEN_AUTH):
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
@@ -1506,8 +1590,8 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(secret_hash)
 
             (
-                id_token,
                 access_token,
+                id_token,
                 expires_in,
             ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
@@ -1516,9 +1600,11 @@ class CognitoIdpBackend(BaseBackend):
                     "IdToken": id_token,
                     "AccessToken": access_token,
                     "ExpiresIn": expires_in,
+                    "TokenType": "Bearer",
                 }
             }
         else:
+            # We shouldn't get here due to enum validation of auth_flow
             return None
 
     def associate_software_token(self, access_token):
@@ -1551,7 +1637,9 @@ class CognitoIdpBackend(BaseBackend):
                 _, username = user_pool.access_tokens[access_token]
                 user = self.admin_get_user(user_pool.id, username)
 
-                if software_token_mfa_settings["Enabled"]:
+                if software_token_mfa_settings and software_token_mfa_settings.get(
+                    "Enabled"
+                ):
                     if user.token_verified:
                         user.software_token_mfa_enabled = True
                     else:
@@ -1559,12 +1647,38 @@ class CognitoIdpBackend(BaseBackend):
                             "User has not verified software token mfa"
                         )
 
-                elif sms_mfa_settings["Enabled"]:
+                    if software_token_mfa_settings.get("PreferredMfa"):
+                        user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
+                elif sms_mfa_settings and sms_mfa_settings["Enabled"]:
                     user.sms_mfa_enabled = True
 
+                    if sms_mfa_settings.get("PreferredMfa"):
+                        user.preferred_mfa_setting = "SMS_MFA"
                 return None
         else:
             raise NotAuthorizedError(access_token)
+
+    def admin_set_user_mfa_preference(
+        self, user_pool_id, username, software_token_mfa_settings, sms_mfa_settings
+    ):
+        user = self.admin_get_user(user_pool_id, username)
+
+        if software_token_mfa_settings and software_token_mfa_settings.get("Enabled"):
+            if user.token_verified:
+                user.software_token_mfa_enabled = True
+            else:
+                raise InvalidParameterException(
+                    "User has not verified software token mfa"
+                )
+
+            if software_token_mfa_settings.get("PreferredMfa"):
+                user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
+        elif sms_mfa_settings and sms_mfa_settings.get("Enabled"):
+            user.sms_mfa_enabled = True
+
+            if sms_mfa_settings.get("PreferredMfa"):
+                user.preferred_mfa_setting = "SMS_MFA"
+        return None
 
     def admin_set_user_password(self, user_pool_id, username, password, permanent):
         user = self.admin_get_user(user_pool_id, username)
@@ -1579,15 +1693,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.add_custom_attributes(custom_attributes)
 
 
-cognitoidp_backends = {}
-for region in Session().get_available_regions("cognito-idp"):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
-for region in Session().get_available_regions(
-    "cognito-idp", partition_name="aws-us-gov"
-):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
-for region in Session().get_available_regions("cognito-idp", partition_name="aws-cn"):
-    cognitoidp_backends[region] = CognitoIdpBackend(region)
+cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't

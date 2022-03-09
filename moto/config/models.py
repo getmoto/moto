@@ -7,8 +7,6 @@ import string
 
 from datetime import datetime
 
-from boto3 import Session
-
 from moto.config.exceptions import (
     InvalidResourceTypeException,
     InvalidDeliveryFrequency,
@@ -54,8 +52,10 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.responses import AWSServiceSpec
+from moto.core.utils import BackendDict
 from moto.iam.config import role_config_query, policy_config_query
-from moto.s3.config import s3_account_public_access_block_query, s3_config_query
+from moto.s3.config import s3_config_query
+from moto.s3control.config import s3_account_public_access_block_query
 from moto.utilities.utils import load_resource
 
 
@@ -794,7 +794,7 @@ class ConfigRule(ConfigEmptyDictable):
             if not set(param_names).issubset(allowed_names):
                 raise InvalidParameterValueException(
                     "Unknown parameters provided in the inputParameters: "
-                    + self.input_parameters.replace('"', '\\"')
+                    + self.input_parameters
                 )
 
         # Verify all the required parameters are specified.
@@ -845,7 +845,7 @@ class ConfigRule(ConfigEmptyDictable):
 
 
 class ConfigBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.recorders = {}
         self.delivery_channels = {}
         self.config_aggregators = {}
@@ -1924,14 +1924,4 @@ class ConfigBackend(BaseBackend):
         self.config_rules.pop(rule_name)
 
 
-config_backends = {}
-for available_region in Session().get_available_regions("config"):
-    config_backends[available_region] = ConfigBackend()
-for available_region in Session().get_available_regions(
-    "config", partition_name="aws-us-gov"
-):
-    config_backends[available_region] = ConfigBackend()
-for available_region in Session().get_available_regions(
-    "config", partition_name="aws-cn"
-):
-    config_backends[available_region] = ConfigBackend()
+config_backends = BackendDict(ConfigBackend, "config")

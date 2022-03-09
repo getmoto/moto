@@ -7,4 +7,4 @@ class STSClientError(RESTError):
 
 class STSValidationError(STSClientError):
     def __init__(self, *args, **kwargs):
-        super(STSValidationError, self).__init__("ValidationError", *args, **kwargs)
+        super().__init__("ValidationError", *args, **kwargs)

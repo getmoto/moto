@@ -1,11 +1,11 @@
 import uuid
 
-from boto3 import Session
+from datetime import datetime, timedelta
 
 from moto import core as moto_core
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import CloudFormationModel
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
@@ -14,6 +14,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+from moto.s3 import s3_backend
 from .utils import PAGINATION_MODEL
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -276,7 +277,7 @@ class LogStream(BaseModel):
         return events
 
 
-class LogGroup(BaseModel):
+class LogGroup(CloudFormationModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
@@ -293,6 +294,25 @@ class LogGroup(BaseModel):
         # Docs:
         # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
         self.kms_key_id = kwargs.get("kmsKeyId")
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LogGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
+        return "AWS::Logs::LogGroup"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name, **kwargs
+    ):
+        properties = cloudformation_json["Properties"]
+        tags = properties.get("Tags", {})
+        return logs_backends[region_name].create_log_group(
+            resource_name, tags, **properties
+        )
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -573,7 +593,7 @@ class LogResourcePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]
@@ -652,9 +672,7 @@ class LogsBackend(BaseBackend):
         del self.groups[log_group_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def describe_log_groups(
-        self, log_group_name_prefix=None, limit=None, next_token=None
-    ):
+    def describe_log_groups(self, log_group_name_prefix=None):
         if log_group_name_prefix is None:
             log_group_name_prefix = ""
 
@@ -723,9 +741,30 @@ class LogsBackend(BaseBackend):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
-        return log_group.put_log_events(
-            log_group_name, log_stream_name, log_events, sequence_token
+
+        # Only events from the last 14 days or 2 hours in the future are accepted
+        rejected_info = {}
+        allowed_events = []
+        last_timestamp = None
+        oldest = int(unix_time_millis(datetime.utcnow() - timedelta(days=14)))
+        newest = int(unix_time_millis(datetime.utcnow() + timedelta(hours=2)))
+        for idx, event in enumerate(log_events):
+            if last_timestamp and last_timestamp > event["timestamp"]:
+                raise InvalidParameterException(
+                    "Log events in a single PutLogEvents request must be in chronological order."
+                )
+            if event["timestamp"] < oldest:
+                rejected_info["tooOldLogEventEndIndex"] = idx
+            elif event["timestamp"] > newest:
+                rejected_info["tooNewLogEventStartIndex"] = idx
+            else:
+                allowed_events.append(event)
+            last_timestamp = event["timestamp"]
+
+        token = log_group.put_log_events(
+            log_group_name, log_stream_name, allowed_events, sequence_token
         )
+        return token, rejected_info
 
     def get_log_events(
         self,
@@ -944,15 +983,22 @@ class LogsBackend(BaseBackend):
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
 
+    def create_export_task(
+        self,
+        *,
+        task_name,
+        log_group_name,
+        log_stream_name_prefix,
+        fromTime,
+        to,
+        destination,
+        destination_prefix,
+    ):
+        s3_backend.get_bucket(destination)
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        task_id = uuid.uuid4()
+        return task_id
 
-logs_backends = {}
-for available_region in Session().get_available_regions("logs"):
-    logs_backends[available_region] = LogsBackend(available_region)
-for available_region in Session().get_available_regions(
-    "logs", partition_name="aws-us-gov"
-):
-    logs_backends[available_region] = LogsBackend(available_region)
-for available_region in Session().get_available_regions(
-    "logs", partition_name="aws-cn"
-):
-    logs_backends[available_region] = LogsBackend(available_region)
+
+logs_backends = BackendDict(LogsBackend, "logs")

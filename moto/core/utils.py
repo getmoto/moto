@@ -7,10 +7,13 @@ import random
 import re
 import string
 from botocore.exceptions import ClientError
+from boto3 import Session
+from moto.settings import allow_unknown_region
 from urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
+HEX_CHARS = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
 
 
 def camelcase_to_underscores(argument):
@@ -71,8 +74,7 @@ def method_names_from_class(clazz):
 
 
 def get_random_hex(length=8):
-    chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    return "".join(str(random.choice(chars)) for x in range(length))
+    return "".join(str(random.choice(HEX_CHARS)) for _ in range(length))
 
 
 def get_random_message_id():
@@ -104,29 +106,7 @@ def convert_regex_to_flask_path(url_path):
     return url_path
 
 
-class convert_httpretty_response(object):
-    def __init__(self, callback):
-        self.callback = callback
-
-    @property
-    def __name__(self):
-        # For instance methods, use class and method names. Otherwise
-        # use module and method name
-        if inspect.ismethod(self.callback):
-            outer = self.callback.__self__.__class__.__name__
-        else:
-            outer = self.callback.__module__
-        return "{0}.{1}".format(outer, self.callback.__name__)
-
-    def __call__(self, request, url, headers, **kwargs):
-        result = self.callback(request, url, headers)
-        status, headers, response = result
-        if "server" not in headers:
-            headers["server"] = "amazon.com"
-        return status, headers, response
-
-
-class convert_flask_to_httpretty_response(object):
+class convert_to_flask_response(object):
     def __init__(self, callback):
         self.callback = callback
 
@@ -144,7 +124,7 @@ class convert_flask_to_httpretty_response(object):
         from flask import request, Response
 
         try:
-            result = self.callback(request, request.url, {})
+            result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
@@ -207,8 +187,8 @@ def rfc_1123_datetime(datetime):
     return datetime.strftime(RFC1123)
 
 
-def str_to_rfc_1123_datetime(str):
-    return datetime.datetime.strptime(str, RFC1123)
+def str_to_rfc_1123_datetime(value):
+    return datetime.datetime.strptime(value, RFC1123)
 
 
 def unix_time(dt=None):
@@ -320,7 +300,7 @@ def tags_from_query_string(
     querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
 ):
     response_values = {}
-    for key, value in querystring_dict.items():
+    for key in querystring_dict.keys():
         if key.startswith(prefix) and key.endswith(key_suffix):
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
@@ -399,13 +379,48 @@ def merge_dicts(dict1, dict2, remove_nulls=False):
                 dict1.pop(key)
 
 
-def glob_matches(pattern, string):
-    """AWS API-style globbing regexes"""
-    pattern, n = re.subn(r"[^\\]\*", r".*", pattern)
-    pattern, m = re.subn(r"[^\\]\?", r".?", pattern)
+def aws_api_matches(pattern, string):
+    """
+        AWS API can match a value based on a glob, or an exact match
+    """
+    # use a negative lookback regex to match stars that are not prefixed with a backslash
+    # and replace all stars not prefixed w/ a backslash with '.*' to take this from "glob" to PCRE syntax
+    pattern, _ = re.subn(r"(?<!\\)\*", r".*", pattern)
 
-    pattern = ".*" + pattern + ".*"
+    # ? in the AWS glob form becomes .? in regex
+    # also, don't substitute it if it is prefixed w/ a backslash
+    pattern, _ = re.subn(r"(?<!\\)\?", r".?", pattern)
 
-    if re.match(pattern, str(string)):
+    # aws api seems to anchor
+    anchored_pattern = f"^{pattern}$"
+
+    if re.match(anchored_pattern, str(string)):
         return True
-    return False
+    else:
+        return False
+
+
+class BackendDict(dict):
+    def __init__(self, fn, service_name):
+        self.fn = fn
+        sess = Session()
+        self.regions = list(sess.get_available_regions(service_name))
+        self.regions.extend(
+            sess.get_available_regions(service_name, partition_name="aws-us-gov")
+        )
+        self.regions.extend(
+            sess.get_available_regions(service_name, partition_name="aws-cn")
+        )
+
+    def __contains__(self, item):
+        return item in self.regions or item in self.keys()
+
+    def __getitem__(self, item):
+        if item in self.keys():
+            return super().__getitem__(item)
+        # Create the backend for a specific region
+        if item in self.regions and item not in self.keys():
+            super().__setitem__(item, self.fn(item))
+        if item not in self.regions and allow_unknown_region():
+            super().__setitem__(item, self.fn(item))
+        return super().__getitem__(item)

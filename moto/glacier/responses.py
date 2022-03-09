@@ -55,7 +55,6 @@ class GlacierResponse(BaseResponse):
         return 204, headers, ""
 
     def vault_archive_response(self, request, full_url, headers):
-        self.setup_class(request, full_url, headers)
         return self._vault_archive_response(request, full_url, headers)
 
     def _vault_archive_response(self, request, full_url, headers):

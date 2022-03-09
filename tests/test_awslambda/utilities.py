@@ -48,6 +48,42 @@ def lambda_handler(event, context):
     return _process_lambda(func_str)
 
 
+def get_lambda_using_environment_port():
+    func_str = """
+import boto3
+import os
+
+def lambda_handler(event, context):
+    base_url = os.environ.get("MOTO_HOST")
+    port = os.environ.get("MOTO_PORT")
+    url = base_url + ":" + port
+    conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
+
+    full_url = os.environ["MOTO_HTTP_ENDPOINT"]
+
+    functions = conn.list_functions()["Functions"]
+
+    return {'functions': functions, 'host': full_url}
+"""
+    return _process_lambda(func_str)
+
+
+def get_lambda_using_network_mode():
+    func_str = """
+import boto3
+import os
+
+def lambda_handler(event, context):
+    port = os.environ.get("MOTO_PORT")
+    url = "http://localhost:" + port
+    conn = boto3.client('lambda', region_name='us-west-2', endpoint_url=url)
+
+    functions = conn.list_functions()["Functions"]
+    return {'response': functions}
+"""
+    return _process_lambda(func_str)
+
+
 def get_test_zip_file3():
     pfunc = """
 def lambda_handler(event, context):
@@ -62,6 +98,15 @@ def get_test_zip_file_error():
     pfunc = """
 def lambda_handler(event, context):
     raise Exception('I failed!')
+"""
+    return _process_lambda(pfunc)
+
+
+def get_test_zip_largeresponse():
+    pfunc = """
+def lambda_handler(event, context):
+    x = ["xxx" for x in range(10 ** 6)]
+    return {"statusCode": 200, "body": x}
 """
     return _process_lambda(pfunc)
 
@@ -126,8 +171,11 @@ def wait_for_log_msg(expected_msg, log_group):
     received_messages = []
     start = time.time()
     while (time.time() - start) < 30:
-        result = logs_conn.describe_log_streams(logGroupName=log_group)
-        log_streams = result.get("logStreams")
+        try:
+            result = logs_conn.describe_log_streams(logGroupName=log_group)
+            log_streams = result.get("logStreams")
+        except ClientError:
+            log_streams = None  # LogGroupName does not yet exist
         if not log_streams:
             time.sleep(1)
             continue
@@ -139,7 +187,8 @@ def wait_for_log_msg(expected_msg, log_group):
             received_messages.extend(
                 [event["message"] for event in result.get("events")]
             )
-        if expected_msg in received_messages:
-            return True, received_messages
+        for line in received_messages:
+            if expected_msg in line:
+                return True, set(received_messages)
         time.sleep(1)
-    return False, received_messages
+    return False, set(received_messages)

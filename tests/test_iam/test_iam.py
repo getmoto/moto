@@ -1,21 +1,17 @@
-import base64
 import json
 
-import boto
 import boto3
 import csv
-import sure  # pylint: disable=unused-import
-from boto.exception import BotoServerError
+import sure  # noqa  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
-from moto import mock_config, mock_iam, mock_iam_deprecated, settings
+from moto import mock_config, mock_iam, settings
 from moto.core import ACCOUNT_ID
 from moto.iam.models import aws_managed_policies
 from moto.backends import get_backend
 import pytest
 
 from datetime import datetime
-from tests.helpers import requires_boto_gte
 from uuid import uuid4
 from urllib import parse
 
@@ -71,82 +67,6 @@ MOCK_POLICY_3 = """
 """
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_all_server_certs():
-    conn = boto.connect_iam()
-
-    conn.upload_server_cert("certname", "certbody", "privatekey")
-    certs = conn.get_all_server_certs()["list_server_certificates_response"][
-        "list_server_certificates_result"
-    ]["server_certificate_metadata_list"]
-    certs.should.have.length_of(1)
-    cert1 = certs[0]
-    cert1.server_certificate_name.should.equal("certname")
-    cert1.arn.should.equal(
-        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
-    )
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_server_cert_doesnt_exist():
-    conn = boto.connect_iam()
-
-    with pytest.raises(BotoServerError):
-        conn.get_server_certificate("NonExistant")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_server_cert():
-    conn = boto.connect_iam()
-
-    conn.upload_server_cert("certname", "certbody", "privatekey")
-    cert = conn.get_server_certificate("certname")
-    cert.server_certificate_name.should.equal("certname")
-    cert.arn.should.equal(
-        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
-    )
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_upload_server_cert():
-    conn = boto.connect_iam()
-
-    conn.upload_server_cert("certname", "certbody", "privatekey")
-    cert = conn.get_server_certificate("certname")
-    cert.server_certificate_name.should.equal("certname")
-    cert.arn.should.equal(
-        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
-    )
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_delete_server_cert():
-    conn = boto.connect_iam()
-
-    conn.upload_server_cert("certname", "certbody", "privatekey")
-    conn.get_server_certificate("certname")
-    conn.delete_server_cert("certname")
-    with pytest.raises(BotoServerError):
-        conn.get_server_certificate("certname")
-    with pytest.raises(BotoServerError):
-        conn.delete_server_cert("certname")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_role__should_throw__when_role_does_not_exist():
-    conn = boto.connect_iam()
-    with pytest.raises(BotoServerError) as ex:
-        conn.get_role("unexisting_role")
-    ex.value.error_code.should.equal("NoSuchEntity")
-    ex.value.message.should.contain("not found")
-
-
 @mock_iam
 def test_get_role__should_throw__when_role_does_not_exist_boto3():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -157,16 +77,6 @@ def test_get_role__should_throw__when_role_does_not_exist_boto3():
     err["Message"].should.contain("not found")
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
-    conn = boto.connect_iam()
-    with pytest.raises(BotoServerError) as ex:
-        conn.get_instance_profile("unexisting_instance_profile")
-    ex.value.error_code.should.equal("NoSuchEntity")
-    ex.value.message.should.contain("not found")
-
-
 @mock_iam
 def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist_boto3():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -175,34 +85,6 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
     err = ex.value.response["Error"]
     err["Code"].should.equal("NoSuchEntity")
     err["Message"].should.contain("not found")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_create_role_and_instance_profile():
-    conn = boto.connect_iam()
-    conn.create_instance_profile("my-profile", path="my-path")
-    conn.create_role(
-        "my-role", assume_role_policy_document="some policy", path="/my-path/"
-    )
-
-    conn.add_role_to_instance_profile("my-profile", "my-role")
-
-    role = conn.get_role("my-role")
-    role.path.should.equal("/my-path/")
-    role.assume_role_policy_document.should.equal("some policy")
-
-    profile = conn.get_instance_profile("my-profile")
-    profile.path.should.equal("my-path")
-    role_from_profile = list(profile.roles.values())[0]
-    role_from_profile["role_id"].should.equal(role.role_id)
-    role_from_profile["role_name"].should.equal("my-role")
-
-    conn.list_roles().roles[0].role_name.should.equal("my-role")
-
-    # Test with an empty path:
-    profile = conn.create_instance_profile("my-other-profile")
-    profile.path.should.equal("/")
 
 
 @mock_iam
@@ -244,26 +126,6 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
     conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
     with pytest.raises(ClientError):
         conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_remove_role_from_instance_profile():
-    conn = boto.connect_iam()
-    conn.create_instance_profile("my-profile", path="my-path")
-    conn.create_role(
-        "my-role", assume_role_policy_document="some policy", path="my-path"
-    )
-    conn.add_role_to_instance_profile("my-profile", "my-role")
-
-    profile = conn.get_instance_profile("my-profile")
-    role_from_profile = list(profile.roles.values())[0]
-    role_from_profile["role_name"].should.equal("my-role")
-
-    conn.remove_role_from_instance_profile("my-profile", "my-role")
-
-    profile = conn.get_instance_profile("my-profile")
-    dict(profile.roles).should.be.empty
 
 
 @mock_iam
@@ -400,22 +262,6 @@ def test_delete_role():
         conn.get_role(RoleName="my-role")
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_list_instance_profiles():
-    conn = boto.connect_iam()
-    conn.create_instance_profile("my-profile", path="my-path")
-    conn.create_role("my-role", path="my-path")
-
-    conn.add_role_to_instance_profile("my-profile", "my-role")
-
-    profiles = conn.list_instance_profiles().instance_profiles
-
-    len(profiles).should.equal(1)
-    profiles[0].instance_profile_name.should.equal("my-profile")
-    profiles[0].roles.role_name.should.equal("my-role")
-
-
 @mock_iam
 def test_list_instance_profiles_boto3():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -433,51 +279,6 @@ def test_list_instance_profiles_boto3():
     len(profiles).should.equal(1)
     profiles[0]["InstanceProfileName"].should.equal("my-profile")
     profiles[0]["Roles"][0]["RoleName"].should.equal("my-role")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_list_instance_profiles_for_role():
-    conn = boto.connect_iam()
-
-    conn.create_role(
-        role_name="my-role", assume_role_policy_document="some policy", path="my-path",
-    )
-    conn.create_role(
-        role_name="my-role2",
-        assume_role_policy_document="some policy2",
-        path="my-path2",
-    )
-
-    profile_name_list = ["my-profile", "my-profile2"]
-    profile_path_list = ["my-path", "my-path2"]
-    for profile_count in range(0, 2):
-        conn.create_instance_profile(
-            profile_name_list[profile_count], path=profile_path_list[profile_count],
-        )
-
-    for profile_count in range(0, 2):
-        conn.add_role_to_instance_profile(profile_name_list[profile_count], "my-role")
-
-    profile_dump = conn.list_instance_profiles_for_role(role_name="my-role")
-    profile_list = profile_dump["list_instance_profiles_for_role_response"][
-        "list_instance_profiles_for_role_result"
-    ]["instance_profiles"]
-    for profile_count in range(0, len(profile_list)):
-        profile_name_list.remove(profile_list[profile_count]["instance_profile_name"])
-        profile_path_list.remove(profile_list[profile_count]["path"])
-        profile_list[profile_count]["roles"]["member"]["role_name"].should.equal(
-            "my-role"
-        )
-
-    len(profile_name_list).should.equal(0)
-    len(profile_path_list).should.equal(0)
-
-    profile_dump2 = conn.list_instance_profiles_for_role(role_name="my-role2")
-    profile_list = profile_dump2["list_instance_profiles_for_role_response"][
-        "list_instance_profiles_for_role_result"
-    ]["instance_profiles"]
-    len(profile_list).should.equal(0)
 
 
 @mock_iam
@@ -519,29 +320,6 @@ def test_list_instance_profiles_for_role_boto3():
     profile_list.should.have.length_of(0)
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_list_role_policies():
-    conn = boto.connect_iam()
-    conn.create_role("my-role")
-    conn.put_role_policy("my-role", "test policy", MOCK_POLICY)
-    role = conn.list_role_policies("my-role")
-    role.policy_names.should.have.length_of(1)
-    role.policy_names[0].should.equal("test policy")
-
-    conn.put_role_policy("my-role", "test policy 2", MOCK_POLICY)
-    role = conn.list_role_policies("my-role")
-    role.policy_names.should.have.length_of(2)
-
-    conn.delete_role_policy("my-role", "test policy")
-    role = conn.list_role_policies("my-role")
-    role.policy_names.should.have.length_of(1)
-    role.policy_names[0].should.equal("test policy 2")
-
-    with pytest.raises(BotoServerError):
-        conn.delete_role_policy("my-role", "test policy")
-
-
 @mock_iam
 def test_list_role_policies_boto3():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -574,20 +352,6 @@ def test_list_role_policies_boto3():
     )
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_put_role_policy():
-    conn = boto.connect_iam()
-    conn.create_role(
-        "my-role", assume_role_policy_document="some policy", path="my-path"
-    )
-    conn.put_role_policy("my-role", "test policy", MOCK_POLICY)
-    policy = conn.get_role_policy("my-role", "test policy")["get_role_policy_response"][
-        "get_role_policy_result"
-    ]["policy_name"]
-    policy.should.equal("test policy")
-
-
 @mock_iam
 def test_put_role_policy_boto3():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -610,16 +374,6 @@ def test_get_role_policy():
     )
     with pytest.raises(conn.exceptions.NoSuchEntityException):
         conn.get_role_policy(RoleName="my-role", PolicyName="does-not-exist")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_update_assume_role_policy():
-    conn = boto.connect_iam()
-    role = conn.create_role("my-role")
-    conn.update_assume_role_policy(role.role_name, "my-policy")
-    role = conn.get_role("my-role")
-    role.assume_role_policy_document.should.equal("my-policy")
 
 
 @mock_iam
@@ -960,13 +714,541 @@ def test_delete_default_policy_version():
         )
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_create_user():
-    conn = boto.connect_iam()
-    conn.create_user("my-user")
-    with pytest.raises(BotoServerError):
-        conn.create_user("my-user")
+@mock_iam()
+def test_create_policy_with_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(
+        PolicyName="TestCreatePolicyWithTags1",
+        PolicyDocument=MOCK_POLICY,
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+        Description="testing",
+    )
+
+    # Get policy:
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(
+            ACCOUNT_ID, "TestCreatePolicyWithTags1"
+        )
+    )["Policy"]
+    assert len(policy["Tags"]) == 2
+    assert policy["Tags"][0]["Key"] == "somekey"
+    assert policy["Tags"][0]["Value"] == "somevalue"
+    assert policy["Tags"][1]["Key"] == "someotherkey"
+    assert policy["Tags"][1]["Value"] == "someothervalue"
+    assert policy["Description"] == "testing"
+
+
+@mock_iam()
+def test_create_policy_with_empty_tag_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # Empty is good:
+    conn.create_policy(
+        PolicyName="TestCreatePolicyWithTags2",
+        PolicyDocument=MOCK_POLICY,
+        Tags=[{"Key": "somekey", "Value": ""}],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(
+            ACCOUNT_ID, "TestCreatePolicyWithTags2"
+        )
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == ""
+
+
+@mock_iam()
+def test_create_policy_with_too_many_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With more than 50 tags:
+    with pytest.raises(ClientError) as ce:
+        too_many_tags = list(
+            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
+        )
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=too_many_tags,
+        )
+    assert (
+        "failed to satisfy constraint: Member must have length less than or equal to 50."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_duplicate_tag():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a duplicate tag:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "0", "Value": ""}, {"Key": "0", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_duplicate_tag_different_casing():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # Duplicate tag with different casing:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_tag_containing_large_key():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a really big key:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "0" * 129, "Value": ""}],
+        )
+    assert (
+        "Member must have length less than or equal to 128."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_tag_containing_large_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a really big value:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "0", "Value": "0" * 257}],
+        )
+    assert (
+        "Member must have length less than or equal to 256."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_tag_containing_invalid_character():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With an invalid character:
+    with pytest.raises(ClientError) as ce:
+        conn.create_policy(
+            PolicyName="TestCreatePolicyWithTags3",
+            PolicyDocument=MOCK_POLICY,
+            Tags=[{"Key": "NOWAY!", "Value": ""}],
+        )
+    assert (
+        "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_create_policy_with_no_tags():
+    """Tests both the tag_policy and get_policy_tags capability"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+
+    # Get without tags:
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )["Policy"]
+    assert not policy.get("Tags")
+
+
+@mock_iam()
+def test_get_policy_with_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Get policy:
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )["Policy"]
+    assert len(policy["Tags"]) == 2
+    assert policy["Tags"][0]["Key"] == "somekey"
+    assert policy["Tags"][0]["Value"] == "somevalue"
+    assert policy["Tags"][1]["Key"] == "someotherkey"
+    assert policy["Tags"][1]["Value"] == "someothervalue"
+
+
+@mock_iam()
+def test_list_policy_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # List_policy_tags:
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )
+    assert len(tags["Tags"]) == 2
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == "somevalue"
+    assert tags["Tags"][1]["Key"] == "someotherkey"
+    assert tags["Tags"][1]["Value"] == "someothervalue"
+    assert not tags["IsTruncated"]
+    assert not tags.get("Marker")
+
+
+@mock_iam()
+def test_list_policy_tags_pagination():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Test pagination:
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        MaxItems=1,
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["IsTruncated"]
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == "somevalue"
+    assert tags["Marker"] == "1"
+
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Marker=tags["Marker"],
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["Tags"][0]["Key"] == "someotherkey"
+    assert tags["Tags"][0]["Value"] == "someothervalue"
+    assert not tags["IsTruncated"]
+    assert not tags.get("Marker")
+
+
+@mock_iam()
+def test_updating_existing_tag():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Test updating an existing tag:
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[{"Key": "somekey", "Value": "somenewvalue"}],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )
+    assert len(tags["Tags"]) == 2
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == "somenewvalue"
+
+
+@mock_iam()
+def test_updating_existing_tag_with_empty_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Empty is good:
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[{"Key": "somekey", "Value": ""}],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy")
+    )
+    assert len(tags["Tags"]) == 2
+    assert tags["Tags"][0]["Key"] == "somekey"
+    assert tags["Tags"][0]["Value"] == ""
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_too_many_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With more than 50 tags:
+    with pytest.raises(ClientError) as ce:
+        too_many_tags = list(
+            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
+        )
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=too_many_tags,
+        )
+    assert (
+        "failed to satisfy constraint: Member must have length less than or equal to 50."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_duplicate_tag():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With a duplicate tag:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "0", "Value": ""}, {"Key": "0", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Duplicate tag with different casing:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
+        )
+    assert (
+        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_large_key():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With a really big key:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "0" * 129, "Value": ""}],
+        )
+    assert (
+        "Member must have length less than or equal to 128."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_large_value():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With a really big value:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "0", "Value": "0" * 257}],
+        )
+    assert (
+        "Member must have length less than or equal to 256."
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_updating_existing_tagged_policy_with_invalid_character():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # With an invalid character:
+    with pytest.raises(ClientError) as ce:
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestTagPolicy"),
+            Tags=[{"Key": "NOWAY!", "Value": ""}],
+        )
+    assert (
+        "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
+        in ce.value.response["Error"]["Message"]
+    )
+
+
+@mock_iam()
+def test_tag_non_existant_policy():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    # With a policy that doesn't exist:
+    with pytest.raises(ClientError):
+        conn.tag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
+            Tags=[{"Key": "some", "Value": "value"}],
+        )
+
+
+@mock_iam
+def test_untag_policy():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_policy(PolicyName="TestUnTagPolicy", PolicyDocument=MOCK_POLICY)
+
+    # With proper tag values:
+    conn.tag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        Tags=[
+            {"Key": "somekey", "Value": "somevalue"},
+            {"Key": "someotherkey", "Value": "someothervalue"},
+        ],
+    )
+
+    # Remove them:
+    conn.untag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        TagKeys=["somekey"],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
+    )
+    assert len(tags["Tags"]) == 1
+    assert tags["Tags"][0]["Key"] == "someotherkey"
+    assert tags["Tags"][0]["Value"] == "someothervalue"
+
+    # And again:
+    conn.untag_policy(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+        TagKeys=["someotherkey"],
+    )
+    tags = conn.list_policy_tags(
+        PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy")
+    )
+    assert not tags["Tags"]
+
+    # Test removing tags with invalid values:
+    # With more than 50 tags:
+    with pytest.raises(ClientError) as ce:
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            TagKeys=[str(x) for x in range(0, 51)],
+        )
+    assert (
+        "failed to satisfy constraint: Member must have length less than or equal to 50."
+        in ce.value.response["Error"]["Message"]
+    )
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
+
+    # With a really big key:
+    with pytest.raises(ClientError) as ce:
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            TagKeys=["0" * 129],
+        )
+    assert (
+        "Member must have length less than or equal to 128."
+        in ce.value.response["Error"]["Message"]
+    )
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
+
+    # With an invalid character:
+    with pytest.raises(ClientError) as ce:
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "TestUnTagPolicy"),
+            TagKeys=["NOWAY!"],
+        )
+    assert (
+        "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
+        in ce.value.response["Error"]["Message"]
+    )
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
+
+    # With a policy that doesn't exist:
+    with pytest.raises(ClientError):
+        conn.untag_policy(
+            PolicyArn="arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, "NotAPolicy"),
+            TagKeys=["somevalue"],
+        )
 
 
 @mock_iam
@@ -984,16 +1266,6 @@ def test_create_user_boto():
     err = ex.value.response["Error"]
     err["Code"].should.equal("EntityAlreadyExists")
     err["Message"].should.equal("User my-user already exists")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_user():
-    conn = boto.connect_iam()
-    with pytest.raises(BotoServerError):
-        conn.get_user("my-user")
-    conn.create_user("my-user")
-    conn.get_user("my-user")
 
 
 @mock_iam
@@ -1026,15 +1298,6 @@ def test_update_user():
     response["User"].get("Path").should.equal("/new-path/")
     with pytest.raises(conn.exceptions.NoSuchEntityException):
         conn.get_user(UserName="my-user")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_current_user():
-    """If no user is specific, IAM returns the current user"""
-    conn = boto.connect_iam()
-    user = conn.get_user()["get_user_response"]["get_user_result"]["user"]
-    user["user_name"].should.equal("default_user")
 
 
 @mock_iam
@@ -1088,18 +1351,6 @@ def test_user_policies():
     len(policies["PolicyNames"]).should.equal(0)
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_create_login_profile():
-    conn = boto.connect_iam()
-    with pytest.raises(BotoServerError):
-        conn.create_login_profile("my-user", "my-pass")
-    conn.create_user("my-user")
-    conn.create_login_profile("my-user", "my-pass")
-    with pytest.raises(BotoServerError):
-        conn.create_login_profile("my-user", "my-pass")
-
-
 @mock_iam
 def test_create_login_profile_with_unknown_user():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1121,17 +1372,6 @@ def test_create_login_profile_boto3():
     err = ex.value.response["Error"]
     err["Code"].should.equal("User my-user already has password")
     err["Message"].should.equal(None)
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_delete_login_profile():
-    conn = boto.connect_iam()
-    conn.create_user("my-user")
-    with pytest.raises(BotoServerError):
-        conn.delete_login_profile("my-user")
-    conn.create_login_profile("my-user", "my-pass")
-    conn.delete_login_profile("my-user")
 
 
 @mock_iam
@@ -1195,29 +1435,6 @@ def test_create_access_key():
     assert access_key["AccessKeyId"].startswith("AKIA")
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_all_access_keys():
-    """If no access keys exist there should be none in the response,
-    if an access key is present it should have the correct fields present"""
-    conn = boto.connect_iam()
-    conn.create_user("my-user")
-    response = conn.get_all_access_keys("my-user")
-    assert (
-        response["list_access_keys_response"]["list_access_keys_result"][
-            "access_key_metadata"
-        ]
-        == []
-    )
-    conn.create_access_key("my-user")
-    response = conn.get_all_access_keys("my-user")
-    assert sorted(
-        response["list_access_keys_response"]["list_access_keys_result"][
-            "access_key_metadata"
-        ][0].keys()
-    ) == sorted(["status", "create_date", "user_name", "access_key_id"])
-
-
 @mock_iam
 def test_list_access_keys():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1239,17 +1456,6 @@ def test_list_access_keys():
     assert sorted(response["AccessKeyMetadata"][0].keys()) == sorted(
         ["Status", "CreateDate", "UserName", "AccessKeyId"]
     )
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_delete_access_key_deprecated():
-    conn = boto.connect_iam()
-    conn.create_user("my-user")
-    access_key_id = conn.create_access_key("my-user")["create_access_key_response"][
-        "create_access_key_result"
-    ]["access_key"]["access_key_id"]
-    conn.delete_access_key(access_key_id, "my-user")
 
 
 @mock_iam
@@ -1487,16 +1693,6 @@ def test_enable_virtual_mfa_device():
     response["IsTruncated"].should_not.be.ok
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_delete_user_deprecated():
-    conn = boto.connect_iam()
-    with pytest.raises(BotoServerError):
-        conn.delete_user("my-user")
-    conn.create_user("my-user")
-    conn.delete_user("my-user")
-
-
 @mock_iam()
 def test_delete_user():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1536,20 +1732,6 @@ def test_delete_user():
         conn.get_user(UserName="my-user")
 
 
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_generate_credential_report():
-    conn = boto.connect_iam()
-    result = conn.generate_credential_report()
-    result["generate_credential_report_response"]["generate_credential_report_result"][
-        "state"
-    ].should.equal("STARTED")
-    result = conn.generate_credential_report()
-    result["generate_credential_report_response"]["generate_credential_report_result"][
-        "state"
-    ].should.equal("COMPLETE")
-
-
 @mock_iam
 def test_boto3_generate_credential_report():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1557,30 +1739,6 @@ def test_boto3_generate_credential_report():
     result["State"].should.equal("STARTED")
     result = conn.generate_credential_report()
     result["State"].should.equal("COMPLETE")
-
-
-# Has boto3 equivalent
-@mock_iam_deprecated()
-def test_get_credential_report():
-    conn = boto.connect_iam()
-    conn.create_user("my-user")
-    with pytest.raises(BotoServerError):
-        conn.get_credential_report()
-    result = conn.generate_credential_report()
-    while (
-        result["generate_credential_report_response"][
-            "generate_credential_report_result"
-        ]["state"]
-        != "COMPLETE"
-    ):
-        result = conn.generate_credential_report()
-    result = conn.get_credential_report()
-    report = base64.b64decode(
-        result["get_credential_report_response"]["get_credential_report_result"][
-            "content"
-        ].encode("ascii")
-    ).decode("ascii")
-    report.should.match(r".*my-user.*")
 
 
 @mock_iam
@@ -1658,110 +1816,6 @@ def test_get_access_key_last_used_when_used():
         ).should.equal(timestamp.strftime("%Y-%m-%d"))
     else:
         resp["AccessKeyLastUsed"].should_not.contain("LastUsedDate")
-
-
-# Has boto3 equivalent
-@requires_boto_gte("2.39")
-@mock_iam_deprecated()
-def test_managed_policy():
-    conn = boto.connect_iam()
-
-    conn.create_policy(
-        policy_name="UserManagedPolicy",
-        policy_document=MOCK_POLICY,
-        path="/mypolicy/",
-        description="my user managed policy",
-    )
-
-    marker = 0
-    aws_policies = []
-    while marker is not None:
-        response = conn.list_policies(scope="AWS", marker=marker)[
-            "list_policies_response"
-        ]["list_policies_result"]
-        for policy in response["policies"]:
-            aws_policies.append(policy)
-        marker = response.get("marker")
-    set(p.name for p in aws_managed_policies).should.equal(
-        set(p["policy_name"] for p in aws_policies)
-    )
-
-    user_policies = conn.list_policies(scope="Local")["list_policies_response"][
-        "list_policies_result"
-    ]["policies"]
-    set(["UserManagedPolicy"]).should.equal(
-        set(p["policy_name"] for p in user_policies)
-    )
-
-    marker = 0
-    all_policies = []
-    while marker is not None:
-        response = conn.list_policies(marker=marker)["list_policies_response"][
-            "list_policies_result"
-        ]
-        for policy in response["policies"]:
-            all_policies.append(policy)
-        marker = response.get("marker")
-    set(p["policy_name"] for p in aws_policies + user_policies).should.equal(
-        set(p["policy_name"] for p in all_policies)
-    )
-
-    role_name = "my-role"
-    conn.create_role(
-        role_name, assume_role_policy_document={"policy": "test"}, path="my-path",
-    )
-    for policy_name in [
-        "AmazonElasticMapReduceRole",
-        "AmazonElasticMapReduceforEC2Role",
-    ]:
-        policy_arn = "arn:aws:iam::aws:policy/service-role/" + policy_name
-        conn.attach_role_policy(policy_arn, role_name)
-
-    rows = conn.list_policies(only_attached=True)["list_policies_response"][
-        "list_policies_result"
-    ]["policies"]
-    rows.should.have.length_of(2)
-    for x in rows:
-        int(x["attachment_count"]).should.be.greater_than(0)
-
-    # boto has not implemented this end point but accessible this way
-    resp = conn.get_response(
-        "ListAttachedRolePolicies",
-        {"RoleName": role_name},
-        list_marker="AttachedPolicies",
-    )
-    resp["list_attached_role_policies_response"]["list_attached_role_policies_result"][
-        "attached_policies"
-    ].should.have.length_of(2)
-
-    conn.detach_role_policy(
-        "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole", role_name,
-    )
-    rows = conn.list_policies(only_attached=True)["list_policies_response"][
-        "list_policies_result"
-    ]["policies"]
-    rows.should.have.length_of(1)
-    for x in rows:
-        int(x["attachment_count"]).should.be.greater_than(0)
-
-    # boto has not implemented this end point but accessible this way
-    resp = conn.get_response(
-        "ListAttachedRolePolicies",
-        {"RoleName": role_name},
-        list_marker="AttachedPolicies",
-    )
-    resp["list_attached_role_policies_response"]["list_attached_role_policies_result"][
-        "attached_policies"
-    ].should.have.length_of(1)
-
-    with pytest.raises(BotoServerError):
-        conn.detach_role_policy(
-            "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
-            role_name,
-        )
-
-    with pytest.raises(BotoServerError):
-        conn.detach_role_policy("arn:aws:iam::aws:policy/Nonexistent", role_name)
 
 
 @mock_iam
@@ -2761,7 +2815,8 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="Role",
     )
-    assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
+    assert response["PolicyRoles"][0]["RoleName"] == "my-role"
+    response["PolicyRoles"][0].should.have.key("RoleId")
     response["PolicyGroups"].should.equal([])
     response["PolicyUsers"].should.equal([])
 
@@ -2769,7 +2824,8 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="User",
     )
-    assert response["PolicyUsers"] == [{"UserName": "testUser"}]
+    assert response["PolicyUsers"][0]["UserName"] == "testUser"
+    response["PolicyUsers"][0].should.have.key("UserId")
     response["PolicyGroups"].should.equal([])
     response["PolicyRoles"].should.equal([])
 
@@ -2777,7 +2833,8 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="Group",
     )
-    assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
+    assert response["PolicyGroups"][0]["GroupName"] == "testGroup"
+    response["PolicyGroups"][0].should.have.key("GroupId")
     response["PolicyRoles"].should.equal([])
     response["PolicyUsers"].should.equal([])
 
@@ -2785,17 +2842,25 @@ def test_list_entities_for_policy():
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="LocalManagedPolicy",
     )
-    assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
-    assert response["PolicyUsers"] == [{"UserName": "testUser"}]
-    assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
+    assert response["PolicyGroups"][0]["GroupName"] == "testGroup"
+    assert response["PolicyUsers"][0]["UserName"] == "testUser"
+    assert response["PolicyRoles"][0]["RoleName"] == "my-role"
+
+    response["PolicyGroups"][0].should.have.key("GroupId")
+    response["PolicyUsers"][0].should.have.key("UserId")
+    response["PolicyRoles"][0].should.have.key("RoleId")
 
     # Return everything when no entity is specified
     response = conn.list_entities_for_policy(
         PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
     )
-    response["PolicyGroups"].should.equal([{"GroupName": "testGroup"}])
-    response["PolicyUsers"].should.equal([{"UserName": "testUser"}])
-    response["PolicyRoles"].should.equal([{"RoleName": "my-role"}])
+    response["PolicyGroups"][0]["GroupName"].should.equal("testGroup")
+    response["PolicyUsers"][0]["UserName"].should.equal("testUser")
+    response["PolicyRoles"][0]["RoleName"].should.equal("my-role")
+
+    response["PolicyGroups"][0].should.have.key("GroupId")
+    response["PolicyUsers"][0].should.have.key("UserId")
+    response["PolicyRoles"][0].should.have.key("RoleId")
 
 
 @mock_iam()
@@ -2886,202 +2951,6 @@ def test_create_policy_with_same_name_should_fail():
         "A policy called {0} already exists. Duplicate names are not allowed.".format(
             test_policy_name
         )
-    )
-
-
-@mock_iam
-def test_create_open_id_connect_provider():
-    client = boto3.client("iam", region_name="us-east-1")
-    response = client.create_open_id_connect_provider(
-        Url="https://example.com",
-        ThumbprintList=[],  # even it is required to provide at least one thumbprint, AWS accepts an empty list
-    )
-
-    response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.com".format(ACCOUNT_ID)
-    )
-
-    response = client.create_open_id_connect_provider(
-        Url="http://example.org", ThumbprintList=["b" * 40], ClientIDList=["b"]
-    )
-
-    response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org".format(ACCOUNT_ID)
-    )
-
-    response = client.create_open_id_connect_provider(
-        Url="http://example.org/oidc", ThumbprintList=[]
-    )
-
-    response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org/oidc".format(ACCOUNT_ID)
-    )
-
-    response = client.create_open_id_connect_provider(
-        Url="http://example.org/oidc-query?test=true", ThumbprintList=[]
-    )
-
-    response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org/oidc-query".format(ACCOUNT_ID)
-    )
-
-
-@pytest.mark.parametrize("url", ["example.org", "example"])
-@mock_iam
-def test_create_open_id_connect_provider_invalid_url(url):
-    client = boto3.client("iam", region_name="us-east-1")
-    with pytest.raises(ClientError) as e:
-        client.create_open_id_connect_provider(Url=url, ThumbprintList=[])
-    msg = e.value.response["Error"]["Message"]
-    msg.should.contain("Invalid Open ID Connect Provider URL")
-
-
-@mock_iam
-def test_create_open_id_connect_provider_errors():
-    client = boto3.client("iam", region_name="us-east-1")
-    client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
-
-    client.create_open_id_connect_provider.when.called_with(
-        Url="https://example.com", ThumbprintList=[]
-    ).should.throw(ClientError, "Unknown")
-
-
-@mock_iam
-def test_create_open_id_connect_provider_too_many_entries():
-    client = boto3.client("iam", region_name="us-east-1")
-
-    with pytest.raises(ClientError) as e:
-        client.create_open_id_connect_provider(
-            Url="http://example.org",
-            ThumbprintList=[
-                "a" * 40,
-                "b" * 40,
-                "c" * 40,
-                "d" * 40,
-                "e" * 40,
-                "f" * 40,
-            ],
-        )
-    msg = e.value.response["Error"]["Message"]
-    msg.should.contain("Thumbprint list must contain fewer than 5 entries.")
-
-
-@mock_iam
-def test_create_open_id_connect_provider_quota_error():
-    client = boto3.client("iam", region_name="us-east-1")
-
-    too_many_client_ids = ["{}".format(i) for i in range(101)]
-    with pytest.raises(ClientError) as e:
-        client.create_open_id_connect_provider(
-            Url="http://example.org",
-            ThumbprintList=[],
-            ClientIDList=too_many_client_ids,
-        )
-    msg = e.value.response["Error"]["Message"]
-    msg.should.contain("Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100")
-
-
-@mock_iam
-def test_create_open_id_connect_provider_multiple_errors():
-    client = boto3.client("iam", region_name="us-east-1")
-
-    too_long_url = "b" * 256
-    too_long_thumbprint = "b" * 41
-    too_long_client_id = "b" * 256
-    with pytest.raises(ClientError) as e:
-        client.create_open_id_connect_provider(
-            Url=too_long_url,
-            ThumbprintList=[too_long_thumbprint],
-            ClientIDList=[too_long_client_id],
-        )
-    msg = e.value.response["Error"]["Message"]
-    msg.should.contain("3 validation errors detected:")
-    msg.should.contain('"clientIDList" failed to satisfy constraint:')
-    msg.should.contain("Member must have length less than or equal to 255")
-    msg.should.contain("Member must have length greater than or equal to 1")
-    msg.should.contain('"thumbprintList" failed to satisfy constraint:')
-    msg.should.contain("Member must have length less than or equal to 40")
-    msg.should.contain("Member must have length greater than or equal to 40")
-    msg.should.contain('"url" failed to satisfy constraint:')
-    msg.should.contain("Member must have length less than or equal to 255")
-
-
-@mock_iam
-def test_delete_open_id_connect_provider():
-    client = boto3.client("iam", region_name="us-east-1")
-    response = client.create_open_id_connect_provider(
-        Url="https://example.com", ThumbprintList=[]
-    )
-    open_id_arn = response["OpenIDConnectProviderArn"]
-
-    client.delete_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
-
-    client.get_open_id_connect_provider.when.called_with(
-        OpenIDConnectProviderArn=open_id_arn
-    ).should.throw(
-        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn),
-    )
-
-    # deleting a non existing provider should be successful
-    client.delete_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
-
-
-@mock_iam
-def test_get_open_id_connect_provider():
-    client = boto3.client("iam", region_name="us-east-1")
-    response = client.create_open_id_connect_provider(
-        Url="https://example.com", ThumbprintList=["b" * 40], ClientIDList=["b"]
-    )
-    open_id_arn = response["OpenIDConnectProviderArn"]
-
-    response = client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
-
-    response["Url"].should.equal("example.com")
-    response["ThumbprintList"].should.equal(["b" * 40])
-    response["ClientIDList"].should.equal(["b"])
-    response.should.have.key("CreateDate").should.be.a(datetime)
-
-
-@mock_iam
-def test_get_open_id_connect_provider_errors():
-    client = boto3.client("iam", region_name="us-east-1")
-    response = client.create_open_id_connect_provider(
-        Url="https://example.com", ThumbprintList=["b" * 40], ClientIDList=["b"]
-    )
-    open_id_arn = response["OpenIDConnectProviderArn"]
-
-    client.get_open_id_connect_provider.when.called_with(
-        OpenIDConnectProviderArn=open_id_arn + "-not-existing"
-    ).should.throw(
-        ClientError,
-        "OpenIDConnect Provider not found for arn {}".format(
-            open_id_arn + "-not-existing"
-        ),
-    )
-
-
-@mock_iam
-def test_list_open_id_connect_providers():
-    client = boto3.client("iam", region_name="us-east-1")
-    response = client.create_open_id_connect_provider(
-        Url="https://example.com", ThumbprintList=[]
-    )
-    open_id_arn_1 = response["OpenIDConnectProviderArn"]
-
-    response = client.create_open_id_connect_provider(
-        Url="http://example.org", ThumbprintList=["b" * 40], ClientIDList=["b"]
-    )
-    open_id_arn_2 = response["OpenIDConnectProviderArn"]
-
-    response = client.create_open_id_connect_provider(
-        Url="http://example.org/oidc", ThumbprintList=[]
-    )
-    open_id_arn_3 = response["OpenIDConnectProviderArn"]
-
-    response = client.list_open_id_connect_providers()
-
-    sorted(response["OpenIDConnectProviderList"], key=lambda i: i["Arn"]).should.equal(
-        [{"Arn": open_id_arn_1}, {"Arn": open_id_arn_2}, {"Arn": open_id_arn_3}]
     )
 
 
@@ -3473,6 +3342,7 @@ def test_role_config_dict():
             path="/",
             policy_document=json.dumps(basic_policy),
             policy_name="basic_policy",
+            tags=[],
         )
         .arn
     )
@@ -3974,6 +3844,7 @@ def test_policy_list_config_discovered_resources():
             path="",
             policy_document=json.dumps(basic_policy),
             policy_name="policy{}".format(ix),
+            tags=[],
         )
         policies.append(
             {"id": this_policy.id, "name": this_policy.name,}
@@ -4057,6 +3928,7 @@ def test_policy_config_dict():
             path="/",
             policy_document=json.dumps(basic_policy),
             policy_name="basic_policy",
+            tags=[],
         )
         .arn
     )

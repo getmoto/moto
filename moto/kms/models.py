@@ -3,10 +3,8 @@ import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from boto3 import Session
-
 from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
@@ -131,7 +129,7 @@ class Key(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        self, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         kms_backend = kms_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -148,6 +146,10 @@ class Key(CloudFormationModel):
         key.enabled = properties["Enabled"]
 
         return key
+
+    @classmethod
+    def has_cfn_attr(cls, attribute):
+        return attribute in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -411,10 +413,4 @@ class KmsBackend(BaseBackend):
         )
 
 
-kms_backends = {}
-for region in Session().get_available_regions("kms"):
-    kms_backends[region] = KmsBackend(region)
-for region in Session().get_available_regions("kms", partition_name="aws-us-gov"):
-    kms_backends[region] = KmsBackend(region)
-for region in Session().get_available_regions("kms", partition_name="aws-cn"):
-    kms_backends[region] = KmsBackend(region)
+kms_backends = BackendDict(KmsBackend, "kms")

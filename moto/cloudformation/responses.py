@@ -1,10 +1,13 @@
 import json
 import yaml
 from urllib.parse import urlparse
+from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
+from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
+from moto.s3.exceptions import S3ClientError
 from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
 from .exceptions import ValidationError, MissingParameterError
@@ -27,7 +30,7 @@ def get_template_summary_response_from_template(template_body):
 
     try:
         template_dict = yaml.load(template_body, Loader=yaml.Loader)
-    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+    except (ParserError, ScannerError):
         template_dict = json.loads(template_body)
 
     resources_types = get_resource_types(template_dict)
@@ -39,6 +42,12 @@ class CloudFormationResponse(BaseResponse):
     @property
     def cloudformation_backend(self):
         return cloudformation_backends[self.region]
+
+    @classmethod
+    def cfnresponse(cls, *args, **kwargs):
+        request, full_url, headers = args
+        full_url += "&Action=ProcessCfnResponse"
+        return cls.dispatch(request=request, full_url=full_url, headers=headers)
 
     def _get_stack_from_s3_url(self, template_url):
         template_url_parts = urlparse(template_url)
@@ -86,6 +95,19 @@ class CloudFormationResponse(BaseResponse):
             else:
                 raise MissingParameterError(parameter["parameter_key"])
         return result
+
+    def process_cfn_response(self):
+        status = self._get_param("Status")
+        if status == "SUCCESS":
+            stack_id = self._get_param("StackId")
+            logical_resource_id = self._get_param("LogicalResourceId")
+            outputs = self._get_param("Data")
+            stack = self.cloudformation_backend.get_stack(stack_id)
+            custom_resource = stack.get_custom_resource(logical_resource_id)
+            custom_resource.set_data(outputs)
+            stack.verify_readiness()
+
+        return 200, {"status": 200}, json.dumps("{}")
 
     def create_stack(self):
         stack_name = self._get_param("StackName")
@@ -426,7 +448,7 @@ class CloudFormationResponse(BaseResponse):
             pass
         try:
             description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
-        except (yaml.parser.ParserError, yaml.scanner.ScannerError, KeyError):
+        except (ParserError, ScannerError, KeyError):
             pass
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
         return template.render(description=description)
@@ -612,6 +634,32 @@ class CloudFormationResponse(BaseResponse):
         ).update_instances(accounts, regions, parameters)
         template = self.response_template(UPDATE_STACK_INSTANCES_RESPONSE_TEMPLATE)
         return template.render(operation=operation)
+
+    def get_stack_policy(self):
+        stack_name = self._get_param("StackName")
+        policy = self.cloudformation_backend.get_stack_policy(stack_name)
+        template = self.response_template(GET_STACK_POLICY_RESPONSE)
+        return template.render(policy=policy)
+
+    def set_stack_policy(self):
+        stack_name = self._get_param("StackName")
+        policy_url = self._get_param("StackPolicyURL")
+        policy_body = self._get_param("StackPolicyBody")
+        if policy_body and policy_url:
+            raise ValidationError(
+                message="You cannot specify both StackPolicyURL and StackPolicyBody"
+            )
+        if policy_url:
+            try:
+                policy_body = self._get_stack_from_s3_url(policy_url)
+            except S3ClientError as s3_e:
+                raise ValidationError(
+                    message=f"S3 error: Access Denied: {s3_e.error_type}"
+                )
+        self.cloudformation_backend.set_stack_policy(
+            stack_name, policy_body=policy_body
+        )
+        return SET_STACK_POLICY_RESPONSE
 
 
 VALIDATE_STACK_RESPONSE_TEMPLATE = """<ValidateTemplateResponse>
@@ -1225,3 +1273,21 @@ GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://clo
   </ResponseMetadata>
 </GetTemplateSummaryResponse>
 """
+
+SET_STACK_POLICY_RESPONSE = """<SetStackPolicyResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <ResponseMetadata>
+    <RequestId>abe48993-e23f-4167-b703-5b0f1b6aa84f</RequestId>
+  </ResponseMetadata>
+</SetStackPolicyResponse>"""
+
+
+GET_STACK_POLICY_RESPONSE = """<GetStackPolicyResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <GetStackPolicyResult>
+    {% if policy %}
+    <StackPolicyBody>{{ policy }}</StackPolicyBody>
+    {% endif %}
+  </GetStackPolicyResult>
+  <ResponseMetadata>
+    <RequestId>e9e39eb6-1c05-4f0e-958a-b63f420e0a07</RequestId>
+  </ResponseMetadata>
+</GetStackPolicyResponse>"""

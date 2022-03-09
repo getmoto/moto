@@ -5,6 +5,7 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3
 from moto.core.models import ACCOUNT_ID
@@ -117,6 +118,7 @@ def test_create_function_from_aws_bucket():
         Description="test lambda function",
         Timeout=3,
         MemorySize=128,
+        PackageType="ZIP",
         Publish=True,
         VpcConfig={"SecurityGroupIds": ["sg-123abc"], "SubnetIds": ["subnet-123abc"]},
     )
@@ -139,6 +141,7 @@ def test_create_function_from_aws_bucket():
             "Description": "test lambda function",
             "Timeout": 3,
             "MemorySize": 128,
+            "PackageType": "ZIP",
             "Version": "1",
             "VpcConfig": {
                 "SecurityGroupIds": ["sg-123abc"],
@@ -336,6 +339,38 @@ def test_get_function_configuration(key):
     # Test get function when can't find function name
     with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function_configuration(FunctionName="junk", Qualifier="$LATEST")
+
+
+@pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
+@mock_lambda
+@mock_s3
+def test_get_function_code_signing_config(key):
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+
+    fxn = conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+        CodeSigningConfigArn="csc:arn",
+    )
+    name_or_arn = fxn[key]
+
+    result = conn.get_function_code_signing_config(FunctionName=name_or_arn)
+
+    result["FunctionName"].should.equal(function_name)
+    result["CodeSigningConfigArn"].should.equal("csc:arn")
 
 
 @mock_lambda
@@ -1193,3 +1228,24 @@ def test_remove_function_permission(key):
     policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]
     policy = json.loads(policy)
     policy["Statement"].should.equal([])
+
+
+@mock_lambda
+def test_remove_unknown_permission_throws_error():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    f = conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.7",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+    )
+    arn = f["FunctionArn"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.remove_permission(FunctionName=arn, StatementId="1")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("No policy is associated with the given resource.")
