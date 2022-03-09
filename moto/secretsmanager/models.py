@@ -111,6 +111,12 @@ class FakeSecret:
         self.versions[version_id] = secret_version
         self.default_version_id = version_id
 
+    def remove_version_stages_from_old_versions(self, version_stages):
+        for version_stage in version_stages:
+            for old_version in self.versions.values():
+                if version_stage in old_version["version_stages"]:
+                    old_version["version_stages"].remove(version_stage)
+
     def delete(self, deleted_date):
         self.deleted_date = deleted_date
 
@@ -173,6 +179,10 @@ class SecretsStore(dict):
     def __contains__(self, key):
         new_key = get_secret_name_from_arn(key)
         return dict.__contains__(self, new_key)
+
+    def get(self, key, *args, **kwargs):
+        new_key = get_secret_name_from_arn(key)
+        return super().get(new_key, *args, **kwargs)
 
     def pop(self, key, *args, **kwargs):
         new_key = get_secret_name_from_arn(key)
@@ -377,6 +387,7 @@ class SecretsManagerBackend(BaseBackend):
             if "AWSCURRENT" in version_stages:
                 secret.reset_default_version(secret_version, version_id)
             else:
+                secret.remove_version_stages_from_old_versions(version_stages)
                 secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
@@ -735,6 +746,16 @@ class SecretsManagerBackend(BaseBackend):
         old_tags = secret.tags
 
         for tag in tags:
+            existing_key_name = next(
+                (
+                    old_key
+                    for old_key in old_tags
+                    if old_key.get("Key") == tag.get("Key")
+                ),
+                None,
+            )
+            if existing_key_name:
+                old_tags.remove(existing_key_name)
             old_tags.append(tag)
 
         return secret_id

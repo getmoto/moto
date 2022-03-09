@@ -227,6 +227,25 @@ def test_delete_secret():
 
 
 @mock_secretsmanager
+def test_delete_secret_by_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    deleted_secret = conn.delete_secret(SecretId=secret["ARN"])
+
+    assert deleted_secret["ARN"] == secret["ARN"]
+    assert deleted_secret["Name"] == "test-secret"
+    assert deleted_secret["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+
+    secret_details = conn.describe_secret(SecretId="test-secret")
+
+    assert secret_details["ARN"] == secret["ARN"]
+    assert secret_details["Name"] == "test-secret"
+    assert secret_details["DeletedDate"] > datetime.fromtimestamp(1, pytz.utc)
+
+
+@mock_secretsmanager
 def test_delete_secret_force():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -1072,6 +1091,54 @@ def test_after_put_secret_value_version_stages_can_get_current():
 
 
 @mock_secretsmanager
+def test_after_put_secret_value_version_stages_can_get_current_with_custom_version_stage():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    # Creation.
+    first_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce71"
+    first_secret_string = "first_secret_string"
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString=first_secret_string,
+        ClientRequestToken=first_version_id,
+    )
+
+    # Use PutSecretValue to push a new version with new version stages.
+    second_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce72"
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="second_secret_string",
+        VersionStages=["SAMPLESTAGE1", "SAMPLESTAGE0"],
+        ClientRequestToken=second_version_id,
+    )
+    # Create a third version with one of the old stages
+    third_version_id = "eb41453f-25bb-4025-b7f4-850cfca0ce73"
+    third_secret_string = "third_secret_string"
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString=third_secret_string,
+        VersionStages=["SAMPLESTAGE1"],
+        ClientRequestToken=third_version_id,
+    )
+
+    # Get current with the stage label of the third version.
+    get_dict = conn.get_secret_value(
+        SecretId=DEFAULT_SECRET_NAME, VersionStage="SAMPLESTAGE1"
+    )
+    versions = conn.list_secret_version_ids(SecretId=DEFAULT_SECRET_NAME)["Versions"]
+    versions_by_key = {version["VersionId"]: version for version in versions}
+    # Check if indeed the third version is returned
+    assert get_dict
+    assert get_dict["VersionId"] == third_version_id
+    assert get_dict["SecretString"] == third_secret_string
+    assert get_dict["VersionStages"] == ["SAMPLESTAGE1"]
+    # Check if all the versions have the proper labels
+    assert versions_by_key[first_version_id]["VersionStages"] == ["AWSCURRENT"]
+    assert versions_by_key[second_version_id]["VersionStages"] == ["SAMPLESTAGE0"]
+    assert versions_by_key[third_version_id]["VersionStages"] == ["SAMPLESTAGE1"]
+
+
+@mock_secretsmanager
 def test_after_put_secret_value_version_stages_pending_can_get_current():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -1282,14 +1349,16 @@ def test_tag_resource(pass_arn):
     conn.tag_resource(
         SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"},],
     )
-
+    conn.tag_resource(
+        SecretId="test-secret", Tags=[{"Key": "FirstTag", "Value": "SomeOtherValue"},],
+    )
     conn.tag_resource(
         SecretId=secret_id, Tags=[{"Key": "SecondTag", "Value": "AnotherValue"},],
     )
 
     secrets = conn.list_secrets()
     assert secrets["SecretList"][0].get("Tags") == [
-        {"Key": "FirstTag", "Value": "SomeValue"},
+        {"Key": "FirstTag", "Value": "SomeOtherValue"},
         {"Key": "SecondTag", "Value": "AnotherValue"},
     ]
 

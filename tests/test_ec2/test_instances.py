@@ -2050,6 +2050,43 @@ def test_instance_termination_protection():
 
 
 @mock_ec2
+def test_terminate_unknown_instances():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    # Correct error message for single unknown instance
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=["i-12345678"])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("InvalidInstanceID.NotFound")
+    error["Message"].should.equal("The instance ID 'i-12345678' does not exist")
+
+    # Correct error message for multiple unknown instances
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=["i-12345678", "i-12345668"])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("InvalidInstanceID.NotFound")
+    error["Message"].should.equal(
+        "The instance IDs 'i-12345678, i-12345668' do not exist"
+    )
+
+    # Create an instance
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+
+    # Correct error message if one instance is known
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=["i-12345678", instance_id])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("InvalidInstanceID.NotFound")
+    error["Message"].should.equal("The instance ID 'i-12345678' does not exist")
+
+    # status = still running
+    resp = client.describe_instances(InstanceIds=[instance_id])
+    instance = resp["Reservations"][0]["Instances"][0]
+    instance["State"]["Name"].should.equal("running")
+
+
+@mock_ec2
 def test_instance_lifecycle():
     ec2_resource = boto3.resource("ec2", "us-west-1")
 

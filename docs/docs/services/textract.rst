@@ -8,9 +8,9 @@
 
     </h3>
 
-==========
+========
 textract
-==========
+========
 
 .. autoclass:: moto.textract.models.TextractBackend
 
@@ -27,19 +27,14 @@ textract
 
 |start-h3| Implemented features for this service |end-h3|
 
- - [ ] analyze_document
- - [ ] analyze_expense
- - [ ] analyze_id
- - [ ] can_paginate
- - [ ] detect_document_text
- - [ ] get_document_analysis
- - [X] get_document_text_detection
- - [ ] get_expense_analysis
- - [ ] get_paginator
- - [ ] get_waiter
- - [ ] start_document_analysis
- - [X] start_document_text_detection
- - [ ] start_expense_analysis
+- [ ] analyze_document
+- [ ] analyze_expense
+- [ ] analyze_id
+- [ ] detect_document_text
+- [ ] get_document_analysis
+- [X] get_document_text_detection
+- [ ] get_expense_analysis
+- [ ] start_document_analysis
+- [X] start_document_text_detection
+- [ ] start_expense_analysis
 
-        Pagination has not yet been implemented
-        

@@ -1594,6 +1594,13 @@ def test_run_task():
         cluster="test_ecs_cluster",
         overrides={},
         taskDefinition="test_ecs_task",
+        startedBy="moto",
+    )
+    len(response["tasks"]).should.equal(1)
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
         count=2,
         startedBy="moto",
         tags=[

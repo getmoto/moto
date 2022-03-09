@@ -233,10 +233,13 @@ class InvalidRouteError(EC2ClientError):
 
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id):
-        super().__init__(
-            "InvalidInstanceID.NotFound",
-            "The instance ID '{0}' does not exist".format(instance_id),
-        )
+        if isinstance(instance_id, str):
+            instance_id = [instance_id]
+        if len(instance_id) > 1:
+            msg = f"The instance IDs '{', '.join(instance_id)}' do not exist"
+        else:
+            msg = f"The instance ID '{instance_id[0]}' does not exist"
+        super().__init__("InvalidInstanceID.NotFound", msg)
 
 
 class InvalidInstanceTypeError(EC2ClientError):

@@ -62,6 +62,7 @@ mock_cognitoidentity = lazy_load(
 )
 mock_cognitoidp = lazy_load(".cognitoidp", "mock_cognitoidp", boto3_name="cognito-idp")
 mock_config = lazy_load(".config", "mock_config")
+mock_databrew = lazy_load(".databrew", "mock_databrew")
 mock_datapipeline = lazy_load(".datapipeline", "mock_datapipeline")
 mock_datasync = lazy_load(".datasync", "mock_datasync")
 mock_dax = lazy_load(".dax", "mock_dax")
@@ -121,10 +122,11 @@ mock_mediastoredata = lazy_load(
 mock_mq = lazy_load(".mq", "mock_mq", boto3_name="mq")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
+mock_pinpoint = lazy_load(".pinpoint", "mock_pinpoint")
 mock_polly = lazy_load(".polly", "mock_polly")
 mock_ram = lazy_load(".ram", "mock_ram")
-mock_rds = lazy_load(".rds", "mock_rds", warn_repurpose=True)
-mock_rds2 = lazy_load(".rds2", "mock_rds2", boto3_name="rds")
+mock_rds = lazy_load(".rds", "mock_rds")
+mock_rds2 = lazy_load(".rds", "mock_rds", use_instead=("mock_rds2", "mock_rds"))
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
@@ -193,7 +195,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "3.0.5.dev"
+__version__ = "3.1.0.dev"
 
 
 try:

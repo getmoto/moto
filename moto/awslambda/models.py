@@ -1156,7 +1156,7 @@ Moto will run on port 5000 by default. This can be overwritten by setting an env
 
 .. sourcecode:: bash
 
-    # This env var will be propagated to the Docker containers
+    # This env var will be propagated to the Docker container running the Lambda functions
     MOTO_PORT=5000 moto_server
 
 The Docker container uses the default network mode, `bridge`.
@@ -1172,7 +1172,11 @@ The following environment variables are available for fine-grained control over 
     # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
     MOTO_DOCKER_NETWORK_MODE=host moto_server
 
-The Docker image can be overridden using an environment variable: ``MOTO_DOCKER_LAMBDA_IMAGE``.
+The Docker images used by Moto are taken from the `lambci/lambda`-repo by default. Use the following environment variable to configure a different repo:
+
+.. sourcecode:: bash
+
+    MOTO_DOCKER_LAMBDA_IMAGE=mLupin/docker-lambda
 
 .. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """

@@ -297,7 +297,7 @@
 
 ## athena
 <details>
-<summary>29% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_query_execution
@@ -331,6 +331,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_data_catalog
+- [ ] update_named_query
 - [ ] update_prepared_statement
 - [ ] update_work_group
 </details>
@@ -434,7 +435,7 @@
 
 ## budgets
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] create_budget
 - [ ] create_budget_action
@@ -449,6 +450,7 @@
 - [ ] describe_budget_action_histories
 - [ ] describe_budget_actions_for_account
 - [ ] describe_budget_actions_for_budget
+- [ ] describe_budget_notifications_for_account
 - [ ] describe_budget_performance_history
 - [X] describe_budgets
 - [X] describe_notifications_for_budget
@@ -866,7 +868,7 @@
 
 ## cognito-idp
 <details>
-<summary>54% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -888,7 +890,7 @@
 - [X] admin_remove_user_from_group
 - [X] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
-- [ ] admin_set_user_mfa_preference
+- [X] admin_set_user_mfa_preference
 - [X] admin_set_user_password
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
@@ -1061,6 +1063,56 @@
 - [X] stop_configuration_recorder
 - [X] tag_resource
 - [X] untag_resource
+</details>
+
+## databrew
+<details>
+<summary>4% implemented</summary>
+
+- [ ] batch_delete_recipe_version
+- [ ] create_dataset
+- [ ] create_profile_job
+- [ ] create_project
+- [X] create_recipe
+- [ ] create_recipe_job
+- [ ] create_ruleset
+- [ ] create_schedule
+- [ ] delete_dataset
+- [ ] delete_job
+- [ ] delete_project
+- [ ] delete_recipe_version
+- [ ] delete_ruleset
+- [ ] delete_schedule
+- [ ] describe_dataset
+- [ ] describe_job
+- [ ] describe_job_run
+- [ ] describe_project
+- [ ] describe_recipe
+- [ ] describe_ruleset
+- [ ] describe_schedule
+- [ ] list_datasets
+- [ ] list_job_runs
+- [ ] list_jobs
+- [ ] list_projects
+- [ ] list_recipe_versions
+- [X] list_recipes
+- [ ] list_rulesets
+- [ ] list_schedules
+- [ ] list_tags_for_resource
+- [ ] publish_recipe
+- [ ] send_project_session_action
+- [ ] start_job_run
+- [ ] start_project_session
+- [ ] stop_job_run
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_dataset
+- [ ] update_profile_job
+- [ ] update_project
+- [ ] update_recipe
+- [ ] update_recipe_job
+- [ ] update_ruleset
+- [ ] update_schedule
 </details>
 
 ## datapipeline
@@ -3837,6 +3889,131 @@
 - [X] update_policy
 </details>
 
+## pinpoint
+<details>
+<summary>10% implemented</summary>
+
+- [X] create_app
+- [ ] create_campaign
+- [ ] create_email_template
+- [ ] create_export_job
+- [ ] create_import_job
+- [ ] create_in_app_template
+- [ ] create_journey
+- [ ] create_push_template
+- [ ] create_recommender_configuration
+- [ ] create_segment
+- [ ] create_sms_template
+- [ ] create_voice_template
+- [ ] delete_adm_channel
+- [ ] delete_apns_channel
+- [ ] delete_apns_sandbox_channel
+- [ ] delete_apns_voip_channel
+- [ ] delete_apns_voip_sandbox_channel
+- [X] delete_app
+- [ ] delete_baidu_channel
+- [ ] delete_campaign
+- [ ] delete_email_channel
+- [ ] delete_email_template
+- [ ] delete_endpoint
+- [X] delete_event_stream
+- [ ] delete_gcm_channel
+- [ ] delete_in_app_template
+- [ ] delete_journey
+- [ ] delete_push_template
+- [ ] delete_recommender_configuration
+- [ ] delete_segment
+- [ ] delete_sms_channel
+- [ ] delete_sms_template
+- [ ] delete_user_endpoints
+- [ ] delete_voice_channel
+- [ ] delete_voice_template
+- [ ] get_adm_channel
+- [ ] get_apns_channel
+- [ ] get_apns_sandbox_channel
+- [ ] get_apns_voip_channel
+- [ ] get_apns_voip_sandbox_channel
+- [X] get_app
+- [ ] get_application_date_range_kpi
+- [X] get_application_settings
+- [X] get_apps
+- [ ] get_baidu_channel
+- [ ] get_campaign
+- [ ] get_campaign_activities
+- [ ] get_campaign_date_range_kpi
+- [ ] get_campaign_version
+- [ ] get_campaign_versions
+- [ ] get_campaigns
+- [ ] get_channels
+- [ ] get_email_channel
+- [ ] get_email_template
+- [ ] get_endpoint
+- [X] get_event_stream
+- [ ] get_export_job
+- [ ] get_export_jobs
+- [ ] get_gcm_channel
+- [ ] get_import_job
+- [ ] get_import_jobs
+- [ ] get_in_app_messages
+- [ ] get_in_app_template
+- [ ] get_journey
+- [ ] get_journey_date_range_kpi
+- [ ] get_journey_execution_activity_metrics
+- [ ] get_journey_execution_metrics
+- [ ] get_push_template
+- [ ] get_recommender_configuration
+- [ ] get_recommender_configurations
+- [ ] get_segment
+- [ ] get_segment_export_jobs
+- [ ] get_segment_import_jobs
+- [ ] get_segment_version
+- [ ] get_segment_versions
+- [ ] get_segments
+- [ ] get_sms_channel
+- [ ] get_sms_template
+- [ ] get_user_endpoints
+- [ ] get_voice_channel
+- [ ] get_voice_template
+- [ ] list_journeys
+- [X] list_tags_for_resource
+- [ ] list_template_versions
+- [ ] list_templates
+- [ ] phone_number_validate
+- [X] put_event_stream
+- [ ] put_events
+- [ ] remove_attributes
+- [ ] send_messages
+- [ ] send_otp_message
+- [ ] send_users_messages
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_adm_channel
+- [ ] update_apns_channel
+- [ ] update_apns_sandbox_channel
+- [ ] update_apns_voip_channel
+- [ ] update_apns_voip_sandbox_channel
+- [X] update_application_settings
+- [ ] update_baidu_channel
+- [ ] update_campaign
+- [ ] update_email_channel
+- [ ] update_email_template
+- [ ] update_endpoint
+- [ ] update_endpoints_batch
+- [ ] update_gcm_channel
+- [ ] update_in_app_template
+- [ ] update_journey
+- [ ] update_journey_state
+- [ ] update_push_template
+- [ ] update_recommender_configuration
+- [ ] update_segment
+- [ ] update_sms_channel
+- [ ] update_sms_template
+- [ ] update_template_active_version
+- [ ] update_voice_channel
+- [ ] update_voice_template
+- [ ] verify_otp_message
+</details>
+
 ## polly
 <details>
 <summary>55% implemented</summary>
@@ -4347,7 +4524,7 @@
 
 ## s3
 <details>
-<summary>59% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -4395,6 +4572,7 @@
 - [ ] get_bucket_website
 - [X] get_object
 - [X] get_object_acl
+- [ ] get_object_attributes
 - [X] get_object_legal_hold
 - [X] get_object_lock_configuration
 - [ ] get_object_retention
@@ -4449,16 +4627,16 @@
 
 ## s3control
 <details>
-<summary>5% implemented</summary>
+<summary>15% implemented</summary>
 
-- [ ] create_access_point
+- [X] create_access_point
 - [ ] create_access_point_for_object_lambda
 - [ ] create_bucket
 - [ ] create_job
 - [ ] create_multi_region_access_point
-- [ ] delete_access_point
+- [X] delete_access_point
 - [ ] delete_access_point_for_object_lambda
-- [ ] delete_access_point_policy
+- [X] delete_access_point_policy
 - [ ] delete_access_point_policy_for_object_lambda
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
@@ -4471,12 +4649,12 @@
 - [ ] delete_storage_lens_configuration_tagging
 - [ ] describe_job
 - [ ] describe_multi_region_access_point_operation
-- [ ] get_access_point
+- [X] get_access_point
 - [ ] get_access_point_configuration_for_object_lambda
 - [ ] get_access_point_for_object_lambda
-- [ ] get_access_point_policy
+- [X] get_access_point_policy
 - [ ] get_access_point_policy_for_object_lambda
-- [ ] get_access_point_policy_status
+- [X] get_access_point_policy_status
 - [ ] get_access_point_policy_status_for_object_lambda
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
@@ -5276,6 +5454,22 @@
 - [ ] untag_resource
 </details>
 
+## textract
+<details>
+<summary>20% implemented</summary>
+
+- [ ] analyze_document
+- [ ] analyze_expense
+- [ ] analyze_id
+- [ ] detect_document_text
+- [ ] get_document_analysis
+- [X] get_document_text_detection
+- [ ] get_expense_analysis
+- [ ] start_document_analysis
+- [X] start_document_text_detection
+- [ ] start_expense_analysis
+</details>
+
 ## timestream-write
 <details>
 <summary>80% implemented</summary>
@@ -5451,7 +5645,6 @@
 - connectparticipant
 - cur
 - customer-profiles
-- databrew
 - dataexchange
 - detective
 - devicefarm
@@ -5503,6 +5696,7 @@
 - kafka
 - kafkaconnect
 - kendra
+- keyspaces
 - kinesis-video-media
 - kinesis-video-signaling
 - kinesisanalytics
@@ -5549,7 +5743,6 @@
 - personalize-events
 - personalize-runtime
 - pi
-- pinpoint
 - pinpoint-email
 - pinpoint-sms-voice
 - pricing
@@ -5592,7 +5785,6 @@
 - sso-oidc
 - storagegateway
 - synthetics
-- textract
 - timestream-query
 - transfer
 - translate
