@@ -1525,7 +1525,7 @@ class CognitoIdpBackend(BaseBackend):
                 "ChallengeParameters": {
                     "SALT": uuid.uuid4().hex,
                     "SRP_B": uuid.uuid4().hex,
-                    "USERNAME": user.id,
+                    "USERNAME": user.username,
                     "USER_ID_FOR_SRP": user.id,
                     "SECRET_BLOCK": session,
                 },

@@ -2561,6 +2561,7 @@ def user_authentication_flow(conn):
 
     result["AuthenticationResult"]["IdToken"].should_not.be.none
     result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["TokenType"].should.equal("Bearer")
 
     # authenticate user once again this time with mfa token
     result = conn.initiate_auth(
@@ -3317,6 +3318,7 @@ def test_initiate_auth_USER_SRP_AUTH():
     )
 
     result["ChallengeName"].should.equal("PASSWORD_VERIFIER")
+    result["ChallengeParameters"]["USERNAME"].should.equal(username)
 
 
 @mock_cognitoidp
@@ -3385,6 +3387,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
     result["AuthenticationResult"]["AccessToken"].should_not.be.none
     result["AuthenticationResult"]["IdToken"].should_not.be.none
     result["AuthenticationResult"]["RefreshToken"].should_not.be.none
+    result["AuthenticationResult"]["TokenType"].should.equal("Bearer")
 
 
 @mock_cognitoidp
