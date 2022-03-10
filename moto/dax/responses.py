@@ -17,16 +17,9 @@ class DAXResponse(BaseResponse):
         node_type = params.get("NodeType")
         description = params.get("Description")
         replication_factor = params.get("ReplicationFactor")
-        availability_zones = params.get("AvailabilityZones")
-        subnet_group_name = params.get("SubnetGroupName")
-        security_group_ids = params.get("SecurityGroupIds")
-        preferred_maintenance_window = params.get("PreferredMaintenanceWindow")
-        notification_topic_arn = params.get("NotificationTopicArn")
         iam_role_arn = params.get("IamRoleArn")
-        parameter_group_name = params.get("ParameterGroupName")
         tags = params.get("Tags", [])
         sse_specification = params.get("SSESpecification", {})
-        cluster_endpoint_encryption_type = params.get("ClusterEndpointEncryptionType")
 
         self._validate_arn(iam_role_arn)
         self._validate_name(cluster_name)
@@ -36,16 +29,9 @@ class DAXResponse(BaseResponse):
             node_type=node_type,
             description=description,
             replication_factor=replication_factor,
-            availability_zones=availability_zones,
-            subnet_group_name=subnet_group_name,
-            security_group_ids=security_group_ids,
-            preferred_maintenance_window=preferred_maintenance_window,
-            notification_topic_arn=notification_topic_arn,
             iam_role_arn=iam_role_arn,
-            parameter_group_name=parameter_group_name,
             tags=tags,
             sse_specification=sse_specification,
-            cluster_endpoint_encryption_type=cluster_endpoint_encryption_type,
         )
         return json.dumps(dict(Cluster=cluster.to_json()))
 
@@ -106,11 +92,8 @@ class DAXResponse(BaseResponse):
         params = json.loads(self.body)
         cluster_name = params.get("ClusterName")
         new_replication_factor = params.get("NewReplicationFactor")
-        availability_zones = params.get("AvailabilityZones")
         cluster = self.dax_backend.increase_replication_factor(
-            cluster_name=cluster_name,
-            new_replication_factor=new_replication_factor,
-            availability_zones=availability_zones,
+            cluster_name=cluster_name, new_replication_factor=new_replication_factor
         )
         return json.dumps({"Cluster": cluster.to_json()})
 
@@ -118,12 +101,10 @@ class DAXResponse(BaseResponse):
         params = json.loads(self.body)
         cluster_name = params.get("ClusterName")
         new_replication_factor = params.get("NewReplicationFactor")
-        availability_zones = params.get("AvailabilityZones")
         node_ids_to_remove = params.get("NodeIdsToRemove")
         cluster = self.dax_backend.decrease_replication_factor(
             cluster_name=cluster_name,
             new_replication_factor=new_replication_factor,
-            availability_zones=availability_zones,
             node_ids_to_remove=node_ids_to_remove,
         )
         return json.dumps({"Cluster": cluster.to_json()})

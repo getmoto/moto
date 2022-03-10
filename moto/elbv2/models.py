@@ -515,8 +515,8 @@ class FakeLoadBalancer(CloudFormationModel):
         return load_balancer
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "DNSName",
             "LoadBalancerName",
             "CanonicalHostedZoneID",

@@ -299,7 +299,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # ELB, resource type elasticloadbalancing:loadbalancer
         def get_elbv2_tags(arn):
             result = []
-            for key, value in self.elbv2_backend.load_balancers[elb.arn].tags.items():
+            for key, value in self.elbv2_backend.load_balancers[arn].tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 
@@ -318,9 +318,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # ELB Target Group, resource type elasticloadbalancing:targetgroup
         def get_target_group_tags(arn):
             result = []
-            for key, value in self.elbv2_backend.target_groups[
-                target_group.arn
-            ].tags.items():
+            for key, value in self.elbv2_backend.target_groups[arn].tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 

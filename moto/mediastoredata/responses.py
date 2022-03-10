@@ -13,10 +13,7 @@ class MediaStoreDataResponse(BaseResponse):
 
     def get_object(self):
         path = self._get_param("Path")
-        object_range = self._get_param("Range")
-        result = self.mediastoredata_backend.get_object(
-            path=path, object_range=object_range
-        )
+        result = self.mediastoredata_backend.get_object(path=path)
         headers = {"Path": result.path}
         return result.body, headers
 
@@ -33,11 +30,5 @@ class MediaStoreDataResponse(BaseResponse):
         return json.dumps(result)
 
     def list_items(self):
-        path = self._get_param("Path")
-        max_results = self._get_param("MaxResults")
-        next_token = self._get_param("NextToken")
-        items = self.mediastoredata_backend.list_items(
-            path=path, max_results=max_results, next_token=next_token
-        )
-        response_items = json.dumps(dict(Items=items))
-        return response_items
+        items = self.mediastoredata_backend.list_items()
+        return json.dumps(dict(Items=items))

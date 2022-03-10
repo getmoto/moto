@@ -22,13 +22,12 @@ class GuardDutyResponse(BaseResponse):
 
     def create_detector(self):
         enable = self._get_param("enable")
-        client_token = self._get_param("clientToken")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
         data_sources = self._get_param("dataSources")
         tags = self._get_param("tags")
 
         detector_id = self.guardduty_backend.create_detector(
-            enable, client_token, finding_publishing_frequency, data_sources, tags
+            enable, finding_publishing_frequency, data_sources, tags
         )
 
         return 200, {}, json.dumps(dict(detectorId=detector_id))

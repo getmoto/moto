@@ -11,7 +11,7 @@ from .exceptions import (
 
 
 class Container(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.name = kwargs.get("name")
         self.endpoint = kwargs.get("endpoint")
@@ -74,7 +74,10 @@ class MediaStoreBackend(BaseBackend):
         container.status = "ACTIVE"
         return container
 
-    def list_containers(self, next_token, max_results):
+    def list_containers(self):
+        """
+        Pagination is not yet implemented
+        """
         containers = list(self._containers.values())
         response_containers = [c.to_dict() for c in containers]
         return response_containers, None

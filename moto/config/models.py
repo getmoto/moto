@@ -855,6 +855,12 @@ class ConfigBackend(BaseBackend):
         self.organization_conformance_packs = {}
         self.config_rules = {}
         self.config_schema = None
+        self.region = region
+
+    def reset(self):
+        region = self.region
+        self.__dict__ = {}
+        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -896,7 +902,7 @@ class ConfigBackend(BaseBackend):
                 self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],
             )
 
-    def put_configuration_aggregator(self, config_aggregator, region):
+    def put_configuration_aggregator(self, config_aggregator):
         # Validate the name:
         if len(config_aggregator["ConfigurationAggregatorName"]) > 256:
             raise NameTooLongException(
@@ -967,7 +973,7 @@ class ConfigBackend(BaseBackend):
         ):
             aggregator = ConfigAggregator(
                 config_aggregator["ConfigurationAggregatorName"],
-                region,
+                self.region,
                 account_sources=account_sources,
                 org_source=org_source,
                 tags=tags,
@@ -1037,7 +1043,7 @@ class ConfigBackend(BaseBackend):
         del self.config_aggregators[config_aggregator]
 
     def put_aggregation_authorization(
-        self, current_region, authorized_account, authorized_region, tags
+        self, authorized_account, authorized_region, tags
     ):
         # Tag validation:
         tags = validate_tags(tags or [])
@@ -1047,7 +1053,7 @@ class ConfigBackend(BaseBackend):
         agg_auth = self.aggregation_authorizations.get(key)
         if not agg_auth:
             agg_auth = ConfigAggregationAuthorization(
-                current_region, authorized_account, authorized_region, tags=tags
+                self.region, authorized_account, authorized_region, tags=tags
             )
             self.aggregation_authorizations[
                 "{}/{}".format(authorized_account, authorized_region)
@@ -1617,7 +1623,6 @@ class ConfigBackend(BaseBackend):
 
     def put_organization_conformance_pack(
         self,
-        region,
         name,
         template_s3_uri,
         template_body,
@@ -1649,7 +1654,7 @@ class ConfigBackend(BaseBackend):
             )
         else:
             pack = OrganizationConformancePack(
-                region=region,
+                region=self.region,
                 name=name,
                 delivery_s3_bucket=delivery_s3_bucket,
                 delivery_s3_key_prefix=delivery_s3_key_prefix,
@@ -1818,7 +1823,7 @@ class ConfigBackend(BaseBackend):
             ]
         }
 
-    def put_config_rule(self, region, config_rule, tags=None):
+    def put_config_rule(self, config_rule, tags=None):
         """Add/Update config rule for evaluating resource compliance.
 
         TBD - Only the "accounting" of config rules are handled at the
@@ -1869,14 +1874,14 @@ class ConfigBackend(BaseBackend):
                 )
 
             # Update the current rule.
-            rule.modify_fields(region, config_rule, tags)
+            rule.modify_fields(self.region, config_rule, tags)
         else:
             # Create a new ConfigRule if the limit hasn't been reached.
             if len(self.config_rules) == ConfigRule.MAX_RULES:
                 raise MaxNumberOfConfigRulesExceededException(
                     rule_name, ConfigRule.MAX_RULES
                 )
-            rule = ConfigRule(region, config_rule, tags)
+            rule = ConfigRule(self.region, config_rule, tags)
             self.config_rules[rule_name] = rule
         return ""
 

@@ -1081,11 +1081,10 @@ class SimpleSystemManagerBackend(BaseBackend):
         # If we've fallen out of the loop, theres no more documents. No next token.
         return results, ""
 
-    def describe_document_permission(
-        self, name, max_results=None, permission_type=None, next_token=None
-    ):
-        # Parameters max_results, permission_type, and next_token not used because
-        # this current implementation doesn't support pagination.
+    def describe_document_permission(self, name):
+        """
+        Parameters max_results, permission_type, and next_token not yet implemented
+        """
         document = self._get_documents(name)
         return document.describe_permissions()
 
@@ -1170,7 +1169,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         result = []
         for param_name in self._parameters:
-            ssm_parameter = self.get_parameter(param_name, False)
+            ssm_parameter = self.get_parameter(param_name)
             if not self._match_filters(ssm_parameter, parameter_filters):
                 continue
 
@@ -1385,7 +1384,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             result.append(self._parameters[k])
         return result
 
-    def get_parameters(self, names, with_decryption):
+    def get_parameters(self, names):
         result = {}
 
         if len(names) > 10:
@@ -1400,7 +1399,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         for name in set(names):
             if name.split(":")[0] in self._parameters:
                 try:
-                    param = self.get_parameter(name, with_decryption)
+                    param = self.get_parameter(name)
 
                     if param is not None:
                         result[name] = param
@@ -1411,7 +1410,6 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_parameters_by_path(
         self,
         path,
-        with_decryption,
         recursive,
         filters=None,
         next_token=None,
@@ -1426,7 +1424,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # difference here.
         path = path.rstrip("/") + "/"
         for param_name in self._parameters.get_keys_beginning_with(path, recursive):
-            parameter = self.get_parameter(param_name, with_decryption)
+            parameter = self.get_parameter(param_name)
             if not self._match_filters(parameter, filters):
                 continue
             result.append(parameter)
@@ -1445,7 +1443,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             next_token = None
         return values, next_token
 
-    def get_parameter_history(self, name, with_decryption, next_token, max_results=50):
+    def get_parameter_history(self, name, next_token, max_results=50):
 
         if max_results > PARAMETER_HISTORY_MAX_RESULTS:
             raise ValidationException(
@@ -1545,7 +1543,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # True if no false match (or no filters at all)
         return True
 
-    def get_parameter(self, name, with_decryption):
+    def get_parameter(self, name):
         name_parts = name.split(":")
         name_prefix = name_parts[0]
 

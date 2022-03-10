@@ -703,7 +703,7 @@ class Job(threading.Thread, BaseModel, DockerModel):
                 self.log_stream_name = stream_name
                 self._log_backend.ensure_log_group(log_group, None)
                 self._log_backend.create_log_stream(log_group, stream_name)
-                self._log_backend.put_log_events(log_group, stream_name, logs, None)
+                self._log_backend.put_log_events(log_group, stream_name, logs)
 
                 result = container.wait() or {}
                 self.exit_code = result.get("StatusCode", 0)
@@ -961,9 +961,10 @@ class BatchBackend(BaseBackend):
         except KeyError:
             return None
 
-    def describe_compute_environments(
-        self, environments=None, max_results=None, next_token=None
-    ):
+    def describe_compute_environments(self, environments=None):
+        """
+        Pagination is not yet implemented
+        """
         envs = set()
         if environments is not None:
             envs = set(environments)
@@ -1329,7 +1330,10 @@ class BatchBackend(BaseBackend):
 
         return queue_name, queue.arn
 
-    def describe_job_queues(self, job_queues=None, max_results=None, next_token=None):
+    def describe_job_queues(self, job_queues=None):
+        """
+        Pagination is not yet implemented
+        """
         envs = set()
         if job_queues is not None:
             envs = set(job_queues)
@@ -1465,13 +1469,11 @@ class BatchBackend(BaseBackend):
             self._job_definitions[job_def.arn].deregister()
 
     def describe_job_definitions(
-        self,
-        job_def_name=None,
-        job_def_list=None,
-        status=None,
-        max_results=None,
-        next_token=None,
+        self, job_def_name=None, job_def_list=None, status=None
     ):
+        """
+        Pagination is not yet implemented
+        """
         jobs = []
 
         # As a job name can reference multiple revisions, we get a list of them
@@ -1499,14 +1501,13 @@ class BatchBackend(BaseBackend):
         job_name,
         job_def_id,
         job_queue,
-        parameters=None,
-        retries=None,
         depends_on=None,
         container_overrides=None,
         timeout=None,
     ):
-        # TODO parameters, retries (which is a dict raw from request), job dependencies and container overrides are ignored for now
-
+        """
+        Parameters RetryStrategy and Parameters are not yet implemented.
+        """
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
@@ -1549,7 +1550,10 @@ class BatchBackend(BaseBackend):
 
         return result
 
-    def list_jobs(self, job_queue, job_status=None, max_results=None, next_token=None):
+    def list_jobs(self, job_queue, job_status=None):
+        """
+        Pagination is not yet implemented
+        """
         jobs = []
 
         job_queue = self.get_job_queue(job_queue)

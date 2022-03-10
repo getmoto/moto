@@ -379,7 +379,7 @@ class OrganizationsBackend(BaseBackend):
             raise AWSOrganizationsNotInUseException
         return self.org.describe()
 
-    def delete_organization(self, **kwargs):
+    def delete_organization(self):
         if [account for account in self.accounts if account.name != "master"]:
             raise RESTError(
                 "OrganizationNotEmptyException",
@@ -612,7 +612,7 @@ class OrganizationsBackend(BaseBackend):
         else:
             raise InvalidInputException("You specified an invalid value.")
 
-    def list_policies(self, **kwargs):
+    def list_policies(self):
         return dict(
             Policies=[p.describe()["Policy"]["PolicySummary"] for p in self.policies]
         )

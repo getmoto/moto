@@ -16,9 +16,7 @@ class GuardDutyBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_detector(
-        self, enable, client_token, finding_publishing_frequency, data_sources, tags
-    ):
+    def create_detector(self, enable, finding_publishing_frequency, data_sources, tags):
         if finding_publishing_frequency not in [
             "FIFTEEN_MINUTES",
             "ONE_HOUR",

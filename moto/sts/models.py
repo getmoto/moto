@@ -14,7 +14,7 @@ from moto.sts.utils import (
 
 
 class Token(BaseModel):
-    def __init__(self, duration, name=None, policy=None):
+    def __init__(self, duration, name=None):
         now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
@@ -72,8 +72,8 @@ class STSBackend(BaseBackend):
         token = Token(duration=duration)
         return token
 
-    def get_federation_token(self, name, duration, policy):
-        token = Token(duration=duration, name=name, policy=policy)
+    def get_federation_token(self, name, duration):
+        token = Token(duration=duration, name=name)
         return token
 
     def assume_role(self, **kwargs):

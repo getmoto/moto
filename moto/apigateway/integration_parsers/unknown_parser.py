@@ -1,4 +1,7 @@
-class TypeUnknownParser:
+from . import IntegrationParser
+
+
+class TypeUnknownParser(IntegrationParser):
     """
     Parse invocations to a APIGateway resource with an unknown integration type
     """

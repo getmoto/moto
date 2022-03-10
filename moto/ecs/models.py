@@ -122,8 +122,8 @@ class Cluster(BaseObject, CloudFormationModel):
             return original_resource
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -484,8 +484,8 @@ class Service(BaseObject, CloudFormationModel):
             )
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Name"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Name"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -1469,9 +1469,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name=None,
         attr_name=None,
         attr_value=None,
-        max_results=None,
-        next_token=None,
     ):
+        """
+        Pagination is not yet implemented
+        """
         if target_type != "container-instance":
             raise JsonRESTError(
                 "InvalidParameterException", "targetType must be container-instance"
@@ -1554,9 +1555,10 @@ class EC2ContainerServiceBackend(BaseBackend):
                     "TargetNotFoundException", "Could not find {0}".format(target_id)
                 )
 
-    def list_task_definition_families(
-        self, family_prefix=None, status=None, max_results=None, next_token=None
-    ):
+    def list_task_definition_families(self, family_prefix=None):
+        """
+        The Status and pagination parameters are not yet implemented
+        """
         for task_fam in self.task_definitions:
             if family_prefix is not None and not task_fam.startswith(family_prefix):
                 continue
@@ -1720,7 +1722,10 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return task_set_results
 
-    def delete_task_set(self, cluster, service, task_set, force=False):
+    def delete_task_set(self, cluster, service, task_set):
+        """
+        The Force-parameter is not yet implemented
+        """
         cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
 

@@ -206,16 +206,13 @@ class ApiGatewayV2Response(BaseResponse):
 
         api_key_selection_expression = params.get("apiKeySelectionExpression")
         cors_configuration = params.get("corsConfiguration")
-        credentials_arn = params.get("credentialsArn")
         description = params.get("description")
         disable_schema_validation = params.get("disableSchemaValidation")
         disable_execute_api_endpoint = params.get("disableExecuteApiEndpoint")
         name = params.get("name")
         protocol_type = params.get("protocolType")
-        route_key = params.get("routeKey")
         route_selection_expression = params.get("routeSelectionExpression")
         tags = params.get("tags")
-        target = params.get("target")
         version = params.get("version")
 
         if protocol_type not in ["HTTP", "WEBSOCKET"]:
@@ -224,16 +221,13 @@ class ApiGatewayV2Response(BaseResponse):
         api = self.apigatewayv2_backend.create_api(
             api_key_selection_expression=api_key_selection_expression,
             cors_configuration=cors_configuration,
-            credentials_arn=credentials_arn,
             description=description,
             disable_schema_validation=disable_schema_validation,
             disable_execute_api_endpoint=disable_execute_api_endpoint,
             name=name,
             protocol_type=protocol_type,
-            route_key=route_key,
             route_selection_expression=route_selection_expression,
             tags=tags,
-            target=target,
             version=version,
         )
         return 200, {}, json.dumps(api.to_json())

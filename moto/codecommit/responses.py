@@ -26,7 +26,6 @@ class CodeCommitResponse(BaseResponse):
             raise InvalidRepositoryNameException()
 
         repository_metadata = self.codecommit_backend.create_repository(
-            self.region,
             self._get_param("repositoryName"),
             self._get_param("repositoryDescription"),
         )

@@ -14,15 +14,15 @@ def random_id(size=13):
     return "".join(str(random.choice(chars)) for x in range(size))
 
 
-def random_cluster_id(size=13):
+def random_cluster_id():
     return "j-{0}".format(random_id())
 
 
-def random_step_id(size=13):
+def random_step_id():
     return "s-{0}".format(random_id())
 
 
-def random_instance_group_id(size=13):
+def random_instance_group_id():
     return "i-{0}".format(random_id())
 
 

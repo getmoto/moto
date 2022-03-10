@@ -1,5 +1,4 @@
 import json
-from urllib.parse import urlparse, parse_qs
 
 from moto.core.responses import BaseResponse
 from .models import glacier_backends
@@ -13,9 +12,9 @@ class GlacierResponse(BaseResponse):
 
     def all_vault_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        return self._all_vault_response(request, full_url, headers)
+        return self._all_vault_response(headers)
 
-    def _all_vault_response(self, request, full_url, headers):
+    def _all_vault_response(self, headers):
         vaults = self.glacier_backend.list_vaults()
         response = json.dumps(
             {"Marker": None, "VaultList": [vault.to_dict() for vault in vaults]}
@@ -30,27 +29,25 @@ class GlacierResponse(BaseResponse):
 
     def _vault_response(self, request, full_url, headers):
         method = request.method
-        parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         vault_name = vault_from_glacier_url(full_url)
 
         if method == "GET":
-            return self._vault_response_get(vault_name, querystring, headers)
+            return self._vault_response_get(vault_name, headers)
         elif method == "PUT":
-            return self._vault_response_put(vault_name, querystring, headers)
+            return self._vault_response_put(vault_name, headers)
         elif method == "DELETE":
-            return self._vault_response_delete(vault_name, querystring, headers)
+            return self._vault_response_delete(vault_name, headers)
 
-    def _vault_response_get(self, vault_name, querystring, headers):
+    def _vault_response_get(self, vault_name, headers):
         vault = self.glacier_backend.get_vault(vault_name)
         headers["content-type"] = "application/json"
         return 200, headers, json.dumps(vault.to_dict())
 
-    def _vault_response_put(self, vault_name, querystring, headers):
+    def _vault_response_put(self, vault_name, headers):
         self.glacier_backend.create_vault(vault_name)
         return 201, headers, ""
 
-    def _vault_response_delete(self, vault_name, querystring, headers):
+    def _vault_response_delete(self, vault_name, headers):
         self.glacier_backend.delete_vault(vault_name)
         return 204, headers, ""
 
@@ -66,20 +63,16 @@ class GlacierResponse(BaseResponse):
         description = ""
         if "x-amz-archive-description" in request.headers:
             description = request.headers["x-amz-archive-description"]
-        parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         vault_name = full_url.split("/")[-2]
 
         if method == "POST":
             return self._vault_archive_response_post(
-                vault_name, body, description, querystring, headers
+                vault_name, body, description, headers
             )
         else:
             return 400, headers, "400 Bad Request"
 
-    def _vault_archive_response_post(
-        self, vault_name, body, description, querystring, headers
-    ):
+    def _vault_archive_response_post(self, vault_name, body, description, headers):
         vault = self.glacier_backend.upload_archive(vault_name, body, description)
         headers["x-amz-archive-id"] = vault["archive_id"]
         headers["x-amz-sha256-tree-hash"] = vault["sha256"]
@@ -143,9 +136,9 @@ class GlacierResponse(BaseResponse):
 
     def vault_jobs_individual_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        return self._vault_jobs_individual_response(request, full_url, headers)
+        return self._vault_jobs_individual_response(full_url, headers)
 
-    def _vault_jobs_individual_response(self, request, full_url, headers):
+    def _vault_jobs_individual_response(self, full_url, headers):
         vault_name = full_url.split("/")[-3]
         archive_id = full_url.split("/")[-1]
 
@@ -154,9 +147,9 @@ class GlacierResponse(BaseResponse):
 
     def vault_jobs_output_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        return self._vault_jobs_output_response(request, full_url, headers)
+        return self._vault_jobs_output_response(full_url, headers)
 
-    def _vault_jobs_output_response(self, request, full_url, headers):
+    def _vault_jobs_output_response(self, full_url, headers):
         vault_name = full_url.split("/")[-4]
         job_id = full_url.split("/")[-2]
         output = self.glacier_backend.get_job_output(vault_name, job_id)

@@ -22,7 +22,6 @@ class Domain(BaseModel):
         domain_endpoint_options,
         advanced_security_options,
         auto_tune_options,
-        tag_list,
     ):
         self.domain_id = get_random_hex(8)
         self.region_name = region_name
@@ -104,7 +103,6 @@ class ElasticsearchServiceBackend(BaseBackend):
         domain_endpoint_options,
         advanced_security_options,
         auto_tune_options,
-        tag_list,
     ):
         # TODO: Persist/Return other attributes
         new_domain = Domain(
@@ -124,7 +122,6 @@ class ElasticsearchServiceBackend(BaseBackend):
             domain_endpoint_options=domain_endpoint_options,
             advanced_security_options=advanced_security_options,
             auto_tune_options=auto_tune_options,
-            tag_list=tag_list,
         )
         self.domains[domain_name] = new_domain
         return new_domain.to_json()
@@ -139,7 +136,7 @@ class ElasticsearchServiceBackend(BaseBackend):
             raise DomainNotFound(domain_name)
         return self.domains[domain_name].to_json()
 
-    def list_domain_names(self, engine_type):
+    def list_domain_names(self):
         """
         The engine-type parameter is not yet supported.
         Pagination is not yet implemented.

@@ -90,8 +90,7 @@ class Route53(BaseResponse):
         parsed_url = urlparse(full_url)
         query_params = parse_qs(parsed_url.query)
         vpc_id = query_params.get("vpcid")[0]
-        vpc_region = query_params.get("vpcregion")[0]
-        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
+        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id)
         template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
         return 200, headers, template.render(zones=zones, xmlns=XMLNS)
 

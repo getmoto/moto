@@ -41,7 +41,10 @@ class DataBrewBackend(BaseBackend):
     def list_recipes(self):
         return [self.recipes[key] for key in self.recipes] if self.recipes else []
 
-    def get_recipe(self, recipe_name, version):
+    def get_recipe(self, recipe_name):
+        """
+        The Version-parameter has not yet been implemented
+        """
         if recipe_name not in self.recipes:
             raise RecipeNotFoundException(recipe_name)
         return self.recipes[recipe_name]

@@ -277,10 +277,9 @@ class MalformedAMIIdError(EC2ClientError):
 
 
 class InvalidSnapshotIdError(EC2ClientError):
-    def __init__(self, snapshot_id):
-        super().__init__(
-            "InvalidSnapshot.NotFound", ""
-        )  # Note: AWS returns empty message for this, as of 2014.08.22.
+    def __init__(self):
+        # Note: AWS returns empty message for this, as of 2014.08.22.
+        super().__init__("InvalidSnapshot.NotFound", "")
 
 
 class InvalidSnapshotInUse(EC2ClientError):

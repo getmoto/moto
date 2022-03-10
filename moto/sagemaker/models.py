@@ -74,7 +74,6 @@ class FakeProcessingJob(BaseObject):
         processing_inputs,
         processing_job_name,
         processing_output_config,
-        processing_resources,
         region_name,
         role_arn,
         stopping_condition,
@@ -279,8 +278,8 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         return self.endpoint_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["EndpointName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["EndpointName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpoint.html#aws-resource-sagemaker-endpoint-return-values
@@ -469,8 +468,8 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         return self.endpoint_config_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["EndpointConfigName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["EndpointConfigName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-endpointconfig.html#aws-resource-sagemaker-endpointconfig-return-values
@@ -581,8 +580,8 @@ class Model(BaseObject, CloudFormationModel):
         return self.model_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["ModelName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["ModelName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-model.html#aws-resource-sagemaker-model-return-values
@@ -801,8 +800,8 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         return self.arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["NotebookInstanceName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["NotebookInstanceName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstance.html#aws-resource-sagemaker-notebookinstance-return-values
@@ -910,8 +909,8 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         return self.notebook_instance_lifecycle_config_arn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["NotebookInstanceLifecycleConfigName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["NotebookInstanceLifecycleConfigName"]
 
     def get_cfn_attribute(self, attribute_name):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sagemaker-notebookinstancelifecycleconfig.html#aws-resource-sagemaker-notebookinstancelifecycleconfig-return-values
@@ -1721,7 +1720,6 @@ class SageMakerModelBackend(BaseBackend):
         processing_inputs,
         processing_job_name,
         processing_output_config,
-        processing_resources,
         role_arn,
         stopping_condition,
     ):
@@ -1732,7 +1730,6 @@ class SageMakerModelBackend(BaseBackend):
             processing_inputs=processing_inputs,
             processing_job_name=processing_job_name,
             processing_output_config=processing_output_config,
-            processing_resources=processing_resources,
             region_name=self.region_name,
             role_arn=role_arn,
             stopping_condition=stopping_condition,
@@ -1759,8 +1756,6 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time_before,
         name_contains,
         status_equals,
-        sort_by,
-        sort_order,
     ):
         if next_token:
             try:
@@ -1929,8 +1924,6 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time_before,
         name_contains,
         status_equals,
-        sort_by,
-        sort_order,
     ):
         if next_token:
             try:
