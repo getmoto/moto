@@ -12,7 +12,7 @@ def test_describe_maintenance_window():
     resp.should.have.key("WindowIdentities").equals([])
 
     resp = ssm.describe_maintenance_windows(
-        Filters=[{"Key": "Name", "Values": ["fake-maintenance-window-name",]},],
+        Filters=[{"Key": "Name", "Values": ["fake-maintenance-window-name"]}]
     )
     resp.should.have.key("WindowIdentities").equals([])
 
@@ -132,7 +132,7 @@ def test_describe_maintenance_windows():
     resp.should.have.key("WindowIdentities").have.length_of(4)
 
     resp = ssm.describe_maintenance_windows(
-        Filters=[{"Key": "Name", "Values": ["window_0", "window_2",]},],
+        Filters=[{"Key": "Name", "Values": ["window_0", "window_2"]}]
     )
     resp.should.have.key("WindowIdentities").have.length_of(2)
 

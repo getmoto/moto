@@ -118,7 +118,7 @@ def test_validate_error_extract_rules(policy):
 
 
 @pytest.mark.parametrize(
-    ["rule", "rule_type"], [["not_dict", "string"]], ids=["not_dict"],
+    ["rule", "rule_type"], [["not_dict", "string"]], ids=["not_dict"]
 )
 def test_validate_error_rule_type(rule, rule_type):
     # given
@@ -216,7 +216,7 @@ def test_validate_error_rule_properties(rule, error_msg):
 @pytest.mark.parametrize(
     ["action", "error_msg"],
     [
-        [{}, 'object has missing required properties (["type"])\'',],
+        [{}, 'object has missing required properties (["type"])\''],
         [
             {"type": "expire", "unknown": 123},
             (
@@ -277,15 +277,15 @@ def test_validate_error_action_properties(action, error_msg):
     ["selection", "error_msg"],
     [
         [
-            {"countType": "imageCountMoreThan", "countNumber": 30,},
+            {"countType": "imageCountMoreThan", "countNumber": 30},
             'object has missing required properties (["tagStatus"])\'',
         ],
         [
-            {"tagStatus": "untagged", "countNumber": 30,},
+            {"tagStatus": "untagged", "countNumber": 30},
             'object has missing required properties (["countType"])\'',
         ],
         [
-            {"tagStatus": "untagged", "countType": "imageCountMoreThan",},
+            {"tagStatus": "untagged", "countType": "imageCountMoreThan"},
             'object has missing required properties (["countNumber"])\'',
         ],
         [

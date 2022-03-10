@@ -440,7 +440,7 @@ class Route53ResolverBackend(BaseBackend):
             ]
         )
         errmsg = self.tagger.validate_tags(
-            tags or [], limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT,
+            tags or [], limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT
         )
         if errmsg:
             raise TagValidationException(errmsg)
@@ -501,7 +501,7 @@ class Route53ResolverBackend(BaseBackend):
             ]
         )
         errmsg = self.tagger.validate_tags(
-            tags or [], limit=ResolverRule.MAX_TAGS_PER_RESOLVER_RULE,
+            tags or [], limit=ResolverRule.MAX_TAGS_PER_RESOLVER_RULE
         )
         if errmsg:
             raise TagValidationException(errmsg)
@@ -816,7 +816,7 @@ class Route53ResolverBackend(BaseBackend):
         """Add or overwrite one or more tags for specified resource."""
         self._matched_arn(resource_arn)
         errmsg = self.tagger.validate_tags(
-            tags, limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT,
+            tags, limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT
         )
         if errmsg:
             raise TagValidationException(errmsg)

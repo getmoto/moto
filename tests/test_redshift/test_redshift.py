@@ -904,7 +904,7 @@ def test_describe_snapshot_with_filter():
     )
     auto_snapshot_identifier = resp_auto_snap["Snapshots"][0]["SnapshotIdentifier"]
     client.create_cluster_snapshot(
-        SnapshotIdentifier=snapshot_identifier, ClusterIdentifier=cluster_identifier,
+        SnapshotIdentifier=snapshot_identifier, ClusterIdentifier=cluster_identifier
     )
 
     resp = client.describe_cluster_snapshots(
@@ -1545,7 +1545,7 @@ def test_enable_snapshot_copy():
     )
     with pytest.raises(ClientError) as ex:
         client.enable_snapshot_copy(
-            ClusterIdentifier="test", DestinationRegion="us-west-2", RetentionPeriod=3,
+            ClusterIdentifier="test", DestinationRegion="us-west-2", RetentionPeriod=3
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
     ex.value.response["Error"]["Message"].should.contain(
@@ -1769,20 +1769,18 @@ def test_resize_cluster():
     resp["Cluster"]["NumberOfNodes"].should.equal(1)
 
     client.modify_cluster(
-        ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=2,
+        ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=2
     )
     resp = client.describe_clusters(ClusterIdentifier="test")
     resp["Clusters"][0]["NumberOfNodes"].should.equal(2)
 
-    client.modify_cluster(
-        ClusterIdentifier="test", ClusterType="single-node",
-    )
+    client.modify_cluster(ClusterIdentifier="test", ClusterType="single-node")
     resp = client.describe_clusters(ClusterIdentifier="test")
     resp["Clusters"][0]["NumberOfNodes"].should.equal(1)
 
     with pytest.raises(ClientError) as ex:
         client.modify_cluster(
-            ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=1,
+            ClusterIdentifier="test", ClusterType="multi-node", NumberOfNodes=1
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
     ex.value.response["Error"]["Message"].should.contain(
@@ -1864,7 +1862,7 @@ def test_get_cluster_credentials():
     )
     db_user = "some_user"
     response = client.get_cluster_credentials(
-        ClusterIdentifier=cluster_identifier, DbUser=db_user,
+        ClusterIdentifier=cluster_identifier, DbUser=db_user
     )
     response["DbUser"].should.equal("IAM:%s" % db_user)
     assert time.mktime((response["Expiration"]).timetuple()) == pytest.approx(
@@ -1886,7 +1884,7 @@ def test_get_cluster_credentials():
         (datetime.datetime.now() + datetime.timedelta(0, 3000)).timetuple()
     )
     response = client.get_cluster_credentials(
-        ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000,
+        ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000
     )
     assert time.mktime(response["Expiration"].timetuple()) == pytest.approx(
         expected_expiration

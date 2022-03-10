@@ -70,11 +70,13 @@ class Rule(CloudFormationModel):
             else "{}/".format(self.event_bus_name)
         )
 
-        return "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
-            region=self.region_name,
-            account_id=ACCOUNT_ID,
-            event_bus_name=event_bus_name,
-            name=self.name,
+        return (
+            "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
+                region=self.region_name,
+                account_id=ACCOUNT_ID,
+                event_bus_name=event_bus_name,
+                name=self.name,
+            )
         )
 
     @property
@@ -679,7 +681,7 @@ class Replay(BaseModel):
 
 class Connection(BaseModel):
     def __init__(
-        self, name, region_name, description, authorization_type, auth_parameters,
+        self, name, region_name, description, authorization_type, auth_parameters
     ):
         self.uuid = uuid4()
         self.name = name

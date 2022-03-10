@@ -232,7 +232,7 @@ class RDSResponse(BaseResponse):
         target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
         tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         snapshot = self.backend.copy_database_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags,
+            source_snapshot_identifier, target_snapshot_identifier, tags
         )
         template = self.response_template(COPY_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
@@ -542,7 +542,7 @@ class RDSResponse(BaseResponse):
         )
         tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         snapshot = self.backend.copy_cluster_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags,
+            source_snapshot_identifier, target_snapshot_identifier, tags
         )
         template = self.response_template(COPY_CLUSTER_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
@@ -586,7 +586,7 @@ class RDSResponse(BaseResponse):
 
     def describe_export_tasks(self):
         export_task_identifier = self._get_param("ExportTaskIdentifier")
-        tasks = self.backend.describe_export_tasks(export_task_identifier,)
+        tasks = self.backend.describe_export_tasks(export_task_identifier)
         template = self.response_template(DESCRIBE_EXPORT_TASKS_TEMPLATE)
         return template.render(tasks=tasks)
 

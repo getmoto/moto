@@ -3,17 +3,10 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
-from moto import (
-    mock_autoscaling,
-    mock_elb,
-    mock_ec2,
-)
+from moto import mock_autoscaling, mock_elb, mock_ec2
 from moto.core import ACCOUNT_ID
 
-from .utils import (
-    setup_networking,
-    setup_instance_with_networking,
-)
+from .utils import setup_networking, setup_instance_with_networking
 from tests import EXAMPLE_AMI_ID
 
 
@@ -555,7 +548,7 @@ def test_create_autoscaling_group_from_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     response = client.create_auto_scaling_group(
@@ -581,7 +574,7 @@ def test_create_autoscaling_group_no_template_ref():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
 
@@ -610,7 +603,7 @@ def test_create_autoscaling_group_multiple_template_ref():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
 
@@ -664,7 +657,7 @@ def test_create_autoscaling_group_boto3_multiple_launch_configurations():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -741,7 +734,7 @@ def test_describe_autoscaling_groups_boto3_launch_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_auto_scaling_group(
@@ -813,7 +806,7 @@ def test_describe_autoscaling_instances_boto3_launch_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_auto_scaling_group(
@@ -926,7 +919,7 @@ def test_update_autoscaling_group_boto3_launch_template():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template",
-        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro",},
+        LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID, "InstanceType": "t2.micro"},
     )
     template = ec2_client.create_launch_template(
         LaunchTemplateName="test_launch_template_new",
@@ -1993,7 +1986,7 @@ def test_standby_exit_standby():
     response["AutoScalingInstances"][0]["LifecycleState"].should.equal("Standby")
 
     response = client.exit_standby(
-        AutoScalingGroupName="test_asg", InstanceIds=[instance_to_standby_exit_standby],
+        AutoScalingGroupName="test_asg", InstanceIds=[instance_to_standby_exit_standby]
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
@@ -2592,7 +2585,7 @@ def test_attach_instances():
         AvailabilityZones=[fake_instance["Placement"]["AvailabilityZone"]],
     )
     asg_client.attach_instances(
-        InstanceIds=[fake_instance["InstanceId"],], AutoScalingGroupName="test_asg"
+        InstanceIds=[fake_instance["InstanceId"]], AutoScalingGroupName="test_asg"
     )
     response = asg_client.describe_auto_scaling_instances()
     len(response["AutoScalingInstances"]).should.equal(1)
@@ -2635,7 +2628,7 @@ def test_autoscaling_lifecyclehook():
         hook["LifecycleTransition"].should.equal("autoscaling:EC2_INSTANCE_TERMINATING")
 
     client.delete_lifecycle_hook(
-        LifecycleHookName="test-lifecyclehook", AutoScalingGroupName="test_asg",
+        LifecycleHookName="test-lifecyclehook", AutoScalingGroupName="test_asg"
     )
 
     response = client.describe_lifecycle_hooks(
@@ -2645,9 +2638,7 @@ def test_autoscaling_lifecyclehook():
     len(response["LifecycleHooks"]).should.equal(0)
 
 
-@pytest.mark.parametrize(
-    "original,new", [(2, 1), (2, 3), (1, 5), (1, 1)],
-)
+@pytest.mark.parametrize("original,new", [(2, 1), (2, 3), (1, 5), (1, 1)])
 @mock_autoscaling
 def test_set_desired_capacity_without_protection_boto3(original, new):
     mocked_networking = setup_networking()

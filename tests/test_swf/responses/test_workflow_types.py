@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 def test_register_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
     client.register_workflow_type(
         domain="test-domain", name="test-workflow", version="v1.0"
@@ -29,7 +29,7 @@ def test_register_workflow_type_boto3():
 def test_register_already_existing_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
     client.register_workflow_type(
         domain="test-domain", name="test-workflow", version="v1.0"
@@ -50,7 +50,7 @@ def test_register_already_existing_workflow_type_boto3():
 def test_list_workflow_types_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
     client.register_workflow_type(
         domain="test-domain", name="b-test-workflow", version="v1.0"
@@ -77,7 +77,7 @@ def test_list_workflow_types_boto3():
 def test_list_workflow_types_reverse_order_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
     client.register_workflow_type(
         domain="test-domain", name="b-test-workflow", version="v1.0"
@@ -104,7 +104,7 @@ def test_list_workflow_types_reverse_order_boto3():
 def test_deprecate_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
     client.register_workflow_type(
         domain="test-domain", name="test-workflow", version="v1.0"
@@ -125,7 +125,7 @@ def test_deprecate_workflow_type_boto3():
 def test_deprecate_already_deprecated_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
     client.register_workflow_type(
         domain="test-domain", name="test-workflow", version="v1.0"
@@ -149,7 +149,7 @@ def test_deprecate_already_deprecated_workflow_type_boto3():
 def test_deprecate_non_existent_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
 
     with pytest.raises(ClientError) as ex:
@@ -274,7 +274,7 @@ def test_describe_workflow_type_full_boto3():
 def test_describe_non_existent_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
-        name="test-domain", workflowExecutionRetentionPeriodInDays="60",
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
 
     with pytest.raises(ClientError) as ex:

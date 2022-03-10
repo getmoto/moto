@@ -35,7 +35,7 @@ class MyProcessingJobModel(object):
         self.prefix = prefix or "sagemaker"
         self.app_specification = app_specification or {
             "ImageUri": self.container,
-            "ContainerEntrypoint": ["python3",],
+            "ContainerEntrypoint": ["python3"],
         }
         self.network_config = network_config or {
             "EnableInterContainerTrafficEncryption": False,

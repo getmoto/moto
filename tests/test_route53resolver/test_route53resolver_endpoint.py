@@ -29,7 +29,7 @@ def create_security_group(ec2_client):
         return groups["SecurityGroups"][0]["GroupId"]
 
     response = ec2_client.create_security_group(
-        Description="Security group used by unit tests", GroupName=group_name,
+        Description="Security group used by unit tests", GroupName=group_name
     )
     return response["GroupId"]
 
@@ -45,7 +45,7 @@ def create_subnets(ec2_client, vpc_id):
     for cidr_block in ["10.0.1.0/24", "10.0.0.0/24"]:
         subnet_ids.append(
             ec2_client.create_subnet(
-                VpcId=vpc_id, CidrBlock=cidr_block, AvailabilityZone=f"{TEST_REGION}a",
+                VpcId=vpc_id, CidrBlock=cidr_block, AvailabilityZone=f"{TEST_REGION}a"
             )["Subnet"]["SubnetId"]
         )
     return subnet_ids
@@ -139,9 +139,9 @@ def test_route53resolver_invalid_create_endpoint_args():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_chars_in_name}' at 'name' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)$"
+        rf"Value '{bad_chars_in_name}' at 'name' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^(?!^[0-9]+$)([a-zA-Z0-9-_' ']+)$"
     ) in err["Message"]
 
     subnet_too_long = [{"SubnetId": "a" * 33, "Ip": "1.2.3.4"}]
@@ -531,7 +531,7 @@ def test_route53resolver_update_resolver_endpoint():
     # Now update the resolver endpoint name and verify the response.
     new_name = "NewName" + get_random_hex(6)
     response = client.update_resolver_endpoint(
-        ResolverEndpointId=created_endpoint["Id"], Name=new_name,
+        ResolverEndpointId=created_endpoint["Id"], Name=new_name
     )
     endpoint = response["ResolverEndpoint"]
     assert endpoint["CreatorRequestId"] == created_endpoint["CreatorRequestId"]

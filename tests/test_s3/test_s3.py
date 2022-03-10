@@ -332,7 +332,7 @@ def test_delete_versioned_objects():
     s3.put_object(Bucket=bucket, Key=key, Body=b"")
 
     s3.put_bucket_versioning(
-        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"},
+        Bucket=bucket, VersioningConfiguration={"Status": "Enabled"}
     )
 
     objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
@@ -353,9 +353,7 @@ def test_delete_versioned_objects():
     versions.shouldnt.be.empty
     delete_markers.shouldnt.be.empty
 
-    s3.delete_object(
-        Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"),
-    )
+    s3.delete_object(Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"))
 
     objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
@@ -366,7 +364,7 @@ def test_delete_versioned_objects():
     delete_markers.shouldnt.be.empty
 
     s3.delete_object(
-        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId"),
+        Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId")
     )
 
     objects = s3.list_objects_v2(Bucket=bucket).get("Contents")
@@ -1599,9 +1597,7 @@ def test_get_object_if_match():
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.get_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
-        )
+        s3.get_object(Bucket=bucket_name, Key=key, IfMatch='"hello"')
     e = err.value
     e.response["Error"]["Code"].should.equal("PreconditionFailed")
     e.response["Error"]["Condition"].should.equal("If-Match")
@@ -1618,9 +1614,7 @@ def test_get_object_if_none_match():
     etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.get_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
-        )
+        s3.get_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
@@ -1676,9 +1670,7 @@ def test_head_object_if_match():
     s3.put_object(Bucket=bucket_name, Key=key, Body="test")
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.head_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
-        )
+        s3.head_object(Bucket=bucket_name, Key=key, IfMatch='"hello"')
     e = err.value
     e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
 
@@ -1694,9 +1686,7 @@ def test_head_object_if_none_match():
     etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3.head_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
-        )
+        s3.head_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
     e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 

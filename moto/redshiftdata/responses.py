@@ -10,13 +10,13 @@ class RedshiftDataAPIServiceResponse(BaseResponse):
 
     def cancel_statement(self):
         statement_id = self._get_param("Id")
-        status = self.redshiftdata_backend.cancel_statement(statement_id=statement_id,)
+        status = self.redshiftdata_backend.cancel_statement(statement_id=statement_id)
         return 200, {}, json.dumps({"Status": status})
 
     def describe_statement(self):
         statement_id = self._get_param("Id")
         statement = self.redshiftdata_backend.describe_statement(
-            statement_id=statement_id,
+            statement_id=statement_id
         )
         return 200, {}, json.dumps(dict(statement))
 
@@ -54,7 +54,7 @@ class RedshiftDataAPIServiceResponse(BaseResponse):
     def get_statement_result(self):
         statement_id = self._get_param("Id")
         statement_result = self.redshiftdata_backend.get_statement_result(
-            statement_id=statement_id,
+            statement_id=statement_id
         )
 
         return 200, {}, json.dumps(dict(statement_result))

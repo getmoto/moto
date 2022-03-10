@@ -218,7 +218,7 @@ def test_instance_detach_volume_wrong_path():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}}],
     )
     instance = result[0]
     for volume in instance.volumes.all():
@@ -731,14 +731,14 @@ def test_get_instances_filtering_by_subnet_id():
     vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
     subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
 
-    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    resp = client.create_vpc(CidrBlock=str(vpc_cidr))
     vpc_id = resp["Vpc"]["VpcId"]
 
     resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
     subnet_id = resp["Subnet"]["SubnetId"]
 
     client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id
     )
 
     reservations = client.describe_instances(
@@ -1333,7 +1333,7 @@ def test_run_instance_with_nic_preexisting_boto3():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        NetworkInterfaces=[{"DeviceIndex": 0, "NetworkInterfaceId": eni.id,}],
+        NetworkInterfaces=[{"DeviceIndex": 0, "NetworkInterfaceId": eni.id}],
         SecurityGroupIds=[security_group2.group_id],
     )[0]
 
@@ -1882,7 +1882,7 @@ def test_create_instance_ebs_optimized():
     instance.ebs_optimized.should.be(False)
 
     instance = ec2_resource.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1,
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1
     )[0]
     instance.load()
     instance.ebs_optimized.should.be(False)
@@ -2119,7 +2119,7 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     )
 
     template = client.create_launch_template(
-        LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
+        LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID}
     )["LaunchTemplate"]
 
     with pytest.warns(None) as captured_warnings:
@@ -2231,13 +2231,13 @@ def test_describe_instances_filter_vpcid_via_networkinterface():
     my_interface = {
         "SubnetId": subnet.id,
         "DeviceIndex": 0,
-        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"},],
+        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"}],
     }
     instance = ec2.create_instances(
         ImageId="myami", NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
     )[0]
 
-    _filter = [{"Name": "vpc-id", "Values": [vpc.id,]}]
+    _filter = [{"Name": "vpc-id", "Values": [vpc.id]}]
     found = list(ec2.instances.filter(Filters=_filter))
     found.should.have.length_of(1)
     found.should.equal([instance])

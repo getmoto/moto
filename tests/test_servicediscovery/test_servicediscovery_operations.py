@@ -104,7 +104,7 @@ def test_get_public_dns_namespace_operation():
 def test_get_update_service_operation():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     service_id = client.create_service(
-        Name="my service", NamespaceId="ns_id", Description="first desc",
+        Name="my service", NamespaceId="ns_id", Description="first desc"
     )["Service"]["Id"]
 
     resp = client.update_service(Id=service_id, Service={"Description": "updated desc"})

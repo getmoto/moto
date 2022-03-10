@@ -7,11 +7,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 import zipfile
 
-from moto import (
-    mock_lambda,
-    mock_ec2,
-    settings,
-)
+from moto import mock_lambda, mock_ec2, settings
 from uuid import uuid4
 from unittest import SkipTest
 from .utilities import (
@@ -249,7 +245,7 @@ def test_invoke_dryrun_function():
         Runtime="python2.7",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1(),},
+        Code={"ZipFile": get_test_zip_file1()},
         Description="test lambda function",
         Timeout=3,
         MemorySize=128,
@@ -262,9 +258,7 @@ def test_invoke_dryrun_function():
 
     in_data = {"msg": "So long and thanks for all the fish"}
     success_result = conn.invoke(
-        FunctionName=function_name,
-        InvocationType="DryRun",
-        Payload=json.dumps(in_data),
+        FunctionName=function_name, InvocationType="DryRun", Payload=json.dumps(in_data)
     )
     success_result["StatusCode"].should.equal(204)
 

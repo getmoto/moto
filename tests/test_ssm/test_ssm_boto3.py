@@ -239,7 +239,7 @@ def test_get_parameters_by_path():
 def test_put_parameter(name):
     client = boto3.client("ssm", region_name="us-east-1")
     response = client.put_parameter(
-        Name=name, Description="A test parameter", Value="value", Type="String",
+        Name=name, Description="A test parameter", Value="value", Type="String"
     )
 
     response["Version"].should.equal(1)
@@ -353,27 +353,19 @@ def test_put_parameter_invalid_names():
 
     client.put_parameter.when.called_with(
         Name="ssm_test", Value="value", Type="String"
-    ).should.throw(
-        ClientError, invalid_prefix_err,
-    )
+    ).should.throw(ClientError, invalid_prefix_err)
 
     client.put_parameter.when.called_with(
         Name="SSM_TEST", Value="value", Type="String"
-    ).should.throw(
-        ClientError, invalid_prefix_err,
-    )
+    ).should.throw(ClientError, invalid_prefix_err)
 
     client.put_parameter.when.called_with(
         Name="aws_test", Value="value", Type="String"
-    ).should.throw(
-        ClientError, invalid_prefix_err,
-    )
+    ).should.throw(ClientError, invalid_prefix_err)
 
     client.put_parameter.when.called_with(
         Name="AWS_TEST", Value="value", Type="String"
-    ).should.throw(
-        ClientError, invalid_prefix_err,
-    )
+    ).should.throw(ClientError, invalid_prefix_err)
 
     ssm_path = "/ssm_test/path/to/var"
     client.put_parameter.when.called_with(
@@ -399,14 +391,14 @@ def test_put_parameter_invalid_names():
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
     ).should.throw(
-        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path)
     )
 
     aws_path = "/AWS/PATH/TO/VAR"
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
     ).should.throw(
-        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path)
     )
 
 
@@ -444,7 +436,7 @@ def test_get_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test", Description="A test parameter", Value="value", Type="String",
+        Name="test", Description="A test parameter", Value="value", Type="String"
     )
 
     response = client.get_parameter(Name="test", WithDecryption=False)
@@ -464,10 +456,10 @@ def test_get_parameter_with_version_and_labels():
     client = boto3.client("ssm", region_name="us-east-1")
 
     client.put_parameter(
-        Name="test-1", Description="A test parameter", Value="value", Type="String",
+        Name="test-1", Description="A test parameter", Value="value", Type="String"
     )
     client.put_parameter(
-        Name="test-2", Description="A test parameter", Value="value", Type="String",
+        Name="test-2", Description="A test parameter", Value="value", Type="String"
     )
 
     client.label_parameter_version(
@@ -1889,7 +1881,7 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
 
     with pytest.raises(ClientError) as ex:
         client.put_parameter(
-            Name=parameter_name, Value="new-value", Type="String", Overwrite=True,
+            Name=parameter_name, Value="new-value", Type="String", Overwrite=True
         )
     error = ex.value.response["Error"]
     error["Code"].should.equal("ParameterMaxVersionLimitExceeded")

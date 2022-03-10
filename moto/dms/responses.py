@@ -65,7 +65,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
     def stop_replication_task(self):
         replication_task_arn = self._get_param("ReplicationTaskArn")
         replication_task = self.dms_backend.stop_replication_task(
-            replication_task_arn=replication_task_arn,
+            replication_task_arn=replication_task_arn
         )
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
@@ -73,7 +73,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
     def delete_replication_task(self):
         replication_task_arn = self._get_param("ReplicationTaskArn")
         replication_task = self.dms_backend.delete_replication_task(
-            replication_task_arn=replication_task_arn,
+            replication_task_arn=replication_task_arn
         )
 
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
@@ -84,7 +84,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         marker = self._get_param("Marker")
         without_settings = self._get_param("WithoutSettings")
         marker, replication_tasks = self.dms_backend.describe_replication_tasks(
-            filters=filters, max_records=max_records, without_settings=without_settings,
+            filters=filters, max_records=max_records, without_settings=without_settings
         )
 
         return json.dumps(

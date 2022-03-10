@@ -325,7 +325,7 @@ def test_access_denied_for_run_instances():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
         "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:RunInstances",
+            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:RunInstances"
         )
     )
 

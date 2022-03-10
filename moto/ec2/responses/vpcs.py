@@ -78,8 +78,8 @@ class VPCs(BaseResponse):
 
     def enable_vpc_classic_link_dns_support(self):
         vpc_id = self._get_param("VpcId")
-        classic_link_dns_supported = self.ec2_backend.enable_vpc_classic_link_dns_support(
-            vpc_id=vpc_id
+        classic_link_dns_supported = (
+            self.ec2_backend.enable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         )
         doc_date = self._get_doc_date()
         template = self.response_template(ENABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
@@ -89,8 +89,8 @@ class VPCs(BaseResponse):
 
     def disable_vpc_classic_link_dns_support(self):
         vpc_id = self._get_param("VpcId")
-        classic_link_dns_supported = self.ec2_backend.disable_vpc_classic_link_dns_support(
-            vpc_id=vpc_id
+        classic_link_dns_supported = (
+            self.ec2_backend.disable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         )
         doc_date = self._get_doc_date()
         template = self.response_template(DISABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
@@ -228,7 +228,7 @@ class VPCs(BaseResponse):
 
     def delete_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
-        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids,)
+        response = self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids)
         template = self.response_template(DELETE_VPC_ENDPOINT_RESPONSE)
         return template.render(response=response)
 
@@ -266,7 +266,7 @@ class VPCs(BaseResponse):
         prefix_list_id = self._get_param("PrefixListId")
         target_version = self._get_param("TargetVersion")
         managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
-            prefix_list_id=prefix_list_id,
+            prefix_list_id=prefix_list_id
         )
         entries = []
         if managed_prefix_list:

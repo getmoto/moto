@@ -98,7 +98,7 @@ def test_event_pattern_with_multi_numeric_event_filter():
 
 @pytest.mark.parametrize(
     "pattern, expected_str",
-    [('{"source": ["foo", "bar"]}', '{"source": ["foo", "bar"]}'), (None, None),],
+    [('{"source": ["foo", "bar"]}', '{"source": ["foo", "bar"]}'), (None, None)],
 )
 def test_event_pattern_dump(pattern, expected_str):
     event_pattern = EventPattern.load(pattern)

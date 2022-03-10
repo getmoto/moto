@@ -861,7 +861,7 @@ def test_boto3_describe_stack_set_params():
 def test_boto3_describe_stack_set_by_id():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.create_stack_set(
-        StackSetName="test_stack", TemplateBody=dummy_template_json,
+        StackSetName="test_stack", TemplateBody=dummy_template_json
     )
 
     stack_set_id = response["StackSetId"]
@@ -1200,14 +1200,12 @@ def test_boto3_update_stack_fail_update_same_template_body():
     ]
 
     cf_conn.create_stack(
-        StackName=name, TemplateBody=dummy_template_yaml_with_ref, Parameters=params,
+        StackName=name, TemplateBody=dummy_template_yaml_with_ref, Parameters=params
     )
 
     with pytest.raises(ClientError) as exp:
         cf_conn.update_stack(
-            StackName=name,
-            TemplateBody=dummy_template_yaml_with_ref,
-            Parameters=params,
+            StackName=name, TemplateBody=dummy_template_yaml_with_ref, Parameters=params
         )
     exp_err = exp.value.response.get("Error")
     exp_metadata = exp.value.response.get("ResponseMetadata")
@@ -2109,14 +2107,10 @@ def test_non_json_redrive_policy():
 @mock_cloudformation
 def test_boto3_create_duplicate_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=dummy_template_json,
-    )
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
     with pytest.raises(ClientError):
-        cf_conn.create_stack(
-            StackName="test_stack", TemplateBody=dummy_template_json,
-        )
+        cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
 
 @mock_dynamodb2
@@ -2192,7 +2186,7 @@ def test_create_stack_lambda_and_dynamodb():
     try:
         os.environ["VALIDATE_LAMBDA_S3"] = "false"
         cf.create_stack(
-            StackName="test_stack_lambda", TemplateBody=json.dumps(template),
+            StackName="test_stack_lambda", TemplateBody=json.dumps(template)
         )
     finally:
         os.environ["VALIDATE_LAMBDA_S3"] = validate_s3_before

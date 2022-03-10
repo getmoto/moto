@@ -77,12 +77,12 @@ class PinpointResponse(BaseResponse):
 
     def delete_app(self):
         application_id = self.path.split("/")[-1]
-        app = self.pinpoint_backend.delete_app(application_id=application_id,)
+        app = self.pinpoint_backend.delete_app(application_id=application_id)
         return 200, {}, json.dumps(app.to_json())
 
     def get_app(self):
         application_id = self.path.split("/")[-1]
-        app = self.pinpoint_backend.get_app(application_id=application_id,)
+        app = self.pinpoint_backend.get_app(application_id=application_id)
         return 200, {}, json.dumps(app.to_json())
 
     def get_apps(self):
@@ -103,7 +103,7 @@ class PinpointResponse(BaseResponse):
     def get_application_settings(self):
         application_id = self.path.split("/")[-2]
         app_settings = self.pinpoint_backend.get_application_settings(
-            application_id=application_id,
+            application_id=application_id
         )
         app_settings = app_settings.to_json()
         app_settings["ApplicationId"] = application_id
@@ -111,22 +111,20 @@ class PinpointResponse(BaseResponse):
 
     def list_tags_for_resource(self):
         resource_arn = unquote(self.path).split("/tags/")[-1]
-        tags = self.pinpoint_backend.list_tags_for_resource(resource_arn=resource_arn,)
+        tags = self.pinpoint_backend.list_tags_for_resource(resource_arn=resource_arn)
         return 200, {}, json.dumps(tags)
 
     def tag_resource(self):
         resource_arn = unquote(self.path).split("/tags/")[-1]
         tags = json.loads(self.body).get("tags", {})
-        self.pinpoint_backend.tag_resource(
-            resource_arn=resource_arn, tags=tags,
-        )
+        self.pinpoint_backend.tag_resource(resource_arn=resource_arn, tags=tags)
         return 200, {}, "{}"
 
     def untag_resource(self):
         resource_arn = unquote(self.path).split("/tags/")[-1]
         tag_keys = self.querystring.get("tagKeys")
         self.pinpoint_backend.untag_resource(
-            resource_arn=resource_arn, tag_keys=tag_keys,
+            resource_arn=resource_arn, tag_keys=tag_keys
         )
         return 200, {}, "{}"
 
@@ -145,7 +143,7 @@ class PinpointResponse(BaseResponse):
     def get_event_stream(self):
         application_id = self.path.split("/")[-2]
         event_stream = self.pinpoint_backend.get_event_stream(
-            application_id=application_id,
+            application_id=application_id
         )
         resp = event_stream.to_json()
         resp["ApplicationId"] = application_id
@@ -154,7 +152,7 @@ class PinpointResponse(BaseResponse):
     def delete_event_stream(self):
         application_id = self.path.split("/")[-2]
         event_stream = self.pinpoint_backend.delete_event_stream(
-            application_id=application_id,
+            application_id=application_id
         )
         resp = event_stream.to_json()
         resp["ApplicationId"] = application_id

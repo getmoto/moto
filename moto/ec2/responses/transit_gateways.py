@@ -15,11 +15,13 @@ class TransitGateways(BaseResponse):
         )
 
         # creating default route table
-        transit_gateway_route_table = self.ec2_backend.create_transit_gateway_route_table(
-            transit_gateway_id=transit_gateway.id,
-            tags={},
-            default_association_route_table=True,
-            default_propagation_route_table=True,
+        transit_gateway_route_table = (
+            self.ec2_backend.create_transit_gateway_route_table(
+                transit_gateway_id=transit_gateway.id,
+                tags={},
+                default_association_route_table=True,
+                default_propagation_route_table=True,
+            )
         )
         transit_gateway.options[
             "AssociationDefaultRouteTableId"

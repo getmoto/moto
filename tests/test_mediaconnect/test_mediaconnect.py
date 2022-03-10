@@ -196,9 +196,7 @@ def test_add_flow_vpc_interfaces_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
     with pytest.raises(ClientError) as err:
-        client.add_flow_vpc_interfaces(
-            FlowArn=flow_arn, VpcInterfaces=[],
-        )
+        client.add_flow_vpc_interfaces(FlowArn=flow_arn, VpcInterfaces=[])
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
     err["Message"].should.equal(
@@ -282,9 +280,7 @@ def test_add_flow_outputs_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
     with pytest.raises(ClientError) as err:
-        client.add_flow_outputs(
-            FlowArn=flow_arn, Outputs=[],
-        )
+        client.add_flow_outputs(FlowArn=flow_arn, Outputs=[])
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
     err["Message"].should.equal(
@@ -298,9 +294,7 @@ def test_remove_flow_output_fails():
     flow_arn = "unknown-flow"
     output_arn = "unknown-arn"
     with pytest.raises(ClientError) as err:
-        client.remove_flow_output(
-            FlowArn=flow_arn, OutputArn=output_arn,
-        )
+        client.remove_flow_output(FlowArn=flow_arn, OutputArn=output_arn)
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
     err["Message"].should.equal(

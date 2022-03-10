@@ -602,9 +602,7 @@ class InvalidTagError(S3ClientError):
     code = 400
 
     def __init__(self, value, *args, **kwargs):
-        super().__init__(
-            "InvalidTag", value, *args, **kwargs,
-        )
+        super().__init__("InvalidTag", value, *args, **kwargs)
 
 
 class ObjectLockConfigurationNotFoundError(S3ClientError):

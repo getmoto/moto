@@ -1812,9 +1812,7 @@ class AmiBackend(object):
             if owners:
                 # support filtering by Owners=['self']
                 if "self" in owners:
-                    owners = list(
-                        map(lambda o: OWNER_ID if o == "self" else o, owners,)
-                    )
+                    owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners))
                 images = [
                     ami
                     for ami in images
@@ -2381,8 +2379,8 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             security_group.add_tag(tag_key, tag_value)
 
         for ingress_rule in properties.get("SecurityGroupIngress", []):
-            source_group_id = ingress_rule.get("SourceSecurityGroupId",)
-            source_group_name = ingress_rule.get("SourceSecurityGroupName",)
+            source_group_id = ingress_rule.get("SourceSecurityGroupId")
+            source_group_name = ingress_rule.get("SourceSecurityGroupName")
             source_group = {}
             if source_group_id:
                 source_group["GroupId"] = source_group_id
@@ -2777,7 +2775,7 @@ class SecurityGroupBackend(object):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
-            group, group.get_number_of_ingress_rules(), ip_ranges, source_groups,
+            group, group.get_number_of_ingress_rules(), ip_ranges, source_groups
         )
 
         _source_groups = self._add_source_group(source_groups, vpc_id)
@@ -3209,7 +3207,7 @@ class SecurityGroupBackend(object):
         return _source_groups
 
     def _verify_group_will_respect_rule_count_limit(
-        self, group, current_rule_nb, ip_ranges, source_groups=None, egress=False,
+        self, group, current_rule_nb, ip_ranges, source_groups=None, egress=False
     ):
         max_nb_rules = 60 if group.vpc_id else 100
         future_group_nb_rules = current_rule_nb
@@ -4985,20 +4983,18 @@ class FlowLogsBackend(object):
     ):
         if log_group_name is None and log_destination is None:
             raise InvalidDependantParameterError(
-                "LogDestination", "LogGroupName", "not provided",
+                "LogDestination", "LogGroupName", "not provided"
             )
 
         if log_destination_type == "s3":
             if log_group_name is not None:
                 raise InvalidDependantParameterTypeError(
-                    "LogDestination", "cloud-watch-logs", "LogGroupName",
+                    "LogDestination", "cloud-watch-logs", "LogGroupName"
                 )
         elif log_destination_type == "cloud-watch-logs":
             if deliver_logs_permission_arn is None:
                 raise InvalidDependantParameterError(
-                    "DeliverLogsPermissionArn",
-                    "LogDestinationType",
-                    "cloud-watch-logs",
+                    "DeliverLogsPermissionArn", "LogDestinationType", "cloud-watch-logs"
                 )
 
         if max_aggregation_interval not in ["60", "600"]:
@@ -5139,7 +5135,7 @@ class FlowLogsBackend(object):
 
         if non_existing:
             raise InvalidFlowLogIdError(
-                len(flow_log_ids), " ".join(x for x in flow_log_ids),
+                len(flow_log_ids), " ".join(x for x in flow_log_ids)
             )
         return True
 
@@ -7251,7 +7247,7 @@ class NetworkAclAssociation(object):
 
 class NetworkAcl(TaggedEC2Resource):
     def __init__(
-        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID,
+        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID
     ):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
@@ -7742,7 +7738,7 @@ class TransitGatewayRouteTableBackend(object):
         return transit_gateways_route_table.routes[destination_cidr_block]
 
     def delete_transit_gateway_route(
-        self, transit_gateway_route_table_id, destination_cidr_block,
+        self, transit_gateway_route_table_id, destination_cidr_block
     ):
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
@@ -7759,10 +7755,7 @@ class TransitGatewayRouteTableBackend(object):
         if not transit_gateway_route_table:
             return []
 
-        attr_pairs = (
-            ("type", "type"),
-            ("state", "state"),
-        )
+        attr_pairs = (("type", "type"), ("state", "state"))
 
         routes = transit_gateway_route_table.routes.copy()
         for key in transit_gateway_route_table.routes:
@@ -8542,10 +8535,7 @@ class IamInstanceProfileAssociationBackend(object):
         super().__init__()
 
     def associate_iam_instance_profile(
-        self,
-        instance_id,
-        iam_instance_profile_name=None,
-        iam_instance_profile_arn=None,
+        self, instance_id, iam_instance_profile_name=None, iam_instance_profile_arn=None
     ):
         iam_association_id = random_iam_instance_profile_association_id()
 
@@ -8600,9 +8590,9 @@ class IamInstanceProfileAssociationBackend(object):
                 self.iam_instance_profile_associations[association_key].id
                 == association_id
             ):
-                iam_instance_profile_associations = self.iam_instance_profile_associations[
-                    association_key
-                ]
+                iam_instance_profile_associations = (
+                    self.iam_instance_profile_associations[association_key]
+                )
                 del self.iam_instance_profile_associations[association_key]
                 # Deleting once and avoiding `RuntimeError: dictionary changed size during iteration`
                 break
@@ -8631,9 +8621,9 @@ class IamInstanceProfileAssociationBackend(object):
                 self.iam_instance_profile_associations[
                     association_key
                 ].iam_instance_profile = instance_profile
-                iam_instance_profile_association = self.iam_instance_profile_associations[
-                    association_key
-                ]
+                iam_instance_profile_association = (
+                    self.iam_instance_profile_associations[association_key]
+                )
                 break
 
         if not iam_instance_profile_association:

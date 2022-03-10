@@ -78,10 +78,7 @@ def test_condition_expression_with_dot_in_attr_name():
     table = dynamodb.Table(table_name)
 
     email_like_str = "test@foo.com"
-    record = {
-        "id": "key-0",
-        "first": {email_like_str: {"third": {"VALUE"}},},
-    }
+    record = {"id": "key-0", "first": {email_like_str: {"third": {"VALUE"}}}}
     table.put_item(Item=record)
 
     table.update_item(
@@ -99,9 +96,7 @@ def test_condition_expression_with_dot_in_attr_name():
     )
 
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal(
-        {"id": "key-0", "first": {},}
-    )
+    item.should.equal({"id": "key-0", "first": {}})
 
 
 @mock_dynamodb2
@@ -123,9 +118,7 @@ def test_query_filter_boto3():
     )
 
     for i in range(0, 3):
-        table.put_item(
-            Item={"pk": "pk".format(i), "sk": "sk-{}".format(i),}
-        )
+        table.put_item(Item={"pk": "pk".format(i), "sk": "sk-{}".format(i)})
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk"))
     res["Items"].should.have.length_of(3)

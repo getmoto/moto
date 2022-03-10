@@ -156,7 +156,7 @@ def test_describe_vpc_endpoint_services_filters():
 
     # Test a service name filter, using s3 as the service name.
     filtered_services = ec2_backend._filter_endpoint_services(
-        ["com.amazonaws.us-west-1.s3"], [], test_data,
+        ["com.amazonaws.us-west-1.s3"], [], test_data
     )
     assert len(filtered_services) == 2
     validate_s3_service_endpoint_gateway(filtered_services[0])
@@ -164,14 +164,14 @@ def test_describe_vpc_endpoint_services_filters():
 
     # Test a service type filter.
     filtered_services = ec2_backend._filter_endpoint_services(
-        [], [{"Name": "service-type", "Value": ["Gateway"]}], test_data,
+        [], [{"Name": "service-type", "Value": ["Gateway"]}], test_data
     )
     assert len(filtered_services) == 1
     validate_s3_service_endpoint_gateway(filtered_services[0])
 
     # Test a tag key/value filter.
     filtered_services = ec2_backend._filter_endpoint_services(
-        [], [{"Name": "tag-key", "Value": ["Name"]}], test_data,
+        [], [{"Name": "tag-key", "Value": ["Name"]}], test_data
     )
     assert len(filtered_services) == 2
     validate_s3_service_endpoint_gateway(filtered_services[0])
@@ -179,7 +179,7 @@ def test_describe_vpc_endpoint_services_filters():
 
     # Test a tag key filter.
     filtered_services = ec2_backend._filter_endpoint_services(
-        [], [{"Name": "tag:Environ", "Value": ["test"]}], test_data,
+        [], [{"Name": "tag:Environ", "Value": ["test"]}], test_data
     )
     assert len(filtered_services) == 1
     validate_s3_service_endpoint_interface(filtered_services[0])

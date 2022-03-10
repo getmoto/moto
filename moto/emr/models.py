@@ -40,7 +40,7 @@ class FakeBootstrapAction(BaseModel):
 
 class FakeInstance(BaseModel):
     def __init__(
-        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None,
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None
     ):
         self.id = instance_id or random_instance_group_id()
         self.ec2_instance_id = ec2_instance_id
@@ -440,7 +440,7 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         for instance in response.instances:
             instance = FakeInstance(
-                ec2_instance_id=instance.id, instance_group=instance_group,
+                ec2_instance_id=instance.id, instance_group=instance_group
             )
             cluster.add_instance(instance)
 

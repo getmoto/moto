@@ -566,7 +566,7 @@ def test_ssm_parameter_parsing():
             stack_id="test_id",
             name="test_stack",
             template=ssm_parameter_template_json,
-            parameters={"SingleParamCfn": "/path/to/single/param",},
+            parameters={"SingleParamCfn": "/path/to/single/param"},
             region_name="us-west-1",
         )
 

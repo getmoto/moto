@@ -62,7 +62,7 @@ def test_validation_of_update_expression_with_keyword(table):
 
 
 @pytest.mark.parametrize(
-    "update_expression", ["SET a = #b + :val2", "SET a = :val2 + #b",],
+    "update_expression", ["SET a = #b + :val2", "SET a = :val2 + #b"]
 )
 def test_validation_of_a_set_statement_with_incorrect_passed_value(
     update_expression, table
@@ -120,11 +120,9 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
         assert True
 
 
-@pytest.mark.parametrize(
-    "update_expression", ["SET a = #c", "SET a = #c + #d",],
-)
+@pytest.mark.parametrize("update_expression", ["SET a = #c", "SET a = #c + #d"])
 def test_validation_of_update_expression_with_attribute_name_that_is_not_defined(
-    update_expression, table,
+    update_expression, table
 ):
     """
     When an update expression tries to get an attribute name that is not provided it must throw an exception.
@@ -261,7 +259,7 @@ def test_validation_of_if_not_exists_with_non_existing_attribute_should_return_v
     update_expression_values = {":val": {"N": "4"}}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
-        hash_key=DynamoType({"S": "id"}), range_key=None, attrs={"id": {"S": "1"}},
+        hash_key=DynamoType({"S": "id"}), range_key=None, attrs={"id": {"S": "1"}}
     )
     validated_ast = UpdateExpressionValidator(
         update_expression_ast,

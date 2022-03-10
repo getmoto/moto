@@ -5,10 +5,7 @@ from moto.ec2.exceptions import (
     InvalidParameterCombination,
     InvalidRequest,
 )
-from moto.ec2.utils import (
-    filters_from_querystring,
-    dict_from_querystring,
-)
+from moto.ec2.utils import filters_from_querystring, dict_from_querystring
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy

@@ -5,13 +5,7 @@ from typing import List, Union
 
 from moto import settings
 from moto.core.utils import amzn_request_id, str_to_rfc_1123_datetime
-from urllib.parse import (
-    parse_qs,
-    urlparse,
-    unquote,
-    urlencode,
-    urlunparse,
-)
+from urllib.parse import parse_qs, urlparse, unquote, urlencode, urlunparse
 
 import xmltodict
 
@@ -52,19 +46,8 @@ from .exceptions import (
     InvalidRange,
     LockNotEnabled,
 )
-from .models import (
-    s3_backend,
-    get_canned_acl,
-    FakeGrantee,
-    FakeGrant,
-    FakeAcl,
-    FakeKey,
-)
-from .utils import (
-    bucket_name_from_url,
-    metadata_from_headers,
-    parse_region_from_url,
-)
+from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
+from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
 
@@ -72,7 +55,7 @@ DEFAULT_REGION_NAME = "us-east-1"
 
 ACTION_MAP = {
     "BUCKET": {
-        "HEAD": {"DEFAULT": "HeadBucket",},
+        "HEAD": {"DEFAULT": "HeadBucket"},
         "GET": {
             "uploads": "ListBucketMultipartUploads",
             "location": "GetBucketLocation",
@@ -115,7 +98,7 @@ ACTION_MAP = {
         },
     },
     "KEY": {
-        "HEAD": {"DEFAULT": "HeadObject",},
+        "HEAD": {"DEFAULT": "HeadObject"},
         "GET": {
             "uploadId": "ListMultipartUploadParts",
             "acl": "GetObjectAcl",
@@ -427,7 +410,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_LOCK_CONFIGURATION)
 
             return template.render(
-                lock_enabled=lock_enabled, mode=mode, days=days, years=years,
+                lock_enabled=lock_enabled, mode=mode, days=days, years=years
             )
 
         if "uploads" in querystring:
@@ -509,8 +492,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_CORS_RESPONSE)
             return template.render(cors=cors)
         elif "notification" in querystring:
-            notification_configuration = self.backend.get_bucket_notification_configuration(
-                bucket_name
+            notification_configuration = (
+                self.backend.get_bucket_notification_configuration(bucket_name)
             )
             if not notification_configuration:
                 return 200, {}, ""

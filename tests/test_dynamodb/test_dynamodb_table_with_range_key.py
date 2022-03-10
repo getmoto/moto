@@ -56,9 +56,7 @@ def test_query_filter_boto3():
     )
 
     for i in range(0, 3):
-        table.put_item(
-            Item={"pk": "pk".format(i), "sk": "sk-{}".format(i),}
-        )
+        table.put_item(Item={"pk": "pk", "sk": f"sk-{i}"})
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk"))
     res["Items"].should.have.length_of(3)
@@ -1180,7 +1178,7 @@ def test_update_item_throws_exception_when_updating_hash_or_range_key(
 
     if create_item_first:
         client.put_item(
-            TableName=table_name, Item={"h": {"S": initial_val}, "r": {"S": "1"}},
+            TableName=table_name, Item={"h": {"S": initial_val}, "r": {"S": "1"}}
         )
 
     # Updating the HASH key should fail

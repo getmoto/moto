@@ -1222,7 +1222,7 @@ def test_remove_function_permission(key):
     )
 
     remove = conn.remove_permission(
-        FunctionName=name_or_arn, StatementId="1", Qualifier="2",
+        FunctionName=name_or_arn, StatementId="1", Qualifier="2"
     )
     remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
     policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]

@@ -18,7 +18,7 @@ class TimestreamWriteResponse(BaseResponse):
         kms_key_id = self._get_param("KmsKeyId")
         tags = self._get_list_prefix("Tags.member")
         database = self.timestreamwrite_backend.create_database(
-            database_name=database_name, kms_key_id=kms_key_id, tags=tags,
+            database_name=database_name, kms_key_id=kms_key_id, tags=tags
         )
         return json.dumps(dict(Database=database.description()))
 

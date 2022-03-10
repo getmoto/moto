@@ -1284,7 +1284,7 @@ class RDSBackend(BaseBackend):
         return snapshot
 
     def copy_database_snapshot(
-        self, source_snapshot_identifier, target_snapshot_identifier, tags=None,
+        self, source_snapshot_identifier, target_snapshot_identifier, tags=None
     ):
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)

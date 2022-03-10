@@ -36,7 +36,7 @@ class CloudFrontResponse(BaseResponse):
         params = self._get_xml_body()
         distribution_config = params.get("DistributionConfig")
         distribution, location, e_tag = cloudfront_backend.create_distribution(
-            distribution_config=distribution_config,
+            distribution_config=distribution_config
         )
         template = self.response_template(CREATE_DISTRIBUTION_TEMPLATE)
         response = template.render(distribution=distribution, xmlns=XMLNS)

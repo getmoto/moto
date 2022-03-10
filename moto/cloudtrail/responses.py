@@ -139,7 +139,7 @@ class CloudTrailResponse(BaseResponse):
             trail_arn,
             event_selectors,
             advanced_event_selectors,
-        ) = self.cloudtrail_backend.get_event_selectors(trail_name=trail_name,)
+        ) = self.cloudtrail_backend.get_event_selectors(trail_name=trail_name)
         return json.dumps(
             dict(
                 TrailARN=trail_arn,
@@ -152,16 +152,14 @@ class CloudTrailResponse(BaseResponse):
         params = json.loads(self.body)
         resource_id = params.get("ResourceId")
         tags_list = params.get("TagsList")
-        self.cloudtrail_backend.add_tags(
-            resource_id=resource_id, tags_list=tags_list,
-        )
+        self.cloudtrail_backend.add_tags(resource_id=resource_id, tags_list=tags_list)
         return json.dumps(dict())
 
     def remove_tags(self):
         resource_id = self._get_param("ResourceId")
         tags_list = self._get_param("TagsList")
         self.cloudtrail_backend.remove_tags(
-            resource_id=resource_id, tags_list=tags_list,
+            resource_id=resource_id, tags_list=tags_list
         )
         return json.dumps(dict())
 
@@ -169,7 +167,7 @@ class CloudTrailResponse(BaseResponse):
         params = json.loads(self.body)
         resource_id_list = params.get("ResourceIdList")
         resource_tag_list = self.cloudtrail_backend.list_tags(
-            resource_id_list=resource_id_list,
+            resource_id_list=resource_id_list
         )
         return json.dumps(dict(ResourceTagList=resource_tag_list))
 
@@ -177,14 +175,14 @@ class CloudTrailResponse(BaseResponse):
         trail_name = self._get_param("TrailName")
         insight_selectors = self._get_param("InsightSelectors")
         trail_arn, insight_selectors = self.cloudtrail_backend.put_insight_selectors(
-            trail_name=trail_name, insight_selectors=insight_selectors,
+            trail_name=trail_name, insight_selectors=insight_selectors
         )
         return json.dumps(dict(TrailARN=trail_arn, InsightSelectors=insight_selectors))
 
     def get_insight_selectors(self):
         trail_name = self._get_param("TrailName")
         trail_arn, insight_selectors = self.cloudtrail_backend.get_insight_selectors(
-            trail_name=trail_name,
+            trail_name=trail_name
         )
         resp = {"TrailARN": trail_arn}
         if insight_selectors:

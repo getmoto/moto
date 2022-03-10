@@ -101,7 +101,7 @@ def test_delete_event_subscription():
     )
 
     es = client.delete_event_subscription(
-        SubscriptionName=f"{db_identifier}-events",
+        SubscriptionName=f"{db_identifier}-events"
     ).get("EventSubscription")
 
     es["CustSubscriptionId"].should.equal(f"{db_identifier}-events")

@@ -281,7 +281,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 certificate_chain,
                 private_key,
             ) = self.acm_backend.export_certificate(
-                certificate_arn=certificate_arn, passphrase=passphrase,
+                certificate_arn=certificate_arn, passphrase=passphrase
             )
             return json.dumps(
                 dict(

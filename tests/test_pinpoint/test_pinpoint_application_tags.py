@@ -62,9 +62,7 @@ def test_untag_resource():
         ResourceArn=app_arn, TagsModel={"tags": {"key2": "value2", "key3": "value3"}}
     )
 
-    client.untag_resource(
-        ResourceArn=app_arn, TagKeys=["key2"],
-    )
+    client.untag_resource(ResourceArn=app_arn, TagKeys=["key2"])
 
     resp = client.list_tags_for_resource(ResourceArn=app_arn)
     resp.should.have.key("TagsModel")

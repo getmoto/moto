@@ -14,7 +14,7 @@ def test_textract_start_text_detection():
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentTextDetection"}
     request_body = {
         "DocumentLocation": {
-            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version",}
+            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version"}
         }
     }
 
@@ -47,7 +47,7 @@ def test_textract_get_text_detection():
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentTextDetection"}
     request_body = {
         "DocumentLocation": {
-            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version",}
+            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version"}
         }
     }
 

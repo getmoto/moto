@@ -37,7 +37,7 @@ def test_get_document_text_detection():
 
     client = boto3.client("textract", region_name="us-east-1")
     job = client.start_document_text_detection(
-        DocumentLocation={"S3Object": {"Bucket": "bucket", "Name": "name"}},
+        DocumentLocation={"S3Object": {"Bucket": "bucket", "Name": "name"}}
     )
 
     resp = client.get_document_text_detection(JobId=job["JobId"])
@@ -57,7 +57,7 @@ def test_get_document_text_detection():
 def test_start_document_text_detection():
     client = boto3.client("textract", region_name="us-east-1")
     resp = client.start_document_text_detection(
-        DocumentLocation={"S3Object": {"Bucket": "bucket", "Name": "name",}},
+        DocumentLocation={"S3Object": {"Bucket": "bucket", "Name": "name"}}
     )
 
     resp.should.have.key("JobId")

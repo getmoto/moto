@@ -71,9 +71,7 @@ def test_reject_invitation():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -122,9 +120,7 @@ def test_reject_invitation_badinvitation():
     member_id = response["MemberId"]
 
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]

@@ -107,9 +107,7 @@ class ElasticNetworkInterfaces(BaseResponse):
         eni_id = self._get_param("NetworkInterfaceId")
         ipv6_count = self._get_int_param("Ipv6AddressCount", 0)
         ipv6_addresses = self._get_multi_param("Ipv6Addresses")
-        eni = self.ec2_backend.assign_ipv6_addresses(
-            eni_id, ipv6_addresses, ipv6_count,
-        )
+        eni = self.ec2_backend.assign_ipv6_addresses(eni_id, ipv6_addresses, ipv6_count)
         template = self.response_template(ASSIGN_IPV6_ADDRESSES)
         return template.render(eni=eni)
 

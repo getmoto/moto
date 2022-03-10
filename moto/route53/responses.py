@@ -371,7 +371,7 @@ class Route53(BaseResponse):
             caller_reference = root_elem.get("CallerReference")
             hosted_zone_id = root_elem.get("HostedZoneId")
             delegation_set = route53_backend.create_reusable_delegation_set(
-                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id,
+                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id
             )
             template = self.response_template(CREATE_REUSABLE_DELEGATION_SET_TEMPLATE)
             return (

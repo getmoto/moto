@@ -14,15 +14,15 @@ class EBResponse(BaseResponse):
 
     def create_application(self):
         app = self.backend.create_application(
-            application_name=self._get_param("ApplicationName"),
+            application_name=self._get_param("ApplicationName")
         )
 
         template = self.response_template(EB_CREATE_APPLICATION)
-        return template.render(region_name=self.backend.region, application=app,)
+        return template.render(region_name=self.backend.region, application=app)
 
     def describe_applications(self):
         template = self.response_template(EB_DESCRIBE_APPLICATIONS)
-        return template.render(applications=self.backend.applications.values(),)
+        return template.render(applications=self.backend.applications.values())
 
     def create_environment(self):
         application_name = self._get_param("ApplicationName")
@@ -30,7 +30,7 @@ class EBResponse(BaseResponse):
             app = self.backend.applications[application_name]
         except KeyError:
             raise InvalidParameterValueError(
-                "No Application named '{}' found.".format(application_name)
+                f"No Application named '{application_name}' found."
             )
 
         tags = tags_from_query_string(self.querystring, prefix="Tags.member")
@@ -42,13 +42,13 @@ class EBResponse(BaseResponse):
         )
 
         template = self.response_template(EB_CREATE_ENVIRONMENT)
-        return template.render(environment=env, region=self.backend.region,)
+        return template.render(environment=env, region=self.backend.region)
 
     def describe_environments(self):
         envs = self.backend.describe_environments()
 
         template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
-        return template.render(environments=envs,)
+        return template.render(environments=envs)
 
     def list_available_solution_stacks(self):
         return EB_LIST_AVAILABLE_SOLUTION_STACKS
@@ -68,7 +68,7 @@ class EBResponse(BaseResponse):
         tags = self.backend.list_tags_for_resource(resource_arn)
 
         template = self.response_template(EB_LIST_TAGS_FOR_RESOURCE)
-        return template.render(tags=tags, arn=resource_arn,)
+        return template.render(tags=tags, arn=resource_arn)
 
 
 EB_CREATE_APPLICATION = """

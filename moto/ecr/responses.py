@@ -125,7 +125,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.delete_repository_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 
@@ -160,7 +160,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.get_repository_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 
@@ -252,7 +252,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.get_lifecycle_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 
@@ -262,7 +262,7 @@ class ECRResponse(BaseResponse):
 
         return json.dumps(
             self.ecr_backend.delete_lifecycle_policy(
-                registry_id=registry_id, repository_name=repository_name,
+                registry_id=registry_id, repository_name=repository_name
             )
         )
 

@@ -352,8 +352,8 @@ def test_list_metrics():
     # Verify format
     res.should.equal(
         [
-            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1",},
-            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1",},
+            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1"},
+            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1"},
         ]
     )
     # Verify unknown namespace still has no results
@@ -642,7 +642,7 @@ def test_get_metric_data_partially_within_timeframe():
         return response
 
     response = get_data(
-        start=yesterday - timedelta(seconds=60), end=utc_now + timedelta(seconds=60),
+        start=yesterday - timedelta(seconds=60), end=utc_now + timedelta(seconds=60)
     )
 
     # Assert Last week's data is not returned

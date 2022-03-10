@@ -96,18 +96,16 @@ class EFSResponse(BaseResponse):
 
     def delete_file_system(self):
         file_system_id = self._get_param("FileSystemId")
-        self.efs_backend.delete_file_system(file_system_id=file_system_id,)
+        self.efs_backend.delete_file_system(file_system_id)
         return json.dumps(dict()), {"status": 204, "Content-Type": "application/json"}
 
     def delete_mount_target(self):
         mount_target_id = self._get_param("MountTargetId")
-        self.efs_backend.delete_mount_target(mount_target_id=mount_target_id,)
+        self.efs_backend.delete_mount_target(mount_target_id)
         return json.dumps(dict()), {"status": 204, "Content-Type": "application/json"}
 
     def describe_backup_policy(self):
         file_system_id = self._get_param("FileSystemId")
-        backup_policy = self.efs_backend.describe_backup_policy(
-            file_system_id=file_system_id,
-        )
+        backup_policy = self.efs_backend.describe_backup_policy(file_system_id)
         resp = {"BackupPolicy": backup_policy}
         return json.dumps(resp), {"Content-Type": "application/json"}

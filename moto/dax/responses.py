@@ -51,7 +51,7 @@ class DAXResponse(BaseResponse):
 
     def delete_cluster(self):
         cluster_name = json.loads(self.body).get("ClusterName")
-        cluster = self.dax_backend.delete_cluster(cluster_name=cluster_name,)
+        cluster = self.dax_backend.delete_cluster(cluster_name)
         return json.dumps(dict(Cluster=cluster.to_json()))
 
     def describe_clusters(self):

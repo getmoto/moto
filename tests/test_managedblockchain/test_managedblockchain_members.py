@@ -26,9 +26,7 @@ def test_create_another_member():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -114,9 +112,7 @@ def test_create_another_member_withopts():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -226,9 +222,7 @@ def test_invite_and_remove_member():
 
     # Create proposal (create additional member)
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -261,7 +255,7 @@ def test_invite_and_remove_member():
 
     # Create proposal (invite and remove member)
     response = conn.create_proposal(
-        NetworkId=network_id, MemberId=member_id, Actions=both_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=both_policy_actions
     )
     proposal_id2 = response["ProposalId"]
 
@@ -400,9 +394,7 @@ def test_create_another_member_alreadyhave():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -499,9 +491,7 @@ def test_create_another_member_adminpassword():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 

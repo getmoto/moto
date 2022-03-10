@@ -570,7 +570,7 @@ class Route53Backend(BaseBackend):
 
     @staticmethod
     def _validate_arn(region, arn):
-        match = re.match(fr"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
+        match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
             raise InvalidInput()
 

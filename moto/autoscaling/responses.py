@@ -42,8 +42,8 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_launch_configurations(self):
         names = self._get_multi_param("LaunchConfigurationNames.member")
-        all_launch_configurations = self.autoscaling_backend.describe_launch_configurations(
-            names
+        all_launch_configurations = (
+            self.autoscaling_backend.describe_launch_configurations(names)
         )
         marker = self._get_param("NextToken")
         all_names = [lc.name for lc in all_launch_configurations]
@@ -153,8 +153,8 @@ class AutoScalingResponse(BaseResponse):
     @amzn_request_id
     def describe_load_balancer_target_groups(self):
         group_name = self._get_param("AutoScalingGroupName")
-        target_group_arns = self.autoscaling_backend.describe_load_balancer_target_groups(
-            group_name
+        target_group_arns = (
+            self.autoscaling_backend.describe_load_balancer_target_groups(group_name)
         )
         template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
         return template.render(target_group_arns=target_group_arns)

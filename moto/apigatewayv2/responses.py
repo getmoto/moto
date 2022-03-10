@@ -623,7 +623,7 @@ class ApiGatewayV2Response(BaseResponse):
         integration_id = self.path.split("/")[-1]
 
         self.apigatewayv2_backend.delete_integration(
-            api_id=api_id, integration_id=integration_id,
+            api_id=api_id, integration_id=integration_id
         )
         return 200, {}, "{}"
 

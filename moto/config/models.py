@@ -430,8 +430,10 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
         self.last_update_time = datetime2int(datetime.utcnow())
-        self.organization_conformance_pack_arn = "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}".format(
-            region, DEFAULT_ACCOUNT_ID, self._unique_pack_name
+        self.organization_conformance_pack_arn = (
+            "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}".format(
+                region, DEFAULT_ACCOUNT_ID, self._unique_pack_name
+            )
         )
         self.organization_conformance_pack_name = name
 

@@ -6,12 +6,7 @@ from botocore.exceptions import ClientError
 from botocore.parsers import ResponseParserError
 import sure  # noqa # pylint: disable=unused-import
 
-from moto import (
-    settings,
-    mock_ec2,
-    mock_s3,
-    mock_logs,
-)
+from moto import settings, mock_ec2, mock_s3, mock_logs
 from moto.core import ACCOUNT_ID
 from moto.ec2.exceptions import FilterNotImplementedError
 from uuid import uuid4
@@ -143,7 +138,7 @@ def test_create_flow_log_create():
 
     bucket = s3.create_bucket(
         Bucket=str(uuid4()),
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     response = client.create_flow_logs(
@@ -503,7 +498,7 @@ def test_describe_flow_logs_filtering():
     cw_s3_ids.should.contain(fl3)
 
     fl_by_flow_log_ids = client.describe_flow_logs(
-        Filters=[{"Name": "flow-log-id", "Values": [fl1, fl3]}],
+        Filters=[{"Name": "flow-log-id", "Values": [fl1, fl3]}]
     )["FlowLogs"]
     fl_by_flow_log_ids.should.have.length_of(2)
     flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], fl_by_flow_log_ids))
@@ -515,21 +510,21 @@ def test_describe_flow_logs_filtering():
     vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
 
     fl_by_group_name = client.describe_flow_logs(
-        Filters=[{"Name": "log-group-name", "Values": [lg_name]}],
+        Filters=[{"Name": "log-group-name", "Values": [lg_name]}]
     )["FlowLogs"]
     fl_by_group_name.should.have.length_of(1)
     fl_by_group_name[0]["FlowLogId"].should.equal(fl1)
     fl_by_group_name[0]["ResourceId"].should.equal(subnet1["SubnetId"])
 
     fl_by_group_name = client.describe_flow_logs(
-        Filters=[{"Name": "log-group-name", "Values": [non_existing_group]}],
+        Filters=[{"Name": "log-group-name", "Values": [non_existing_group]}]
     )["FlowLogs"]
     fl_by_group_name.should.have.length_of(1)
     fl_by_group_name[0]["FlowLogId"].should.equal(fl3)
     fl_by_group_name[0]["ResourceId"].should.equal(vpc3["VpcId"])
 
     fl_by_resource_id = client.describe_flow_logs(
-        Filters=[{"Name": "resource-id", "Values": [vpc2["VpcId"]]}],
+        Filters=[{"Name": "resource-id", "Values": [vpc2["VpcId"]]}]
     )["FlowLogs"]
     fl_by_resource_id.should.have.length_of(1)
     fl_by_resource_id[0]["FlowLogId"].should.equal(fl2)
@@ -554,24 +549,24 @@ def test_describe_flow_logs_filtering():
     our_flow_log["ResourceId"].should.equal(vpc2["VpcId"])
 
     fl_by_tag_key = client.describe_flow_logs(
-        Filters=[{"Name": "tag-key", "Values": [tag_key]}],
+        Filters=[{"Name": "tag-key", "Values": [tag_key]}]
     )["FlowLogs"]
     fl_by_tag_key.should.have.length_of(1)
     fl_by_tag_key[0]["FlowLogId"].should.equal(fl2)
     fl_by_tag_key[0]["ResourceId"].should.equal(vpc2["VpcId"])
 
     fl_by_tag_key = client.describe_flow_logs(
-        Filters=[{"Name": "tag-key", "Values": ["non-existing"]}],
+        Filters=[{"Name": "tag-key", "Values": ["non-existing"]}]
     )["FlowLogs"]
     fl_by_tag_key.should.have.length_of(0)
 
     if not settings.TEST_SERVER_MODE:
         client.describe_flow_logs.when.called_with(
-            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
+            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}]
         ).should.throw(FilterNotImplementedError)
     else:
         client.describe_flow_logs.when.called_with(
-            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
+            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}]
         ).should.throw(ResponseParserError)
 
 

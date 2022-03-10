@@ -94,9 +94,9 @@ def test_ds_connect_directory_validations():
         f"Member must satisfy enum value set: [Small, Large]" in err["Message"]
     )
     assert (
-        fr"Value '{bad_name}' at 'name' failed to satisfy constraint: "
-        fr"Member must satisfy regular expression pattern: "
-        fr"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
+        rf"Value '{bad_name}' at 'name' failed to satisfy constraint: "
+        rf"Member must satisfy regular expression pattern: "
+        rf"^([a-zA-Z0-9]+[\.-])+([a-zA-Z0-9])+$" in err["Message"]
     )
 
     too_long = (
@@ -144,10 +144,10 @@ def test_ds_connect_directory_validations():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '['{bad_connect_settings['SubnetIds'][0]}']' at "
-        fr"'connectSettings.vpcSettings.subnetIds' failed to satisfy "
-        fr"constraint: Member must satisfy regular expression pattern: "
-        fr"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
+        rf"Value '['{bad_connect_settings['SubnetIds'][0]}']' at "
+        rf"'connectSettings.vpcSettings.subnetIds' failed to satisfy "
+        rf"constraint: Member must satisfy regular expression pattern: "
+        rf"^(subnet-[0-9a-f]{{8}}|subnet-[0-9a-f]{{17}})$" in err["Message"]
     )
 
 
@@ -192,9 +192,9 @@ def test_ds_connect_directory_bad_args():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_username}' at 'connectSettings.customerUserName' "
-        fr"failed to satisfy constraint: Member must satisfy regular "
-        fr"expression pattern: ^[a-zA-Z0-9._-]+$" in err["Message"]
+        rf"Value '{bad_username}' at 'connectSettings.customerUserName' "
+        rf"failed to satisfy constraint: Member must satisfy regular "
+        rf"expression pattern: ^[a-zA-Z0-9._-]+$" in err["Message"]
     )
 
     # Bad CustomerDnsIps.
@@ -205,10 +205,10 @@ def test_ds_connect_directory_bad_args():
     assert err["Code"] == "ValidationException"
     assert "1 validation error detected" in err["Message"]
     assert (
-        fr"Value '{bad_dns_ip}' at 'connectSettings.customerDnsIps' "
-        fr"failed to satisfy constraint: Member must satisfy regular "
-        fr"expression pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.)"
-        fr"{{3}}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" in err["Message"]
+        rf"Value '{bad_dns_ip}' at 'connectSettings.customerDnsIps' "
+        rf"failed to satisfy constraint: Member must satisfy regular "
+        rf"expression pattern: ^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.)"
+        rf"{{3}}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" in err["Message"]
     )
 
 

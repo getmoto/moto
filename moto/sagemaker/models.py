@@ -318,7 +318,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         # Changes to the Endpoint will not change resource name
         cls.delete_from_cloudformation_json(
@@ -510,7 +510,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         # Most changes to the endpoint config will change resource name for EndpointConfigs
         cls.delete_from_cloudformation_json(
@@ -624,7 +624,7 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         # Most changes to the model will change resource name for Models
         cls.delete_from_cloudformation_json(
@@ -839,7 +839,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
@@ -877,8 +877,10 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        self.notebook_instance_lifecycle_config_arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-            self.notebook_instance_lifecycle_config_name, self.region_name
+        self.notebook_instance_lifecycle_config_arn = (
+            FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+                self.notebook_instance_lifecycle_config_name, self.region_name
+            )
         )
 
     @staticmethod
@@ -945,7 +947,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
@@ -1298,9 +1300,7 @@ class SageMakerModelBackend(BaseBackend):
         except RESTError:
             return []
 
-    def create_trial(
-        self, trial_name, experiment_name,
-    ):
+    def create_trial(self, trial_name, experiment_name):
         trial = FakeTrial(
             region_name=self.region_name,
             trial_name=trial_name,
@@ -1364,9 +1364,7 @@ class SageMakerModelBackend(BaseBackend):
             if evaluate_filter_expression(trial_data)
         ]
 
-    def create_trial_component(
-        self, trial_component_name, trial_name,
-    ):
+    def create_trial_component(self, trial_component_name, trial_name):
         trial_component = FakeTrialComponent(
             region_name=self.region_name,
             trial_component_name=trial_component_name,
@@ -1658,9 +1656,7 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
 
-    def create_endpoint(
-        self, endpoint_name, endpoint_config_name, tags,
-    ):
+    def create_endpoint(self, endpoint_name, endpoint_config_name, tags):
         try:
             endpoint_config = self.describe_endpoint_config(endpoint_config_name)
         except KeyError:
@@ -2009,9 +2005,7 @@ class SageMakerModelBackend(BaseBackend):
 
 
 class FakeExperiment(BaseObject):
-    def __init__(
-        self, region_name, experiment_name, tags,
-    ):
+    def __init__(self, region_name, experiment_name, tags):
         self.experiment_name = experiment_name
         self.experiment_arn = FakeExperiment.arn_formatter(experiment_name, region_name)
         self.tags = tags
@@ -2044,7 +2038,7 @@ class FakeExperiment(BaseObject):
 
 class FakeTrial(BaseObject):
     def __init__(
-        self, region_name, trial_name, experiment_name, tags, trial_components,
+        self, region_name, trial_name, experiment_name, tags, trial_components
     ):
         self.trial_name = trial_name
         self.trial_arn = FakeTrial.arn_formatter(trial_name, region_name)
@@ -2079,9 +2073,7 @@ class FakeTrial(BaseObject):
 
 
 class FakeTrialComponent(BaseObject):
-    def __init__(
-        self, region_name, trial_component_name, trial_name, tags,
-    ):
+    def __init__(self, region_name, trial_component_name, trial_name, tags):
         self.trial_component_name = trial_component_name
         self.trial_component_arn = FakeTrialComponent.arn_formatter(
             trial_component_name, region_name

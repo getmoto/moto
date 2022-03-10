@@ -91,7 +91,7 @@ def test_describe_metric_filters_happy_metric_name():
     assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     response = conn.describe_metric_filters(
-        metricName="metricName1", metricNamespace="metricNamespace1",
+        metricName="metricName1", metricNamespace="metricNamespace1"
     )
 
     assert len(response["metricFilters"]) == 1
@@ -122,9 +122,9 @@ def test_put_metric_filters_validation():
     ]
 
     test_cases = [
-        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name,),
+        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name),
         build_put_case(
-            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern,
+            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern
         ),
         build_put_case(
             name="Invalid filter metric transformations",
@@ -149,14 +149,14 @@ def test_describe_metric_filters_validation():
 
     test_cases = [
         build_describe_case(
-            name="Invalid filter name prefix", filter_name_prefix=length_over_512,
+            name="Invalid filter name prefix", filter_name_prefix=length_over_512
         ),
         build_describe_case(
-            name="Invalid log group name", log_group_name=length_over_512,
+            name="Invalid log group name", log_group_name=length_over_512
         ),
-        build_describe_case(name="Invalid metric name", metric_name=length_over_255,),
+        build_describe_case(name="Invalid metric name", metric_name=length_over_255),
         build_describe_case(
-            name="Invalid metric namespace", metric_namespace=length_over_255,
+            name="Invalid metric namespace", metric_namespace=length_over_255
         ),
     ]
 
@@ -732,7 +732,7 @@ def test_put_resource_policy():
     with freeze_time(timedelta(minutes=1)):
         new_document = '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}'
         policy_info = client.put_resource_policy(
-            policyName=policy_name, policyDocument=new_document,
+            policyName=policy_name, policyDocument=new_document
         )["resourcePolicy"]
         assert policy_info["policyName"] == policy_name
         assert policy_info["policyDocument"] == new_document
@@ -1122,7 +1122,7 @@ def test_describe_subscription_filters_errors():
 
     # when
     with pytest.raises(ClientError) as exc:
-        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
+        client.describe_subscription_filters(logGroupName="not-existing-log-group")
 
     # then
     exc_value = exc.value

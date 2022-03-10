@@ -448,7 +448,7 @@ def test_record_marker_decision():
     decisions = [
         {
             "decisionType": "RecordMarker",
-            "recordMarkerDecisionAttributes": {"markerName": "TheMarker",},
+            "recordMarkerDecisionAttributes": {"markerName": "TheMarker"},
         }
     ]
     client.respond_decision_task_completed(taskToken=task_token, decisions=decisions)

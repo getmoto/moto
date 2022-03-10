@@ -20,7 +20,6 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 7:
     def is_subnet_of(a, b):
         return a.subnet_of(b)
 
-
 else:
 
     def is_subnet_of(a, b):

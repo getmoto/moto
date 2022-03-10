@@ -222,7 +222,7 @@ def test_notebook_instance_lifecycle_config():
     )
 
     resp = sagemaker.describe_notebook_instance_lifecycle_config(
-        NotebookInstanceLifecycleConfigName=name,
+        NotebookInstanceLifecycleConfigName=name
     )
     assert resp["NotebookInstanceLifecycleConfigName"] == name
     assert resp["NotebookInstanceLifecycleConfigArn"].startswith("arn:aws:sagemaker")
@@ -233,12 +233,12 @@ def test_notebook_instance_lifecycle_config():
     assert isinstance(resp["CreationTime"], datetime.datetime)
 
     sagemaker.delete_notebook_instance_lifecycle_config(
-        NotebookInstanceLifecycleConfigName=name,
+        NotebookInstanceLifecycleConfigName=name
     )
 
     with pytest.raises(ClientError) as e:
         sagemaker.describe_notebook_instance_lifecycle_config(
-            NotebookInstanceLifecycleConfigName=name,
+            NotebookInstanceLifecycleConfigName=name
         )
     assert e.value.response["Error"]["Message"].endswith(
         "Notebook Instance Lifecycle Config does not exist.)"
@@ -246,7 +246,7 @@ def test_notebook_instance_lifecycle_config():
 
     with pytest.raises(ClientError) as e:
         sagemaker.delete_notebook_instance_lifecycle_config(
-            NotebookInstanceLifecycleConfigName=name,
+            NotebookInstanceLifecycleConfigName=name
         )
     assert e.value.response["Error"]["Message"].endswith(
         "Notebook Instance Lifecycle Config does not exist.)"

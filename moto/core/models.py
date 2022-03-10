@@ -26,10 +26,7 @@ from .custom_responses_mock import (
     not_implemented_callback,
     reset_responses_mock,
 )
-from .utils import (
-    convert_regex_to_flask_path,
-    convert_flask_to_responses_response,
-)
+from .utils import convert_regex_to_flask_path, convert_flask_to_responses_response
 
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
@@ -637,7 +634,7 @@ class BaseBackend:
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region, zones,
+        service_region, zones
     ):  # pylint: disable=unused-argument
         """Invoke the factory method for any VPC endpoint(s) services."""
         return None

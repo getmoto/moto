@@ -385,7 +385,7 @@ def test_list_training_jobs_paginated_with_fragmented_targets():
     assert training_jobs_with_2.get("NextToken").should_not.be.none
 
     training_jobs_with_2_next = client.list_training_jobs(
-        NameContains="2", MaxResults=1, NextToken=training_jobs_with_2.get("NextToken"),
+        NameContains="2", MaxResults=1, NextToken=training_jobs_with_2.get("NextToken")
     )
     assert len(training_jobs_with_2_next["TrainingJobSummaries"]).should.equal(0)
     assert training_jobs_with_2_next.get("NextToken").should_not.be.none

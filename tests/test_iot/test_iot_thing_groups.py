@@ -168,9 +168,7 @@ def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
-    tree_dict = {
-        group_name_1a: {group_name_2a: {},},
-    }
+    tree_dict = {group_name_1a: {group_name_2a: {}}}
     generate_thing_group_tree(client, tree_dict)
 
     # delete group with child

@@ -467,7 +467,7 @@ def test_multipart_upload_with_tags():
     u = boto3.resource("s3").MultipartUpload(bucket, key, response["UploadId"])
     parts = [
         {
-            "ETag": u.Part(i).upload(Body=os.urandom(5 * (2 ** 20)))["ETag"],
+            "ETag": u.Part(i).upload(Body=os.urandom(5 * (2**20)))["ETag"],
             "PartNumber": i,
         }
         for i in range(1, 3)
@@ -715,7 +715,7 @@ def test_multipart_list_parts():
         # Get uploaded parts using default values
         uploaded_parts = []
 
-        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id,)
+        uploaded = s3.list_parts(Bucket=bucket_name, Key="the-key", UploadId=mpu_id)
 
         assert uploaded["PartNumberMarker"] == 0
 
@@ -854,7 +854,7 @@ def test_complete_multipart_with_empty_partlist():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket=bucket)
 
-    response = client.create_multipart_upload(Bucket=bucket, Key=key,)
+    response = client.create_multipart_upload(Bucket=bucket, Key=key)
     uid = response["UploadId"]
 
     upload = boto3.resource("s3").MultipartUpload(bucket, key, uid)

@@ -347,7 +347,7 @@ class CloudFormationResponse(BaseResponse):
             stack = self.cloudformation_backend.get_stack(stack_name)
             if stack.status == "REVIEW_IN_PROGRESS":
                 raise ValidationError(
-                    message="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks.",
+                    message="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks."
                 )
             stack_body = stack.template
         elif template_url:
@@ -362,7 +362,7 @@ class CloudFormationResponse(BaseResponse):
             new_params = self._get_param_values(incoming_params, old_stack.parameters)
             if old_stack.template == stack_body and old_stack.parameters == new_params:
                 raise ValidationError(
-                    old_stack.name, message=f"Stack [{old_stack.name}] already exists",
+                    old_stack.name, message=f"Stack [{old_stack.name}] already exists"
                 )
 
     def _validate_status(self, stack):
@@ -478,8 +478,8 @@ class CloudFormationResponse(BaseResponse):
             name=stackset_name,
             template=stack_body,
             parameters=parameters,
-            tags=tags,
-            # role_arn=role_arn,
+            tags=tags
+            # role_arn=role_arn
         )
         if self.request_json:
             return json.dumps(

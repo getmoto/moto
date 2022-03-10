@@ -16,9 +16,7 @@ class TestMockBucketStartingWithServiceName:
     https://github.com/spulec/moto/issues/4099
     """
 
-    @pytest.mark.parametrize(
-        "service_name,decorator", service_names,
-    )
+    @pytest.mark.parametrize("service_name,decorator", service_names)
     def test_bucketname_starting_with_service_name(self, service_name, decorator):
 
         decorator = getattr(moto, "mock_{}".format(service_name))

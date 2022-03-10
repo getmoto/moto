@@ -114,7 +114,7 @@ def test_tag_resource_error_not_exists():
             ResourceARN=make_arn_for_alarm(
                 region=region_name, account_id=ACCOUNT_ID, alarm_name="unknown"
             ),
-            Tags=[{"Key": "key-1", "Value": "value-1"},],
+            Tags=[{"Key": "key-1", "Value": "value-1"}],
         )
 
     # then

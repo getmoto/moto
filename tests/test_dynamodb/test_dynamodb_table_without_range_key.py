@@ -115,7 +115,7 @@ def test_item_add_and_describe_and_update_boto3():
     returned_item.shouldnt.have.key("ConsumedCapacity")
 
     dict(returned_item["Item"]).should.equal(
-        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User A",}
+        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User A"}
     )
 
     table.update_item(
@@ -126,7 +126,7 @@ def test_item_add_and_describe_and_update_boto3():
 
     returned_item = table.get_item(Key={"id": "LOLCat Forum"})
     returned_item["Item"].should.equal(
-        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User B",}
+        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User B"}
     )
 
 
