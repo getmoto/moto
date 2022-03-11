@@ -3,7 +3,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -25,7 +25,7 @@ table_schema = {
 }
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     item = {
         "partitionKey": "pk-1",
@@ -98,7 +98,7 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_empty_expressionattributenames():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -114,7 +114,7 @@ def test_empty_expressionattributenames():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_empty_expressionattributenames_with_empty_projection():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -130,7 +130,7 @@ def test_empty_expressionattributenames_with_empty_projection():
     err["Message"].should.equal("ExpressionAttributeNames must not be empty")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_empty_expressionattributenames_with_projection():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -146,7 +146,7 @@ def test_empty_expressionattributenames_with_projection():
     err["Message"].should.equal("ExpressionAttributeNames must not be empty")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_item_range_key_set():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -168,7 +168,7 @@ def test_update_item_range_key_set():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_batch_get_item_non_existing_table():
 
     client = boto3.client("dynamodb", region_name="us-west-2")
@@ -180,7 +180,7 @@ def test_batch_get_item_non_existing_table():
     assert err["Message"].should.equal("Requested resource not found")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_batch_write_item_non_existing_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -194,7 +194,7 @@ def test_batch_write_item_non_existing_table():
     assert err["Message"].should.equal("Requested resource not found")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_create_table_with_redundant_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -241,7 +241,7 @@ def test_create_table_with_redundant_attributes():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_create_table_with_missing_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -284,7 +284,7 @@ def test_create_table_with_missing_attributes():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_create_table_with_redundant_and_missing_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -327,7 +327,7 @@ def test_create_table_with_redundant_and_missing_attributes():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_put_item_wrong_attribute_type():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -373,7 +373,7 @@ def test_put_item_wrong_attribute_type():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -404,7 +404,7 @@ def test_hash_key_cannot_use_begins_with_operations():
 
 
 # Test this again, but with manually supplying an operator
-@mock_dynamodb2
+@mock_dynamodb
 @pytest.mark.parametrize("operator", ["<", "<=", ">", ">="])
 def test_hash_key_can_only_use_equals_operations(operator):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -426,7 +426,7 @@ def test_hash_key_can_only_use_equals_operations(operator):
     err["Message"].should.equal("Query key condition not supported")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_creating_table_with_0_local_indexes():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -445,7 +445,7 @@ def test_creating_table_with_0_local_indexes():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_creating_table_with_0_global_indexes():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -464,7 +464,7 @@ def test_creating_table_with_0_global_indexes():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_multiple_transactions_on_same_item():
     table_schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
@@ -502,7 +502,7 @@ def test_multiple_transactions_on_same_item():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_transact_write_items__too_many_transactions():
     table_schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
@@ -534,7 +534,7 @@ def test_transact_write_items__too_many_transactions():
     err["Message"].should.match("Member must have length less than or equal to 25")
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_item_non_existent_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:

@@ -13,7 +13,7 @@ from string import Template
 from moto import (
     mock_autoscaling,
     mock_cloudformation,
-    mock_dynamodb2,
+    mock_dynamodb,
     mock_ec2,
     mock_events,
     mock_kms,
@@ -986,7 +986,7 @@ def test_stack_elbv2_resources_integration():
     name["OutputValue"].should.equal(load_balancers[0]["LoadBalancerName"])
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @mock_cloudformation
 def test_stack_dynamodb_resources_integration():
     dynamodb_template = {
@@ -1628,7 +1628,7 @@ def test_stack_events_get_attribute_integration():
 
 
 @mock_cloudformation
-@mock_dynamodb2
+@mock_dynamodb
 def test_dynamodb_table_creation():
     CFN_TEMPLATE = {
         "Outputs": {"MyTableName": {"Value": {"Ref": "MyTable"}}},

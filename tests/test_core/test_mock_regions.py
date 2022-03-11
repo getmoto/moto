@@ -2,7 +2,7 @@ import boto3
 import mock
 import os
 import pytest
-from moto import mock_dynamodb2, mock_sns, settings
+from moto import mock_dynamodb, mock_sns, settings
 from unittest import SkipTest
 
 
@@ -44,7 +44,7 @@ def test_use_unknown_region_from_env_but_allow_it():
     client.list_platform_applications()["PlatformApplications"].should.equal([])
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @mock.patch.dict(os.environ, {"MOTO_ALLOW_NONEXISTENT_REGION": "trUe"})
 def test_use_unknown_region_from_env_but_allow_it__dynamo():
     if settings.TEST_SERVER_MODE:

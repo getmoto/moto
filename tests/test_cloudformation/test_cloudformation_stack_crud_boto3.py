@@ -14,7 +14,7 @@ from unittest import SkipTest
 
 from moto import (
     mock_cloudformation,
-    mock_dynamodb2,
+    mock_dynamodb,
     mock_s3,
     mock_sns,
     mock_sqs,
@@ -2113,7 +2113,7 @@ def test_boto3_create_duplicate_stack():
         cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @mock_cloudformation
 def test_delete_stack_dynamo_template():
     conn = boto3.client("cloudformation", region_name="us-east-1")
@@ -2127,7 +2127,7 @@ def test_delete_stack_dynamo_template():
     conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json4)
 
 
-@mock_dynamodb2
+@mock_dynamodb
 @mock_cloudformation
 @mock_lambda
 def test_create_stack_lambda_and_dynamodb():

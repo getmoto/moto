@@ -2,7 +2,7 @@ import boto3
 import json
 import requests
 
-from moto import mock_apigateway, mock_dynamodb2
+from moto import mock_apigateway, mock_dynamodb
 from moto import settings
 from moto.core.models import responses_mock
 from unittest import SkipTest
@@ -54,7 +54,7 @@ def test_http_integration():
 
 
 @mock_apigateway
-@mock_dynamodb2
+@mock_dynamodb
 def test_aws_integration_dynamodb():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
@@ -79,7 +79,7 @@ def test_aws_integration_dynamodb():
 
 
 @mock_apigateway
-@mock_dynamodb2
+@mock_dynamodb
 def test_aws_integration_dynamodb_multiple_stages():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
@@ -116,7 +116,7 @@ def test_aws_integration_dynamodb_multiple_stages():
 
 
 @mock_apigateway
-@mock_dynamodb2
+@mock_dynamodb
 def test_aws_integration_dynamodb_multiple_resources():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
