@@ -50,7 +50,7 @@ class Route53(BaseResponse):
 
             # It is possible to create a Private Hosted Zone without
             # associating VPC at the time of creation.
-            if private_zone == "true" or private_zone == True:
+            if private_zone == "true" or private_zone is True:
                 if zone_request.get("VPC", None) is not None:
                     vpcid = zone_request["VPC"].get("VPCId", None)
                     vpcregion = zone_request["VPC"].get("VPCRegion", None)
