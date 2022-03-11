@@ -161,7 +161,7 @@ class SegmentCollection(object):
             # Todo consolidate trace segments into a trace.
             # not enough working knowledge of xray to do this
 
-    def summary(self, start_time, end_time, filter_expression=None, sampling=False):
+    def summary(self, start_time, end_time, filter_expression=None):
         # This beast https://docs.aws.amazon.com/xray/latest/api/API_GetTraceSummaries.html#API_GetTraceSummaries_ResponseSyntax
         if filter_expression is not None:
             raise AWSError(
@@ -231,6 +231,7 @@ class SegmentCollection(object):
 
 class XRayBackend(BaseBackend):
     def __init__(self, region=None):
+        self.region = region
         self._telemetry_records = []
         self._segment_collection = SegmentCollection()
 
@@ -264,12 +265,10 @@ class XRayBackend(BaseBackend):
                 seg_id=segment.id, code="InternalFailure", message=str(err)
             )
 
-    def get_trace_summary(self, start_time, end_time, filter_expression, summaries):
-        return self._segment_collection.summary(
-            start_time, end_time, filter_expression, summaries
-        )
+    def get_trace_summary(self, start_time, end_time, filter_expression):
+        return self._segment_collection.summary(start_time, end_time, filter_expression)
 
-    def get_trace_ids(self, trace_ids, next_token):
+    def get_trace_ids(self, trace_ids):
         traces, unprocessed_ids = self._segment_collection.get_trace_ids(trace_ids)
 
         result = {"Traces": [], "UnprocessedTraceIds": unprocessed_ids}

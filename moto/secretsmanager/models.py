@@ -45,7 +45,7 @@ def _matches(secret, filters):
 
 
 class SecretsManager(BaseModel):
-    def __init__(self, region_name, **kwargs):
+    def __init__(self, region_name):
         self.region = region_name
 
 
@@ -190,7 +190,7 @@ class SecretsStore(dict):
 
 
 class SecretsManagerBackend(BaseBackend):
-    def __init__(self, region_name=None, **kwargs):
+    def __init__(self, region_name=None):
         super().__init__()
         self.region = region_name
         self.secrets = SecretsStore()
@@ -292,7 +292,6 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         client_request_token=None,
         kms_key_id=None,
-        **kwargs
     ):
 
         # error if secret does not exist

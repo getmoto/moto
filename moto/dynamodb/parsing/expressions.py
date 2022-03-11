@@ -52,7 +52,7 @@ class NestableExpressionParserMixin(object):
     in the originating expression.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.target_clauses = deque()
 
     def _parse_target_clause(self, factory_class):

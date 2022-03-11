@@ -368,7 +368,6 @@ class MQBackend(BaseBackend):
         auto_minor_version_upgrade,
         broker_name,
         configuration,
-        creator_request_id,
         deployment_mode,
         encryption_options,
         engine_type,

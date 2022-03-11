@@ -85,7 +85,7 @@ class NoIntegrationDefined(NotFoundException):
 class NoIntegrationResponseDefined(NotFoundException):
     code = 404
 
-    def __init__(self, code=None):
+    def __init__(self):
         super().__init__("Invalid Response status code specified")
 
 

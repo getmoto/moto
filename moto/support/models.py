@@ -59,7 +59,10 @@ class SupportBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def describe_trusted_advisor_checks(self, language):
+    def describe_trusted_advisor_checks(self):
+        """
+        The Language-parameter is not yet implemented
+        """
         # The checks are a static response
         checks = ADVISOR_CHECKS["checks"]
         return checks
@@ -159,9 +162,11 @@ class SupportBackend(BaseBackend):
         communication_body,
         cc_email_addresses,
         language,
-        issue_type,
         attachment_set_id,
     ):
+        """
+        The IssueType-parameter is not yet implemented
+        """
         # Random case ID
         random_case_id = "".join(
             random.choice("0123456789ABCDEFGHIJKLMabcdefghijklm") for i in range(16)
@@ -185,15 +190,14 @@ class SupportBackend(BaseBackend):
     def describe_cases(
         self,
         case_id_list,
-        display_id,
-        after_time,
-        before_time,
         include_resolved_cases,
         next_token,
-        max_results,
-        language,
         include_communications,
     ):
+        """
+        The following parameters have not yet been implemented:
+        DisplayID, AfterTime, BeforeTime, MaxResults, Language
+        """
         cases = []
         requested_case_ids = case_id_list or self.cases.keys()
 

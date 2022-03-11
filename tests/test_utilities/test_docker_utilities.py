@@ -1,4 +1,4 @@
-import sure
+import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto.utilities.docker_utilities import parse_image_ref

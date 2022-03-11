@@ -23,7 +23,9 @@ def error_handler(f):
 
 class S3ControlResponse(BaseResponse):
     @amzn_request_id
-    def public_access_block(self, request, full_url, headers):
+    def public_access_block(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         try:
             if request.method == "GET":
                 return self.get_public_access_block(request)

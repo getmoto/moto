@@ -104,6 +104,7 @@ class Pipeline(CloudFormationModel):
 class DataPipelineBackend(BaseBackend):
     def __init__(self, region=None):
         self.pipelines = OrderedDict()
+        self.region = region
 
     def create_pipeline(self, name, unique_id, **kwargs):
         pipeline = Pipeline(name, unique_id, **kwargs)

@@ -4,7 +4,7 @@ from moto.core.exceptions import AWSError
 
 
 class EKSError(AWSError):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         super(AWSError, self).__init__()
         self.description = json.dumps(kwargs)
         self.headers = {"status": self.STATUS, "x-amzn-ErrorType": self.TYPE}

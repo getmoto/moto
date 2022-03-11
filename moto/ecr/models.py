@@ -153,8 +153,8 @@ class Repository(BaseObject, CloudFormationModel):
         ecr_backend.delete_repository(self.name)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn", "RepositoryUri"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn", "RepositoryUri"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -505,13 +505,10 @@ class ECRBackend(BaseBackend):
             existing_images[0].update_tag(image_tag)
             return existing_images[0]
 
-    def batch_get_image(
-        self,
-        repository_name,
-        registry_id=None,
-        image_ids=None,
-        accepted_media_types=None,
-    ):
+    def batch_get_image(self, repository_name, registry_id=None, image_ids=None):
+        """
+        The parameter AcceptedMediaTypes has not yet been implemented
+        """
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
         else:

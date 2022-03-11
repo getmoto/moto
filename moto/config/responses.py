@@ -16,7 +16,7 @@ class ConfigResponse(BaseResponse):
 
     def put_configuration_aggregator(self):
         aggregator = self.config_backend.put_configuration_aggregator(
-            json.loads(self.body), self.region
+            json.loads(self.body)
         )
         schema = {"ConfigurationAggregator": aggregator}
         return json.dumps(schema)
@@ -37,7 +37,6 @@ class ConfigResponse(BaseResponse):
 
     def put_aggregation_authorization(self):
         agg_auth = self.config_backend.put_aggregation_authorization(
-            self.region,
             self._get_param("AuthorizedAccountId"),
             self._get_param("AuthorizedAwsRegion"),
             self._get_param("Tags"),
@@ -170,7 +169,6 @@ class ConfigResponse(BaseResponse):
 
     def put_organization_conformance_pack(self):
         conformance_pack = self.config_backend.put_organization_conformance_pack(
-            region=self.region,
             name=self._get_param("OrganizationConformancePackName"),
             template_s3_uri=self._get_param("TemplateS3Uri"),
             template_body=self._get_param("TemplateBody"),
@@ -223,7 +221,7 @@ class ConfigResponse(BaseResponse):
 
     def put_config_rule(self):
         self.config_backend.put_config_rule(
-            self.region, self._get_param("ConfigRule"), self._get_param("Tags")
+            self._get_param("ConfigRule"), self._get_param("Tags")
         )
         return ""
 

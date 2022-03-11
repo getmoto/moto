@@ -13,7 +13,6 @@ class AmisResponse(BaseResponse):
                 instance_id,
                 name,
                 description,
-                context=self,
                 tag_specifications=tag_specifications,
             )
             template = self.response_template(CREATE_IMAGE_RESPONSE)
@@ -45,11 +44,7 @@ class AmisResponse(BaseResponse):
         owners = self._get_multi_param("Owner")
         exec_users = self._get_multi_param("ExecutableBy")
         images = self.ec2_backend.describe_images(
-            ami_ids=ami_ids,
-            filters=filters,
-            exec_users=exec_users,
-            owners=owners,
-            context=self,
+            ami_ids=ami_ids, filters=filters, exec_users=exec_users, owners=owners
         )
         template = self.response_template(DESCRIBE_IMAGES_RESPONSE)
         return template.render(images=images)

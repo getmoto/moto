@@ -43,21 +43,19 @@ class TextractBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def get_document_text_detection(self, job_id, max_results, next_token):
+    def get_document_text_detection(self, job_id):
+        """
+        Pagination has not yet been implemented
+        """
         job = self.async_text_detection_jobs.get(job_id)
         if not job:
             raise InvalidJobIdException()
         return job
 
-    def start_document_text_detection(
-        self,
-        document_location,
-        client_request_token,
-        job_tag,
-        notification_channel,
-        output_config,
-        kms_key_id,
-    ):
+    def start_document_text_detection(self, document_location):
+        """
+        The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
+        """
         if not document_location:
             raise InvalidParameterException()
         job_id = str(uuid.uuid4())

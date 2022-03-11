@@ -521,11 +521,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         launch_config_name,
         launch_template,
         vpc_zone_identifier,
-        default_cooldown,
         health_check_period,
         health_check_type,
-        placement_group,
-        termination_policies,
         new_instances_protected_from_scale_in=None,
     ):
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier, update=True)
@@ -808,13 +805,13 @@ class AutoScalingBackend(BaseBackend):
         launch_config_name,
         launch_template,
         vpc_zone_identifier,
-        default_cooldown,
         health_check_period,
         health_check_type,
-        placement_group,
-        termination_policies,
         new_instances_protected_from_scale_in=None,
     ):
+        """
+        The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
+        """
         # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.
         if launch_config_name and launch_template:
@@ -832,11 +829,8 @@ class AutoScalingBackend(BaseBackend):
             launch_config_name=launch_config_name,
             launch_template=launch_template,
             vpc_zone_identifier=vpc_zone_identifier,
-            default_cooldown=default_cooldown,
             health_check_period=health_check_period,
             health_check_type=health_check_type,
-            placement_group=placement_group,
-            termination_policies=termination_policies,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
         )
         return group
@@ -888,9 +882,10 @@ class AutoScalingBackend(BaseBackend):
             self.update_attached_elbs(group.name)
             self.update_attached_target_groups(group.name)
 
-    def set_instance_health(
-        self, instance_id, health_status, should_respect_grace_period
-    ):
+    def set_instance_health(self, instance_id, health_status):
+        """
+        The ShouldRespectGracePeriod-parameter is not yet implemented
+        """
         instance = self.ec2_backend.get_instance(instance_id)
         instance_state = next(
             instance_state

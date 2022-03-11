@@ -129,7 +129,7 @@ class FakeStackSet(BaseModel):
         if not parameters:
             parameters = self.parameters
 
-        self.instances.create_instances(accounts, regions, parameters, operation_id)
+        self.instances.create_instances(accounts, regions, parameters)
         self._create_operation(
             operation_id=operation_id,
             action="CREATE",
@@ -176,7 +176,7 @@ class FakeStackInstances(BaseModel):
         self.stackset_name = stackset_name
         self.stack_instances = []
 
-    def create_instances(self, accounts, regions, parameters, operation_id):
+    def create_instances(self, accounts, regions, parameters):
         new_instances = []
         for region in regions:
             for account in accounts:
@@ -524,6 +524,12 @@ class CloudFormationBackend(BaseBackend):
         self.deleted_stacks = {}
         self.exports = OrderedDict()
         self.change_sets = OrderedDict()
+        self.region = region
+
+    def reset(self):
+        region = self.region
+        self.__dict__ = {}
+        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -561,7 +567,6 @@ class CloudFormationBackend(BaseBackend):
         parameters,
         tags=None,
         description=None,
-        region="us-east-1",
         admin_role=None,
         execution_role=None,
     ):
@@ -651,18 +656,17 @@ class CloudFormationBackend(BaseBackend):
         name,
         template,
         parameters,
-        region_name,
         notification_arns=None,
         tags=None,
         role_arn=None,
     ):
-        stack_id = generate_stack_id(name, region_name)
+        stack_id = generate_stack_id(name, self.region)
         new_stack = FakeStack(
             stack_id=stack_id,
             name=name,
             template=template,
             parameters=parameters,
-            region_name=region_name,
+            region_name=self.region,
             notification_arns=notification_arns,
             tags=tags,
             role_arn=role_arn,
@@ -685,7 +689,6 @@ class CloudFormationBackend(BaseBackend):
         template,
         parameters,
         description,
-        region_name,
         change_set_type,
         notification_arns=None,
         tags=None,
@@ -698,13 +701,13 @@ class CloudFormationBackend(BaseBackend):
             else:
                 raise ValidationError(stack_name)
         else:
-            stack_id = generate_stack_id(stack_name, region_name)
+            stack_id = generate_stack_id(stack_name, self.region)
             stack = FakeStack(
                 stack_id=stack_id,
                 name=stack_name,
                 template={},
                 parameters=parameters,
-                region_name=region_name,
+                region_name=self.region,
                 notification_arns=notification_arns,
                 tags=tags,
                 role_arn=role_arn,
@@ -715,7 +718,7 @@ class CloudFormationBackend(BaseBackend):
                 "REVIEW_IN_PROGRESS", resource_status_reason="User Initiated"
             )
 
-        change_set_id = generate_changeset_id(change_set_name, region_name)
+        change_set_id = generate_changeset_id(change_set_name, self.region)
 
         new_change_set = FakeChangeSet(
             change_set_type=change_set_type,
@@ -734,7 +737,7 @@ class CloudFormationBackend(BaseBackend):
         self.change_sets[change_set_id] = new_change_set
         return change_set_id, stack.stack_id
 
-    def delete_change_set(self, change_set_name, stack_name=None):
+    def delete_change_set(self, change_set_name):
         if change_set_name in self.change_sets:
             # This means arn was passed in
             del self.change_sets[change_set_name]
@@ -745,7 +748,7 @@ class CloudFormationBackend(BaseBackend):
                     break
             del self.change_sets[to_delete]
 
-    def describe_change_set(self, change_set_name, stack_name=None):
+    def describe_change_set(self, change_set_name):
         change_set = None
         if change_set_name in self.change_sets:
             # This means arn was passed in

@@ -1076,7 +1076,7 @@ def test_list_objects_truncated_response():
 
     assert listed_object["Key"] == "one"
     assert resp["MaxKeys"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert resp.get("Prefix") is None
     assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
@@ -1089,7 +1089,7 @@ def test_list_objects_truncated_response():
 
     assert listed_object["Key"] == "three"
     assert resp["MaxKeys"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert resp.get("Prefix") is None
     assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
@@ -1102,7 +1102,7 @@ def test_list_objects_truncated_response():
 
     assert listed_object["Key"] == "two"
     assert resp["MaxKeys"] == 1
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     assert resp.get("Prefix") is None
     assert resp.get("Delimiter") is None
     assert "NextMarker" not in resp
@@ -1121,7 +1121,7 @@ def test_list_keys_xml_escaped():
     assert resp["KeyCount"] == 1
     assert resp["MaxKeys"] == 1000
     assert resp["Prefix"] == key_name
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     assert "Delimiter" not in resp
     assert "StartAfter" not in resp
     assert "NextContinuationToken" not in resp
@@ -1199,7 +1199,7 @@ def test_list_objects_v2_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert "Delimiter" not in resp
     assert "StartAfter" not in resp
     assert "Owner" not in listed_object  # owner info was not requested
@@ -1216,7 +1216,7 @@ def test_list_objects_v2_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert "Delimiter" not in resp
     assert "StartAfter" not in resp
     assert "Owner" not in listed_object
@@ -1233,7 +1233,7 @@ def test_list_objects_v2_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     assert "Delimiter" not in resp
     assert "Owner" not in listed_object
     assert "StartAfter" not in resp
@@ -1256,7 +1256,7 @@ def test_list_objects_v2_truncated_response_start_after():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == True
+    assert resp["IsTruncated"] is True
     assert resp["StartAfter"] == "one"
     assert "Delimiter" not in resp
     assert "Owner" not in listed_object
@@ -1274,7 +1274,7 @@ def test_list_objects_v2_truncated_response_start_after():
     assert resp["MaxKeys"] == 1
     assert resp["Prefix"] == ""
     assert resp["KeyCount"] == 1
-    assert resp["IsTruncated"] == False
+    assert resp["IsTruncated"] is False
     # When ContinuationToken is given, StartAfter is ignored. This also means
     # AWS does not return it in the response.
     assert "StartAfter" not in resp
@@ -1541,7 +1541,7 @@ def test_delete_versioned_bucket_returns_meta():
     del_resp2 = client.delete_object(
         Bucket="blah", Key="test1", VersionId=del_resp["VersionId"]
     )
-    assert del_resp2["DeleteMarker"] == True
+    assert del_resp2["DeleteMarker"] is True
     assert "VersionId" not in del_resp2
 
 

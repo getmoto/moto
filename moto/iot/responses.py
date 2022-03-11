@@ -107,10 +107,7 @@ class IoTResponse(BaseResponse):
 
     def delete_thing(self):
         thing_name = self._get_param("thingName")
-        expected_version = self._get_param("expectedVersion")
-        self.iot_backend.delete_thing(
-            thing_name=thing_name, expected_version=expected_version
-        )
+        self.iot_backend.delete_thing(thing_name=thing_name)
         return json.dumps(dict())
 
     def delete_thing_type(self):
@@ -130,13 +127,11 @@ class IoTResponse(BaseResponse):
         thing_name = self._get_param("thingName")
         thing_type_name = self._get_param("thingTypeName")
         attribute_payload = self._get_param("attributePayload")
-        expected_version = self._get_param("expectedVersion")
         remove_thing_type = self._get_param("removeThingType")
         self.iot_backend.update_thing(
             thing_name=thing_name,
             thing_type_name=thing_type_name,
             attribute_payload=attribute_payload,
-            expected_version=expected_version,
             remove_thing_type=remove_thing_type,
         )
         return json.dumps(dict())
@@ -213,21 +208,11 @@ class IoTResponse(BaseResponse):
             return json.dumps({"document": ""})
 
     def list_jobs(self):
-        status = (self._get_param("status"),)
-        target_selection = (self._get_param("targetSelection"),)
-        max_results = self._get_int_param(
-            "maxResults", 50
-        )  # not the default, but makes testing easier
+        # not the default, but makes testing easier
+        max_results = self._get_int_param("maxResults", 50)
         previous_next_token = self._get_param("nextToken")
-        thing_group_name = (self._get_param("thingGroupName"),)
-        thing_group_id = self._get_param("thingGroupId")
         jobs, next_token = self.iot_backend.list_jobs(
-            status=status,
-            target_selection=target_selection,
-            max_results=max_results,
-            token=previous_next_token,
-            thing_group_name=thing_group_name,
-            thing_group_id=thing_group_id,
+            max_results=max_results, token=previous_next_token
         )
 
         return json.dumps(dict(jobs=jobs, nextToken=next_token))
@@ -246,15 +231,9 @@ class IoTResponse(BaseResponse):
         job_id = self._get_param("jobId")
         thing_name = self._get_param("thingName")
         force = self._get_bool_param("force")
-        expected_version = self._get_int_param("expectedVersion")
-        status_details = self._get_param("statusDetails")
 
         self.iot_backend.cancel_job_execution(
-            job_id=job_id,
-            thing_name=thing_name,
-            force=force,
-            expected_version=expected_version,
-            status_details=status_details,
+            job_id=job_id, thing_name=thing_name, force=force
         )
 
         return json.dumps(dict())
@@ -366,13 +345,11 @@ class IoTResponse(BaseResponse):
 
     def register_ca_certificate(self):
         ca_certificate = self._get_param("caCertificate")
-        verification_certificate = self._get_param("verificationCertificate")
         set_as_active = self._get_bool_param("setAsActive")
         registration_config = self._get_param("registrationConfig")
 
         cert = self.iot_backend.register_ca_certificate(
             ca_certificate=ca_certificate,
-            verification_certificate=verification_certificate,
             set_as_active=set_as_active,
             registration_config=registration_config,
         )
@@ -621,10 +598,7 @@ class IoTResponse(BaseResponse):
 
     def delete_thing_group(self):
         thing_group_name = self._get_param("thingGroupName")
-        expected_version = self._get_param("expectedVersion")
-        self.iot_backend.delete_thing_group(
-            thing_group_name=thing_group_name, expected_version=expected_version
-        )
+        self.iot_backend.delete_thing_group(thing_group_name=thing_group_name)
         return json.dumps(dict())
 
     def list_thing_groups(self):
@@ -684,15 +658,11 @@ class IoTResponse(BaseResponse):
 
     def list_things_in_thing_group(self):
         thing_group_name = self._get_param("thingGroupName")
-        recursive = self._get_param("recursive")
-        # next_token = self._get_param("nextToken")
-        # max_results = self._get_int_param("maxResults")
         things = self.iot_backend.list_things_in_thing_group(
-            thing_group_name=thing_group_name, recursive=recursive
+            thing_group_name=thing_group_name
         )
         next_token = None
         thing_names = [_.thing_name for _ in things]
-        # TODO: implement pagination in the future
         return json.dumps(dict(things=thing_names, nextToken=next_token))
 
     def list_thing_groups_for_thing(self):
@@ -765,7 +735,6 @@ class IoTResponse(BaseResponse):
             domain_configuration_name=self._get_param("domainConfigurationName"),
             domain_name=self._get_param("domainName"),
             server_certificate_arns=self._get_param("serverCertificateArns"),
-            validation_certificate_arn=self._get_param("validationCertificateArn"),
             authorizer_config=self._get_param("authorizerConfig"),
             service_type=self._get_param("serviceType"),
         )

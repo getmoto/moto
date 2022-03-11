@@ -312,7 +312,7 @@ class Layer(object):
 
 
 class LambdaFunction(CloudFormationModel, DockerModel):
-    def __init__(self, spec, region, validate_s3=True, version=1):
+    def __init__(self, spec, region, version=1):
         DockerModel.__init__(self)
         # required
         self.region = region
@@ -547,14 +547,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         except Exception:
             return s
 
-    def _invoke_lambda(self, code, event=None, context=None):
+    def _invoke_lambda(self, event=None):
         # Create the LogGroup if necessary, to write the result to
         self.logs_backend.ensure_log_group(self.logs_group_name, [])
         # TODO: context not yet implemented
         if event is None:
             event = dict()
-        if context is None:
-            context = {}
         output = None
 
         try:
@@ -670,7 +668,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             for line in output.splitlines()
         ]
         self.logs_backend.put_log_events(
-            self.logs_group_name, log_stream_name, log_events, None
+            self.logs_group_name, log_stream_name, log_events
         )
 
     def invoke(self, body, request_headers, response_headers):
@@ -681,7 +679,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             body = "{}"
 
         # Get the invocation type:
-        res, errored, logs = self._invoke_lambda(code=self.code, event=body)
+        res, errored, logs = self._invoke_lambda(event=body)
         inv_type = request_headers.get("x-amz-invocation-type", "RequestResponse")
         if inv_type == "RequestResponse":
             encoded = base64.b64encode(logs.encode("utf-8"))
@@ -746,8 +744,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         return fn
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -758,7 +756,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, new_resource_name, cloudformation_json, original_resource, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         updated_props = cloudformation_json["Properties"]
         original_resource.update_configuration(updated_props)
@@ -879,7 +877,7 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, new_resource_name, cloudformation_json, original_resource, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid

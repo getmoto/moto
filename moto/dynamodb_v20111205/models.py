@@ -10,9 +10,9 @@ from .comparisons import get_comparison_func
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj, "to_json"):
-            return obj.to_json()
+    def default(self, o):
+        if hasattr(o, "to_json"):
+            return o.to_json()
 
 
 def dynamo_json_dump(dynamo_object):
@@ -297,8 +297,8 @@ class Table(CloudFormationModel):
         return item
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["StreamArn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["StreamArn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

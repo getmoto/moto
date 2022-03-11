@@ -670,14 +670,8 @@ class ElasticMapReduceBackend(BaseBackend):
         instance_group.auto_scaling_policy = auto_scaling_policy
         return instance_group
 
-    def remove_auto_scaling_policy(self, cluster_id, instance_group_id):
-        instance_groups = self.get_instance_groups(
-            instance_group_ids=[instance_group_id]
-        )
-        if len(instance_groups) == 0:
-            return None
-        instance_group = instance_groups[0]
-        instance_group.auto_scaling_policy = None
+    def remove_auto_scaling_policy(self, instance_group_id):
+        self.put_auto_scaling_policy(instance_group_id, auto_scaling_policy=None)
 
     def create_security_configuration(self, name, security_configuration):
         if name in self.security_configurations:

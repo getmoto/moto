@@ -25,7 +25,6 @@ class Subnets(BaseResponse):
             ipv6_cidr_block,
             availability_zone,
             availability_zone_id,
-            context=self,
             tags=tags,
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)

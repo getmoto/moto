@@ -335,11 +335,11 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = json.dumps(properties.get("PolicyDocument"))
-        name = properties.get("ManagedPolicyName", resource_physical_name)
+        name = properties.get("ManagedPolicyName", resource_name)
         description = properties.get("Description")
         path = properties.get("Path")
         group_names = properties.get("Groups", [])
@@ -442,7 +442,7 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = properties.get("PolicyDocument")
@@ -452,7 +452,7 @@ class InlinePolicy(CloudFormationModel):
         group_names = properties.get("Groups")
 
         return iam_backend.create_inline_policy(
-            resource_physical_name,
+            resource_name,
             policy_name,
             policy_document,
             group_names,
@@ -584,14 +584,10 @@ class Role(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        role_name = (
-            properties["RoleName"]
-            if "RoleName" in properties
-            else resource_physical_name
-        )
+        role_name = properties.get("RoleName", resource_name)
 
         role = iam_backend.create_role(
             role_name=role_name,
@@ -707,8 +703,8 @@ class Role(CloudFormationModel):
         return self.name
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -751,13 +747,13 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
         role_names = properties["Roles"]
         return iam_backend.create_instance_profile(
-            name=resource_physical_name,
+            name=resource_name,
             path=properties.get("Path", "/"),
             role_names=role_names,
         )
@@ -782,8 +778,8 @@ class InstanceProfile(CloudFormationModel):
         return self.name
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -880,8 +876,8 @@ class AccessKey(CloudFormationModel):
         return iso_8601_datetime_without_milliseconds(self.last_used)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["SecretAccessKey"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["SecretAccessKey"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -900,7 +896,7 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         user_name = properties.get("UserName")
@@ -981,8 +977,8 @@ class Group(BaseModel):
         return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -1145,8 +1141,8 @@ class User(CloudFormationModel):
         self.ssh_public_keys.remove(key)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -1237,11 +1233,11 @@ class User(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_physical_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backend.create_user(resource_physical_name, path)
+        user, _ = iam_backend.create_user(resource_name, path)
         return user
 
     @classmethod
@@ -2032,7 +2028,10 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         profile.roles.remove(role)
 
-    def get_all_server_certs(self, marker=None):
+    def list_server_certificates(self):
+        """
+        Pagination is not yet implemented
+        """
         return self.certificates.values()
 
     def upload_server_certificate(
@@ -2080,7 +2079,10 @@ class IAMBackend(BaseBackend):
         self.groups[group_name] = group
         return group
 
-    def get_group(self, group_name, marker=None, max_items=None):
+    def get_group(self, group_name):
+        """
+        Pagination is not yet implemented
+        """
         try:
             return self.groups[group_name]
         except KeyError:
@@ -2105,7 +2107,10 @@ class IAMBackend(BaseBackend):
         iam_policy_document_validator.validate()
         group.put_policy(policy_name, policy_json)
 
-    def list_group_policies(self, group_name, marker=None, max_items=None):
+    def list_group_policies(self, group_name):
+        """
+        Pagination is not yet implemented
+        """
         group = self.get_group(group_name)
         return group.list_policies()
 
@@ -2363,10 +2368,13 @@ class IAMBackend(BaseBackend):
     def get_all_access_keys_for_all_users(self):
         access_keys_list = []
         for user_name in self.users:
-            access_keys_list += self.get_all_access_keys(user_name)
+            access_keys_list += self.list_access_keys(user_name)
         return access_keys_list
 
-    def get_all_access_keys(self, user_name, marker=None, max_items=None):
+    def list_access_keys(self, user_name):
+        """
+        Pagination is not yet implemented
+        """
         user = self.get_user(user_name)
         keys = user.get_all_access_keys()
         return keys
@@ -2556,7 +2564,7 @@ class IAMBackend(BaseBackend):
         # alias is force updated
         self.account_aliases = [alias]
 
-    def delete_account_alias(self, alias):
+    def delete_account_alias(self):
         self.account_aliases = []
 
     def get_account_authorization_details(self, policy_filter):
@@ -2619,7 +2627,7 @@ class IAMBackend(BaseBackend):
 
     def get_user_from_access_key_id(self, access_key_id):
         for user_name, user in self.users.items():
-            access_keys = self.get_all_access_keys(user_name)
+            access_keys = self.list_access_keys(user_name)
             for access_key in access_keys:
                 if access_key.access_key_id == access_key_id:
                     return user

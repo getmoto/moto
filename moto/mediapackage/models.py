@@ -7,7 +7,7 @@ from .exceptions import ClientError
 
 
 class Channel(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.channel_id = kwargs.get("channel_id")
         self.description = kwargs.get("description")
@@ -27,7 +27,7 @@ class Channel(BaseModel):
 
 
 class OriginEndpoint(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.authorization = kwargs.get("authorization")
         self.channel_id = kwargs.get("channel_id")

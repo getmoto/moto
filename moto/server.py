@@ -13,7 +13,7 @@ from moto.moto_server.threaded_moto_server import (  # noqa # pylint: disable=un
 )
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum, frame):  # pylint: disable=unused-argument
     sys.exit(0)
 
 

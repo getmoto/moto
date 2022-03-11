@@ -1,7 +1,7 @@
 import json
 import boto3
 
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_s3, mock_cloudformation
 

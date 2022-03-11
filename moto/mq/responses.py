@@ -95,7 +95,6 @@ class MQResponse(BaseResponse):
         auto_minor_version_upgrade = params.get("autoMinorVersionUpgrade")
         broker_name = params.get("brokerName")
         configuration = params.get("configuration")
-        creator_request_id = params.get("creatorRequestId")
         deployment_mode = params.get("deploymentMode")
         encryption_options = params.get("encryptionOptions")
         engine_type = params.get("engineType")
@@ -115,7 +114,6 @@ class MQResponse(BaseResponse):
             auto_minor_version_upgrade=auto_minor_version_upgrade,
             broker_name=broker_name,
             configuration=configuration,
-            creator_request_id=creator_request_id,
             deployment_mode=deployment_mode,
             encryption_options=encryption_options,
             engine_type=engine_type,

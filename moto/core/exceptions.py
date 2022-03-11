@@ -64,13 +64,13 @@ class RESTError(HTTPException):
             )
             self.content_type = "application/xml"
 
-    def get_headers(self, *args, **kwargs):
+    def get_headers(self, *args, **kwargs):  # pylint: disable=unused-argument
         return {
             "X-Amzn-ErrorType": self.error_type or "UnknownError",
             "Content-Type": self.content_type,
         }
 
-    def get_body(self, *args, **kwargs):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         return self.description
 
 

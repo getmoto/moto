@@ -78,11 +78,13 @@ class ElasticTranscoderBackend(BaseBackend):
         input_bucket,
         output_bucket,
         role,
-        aws_kms_key_arn,
-        notifications,
         content_config,
         thumbnail_config,
     ):
+        """
+        The following parameters are not yet implemented:
+        AWSKMSKeyArn, Notifications
+        """
         pipeline = Pipeline(
             self.region_name,
             name,
@@ -102,17 +104,11 @@ class ElasticTranscoderBackend(BaseBackend):
     def read_pipeline(self, pipeline_id):
         return self.pipelines[pipeline_id]
 
-    def update_pipeline(
-        self,
-        pipeline_id,
-        name,
-        input_bucket,
-        role,
-        aws_kms_key_arn,
-        notifications,
-        content_config,
-        thumbnail_config,
-    ):
+    def update_pipeline(self, pipeline_id, name, input_bucket, role):
+        """
+        The following parameters are not yet implemented:
+        AWSKMSKeyArn, Notifications, ContentConfig, ThumbnailConfig
+        """
         pipeline = self.read_pipeline(pipeline_id)
         pipeline.update(name, input_bucket, role)
         warnings = []

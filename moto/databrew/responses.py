@@ -59,11 +59,7 @@ class DataBrewResponse(BaseResponse):
         recipe_name = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
         try:
-            return json.dumps(
-                self.databrew_backend.get_recipe(recipe_name, None).as_dict()
-            )
+            recipe = self.databrew_backend.get_recipe(recipe_name)
+            return json.dumps(recipe.as_dict())
         except DataBrewClientError as e:
             return e.code, e.get_headers(), e.get_body()
-
-
-# 'DescribeRecipe'

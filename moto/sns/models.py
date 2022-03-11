@@ -77,8 +77,8 @@ class Topic(CloudFormationModel):
         return message_id
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["TopicName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["TopicName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

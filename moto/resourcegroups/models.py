@@ -330,14 +330,11 @@ class ResourceGroupsBackend(BaseBackend):
     def get_tags(self, arn):
         return self.groups.by_arn[arn].tags
 
-    # def list_group_resources(self):
-    #     ...
-
-    def list_groups(self, filters=None, max_results=None, next_token=None):
+    def list_groups(self):
+        """
+        Pagination or the Filters-parameter is not yet implemented
+        """
         return self.groups.by_name
-
-    # def search_resources(self):
-    #     ...
 
     def tag(self, arn, tags):
         all_tags = self.groups.by_arn[arn].tags

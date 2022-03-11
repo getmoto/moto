@@ -27,7 +27,9 @@ class TestThreadedMotoServer(unittest.TestCase):
 
     def test_server_can_handle_multiple_services(self):
         s3_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
-        dynamodb_client = boto3.client("dynamodb", endpoint_url="http://127.0.0.1:5000")
+        dynamodb_client = boto3.client(
+            "dynamodb", endpoint_url="http://127.0.0.1:5000", region_name="us-east-1"
+        )
         s3_client.create_bucket(Bucket="test")
         dynamodb_client.create_table(
             TableName="table1",

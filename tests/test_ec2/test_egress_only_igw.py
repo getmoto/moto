@@ -1,6 +1,6 @@
 import boto3
 import pytest
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2
