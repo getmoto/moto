@@ -3979,7 +3979,7 @@ def test_policy_config_dict():
     assert policy["configuration"]["defaultVersionId"] == "v2"
     assert policy["configuration"]["attachmentCount"] == 1
     assert policy["configuration"]["permissionsBoundaryUsageCount"] == 0
-    assert policy["configuration"]["isAttachable"] == True
+    assert policy["configuration"]["isAttachable"] is True
     assert policy["configuration"]["description"] == "basic_policy"
     assert policy["configuration"]["createDate"] is not None
     assert policy["configuration"]["updateDate"] is not None

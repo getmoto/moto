@@ -35,11 +35,12 @@ def test_double_subscription():
     resp = client.create_topic(Name="some-topic")
     arn = resp["TopicArn"]
 
-    do_subscribe_sqs = lambda sqs_arn: client.subscribe(
-        TopicArn=arn, Protocol="sqs", Endpoint=sqs_arn
+    resp1 = client.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
     )
-    resp1 = do_subscribe_sqs("arn:aws:sqs:elasticmq:000000000000:foo")
-    resp2 = do_subscribe_sqs("arn:aws:sqs:elasticmq:000000000000:foo")
+    resp2 = client.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
+    )
 
     resp1["SubscriptionArn"].should.equal(resp2["SubscriptionArn"])
 

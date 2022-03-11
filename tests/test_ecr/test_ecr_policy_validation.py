@@ -117,10 +117,8 @@ def test_validate_error_extract_rules(policy):
     )
 
 
-@pytest.mark.parametrize(
-    ["rule", "rule_type"], [["not_dict", "string"]], ids=["not_dict"]
-)
-def test_validate_error_rule_type(rule, rule_type):
+@pytest.mark.parametrize("rule", ["not_dict"], ids=["not_dict"])
+def test_validate_error_rule_type(rule):
     # given
 
     # when

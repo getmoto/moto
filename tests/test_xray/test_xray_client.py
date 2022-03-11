@@ -12,7 +12,7 @@ import botocore.endpoint
 original_make_api_call = botocore.client.BaseClient._make_api_call
 original_encode_headers = botocore.endpoint.Endpoint._encode_headers
 
-import requests
+import requests  # noqa # pylint: disable=all
 
 original_session_request = requests.Session.request
 original_session_prep_request = requests.Session.prepare_request

@@ -29,7 +29,7 @@ def aws_credentials():
 
 
 @pytest.mark.network
-def test_context_manager(aws_credentials):
+def test_context_manager(aws_credentials):  # pylint: disable=unused-argument
     client = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as exc:
         client.describe_addresses()
@@ -127,7 +127,7 @@ class TestWithSetup_UppercaseU(unittest.TestCase):
 
 @mock_s3
 class TestWithSetup_LowercaseU:
-    def setup(self, *args):
+    def setup(self, *args):  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
@@ -144,7 +144,7 @@ class TestWithSetup_LowercaseU:
 
 @mock_s3
 class TestWithSetupMethod:
-    def setup_method(self, *args):
+    def setup_method(self, *args):  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")

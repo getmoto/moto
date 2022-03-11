@@ -18,7 +18,9 @@ def aws_credentials():
     environ["AWS_SESSION_TOKEN"] = "testing"
 
 
-def test_mock_works_with_client_created_inside(aws_credentials):
+def test_mock_works_with_client_created_inside(
+    aws_credentials,
+):  # pylint: disable=unused-argument
     m = mock_s3()
     m.start()
     client = boto3.client("s3", region_name="us-east-1")
@@ -28,7 +30,9 @@ def test_mock_works_with_client_created_inside(aws_credentials):
     m.stop()
 
 
-def test_mock_works_with_client_created_outside(aws_credentials):
+def test_mock_works_with_client_created_outside(
+    aws_credentials,
+):  # pylint: disable=unused-argument
     # Create the boto3 client first
     outside_client = boto3.client("s3", region_name="us-east-1")
 
@@ -46,7 +50,9 @@ def test_mock_works_with_client_created_outside(aws_credentials):
     m.stop()
 
 
-def test_mock_works_with_resource_created_outside(aws_credentials):
+def test_mock_works_with_resource_created_outside(
+    aws_credentials,
+):  # pylint: disable=unused-argument
     # Create the boto3 client first
     outside_resource = boto3.resource("s3", region_name="us-east-1")
 
@@ -88,7 +94,9 @@ class ImportantBusinessLogic:
         return self._s3.list_buckets()["Buckets"]
 
 
-def test_mock_works_when_replacing_client(aws_credentials):
+def test_mock_works_when_replacing_client(
+    aws_credentials,
+):  # pylint: disable=unused-argument
 
     logic = ImportantBusinessLogic()
 

@@ -4,22 +4,22 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_appsync
 
 schema = """type Mutation {
-	putPost(id: ID!, title: String!): Post
+    putPost(id: ID!, title: String!): Post
 }
 
 "My custom post type"
 type Post {
-	id: ID!
-	title: String!
+    id: ID!
+    title: String!
 }
 
 type Query {
-	singlePost(id: ID!): Post
+    singlePost(id: ID!): Post
 }
 
 schema {
-	query: Query
-	mutation: Mutation
+    query: Query
+    mutation: Mutation
 
 }"""
 

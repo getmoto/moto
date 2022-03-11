@@ -661,7 +661,7 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
 
     destination_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        route = route_table.create_route(
+        route_table.create_route(
             DestinationCidrBlock=destination_cidr_block, GatewayId=internet_gateway.id
         )
     str(ex.value).should.equal(
