@@ -527,9 +527,7 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
 
 
 @mock_eks
-def test_create_nodegroup_throws_exception_when_cluster_not_active(
-    NodegroupBuilder, monkeypatch
-):
+def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuilder):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = NodegroupBuilder(BatchCountSize.SMALL)
@@ -977,7 +975,7 @@ def test_create_fargate_profile_throws_exception_when_fargate_profile_already_ex
 
 @mock_eks
 def test_create_fargate_profile_throws_exception_when_cluster_not_active(
-    FargateProfileBuilder, monkeypatch
+    FargateProfileBuilder,
 ):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch Cluster attributes in server mode.")

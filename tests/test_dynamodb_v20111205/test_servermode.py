@@ -8,7 +8,7 @@ from uuid import uuid4
 
 """
 Test the different server responses
-Docs: 
+Docs:
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Appendix.APIv20111205.html
 """
 

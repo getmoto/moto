@@ -39,7 +39,7 @@ def test_describe_applications():
 def test_create_environment():
     # Create Elastic Beanstalk Environment
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
-    app = conn.create_application(ApplicationName="myapp")
+    conn.create_application(ApplicationName="myapp")
     env = conn.create_environment(ApplicationName="myapp", EnvironmentName="myenv")
     env["EnvironmentName"].should.equal("myenv")
     env["EnvironmentArn"].should.contain("myapp/myenv")

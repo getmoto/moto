@@ -242,7 +242,7 @@ class MockRawResponse(BytesIO):
             response_input = response_input.encode("utf-8")
         super().__init__(response_input)
 
-    def stream(self, **kwargs):
+    def stream(self, **kwargs):  # pylint: disable=unused-argument
         contents = self.read()
         while contents:
             yield contents
@@ -335,7 +335,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
         botocore_stubber.reset()
         reset_responses_mock(responses_mock)
 
-    def enable_patching(self, reset=True):
+    def enable_patching(self, reset=True):  # pylint: disable=unused-argument
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
             for backend in self.backends_for_urls.values():
@@ -482,7 +482,7 @@ class InstanceTrackerMeta(type):
 
 
 class BaseModel(metaclass=InstanceTrackerMeta):
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
         return instance

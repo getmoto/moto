@@ -41,7 +41,7 @@ def aws_credentials():
 
 
 @pytest.fixture(scope="function")
-def efs(aws_credentials):
+def efs(aws_credentials):  # pylint: disable=unused-argument
     with mock_efs():
         yield boto3.client("efs", region_name="us-east-1")
 
@@ -68,7 +68,7 @@ def test_create_file_system_correct_use(efs):
     assert create_fs_resp["Tags"][0] == {"Key": "Name", "Value": "Test EFS Container"}
     assert create_fs_resp["ThroughputMode"] == "bursting"
     assert create_fs_resp["PerformanceMode"] == "generalPurpose"
-    assert create_fs_resp["Encrypted"] == False
+    assert create_fs_resp["Encrypted"] is False
     assert create_fs_resp["NumberOfMountTargets"] == 0
     for key_name in ["Value", "ValueInIA", "ValueInStandard"]:
         assert key_name in create_fs_resp["SizeInBytes"]

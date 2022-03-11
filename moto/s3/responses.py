@@ -135,7 +135,7 @@ def parse_key_name(pth):
     return pth[1:] if pth.startswith("/") else pth
 
 
-def is_delete_keys(request, path, bucket_name):
+def is_delete_keys(request, path):
     # GOlang sends a request as url/?delete= (treating it as a normal key=value, even if the value is empty)
     # Python sends a request as url/?delete (treating it as a flag)
     # https://github.com/spulec/moto/issues/2937
@@ -222,7 +222,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def is_delete_keys(self, request, path, bucket_name):
         if self.subdomain_based_buckets(request):
-            return is_delete_keys(request, path, bucket_name)
+            return is_delete_keys(request, path)
         else:
             return bucketpath_is_delete_keys(request, path, bucket_name)
 
@@ -248,7 +248,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self.bucket_response(request, full_url, headers)
 
     @amzn_request_id
-    def bucket_response(self, request, full_url, headers):
+    def bucket_response(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         self.method = request.method
         self.path = self._get_path(request)
         # Make a copy of request.headers because it's immutable
@@ -256,7 +258,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if "Host" not in self.headers:
             self.headers["Host"] = urlparse(full_url).netloc
         try:
-            response = self._bucket_response(request, full_url, headers)
+            response = self._bucket_response(request, full_url)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
@@ -273,7 +275,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
             return status_code, headers, response_content
 
-    def _bucket_response(self, request, full_url, headers):
+    def _bucket_response(self, request, full_url):
         querystring = self._get_querystring(full_url)
         method = request.method
         region_name = parse_region_from_url(full_url)
@@ -306,7 +308,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 request, body, region_name, bucket_name, querystring
             )
         elif method == "DELETE":
-            return self._bucket_response_delete(body, bucket_name, querystring)
+            return self._bucket_response_delete(bucket_name, querystring)
         elif method == "POST":
             return self._bucket_response_post(request, body, bucket_name)
         elif method == "OPTIONS":
@@ -513,11 +515,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         elif "versions" in querystring:
             delimiter = querystring.get("delimiter", [None])[0]
-            encoding_type = querystring.get("encoding-type", [None])[0]
             key_marker = querystring.get("key-marker", [None])[0]
-            max_keys = querystring.get("max-keys", [None])[0]
             prefix = querystring.get("prefix", [""])[0]
-            version_id_marker = querystring.get("version-id-marker", [None])[0]
 
             bucket = self.backend.get_bucket(bucket_name)
             (
@@ -525,13 +524,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 common_prefixes,
                 delete_markers,
             ) = self.backend.list_object_versions(
-                bucket_name,
-                delimiter=delimiter,
-                encoding_type=encoding_type,
-                key_marker=key_marker,
-                max_keys=max_keys,
-                version_id_marker=version_id_marker,
-                prefix=prefix,
+                bucket_name, delimiter=delimiter, key_marker=key_marker, prefix=prefix
             )
             key_list = versions
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
@@ -894,12 +887,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_CREATE_RESPONSE)
             return 200, {}, template.render(bucket=new_bucket)
 
-    def _bucket_response_delete(self, body, bucket_name, querystring):
+    def _bucket_response_delete(self, bucket_name, querystring):
         self._set_action("BUCKET", "DELETE", querystring)
         self._authenticate_and_authorize_s3_action()
 
         if "policy" in querystring:
-            self.backend.delete_bucket_policy(bucket_name, body)
+            self.backend.delete_bucket_policy(bucket_name)
             return 204, {}, ""
         elif "tagging" in querystring:
             self.backend.delete_bucket_tagging(bucket_name)
@@ -945,7 +938,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.data["Action"] = "DeleteObject"
             self._authenticate_and_authorize_s3_action()
 
-            return self._bucket_response_delete_keys(request, body, bucket_name)
+            return self._bucket_response_delete_keys(body, bucket_name)
 
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action()
@@ -1007,7 +1000,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else path_url(request.url)
         )
 
-    def _bucket_response_delete_keys(self, request, body, bucket_name):
+    def _bucket_response_delete_keys(self, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(body, strip_whitespace=False)
 
@@ -1073,7 +1066,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return bytes(new_body)
 
     @amzn_request_id
-    def key_response(self, request, full_url, headers):
+    def key_response(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
@@ -1172,9 +1167,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 bucket_name, query, key_name, headers=request.headers
             )
         elif method == "PUT":
-            return self._key_response_put(
-                request, body, bucket_name, query, key_name, headers
-            )
+            return self._key_response_put(request, body, bucket_name, query, key_name)
         elif method == "HEAD":
             return self._key_response_head(
                 bucket_name, query, key_name, headers=request.headers
@@ -1291,7 +1284,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         response_headers.update(key.response_dict)
         return 200, response_headers, key.value
 
-    def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
+    def _key_response_put(self, request, body, bucket_name, query, key_name):
         self._set_action("KEY", "PUT", query)
         self._authenticate_and_authorize_s3_action()
 

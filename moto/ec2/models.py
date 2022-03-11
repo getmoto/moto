@@ -439,8 +439,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return self._group_set
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["PrimaryPrivateIpAddress", "SecondaryPrivateIpAddresses"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["PrimaryPrivateIpAddress", "SecondaryPrivateIpAddresses"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -902,7 +902,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def physical_resource_id(self):
         return self.id
 
-    def start(self, *args, **kwargs):
+    def start(self):
         for nic in self.nics.values():
             nic.start()
 
@@ -912,7 +912,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._reason = ""
         self._state_reason = StateReason()
 
-    def stop(self, *args, **kwargs):
+    def stop(self):
         for nic in self.nics.values():
             nic.stop()
 
@@ -927,10 +927,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown",
         )
 
-    def delete(self, region):
+    def delete(self, region):  # pylint: disable=unused-argument
         self.terminate()
 
-    def terminate(self, *args, **kwargs):
+    def terminate(self):
         for nic in self.nics.values():
             nic.stop()
 
@@ -969,7 +969,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 ].id
             )
 
-    def reboot(self, *args, **kwargs):
+    def reboot(self):
         self._state.name = "running"
         self._state.code = 16
 
@@ -1072,8 +1072,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         eni.device_index = None
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "AvailabilityZone",
             "PrivateDnsName",
             "PublicDnsName",
@@ -1734,7 +1734,6 @@ class AmiBackend(object):
         instance_id,
         name=None,
         description=None,
-        context=None,
         tag_specifications=None,
     ):
         # TODO: check that instance exists and pull info from it.
@@ -1781,9 +1780,7 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(
-        self, ami_ids=(), filters=None, exec_users=None, owners=None, context=None
-    ):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
         images = self.amis.copy().values()
 
         if len(ami_ids):
@@ -2427,7 +2424,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         if security_group:
             security_group.delete(region_name)
 
-    def delete(self, region_name):
+    def delete(self, region_name):  # pylint: disable=unused-argument
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
@@ -2599,8 +2596,8 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         return True
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["GroupId"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["GroupId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -3606,8 +3603,7 @@ class EBSBackend(object):
         if snapshot_ids:
             matches = [snap for snap in matches if snap.id in snapshot_ids]
             if len(snapshot_ids) > len(matches):
-                unknown_ids = set(snapshot_ids) - set(matches)
-                raise InvalidSnapshotIdError(unknown_ids)
+                raise InvalidSnapshotIdError()
         if filters:
             matches = generic_filter(filters, matches)
         return matches
@@ -3630,7 +3626,7 @@ class EBSBackend(object):
     def get_snapshot(self, snapshot_id):
         snapshot = self.snapshots.get(snapshot_id, None)
         if not snapshot:
-            raise InvalidSnapshotIdError(snapshot_id)
+            raise InvalidSnapshotIdError()
         return snapshot
 
     def delete_snapshot(self, snapshot_id):
@@ -3639,7 +3635,7 @@ class EBSBackend(object):
             if snapshot.from_ami and snapshot.from_ami in self.amis:
                 raise InvalidSnapshotInUse(snapshot_id, snapshot.from_ami)
             return self.snapshots.pop(snapshot_id)
-        raise InvalidSnapshotIdError(snapshot_id)
+        raise InvalidSnapshotIdError()
 
     def get_create_volume_permission_groups(self, snapshot_id):
         snapshot = self.get_snapshot(snapshot_id)
@@ -4625,8 +4621,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeSubnets")
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["AvailabilityZone"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["AvailabilityZone"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -4713,7 +4709,6 @@ class SubnetBackend(object):
         ipv6_cidr_block=None,
         availability_zone=None,
         availability_zone_id=None,
-        context=None,
         tags=None,
     ):
         subnet_id = random_subnet_id()
@@ -6032,7 +6027,7 @@ class EgressOnlyInternetGatewayBackend(object):
         self.egress_only_internet_gateway_backend[egress_only_igw.id] = egress_only_igw
         return egress_only_igw
 
-    def describe_egress_only_internet_gateways(self, ids=None, filters=None):
+    def describe_egress_only_internet_gateways(self, ids=None):
         """
         The Filters-argument is not yet supported
         """
@@ -6659,8 +6654,8 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         return self.public_ip
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["AllocationId"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["AllocationId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -7997,7 +7992,7 @@ class TransitGatewayAttachmentBackend(object):
         return transit_gateway_vpc_attachment
 
     def describe_transit_gateway_attachments(
-        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+        self, transit_gateways_attachment_ids=None, filters=None
     ):
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
@@ -8023,7 +8018,7 @@ class TransitGatewayAttachmentBackend(object):
         return result
 
     def describe_transit_gateway_vpc_attachments(
-        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+        self, transit_gateways_attachment_ids=None, filters=None
     ):
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
@@ -8131,7 +8126,7 @@ class TransitGatewayAttachmentBackend(object):
         return transit_gateway_peering_attachment
 
     def describe_transit_gateway_peering_attachments(
-        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+        self, transit_gateways_attachment_ids=None, filters=None
     ):
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 

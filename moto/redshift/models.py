@@ -212,8 +212,8 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         return cluster
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Endpoint.Address", "Endpoint.Port"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Endpoint.Address", "Endpoint.Port"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

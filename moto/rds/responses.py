@@ -432,9 +432,8 @@ class RDSResponse(BaseResponse):
                 self._get_param("OptionsToRemove.member.{0}".format(count))
             )
             count += 1
-        apply_immediately = self._get_param("ApplyImmediately")
         option_group = self.backend.modify_option_group(
-            option_group_name, options_to_include, options_to_remove, apply_immediately
+            option_group_name, options_to_include, options_to_remove
         )
         template = self.response_template(MODIFY_OPTION_GROUP_TEMPLATE)
         return template.render(option_group=option_group)

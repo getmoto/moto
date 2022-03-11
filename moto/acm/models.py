@@ -535,11 +535,13 @@ class AWSCertificateManagerBackend(BaseBackend):
     def request_certificate(
         self,
         domain_name,
-        domain_validation_options,
         idempotency_token,
         subject_alt_names,
         tags=None,
     ):
+        """
+        The parameter DomainValidationOptions has not yet been implemented
+        """
         if idempotency_token is not None:
             arn = self._get_arn_from_idempotency_token(idempotency_token)
             if arn and self._certificates[arn].tags.equals(tags):

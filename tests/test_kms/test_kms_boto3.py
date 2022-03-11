@@ -383,7 +383,7 @@ def test_disable_key():
     client.disable_key(KeyId=key["KeyMetadata"]["KeyId"])
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
-    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "Disabled"
 
 
@@ -395,7 +395,7 @@ def test_enable_key():
     client.enable_key(KeyId=key["KeyMetadata"]["KeyId"])
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
-    assert result["KeyMetadata"]["Enabled"] == True
+    assert result["KeyMetadata"]["Enabled"] is True
     assert result["KeyMetadata"]["KeyState"] == "Enabled"
 
 
@@ -416,7 +416,7 @@ def test_schedule_key_deletion():
         assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
-    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "PendingDeletion"
     assert "DeletionDate" in result["KeyMetadata"]
 
@@ -442,7 +442,7 @@ def test_schedule_key_deletion_custom():
         assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
-    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "PendingDeletion"
     assert "DeletionDate" in result["KeyMetadata"]
 
@@ -456,7 +456,7 @@ def test_cancel_key_deletion():
     assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
-    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "Disabled"
     assert "DeletionDate" not in result["KeyMetadata"]
 
@@ -1041,7 +1041,8 @@ def test__delete_alias__raises_if_alias_is_not_found():
     )
 
 
-sort = lambda l: sorted(l, key=lambda d: d.keys())
+def sort(l):
+    return sorted(l, key=lambda d: d.keys())
 
 
 def _check_tags(key_id, created_tags, client):

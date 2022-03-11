@@ -84,7 +84,7 @@ class TimestreamWriteBackend(BaseBackend):
         self.region_name = region_name
         self.databases = dict()
 
-    def create_database(self, database_name, kms_key_id, tags):
+    def create_database(self, database_name, kms_key_id):
         database = TimestreamDatabase(self.region_name, database_name, kms_key_id)
         self.databases[database_name] = database
         return database

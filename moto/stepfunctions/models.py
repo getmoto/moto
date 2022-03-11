@@ -124,8 +124,8 @@ class StateMachine(CloudFormationModel):
         return properties
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "Name",
             "DefinitionString",
             "RoleArn",

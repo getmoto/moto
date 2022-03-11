@@ -462,7 +462,6 @@ class KmsResponse(BaseResponse):
         encryption_context = self.parameters.get("EncryptionContext", {})
         number_of_bytes = self.parameters.get("NumberOfBytes")
         key_spec = self.parameters.get("KeySpec")
-        grant_tokens = self.parameters.get("GrantTokens")
 
         # Param validation
         self._validate_key_id(key_id)
@@ -499,7 +498,6 @@ class KmsResponse(BaseResponse):
             encryption_context=encryption_context,
             number_of_bytes=number_of_bytes,
             key_spec=key_spec,
-            grant_tokens=grant_tokens,
         )
 
         plaintext_response = base64.b64encode(plaintext).decode("utf-8")

@@ -131,7 +131,7 @@ class ActionTargetGroupNotFoundError(ELBClientError):
 
 
 class ListenerOrBalancerMissingError(ELBClientError):
-    def __init__(self, arn):
+    def __init__(self):
         super().__init__(
             "ValidationError",
             "You must specify either listener ARNs or a load balancer ARN",

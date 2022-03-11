@@ -1463,7 +1463,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.users[user.username] = user
         return user
 
-    def confirm_sign_up(self, client_id, username, confirmation_code):
+    def confirm_sign_up(self, client_id, username):
         user_pool = None
         for p in self.user_pools.values():
             if client_id in p.clients:
@@ -1616,7 +1616,10 @@ class CognitoIdpBackend(BaseBackend):
         else:
             raise NotAuthorizedError(access_token)
 
-    def verify_software_token(self, access_token, user_code):
+    def verify_software_token(self, access_token):
+        """
+        The parameter UserCode has not yet been implemented
+        """
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]

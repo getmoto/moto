@@ -152,7 +152,7 @@ class Integration(BaseModel, dict):
     def get_integration_response(self, status_code):
         result = self.get("integrationResponses", {}).get(status_code)
         if not result:
-            raise NoIntegrationResponseDefined(status_code)
+            raise NoIntegrationResponseDefined()
         return result
 
     def delete_integration_response(self, status_code):
@@ -597,7 +597,7 @@ class ApiKey(BaseModel, dict):
         name=None,
         description=None,
         enabled=False,
-        generateDistinctId=False,
+        generateDistinctId=False,  # pylint: disable=unused-argument
         value=None,
         stageKeys=None,
         tags=None,
@@ -605,10 +605,8 @@ class ApiKey(BaseModel, dict):
     ):
         super().__init__()
         self["id"] = create_id()
-        self["value"] = (
-            value
-            if value
-            else "".join(random.sample(string.ascii_letters + string.digits, 40))
+        self["value"] = value or "".join(
+            random.sample(string.ascii_letters + string.digits, 40)
         )
         self["name"] = name
         self["customerId"] = customerId
@@ -846,8 +844,8 @@ class RestAPI(CloudFormationModel):
                     self.description = ""
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["RootResourceId"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["RootResourceId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

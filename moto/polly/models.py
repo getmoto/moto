@@ -75,7 +75,10 @@ class PollyBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def describe_voices(self, language_code, next_token):
+    def describe_voices(self, language_code):
+        """
+        Pagination is not yet implemented
+        """
         if language_code is None:
             return VOICE_DATA
 
@@ -89,7 +92,10 @@ class PollyBackend(BaseBackend):
         # Raises KeyError
         return self._lexicons[name]
 
-    def list_lexicons(self, next_token):
+    def list_lexicons(self):
+        """
+        Pagination is not yet implemented
+        """
 
         result = []
 

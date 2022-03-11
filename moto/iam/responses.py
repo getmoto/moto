@@ -420,8 +420,8 @@ class IamResponse(BaseResponse):
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
         return template.render(certificate=cert)
 
-    def list_server_certificates(self, marker=None):
-        certs = iam_backend.get_all_server_certs(marker=marker)
+    def list_server_certificates(self):
+        certs = iam_backend.list_server_certificates()
         template = self.response_template(LIST_SERVER_CERTIFICATES_TEMPLATE)
         return template.render(server_certificates=certs)
 
@@ -475,10 +475,7 @@ class IamResponse(BaseResponse):
     def list_group_policies(self):
         group_name = self._get_param("GroupName")
         marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems")
-        policies = iam_backend.list_group_policies(
-            group_name, marker=marker, max_items=max_items
-        )
+        policies = iam_backend.list_group_policies(group_name)
         template = self.response_template(LIST_GROUP_POLICIES_TEMPLATE)
         return template.render(
             name="ListGroupPoliciesResponse", policies=policies, marker=marker
@@ -675,7 +672,7 @@ class IamResponse(BaseResponse):
             access_key = iam_backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
-        keys = iam_backend.get_all_access_keys(user_name)
+        keys = iam_backend.list_access_keys(user_name)
         template = self.response_template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
 
@@ -830,8 +827,7 @@ class IamResponse(BaseResponse):
         return template.render()
 
     def delete_account_alias(self):
-        alias = self._get_param("AccountAlias")
-        iam_backend.delete_account_alias(alias)
+        iam_backend.delete_account_alias()
         template = self.response_template(DELETE_ACCOUNT_ALIAS_TEMPLATE)
         return template.render()
 

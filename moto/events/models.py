@@ -188,7 +188,7 @@ class Rule(CloudFormationModel):
 
         logs_backends[self.region_name].create_log_stream(name, log_stream_name)
         logs_backends[self.region_name].put_log_events(
-            name, log_stream_name, log_events, None
+            name, log_stream_name, log_events
         )
 
     def _send_to_events_archive(self, resource_id, event):
@@ -223,8 +223,8 @@ class Rule(CloudFormationModel):
         )
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -342,8 +342,8 @@ class EventBus(CloudFormationModel):
         event_backend.delete_event_bus(name=self.name)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn", "Name", "Policy"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn", "Name", "Policy"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -544,8 +544,8 @@ class Archive(CloudFormationModel):
         event_backend.archives.pop(self.name)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn", "ArchiveName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn", "ArchiveName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException

@@ -750,8 +750,10 @@ class IoTBackend(BaseBackend):
         self.endpoint = FakeEndpoint(endpoint_type, self.region_name)
         return self.endpoint
 
-    def delete_thing(self, thing_name, expected_version):
-        # TODO: handle expected_version
+    def delete_thing(self, thing_name):
+        """
+        The ExpectedVersion-parameter is not yet implemented
+        """
 
         # can raise ResourceNotFoundError
         thing = self.describe_thing(thing_name)
@@ -781,9 +783,11 @@ class IoTBackend(BaseBackend):
         thing_name,
         thing_type_name,
         attribute_payload,
-        expected_version,
         remove_thing_type,
     ):
+        """
+        The ExpectedVersion-parameter is not yet implemented
+        """
         # if attributes payload = {}, nothing
         thing = self.describe_thing(thing_name)
         thing_type = None
@@ -921,10 +925,12 @@ class IoTBackend(BaseBackend):
     def register_ca_certificate(
         self,
         ca_certificate,
-        verification_certificate,
         set_as_active,
         registration_config,
     ):
+        """
+        The VerificationCertificate-parameter is not yet implemented
+        """
         certificate = FakeCaCertificate(
             ca_certificate=ca_certificate,
             status="ACTIVE" if set_as_active else "INACTIVE",
@@ -1204,7 +1210,10 @@ class IoTBackend(BaseBackend):
         self.thing_groups[thing_group.arn] = thing_group
         return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
 
-    def delete_thing_group(self, thing_group_name, expected_version):
+    def delete_thing_group(self, thing_group_name):
+        """
+        The ExpectedVersion-parameter is not yet implemented
+        """
         child_groups = [
             thing_group
             for _, thing_group in self.thing_groups.items()
@@ -1328,9 +1337,9 @@ class IoTBackend(BaseBackend):
             return
         del thing_group.things[thing.arn]
 
-    def list_things_in_thing_group(self, thing_group_name, recursive):
+    def list_things_in_thing_group(self, thing_group_name):
         """
-        The recursive-parameter is not yet implemented
+        Pagination and the recursive-parameter is not yet implemented
         """
         thing_group = self.describe_thing_group(thing_group_name)
         return thing_group.things.values()
@@ -1435,16 +1444,10 @@ class IoTBackend(BaseBackend):
     def get_job_document(self, job_id):
         return self.jobs[job_id]
 
-    def list_jobs(
-        self,
-        status,
-        target_selection,
-        max_results,
-        token,
-        thing_group_name,
-        thing_group_id,
-    ):
-        # TODO: implement filters
+    def list_jobs(self, max_results, token):
+        """
+        The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
+        """
         all_jobs = [_.to_dict() for _ in self.jobs.values()]
         filtered_jobs = all_jobs
 
@@ -1476,9 +1479,10 @@ class IoTBackend(BaseBackend):
 
         return job_execution
 
-    def cancel_job_execution(
-        self, job_id, thing_name, force, expected_version, status_details
-    ):
+    def cancel_job_execution(self, job_id, thing_name, force):
+        """
+        The parameters ExpectedVersion and StatusDetails are not yet implemented
+        """
         job_execution = self.job_executions[(job_id, thing_name)]
 
         if job_execution is None:
@@ -1607,10 +1611,12 @@ class IoTBackend(BaseBackend):
         domain_configuration_name,
         domain_name,
         server_certificate_arns,
-        validation_certificate_arn,
         authorizer_config,
         service_type,
     ):
+        """
+        The ValidationCertificateArn-parameter is not yet implemented
+        """
         if domain_configuration_name in self.domain_configurations:
             raise ResourceAlreadyExistsException(
                 "Domain configuration with given name already exists.",

@@ -98,14 +98,12 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters.get("StreamName")
         partition_key = self.parameters.get("PartitionKey")
         explicit_hash_key = self.parameters.get("ExplicitHashKey")
-        sequence_number_for_ordering = self.parameters.get("SequenceNumberForOrdering")
         data = self.parameters.get("Data")
 
         sequence_number, shard_id = self.kinesis_backend.put_record(
             stream_name,
             partition_key,
             explicit_hash_key,
-            sequence_number_for_ordering,
             data,
         )
 

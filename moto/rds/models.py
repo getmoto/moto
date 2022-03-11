@@ -619,8 +619,8 @@ class Database(CloudFormationModel):
                 setattr(self, key, value)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Endpoint.Address", "Endpoint.Port"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Endpoint.Address", "Endpoint.Port"]
 
     def get_cfn_attribute(self, attribute_name):
         # Local import to avoid circular dependency with cloudformation.parsing
@@ -1646,11 +1646,7 @@ class RDSBackend(BaseBackend):
         return default_option_group_options[engine_name]["all"]
 
     def modify_option_group(
-        self,
-        option_group_name,
-        options_to_include=None,
-        options_to_remove=None,
-        apply_immediately=None,
+        self, option_group_name, options_to_include=None, options_to_remove=None
     ):
         if option_group_name not in self.option_groups:
             raise OptionGroupNotFoundFaultError(option_group_name)
@@ -2094,12 +2090,12 @@ class OptionGroup(object):
         )
         return template.render(option_group=self)
 
-    def remove_options(self, options_to_remove):
+    def remove_options(self, options_to_remove):  # pylint: disable=unused-argument
         # TODO: Check for option in self.options and remove if exists. Raise
         # error otherwise
         return
 
-    def add_options(self, options_to_add):
+    def add_options(self, options_to_add):  # pylint: disable=unused-argument
         # TODO: Validate option and add it to self.options. If invalid raise
         # error
         return

@@ -17,7 +17,7 @@ init:
 
 lint:
 	@echo "Running flake8..."
-	flake8 moto
+	flake8 moto tests
 	@echo "Running black... "
 	@echo "(Make sure you have black-22.1.0 installed, as other versions will produce different results)"
 	black --check moto/ tests/

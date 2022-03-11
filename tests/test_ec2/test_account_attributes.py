@@ -1,6 +1,6 @@
 import boto3
 from moto import mock_ec2
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_ec2

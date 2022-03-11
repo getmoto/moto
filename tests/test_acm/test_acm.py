@@ -16,13 +16,18 @@ from unittest import SkipTest, mock
 
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
-_GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), "rb").read()
-CA_CRT = _GET_RESOURCE("ca.pem")
-CA_KEY = _GET_RESOURCE("ca.key")
-SERVER_CRT = _GET_RESOURCE("star_moto_com.pem")
+
+
+def get_resource(filename):
+    return open(os.path.join(RESOURCE_FOLDER, filename), "rb").read()
+
+
+CA_CRT = get_resource("ca.pem")
+CA_KEY = get_resource("ca.key")
+SERVER_CRT = get_resource("star_moto_com.pem")
 SERVER_COMMON_NAME = "*.moto.com"
-SERVER_CRT_BAD = _GET_RESOURCE("star_moto_com-bad.pem")
-SERVER_KEY = _GET_RESOURCE("star_moto_com.key")
+SERVER_CRT_BAD = get_resource("star_moto_com-bad.pem")
+SERVER_KEY = get_resource("star_moto_com.key")
 BAD_ARN = f"arn:aws:acm:us-east-2:{ACCOUNT_ID}:certificate/_0000000-0000-0000-0000-000000000000"
 
 

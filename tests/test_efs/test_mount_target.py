@@ -47,13 +47,13 @@ def aws_credentials():
 
 
 @pytest.fixture(scope="function")
-def ec2(aws_credentials):
+def ec2(aws_credentials):  # pylint: disable=unused-argument
     with mock_ec2():
         yield boto3.client("ec2", region_name="us-east-1")
 
 
 @pytest.fixture(scope="function")
-def efs(aws_credentials):
+def efs(aws_credentials):  # pylint: disable=unused-argument
     with mock_efs():
         yield boto3.client("efs", region_name="us-east-1")
 
@@ -254,7 +254,9 @@ def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, sub
     assert "SecurityGroupLimitExceeded" in resp["Error"]["Message"]
 
 
-def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):
+def test_delete_file_system_mount_targets_attached(
+    efs, ec2, file_system, subnet
+):  # pylint: disable=unused-argument
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
@@ -265,7 +267,9 @@ def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet
     assert "FileSystemInUse" in resp["Error"]["Message"]
 
 
-def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):
+def test_describe_mount_targets_minimal_case(
+    efs, ec2, file_system, subnet
+):  # pylint: disable=unused-argument
     create_resp = efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
@@ -383,7 +387,7 @@ def test_delete_mount_target_minimal_case(efs, file_system, subnet):
     assert len(desc_resp["MountTargets"]) == 0
 
 
-def test_delete_mount_target_invalid_mount_target_id(efs, file_system, subnet):
+def test_delete_mount_target_invalid_mount_target_id(efs):
     with pytest.raises(ClientError) as exc_info:
         efs.delete_mount_target(MountTargetId="fsmt-98487aef0a7")
     resp = exc_info.value.response

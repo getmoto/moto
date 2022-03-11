@@ -31,12 +31,10 @@ class TransitGatewayAttachment(BaseResponse):
             "TransitGatewayAttachmentIds"
         )
         filters = filters_from_querystring(self.querystring)
-        max_results = self._get_param("MaxResults")
         transit_gateway_vpc_attachments = (
             self.ec2_backend.describe_transit_gateway_vpc_attachments(
                 transit_gateways_attachment_ids=transit_gateways_attachment_ids,
                 filters=filters,
-                max_results=max_results,
             )
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS)
@@ -66,12 +64,10 @@ class TransitGatewayAttachment(BaseResponse):
             "TransitGatewayAttachmentIds"
         )
         filters = filters_from_querystring(self.querystring)
-        max_results = self._get_param("MaxResults")
         transit_gateway_attachments = (
             self.ec2_backend.describe_transit_gateway_attachments(
                 transit_gateways_attachment_ids=transit_gateways_attachment_ids,
                 filters=filters,
-                max_results=max_results,
             )
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS)
@@ -159,12 +155,10 @@ class TransitGatewayAttachment(BaseResponse):
             "TransitGatewayAttachmentIds"
         )
         filters = filters_from_querystring(self.querystring)
-        max_results = self._get_param("MaxResults")
         transit_gateway_peering_attachments = (
             self.ec2_backend.describe_transit_gateway_peering_attachments(
                 transit_gateways_attachment_ids=transit_gateways_attachment_ids,
                 filters=filters,
-                max_results=max_results,
             )
         )
         template = self.response_template(DESCRIBE_TRANSIT_GATEWAY_PEERING_ATTACHMENTS)

@@ -51,14 +51,14 @@ def test_get_key_beginning_with():
     store["/b/c/d"] = "some other object"
     store["/a/c/d"] = "some third object"
 
-    l = list(store.get_keys_beginning_with("/a/b", recursive=False))
-    l.should.equal(["/a/b/c"])
+    begins_with_ab = list(store.get_keys_beginning_with("/a/b", recursive=False))
+    begins_with_ab.should.equal(["/a/b/c"])
 
-    l = list(store.get_keys_beginning_with("/a", recursive=False))
-    l.should.equal([])
+    begins_with_a = list(store.get_keys_beginning_with("/a", recursive=False))
+    begins_with_a.should.equal([])
 
-    l = list(store.get_keys_beginning_with("/a", recursive=True))
-    set(l).should.equal({"/a/b/c", "/a/c/d"})
+    begins_with_a_recursive = list(store.get_keys_beginning_with("/a", recursive=True))
+    set(begins_with_a_recursive).should.equal({"/a/b/c", "/a/c/d"})
 
 
 def test_get_key_beginning_with_aws():

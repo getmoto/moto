@@ -19,8 +19,6 @@ class MediaLiveResponse(BaseResponse):
         input_specification = self._get_param("inputSpecification")
         log_level = self._get_param("logLevel")
         name = self._get_param("name")
-        request_id = self._get_param("requestId")
-        reserved = self._get_param("reserved")
         role_arn = self._get_param("roleArn")
         tags = self._get_param("tags")
         channel = self.medialive_backend.create_channel(
@@ -32,8 +30,6 @@ class MediaLiveResponse(BaseResponse):
             input_specification=input_specification,
             log_level=log_level,
             name=name,
-            request_id=request_id,
-            reserved=reserved,
             role_arn=role_arn,
             tags=tags,
         )
@@ -98,24 +94,20 @@ class MediaLiveResponse(BaseResponse):
         input_security_groups = self._get_param("inputSecurityGroups")
         media_connect_flows = self._get_param("mediaConnectFlows")
         name = self._get_param("name")
-        request_id = self._get_param("requestId")
         role_arn = self._get_param("roleArn")
         sources = self._get_param("sources")
         tags = self._get_param("tags")
         input_type = self._get_param("type")
-        vpc = self._get_param("vpc")
         a_input = self.medialive_backend.create_input(
             destinations=destinations,
             input_devices=input_devices,
             input_security_groups=input_security_groups,
             media_connect_flows=media_connect_flows,
             name=name,
-            request_id=request_id,
             role_arn=role_arn,
             sources=sources,
             tags=tags,
             input_type=input_type,
-            vpc=vpc,
         )
         return json.dumps({"input": a_input.to_dict()})
 

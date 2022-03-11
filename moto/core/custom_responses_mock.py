@@ -86,7 +86,7 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-def not_implemented_callback(request):
+def not_implemented_callback(request):  # pylint: disable=unused-argument
     status = 400
     headers = {}
     response = "The method is not implemented"

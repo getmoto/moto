@@ -811,7 +811,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
 
 class MotoAPIResponse(BaseResponse):
-    def reset_response(self, request, full_url, headers):
+    def reset_response(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         if request.method == "POST":
             from .models import moto_api_backend
 
@@ -819,7 +821,9 @@ class MotoAPIResponse(BaseResponse):
             return 200, {}, json.dumps({"status": "ok"})
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
 
-    def reset_auth_response(self, request, full_url, headers):
+    def reset_auth_response(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         if request.method == "POST":
             previous_initial_no_auth_action_count = (
                 settings.INITIAL_NO_AUTH_ACTION_COUNT
@@ -840,7 +844,7 @@ class MotoAPIResponse(BaseResponse):
             )
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto Auth"})
 
-    def model_data(self, request, full_url, headers):
+    def model_data(self, request, full_url, headers):  # pylint: disable=unused-argument
         from moto.core.models import model_data
 
         results = {}
@@ -863,7 +867,7 @@ class MotoAPIResponse(BaseResponse):
                     results[service][name].append(inst_result)
         return 200, {"Content-Type": "application/javascript"}, json.dumps(results)
 
-    def dashboard(self, request, full_url, headers):
+    def dashboard(self, request, full_url, headers):  # pylint: disable=unused-argument
         from flask import render_template
 
         return render_template("dashboard.html")

@@ -20,24 +20,18 @@ class SimpleDBResponse(BaseResponse):
         return template.render()
 
     def list_domains(self):
-        max_number_of_domains = self._get_int_param("MaxNumberOfDomains")
-        next_token = self._get_param("NextToken")
-        domain_names, next_token = self.sdb_backend.list_domains(
-            max_number_of_domains=max_number_of_domains, next_token=next_token
-        )
+        domain_names = self.sdb_backend.list_domains()
         template = self.response_template(LIST_DOMAINS_TEMPLATE)
-        return template.render(domain_names=domain_names, next_token=next_token)
+        return template.render(domain_names=domain_names, next_token=None)
 
     def get_attributes(self):
         domain_name = self._get_param("DomainName")
         item_name = self._get_param("ItemName")
         attribute_names = self._get_multi_param("AttributeName.")
-        consistent_read = self._get_param("ConsistentRead")
         attributes = self.sdb_backend.get_attributes(
             domain_name=domain_name,
             item_name=item_name,
             attribute_names=attribute_names,
-            consistent_read=consistent_read,
         )
         template = self.response_template(GET_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
@@ -46,12 +40,8 @@ class SimpleDBResponse(BaseResponse):
         domain_name = self._get_param("DomainName")
         item_name = self._get_param("ItemName")
         attributes = self._get_list_prefix("Attribute")
-        expected = self._get_param("Expected")
         self.sdb_backend.put_attributes(
-            domain_name=domain_name,
-            item_name=item_name,
-            attributes=attributes,
-            expected=expected,
+            domain_name=domain_name, item_name=item_name, attributes=attributes
         )
         template = self.response_template(PUT_ATTRIBUTES_TEMPLATE)
         return template.render()

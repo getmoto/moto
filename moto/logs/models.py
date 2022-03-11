@@ -105,9 +105,7 @@ class LogStream(BaseModel):
             res.update(rest)
         return res
 
-    def put_log_events(
-        self, log_group_name, log_stream_name, log_events, sequence_token
-    ):
+    def put_log_events(self, log_group_name, log_stream_name, log_events):
         # TODO: ensure sequence_token
         # TODO: to be thread safe this would need a lock
         self.last_ingestion_time = int(unix_time_millis())
@@ -160,8 +158,6 @@ class LogStream(BaseModel):
 
     def get_log_events(
         self,
-        log_group_name,
-        log_stream_name,
         start_time,
         end_time,
         limit,
@@ -238,17 +234,7 @@ class LogStream(BaseModel):
             "f/{:056d}".format(end_index),
         )
 
-    def filter_log_events(
-        self,
-        log_group_name,
-        log_stream_names,
-        start_time,
-        end_time,
-        limit,
-        next_token,
-        filter_pattern,
-        interleaved,
-    ):
+    def filter_log_events(self, start_time, end_time, filter_pattern):
         if filter_pattern:
             raise NotImplementedError("filter_pattern is not yet implemented")
 
@@ -375,19 +361,14 @@ class LogGroup(CloudFormationModel):
 
         return log_streams_page, new_token
 
-    def put_log_events(
-        self, log_group_name, log_stream_name, log_events, sequence_token
-    ):
+    def put_log_events(self, log_group_name, log_stream_name, log_events):
         if log_stream_name not in self.streams:
             raise ResourceNotFoundException("The specified log stream does not exist.")
         stream = self.streams[log_stream_name]
-        return stream.put_log_events(
-            log_group_name, log_stream_name, log_events, sequence_token
-        )
+        return stream.put_log_events(log_group_name, log_stream_name, log_events)
 
     def get_log_events(
         self,
-        log_group_name,
         log_stream_name,
         start_time,
         end_time,
@@ -399,8 +380,6 @@ class LogGroup(CloudFormationModel):
             raise ResourceNotFoundException()
         stream = self.streams[log_stream_name]
         return stream.get_log_events(
-            log_group_name,
-            log_stream_name,
             start_time,
             end_time,
             limit,
@@ -429,16 +408,7 @@ class LogGroup(CloudFormationModel):
 
         events = []
         for stream in streams:
-            events += stream.filter_log_events(
-                log_group_name,
-                log_stream_names,
-                start_time,
-                end_time,
-                limit,
-                next_token,
-                filter_pattern,
-                interleaved,
-            )
+            events += stream.filter_log_events(start_time, end_time, filter_pattern)
 
         if interleaved:
             events = sorted(events, key=lambda event: event["timestamp"])
@@ -728,10 +698,10 @@ class LogsBackend(BaseBackend):
             order_by=order_by,
         )
 
-    def put_log_events(
-        self, log_group_name, log_stream_name, log_events, sequence_token
-    ):
-        # TODO: add support for sequence_tokens
+    def put_log_events(self, log_group_name, log_stream_name, log_events):
+        """
+        The SequenceToken-parameter is not yet implemented
+        """
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
@@ -756,7 +726,7 @@ class LogsBackend(BaseBackend):
             last_timestamp = event["timestamp"]
 
         token = log_group.put_log_events(
-            log_group_name, log_stream_name, allowed_events, sequence_token
+            log_group_name, log_stream_name, allowed_events
         )
         return token, rejected_info
 
@@ -780,13 +750,7 @@ class LogsBackend(BaseBackend):
             )
         log_group = self.groups[log_group_name]
         return log_group.get_log_events(
-            log_group_name,
-            log_stream_name,
-            start_time,
-            end_time,
-            limit,
-            next_token,
-            start_from_head,
+            log_stream_name, start_time, end_time, limit, next_token, start_from_head
         )
 
     def filter_log_events(
@@ -977,17 +941,7 @@ class LogsBackend(BaseBackend):
         self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
         return query_id
 
-    def create_export_task(
-        self,
-        *,
-        task_name,
-        log_group_name,
-        log_stream_name_prefix,
-        fromTime,
-        to,
-        destination,
-        destination_prefix,
-    ):
+    def create_export_task(self, log_group_name, destination):
         s3_backend.get_bucket(destination)
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()

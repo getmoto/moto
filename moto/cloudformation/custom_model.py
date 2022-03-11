@@ -85,7 +85,7 @@ class CustomModel(CloudFormationModel):
         return custom_resource
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
+    def has_cfn_attr(cls, attr):  # pylint: disable=unused-argument
         # We don't know which attributes are supported for third-party resources
         return True
 

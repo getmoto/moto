@@ -23,8 +23,8 @@ class AWSCertificateManagerResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def add_tags_to_certificate(self):
         arn = self._get_param("CertificateArn")
@@ -205,9 +205,6 @@ class AWSCertificateManagerResponse(BaseResponse):
 
     def request_certificate(self):
         domain_name = self._get_param("DomainName")
-        domain_validation_options = self._get_param(
-            "DomainValidationOptions"
-        )  # is ignored atm
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
         tags = self._get_param("Tags")  # Optional
@@ -225,7 +222,6 @@ class AWSCertificateManagerResponse(BaseResponse):
         try:
             arn = self.acm_backend.request_certificate(
                 domain_name,
-                domain_validation_options,
                 idempotency_token,
                 subject_alt_names,
                 tags,

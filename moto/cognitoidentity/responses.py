@@ -31,7 +31,6 @@ class CognitoIdentityResponse(BaseResponse):
         pool_id = self._get_param("IdentityPoolId")
         pool_name = self._get_param("IdentityPoolName")
         allow_unauthenticated = self._get_bool_param("AllowUnauthenticatedIdentities")
-        allow_classic = self._get_bool_param("AllowClassicFlow")
         login_providers = self._get_param("SupportedLoginProviders")
         provider_name = self._get_param("DeveloperProviderName")
         provider_arns = self._get_param("OpenIdConnectProviderARNs")
@@ -43,7 +42,6 @@ class CognitoIdentityResponse(BaseResponse):
             identity_pool_id=pool_id,
             identity_pool_name=pool_name,
             allow_unauthenticated=allow_unauthenticated,
-            allow_classic=allow_classic,
             login_providers=login_providers,
             provider_name=provider_name,
             provider_arns=provider_arns,

@@ -1109,8 +1109,8 @@ class FakeBucket(CloudFormationModel):
         self.accelerate_configuration = accelerate_config
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "Arn",
             "DomainName",
             "DualStackDomainName",
@@ -1464,14 +1464,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return self.get_bucket(bucket_name).encryption
 
     def list_object_versions(
-        self,
-        bucket_name,
-        delimiter=None,
-        encoding_type=None,
-        key_marker=None,
-        max_keys=None,
-        version_id_marker=None,
-        prefix="",
+        self, bucket_name, delimiter=None, key_marker=None, prefix=""
     ):
         bucket = self.get_bucket(bucket_name)
 
@@ -1521,7 +1514,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_policy(self, bucket_name, policy):
         self.get_bucket(bucket_name).policy = policy
 
-    def delete_bucket_policy(self, bucket_name, body):
+    def delete_bucket_policy(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         bucket.policy = None
 

@@ -1,7 +1,7 @@
 import boto3
 import json
 import yaml
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 from botocore.exceptions import ClientError

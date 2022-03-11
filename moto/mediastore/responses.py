@@ -28,11 +28,7 @@ class MediaStoreResponse(BaseResponse):
         return json.dumps(dict(Container=container.to_dict()))
 
     def list_containers(self):
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-        containers, next_token = self.mediastore_backend.list_containers(
-            next_token=next_token, max_results=max_results
-        )
+        containers, next_token = self.mediastore_backend.list_containers()
         return json.dumps(dict(dict(Containers=containers), NextToken=next_token))
 
     def list_tags_for_resource(self):

@@ -6,7 +6,7 @@ from moto.core.utils import BackendDict
 
 
 class Input(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.attached_channels = kwargs.get("attached_channels", [])
         self.destinations = kwargs.get("destinations", [])
@@ -54,7 +54,7 @@ class Input(BaseModel):
 
 
 class Channel(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.arn = kwargs.get("arn")
         self.cdi_input_specification = kwargs.get("cdi_input_specification")
         self.channel_class = kwargs.get("channel_class", "STANDARD")
@@ -134,11 +134,12 @@ class MediaLiveBackend(BaseBackend):
         input_specification,
         log_level,
         name,
-        request_id,
-        reserved,
         role_arn,
         tags,
     ):
+        """
+        The RequestID and Reserved parameters are not yet implemented
+        """
         channel_id = uuid4().hex
         arn = "arn:aws:medialive:channel:{}".format(channel_id)
         channel = Channel(
@@ -225,13 +226,14 @@ class MediaLiveBackend(BaseBackend):
         input_security_groups,
         media_connect_flows,
         name,
-        request_id,
         role_arn,
         sources,
         tags,
         input_type,
-        vpc,
     ):
+        """
+        The VPC and RequestId parameters are not yet implemented
+        """
         input_id = uuid4().hex
         arn = "arn:aws:medialive:input:{}".format(input_id)
         a_input = Input(

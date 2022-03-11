@@ -7,7 +7,7 @@ from moto.dynamodb_v20111205 import dynamodb_backends
 
 """
 Test the different server responses
-Docs: 
+Docs:
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Appendix.APIv20111205.html
 """
 

@@ -1,5 +1,5 @@
 from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, add_tag_specification
+from moto.ec2.utils import add_tag_specification
 
 
 class EgressOnlyInternetGateway(BaseResponse):
@@ -16,9 +16,8 @@ class EgressOnlyInternetGateway(BaseResponse):
 
     def describe_egress_only_internet_gateways(self):
         egress_only_igw_ids = self._get_multi_param("EgressOnlyInternetGatewayId")
-        filters = filters_from_querystring(self.querystring)
         egress_only_igws = self.ec2_backend.describe_egress_only_internet_gateways(
-            egress_only_igw_ids, filters
+            egress_only_igw_ids
         )
         template = self.response_template(DESCRIBE_EGRESS_ONLY_IGW_RESPONSE)
         return template.render(egress_only_igws=egress_only_igws)

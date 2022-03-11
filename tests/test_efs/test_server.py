@@ -21,13 +21,13 @@ def aws_credentials():
 
 
 @pytest.fixture(scope="function")
-def efs_client(aws_credentials):
+def efs_client(aws_credentials):  # pylint: disable=unused-argument
     with mock_efs():
         yield server.create_backend_app("efs").test_client()
 
 
 @pytest.fixture(scope="function")
-def subnet_id(aws_credentials):
+def subnet_id(aws_credentials):  # pylint: disable=unused-argument
     with mock_ec2():
         ec2_client = server.create_backend_app("ec2").test_client()
         resp = ec2_client.get("/?Action=DescribeSubnets")

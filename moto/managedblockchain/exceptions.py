@@ -17,12 +17,12 @@ def exception_handler(f):
 class ManagedBlockchainClientError(HTTPException):
     code = 400
 
-    def __init__(self, error_type, message, **kwargs):
+    def __init__(self, error_type, message):
         self.error_type = error_type
         self.message = message
         self.description = json.dumps({"message": self.message})
 
-    def get_headers(self, *args, **kwargs):
+    def get_headers(self, *args, **kwargs):  # pylint: disable=unused-argument
         return [
             ("Content-Type", "application/json"),
             ("x-amzn-ErrorType", self.error_type),
@@ -32,7 +32,7 @@ class ManagedBlockchainClientError(HTTPException):
     def response(self):
         return self.get_body()
 
-    def get_body(self, *args, **kwargs):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         return self.description
 
 

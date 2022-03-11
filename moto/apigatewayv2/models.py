@@ -996,16 +996,13 @@ class ApiGatewayV2Backend(BaseBackend):
         self,
         api_key_selection_expression,
         cors_configuration,
-        credentials_arn,
         description,
         disable_schema_validation,
         disable_execute_api_endpoint,
         name,
         protocol_type,
-        route_key,
         route_selection_expression,
         tags,
-        target,
         version,
     ):
         """
