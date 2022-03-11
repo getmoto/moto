@@ -1,10 +1,10 @@
 import unittest
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 import socket
 
 
 class TestSocketPair(unittest.TestCase):
-    @mock_dynamodb2
+    @mock_dynamodb
     def test_socket_pair(self):
         a, b = socket.socketpair()
         self.assertIsNotNone(a)

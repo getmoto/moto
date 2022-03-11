@@ -4,12 +4,12 @@ import boto3
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
-from moto import mock_dynamodb2
+from moto import mock_dynamodb
 from botocore.exceptions import ClientError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_item_add_long_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -50,7 +50,7 @@ def test_item_add_long_string_hash_key_exception():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_item_add_long_string_nonascii_hash_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -97,7 +97,7 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_item_add_long_string_range_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -144,7 +144,7 @@ def test_item_add_long_string_range_key_exception():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_put_long_string_gsi_range_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -213,7 +213,7 @@ def test_put_long_string_gsi_range_key_exception():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_item_with_long_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -253,7 +253,7 @@ def test_update_item_with_long_string_hash_key_exception():
     )
 
 
-@mock_dynamodb2
+@mock_dynamodb
 def test_update_item_with_long_string_range_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")

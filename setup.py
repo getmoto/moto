@@ -102,7 +102,8 @@ extras_per_service.update(
 )
 
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
-extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
+extras_per_service["dynamodb"] = extras_per_service["awslambda"]
+extras_per_service["dynamodb2"] = extras_per_service["dynamodb"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
