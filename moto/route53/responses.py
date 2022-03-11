@@ -40,14 +40,17 @@ class Route53(BaseResponse):
             if "HostedZoneConfig" in zone_request:
                 zone_config = zone_request["HostedZoneConfig"]
                 comment = zone_config["Comment"]
-                private_zone = zone_config.get("PrivateZone", False)
+                if zone_request["VPC"].get("VPCId", None):
+                    private_zone = True
+                else:
+                    private_zone = zone_config.get("PrivateZone", False)
             else:
                 comment = None
                 private_zone = False
 
             # It is possible to create a Private Hosted Zone without
             # associating VPC at the time of creation.
-            if private_zone == "true":
+            if private_zone == "true" or private_zone is True:
                 if zone_request.get("VPC", None) is not None:
                     vpcid = zone_request["VPC"].get("VPCId", None)
                     vpcregion = zone_request["VPC"].get("VPCRegion", None)
@@ -500,7 +503,7 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
-        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
    <DelegationSet>
@@ -527,7 +530,7 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
-        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
    <DelegationSet>
@@ -552,7 +555,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
             {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
@@ -574,7 +577,7 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
             {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
