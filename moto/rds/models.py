@@ -912,7 +912,7 @@ class ExportTask(BaseModel):
         self.s3_prefix = kwargs.get("s3_prefix", "")
         self.export_only = kwargs.get("export_only", [])
 
-        self.status = "available"
+        self.status = "complete"
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     def to_xml(self):
@@ -956,7 +956,7 @@ class EventSubscription(BaseModel):
 
         self.region = ""
         self.customer_aws_id = copy.copy(ACCOUNT_ID)
-        self.status = "available"
+        self.status = "active"
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
