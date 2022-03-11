@@ -43,3 +43,10 @@ class UnknownPolicyException(LambdaClientError):
             "ResourceNotFoundException",
             "No policy is associated with the given resource.",
         )
+
+
+class UnknownFunctionException(LambdaClientError):
+    code = 404
+
+    def __init__(self, arn):
+        super().__init__("ResourceNotFoundException", f"Function not found: {arn}")

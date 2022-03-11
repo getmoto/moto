@@ -36,6 +36,7 @@ from .exceptions import (
     CrossAccountNotAllowed,
     InvalidRoleFormat,
     InvalidParameterValueException,
+    UnknownFunctionException,
 )
 from .utils import (
     make_function_arn,
@@ -932,10 +933,11 @@ class LambdaVersion(CloudFormationModel):
 
 
 class LambdaStorage(object):
-    def __init__(self):
+    def __init__(self, region_name):
         # Format 'func_name' {'alias': {}, 'versions': []}
         self._functions = {}
         self._arns = weakref.WeakValueDictionary()
+        self.region_name = region_name
 
     def _get_latest(self, name):
         return self._functions[name]["latest"]
@@ -1011,6 +1013,12 @@ class LambdaStorage(object):
 
     def publish_function(self, name_or_arn, description=""):
         function = self.get_function_by_name_or_arn(name_or_arn)
+        if not function:
+            if name_or_arn.startswith("arn:aws"):
+                arn = name_or_arn
+            else:
+                arn = make_function_arn(self.region_name, ACCOUNT_ID, name_or_arn)
+            raise UnknownFunctionException(arn)
         name = function.function_name
         if name not in self._functions:
             return None
@@ -1180,7 +1188,7 @@ class LambdaBackend(BaseBackend):
     """
 
     def __init__(self, region_name):
-        self._lambdas = LambdaStorage()
+        self._lambdas = LambdaStorage(region_name)
         self._event_source_mappings = {}
         self._layers = LayerStorage()
         self.region_name = region_name

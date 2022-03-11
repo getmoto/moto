@@ -95,6 +95,7 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    @error_handler
     def versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -324,7 +325,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _publish_function(self):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.split("/")[-2])
         description = self._get_param("Description")
 
         fn = self.lambda_backend.publish_function(function_name, description)

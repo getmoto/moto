@@ -487,6 +487,25 @@ def test_delete_unknown_function():
 
 
 @mock_lambda
+@pytest.mark.parametrize(
+    "name",
+    [
+        "bad_function_name",
+        f"arn:aws:lambda:eu-west-1:{ACCOUNT_ID}:function:bad_function_name",
+    ],
+)
+def test_publish_version_unknown_function(name):
+    client = boto3.client("lambda", "eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.publish_version(FunctionName=name, Description="v2")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal(
+        f"Function not found: arn:aws:lambda:eu-west-1:{ACCOUNT_ID}:function:bad_function_name"
+    )
+
+
+@mock_lambda
 @mock_s3
 def test_publish():
     bucket_name = str(uuid4())
