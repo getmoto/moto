@@ -1,26 +1,14 @@
 """Handles Route53 API requests, invokes method and returns response."""
-from functools import wraps
 from urllib.parse import parse_qs, urlparse
 
 from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch
+from moto.route53.exceptions import InvalidChangeBatch
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Route53ClientError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class Route53(BaseResponse):
@@ -36,7 +24,6 @@ class Route53(BaseResponse):
 
         return False
 
-    @error_handler
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -115,7 +102,6 @@ class Route53(BaseResponse):
         template = Template(GET_HOSTED_ZONE_COUNT_RESPONSE)
         return 200, headers, template.render(zone_count=num_zones, xmlns=XMLNS)
 
-    @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
@@ -129,7 +115,6 @@ class Route53(BaseResponse):
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
-    @error_handler
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -298,7 +283,6 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
-    @error_handler
     def list_or_create_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -343,7 +327,6 @@ class Route53(BaseResponse):
                 ),
             )
 
-    @error_handler
     def get_or_delete_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
@@ -394,7 +377,6 @@ class Route53(BaseResponse):
                 template.render(delegation_set=delegation_set),
             )
 
-    @error_handler
     def reusable_delegation_set(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)

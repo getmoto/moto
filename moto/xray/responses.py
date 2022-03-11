@@ -35,10 +35,7 @@ class XRayResponse(BaseResponse):
 
     # PutTelemetryRecords
     def telemetry_records(self):
-        try:
-            self.xray_backend.add_telemetry_records(self.request_params)
-        except AWSError as err:
-            return err.response()
+        self.xray_backend.add_telemetry_records(self.request_params)
 
         return ""
 
@@ -109,7 +106,7 @@ class XRayResponse(BaseResponse):
                 start_time, end_time, filter_expression
             )
         except AWSError as err:
-            return err.response()
+            raise err
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
@@ -132,7 +129,7 @@ class XRayResponse(BaseResponse):
         try:
             result = self.xray_backend.get_trace_ids(trace_ids)
         except AWSError as err:
-            return err.response()
+            raise err
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),

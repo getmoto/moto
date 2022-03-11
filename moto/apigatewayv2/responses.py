@@ -1,23 +1,11 @@
 """Handles incoming apigatewayv2 requests, invokes methods, returns responses."""
 import json
 
-from functools import wraps
 from moto.core.responses import BaseResponse
 from urllib.parse import unquote
 
-from .exceptions import APIGatewayV2Error, UnknownProtocol
+from .exceptions import UnknownProtocol
 from .models import apigatewayv2_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except APIGatewayV2Error as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class ApiGatewayV2Response(BaseResponse):
@@ -28,7 +16,6 @@ class ApiGatewayV2Response(BaseResponse):
         """Return backend instance specific for this region."""
         return apigatewayv2_backends[self.region]
 
-    @error_handler
     def apis(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -37,7 +24,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "GET":
             return self.get_apis()
 
-    @error_handler
     def api(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -50,7 +36,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "DELETE":
             return self.delete_api()
 
-    @error_handler
     def authorizer(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -67,7 +52,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_authorizer()
 
-    @error_handler
     def cors(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -80,7 +64,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "DELETE":
             return self.delete_route_request_parameter()
 
-    @error_handler
     def model(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -97,7 +80,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_model()
 
-    @error_handler
     def integration(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -108,7 +90,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_integration()
 
-    @error_handler
     def integrations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -117,7 +98,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_integration()
 
-    @error_handler
     def integration_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -136,7 +116,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_integration_response()
 
-    @error_handler
     def route(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -147,7 +126,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_route()
 
-    @error_handler
     def routes(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -156,7 +134,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_route()
 
-    @error_handler
     def route_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -171,7 +148,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_route_response()
 
-    @error_handler
     def tags(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -182,7 +158,6 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "DELETE":
             return self.untag_resource()
 
-    @error_handler
     def vpc_link(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 

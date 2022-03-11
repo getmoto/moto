@@ -161,7 +161,7 @@ class TestWithSetupMethod:
 
 @mock_kinesis
 class TestKinesisUsingSetupMethod:
-    def setup_method(self, *args):
+    def setup_method(self, *args):  # pylint: disable=unused-argument
         self.stream_name = "test_stream"
         self.boto3_kinesis_client = boto3.client("kinesis", region_name="us-east-1")
         self.boto3_kinesis_client.create_stream(
