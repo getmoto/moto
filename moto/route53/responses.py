@@ -26,6 +26,16 @@ def error_handler(f):
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
 
+    @staticmethod
+    def _convert_to_bool(bool_str):
+        if isinstance(bool_str, bool):
+            return bool_str
+
+        if isinstance(bool_str, str):
+            return str(bool_str).lower() == "true"
+
+        return False
+
     @error_handler
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -40,17 +50,19 @@ class Route53(BaseResponse):
             if "HostedZoneConfig" in zone_request:
                 zone_config = zone_request["HostedZoneConfig"]
                 comment = zone_config["Comment"]
-                if zone_request["VPC"].get("VPCId", None):
+                if zone_request.get("VPC", {}).get("VPCId", None):
                     private_zone = True
                 else:
-                    private_zone = zone_config.get("PrivateZone", False)
+                    private_zone = self._convert_to_bool(
+                        zone_config.get("PrivateZone", False)
+                    )
             else:
                 comment = None
                 private_zone = False
 
             # It is possible to create a Private Hosted Zone without
             # associating VPC at the time of creation.
-            if private_zone == "true" or private_zone is True:
+            if self._convert_to_bool(private_zone):
                 if zone_request.get("VPC", None) is not None:
                     vpcid = zone_request["VPC"].get("VPCId", None)
                     vpcregion = zone_request["VPC"].get("VPCRegion", None)

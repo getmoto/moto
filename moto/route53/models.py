@@ -524,7 +524,7 @@ class Route53Backend(BaseBackend):
         """
         zone_list = []
         for zone in self.list_hosted_zones():
-            if zone.private_zone == "true":
+            if zone.private_zone is True:
                 this_zone = self.get_hosted_zone(zone.id)
                 if this_zone.vpcid == vpc_id:
                     this_id = f"/hostedzone/{zone.id}"
