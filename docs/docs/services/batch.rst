@@ -49,15 +49,35 @@ batch
 - [ ] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
+  
+        Pagination is not yet implemented
+        
+
 - [X] describe_job_definitions
+  
+        Pagination is not yet implemented
+        
+
 - [X] describe_job_queues
+  
+        Pagination is not yet implemented
+        
+
 - [X] describe_jobs
 - [ ] describe_scheduling_policies
 - [X] list_jobs
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_scheduling_policies
 - [X] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
+  
+        Parameters RetryStrategy and Parameters are not yet implemented.
+        
+
 - [X] tag_resource
 - [X] terminate_job
 - [X] untag_resource

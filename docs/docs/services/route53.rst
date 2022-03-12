@@ -79,6 +79,10 @@ route53
 - [X] list_hosted_zones
 - [X] list_hosted_zones_by_name
 - [X] list_hosted_zones_by_vpc
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_query_logging_configs
   Return a list of query logging configs.
 

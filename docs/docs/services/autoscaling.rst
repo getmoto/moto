@@ -86,9 +86,17 @@ autoscaling
 - [X] resume_processes
 - [X] set_desired_capacity
 - [X] set_instance_health
+  
+        The ShouldRespectGracePeriod-parameter is not yet implemented
+        
+
 - [X] set_instance_protection
 - [ ] start_instance_refresh
 - [X] suspend_processes
 - [ ] terminate_instance_in_auto_scaling_group
 - [X] update_auto_scaling_group
+  
+        The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
+        
+
 

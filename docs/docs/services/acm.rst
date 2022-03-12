@@ -38,6 +38,10 @@ acm
 - [X] remove_tags_from_certificate
 - [ ] renew_certificate
 - [X] request_certificate
+  
+        The parameter DomainValidationOptions has not yet been implemented
+        
+
 - [ ] resend_validation_email
 - [ ] update_certificate_options
 

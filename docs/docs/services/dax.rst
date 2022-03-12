@@ -48,6 +48,10 @@ dax
 - [ ] describe_parameters
 - [ ] describe_subnet_groups
 - [X] increase_replication_factor
+  
+        The AvailabilityZones-parameter is not yet implemented
+        
+
 - [X] list_tags
   
         Pagination is not yet implemented

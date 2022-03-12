@@ -29,12 +29,20 @@ kinesisvideo
 - [X] create_stream
 - [ ] delete_signaling_channel
 - [X] delete_stream
+  
+        The CurrentVersion-parameter is not yet implemented
+        
+
 - [ ] describe_signaling_channel
 - [X] describe_stream
 - [X] get_data_endpoint
 - [ ] get_signaling_channel_endpoint
 - [ ] list_signaling_channels
 - [X] list_streams
+  
+        Pagination and the StreamNameCondition-parameter are not yet implemented
+        
+
 - [ ] list_tags_for_resource
 - [ ] list_tags_for_stream
 - [ ] tag_resource

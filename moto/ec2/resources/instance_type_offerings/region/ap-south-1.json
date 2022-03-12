@@ -1248,6 +1248,18 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "z1d.12xlarge",
   "Location": "ap-south-1"
  },
