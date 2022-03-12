@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.0
 -----
-Docker Digest for 3.1.0: <autopopulateddigest>
+Docker Digest for 3.1.0: _sha256:1656754cf4de441d85b08f584d9dcb095880d3bf250f05da26a03ff219d586c8_
 
     General:
         * Users of `mock_dynamodb2` should start using `mock_dynamodb` instead. 
