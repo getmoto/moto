@@ -38,4 +38,8 @@ mediastore-data
         
 
 - [X] put_object
+  
+        The following parameters are not yet implemented: ContentType, CacheControl, UploadAvailability
+        
+
 

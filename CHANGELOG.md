@@ -1,6 +1,23 @@
 Moto Changelog
 ==============
 
+3.1.0
+-----
+Docker Digest for 3.1.0: <autopopulateddigest>
+
+    General:
+        * Users of `mock_dynamodb2` should start using `mock_dynamodb` instead. 
+          The `mock_dynamodb`-decorator has been repurposed to mock the latest version of DynamoDB, making the behaviour equivalent to `mock_dynamodb2`. 
+          The `mock_dynamodb2`-decorator is now considered deprecated, and will be removed in the next major version.
+
+        * Similarly, users of the `mock_rds2` should start using `mock_rds` instead.
+          The `mock_rds`-decorator has been repurposed to mock the latest version of RDS, making the behaviour equivalent to `mock_rds2`.
+          The `mock_rds2`-decorator has also been deprecated, and will be removed in the next major version.
+
+    Internal Changes:
+        * We've upgraded our linting process to use Black 22.1.0, and have enabled more pylint rules.
+          Please continue to run `make lint` prior to creating a PR, to ensure any changes are formatted correctly. 
+
 3.0.7
 -----
 Docker Digest for 3.0.7: _sha256:4db9433e741de635606fd2d997e555c26f51fc82e69d5043d0d9de90bbade229_

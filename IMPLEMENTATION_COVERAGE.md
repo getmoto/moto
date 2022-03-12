@@ -2879,7 +2879,7 @@
 
 ## iam
 <details>
-<summary>70% implemented</summary>
+<summary>71% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -2958,7 +2958,7 @@
 - [X] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
-- [ ] list_access_keys
+- [X] list_access_keys
 - [X] list_account_aliases
 - [X] list_attached_group_policies
 - [X] list_attached_role_policies
@@ -2984,7 +2984,7 @@
 - [ ] list_saml_provider_tags
 - [X] list_saml_providers
 - [ ] list_server_certificate_tags
-- [ ] list_server_certificates
+- [X] list_server_certificates
 - [ ] list_service_specific_credentials
 - [X] list_signing_certificates
 - [ ] list_ssh_public_keys

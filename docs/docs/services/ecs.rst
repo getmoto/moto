@@ -37,6 +37,10 @@ ecs
 - [X] delete_cluster
 - [X] delete_service
 - [X] delete_task_set
+  
+        The Force-parameter is not yet implemented
+        
+
 - [X] deregister_container_instance
 - [X] deregister_task_definition
 - [ ] describe_capacity_providers
@@ -54,6 +58,10 @@ ecs
 - [ ] execute_command
 - [X] list_account_settings
 - [X] list_attributes
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_clusters
   
         maxSize and pagination not implemented
@@ -65,6 +73,10 @@ ecs
   Currently implemented only for task definitions and services
 
 - [X] list_task_definition_families
+  
+        The Status and pagination parameters are not yet implemented
+        
+
 - [X] list_task_definitions
 - [X] list_tasks
 - [X] put_account_setting

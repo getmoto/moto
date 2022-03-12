@@ -33,8 +33,16 @@ textract
 - [ ] detect_document_text
 - [ ] get_document_analysis
 - [X] get_document_text_detection
+  
+        Pagination has not yet been implemented
+        
+
 - [ ] get_expense_analysis
 - [ ] start_document_analysis
 - [X] start_document_text_detection
+  
+        The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
+        
+
 - [ ] start_expense_analysis
 
