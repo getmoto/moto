@@ -38,6 +38,14 @@ from .exceptions import (
     InvalidLoadBalancerActionException,
 )
 
+ALLOWED_ACTIONS = [
+    "redirect",
+    "authenticate-cognito",
+    "authenticate-oidc",
+    "fixed-response",
+    "forward",
+]
+
 
 class FakeHealthStatus(BaseModel):
     def __init__(
@@ -633,12 +641,7 @@ class ELBv2Backend(BaseBackend):
         default_actions = []
         for i, action in enumerate(properties["Actions"]):
             action_type = action["Type"]
-            if action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-                "forward",
-            ]:
+            if action_type in ALLOWED_ACTIONS:
                 default_actions.append(action)
             else:
                 raise InvalidActionTypeError(action_type, i + 1)
@@ -964,11 +967,7 @@ Member must satisfy regular expression pattern: {}".format(
                 default_actions.append(
                     {"Type": action_type, "TargetGroupArn": action["TargetGroupArn"]}
                 )
-            elif action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-            ]:
+            elif action_type in ALLOWED_ACTIONS:
                 default_actions.append(action)
             else:
                 raise InvalidActionTypeError(action_type, i + 1)

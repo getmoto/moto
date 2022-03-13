@@ -20,7 +20,7 @@ from uuid import uuid4
 )
 @mock_elb
 @mock_ec2
-def test_create_load_balancer_boto3(zones, region_name):
+def test_create_load_balancer(zones, region_name):
     # Both regions and availability zones are parametrized
     # This does not seem to have an effect on the DNS name
     client = boto3.client("elb", region_name=region_name)
@@ -89,7 +89,7 @@ def test_create_load_balancer_boto3(zones, region_name):
 
 
 @mock_elb
-def test_get_missing_elb_boto3():
+def test_get_missing_elb():
     client = boto3.client("elb", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
         client.describe_load_balancers(LoadBalancerNames=["unknown-lb"])
@@ -101,7 +101,7 @@ def test_get_missing_elb_boto3():
 
 
 @mock_elb
-def test_create_elb_in_multiple_region_boto3():
+def test_create_elb_in_multiple_region():
     client_east = boto3.client("elb", region_name="us-east-2")
     client_west = boto3.client("elb", region_name="us-west-2")
 
@@ -136,7 +136,7 @@ def test_create_elb_in_multiple_region_boto3():
 
 @mock_acm
 @mock_elb
-def test_create_load_balancer_with_certificate_boto3():
+def test_create_load_balancer_with_certificate():
     acm_client = boto3.client("acm", region_name="us-east-2")
     acm_request_response = acm_client.request_certificate(
         DomainName="fake.domain.com",
@@ -196,7 +196,7 @@ def test_create_load_balancer_with_invalid_certificate():
 
 
 @mock_elb
-def test_create_and_delete_boto3_support():
+def test_create_and_delete_load_balancer():
     client = boto3.client("elb", region_name="us-east-1")
 
     client.create_load_balancer(
@@ -285,7 +285,7 @@ def test_apply_security_groups_to_load_balancer():
 
 
 @mock_elb
-def test_create_and_delete_listener_boto3_support():
+def test_create_and_delete_listener():
     client = boto3.client("elb", region_name="us-east-1")
 
     client.create_load_balancer(
@@ -312,19 +312,59 @@ def test_create_and_delete_listener_boto3_support():
     )
     balancer["ListenerDescriptions"][1]["Listener"]["InstancePort"].should.equal(8443)
 
-    # Creating this listener with an conflicting definition throws error
-    with pytest.raises(ClientError):
-        client.create_load_balancer_listeners(
-            LoadBalancerName="my-lb",
-            Listeners=[
-                {"Protocol": "tcp", "LoadBalancerPort": 443, "InstancePort": 1234}
-            ],
-        )
-
     client.delete_load_balancer_listeners(
         LoadBalancerName="my-lb", LoadBalancerPorts=[443]
     )
 
+    balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
+    list(balancer["ListenerDescriptions"]).should.have.length_of(1)
+
+
+@mock_elb
+@pytest.mark.parametrize("first,second", [["tcp", "http"], ["http", "TCP"]])
+def test_create_duplicate_listener_different_protocols(first, second):
+    client = boto3.client("elb", region_name="us-east-1")
+
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": first, "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    # Creating this listener with an conflicting definition throws error
+    with pytest.raises(ClientError) as exc:
+        client.create_load_balancer_listeners(
+            LoadBalancerName="my-lb",
+            Listeners=[
+                {"Protocol": second, "LoadBalancerPort": 80, "InstancePort": 8080}
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("DuplicateListener")
+    err["Message"].should.equal(
+        "A listener already exists for my-lb with LoadBalancerPort 80, but with a different InstancePort, Protocol, or SSLCertificateId")
+
+
+@mock_elb
+@pytest.mark.parametrize("first,second", [["tcp", "tcp"], ["tcp", "TcP"], ["http", "HTTP"]])
+def test_create_duplicate_listener_same_details(first, second):
+    client = boto3.client("elb", region_name="us-east-1")
+
+    client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": first, "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    # Creating this listener with the same definition succeeds
+    client.create_load_balancer_listeners(
+        LoadBalancerName="my-lb",
+        Listeners=[
+            {"Protocol": second, "LoadBalancerPort": 80, "InstancePort": 8080}
+        ]
+    )
+
+    # We still only have one though
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
     list(balancer["ListenerDescriptions"]).should.have.length_of(1)
 
@@ -400,7 +440,7 @@ def test_create_lb_listener_with_invalid_ssl_certificate():
 
 @mock_acm
 @mock_elb
-def test_set_sslcertificate_boto3():
+def test_set_sslcertificate():
     acm_client = boto3.client("acm", region_name="us-east-1")
     acm_request_response = acm_client.request_certificate(
         DomainName="fake.domain.com",
@@ -438,7 +478,7 @@ def test_set_sslcertificate_boto3():
 
 
 @mock_elb
-def test_get_load_balancers_by_name_boto3():
+def test_get_load_balancers_by_name():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name1 = str(uuid4())[0:6]
     lb_name2 = str(uuid4())[0:6]
@@ -481,7 +521,7 @@ def test_get_load_balancers_by_name_boto3():
 
 
 @mock_elb
-def test_delete_load_balancer_boto3():
+def test_delete_load_balancer():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name1 = str(uuid4())[0:6]
     lb_name2 = str(uuid4())[0:6]
@@ -512,7 +552,7 @@ def test_delete_load_balancer_boto3():
 
 
 @mock_elb
-def test_create_health_check_boto3():
+def test_create_health_check():
     client = boto3.client("elb", region_name="us-east-1")
 
     client.create_load_balancer(
@@ -541,7 +581,7 @@ def test_create_health_check_boto3():
 
 @mock_ec2
 @mock_elb
-def test_register_instances_boto3():
+def test_register_instances():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
@@ -564,7 +604,7 @@ def test_register_instances_boto3():
 
 @mock_ec2
 @mock_elb
-def test_deregister_instances_boto3():
+def test_deregister_instances():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
     instance_id1 = response[0].id
@@ -594,7 +634,7 @@ def test_deregister_instances_boto3():
 
 
 @mock_elb
-def test_default_attributes_boto3():
+def test_default_attributes():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -614,7 +654,7 @@ def test_default_attributes_boto3():
 
 
 @mock_elb
-def test_cross_zone_load_balancing_attribute_boto3():
+def test_cross_zone_load_balancing_attribute():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -649,7 +689,7 @@ def test_cross_zone_load_balancing_attribute_boto3():
 
 
 @mock_elb
-def test_connection_draining_attribute_boto3():
+def test_connection_draining_attribute():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -683,7 +723,7 @@ def test_connection_draining_attribute_boto3():
 
 
 @mock_elb
-def test_access_log_attribute_boto3():
+def test_access_log_attribute():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -737,7 +777,7 @@ def test_access_log_attribute_boto3():
 
 
 @mock_elb
-def test_connection_settings_attribute_boto3():
+def test_connection_settings_attribute():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -766,7 +806,7 @@ def test_connection_settings_attribute_boto3():
 
 
 @mock_elb
-def test_create_lb_cookie_stickiness_policy_boto3():
+def test_create_lb_cookie_stickiness_policy():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -796,7 +836,7 @@ def test_create_lb_cookie_stickiness_policy_boto3():
 
 
 @mock_elb
-def test_create_lb_cookie_stickiness_policy_no_expiry_boto3():
+def test_create_lb_cookie_stickiness_policy_no_expiry():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -826,7 +866,7 @@ def test_create_lb_cookie_stickiness_policy_no_expiry_boto3():
 
 
 @mock_elb
-def test_create_app_cookie_stickiness_policy_boto3():
+def test_create_app_cookie_stickiness_policy():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -856,7 +896,7 @@ def test_create_app_cookie_stickiness_policy_boto3():
 
 
 @mock_elb
-def test_create_lb_policy_boto3():
+def test_create_lb_policy():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -881,7 +921,7 @@ def test_create_lb_policy_boto3():
 
 
 @mock_elb
-def test_set_policies_of_listener_boto3():
+def test_set_policies_of_listener():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -922,7 +962,7 @@ def test_set_policies_of_listener_boto3():
 
 
 @mock_elb
-def test_set_policies_of_backend_server_boto3():
+def test_set_policies_of_backend_server():
     lb_name = str(uuid4())[0:6]
 
     client = boto3.client("elb", region_name="us-east-1")
@@ -954,7 +994,7 @@ def test_set_policies_of_backend_server_boto3():
 
 @mock_ec2
 @mock_elb
-def test_describe_instance_health_boto3():
+def test_describe_instance_health():
     elb = boto3.client("elb", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
     instances = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)[
@@ -1180,7 +1220,7 @@ def test_subnets():
 
 
 @mock_elb
-def test_create_load_balancer_duplicate_boto3():
+def test_create_load_balancer_duplicate():
     lb_name = str(uuid4())[0:6]
     client = boto3.client("elb", region_name="us-east-1")
     client.create_load_balancer(

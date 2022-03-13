@@ -351,6 +351,28 @@ class ELBResponse(BaseResponse):
         for tag_key, tag_value in zip(tag_keys, tag_values):
             elb.add_tag(tag_key, tag_value)
 
+    def enable_availability_zones_for_load_balancer(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        availability_zones = params.get("AvailabilityZones")
+        availability_zones = self.elb_backend.enable_availability_zones_for_load_balancer(
+            load_balancer_name=load_balancer_name,
+            availability_zones=availability_zones,
+        )
+        template = self.response_template(ENABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE)
+        return template.render(availability_zones=availability_zones)
+
+    def disable_availability_zones_for_load_balancer(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        availability_zones = params.get("AvailabilityZones")
+        availability_zones = self.elb_backend.disable_availability_zones_for_load_balancer(
+            load_balancer_name=load_balancer_name,
+            availability_zones=availability_zones,
+        )
+        template = self.response_template(DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE)
+        return template.render(availability_zones=availability_zones)
+
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <AddTagsResult/>
@@ -732,3 +754,29 @@ DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="ht
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeInstanceHealthResponse>"""
+
+ENABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<EnableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <EnableAvailabilityZonesForLoadBalancerResult>
+    <AvailabilityZones>
+{% for az in availability_zones %}
+      <AvailabilityZone>{{ az }}</AvailabilityZone>
+{% endfor %}
+    </AvailabilityZones>
+  </EnableAvailabilityZonesForLoadBalancerResult>
+</EnableAvailabilityZonesForLoadBalancerResponse>"""
+
+DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<DisableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DisableAvailabilityZonesForLoadBalancerResult>
+    <AvailabilityZones>
+{% for az in availability_zones %}
+      <AvailabilityZone>{{ az }}</AvailabilityZone>
+{% endfor %}
+    </AvailabilityZones>
+  </DisableAvailabilityZonesForLoadBalancerResult>
+</DisableAvailabilityZonesForLoadBalancerResponse>"""

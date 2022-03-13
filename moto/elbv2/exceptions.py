@@ -4,6 +4,9 @@ from moto.core.exceptions import RESTError
 class ELBClientError(RESTError):
     code = 400
 
+    def __init__(self, error_type, message):
+        super().__init__(error_type, message, template="wrapped_single_error")
+
 
 class DuplicateTagKeysError(ELBClientError):
     def __init__(self, cidr):

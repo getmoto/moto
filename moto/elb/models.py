@@ -322,7 +322,7 @@ class ELBBackend(BaseBackend):
                 ssl_certificate_id = port.get("ssl_certificate_id")
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
-                        if protocol != listener.protocol:
+                        if protocol.lower() != listener.protocol.lower():
                             raise DuplicateListenerError(name, lb_port)
                         if instance_port != listener.instance_port:
                             raise DuplicateListenerError(name, lb_port)
@@ -524,6 +524,16 @@ class ELBBackend(BaseBackend):
             acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
         except AWSResourceNotFoundException:
             raise CertificateNotFoundException()
+
+    def enable_availability_zones_for_load_balancer(self, load_balancer_name, availability_zones):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.zones = sorted(list(set(load_balancer.zones + availability_zones)))
+        return load_balancer.zones
+
+    def disable_availability_zones_for_load_balancer(self, load_balancer_name, availability_zones):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.zones = sorted(list(set([az for az in load_balancer.zones if az not in availability_zones])))
+        return load_balancer.zones
 
 
 # Use the same regions as EC2
