@@ -80,7 +80,7 @@ def test_create_file_system_correct_use(efs):
         efs.describe_backup_policy(FileSystemId=create_fs_resp["FileSystemId"])
     resp = exc_info.value.response
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 404
-    assert "PolicyNotFound" in resp["Error"]["Message"]
+    assert "PolicyNotFound" == resp["Error"]["Code"]
 
     # Check the arn in detail
     match_obj = re.match(ARN_PATT, create_fs_resp["FileSystemArn"])
@@ -167,11 +167,30 @@ def test_create_file_system_file_system_already_exists(efs):
         efs.create_file_system(CreationToken="foo")
     resp = exc_info.value.response
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 409
-    assert "FileSystemAlreadyExists" in resp["Error"]["Message"]
+    assert "FileSystemAlreadyExists" == resp["Error"]["Code"]
 
 
 # Testing Describe
 # ================
+
+
+def test_describe_file_systems_using_identifier(efs):
+    # Create the file system.
+    create_fs_resp = efs.create_file_system(CreationToken="foobar")
+    create_fs_resp.pop("ResponseMetadata")
+    fs_id = create_fs_resp["FileSystemId"]
+
+    # Describe the file system.
+    desc_fs_resp = efs.describe_file_systems(FileSystemId=fs_id)
+    desc_fs_resp.should.have.key("FileSystems").length_of(1)
+    desc_fs_resp["FileSystems"][0].should.have.key("FileSystemId").equals(fs_id)
+
+
+def test_describe_file_systems_using_unknown_identifier(efs):
+    with pytest.raises(ClientError) as exc:
+        efs.describe_file_systems(FileSystemId="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("FileSystemNotFound")
 
 
 def test_describe_file_systems_minimal_case(efs):
@@ -306,7 +325,7 @@ def test_describe_file_systems_invalid_marker(efs):
         efs.describe_file_systems(Marker="fiddlesticks")
     resp = exc_info.value.response
     assert has_status_code(resp, 400)
-    assert "BadRequest" in resp["Error"]["Message"]
+    assert "BadRequest" == resp["Error"]["Code"]
 
 
 def test_describe_file_systems_invalid_creation_token(efs):
@@ -320,7 +339,7 @@ def test_describe_file_systems_invalid_file_system_id(efs):
         efs.describe_file_systems(FileSystemId="fs-29879313")
     resp = exc_info.value.response
     assert has_status_code(resp, 404)
-    assert "FileSystemNotFound" in resp["Error"]["Message"]
+    assert "FileSystemNotFound" == resp["Error"]["Code"]
 
 
 def test_describe_file_system_creation_token_and_file_system_id(efs):
@@ -328,7 +347,7 @@ def test_describe_file_system_creation_token_and_file_system_id(efs):
         efs.describe_file_systems(CreationToken="fizzle", FileSystemId="fs-07987987")
     resp = exc_info.value.response
     assert has_status_code(resp, 400)
-    assert "BadRequest" in resp["Error"]["Message"]
+    assert "BadRequest" == resp["Error"]["Code"]
 
 
 # Testing Delete
@@ -358,4 +377,4 @@ def test_delete_file_system_invalid_file_system_id(efs):
         efs.delete_file_system(FileSystemId="fs-2394287")
     resp = exc_info.value.response
     assert has_status_code(resp, 404)
-    assert "FileSystemNotFound" in resp["Error"]["Message"]
+    assert "FileSystemNotFound" == resp["Error"]["Code"]

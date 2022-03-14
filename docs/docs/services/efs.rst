@@ -27,7 +27,7 @@ efs
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_access_point
+- [X] create_access_point
 - [X] create_file_system
   Create a new EFS File System Volume.
 
@@ -45,7 +45,7 @@ efs
 
 - [ ] create_replication_configuration
 - [ ] create_tags
-- [ ] delete_access_point
+- [X] delete_access_point
 - [X] delete_file_system
   Delete the file system specified by the given file_system_id.
 
@@ -65,7 +65,11 @@ efs
 
 - [ ] delete_replication_configuration
 - [ ] delete_tags
-- [ ] describe_access_points
+- [X] describe_access_points
+  
+        Pagination is not yet implemented
+        
+
 - [ ] describe_account_preferences
 - [X] describe_backup_policy
 - [ ] describe_file_system_policy
@@ -75,26 +79,23 @@ efs
         https://docs.aws.amazon.com/efs/latest/ug/API_DescribeFileSystems.html
         
 
-- [ ] describe_lifecycle_configuration
-- [ ] describe_mount_target_security_groups
+- [X] describe_lifecycle_configuration
+- [X] describe_mount_target_security_groups
 - [X] describe_mount_targets
-  Describe the mount targets given a mount target ID or a file system ID.
-
-        Note that as of this writing access points, and thus access point IDs are not
-        supported.
+  Describe the mount targets given an access point ID, mount target ID or a file system ID.
 
         https://docs.aws.amazon.com/efs/latest/ug/API_DescribeMountTargets.html
         
 
 - [ ] describe_replication_configurations
 - [ ] describe_tags
-- [ ] list_tags_for_resource
-- [ ] modify_mount_target_security_groups
+- [X] list_tags_for_resource
+- [X] modify_mount_target_security_groups
 - [ ] put_account_preferences
 - [ ] put_backup_policy
 - [ ] put_file_system_policy
-- [ ] put_lifecycle_configuration
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] put_lifecycle_configuration
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_file_system
 

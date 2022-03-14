@@ -2051,37 +2051,37 @@
 
 ## efs
 <details>
-<summary>23% implemented</summary>
+<summary>56% implemented</summary>
 
-- [ ] create_access_point
+- [X] create_access_point
 - [X] create_file_system
 - [X] create_mount_target
 - [ ] create_replication_configuration
 - [ ] create_tags
-- [ ] delete_access_point
+- [X] delete_access_point
 - [X] delete_file_system
 - [ ] delete_file_system_policy
 - [X] delete_mount_target
 - [ ] delete_replication_configuration
 - [ ] delete_tags
-- [ ] describe_access_points
+- [X] describe_access_points
 - [ ] describe_account_preferences
 - [X] describe_backup_policy
 - [ ] describe_file_system_policy
 - [X] describe_file_systems
-- [ ] describe_lifecycle_configuration
-- [ ] describe_mount_target_security_groups
+- [X] describe_lifecycle_configuration
+- [X] describe_mount_target_security_groups
 - [X] describe_mount_targets
 - [ ] describe_replication_configurations
 - [ ] describe_tags
-- [ ] list_tags_for_resource
-- [ ] modify_mount_target_security_groups
+- [X] list_tags_for_resource
+- [X] modify_mount_target_security_groups
 - [ ] put_account_preferences
 - [ ] put_backup_policy
 - [ ] put_file_system_policy
-- [ ] put_lifecycle_configuration
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] put_lifecycle_configuration
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_file_system
 </details>
 
