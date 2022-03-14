@@ -5,7 +5,6 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3
-from moto.core.exceptions import RESTError
 from moto.sts.models import ACCOUNT_ID
 from uuid import uuid4
 
@@ -13,6 +12,23 @@ from .utilities import get_role_name, get_test_zip_file1
 
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
+
+
+@mock_lambda
+def test_publish_lambda_layers__without_content():
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    with pytest.raises(ClientError) as exc:
+        conn.publish_layer_version(
+            LayerName=layer_name,
+            Content={},
+            CompatibleRuntimes=["python3.6"],
+            LicenseInfo="MIT",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValueException")
+    err["Message"].should.equal("Missing Content")
 
 
 @mock_lambda
@@ -31,13 +47,6 @@ def test_get_lambda_layers():
     conn = boto3.client("lambda", _lambda_region)
     layer_name = str(uuid4())[0:6]
 
-    with pytest.raises((RESTError, ClientError)):
-        conn.publish_layer_version(
-            LayerName=layer_name,
-            Content={},
-            CompatibleRuntimes=["python3.6"],
-            LicenseInfo="MIT",
-        )
     conn.publish_layer_version(
         LayerName=layer_name,
         Content={"ZipFile": get_test_zip_file1()},
@@ -123,3 +132,93 @@ def test_get_lambda_layers():
             Environment={"Variables": {"test_variable": "test_value"}},
             Layers=[(expected_arn + "3")],
         )
+
+
+@mock_lambda
+@mock_s3
+def test_get_layer_version():
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    resp = conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+    )
+    layer_version = resp["Version"]
+
+    resp = conn.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+
+
+@mock_lambda
+@mock_s3
+def test_get_layer_version__unknown():
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    # Delete Layer that never existed
+    with pytest.raises(ClientError) as exc:
+        conn.get_layer_version(LayerName=layer_name, VersionNumber=1)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+
+    conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+    )
+
+    # Delete Version that never existed
+    with pytest.raises(ClientError) as exc:
+        conn.get_layer_version(LayerName=layer_name, VersionNumber=999)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_lambda
+@mock_s3
+def test_delete_layer_version():
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    resp = conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+    )
+    layer_version = resp["Version"]
+
+    conn.delete_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+
+    result = conn.list_layer_versions(LayerName=layer_name)["LayerVersions"]
+    result.should.equal([])

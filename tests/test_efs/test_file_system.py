@@ -174,6 +174,18 @@ def test_create_file_system_file_system_already_exists(efs):
 # ================
 
 
+def test_describe_file_systems_using_identifier(efs):
+    # Create the file system.
+    create_fs_resp = efs.create_file_system(CreationToken="foobar")
+    create_fs_resp.pop("ResponseMetadata")
+    fs_id = create_fs_resp["FileSystemId"]
+
+    # Describe the file system.
+    desc_fs_resp = efs.describe_file_systems(FileSystemId=fs_id)
+    desc_fs_resp.should.have.key("FileSystems").length_of(1)
+    desc_fs_resp["FileSystems"][0].should.have.key("FileSystemId").equals(fs_id)
+
+
 def test_describe_file_systems_minimal_case(efs):
     # Create the file system.
     create_fs_resp = efs.create_file_system(CreationToken="foobar")

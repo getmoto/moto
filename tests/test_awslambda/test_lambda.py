@@ -1,7 +1,7 @@
+import base64
 import botocore.client
 import boto3
 import hashlib
-import json
 import sure  # noqa # pylint: disable=unused-import
 import pytest
 
@@ -136,7 +136,7 @@ def test_create_function_from_aws_bucket():
             "Runtime": "python2.7",
             "Role": result["Role"],
             "Handler": "lambda_function.lambda_handler",
-            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSha256": "dmoh0EfoVfYplA+RjWY6nIhJ8ka91VE9wIPkWhozZwU=",
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
             "Timeout": 3,
@@ -151,6 +151,7 @@ def test_create_function_from_aws_bucket():
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "State": "Active",
             "Layers": [],
+            "LastUpdateStatus": "Successful",
         }
     )
 
@@ -191,12 +192,13 @@ def test_create_function_from_zipfile():
             "Description": "test lambda function",
             "Timeout": 3,
             "MemorySize": 128,
-            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSha256": "AKRIyE0e008Zqjjfjy0mnDzsB3HsOWNJhhayUR8AOak=",
             "Version": "1",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "ResponseMetadata": {"HTTPStatusCode": 201},
             "State": "Active",
             "Layers": [],
+            "LastUpdateStatus": "Successful",
         }
     )
 
@@ -243,7 +245,7 @@ def test_get_function():
     result["Code"]["RepositoryType"].should.equal("S3")
 
     result["Configuration"]["CodeSha256"].should.equal(
-        hashlib.sha256(zip_content).hexdigest()
+        "AKRIyE0e008Zqjjfjy0mnDzsB3HsOWNJhhayUR8AOak="
     )
     result["Configuration"]["CodeSize"].should.equal(len(zip_content))
     result["Configuration"]["Description"].should.equal("test lambda function")
@@ -309,7 +311,7 @@ def test_get_function_configuration(key):
 
     result = conn.get_function_configuration(FunctionName=name_or_arn)
 
-    result["CodeSha256"].should.equal(hashlib.sha256(zip_content).hexdigest())
+    result["CodeSha256"].should.equal("AKRIyE0e008Zqjjfjy0mnDzsB3HsOWNJhhayUR8AOak=")
     result["CodeSize"].should.equal(len(zip_content))
     result["Description"].should.equal("test lambda function")
     result.should.contain("FunctionArn")
@@ -581,7 +583,7 @@ def test_list_create_list_get_delete_list():
             "RepositoryType": "S3",
         },
         "Configuration": {
-            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSha256": "dmoh0EfoVfYplA+RjWY6nIhJ8ka91VE9wIPkWhozZwU=",
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
             "FunctionName": function_name,
@@ -594,6 +596,7 @@ def test_list_create_list_get_delete_list():
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
             "Layers": [],
+            "LastUpdateStatus": "Successful",
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
@@ -767,7 +770,7 @@ def test_get_function_created_with_zipfile():
     )
     response["Configuration"].should.equal(
         {
-            "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
+            "CodeSha256": "AKRIyE0e008Zqjjfjy0mnDzsB3HsOWNJhhayUR8AOak=",
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:{}:{}:function:{}".format(
@@ -783,82 +786,9 @@ def test_get_function_created_with_zipfile():
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
             "Layers": [],
+            "LastUpdateStatus": "Successful",
         }
     )
-
-
-@pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-def test_add_function_permission(key):
-    """
-    Parametrized to ensure that we can add permission by using the FunctionName and the FunctionArn
-    """
-    conn = boto3.client("lambda", _lambda_region)
-    zip_content = get_test_zip_file1()
-    function_name = str(uuid4())[0:6]
-    f = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python2.7",
-        Role=(get_role_name()),
-        Handler="lambda_function.handler",
-        Code={"ZipFile": zip_content},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-    name_or_arn = f[key]
-
-    response = conn.add_permission(
-        FunctionName=name_or_arn,
-        StatementId="1",
-        Action="lambda:InvokeFunction",
-        Principal="432143214321",
-        SourceArn="arn:aws:lambda:us-west-2:account-id:function:helloworld",
-        SourceAccount="123412341234",
-        EventSourceToken="blah",
-        Qualifier="2",
-    )
-    assert "Statement" in response
-    res = json.loads(response["Statement"])
-    assert res["Action"] == "lambda:InvokeFunction"
-
-
-@pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-def test_get_function_policy(key):
-    conn = boto3.client("lambda", _lambda_region)
-    zip_content = get_test_zip_file1()
-    function_name = str(uuid4())[0:6]
-    f = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python2.7",
-        Role=get_role_name(),
-        Handler="lambda_function.handler",
-        Code={"ZipFile": zip_content},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-    name_or_arn = f[key]
-
-    conn.add_permission(
-        FunctionName=name_or_arn,
-        StatementId="1",
-        Action="lambda:InvokeFunction",
-        Principal="432143214321",
-        SourceArn="arn:aws:lambda:us-west-2:account-id:function:helloworld",
-        SourceAccount="123412341234",
-        EventSourceToken="blah",
-        Qualifier="2",
-    )
-
-    response = conn.get_policy(FunctionName=name_or_arn)
-
-    assert "Policy" in response
-    res = json.loads(response["Policy"])
-    assert res["Statement"][0]["Action"] == "lambda:InvokeFunction"
 
 
 @mock_lambda
@@ -1067,6 +997,7 @@ def test_update_function_zip(key):
 
     response = conn.get_function(FunctionName=function_name, Qualifier="2")
     response["Configuration"].pop("LastModified")
+    response["Configuration"].pop("CodeSha256")
 
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     assert len(response["Code"]) == 2
@@ -1076,7 +1007,6 @@ def test_update_function_zip(key):
     )
     response["Configuration"].should.equal(
         {
-            "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
             "CodeSize": len(zip_content_two),
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:{}:{}:function:{}:2".format(
@@ -1092,6 +1022,7 @@ def test_update_function_zip(key):
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
             "Layers": [],
+            "LastUpdateStatus": "Successful",
         }
     )
 
@@ -1145,7 +1076,9 @@ def test_update_function_s3():
     )
     response["Configuration"].should.equal(
         {
-            "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
+            "CodeSha256": base64.b64encode(
+                hashlib.sha256(zip_content_two).digest()
+            ).decode("utf-8"),
             "CodeSize": len(zip_content_two),
             "Description": "test lambda function",
             "FunctionArn": "arn:aws:lambda:{}:{}:function:{}:2".format(
@@ -1161,6 +1094,7 @@ def test_update_function_s3():
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
             "Layers": [],
+            "LastUpdateStatus": "Successful",
         }
     )
 
@@ -1189,45 +1123,6 @@ def test_create_function_with_unknown_arn():
     err.value.response["Error"]["Message"].should.equal(
         "The role defined for the function cannot be assumed by Lambda."
     )
-
-
-@pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-def test_remove_function_permission(key):
-    conn = boto3.client("lambda", _lambda_region)
-    zip_content = get_test_zip_file1()
-    function_name = str(uuid4())[0:6]
-    f = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python2.7",
-        Role=(get_role_name()),
-        Handler="lambda_function.handler",
-        Code={"ZipFile": zip_content},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-    name_or_arn = f[key]
-
-    conn.add_permission(
-        FunctionName=name_or_arn,
-        StatementId="1",
-        Action="lambda:InvokeFunction",
-        Principal="432143214321",
-        SourceArn="arn:aws:lambda:us-west-2:account-id:function:helloworld",
-        SourceAccount="123412341234",
-        EventSourceToken="blah",
-        Qualifier="2",
-    )
-
-    remove = conn.remove_permission(
-        FunctionName=name_or_arn, StatementId="1", Qualifier="2"
-    )
-    remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
-    policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]
-    policy = json.loads(policy)
-    policy["Statement"].should.equal([])
 
 
 @mock_lambda

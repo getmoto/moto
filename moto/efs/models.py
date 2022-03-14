@@ -388,7 +388,7 @@ class EFSBackend(BaseBackend):
             # Handle the case that a file_system_id is given.
             if file_system_id not in self.file_systems_by_id:
                 raise FileSystemNotFound(file_system_id)
-            corpus = [self.file_systems_by_id[file_system_id]]
+            corpus = [self.file_systems_by_id[file_system_id].info_json()]
         elif marker is not None:
             # Handle the case that a marker is given.
             if marker not in self.next_markers:

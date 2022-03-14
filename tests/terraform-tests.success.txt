@@ -96,6 +96,8 @@ TestAccAWSIPRanges
 TestAccAWSKinesisStream
 TestAccAWSKmsAlias
 TestAccAWSKmsSecretDataSource
+TestAccAWSLambdaAlias
+TestAccAWSLambdaLayerVersion
 TestAccAWSMq
 TestAccAWSNatGateway
 TestAccAWSPartition
@@ -127,5 +129,7 @@ TestAccAWSVpc_
 TestAccAWSVpcEndpointService
 TestAccAWSVpnGateway
 TestAccAWSVpnGatewayAttachment
+TestAccDataSourceAWSLambdaLayerVersion
+TestAccDataSourceAwsLambdaInvocation
 TestAccDataSourceAwsNetworkInterface_
 TestValidateSSMDocumentPermissions
