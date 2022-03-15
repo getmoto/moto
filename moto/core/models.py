@@ -173,7 +173,7 @@ class BaseMockAWS:
                 # Special case for UnitTests-class
                 is_test_method = attr.startswith(unittest.TestLoader.testMethodPrefix)
                 should_reset = False
-                if attr == "setUp":
+                if attr in ["setUp", "setup_method"]:
                     should_reset = True
                 elif not has_setup_method and is_test_method:
                     should_reset = True
