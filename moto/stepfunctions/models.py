@@ -546,6 +546,13 @@ class StepFunctionBackend(BaseBackend):
             )
         return execution.get_execution_history(state_machine.roleArn)
 
+    def list_tags_for_resource(self, arn):
+        try:
+            state_machine = self.describe_state_machine(arn)
+            return state_machine.tags or []
+        except StateMachineDoesNotExist:
+            return []
+
     def tag_resource(self, resource_arn, tags):
         try:
             state_machine = self.describe_state_machine(resource_arn)

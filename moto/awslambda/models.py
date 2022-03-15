@@ -1109,6 +1109,12 @@ class LambdaStorage(object):
 
     def publish_function(self, name_or_arn, description=""):
         function = self.get_function_by_name_or_arn(name_or_arn)
+        if not function:
+            if name_or_arn.startswith("arn:aws"):
+                arn = name_or_arn
+            else:
+                arn = make_function_arn(self.region_name, ACCOUNT_ID, name_or_arn)
+            raise UnknownFunctionException(arn)
         name = function.function_name
         if name not in self._functions:
             return None

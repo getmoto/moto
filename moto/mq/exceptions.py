@@ -11,7 +11,7 @@ class UnknownBroker(MQError):
         super().__init__("NotFoundException", "Can't find requested broker")
         self.broker_id = broker_id
 
-    def get_body(self):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         body = {
             "errorAttribute": "broker-id",
             "message": f"Can't find requested broker [{self.broker_id}]. Make sure your broker exists.",
@@ -24,7 +24,7 @@ class UnknownConfiguration(MQError):
         super().__init__("NotFoundException", "Can't find requested configuration")
         self.config_id = config_id
 
-    def get_body(self):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         body = {
             "errorAttribute": "configuration_id",
             "message": f"Can't find requested configuration [{self.config_id}]. Make sure your configuration exists.",
@@ -37,7 +37,7 @@ class UnknownUser(MQError):
         super().__init__("NotFoundException", "Can't find requested user")
         self.username = username
 
-    def get_body(self):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         body = {
             "errorAttribute": "username",
             "message": f"Can't find requested user [{self.username}]. Make sure your user exists.",
@@ -50,7 +50,7 @@ class UnsupportedEngineType(MQError):
         super().__init__("BadRequestException", "")
         self.engine_type = engine_type
 
-    def get_body(self):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         body = {
             "errorAttribute": "engineType",
             "message": f"Broker engine type [{self.engine_type}] does not support configuration.",
@@ -63,7 +63,7 @@ class UnknownEngineType(MQError):
         super().__init__("BadRequestException", "")
         self.engine_type = engine_type
 
-    def get_body(self):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         body = {
             "errorAttribute": "engineType",
             "message": f"Broker engine type [{self.engine_type}] is invalid. Valid values are: [ACTIVEMQ]",

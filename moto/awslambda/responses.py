@@ -3,22 +3,9 @@ import sys
 
 from urllib.parse import unquote
 
-from functools import wraps
 from moto.core.utils import amz_crc32, amzn_request_id, path_url
 from moto.core.responses import BaseResponse
-from .exceptions import LambdaClientError
 from .models import lambda_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except LambdaClientError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class LambdaResponse(BaseResponse):
@@ -39,7 +26,6 @@ class LambdaResponse(BaseResponse):
         """
         return lambda_backends[self.region]
 
-    @error_handler
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -66,7 +52,6 @@ class LambdaResponse(BaseResponse):
         if request.method == "POST":
             return self._create_alias()
 
-    @error_handler
     def alias(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "DELETE":
@@ -94,7 +79,6 @@ class LambdaResponse(BaseResponse):
         if request.method == "GET":
             return self._list_layers()
 
-    @error_handler
     def layers_version(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "DELETE":
@@ -102,7 +86,6 @@ class LambdaResponse(BaseResponse):
         elif request.method == "GET":
             return self._get_layer_version()
 
-    @error_handler
     def layers_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -162,7 +145,6 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
-    @error_handler
     def policy(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -345,7 +327,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _publish_function(self):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.split("/")[-2])
         description = self._get_param("Description")
 
         fn = self.lambda_backend.publish_function(function_name, description)

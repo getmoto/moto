@@ -1303,6 +1303,11 @@
           "Name": "blockedActionsPatterns",
           "Optional": false,
           "Type": "CSV"
+        },
+        {
+          "Name": "excludeRoleByManagementAccount",
+          "Optional": true,
+          "Type": "boolean"
         }
       ],
       "Trigger type": "Configuration changes"

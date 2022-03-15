@@ -84,7 +84,6 @@ def test_get_function_policy(key):
     assert "Policy" in response
     res = json.loads(response["Policy"])
     assert res["Statement"][0]["Action"] == "lambda:InvokeFunction"
-    assert res["Statement"][0]["EventSourceToken"] == "blah"
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])

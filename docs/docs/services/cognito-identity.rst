@@ -37,6 +37,10 @@ cognito-identity
 - [X] get_open_id_token_for_developer_identity
 - [ ] get_principal_tag_attribute_map
 - [X] list_identities
+  
+        The MaxResults-parameter has not yet been implemented
+        
+
 - [ ] list_identity_pools
 - [ ] list_tags_for_resource
 - [ ] lookup_developer_identity
@@ -48,4 +52,8 @@ cognito-identity
 - [ ] unlink_identity
 - [ ] untag_resource
 - [X] update_identity_pool
+  
+        The AllowClassic-parameter has not yet been implemented
+        
+
 

@@ -305,6 +305,7 @@ class FakeListenerRule(CloudFormationModel):
         self.conditions = conditions
         self.actions = actions
         self.priority = priority
+        self.tags = {}
 
     @property
     def physical_resource_id(self):

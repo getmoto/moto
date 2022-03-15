@@ -1,21 +1,9 @@
 import json
 import re
 
-from functools import wraps
 from moto.core.responses import BaseResponse
-from .exceptions import ElasticSearchError, InvalidDomainName
+from .exceptions import InvalidDomainName
 from .models import es_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except ElasticSearchError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class ElasticsearchServiceResponse(BaseResponse):
@@ -27,7 +15,6 @@ class ElasticsearchServiceResponse(BaseResponse):
         return es_backends[self.region]
 
     @classmethod
-    @error_handler
     def list_domains(cls, request, full_url, headers):
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
@@ -35,7 +22,6 @@ class ElasticsearchServiceResponse(BaseResponse):
             return response.list_domain_names()
 
     @classmethod
-    @error_handler
     def domains(cls, request, full_url, headers):
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
@@ -43,7 +29,6 @@ class ElasticsearchServiceResponse(BaseResponse):
             return response.create_elasticsearch_domain()
 
     @classmethod
-    @error_handler
     def domain(cls, request, full_url, headers):
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)

@@ -28,6 +28,10 @@ ecr
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
+  
+        The parameter AcceptedMediaTypes has not yet been implemented
+        
+
 - [ ] batch_get_repository_scanning_configuration
 - [ ] complete_layer_upload
 - [ ] create_pull_through_cache_rule

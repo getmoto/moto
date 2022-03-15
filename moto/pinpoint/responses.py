@@ -1,22 +1,9 @@
 """Handles incoming pinpoint requests, invokes methods, returns responses."""
 import json
 
-from functools import wraps
 from moto.core.responses import BaseResponse
 from urllib.parse import unquote
-from .exceptions import PinpointExceptions
 from .models import pinpoint_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except PinpointExceptions as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class PinpointResponse(BaseResponse):
@@ -27,7 +14,6 @@ class PinpointResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return pinpoint_backends[self.region]
 
-    @error_handler
     def app(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "DELETE":
@@ -49,7 +35,6 @@ class PinpointResponse(BaseResponse):
         if request.method == "PUT":
             return self.update_application_settings()
 
-    @error_handler
     def eventstream(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "DELETE":

@@ -39,6 +39,10 @@ iot
 - [ ] cancel_detect_mitigation_actions_task
 - [X] cancel_job
 - [X] cancel_job_execution
+  
+        The parameters ExpectedVersion and StatusDetails are not yet implemented
+        
+
 - [ ] clear_default_authorizer
 - [ ] confirm_topic_rule_destination
 - [ ] create_audit_suppression
@@ -48,6 +52,10 @@ iot
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
+  
+        The ValidationCertificateArn-parameter is not yet implemented
+        
+
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
@@ -95,7 +103,15 @@ iot
 - [ ] delete_security_profile
 - [ ] delete_stream
 - [X] delete_thing
+  
+        The ExpectedVersion-parameter is not yet implemented
+        
+
 - [X] delete_thing_group
+  
+        The ExpectedVersion-parameter is not yet implemented
+        
+
 - [X] delete_thing_type
 - [X] delete_topic_rule
 - [ ] delete_topic_rule_destination
@@ -187,6 +203,10 @@ iot
 - [X] list_job_executions_for_thing
 - [ ] list_job_templates
 - [X] list_jobs
+  
+        The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
+        
+
 - [ ] list_managed_job_templates
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
@@ -220,7 +240,7 @@ iot
 - [ ] list_things_in_billing_group
 - [X] list_things_in_thing_group
   
-        The recursive-parameter is not yet implemented
+        Pagination and the recursive-parameter is not yet implemented
         
 
 - [ ] list_topic_rule_destinations
@@ -229,6 +249,10 @@ iot
 - [ ] list_violation_events
 - [ ] put_verification_state_on_violation
 - [X] register_ca_certificate
+  
+        The VerificationCertificate-parameter is not yet implemented
+        
+
 - [X] register_certificate
 - [X] register_certificate_without_ca
 - [ ] register_thing
@@ -281,6 +305,10 @@ iot
 - [ ] update_security_profile
 - [ ] update_stream
 - [X] update_thing
+  
+        The ExpectedVersion-parameter is not yet implemented
+        
+
 - [X] update_thing_group
 - [X] update_thing_groups_for_thing
 - [ ] update_topic_rule_destination

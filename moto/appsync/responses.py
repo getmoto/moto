@@ -1,22 +1,9 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
 import json
 
-from functools import wraps
 from moto.core.responses import BaseResponse
 from urllib.parse import unquote
-from .exceptions import AppSyncExceptions
 from .models import appsync_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except AppSyncExceptions as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class AppSyncResponse(BaseResponse):
@@ -34,7 +21,6 @@ class AppSyncResponse(BaseResponse):
         if request.method == "GET":
             return self.list_graphql_apis()
 
-    @error_handler
     def graph_ql_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":

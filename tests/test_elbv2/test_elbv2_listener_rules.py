@@ -117,6 +117,10 @@ def test_create_rule_condition(condition):
     response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
     response["Rules"].should.equal([rule])
 
+    # assert describe_tags response
+    response = conn.describe_tags(ResourceArns=[rule["RuleArn"]])
+    response["TagDescriptions"].should.have.length_of(1)
+
 
 @mock_elbv2
 @mock_ec2

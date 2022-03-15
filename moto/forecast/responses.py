@@ -2,7 +2,6 @@ import json
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
-from .exceptions import AWSError
 from .models import forecast_backends
 
 
@@ -18,57 +17,45 @@ class ForecastResponse(BaseResponse):
         dataset_arns = self._get_param("DatasetArns")
         tags = self._get_param("Tags")
 
-        try:
-            dataset_group = self.forecast_backend.create_dataset_group(
-                dataset_group_name=dataset_group_name,
-                domain=domain,
-                dataset_arns=dataset_arns,
-                tags=tags,
-            )
-            response = {"DatasetGroupArn": dataset_group.arn}
-            return 200, {}, json.dumps(response)
-        except AWSError as err:
-            return err.response()
+        dataset_group = self.forecast_backend.create_dataset_group(
+            dataset_group_name=dataset_group_name,
+            domain=domain,
+            dataset_arns=dataset_arns,
+            tags=tags,
+        )
+        response = {"DatasetGroupArn": dataset_group.arn}
+        return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def describe_dataset_group(self):
         dataset_group_arn = self._get_param("DatasetGroupArn")
 
-        try:
-            dataset_group = self.forecast_backend.describe_dataset_group(
-                dataset_group_arn=dataset_group_arn
-            )
-            response = {
-                "CreationTime": dataset_group.creation_date,
-                "DatasetArns": dataset_group.dataset_arns,
-                "DatasetGroupArn": dataset_group.arn,
-                "DatasetGroupName": dataset_group.dataset_group_name,
-                "Domain": dataset_group.domain,
-                "LastModificationTime": dataset_group.modified_date,
-                "Status": "ACTIVE",
-            }
-            return 200, {}, json.dumps(response)
-        except AWSError as err:
-            return err.response()
+        dataset_group = self.forecast_backend.describe_dataset_group(
+            dataset_group_arn=dataset_group_arn
+        )
+        response = {
+            "CreationTime": dataset_group.creation_date,
+            "DatasetArns": dataset_group.dataset_arns,
+            "DatasetGroupArn": dataset_group.arn,
+            "DatasetGroupName": dataset_group.dataset_group_name,
+            "Domain": dataset_group.domain,
+            "LastModificationTime": dataset_group.modified_date,
+            "Status": "ACTIVE",
+        }
+        return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def delete_dataset_group(self):
         dataset_group_arn = self._get_param("DatasetGroupArn")
-        try:
-            self.forecast_backend.delete_dataset_group(dataset_group_arn)
-            return 200, {}, None
-        except AWSError as err:
-            return err.response()
+        self.forecast_backend.delete_dataset_group(dataset_group_arn)
+        return 200, {}, None
 
     @amzn_request_id
     def update_dataset_group(self):
         dataset_group_arn = self._get_param("DatasetGroupArn")
         dataset_arns = self._get_param("DatasetArns")
-        try:
-            self.forecast_backend.update_dataset_group(dataset_group_arn, dataset_arns)
-            return 200, {}, None
-        except AWSError as err:
-            return err.response()
+        self.forecast_backend.update_dataset_group(dataset_group_arn, dataset_arns)
+        return 200, {}, None
 
     @amzn_request_id
     def list_dataset_groups(self):

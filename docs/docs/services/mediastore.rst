@@ -37,6 +37,10 @@ mediastore
 - [X] get_lifecycle_policy
 - [X] get_metric_policy
 - [X] list_containers
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_tags_for_resource
 - [X] put_container_policy
 - [ ] put_cors_policy

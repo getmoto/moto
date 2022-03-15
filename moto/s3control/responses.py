@@ -1,24 +1,11 @@
 import json
 import xmltodict
 
-from functools import wraps
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
-from .exceptions import S3ControlError
 from .models import s3control_backend
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except S3ControlError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class S3ControlResponse(BaseResponse):
@@ -64,7 +51,6 @@ class S3ControlResponse(BaseResponse):
 
         return parsed_xml
 
-    @error_handler
     def access_point(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
@@ -74,7 +60,6 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point(full_url)
 
-    @error_handler
     def access_point_policy(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
@@ -84,7 +69,6 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point_policy(full_url)
 
-    @error_handler
     def access_point_policy_status(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
