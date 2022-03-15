@@ -17,6 +17,7 @@ from botocore.awsrequest import AWSResponse
 from types import FunctionType
 
 from moto import settings
+from moto.core.exceptions import HTTPException
 import responses
 import unittest
 from unittest.mock import patch
@@ -283,9 +284,14 @@ class BotocoreStubber:
             for header, value in request.headers.items():
                 if isinstance(value, bytes):
                     request.headers[header] = value.decode("utf-8")
-            status, headers, body = response_callback(
-                request, request.url, request.headers
-            )
+            try:
+                status, headers, body = response_callback(
+                    request, request.url, request.headers
+                )
+            except HTTPException as e:
+                status = e.code
+                headers = e.get_headers()
+                body = e.get_body()
             body = MockRawResponse(body)
             response = AWSResponse(request.url, status, headers, body)
 
