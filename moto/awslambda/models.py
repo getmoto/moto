@@ -52,14 +52,11 @@ from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
+from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
-try:
-    from tempfile import TemporaryDirectory
-except ImportError:
-    from backports.tempfile import TemporaryDirectory
 
 docker_3 = docker.__version__[0] >= "3"
 
@@ -132,6 +129,7 @@ class _DockerDataVolumeContext:
                 volumes = {self.name: {"bind": "/tmp/data", "mode": "rw"}}
             else:
                 volumes = {self.name: "/tmp/data"}
+
             self._lambda_func.docker_client.images.pull(
                 ":".join(parse_image_ref("alpine"))
             )
@@ -159,14 +157,25 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
-def _get_code_representation(source, is_zip=True):
-    if is_zip:
-        source = base64.b64decode(bytes(source, "utf-8"))
+def _zipfile_content(zipfile):
+    # more hackery to handle unicode/bytes/str in python3 and python2 -
+    # argh!
+    try:
+        to_unzip_code = base64.b64decode(bytes(zipfile, "utf-8"))
+    except Exception:
+        to_unzip_code = base64.b64decode(zipfile)
 
-    sha_hex = hashlib.sha256(source)
-    base64ed_sha = base64.b64encode(sha_hex.digest()).decode("utf-8")
-    sha_hex_digest = sha_hex.hexdigest()
-    return source, len(source), base64ed_sha, sha_hex_digest
+    sha_code = hashlib.sha256(to_unzip_code)
+    base64ed_sha = base64.b64encode(sha_code.digest()).decode("utf-8")
+    sha_hex_digest = sha_code.hexdigest()
+    return to_unzip_code, len(to_unzip_code), base64ed_sha, sha_hex_digest
+
+
+def _s3_content(key):
+    sha_code = hashlib.sha256(key.value)
+    base64ed_sha = base64.b64encode(sha_code.digest()).decode("utf-8")
+    sha_hex_digest = sha_code.hexdigest()
+    return key.value, key.size, base64ed_sha, sha_hex_digest
 
 
 def _validate_s3_bucket_and_key(data):
@@ -235,15 +244,16 @@ class LayerVersion(CloudFormationModel):
                 self.code_size,
                 self.code_sha_256,
                 self.code_digest,
-            ) = _get_code_representation(self.content["ZipFile"], is_zip=True)
+            ) = _zipfile_content(self.content["ZipFile"])
         else:
             key = _validate_s3_bucket_and_key(self.content)
             if key:
-                self.code_bytes = key.value
-                self.code_size = key.size
-                _, _, self.code_sha_256, self.code_digest = _get_code_representation(
-                    key.value, is_zip=False
-                )
+                (
+                    self.code_bytes,
+                    self.code_size,
+                    self.code_sha_256,
+                    self.code_digest,
+                ) = _s3_content(key)
 
     @property
     def arn(self):
@@ -386,6 +396,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.signing_profile_version_arn = spec.get("SigningProfileVersionArn")
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
+        self.tracing_config = spec.get("TracingConfig") or {"Mode": "PassThrough"}
 
         self.logs_group_name = "/aws/lambda/{}".format(self.function_name)
 
@@ -404,7 +415,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_size,
                 self.code_sha_256,
                 self.code_digest,
-            ) = _get_code_representation(self.code["ZipFile"], is_zip=True)
+            ) = _zipfile_content(self.code["ZipFile"])
 
             # TODO: we should be putting this in a lambda bucket
             self.code["UUID"] = str(uuid.uuid4())
@@ -412,11 +423,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         else:
             key = _validate_s3_bucket_and_key(self.code)
             if key:
-                self.code_bytes = key.value
-                self.code_size = key.size
-                _, _, self.code_sha_256, self.code_digest = _get_code_representation(
-                    key.value, is_zip=False
-                )
+                (
+                    self.code_bytes,
+                    self.code_size,
+                    self.code_sha_256,
+                    self.code_digest,
+                ) = _s3_content(key)
             else:
                 self.code_bytes = ""
                 self.code_size = 0
@@ -475,7 +487,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "FunctionName": self.function_name,
         }
 
-    def get_configuration(self):
+    def get_configuration(self, on_create=False):
         config = {
             "CodeSha256": self.code_sha_256,
             "CodeSize": self.code_size,
@@ -484,7 +496,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "FunctionName": self.function_name,
             "Handler": self.handler,
             "LastModified": self.last_modified,
-            "LastUpdateStatus": "Successful",
             "MemorySize": self.memory_size,
             "Role": self.role,
             "Runtime": self.run_time,
@@ -496,7 +507,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "Layers": self.layers,
             "SigningProfileVersionArn": self.signing_profile_version_arn,
             "SigningJobArn": self.signing_job_arn,
+            "TracingConfig": self.tracing_config,
         }
+        if not on_create:
+            # Only return this variable after the first creation
+            config["LastUpdateStatus"] = "Successful"
         if self.environment_vars:
             config["Environment"] = {"Variables": self.environment_vars}
 
@@ -512,6 +527,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             },
             "Configuration": self.get_configuration(),
         }
+        if self.tags:
+            code["Tags"] = self.tags
         if self.reserved_concurrency:
             code.update(
                 {
@@ -557,7 +574,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_size,
                 self.code_sha_256,
                 self.code_digest,
-            ) = _get_code_representation(updated_spec["ZipFile"], is_zip=True)
+            ) = _zipfile_content(updated_spec["ZipFile"])
 
             # TODO: we should be putting this in a lambda bucket
             self.code["UUID"] = str(uuid.uuid4())
@@ -582,11 +599,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
                     )
             if key:
-                self.code_bytes = key.value
-                self.code_size = key.size
-                _, _, self.code_sha_256, self.code_digest = _get_code_representation(
-                    key.value, is_zip=False
-                )
+                (
+                    self.code_bytes,
+                    self.code_size,
+                    self.code_sha_256,
+                    self.code_digest,
+                ) = _s3_content(key)
                 self.code["S3Bucket"] = updated_spec["S3Bucket"]
                 self.code["S3Key"] = updated_spec["S3Key"]
 

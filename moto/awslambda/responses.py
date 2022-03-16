@@ -288,7 +288,7 @@ class LambdaResponse(BaseResponse):
 
     def _create_function(self):
         fn = self.lambda_backend.create_function(self.json_body)
-        config = fn.get_configuration()
+        config = fn.get_configuration(on_create=True)
         return 201, {}, json.dumps(config)
 
     def _create_event_source_mapping(self):
