@@ -236,6 +236,46 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "c6a.12xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.16xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.24xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.2xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.32xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.48xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.4xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.8xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.large",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c6a.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "c6g.12xlarge",
   "Location": "eu-west-1"
  },
@@ -1720,6 +1760,10 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "eu-west-1"
  },
@@ -1809,6 +1853,70 @@
  },
  {
   "InstanceType": "x2gd.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iezn.12xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iezn.2xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iezn.4xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iezn.6xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iezn.8xlarge",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "x2iezn.metal",
   "Location": "eu-west-1"
  },
  {

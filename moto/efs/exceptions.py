@@ -1,8 +1,17 @@
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import JsonRESTError
 
 
-class EFSError(RESTError):
+class EFSError(JsonRESTError):
     pass
+
+
+class AccessPointNotFound(EFSError):
+    code = 404
+
+    def __init__(self, access_point_id):
+        super().__init__(
+            "AccessPointNotFound", f"Access Point {access_point_id} does not exist."
+        )
 
 
 class FileSystemAlreadyExists(EFSError):
@@ -13,7 +22,7 @@ class FileSystemAlreadyExists(EFSError):
             "FileSystemAlreadyExists",
             "File system with {} already exists.".format(creation_token),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -25,7 +34,7 @@ class FileSystemNotFound(EFSError):
             "FileSystemNotFound",
             "File system {} does not exist.".format(file_system_id),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -51,7 +60,7 @@ class MountTargetNotFound(EFSError):
             "MountTargetNotFound",
             "Mount target '{}' does not exist.".format(mount_target_id),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -77,7 +86,7 @@ class SubnetNotFound(EFSError):
             "SubnetNotFound",
             "The subnet ID '{}' does not exist".format(subnet_id),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -89,7 +98,7 @@ class SecurityGroupNotFound(EFSError):
             "SecurityGroupNotFound",
             "The SecurityGroup ID '{}' does not exist".format(security_group_id),
             *args,
-            **kwargs
+            **kwargs,
         )
 
 

@@ -2051,37 +2051,37 @@
 
 ## efs
 <details>
-<summary>23% implemented</summary>
+<summary>56% implemented</summary>
 
-- [ ] create_access_point
+- [X] create_access_point
 - [X] create_file_system
 - [X] create_mount_target
 - [ ] create_replication_configuration
 - [ ] create_tags
-- [ ] delete_access_point
+- [X] delete_access_point
 - [X] delete_file_system
 - [ ] delete_file_system_policy
 - [X] delete_mount_target
 - [ ] delete_replication_configuration
 - [ ] delete_tags
-- [ ] describe_access_points
+- [X] describe_access_points
 - [ ] describe_account_preferences
 - [X] describe_backup_policy
 - [ ] describe_file_system_policy
 - [X] describe_file_systems
-- [ ] describe_lifecycle_configuration
-- [ ] describe_mount_target_security_groups
+- [X] describe_lifecycle_configuration
+- [X] describe_mount_target_security_groups
 - [X] describe_mount_targets
 - [ ] describe_replication_configurations
 - [ ] describe_tags
-- [ ] list_tags_for_resource
-- [ ] modify_mount_target_security_groups
+- [X] list_tags_for_resource
+- [X] modify_mount_target_security_groups
 - [ ] put_account_preferences
 - [ ] put_backup_policy
 - [ ] put_file_system_policy
-- [ ] put_lifecycle_configuration
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] put_lifecycle_configuration
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_file_system
 </details>
 
@@ -2879,7 +2879,7 @@
 
 ## iam
 <details>
-<summary>70% implemented</summary>
+<summary>71% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -2958,7 +2958,7 @@
 - [X] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
-- [ ] list_access_keys
+- [X] list_access_keys
 - [X] list_account_aliases
 - [X] list_attached_group_policies
 - [X] list_attached_role_policies
@@ -2984,7 +2984,7 @@
 - [ ] list_saml_provider_tags
 - [X] list_saml_providers
 - [ ] list_server_certificate_tags
-- [ ] list_server_certificates
+- [X] list_server_certificates
 - [ ] list_service_specific_credentials
 - [X] list_signing_certificates
 - [ ] list_ssh_public_keys
@@ -3423,25 +3423,25 @@
 
 ## lambda
 <details>
-<summary>43% implemented</summary>
+<summary>53% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
-- [ ] create_alias
+- [X] create_alias
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
-- [ ] delete_alias
+- [X] delete_alias
 - [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
 - [X] delete_function
 - [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
-- [ ] delete_layer_version
+- [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
-- [ ] get_alias
+- [X] get_alias
 - [X] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
@@ -3449,7 +3449,7 @@
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
-- [ ] get_layer_version
+- [X] get_layer_version
 - [ ] get_layer_version_by_arn
 - [ ] get_layer_version_policy
 - [X] get_policy
@@ -3477,7 +3477,7 @@
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_alias
+- [X] update_alias
 - [ ] update_code_signing_config
 - [X] update_event_source_mapping
 - [X] update_function_code

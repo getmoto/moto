@@ -34,6 +34,10 @@ resource-groups
 - [ ] group_resources
 - [ ] list_group_resources
 - [X] list_groups
+  
+        Pagination or the Filters-parameter is not yet implemented
+        
+
 - [X] put_group_configuration
 - [ ] search_resources
 - [X] tag

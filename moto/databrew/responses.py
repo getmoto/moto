@@ -3,7 +3,6 @@ from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
-from .exceptions import DataBrewClientError
 from .models import databrew_backends
 
 
@@ -58,8 +57,5 @@ class DataBrewResponse(BaseResponse):
 
         recipe_name = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
-        try:
-            recipe = self.databrew_backend.get_recipe(recipe_name)
-            return json.dumps(recipe.as_dict())
-        except DataBrewClientError as e:
-            return e.code, e.get_headers(), e.get_body()
+        recipe = self.databrew_backend.get_recipe(recipe_name)
+        return json.dumps(recipe.as_dict())
