@@ -98,6 +98,8 @@ TestAccAWSIPRanges
 TestAccAWSKinesisStream
 TestAccAWSKmsAlias
 TestAccAWSKmsSecretDataSource
+TestAccAWSLambdaAlias
+TestAccAWSLambdaLayerVersion
 TestAccAWSMq
 TestAccAWSNatGateway
 TestAccAWSPartition
@@ -133,5 +135,7 @@ TestAccDataSourceAWSEFSAccessPoint
 TestAccDataSourceAWSEFSAccessPoints
 TestAccDataSourceAwsEfsFileSystem
 TestAccDataSourceAwsEfsMountTarget
+TestAccDataSourceAWSLambdaLayerVersion
+TestAccDataSourceAwsLambdaInvocation
 TestAccDataSourceAwsNetworkInterface_
 TestValidateSSMDocumentPermissions

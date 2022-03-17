@@ -7,6 +7,8 @@ response = LambdaResponse()
 url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/?$": response.root,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/?$": response.function,
+    r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/aliases$": response.aliases,
+    r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/aliases/(?P<alias_name>[\w_-]+)$": response.alias,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/versions/?$": response.versions,
     r"{0}/(?P<api_version>[^/]+)/event-source-mappings/?$": response.event_source_mappings,
     r"{0}/(?P<api_version>[^/]+)/event-source-mappings/(?P<UUID>[\w_-]+)/?$": response.event_source_mapping,
@@ -22,4 +24,5 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/concurrency/?$": response.function_concurrency,
     r"{0}/(?P<api_version>[^/]+)/layers/?$": response.list_layers,
     r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>[\w_-]+)/versions/?$": response.layers_versions,
+    r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>[\w_-]+)/versions/(?P<layer_version>[\w_-]+)$": response.layers_version,
 }

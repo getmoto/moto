@@ -47,6 +47,20 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def aliases(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return self._create_alias()
+
+    def alias(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "DELETE":
+            return self._delete_alias()
+        elif request.method == "GET":
+            return self._get_alias()
+        elif request.method == "PUT":
+            return self._update_alias()
+
     def event_source_mapping(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         path = request.path if hasattr(request, "path") else path_url(request.url)
@@ -64,6 +78,13 @@ class LambdaResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self._list_layers()
+
+    def layers_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "DELETE":
+            return self._delete_layer_version()
+        elif request.method == "GET":
+            return self._get_layer_version()
 
     def layers_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -182,11 +203,8 @@ class LambdaResponse(BaseResponse):
     def _get_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
-        if self.lambda_backend.get_function(function_name):
-            out = self.lambda_backend.get_policy_wire_format(function_name)
-            return 200, {}, out
-        else:
-            return 404, {}, "{}"
+        out = self.lambda_backend.get_policy(function_name)
+        return 200, {}, out
 
     def _del_policy(self, request, querystring):
         path = request.path if hasattr(request, "path") else path_url(request.url)
@@ -270,7 +288,7 @@ class LambdaResponse(BaseResponse):
 
     def _create_function(self):
         fn = self.lambda_backend.create_function(self.json_body)
-        config = fn.get_configuration()
+        config = fn.get_configuration(on_create=True)
         return 201, {}, json.dumps(config)
 
     def _create_event_source_mapping(self):
@@ -466,6 +484,20 @@ class LambdaResponse(BaseResponse):
         layers = self.lambda_backend.list_layers()
         return 200, {}, json.dumps({"Layers": layers})
 
+    def _delete_layer_version(self):
+        layer_name = self.path.split("/")[-3]
+        layer_version = self.path.split("/")[-1]
+
+        self.lambda_backend.delete_layer_version(layer_name, layer_version)
+        return 200, {}, "{}"
+
+    def _get_layer_version(self):
+        layer_name = self.path.split("/")[-3]
+        layer_version = self.path.split("/")[-1]
+
+        layer = self.lambda_backend.get_layer_version(layer_name, layer_version)
+        return 200, {}, json.dumps(layer.get_layer_version())
+
     def _get_layer_versions(self):
         layer_name = self.path.rsplit("/", 2)[-2]
         layer_versions = self.lambda_backend.get_layer_versions(layer_name)
@@ -484,3 +516,49 @@ class LambdaResponse(BaseResponse):
         layer_version = self.lambda_backend.publish_layer_version(spec)
         config = layer_version.get_layer_version()
         return 201, {}, json.dumps(config)
+
+    def _create_alias(self):
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        params = json.loads(self.body)
+        alias_name = params.get("Name")
+        description = params.get("Description", "")
+        function_version = params.get("FunctionVersion")
+        routing_config = params.get("RoutingConfig")
+        alias = self.lambda_backend.create_alias(
+            name=alias_name,
+            function_name=function_name,
+            function_version=function_version,
+            description=description,
+            routing_config=routing_config,
+        )
+        return 201, {}, json.dumps(alias.to_json())
+
+    def _delete_alias(self):
+        function_name = unquote(self.path.rsplit("/")[-3])
+        alias_name = unquote(self.path.rsplit("/", 2)[-1])
+        self.lambda_backend.delete_alias(name=alias_name, function_name=function_name)
+        return 201, {}, "{}"
+
+    def _get_alias(self):
+        function_name = unquote(self.path.rsplit("/")[-3])
+        alias_name = unquote(self.path.rsplit("/", 2)[-1])
+        alias = self.lambda_backend.get_alias(
+            name=alias_name, function_name=function_name
+        )
+        return 201, {}, json.dumps(alias.to_json())
+
+    def _update_alias(self):
+        function_name = unquote(self.path.rsplit("/")[-3])
+        alias_name = unquote(self.path.rsplit("/", 2)[-1])
+        params = json.loads(self.body)
+        description = params.get("Description")
+        function_version = params.get("FunctionVersion")
+        routing_config = params.get("RoutingConfig")
+        alias = self.lambda_backend.update_alias(
+            name=alias_name,
+            function_name=function_name,
+            function_version=function_version,
+            description=description,
+            routing_config=routing_config,
+        )
+        return 201, {}, json.dumps(alias.to_json())
