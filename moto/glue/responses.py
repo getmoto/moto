@@ -365,11 +365,11 @@ class GlueResponse(BaseResponse):
             worker_type=worker_type,
         )
         return json.dumps(dict(Name=name))
-    
+
     def get_job(self):
         name = self.parameters.get("JobName")
         job = self.glue_backend.get_job(name)
-        return json.dumps({"Job":job.as_dict()})
+        return json.dumps({"Job": job.as_dict()})
 
     def list_jobs(self):
         next_token = self._get_param("NextToken")
