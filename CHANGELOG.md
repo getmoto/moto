@@ -4,7 +4,7 @@ Moto Changelog
 
 3.1.1
 -----
-Docker Digest for 3.1.1: <autopopulateddigest>
+Docker Digest for 3.1.1: _sha256:e2b8145574e01d1630be307f418211e09e089b87d8d87b1ac69878a50d8dde0c_
 
     New Methods:
         * AWSLambda:
