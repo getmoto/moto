@@ -1,6 +1,37 @@
 Moto Changelog
 ==============
 
+
+3.1.1
+-----
+Docker Digest for 3.1.1: <autopopulateddigest>
+
+    New Methods:
+        * AWSLambda:
+            * create_alias()
+            * delete_alias()
+            * delete_layer_version()
+            * get_alias()
+            * get_layer_version()
+            * update_alias()
+
+        * EFS:
+            * create_access_point()
+            * delete_access_point()
+            * describe_access_points()
+            * describe_lifecycle_configuration()
+            * describe_mount_target_security_groups()
+            * list_tags_for_resource()
+            * modify_mount_target_security_groups()
+            * put_lifecycle_configuration()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * AWSLambda: get_function now returns the parameters Tags, LastUpdateStatus, TracingConfig
+        * ELBV2:describe_tags() now supports ListenerRules.
+
+
 3.1.0
 -----
 Docker Digest for 3.1.0: _sha256:1656754cf4de441d85b08f584d9dcb095880d3bf250f05da26a03ff219d586c8_
