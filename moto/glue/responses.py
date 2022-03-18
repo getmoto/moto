@@ -366,7 +366,6 @@ class GlueResponse(BaseResponse):
         )
         return json.dumps(dict(Name=name))
     
-    
     def get_job(self):
         name = self.parameters.get("JobName")
         job = self.glue_backend.get_job(name)
