@@ -6,6 +6,7 @@ import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ParamValidationError
+from botocore.client import ClientError
 
 from moto import mock_glue
 
@@ -39,6 +40,18 @@ def test_list_jobs():
     response = client.list_jobs()
     response["JobNames"].should.have.length_of(expected_jobs)
     response.shouldnt.have.key("NextToken")
+
+
+@mock_glue
+def test_get_job_not_exists():
+    client = create_glue_client()
+    name = "my_job_name"
+
+    with pytest.raises(ClientError) as exc:
+        client.get_job(JobName=name)
+
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("Job my_job_name not found")
 
 
 @mock_glue

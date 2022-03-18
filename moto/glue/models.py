@@ -15,6 +15,7 @@ from .exceptions import (
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     VersionNotFoundException,
+    JobNotFoundException,
 )
 from ..utilities.paginator import paginate
 
@@ -197,6 +198,12 @@ class GlueBackend(BaseBackend):
             worker_type,
         )
         return name
+
+    def get_job(self, name):
+        try:
+            return self.jobs[name]
+        except KeyError:
+            raise JobNotFoundException(name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
