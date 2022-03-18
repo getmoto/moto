@@ -55,6 +55,14 @@ def test_get_job_not_exists():
 
 
 @mock_glue
+def test_get_job_exists():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    response = client.get_job(JobName=job_name)
+    assert response["Job"]["Name"] == job_name
+
+
+@mock_glue
 def test_list_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -113,6 +121,7 @@ def create_test_job(client, tags=None):
         Command=dict(Name="test_command"),
         Tags=tags or {},
     )
+    return job_name
 
 
 def create_test_jobs(client, number_of_jobs):

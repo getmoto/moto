@@ -477,5 +477,29 @@ class FakeJob:
     def get_name(self):
         return self.name
 
+    def as_dict(self):
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "LogUrl": self.log_uri,
+            "Role": self.role,
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "ExecutionProperty": self.execution_property,
+            "Command": self.command,
+            "DefaultArguments": self.default_arguments,
+            "NonOverridableArguments": self.non_overridable_arguments,
+            "Connections": self.connections,
+            "MaxRetries": self.max_retries,
+            "AllocatedCapacity": self.allocated_capacity,
+            "Timeout": self.timeout,
+            "MaxCapacity": self.max_capacity,
+            "WorkerType": self.worker_type,
+            "NumberOfWorkers": self.number_of_workers,
+            "SecurityConfiguration": self.security_configuration,
+            "NotificationProperty": self.notification_property,
+            "GlueVesion": self.glue_version,
+        }
+
 
 glue_backend = GlueBackend()
