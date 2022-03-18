@@ -365,9 +365,18 @@ def test_delete_subscription_filter_errors():
     )
 
 
+@mock_lambda
 @mock_logs
 def test_put_subscription_filter_errors():
     # given
+    client_lambda = boto3.client("lambda", "us-east-1")
+    function_arn = client_lambda.create_function(
+        FunctionName="test",
+        Runtime="python3.8",
+        Role=_get_role_name("us-east-1"),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": _get_test_zip_file()},
+    )["FunctionArn"]
     client = boto3.client("logs", "us-east-1")
     log_group_name = "/test"
     client.create_log_group(logGroupName=log_group_name)
@@ -378,7 +387,7 @@ def test_put_subscription_filter_errors():
             logGroupName="not-existing-log-group",
             filterName="test",
             filterPattern="",
-            destinationArn="arn:aws:lambda:us-east-1:123456789012:function:test",
+            destinationArn=function_arn,
         )
 
     # then

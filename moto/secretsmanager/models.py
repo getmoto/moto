@@ -537,8 +537,9 @@ class SecretsManagerBackend(BaseBackend):
             request_headers = {}
             response_headers = {}
 
-            func = lambda_backend.get_function(secret.rotation_lambda_arn)
-            if not func:
+            try:
+                func = lambda_backend.get_function(secret.rotation_lambda_arn)
+            except Exception:
                 msg = "Resource not found for ARN '{}'.".format(
                     secret.rotation_lambda_arn
                 )

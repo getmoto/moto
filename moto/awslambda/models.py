@@ -1095,9 +1095,18 @@ class LambdaStorage(object):
         return self._arns.get(arn, None)
 
     def get_function_by_name_or_arn(self, name_or_arn, qualifier=None):
-        return self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
+        fn = self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
             name_or_arn
         )
+        if fn is None:
+            if name_or_arn.startswith("arn:aws"):
+                arn = name_or_arn
+            else:
+                arn = make_function_arn(self.region_name, ACCOUNT_ID, name_or_arn)
+            if qualifier:
+                arn = f"{arn}:{qualifier}"
+            raise UnknownFunctionException(arn)
+        return fn
 
     def put_function(self, fn):
         """
@@ -1127,12 +1136,6 @@ class LambdaStorage(object):
 
     def publish_function(self, name_or_arn, description=""):
         function = self.get_function_by_name_or_arn(name_or_arn)
-        if not function:
-            if name_or_arn.startswith("arn:aws"):
-                arn = name_or_arn
-            else:
-                arn = make_function_arn(self.region_name, ACCOUNT_ID, name_or_arn)
-            raise UnknownFunctionException(arn)
         name = function.function_name
         if name not in self._functions:
             return None
@@ -1150,23 +1153,32 @@ class LambdaStorage(object):
         return fn
 
     def del_function(self, name_or_arn, qualifier=None):
-        function = self.get_function_by_name_or_arn(name_or_arn)
-        if function:
-            name = function.function_name
-            if not qualifier:
-                # Something is still reffing this so delete all arns
-                latest = self._functions[name]["latest"].function_arn
-                del self._arns[latest]
+        function = self.get_function_by_name_or_arn(name_or_arn, qualifier)
+        name = function.function_name
+        if not qualifier:
+            # Something is still reffing this so delete all arns
+            latest = self._functions[name]["latest"].function_arn
+            del self._arns[latest]
 
-                for fn in self._functions[name]["versions"]:
-                    del self._arns[fn.function_arn]
+            for fn in self._functions[name]["versions"]:
+                del self._arns[fn.function_arn]
 
+            del self._functions[name]
+
+        elif qualifier == "$LATEST":
+            self._functions[name]["latest"] = None
+
+            # If theres no functions left
+            if (
+                not self._functions[name]["versions"]
+                and not self._functions[name]["latest"]
+            ):
                 del self._functions[name]
 
-                return True
-
-            elif qualifier == "$LATEST":
-                self._functions[name]["latest"] = None
+        else:
+            fn = self.get_function_by_name(name, qualifier)
+            if fn:
+                self._functions[name]["versions"].remove(fn)
 
                 # If theres no functions left
                 if (
@@ -1174,24 +1186,6 @@ class LambdaStorage(object):
                     and not self._functions[name]["latest"]
                 ):
                     del self._functions[name]
-
-                return True
-
-            else:
-                fn = self.get_function_by_name(name, qualifier)
-                if fn:
-                    self._functions[name]["versions"].remove(fn)
-
-                    # If theres no functions left
-                    if (
-                        not self._functions[name]["versions"]
-                        and not self._functions[name]["latest"]
-                    ):
-                        del self._functions[name]
-
-                    return True
-
-        return False
 
     def all(self):
         result = []
@@ -1488,7 +1482,7 @@ class LambdaBackend(BaseBackend):
         return self._lambdas.get_arn(function_arn)
 
     def delete_function(self, function_name, qualifier=None):
-        return self._lambdas.del_function(function_name, qualifier)
+        self._lambdas.del_function(function_name, qualifier)
 
     def list_functions(self, func_version=None):
         if func_version == "ALL":
@@ -1601,31 +1595,20 @@ class LambdaBackend(BaseBackend):
         return func.invoke(json.dumps(event), {}, {})
 
     def list_tags(self, resource):
-        return self.get_function_by_arn(resource).tags
+        return self._lambdas.get_function_by_name_or_arn(resource).tags
 
     def tag_resource(self, resource, tags):
-        fn = self.get_function_by_arn(resource)
-        if not fn:
-            return False
-
+        fn = self._lambdas.get_function_by_name_or_arn(resource)
         fn.tags.update(tags)
-        return True
 
     def untag_resource(self, resource, tagKeys):
-        fn = self.get_function_by_arn(resource)
-        if fn:
-            for key in tagKeys:
-                try:
-                    del fn.tags[key]
-                except KeyError:
-                    pass
-                    # Don't care
-            return True
-        return False
+        fn = self._lambdas.get_function_by_name_or_arn(resource)
+        for key in tagKeys:
+            fn.tags.pop(key, None)
 
-    def add_permission(self, function_name, raw):
-        fn = self.get_function(function_name)
-        fn.policy.add_statement(raw)
+    def add_permission(self, function_name, qualifier, raw):
+        fn = self.get_function(function_name, qualifier)
+        fn.policy.add_statement(raw, qualifier)
 
     def remove_permission(self, function_name, sid, revision=""):
         fn = self.get_function(function_name)
