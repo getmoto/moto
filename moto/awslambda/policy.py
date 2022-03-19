@@ -29,7 +29,7 @@ class Policy:
         }
 
     # adds the raw JSON statement to the policy
-    def add_statement(self, raw):
+    def add_statement(self, raw, qualifier=None):
         policy = json.loads(raw, object_hook=self.decode_policy)
         if len(policy.revision) > 0 and self.revision != policy.revision:
             raise PreconditionFailedException(
@@ -40,6 +40,10 @@ class Policy:
         # Remove #LATEST from the Resource (Lambda ARN)
         if policy.statements[0].get("Resource", "").endswith("$LATEST"):
             policy.statements[0]["Resource"] = policy.statements[0]["Resource"][0:-8]
+        if qualifier:
+            policy.statements[0]["Resource"] = (
+                policy.statements[0]["Resource"] + ":" + qualifier
+            )
         self.statements.append(policy.statements[0])
         self.revision = str(uuid.uuid4())
 

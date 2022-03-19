@@ -193,12 +193,10 @@ class LambdaResponse(BaseResponse):
     def _add_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
-        if self.lambda_backend.get_function(function_name):
-            statement = self.body
-            self.lambda_backend.add_permission(function_name, statement)
-            return 200, {}, json.dumps({"Statement": statement})
-        else:
-            return 404, {}, "{}"
+        qualifier = self.querystring.get("Qualifier", [None])[0]
+        statement = self.body
+        self.lambda_backend.add_permission(function_name, qualifier, statement)
+        return 200, {}, json.dumps({"Statement": statement})
 
     def _get_policy(self, request):
         path = request.path if hasattr(request, "path") else path_url(request.url)
@@ -257,12 +255,9 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 3)[-3])
 
         fn = self.lambda_backend.get_function(function_name, None)
-        if fn:
-            payload = fn.invoke(self.body, self.headers, response_headers)
-            response_headers["Content-Length"] = str(len(payload))
-            return 202, response_headers, payload
-        else:
-            return 404, response_headers, "{}"
+        payload = fn.invoke(self.body, self.headers, response_headers)
+        response_headers["Content-Length"] = str(len(payload))
+        return 202, response_headers, payload
 
     def _list_functions(self):
         querystring = self.querystring
@@ -331,20 +326,15 @@ class LambdaResponse(BaseResponse):
         description = self._get_param("Description")
 
         fn = self.lambda_backend.publish_function(function_name, description)
-        if fn:
-            config = fn.get_configuration()
-            return 201, {}, json.dumps(config)
-        else:
-            return 404, {}, "{}"
+        config = fn.get_configuration()
+        return 201, {}, json.dumps(config)
 
     def _delete_function(self):
         function_name = unquote(self.path.rsplit("/", 1)[-1])
         qualifier = self._get_param("Qualifier", None)
 
-        if self.lambda_backend.delete_function(function_name, qualifier):
-            return 204, {}, ""
-        else:
-            return 404, {}, "{}"
+        self.lambda_backend.delete_function(function_name, qualifier)
+        return 204, {}, ""
 
     @staticmethod
     def _set_configuration_qualifier(configuration, qualifier):
@@ -360,14 +350,11 @@ class LambdaResponse(BaseResponse):
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
-        if fn:
-            code = fn.get_code()
-            code["Configuration"] = self._set_configuration_qualifier(
-                code["Configuration"], qualifier
-            )
-            return 200, {}, json.dumps(code)
-        else:
-            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
+        code = fn.get_code()
+        code["Configuration"] = self._set_configuration_qualifier(
+            code["Configuration"], qualifier
+        )
+        return 200, {}, json.dumps(code)
 
     def _get_function_configuration(self):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
@@ -375,13 +362,10 @@ class LambdaResponse(BaseResponse):
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
-        if fn:
-            configuration = self._set_configuration_qualifier(
-                fn.get_configuration(), qualifier
-            )
-            return 200, {}, json.dumps(configuration)
-        else:
-            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
+        configuration = self._set_configuration_qualifier(
+            fn.get_configuration(), qualifier
+        )
+        return 200, {}, json.dumps(configuration)
 
     def _get_aws_region(self, full_url):
         region = self.region_regex.search(full_url)
@@ -393,28 +377,21 @@ class LambdaResponse(BaseResponse):
     def _list_tags(self):
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
-        fn = self.lambda_backend.get_function_by_arn(function_arn)
-        if fn:
-            return 200, {}, json.dumps({"Tags": fn.tags})
-        else:
-            return 404, {}, "{}"
+        tags = self.lambda_backend.list_tags(function_arn)
+        return 200, {}, json.dumps({"Tags": tags})
 
     def _tag_resource(self):
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
-        if self.lambda_backend.tag_resource(function_arn, self.json_body["Tags"]):
-            return 200, {}, "{}"
-        else:
-            return 404, {}, "{}"
+        self.lambda_backend.tag_resource(function_arn, self.json_body["Tags"])
+        return 200, {}, "{}"
 
     def _untag_resource(self):
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
         tag_keys = self.querystring["tagKeys"]
 
-        if self.lambda_backend.untag_resource(function_arn, tag_keys):
-            return 204, {}, "{}"
-        else:
-            return 404, {}, "{}"
+        self.lambda_backend.untag_resource(function_arn, tag_keys)
+        return 204, {}, "{}"
 
     def _put_configuration(self):
         function_name = unquote(self.path.rsplit("/", 2)[-2])

@@ -643,8 +643,9 @@ class Source(ConfigEmptyDictable):
         # operations, only load it if needed.
         from moto.awslambda import lambda_backends
 
-        lambda_func = lambda_backends[region].get_function(source_identifier)
-        if not lambda_func:
+        try:
+            lambda_backends[region].get_function(source_identifier)
+        except Exception:
             raise InsufficientPermissionsException(
                 f"The AWS Lambda function {source_identifier} cannot be "
                 f"invoked. Check the specified function ARN, and check the "

@@ -888,11 +888,10 @@ class LogsBackend(BaseBackend):
                 lambda_backends,
             )
 
-            lambda_func = lambda_backends[self.region_name].get_function(
-                destination_arn
-            )
+            try:
+                lambda_backends[self.region_name].get_function(destination_arn)
             # no specific permission check implemented
-            if not lambda_func:
+            except Exception:
                 raise InvalidParameterException(
                     "Could not execute the lambda function. Make sure you "
                     "have given CloudWatch Logs permission to execute your "
