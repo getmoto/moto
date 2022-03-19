@@ -60,6 +60,25 @@ def test_get_job_exists():
     job_name = create_test_job(client)
     response = client.get_job(JobName=job_name)
     assert response["Job"]["Name"] == job_name
+    assert response["Job"]["Description"]
+    assert response["Job"]["LogUri"]
+    assert response["Job"]["Role"]
+    assert response["Job"]["CreatedOn"]
+    assert response["Job"]["LastModifiedOn"]
+    assert response["Job"]["ExecutionProperty"]
+    assert response["Job"]["Command"]
+    assert response["Job"]["DefaultArguments"]
+    assert response["Job"]["NonOverridableArguments"]
+    assert response["Job"]["Connections"]
+    assert response["Job"]["MaxRetries"]
+    assert response["Job"]["AllocatedCapacity"]
+    assert response["Job"]["Timeout"]
+    assert response["Job"]["MaxCapacity"]
+    assert response["Job"]["WorkerType"]
+    assert response["Job"]["NumberOfWorkers"]
+    assert response["Job"]["SecurityConfiguration"]
+    assert response["Job"]["NotificationProperty"]
+    assert response["Job"]["GlueVersion"]
 
 
 @mock_glue
