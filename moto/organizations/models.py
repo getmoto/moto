@@ -20,6 +20,8 @@ from moto.organizations.exceptions import (
     PolicyTypeNotEnabledException,
     TargetNotFoundException,
 )
+from moto.utilities.paginator import paginate
+from .utils import PAGINATION_MODEL
 
 
 class FakeOrganization(BaseModel):
@@ -495,8 +497,11 @@ class OrganizationsBackend(BaseBackend):
             next_token = str(len(accounts_resp))
         return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts(self):
-        return dict(Accounts=[account.describe() for account in self.accounts])
+        accounts = [account.describe() for account in self.accounts]
+        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
+        return accounts
 
     def list_accounts_for_parent(self, **kwargs):
         parent_id = self.validate_parent_id(kwargs["ParentId"])

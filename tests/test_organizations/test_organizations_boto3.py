@@ -230,6 +230,25 @@ def test_list_accounts():
 
 
 @mock_organizations
+def test_list_accounts_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    for i in range(25):
+        name = mockname + str(i)
+        email = name + "@" + mockdomain
+        client.create_account(AccountName=name, Email=email)
+    response = client.list_accounts()
+    response.should_not.have.key("NextToken")
+    len(response["Accounts"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_accounts")
+    page_iterator = paginator.paginate(MaxResults=5)
+    for page in page_iterator:
+        len(page["Accounts"]).should.be.lower_than_or_equal_to(5)
+    page["Accounts"][-1]["Name"].should.contain("24")
+
+
+@mock_organizations
 def test_list_accounts_for_parent():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]

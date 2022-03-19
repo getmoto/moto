@@ -33,6 +33,16 @@ ACCOUNT_ID_REGEX = r"[0-9]{%s}" % ACCOUNT_ID_SIZE
 CREATE_ACCOUNT_STATUS_ID_REGEX = r"car-[a-z0-9]{%s}" % CREATE_ACCOUNT_STATUS_ID_SIZE
 POLICY_ID_REGEX = r"%s|p-[a-z0-9]{%s}" % (DEFAULT_POLICY_ID, POLICY_ID_SIZE)
 
+PAGINATION_MODEL = {
+    "list_accounts": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "result_key": "Accounts",
+        "unique_attribute": "JoinedTimestamp",
+    },
+}
+
 
 def make_random_org_id():
     # The regex pattern for an organization ID string requires "o-"
