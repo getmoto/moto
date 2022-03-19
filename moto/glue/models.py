@@ -15,6 +15,7 @@ from .exceptions import (
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     VersionNotFoundException,
+    JobNotFoundException,
 )
 from ..utilities.paginator import paginate
 
@@ -197,6 +198,12 @@ class GlueBackend(BaseBackend):
             worker_type,
         )
         return name
+
+    def get_job(self, name):
+        try:
+            return self.jobs[name]
+        except KeyError:
+            raise JobNotFoundException(name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
@@ -469,6 +476,30 @@ class FakeJob:
 
     def get_name(self):
         return self.name
+
+    def as_dict(self):
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "LogUri": self.log_uri,
+            "Role": self.role,
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "ExecutionProperty": self.execution_property,
+            "Command": self.command,
+            "DefaultArguments": self.default_arguments,
+            "NonOverridableArguments": self.non_overridable_arguments,
+            "Connections": self.connections,
+            "MaxRetries": self.max_retries,
+            "AllocatedCapacity": self.allocated_capacity,
+            "Timeout": self.timeout,
+            "MaxCapacity": self.max_capacity,
+            "WorkerType": self.worker_type,
+            "NumberOfWorkers": self.number_of_workers,
+            "SecurityConfiguration": self.security_configuration,
+            "NotificationProperty": self.notification_property,
+            "GlueVersion": self.glue_version,
+        }
 
 
 glue_backend = GlueBackend()
