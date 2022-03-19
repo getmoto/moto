@@ -137,7 +137,7 @@ class Paginator(object):
         predicate_values = unique_attributes.split("|")
         for (index, attr) in enumerate(self._unique_attributes):
             curr_val = item[attr] if type(item) == dict else getattr(item, attr, None)
-            if not curr_val == predicate_values[index]:
+            if not str(curr_val) == predicate_values[index]:
                 return False
         return True
 
@@ -148,9 +148,9 @@ class Paginator(object):
         range_keys = []
         for attr in self._unique_attributes:
             if type(next_item) == dict:
-                range_keys.append(next_item[attr])
+                range_keys.append(str(next_item[attr]))
             else:
-                range_keys.append(getattr(next_item, attr))
+                range_keys.append(str(getattr(next_item, attr)))
         token_dict["uniqueAttributes"] = "|".join(range_keys)
         return self._token_encoder.encode(token_dict)
 
