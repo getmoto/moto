@@ -57,7 +57,34 @@ def test_get_job_not_exists():
 @mock_glue
 def test_get_job_exists():
     client = create_glue_client()
-    job_name = create_test_job(client)
+    job_attributes = {
+        "Description": "test_description",
+        "LogUri": "test_log/",
+        "Role": "test_role",
+        "ExecutionProperty": {"MaxConcurrentRuns": 123},
+        "Command": {
+            "Name": "test_command",
+            "ScriptLocation": "test_s3_path",
+            "PythonVersion": "3.6",
+        },
+        "DefaultArguments": {"string": "string"},
+        "NonOverridableArguments": {"string": "string"},
+        "Connections": {
+            "Connections": [
+                "string",
+            ]
+        },
+        "MaxRetries": 123,
+        "AllocatedCapacity": 123,
+        "Timeout": 123,
+        "MaxCapacity": 123.0,
+        "WorkerType": "G.2X",
+        "NumberOfWorkers": 123,
+        "SecurityConfiguration": "test_config",
+        "NotificationProperty": {"NotifyDelayAfter": 123},
+        "GlueVersion": "string",
+    }
+    job_name = create_test_job_w_all_attributes(client, **job_attributes)
     response = client.get_job(JobName=job_name)
     assert response["Job"]["Name"] == job_name
     assert response["Job"]["Description"]
@@ -140,6 +167,12 @@ def create_test_job(client, tags=None):
         Command=dict(Name="test_command"),
         Tags=tags or {},
     )
+    return job_name
+
+
+def create_test_job_w_all_attributes(client, **job_attributes):
+    job_name = str(uuid4())
+    client.create_job(Name=job_name, **job_attributes)
     return job_name
 
 
