@@ -85,7 +85,14 @@ class TimestreamWriteResponse(BaseResponse):
         table_name = self._get_param("TableName")
         records = self._get_param("Records")
         self.timestreamwrite_backend.write_records(database_name, table_name, records)
-        return "{}"
+        resp = {
+            "RecordsIngested": {
+                "Total": len(records),
+                "MemoryStore": len(records),
+                "MagneticStore": 0,
+            }
+        }
+        return json.dumps(resp)
 
     def describe_endpoints(self):
         resp = self.timestreamwrite_backend.describe_endpoints()
