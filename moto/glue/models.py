@@ -17,6 +17,7 @@ from .exceptions import (
     VersionNotFoundException,
     JobNotFoundException,
 )
+from .utils import PartitionFilter
 from ..utilities.paginator import paginate
 
 
@@ -268,8 +269,9 @@ class FakeTable(BaseModel):
             raise PartitionAlreadyExistsException()
         self.partitions[str(partition.values)] = partition
 
-    def get_partitions(self):
-        return [p for str_part_values, p in self.partitions.items()]
+    def get_partitions(self, expression):
+        keys = self.versions[-1].get("PartitionKeys", [])
+        return list(filter(PartitionFilter(expression, keys), self.partitions.values()))
 
     def get_partition(self, values):
         try:
