@@ -22,9 +22,12 @@ def test_create_and_describe_budget_minimal_params():
     )
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
-    budget = client.describe_budget(AccountId=ACCOUNT_ID, BudgetName="testbudget")[
-        "Budget"
-    ]
+    try:
+        budget = client.describe_budget(AccountId=ACCOUNT_ID, BudgetName="testbudget")[
+            "Budget"
+        ]
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
     budget.should.have.key("BudgetLimit")
     budget["BudgetLimit"].should.have.key("Amount")
     budget["BudgetLimit"]["Amount"].should.equal("10")
@@ -140,7 +143,10 @@ def test_create_and_describe_all_budgets():
         },
     )
 
-    res = client.describe_budgets(AccountId=ACCOUNT_ID)
+    try:
+        res = client.describe_budgets(AccountId=ACCOUNT_ID)
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
     res["Budgets"].should.have.length_of(1)
 
 

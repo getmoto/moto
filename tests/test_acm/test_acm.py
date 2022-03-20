@@ -160,7 +160,10 @@ def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
-    resp = client.describe_certificate(CertificateArn=arn)
+    try:
+        resp = client.describe_certificate(CertificateArn=arn)
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
     resp["Certificate"]["CertificateArn"].should.equal(arn)
     resp["Certificate"]["DomainName"].should.equal(SERVER_COMMON_NAME)
     resp["Certificate"]["Issuer"].should.equal("Moto")
