@@ -152,8 +152,9 @@ class ResourceInUseError(ELBClientError):
 
 
 class RuleNotFoundError(ELBClientError):
-    def __init__(self):
-        super().__init__("RuleNotFound", "The specified rule does not exist.")
+    def __init__(self, msg=None):
+        msg = msg or "The specified rule does not exist."
+        super().__init__("RuleNotFound", msg)
 
 
 class DuplicatePriorityError(ELBClientError):

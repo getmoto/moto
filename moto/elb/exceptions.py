@@ -30,6 +30,13 @@ class LoadBalancerNotFoundError(ELBClientError):
         )
 
 
+class PolicyNotFoundError(ELBClientError):
+    def __init__(self):
+        super().__init__(
+            "PolicyNotFound", "There is no policy with name . for load balancer ."
+        )
+
+
 class TooManyTagsError(ELBClientError):
     def __init__(self):
         super().__init__(

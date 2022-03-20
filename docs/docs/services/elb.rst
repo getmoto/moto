@@ -36,18 +36,18 @@ elb
 - [ ] create_load_balancer_policy
 - [X] delete_load_balancer
 - [X] delete_load_balancer_listeners
-- [ ] delete_load_balancer_policy
+- [X] delete_load_balancer_policy
 - [ ] deregister_instances_from_load_balancer
 - [ ] describe_account_limits
 - [ ] describe_instance_health
 - [ ] describe_load_balancer_attributes
-- [ ] describe_load_balancer_policies
+- [X] describe_load_balancer_policies
 - [ ] describe_load_balancer_policy_types
 - [X] describe_load_balancers
 - [ ] describe_tags
 - [ ] detach_load_balancer_from_subnets
-- [ ] disable_availability_zones_for_load_balancer
-- [ ] enable_availability_zones_for_load_balancer
+- [X] disable_availability_zones_for_load_balancer
+- [X] enable_availability_zones_for_load_balancer
 - [X] modify_load_balancer_attributes
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags
