@@ -1013,6 +1013,10 @@ def test_steps():
 
     steps = client.list_steps(ClusterId=cluster_id)["Steps"]
     steps.should.have.length_of(2)
+    # Steps should be returned in reverse order.
+    sorted(
+        steps, key=lambda o: o["Status"]["Timeline"]["CreationDateTime"], reverse=True
+    ).should.equal(steps)
     for x in steps:
         y = expected[x["Name"]]
         x["ActionOnFailure"].should.equal("TERMINATE_CLUSTER")
@@ -1044,7 +1048,7 @@ def test_steps():
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
         # x['Status']['Timeline']['StartDateTime'].should.be.a('datetime.datetime')
 
-    step_id = steps[0]["Id"]
+    step_id = steps[-1]["Id"]  # Last step is first created step.
     steps = client.list_steps(ClusterId=cluster_id, StepIds=[step_id])["Steps"]
     steps.should.have.length_of(1)
     steps[0]["Id"].should.equal(step_id)
