@@ -560,7 +560,11 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
         max_items = 50
-        steps = self.clusters[cluster_id].steps
+        steps = sorted(
+            self.clusters[cluster_id].steps,
+            key=lambda o: o.creation_datetime,
+            reverse=True,
+        )
         if step_ids:
             steps = [s for s in steps if s.id in step_ids]
         if step_states:
