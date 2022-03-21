@@ -5146,7 +5146,7 @@
 
 ## sqs
 <details>
-<summary>85% implemented</summary>
+<summary>90% implemented</summary>
 
 - [X] add_permission
 - [X] change_message_visibility
@@ -5161,7 +5161,7 @@
 - [X] list_queue_tags
 - [X] list_queues
 - [X] purge_queue
-- [ ] receive_message
+- [X] receive_message
 - [X] remove_permission
 - [X] send_message
 - [X] send_message_batch

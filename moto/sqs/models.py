@@ -544,7 +544,7 @@ class Queue(CloudFormationModel):
             your function once for each batch. When your function successfully processes
             a batch, Lambda deletes its messages from the queue.
             """
-            messages = backend.receive_messages(
+            messages = backend.receive_message(
                 self.name,
                 esm.batch_size,
                 self.receive_message_wait_time_seconds,
@@ -855,7 +855,7 @@ class SQSBackend(BaseBackend):
             unique_ids.add(_id)
         return None
 
-    def receive_messages(
+    def receive_message(
         self,
         queue_name,
         count,
@@ -863,20 +863,13 @@ class SQSBackend(BaseBackend):
         visibility_timeout,
         message_attribute_names=None,
     ):
-        """
-        Attempt to retrieve visible messages from a queue.
+        # Attempt to retrieve visible messages from a queue.
 
-        If a message was read by client and not deleted it is considered to be
-        "inflight" and cannot be read. We make attempts to obtain ``count``
-        messages but we may return less if messages are in-flight or there
-        are simple not enough messages in the queue.
+        # If a message was read by client and not deleted it is considered to be
+        # "inflight" and cannot be read. We make attempts to obtain ``count``
+        # messages but we may return less if messages are in-flight or there
+        # are simple not enough messages in the queue.
 
-        :param string queue_name: The name of the queue to read from.
-        :param int count: The maximum amount of messages to retrieve.
-        :param int visibility_timeout: The number of seconds the message should remain invisible to other queue readers.
-        :param int wait_seconds_timeout:  The duration (in seconds) for which the call waits for a message to arrive in
-         the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds
-        """
         if message_attribute_names is None:
             message_attribute_names = []
         queue = self.get_queue(queue_name)

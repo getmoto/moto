@@ -423,7 +423,7 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        messages = self.sqs_backend.receive_messages(
+        messages = self.sqs_backend.receive_message(
             queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
 
