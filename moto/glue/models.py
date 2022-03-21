@@ -16,6 +16,7 @@ from .exceptions import (
     PartitionNotFoundException,
     VersionNotFoundException,
     JobNotFoundException,
+    ConcurrentRunsExceededException,
 )
 from ..utilities.paginator import paginate
 
@@ -34,6 +35,7 @@ class GlueBackend(BaseBackend):
         self.databases = OrderedDict()
         self.crawlers = OrderedDict()
         self.jobs = OrderedDict()
+        self.job_runs = OrderedDict()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -204,6 +206,10 @@ class GlueBackend(BaseBackend):
             return self.jobs[name]
         except KeyError:
             raise JobNotFoundException(name)
+
+    def start_job_run(self, name):
+        job = self.get_job(name)
+        return job.start_job_run()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
@@ -464,6 +470,7 @@ class FakeJob:
         self.max_retries = max_retries
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
+        self.state = 'READY'
         self.max_capacity = max_capacity
         self.security_configuration = security_configuration
         self.tags = tags
@@ -500,6 +507,32 @@ class FakeJob:
             "NotificationProperty": self.notification_property,
             "GlueVersion": self.glue_version,
         }
+
+    def start_job_run(self):
+        if self.state == "RUNNING":
+            raise ConcurrentRunsExceededException(f"Job with name {self.name}")
+        fake_job_run = FakeJobRun(job_name = self.name)
+        self.state = "RUNNING"
+        return fake_job_run.job_run_id
+class FakeJobRun:
+    def __init__(
+        self,
+        job_name: int,
+        job_run_id: str = '01',
+        arguments: dict = None,
+        allocated_capacity: int = None,
+        timeout: int = None,
+        worker_type: str = "Standard",
+    ):
+        self.job_name = job_name
+        self.job_run_id = job_run_id
+        self.arguments = arguments
+        self.allocated_capacity = allocated_capacity
+        self.timeout = timeout
+        self.worker_type = worker_type
+
+    def get_name(self):
+        return self.job_name
 
 
 glue_backend = GlueBackend()

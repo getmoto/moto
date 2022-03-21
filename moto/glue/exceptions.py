@@ -73,3 +73,8 @@ class CrawlerRunningException(GlueClientError):
 class CrawlerNotRunningException(GlueClientError):
     def __init__(self, msg):
         super().__init__("CrawlerNotRunningException", msg)
+
+
+class ConcurrentRunsExceededException(GlueClientError):
+    def __init__(self, msg):
+        super().__init__("ConcurrentRunsExceededException", msg)

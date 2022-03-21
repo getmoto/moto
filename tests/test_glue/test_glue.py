@@ -108,6 +108,15 @@ def test_get_job_exists():
     assert response["Job"]["GlueVersion"]
 
 
+
+@mock_glue
+def test_start_job_run():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    response = client.start_job_run(JobName=job_name)
+    assert response["JobRunId"]
+    
+
 @mock_glue
 def test_list_jobs_with_max_results():
     client = create_glue_client()
