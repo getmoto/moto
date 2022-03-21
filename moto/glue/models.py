@@ -211,6 +211,9 @@ class GlueBackend(BaseBackend):
         job = self.get_job(name)
         return job.start_job_run()
 
+    def get_job_run(self, name, run_id):
+        return
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
         return [job for _, job in self.jobs.items()]
@@ -470,7 +473,7 @@ class FakeJob:
         self.max_retries = max_retries
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
-        self.state = 'READY'
+        self.state = "READY"
         self.max_capacity = max_capacity
         self.security_configuration = security_configuration
         self.tags = tags
@@ -511,14 +514,16 @@ class FakeJob:
     def start_job_run(self):
         if self.state == "RUNNING":
             raise ConcurrentRunsExceededException(f"Job with name {self.name}")
-        fake_job_run = FakeJobRun(job_name = self.name)
+        fake_job_run = FakeJobRun(job_name=self.name)
         self.state = "RUNNING"
         return fake_job_run.job_run_id
+
+
 class FakeJobRun:
     def __init__(
         self,
         job_name: int,
-        job_run_id: str = '01',
+        job_run_id: str = "01",
         arguments: dict = None,
         allocated_capacity: int = None,
         timeout: int = None,
@@ -530,9 +535,40 @@ class FakeJobRun:
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
         self.worker_type = worker_type
+        self.started_on = datetime.utcnow()
+        self.created_on = datetime.utcnow()
+        self.modified_on = datetime.utcnow()
 
     def get_name(self):
         return self.job_name
+
+    def as_dict(self):
+        return {
+            "Id": self.job_run_id,
+            "Attempt": 1,
+            "PreviousRunId": "01",
+            "TriggerName": "test_trigger",
+            "JobName": self.job_name,
+            "StartedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.modified_on.isoformat(),
+            "CompletedOn": self.completed_on.isoformat(),
+            "JobRunState": "SUCCEEDED",
+            "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
+            "ErrorMessage": "",
+            "PredecessorRuns": [
+                {"JobName": "string", "RunId": "string"},
+            ],
+            "AllocatedCapacity": self.allocated_capacity or 123,
+            "ExecutionTime": 123,
+            "Timeout": self.timeout or 123,
+            "MaxCapacity": 123.0,
+            "WorkerType": self.worker_type,
+            "NumberOfWorkers": 123,
+            "SecurityConfiguration": "string",
+            "LogGroupName": "test/log",
+            "NotificationProperty": {"NotifyDelayAfter": 123},
+            "GlueVersion": "0.9",
+        }
 
 
 glue_backend = GlueBackend()
