@@ -582,6 +582,16 @@ class ELBBackend(BaseBackend):
         )
         return load_balancer.zones
 
+    def attach_load_balancer_to_subnets(self, load_balancer_name, subnets):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.subnets = list(set(load_balancer.subnets + subnets))
+        return load_balancer.subnets
+
+    def detach_load_balancer_from_subnets(self, load_balancer_name, subnets):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.subnets = [s for s in load_balancer.subnets if s not in subnets]
+        return load_balancer.subnets
+
 
 # Use the same regions as EC2
 elb_backends = BackendDict(ELBBackend, "ec2")

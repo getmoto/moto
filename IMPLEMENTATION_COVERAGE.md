@@ -2274,11 +2274,11 @@
 
 ## elb
 <details>
-<summary>55% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
-- [ ] attach_load_balancer_to_subnets
+- [X] attach_load_balancer_to_subnets
 - [X] configure_health_check
 - [X] create_app_cookie_stickiness_policy
 - [X] create_lb_cookie_stickiness_policy
@@ -2296,7 +2296,7 @@
 - [ ] describe_load_balancer_policy_types
 - [X] describe_load_balancers
 - [ ] describe_tags
-- [ ] detach_load_balancer_from_subnets
+- [X] detach_load_balancer_from_subnets
 - [X] disable_availability_zones_for_load_balancer
 - [X] enable_availability_zones_for_load_balancer
 - [X] modify_load_balancer_attributes

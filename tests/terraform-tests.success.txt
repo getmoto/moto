@@ -73,7 +73,6 @@ TestAccAWSEFSAccessPoint
 TestAccAWSEFSMountTarget
 TestAccAWSEgressOnlyInternetGateway
 TestAccAWSElasticBeanstalkSolutionStackDataSource
-TestAccAWSELB
 TestAccAWSELBAttachment
 TestAccAWSElbHostedZoneId
 TestAccAWSElbServiceAccount

@@ -408,6 +408,28 @@ class ELBResponse(BaseResponse):
         )
         return template.render(availability_zones=availability_zones)
 
+    def attach_load_balancer_to_subnets(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        subnets = params.get("Subnets")
+
+        all_subnets = self.elb_backend.attach_load_balancer_to_subnets(
+            load_balancer_name, subnets
+        )
+        template = self.response_template(ATTACH_LB_TO_SUBNETS_TEMPLATE)
+        return template.render(subnets=all_subnets)
+
+    def detach_load_balancer_from_subnets(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        subnets = params.get("Subnets")
+
+        all_subnets = self.elb_backend.detach_load_balancer_from_subnets(
+            load_balancer_name, subnets
+        )
+        template = self.response_template(DETACH_LB_FROM_SUBNETS_TEMPLATE)
+        return template.render(subnets=all_subnets)
+
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <AddTagsResult/>
@@ -854,3 +876,29 @@ DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<DisableAvailabilityZ
     </AvailabilityZones>
   </DisableAvailabilityZonesForLoadBalancerResult>
 </DisableAvailabilityZonesForLoadBalancerResponse>"""
+
+ATTACH_LB_TO_SUBNETS_TEMPLATE = """<AttachLoadBalancerToSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <AttachLoadBalancerToSubnetsResult>
+    <Subnets>
+      {% for subnet in subnets %}
+      <member>{{ subnet }}</member>
+      {% endfor %}
+    </Subnets>
+  </AttachLoadBalancerToSubnetsResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</AttachLoadBalancerToSubnetsResponse>"""
+
+DETACH_LB_FROM_SUBNETS_TEMPLATE = """<DetachLoadBalancerFromSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DetachLoadBalancerFromSubnetsResult>
+    <Subnets>
+      {% for subnet in subnets %}
+      <member>{{ subnet }}</member>
+      {% endfor %}
+    </Subnets>
+  </DetachLoadBalancerFromSubnetsResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</DetachLoadBalancerFromSubnetsResponse>"""
