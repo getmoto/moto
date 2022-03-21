@@ -38,6 +38,14 @@ from .exceptions import (
     InvalidLoadBalancerActionException,
 )
 
+ALLOWED_ACTIONS = [
+    "redirect",
+    "authenticate-cognito",
+    "authenticate-oidc",
+    "fixed-response",
+    "forward",
+]
+
 
 class FakeHealthStatus(BaseModel):
     def __init__(
@@ -85,15 +93,22 @@ class FakeTargetGroup(CloudFormationModel):
         self.healthcheck_port = healthcheck_port
         self.healthcheck_path = healthcheck_path
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
-        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
+        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds
+        if not healthcheck_timeout_seconds:
+            # Default depends on protocol
+            if protocol in ["TCP", "TLS"]:
+                self.healthcheck_timeout_seconds = 6
+            elif protocol in ["HTTP", "HTTPS", "GENEVE"]:
+                self.healthcheck_timeout_seconds = 5
+            else:
+                self.healthcheck_timeout_seconds = 30
         self.healthcheck_enabled = healthcheck_enabled
         self.healthy_threshold_count = healthy_threshold_count or 5
         self.unhealthy_threshold_count = unhealthy_threshold_count or 2
         self.load_balancer_arns = []
         self.tags = {}
-        self.matcher = matcher
-        if self.protocol != "TCP":
-            self.matcher = self.matcher or {"HttpCode": "200"}
+        if self.healthcheck_protocol != "TCP":
+            self.matcher = matcher or {"HttpCode": "200"}
             self.healthcheck_path = self.healthcheck_path or "/"
             self.healthcheck_port = self.healthcheck_port or str(self.port)
         self.target_type = target_type
@@ -131,6 +146,9 @@ class FakeTargetGroup(CloudFormationModel):
         if len(self.tags) >= 10 and key not in self.tags:
             raise TooManyTagsError()
         self.tags[key] = value
+
+    def remove_tag(self, key):
+        self.tags.pop(key, None)
 
     def health_for(self, target, ec2_backend):
         t = self.targets.get(target["id"])
@@ -207,6 +225,7 @@ class FakeListener(CloudFormationModel):
         ssl_policy,
         certificate,
         default_actions,
+        alpn_policy,
     ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
@@ -216,6 +235,7 @@ class FakeListener(CloudFormationModel):
         self.certificate = certificate
         self.certificates = [certificate] if certificate is not None else []
         self.default_actions = default_actions
+        self.alpn_policy = alpn_policy or []
         self._non_default_rules = OrderedDict()
         self._default_rule = OrderedDict()
         self._default_rule[0] = FakeRule(
@@ -243,6 +263,14 @@ class FakeListener(CloudFormationModel):
     def register(self, arn, rule):
         self._non_default_rules[arn] = rule
         sorted(self._non_default_rules.values(), key=lambda x: x.priority)
+
+    def add_tag(self, key, value):
+        if len(self.tags) >= 10 and key not in self.tags:
+            raise TooManyTagsError()
+        self.tags[key] = value
+
+    def remove_tag(self, key):
+        self.tags.pop(key, None)
 
     @staticmethod
     def cloudformation_name_type():
@@ -366,9 +394,18 @@ class FakeAction(BaseModel):
         self.data = data
         self.type = data.get("Type")
 
+        if "ForwardConfig" in self.data:
+            if "TargetGroupStickinessConfig" not in self.data["ForwardConfig"]:
+                self.data["ForwardConfig"]["TargetGroupStickinessConfig"] = {
+                    "Enabled": "false"
+                }
+
     def to_xml(self):
         template = Template(
             """<Type>{{ action.type }}</Type>
+            {% if "Order" in action.data %}
+            <Order>{{ action.data["Order"] }}</Order>
+            {% endif %}
             {% if action.type == "forward" and "ForwardConfig" in action.data %}
             <ForwardConfig>
               <TargetGroups>
@@ -379,6 +416,12 @@ class FakeAction(BaseModel):
                 </member>
                 {% endfor %}
               </TargetGroups>
+              <TargetGroupStickinessConfig>
+                  <Enabled>{{ action.data["ForwardConfig"]["TargetGroupStickinessConfig"]["Enabled"] }}</Enabled>
+                  {% if "DurationSeconds" in action.data["ForwardConfig"]["TargetGroupStickinessConfig"] %}
+                  <DurationSeconds>{{ action.data["ForwardConfig"]["TargetGroupStickinessConfig"]["DurationSeconds"] }}</DurationSeconds>
+                  {% endif %}
+              </TargetGroupStickinessConfig>
             </ForwardConfig>
             {% endif %}
             {% if action.type == "forward" and "ForwardConfig" not in action.data %}
@@ -388,13 +431,59 @@ class FakeAction(BaseModel):
                 <Protocol>{{ action.data["RedirectConfig"]["Protocol"] }}</Protocol>
                 <Port>{{ action.data["RedirectConfig"]["Port"] }}</Port>
                 <StatusCode>{{ action.data["RedirectConfig"]["StatusCode"] }}</StatusCode>
+                {% if action.data["RedirectConfig"]["Host"] %}<Host>{{ action.data["RedirectConfig"]["Host"] }}</Host>{% endif %}
+                {% if action.data["RedirectConfig"]["Path"] %}<Path>{{ action.data["RedirectConfig"]["Path"] }}</Path>{% endif %}
+                {% if action.data["RedirectConfig"]["Query"] %}<Query>{{ action.data["RedirectConfig"]["Query"] }}</Query>{% endif %}
             </RedirectConfig>
             {% elif action.type == "authenticate-cognito" %}
             <AuthenticateCognitoConfig>
                 <UserPoolArn>{{ action.data["AuthenticateCognitoConfig"]["UserPoolArn"] }}</UserPoolArn>
                 <UserPoolClientId>{{ action.data["AuthenticateCognitoConfig"]["UserPoolClientId"] }}</UserPoolClientId>
                 <UserPoolDomain>{{ action.data["AuthenticateCognitoConfig"]["UserPoolDomain"] }}</UserPoolDomain>
+                {% if action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams") %}
+                <AuthenticationRequestExtraParams>
+                    {% for entry in action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
+                    <member>
+                        <key>{{ entry["key"] }}</key>
+                        <value>{{ entry["value"] }}</value>
+                    </member>
+                    {% endfor %}
+                </AuthenticationRequestExtraParams>
+                {% endif %}
             </AuthenticateCognitoConfig>
+            {% elif action.type == "authenticate-oidc" %}
+            <AuthenticateOidcConfig>
+              <AuthorizationEndpoint>{{ action.data["AuthenticateOidcConfig"]["AuthorizationEndpoint"] }}</AuthorizationEndpoint>
+              <ClientId>{{ action.data["AuthenticateOidcConfig"]["ClientId"] }}</ClientId>
+              {% if "ClientSecret" in action.data["AuthenticateOidcConfig"] %}
+              <ClientSecret>{{ action.data["AuthenticateOidcConfig"]["ClientSecret"] }}</ClientSecret>
+              {% endif %}
+              <Issuer>{{ action.data["AuthenticateOidcConfig"]["Issuer"] }}</Issuer>
+              <TokenEndpoint>{{ action.data["AuthenticateOidcConfig"]["TokenEndpoint"] }}</TokenEndpoint>
+              <UserInfoEndpoint>{{ action.data["AuthenticateOidcConfig"]["UserInfoEndpoint"] }}</UserInfoEndpoint>
+              {% if "OnUnauthenticatedRequest" in action.data["AuthenticateOidcConfig"] %}
+              <OnUnauthenticatedRequest>{{ action.data["AuthenticateOidcConfig"]["OnUnauthenticatedRequest"] }}</OnUnauthenticatedRequest>
+              {% endif %}
+              {% if "UseExistingClientSecret" in action.data["AuthenticateOidcConfig"] %}
+              <UseExistingClientSecret>{{ action.data["AuthenticateOidcConfig"]["UseExistingClientSecret"] }}</UseExistingClientSecret>
+              {% endif %}
+              {% if "SessionTimeout" in action.data["AuthenticateOidcConfig"] %}
+              <SessionTimeout>{{ action.data["AuthenticateOidcConfig"]["SessionTimeout"] }}</SessionTimeout>
+              {% endif %}
+              {% if "SessionCookieName" in action.data["AuthenticateOidcConfig"] %}
+              <SessionCookieName>{{ action.data["AuthenticateOidcConfig"]["SessionCookieName"] }}</SessionCookieName>
+              {% endif %}
+              {% if "Scope" in action.data["AuthenticateOidcConfig"] %}
+              <Scope>{{ action.data["AuthenticateOidcConfig"]["Scope"] }}</Scope>
+              {% endif %}
+              {% if action.data["AuthenticateOidcConfig"].get("AuthenticationRequestExtraParams") %}
+              <AuthenticationRequestExtraParams>
+                  {% for entry in action.data["AuthenticateOidcConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
+                  <member><key>{{ entry["key"] }}</key><value>{{ entry["value"] }}</value></member>
+                  {% endfor %}
+              </AuthenticationRequestExtraParams>
+              {% endif %}
+            </AuthenticateOidcConfig>
             {% elif action.type == "fixed-response" %}
              <FixedResponseConfig>
                 <ContentType>{{ action.data["FixedResponseConfig"]["ContentType"] }}</ContentType>
@@ -590,6 +679,7 @@ class ELBv2Backend(BaseBackend):
         name,
         security_groups,
         subnet_ids,
+        subnet_mappings=None,
         scheme="internet-facing",
         loadbalancer_type=None,
     ):
@@ -597,9 +687,15 @@ class ELBv2Backend(BaseBackend):
         subnets = []
         state = "provisioning"
 
-        if not subnet_ids:
+        if not subnet_ids and not subnet_mappings:
             raise SubnetNotFoundError()
         for subnet_id in subnet_ids:
+            subnet = self.ec2_backend.get_subnet(subnet_id)
+            if subnet is None:
+                raise SubnetNotFoundError()
+            subnets.append(subnet)
+        for subnet in subnet_mappings or []:
+            subnet_id = subnet["SubnetId"]
             subnet = self.ec2_backend.get_subnet(subnet_id)
             if subnet is None:
                 raise SubnetNotFoundError()
@@ -634,12 +730,7 @@ class ELBv2Backend(BaseBackend):
         default_actions = []
         for i, action in enumerate(properties["Actions"]):
             action_type = action["Type"]
-            if action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-                "forward",
-            ]:
+            if action_type in ALLOWED_ACTIONS:
                 default_actions.append(action)
             else:
                 raise InvalidActionTypeError(action_type, i + 1)
@@ -839,7 +930,11 @@ class ELBv2Backend(BaseBackend):
                         raise ActionTargetGroupNotFoundError(target_group_arn)
             elif action_type == "fixed-response":
                 self._validate_fixed_response_action(action, i, index)
-            elif action_type in ["redirect", "authenticate-cognito"]:
+            elif action_type in [
+                "redirect",
+                "authenticate-cognito",
+                "authenticate-oidc",
+            ]:
                 pass
             # pass if listener rule has forward_config as an Action property
             elif action_type == "forward" and "ForwardConfig" in action.data.keys():
@@ -924,6 +1019,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         if (
             kwargs.get("matcher")
+            and kwargs["matcher"].get("HttpCode")
             and FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs["matcher"]["HttpCode"])
             is None
         ):
@@ -965,11 +1061,7 @@ Member must satisfy regular expression pattern: {}".format(
                 default_actions.append(
                     {"Type": action_type, "TargetGroupArn": action["TargetGroupArn"]}
                 )
-            elif action_type in [
-                "redirect",
-                "authenticate-cognito",
-                "fixed-response",
-            ]:
+            elif action_type in ALLOWED_ACTIONS:
                 default_actions.append(action)
             else:
                 raise InvalidActionTypeError(action_type, i + 1)
@@ -983,6 +1075,7 @@ Member must satisfy regular expression pattern: {}".format(
         ssl_policy,
         certificate,
         default_actions,
+        alpn_policy=None,
     ):
         default_actions = [FakeAction(action) for action in default_actions]
         balancer = self.load_balancers.get(load_balancer_arn)
@@ -1005,6 +1098,7 @@ Member must satisfy regular expression pattern: {}".format(
             ssl_policy,
             certificate,
             default_actions,
+            alpn_policy,
         )
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
@@ -1071,6 +1165,8 @@ Member must satisfy regular expression pattern: {}".format(
                 for rule in listener.rules.values():
                     if rule.arn in rule_arns:
                         matched_rules.append(rule)
+        if len(matched_rules) != len(rule_arns):
+            raise RuleNotFoundError("One or more rules not found")
         return matched_rules
 
     def describe_target_groups(self, load_balancer_arn, target_group_arns, names):
@@ -1274,7 +1370,7 @@ Member must satisfy regular expression pattern: {}".format(
 
         balancer.security_groups = sec_groups
 
-    def set_subnets(self, arn, subnets):
+    def set_subnets(self, arn, subnets, subnet_mappings):
         balancer = self.load_balancers.get(arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()
@@ -1283,18 +1379,19 @@ Member must satisfy regular expression pattern: {}".format(
         sub_zone_list = {}
         for subnet in subnets:
             try:
-                subnet = self.ec2_backend.get_subnet(subnet)
-
-                if subnet.availability_zone in sub_zone_list:
-                    raise RESTError(
-                        "InvalidConfigurationRequest",
-                        "More than 1 subnet cannot be specified for 1 availability zone",
-                    )
+                subnet = self._get_subnet(sub_zone_list, subnet)
 
                 sub_zone_list[subnet.availability_zone] = subnet.id
                 subnet_objects.append(subnet)
             except Exception:
                 raise SubnetNotFoundError()
+
+        for subnet_mapping in subnet_mappings:
+            subnet_id = subnet_mapping["SubnetId"]
+            subnet = self._get_subnet(sub_zone_list, subnet_id)
+
+            sub_zone_list[subnet.availability_zone] = subnet.id
+            subnet_objects.append(subnet)
 
         if len(sub_zone_list) < 2:
             raise RESTError(
@@ -1305,6 +1402,15 @@ Member must satisfy regular expression pattern: {}".format(
         balancer.subnets = subnet_objects
 
         return sub_zone_list.items()
+
+    def _get_subnet(self, sub_zone_list, subnet):
+        subnet = self.ec2_backend.get_subnet(subnet)
+        if subnet.availability_zone in sub_zone_list:
+            raise RESTError(
+                "InvalidConfigurationRequest",
+                "More than 1 subnet cannot be specified for 1 availability zone",
+            )
+        return subnet
 
     def modify_load_balancer_attributes(self, arn, attrs):
         balancer = self.load_balancers.get(arn)
@@ -1384,13 +1490,9 @@ Member must satisfy regular expression pattern: {}".format(
         default_actions=None,
     ):
         default_actions = [FakeAction(action) for action in default_actions]
-        for load_balancer in self.load_balancers.values():
-            if arn in load_balancer.listeners:
-                break
-        else:
-            raise ListenerNotFoundError()
-
-        listener = load_balancer.listeners[arn]
+        listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
+            0
+        ]
 
         if port is not None:
             listener.port = port
@@ -1415,11 +1517,13 @@ Member must satisfy regular expression pattern: {}".format(
                     )
                 listener.certificate = default_cert_arn
                 listener.certificates = certificates
-            else:
+            elif len(certificates) == 0 and len(listener.certificates) == 0:
                 raise RESTError(
                     "CertificateWereNotPassed",
                     "You must provide a list containing exactly one certificate if the listener protocol is HTTPS.",
                 )
+            # else:
+            # The list was not provided, meaning we just keep the existing certificates (if any)
 
         if protocol is not None:
             listener.protocol = protocol
@@ -1474,6 +1578,26 @@ Member must satisfy regular expression pattern: {}".format(
     def notify_terminate_instances(self, instance_ids):
         for target_group in self.target_groups.values():
             target_group.deregister_terminated_instances(instance_ids)
+
+    def add_listener_certificates(self, arn, certificates):
+        listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
+            0
+        ]
+        listener.certificates.extend([c["certificate_arn"] for c in certificates])
+        return listener.certificates
+
+    def describe_listener_certificates(self, arn):
+        listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
+            0
+        ]
+        return listener.certificates
+
+    def remove_listener_certificates(self, arn, certificates):
+        listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
+            0
+        ]
+        cert_arns = [c["certificate_arn"] for c in certificates]
+        listener.certificates = [c for c in listener.certificates if c not in cert_arns]
 
 
 elbv2_backends = BackendDict(ELBv2Backend, "ec2")

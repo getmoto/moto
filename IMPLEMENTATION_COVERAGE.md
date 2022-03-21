@@ -2274,11 +2274,11 @@
 
 ## elb
 <details>
-<summary>41% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
-- [ ] attach_load_balancer_to_subnets
+- [X] attach_load_balancer_to_subnets
 - [X] configure_health_check
 - [X] create_app_cookie_stickiness_policy
 - [X] create_lb_cookie_stickiness_policy
@@ -2287,18 +2287,18 @@
 - [ ] create_load_balancer_policy
 - [X] delete_load_balancer
 - [X] delete_load_balancer_listeners
-- [ ] delete_load_balancer_policy
+- [X] delete_load_balancer_policy
 - [ ] deregister_instances_from_load_balancer
 - [ ] describe_account_limits
 - [ ] describe_instance_health
 - [ ] describe_load_balancer_attributes
-- [ ] describe_load_balancer_policies
+- [X] describe_load_balancer_policies
 - [ ] describe_load_balancer_policy_types
 - [X] describe_load_balancers
 - [ ] describe_tags
-- [ ] detach_load_balancer_from_subnets
-- [ ] disable_availability_zones_for_load_balancer
-- [ ] enable_availability_zones_for_load_balancer
+- [X] detach_load_balancer_from_subnets
+- [X] disable_availability_zones_for_load_balancer
+- [X] enable_availability_zones_for_load_balancer
 - [X] modify_load_balancer_attributes
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags
@@ -2309,9 +2309,9 @@
 
 ## elbv2
 <details>
-<summary>73% implemented</summary>
+<summary>82% implemented</summary>
 
-- [ ] add_listener_certificates
+- [X] add_listener_certificates
 - [ ] add_tags
 - [X] create_listener
 - [X] create_load_balancer
@@ -2323,7 +2323,7 @@
 - [X] delete_target_group
 - [X] deregister_targets
 - [ ] describe_account_limits
-- [ ] describe_listener_certificates
+- [X] describe_listener_certificates
 - [X] describe_listeners
 - [X] describe_load_balancer_attributes
 - [X] describe_load_balancers
@@ -2339,7 +2339,7 @@
 - [X] modify_target_group
 - [X] modify_target_group_attributes
 - [X] register_targets
-- [ ] remove_listener_certificates
+- [X] remove_listener_certificates
 - [ ] remove_tags
 - [X] set_ip_address_type
 - [X] set_rule_priorities
