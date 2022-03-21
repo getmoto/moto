@@ -30,42 +30,58 @@ from pyparsing import (
 # arbitrary whitespace (including none) between operands and operators
 # literals in parentheses are allowed, e.g. col = (5)
 
-# grammar based on Glue.Client.get_partitions(Expression)
 
-ParserElement.enable_packrat()
+class _PartitionFilterExpressionCache:
+    def __init__(self):
+        # build grammar according to Glue.Client.get_partitions(Expression)
+        lpar, rpar = map(Suppress, "()")
 
-_LPAR, _RPAR = map(Suppress, "()")
+        # NOTE these are AWS Athena column name best practices
+        ident = Word(alphanums + "._").set_name("ident")
 
-# NOTE these are AWS Athena column names
-_IDENTIFIER = Word(alphanums + "._").set_name("identifier")
+        num_literal = pyparsing_common.number.set_name("number")
+        str_literal = QuotedString(quote_char="'", esc_quote="''").set_name("str")
+        any_literal = (num_literal | str_literal).set_name("literal")
 
-_NUMBER_LITERAL = pyparsing_common.number.set_name("number")
-_STRING_LITERAL = QuotedString(quote_char="'", esc_quote="''").set_name("string")
-_LITERAL = (_NUMBER_LITERAL | _STRING_LITERAL).set_name("literal")
+        bin_op = one_of("= <> > < >= <=").set_name("binary op")
 
-_OPERATOR = one_of("= <> > < >= <=").set_name("operator")
+        and_, or_, in_, between, like, not_, is_, null = map(
+            CaselessKeyword, "and or in between like not is null".split()
+        )
 
-_AND, _OR, _IN, _BETWEEN, _LIKE, _NOT, _IS, _NULL = map(
-    CaselessKeyword, "and or in between like not is null".split()
-)
+        cond = (
+            ident + is_ + null
+            | ident + is_ + not_ + null
+            | ident + bin_op + any_literal
+            | ident + like + str_literal
+            | ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
+            | ident + between + any_literal + and_ + any_literal
+        ).set_name("cond")
 
-_CONDITION = (
-    _IDENTIFIER + _IS + _NULL
-    | _IDENTIFIER + _IS + _NOT + _NULL
-    | _IDENTIFIER + _OPERATOR + _LITERAL
-    | _IDENTIFIER + _LIKE + _STRING_LITERAL
-    | _IDENTIFIER + _IN + _LPAR + delimited_list(_LITERAL, min=1) + _RPAR
-    | _IDENTIFIER + _BETWEEN + _LITERAL + _AND + _LITERAL
-).set_name("condition")
+        # conditions can be joined using 2-ary AND and/or OR
+        self._expr = infix_notation(
+            cond, [(and_, 2, OpAssoc.LEFT), (or_, 2, OpAssoc.LEFT)]
+        ).set_name("expr")
 
-_BINARY = 2
-_EXPRESSION = infix_notation(
-    _CONDITION,
-    [
-        (_AND, _BINARY, OpAssoc.LEFT),
-        (_OR, _BINARY, OpAssoc.LEFT),
-    ],
-).set_name("expression")
+        self._cache = {}
+
+    def get(self, expression):
+        if expression is None:
+            return None
+
+        if expression not in self._cache:
+            ParserElement.enable_packrat()
+
+            try:
+                self._cache[expression] = self._expr.parse_string(expression)
+            except exceptions.ParseException as ex:
+                raise ValueError(f"Could not parse expression='{expression}'") from ex
+
+        return self._cache[expression]
+
+
+_PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
+
 
 _ALLOWED_KEY_TYPES = (
     "bigint",  # [-2^63, 2^63 - 1]
@@ -82,15 +98,10 @@ _ALLOWED_KEY_TYPES = (
 
 class PartitionFilter:
     def __init__(self, expression, keys):
-        self._expression = None
-
-        if expression is not None:
-            warnings.warn("Expression filtering is experimental")
-            try:
-                self._expression = _EXPRESSION.parse_string(expression)
-            except exceptions.ParseException as ex:
-                raise ValueError(f"Could not parse expression='{expression}'") from ex
+        self._expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(expression)
 
     def __call__(self, values):
         if self._expression is None:
             return True
+
+        warnings.warn("Expression filtering is experimental")
