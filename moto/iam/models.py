@@ -829,6 +829,8 @@ class InstanceProfile(CloudFormationModel):
 class Certificate(BaseModel):
     def __init__(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
         self.cert_name = cert_name
+        if cert_body:
+            cert_body = cert_body.rstrip()
         self.cert_body = cert_body
         self.private_key = private_key
         self.path = path if path else "/"
