@@ -211,7 +211,7 @@ class GlueBackend(BaseBackend):
         job = self.get_job(name)
         return job.start_job_run()
 
-    def get_job_run(self, name, run_id):
+    def get_job_run(self, name):
         job = self.get_job(name)
         return job.get_job_run()
 
