@@ -212,7 +212,8 @@ class GlueBackend(BaseBackend):
         return job.start_job_run()
 
     def get_job_run(self, name, run_id):
-        return
+        job = self.get_job(name)
+        return job.get_job_run()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
@@ -513,10 +514,16 @@ class FakeJob:
 
     def start_job_run(self):
         if self.state == "RUNNING":
-            raise ConcurrentRunsExceededException(f"Job with name {self.name}")
+            raise ConcurrentRunsExceededException(
+                f"Job with name {self.name} already running"
+            )
         fake_job_run = FakeJobRun(job_name=self.name)
         self.state = "RUNNING"
         return fake_job_run.job_run_id
+
+    def get_job_run(self):
+        fake_job_run = FakeJobRun(job_name=self.name)
+        return fake_job_run
 
 
 class FakeJobRun:
@@ -536,8 +543,8 @@ class FakeJobRun:
         self.timeout = timeout
         self.worker_type = worker_type
         self.started_on = datetime.utcnow()
-        self.created_on = datetime.utcnow()
         self.modified_on = datetime.utcnow()
+        self.completed_on = datetime.utcnow()
 
     def get_name(self):
         return self.job_name
@@ -549,7 +556,7 @@ class FakeJobRun:
             "PreviousRunId": "01",
             "TriggerName": "test_trigger",
             "JobName": self.job_name,
-            "StartedOn": self.created_on.isoformat(),
+            "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
             "JobRunState": "SUCCEEDED",

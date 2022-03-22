@@ -117,11 +117,44 @@ def test_start_job_run():
 
 
 @mock_glue
+def test_start_job_run_already_running():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    client.start_job_run(JobName=job_name)
+    with pytest.raises(ClientError) as exc:
+        client.start_job_run(JobName=job_name)
+    exc.value.response["Error"]["Code"].should.equal("ConcurrentRunsExceededException")
+    exc.value.response["Error"]["Message"].should.match(
+        f"Job with name {job_name} already running"
+    )
+
+
+@mock_glue
 def test_get_job_run():
     client = create_glue_client()
     job_name = create_test_job(client)
-    response = client.get_job_run(JobName=job_name)
-    assert response
+    response = client.get_job_run(JobName=job_name, RunId="01")
+    assert response["Id"]
+    assert response["Attempt"]
+    assert response["PreviousRunId"]
+    assert response["TriggerName"]
+    assert response["StartedOn"]
+    assert response["LastModifiedOn"]
+    assert response["CompletedOn"]
+    assert response["JobRunState"]
+    assert response["Arguments"]
+    assert response["ErrorMessage"]
+    assert response["PredecessorRuns"]
+    assert response["AllocatedCapacity"]
+    assert response["ExecutionTime"]
+    assert response["Timeout"]
+    assert response["MaxCapacity"]
+    assert response["WorkerType"]
+    assert response["NumberOfWorkers"]
+    assert response["SecurityConfiguration"]
+    assert response["LogGroupName"]
+    assert response["NotificationProperty"]
+    assert response["GlueVersion"]
 
 
 @mock_glue
