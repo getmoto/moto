@@ -236,6 +236,46 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "c6a.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c6a.xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "c6g.12xlarge",
   "Location": "us-west-2"
  },
@@ -1752,6 +1792,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "us-west-2"
  },
@@ -1841,6 +1885,58 @@
  },
  {
   "InstanceType": "x2gd.xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iezn.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iezn.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iezn.4xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iezn.6xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iezn.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "x2iezn.metal",
   "Location": "us-west-2"
  },
  {

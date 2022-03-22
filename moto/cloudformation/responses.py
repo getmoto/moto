@@ -44,7 +44,7 @@ class CloudFormationResponse(BaseResponse):
         return cloudformation_backends[self.region]
 
     @classmethod
-    def cfnresponse(cls, *args, **kwargs):
+    def cfnresponse(cls, *args, **kwargs):  # pylint: disable=unused-argument
         request, full_url, headers = args
         full_url += "&Action=ProcessCfnResponse"
         return cls.dispatch(request=request, full_url=full_url, headers=headers)
@@ -136,7 +136,6 @@ class CloudFormationResponse(BaseResponse):
             name=stack_name,
             template=stack_body,
             parameters=parameters,
-            region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
             role_arn=role_arn,
@@ -186,7 +185,6 @@ class CloudFormationResponse(BaseResponse):
             template=stack_body,
             parameters=parameters,
             description=description,
-            region_name=self.region,
             notification_arns=stack_notification_arns,
             tags=tags,
             role_arn=role_arn,
@@ -208,12 +206,9 @@ class CloudFormationResponse(BaseResponse):
             return template.render(stack_id=stack_id, change_set_id=change_set_id)
 
     def delete_change_set(self):
-        stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
 
-        self.cloudformation_backend.delete_change_set(
-            change_set_name=change_set_name, stack_name=stack_name
-        )
+        self.cloudformation_backend.delete_change_set(change_set_name=change_set_name)
         if self.request_json:
             return json.dumps(
                 {"DeleteChangeSetResponse": {"DeleteChangeSetResult": {}}}
@@ -223,10 +218,9 @@ class CloudFormationResponse(BaseResponse):
             return template.render()
 
     def describe_change_set(self):
-        stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
         change_set = self.cloudformation_backend.describe_change_set(
-            change_set_name=change_set_name, stack_name=stack_name
+            change_set_name=change_set_name
         )
         template = self.response_template(DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE)
         return template.render(change_set=change_set)
@@ -347,7 +341,7 @@ class CloudFormationResponse(BaseResponse):
             stack = self.cloudformation_backend.get_stack(stack_name)
             if stack.status == "REVIEW_IN_PROGRESS":
                 raise ValidationError(
-                    message="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks.",
+                    message="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks."
                 )
             stack_body = stack.template
         elif template_url:
@@ -362,7 +356,7 @@ class CloudFormationResponse(BaseResponse):
             new_params = self._get_param_values(incoming_params, old_stack.parameters)
             if old_stack.template == stack_body and old_stack.parameters == new_params:
                 raise ValidationError(
-                    old_stack.name, message=f"Stack [{old_stack.name}] already exists",
+                    old_stack.name, message=f"Stack [{old_stack.name}] already exists"
                 )
 
     def _validate_status(self, stack):
@@ -457,7 +451,6 @@ class CloudFormationResponse(BaseResponse):
         stackset_name = self._get_param("StackSetName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
-        # role_arn = self._get_param('RoleARN')
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict(
             (item["key"], item["value"])
@@ -475,11 +468,7 @@ class CloudFormationResponse(BaseResponse):
             stack_body = self._get_stack_from_s3_url(template_url)
 
         stackset = self.cloudformation_backend.create_stack_set(
-            name=stackset_name,
-            template=stack_body,
-            parameters=parameters,
-            tags=tags,
-            # role_arn=role_arn,
+            name=stackset_name, template=stack_body, parameters=parameters, tags=tags
         )
         if self.request_json:
             return json.dumps(

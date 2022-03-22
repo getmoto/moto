@@ -35,8 +35,6 @@ class ElasticTranscoderResponse(BaseResponse):
         input_bucket = self._get_param("InputBucket")
         output_bucket = self._get_param("OutputBucket")
         role = self._get_param("Role")
-        aws_kms_key_arn = self._get_param("AwsKmsKeyArn")
-        notifications = self._get_param("Notifications")
         content_config = self._get_param("ContentConfig")
         thumbnail_config = self._get_param("ThumbnailConfig")
         if not role:
@@ -58,8 +56,6 @@ class ElasticTranscoderResponse(BaseResponse):
             input_bucket=input_bucket,
             output_bucket=output_bucket,
             role=role,
-            aws_kms_key_arn=aws_kms_key_arn,
-            notifications=notifications,
             content_config=content_config,
             thumbnail_config=thumbnail_config,
         )
@@ -109,22 +105,11 @@ class ElasticTranscoderResponse(BaseResponse):
         name = self._get_param("Name")
         input_bucket = self._get_param("InputBucket")
         role = self._get_param("Role")
-        aws_kms_key_arn = self._get_param("AwsKmsKeyArn")
-        notifications = self._get_param("Notifications")
-        content_config = self._get_param("ContentConfig")
-        thumbnail_config = self._get_param("ThumbnailConfig")
         err = self.validate_pipeline_id(_id)
         if err:
             return err
         pipeline, warnings = self.elastictranscoder_backend.update_pipeline(
-            pipeline_id=_id,
-            name=name,
-            input_bucket=input_bucket,
-            role=role,
-            aws_kms_key_arn=aws_kms_key_arn,
-            notifications=notifications,
-            content_config=content_config,
-            thumbnail_config=thumbnail_config,
+            pipeline_id=_id, name=name, input_bucket=input_bucket, role=role
         )
 
         return (

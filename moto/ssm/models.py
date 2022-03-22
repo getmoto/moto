@@ -8,6 +8,7 @@ from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
+from moto.utilities.utils import load_resource
 
 import datetime
 import time
@@ -17,7 +18,7 @@ import yaml
 import hashlib
 import random
 
-from .utils import parameter_arn
+from .utils import parameter_arn, convert_to_params
 from .exceptions import (
     ValidationException,
     InvalidFilterValue,
@@ -40,6 +41,62 @@ from .exceptions import (
     InvalidResourceId,
     InvalidResourceType,
 )
+
+
+class ParameterDict(defaultdict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters_loaded = False
+
+    def _check_loading_status(self, key):
+        if not self.parameters_loaded and key and str(key).startswith("/aws"):
+            self._load_global_parameters()
+
+    def _load_global_parameters(self):
+        regions = load_resource(__name__, "resources/regions.json")
+        services = load_resource(__name__, "resources/services.json")
+        params = []
+        params.extend(convert_to_params(regions))
+        params.extend(convert_to_params(services))
+
+        for param in params:
+            last_modified_date = time.time()
+            name = param["Name"]
+            value = param["Value"]
+            # Following were lost in translation/conversion - using sensible defaults
+            parameter_type = "String"
+            version = 1
+            super().__getitem__(name).append(
+                Parameter(
+                    name=name,
+                    value=value,
+                    parameter_type=parameter_type,
+                    description=None,
+                    allowed_pattern=None,
+                    keyid=None,
+                    last_modified_date=last_modified_date,
+                    version=version,
+                    data_type="text",
+                )
+            )
+        self.parameters_loaded = True
+
+    def __getitem__(self, item):
+        self._check_loading_status(item)
+        return super().__getitem__(item)
+
+    def __contains__(self, k):
+        self._check_loading_status(k)
+        return super().__contains__(k)
+
+    def get_keys_beginning_with(self, path, recursive):
+        self._check_loading_status(path)
+        for param_name in self:
+            if path != "/" and not param_name.startswith(path):
+                continue
+            if "/" in param_name[len(path) + 1 :] and not recursive:
+                continue
+            yield param_name
 
 
 PARAMETER_VERSION_LIMIT = 100
@@ -718,11 +775,20 @@ class FakeMaintenanceWindow:
 
 
 class SimpleSystemManagerBackend(BaseBackend):
+    """
+    Moto supports the following default parameters out of the box:
+
+     - /aws/service/global-infrastructure/regions
+     - /aws/service/global-infrastructure/services
+
+    Note that these are hardcoded, so they may be out of date for new services/regions.
+    """
+
     def __init__(self, region):
         super().__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
-        self._parameters = defaultdict(list)
+        self._parameters = ParameterDict(list)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
@@ -1015,11 +1081,10 @@ class SimpleSystemManagerBackend(BaseBackend):
         # If we've fallen out of the loop, theres no more documents. No next token.
         return results, ""
 
-    def describe_document_permission(
-        self, name, max_results=None, permission_type=None, next_token=None
-    ):
-        # Parameters max_results, permission_type, and next_token not used because
-        # this current implementation doesn't support pagination.
+    def describe_document_permission(self, name):
+        """
+        Parameters max_results, permission_type, and next_token not yet implemented
+        """
         document = self._get_documents(name)
         return document.describe_permissions()
 
@@ -1104,7 +1169,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         result = []
         for param_name in self._parameters:
-            ssm_parameter = self.get_parameter(param_name, False)
+            ssm_parameter = self.get_parameter(param_name)
             if not self._match_filters(ssm_parameter, parameter_filters):
                 continue
 
@@ -1319,7 +1384,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             result.append(self._parameters[k])
         return result
 
-    def get_parameters(self, names, with_decryption):
+    def get_parameters(self, names):
         result = {}
 
         if len(names) > 10:
@@ -1334,7 +1399,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         for name in set(names):
             if name.split(":")[0] in self._parameters:
                 try:
-                    param = self.get_parameter(name, with_decryption)
+                    param = self.get_parameter(name)
 
                     if param is not None:
                         result[name] = param
@@ -1345,7 +1410,6 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_parameters_by_path(
         self,
         path,
-        with_decryption,
         recursive,
         filters=None,
         next_token=None,
@@ -1359,16 +1423,11 @@ class SimpleSystemManagerBackend(BaseBackend):
         # path could be with or without a trailing /. we handle this
         # difference here.
         path = path.rstrip("/") + "/"
-        for param_name in self._parameters:
-            if path != "/" and not param_name.startswith(path):
+        for param_name in self._parameters.get_keys_beginning_with(path, recursive):
+            parameter = self.get_parameter(param_name)
+            if not self._match_filters(parameter, filters):
                 continue
-            if "/" in param_name[len(path) + 1 :] and not recursive:
-                continue
-            if not self._match_filters(
-                self.get_parameter(param_name, with_decryption), filters
-            ):
-                continue
-            result.append(self.get_parameter(param_name, with_decryption))
+            result.append(parameter)
 
         return self._get_values_nexttoken(result, max_results, next_token)
 
@@ -1384,7 +1443,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             next_token = None
         return values, next_token
 
-    def get_parameter_history(self, name, with_decryption, next_token, max_results=50):
+    def get_parameter_history(self, name, next_token, max_results=50):
 
         if max_results > PARAMETER_HISTORY_MAX_RESULTS:
             raise ValidationException(
@@ -1484,7 +1543,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # True if no false match (or no filters at all)
         return True
 
-    def get_parameter(self, name, with_decryption):
+    def get_parameter(self, name):
         name_parts = name.split(":")
         name_prefix = name_parts[0]
 

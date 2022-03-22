@@ -44,8 +44,7 @@ def test_route53resolver_tag_resource():
     # Bad tags.
     with pytest.raises(ClientError) as exc:
         client.tag_resource(
-            ResourceArn=resolver_endpoint["Arn"],
-            Tags=[{"Key": "foo!", "Value": "bar"}],
+            ResourceArn=resolver_endpoint["Arn"], Tags=[{"Key": "foo!", "Value": "bar"}]
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"

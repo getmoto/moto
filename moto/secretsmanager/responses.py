@@ -45,6 +45,7 @@ class SecretsManagerResponse(BaseResponse):
         description = self._get_param("Description", if_none="")
         tags = self._get_param("Tags", if_none=[])
         kms_key_id = self._get_param("KmsKeyId", if_none=None)
+        client_request_token = self._get_param("ClientRequestToken", if_none=None)
         return secretsmanager_backends[self.region].create_secret(
             name=name,
             secret_string=secret_string,
@@ -52,6 +53,7 @@ class SecretsManagerResponse(BaseResponse):
             description=description,
             tags=tags,
             kms_key_id=kms_key_id,
+            client_request_token=client_request_token,
         )
 
     def update_secret(self):

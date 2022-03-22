@@ -87,8 +87,10 @@ class ResourceShare(BaseModel):
                 )
 
                 if root_id:
-                    ous = self.organizations_backend.list_organizational_units_for_parent(
-                        ParentId=root_id
+                    ous = (
+                        self.organizations_backend.list_organizational_units_for_parent(
+                            ParentId=root_id
+                        )
                     )
                     if any(principal == ou["Arn"] for ou in ous["OrganizationalUnits"]):
                         continue
@@ -200,8 +202,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         arn = kwargs["resourceShareArn"]
 
         resource = next(
-            (resource for resource in self.resource_shares if arn == resource.arn),
-            None,
+            (resource for resource in self.resource_shares if arn == resource.arn), None
         )
 
         if not resource:
@@ -217,8 +218,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     def delete_resource_share(self, arn):
         resource = next(
-            (resource for resource in self.resource_shares if arn == resource.arn),
-            None,
+            (resource for resource in self.resource_shares if arn == resource.arn), None
         )
 
         if not resource:

@@ -38,7 +38,7 @@ stepfunctions
 - [ ] list_activities
 - [X] list_executions
 - [X] list_state_machines
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success

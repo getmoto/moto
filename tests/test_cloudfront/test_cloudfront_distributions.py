@@ -25,7 +25,7 @@ def example_distribution_config(ref):
             "TargetOriginId": "origin1",
             "ViewerProtocolPolicy": "allow-all",
             "MinTTL": 10,
-            "ForwardedValues": {"QueryString": False, "Cookies": {"Forward": "none",}},
+            "ForwardedValues": {"QueryString": False, "Cookies": {"Forward": "none"}},
         },
         "Comment": "an optional comment that's not actually optional",
         "Enabled": False,
@@ -217,7 +217,7 @@ def test_create_distribution_with_mismatched_originid():
                 "CallerReference": "ref",
                 "Origins": {
                     "Quantity": 1,
-                    "Items": [{"Id": "origin1", "DomainName": "https://getmoto.org",}],
+                    "Items": [{"Id": "origin1", "DomainName": "https://getmoto.org"}],
                 },
                 "DefaultCacheBehavior": {
                     "TargetOriginId": "asdf",
@@ -246,7 +246,7 @@ def test_create_origin_without_origin_config():
                 "CallerReference": "ref",
                 "Origins": {
                     "Quantity": 1,
-                    "Items": [{"Id": "origin1", "DomainName": "https://getmoto.org",}],
+                    "Items": [{"Id": "origin1", "DomainName": "https://getmoto.org"}],
                 },
                 "DefaultCacheBehavior": {
                     "TargetOriginId": "origin1",

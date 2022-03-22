@@ -82,9 +82,7 @@ def test_put_object_lock():
 
     s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
-    s3.put_object(
-        Bucket=bucket_name, Body=b"test", Key=key_name,
-    )
+    s3.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
 
     versions_response = s3.list_object_versions(Bucket=bucket_name)
     version_id = versions_response["Versions"][0]["VersionId"]
@@ -121,9 +119,7 @@ def test_put_object_legal_hold():
 
     s3.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
-    s3.put_object(
-        Bucket=bucket_name, Body=b"test", Key=key_name,
-    )
+    s3.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
 
     versions_response = s3.list_object_versions(Bucket=bucket_name)
     version_id = versions_response["Versions"][0]["VersionId"]
@@ -172,13 +168,11 @@ def test_put_default_lock():
         Bucket=bucket_name,
         ObjectLockConfiguration={
             "ObjectLockEnabled": enabled,
-            "Rule": {"DefaultRetention": {"Mode": mode, "Days": days,}},
+            "Rule": {"DefaultRetention": {"Mode": mode, "Days": days}},
         },
     )
 
-    s3.put_object(
-        Bucket=bucket_name, Body=b"test", Key=key_name,
-    )
+    s3.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
 
     deleted = False
     versions_response = s3.list_object_versions(Bucket=bucket_name)

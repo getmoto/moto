@@ -11,7 +11,7 @@ import pytest
 from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
 from moto.core.models import responses_mock
-from moto.sns import sns_backend
+from moto.sns import sns_backends
 
 MESSAGE_FROM_SQS_TEMPLATE = (
     '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:'
@@ -89,17 +89,15 @@ def test_publish_to_sqs_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
         Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
     )
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName="queue.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
-    topic.subscribe(
-        Protocol="sqs", Endpoint=queue.attributes["QueueArn"],
-    )
+    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
 
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
@@ -238,6 +236,49 @@ def test_publish_to_sqs_msg_attr_number_type():
     message.body.should.equal("test message")
 
 
+@mock_sqs
+@mock_sns
+def test_publish_to_sqs_msg_attr_different_formats():
+    """
+    Verify different Number-formats are processed correctly
+    """
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="test-topic")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    queue_raw = sqs.create_queue(QueueName="test-queue-raw")
+
+    topic.subscribe(
+        Protocol="sqs",
+        Endpoint=queue_raw.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
+    )
+
+    topic.publish(
+        Message="test message",
+        MessageAttributes={
+            "integer": {"DataType": "Number", "StringValue": "123"},
+            "float": {"DataType": "Number", "StringValue": "12.34"},
+            "big-integer": {"DataType": "Number", "StringValue": "123456789"},
+            "big-float": {"DataType": "Number", "StringValue": "123456.789"},
+        },
+    )
+
+    messages_resp = sqs_client.receive_message(
+        QueueUrl=queue_raw.url, MessageAttributeNames=["All"]
+    )
+    message = messages_resp["Messages"][0]
+    message_attributes = message["MessageAttributes"]
+    message_attributes.should.equal(
+        {
+            "integer": {"DataType": "Number", "StringValue": "123"},
+            "float": {"DataType": "Number", "StringValue": "12.34"},
+            "big-integer": {"DataType": "Number", "StringValue": "123456789"},
+            "big-float": {"DataType": "Number", "StringValue": "123456.789"},
+        }
+    )
+
+
 @mock_sns
 def test_publish_sms():
     client = boto3.client("sns", region_name="us-east-1")
@@ -246,6 +287,7 @@ def test_publish_sms():
 
     result.should.contain("MessageId")
     if not settings.TEST_SERVER_MODE:
+        sns_backend = sns_backends["us-east-1"]
         sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
             ("+15551234567", "my message")
         )
@@ -374,9 +416,15 @@ def test_publish_to_http():
         TopicArn=topic_arn, Protocol="http", Endpoint="http://example.com/foobar"
     )
 
-    response = conn.publish(
-        TopicArn=topic_arn, Message="my message", Subject="my subject"
-    )
+    conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
+
+    if not settings.TEST_SERVER_MODE:
+        sns_backend = sns_backends["us-east-1"]
+        sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
+        notification = sns_backend.topics[topic_arn].sent_notifications[0]
+        _, msg, subject, _, _ = notification
+        msg.should.equal("my message")
+        subject.should.equal("my subject")
 
 
 @mock_sqs
@@ -457,7 +505,7 @@ def test_publish_fifo_needs_group_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
         Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true",},
+        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
     )
 
     with pytest.raises(

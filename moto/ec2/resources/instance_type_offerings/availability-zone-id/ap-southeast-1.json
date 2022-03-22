@@ -456,6 +456,10 @@
   "Location": "apse1-az1"
  },
  {
+  "InstanceType": "i3.metal",
+  "Location": "apse1-az1"
+ },
+ {
   "InstanceType": "i3.xlarge",
   "Location": "apse1-az1"
  },
@@ -1513,6 +1517,46 @@
  },
  {
   "InstanceType": "x1e.xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "apse1-az1"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
   "Location": "apse1-az1"
  },
  {
@@ -2032,6 +2076,10 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "i3.metal",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "i3.xlarge",
   "Location": "apse1-az2"
  },
@@ -3076,6 +3124,46 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.16xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.24xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.2xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.32xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.4xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.8xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "x2iedn.xlarge",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "z1d.12xlarge",
   "Location": "apse1-az2"
  },
@@ -3477,6 +3565,10 @@
  },
  {
   "InstanceType": "i3.large",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "i3.metal",
   "Location": "apse1-az3"
  },
  {
@@ -4389,6 +4481,18 @@
  },
  {
   "InstanceType": "x1.32xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
   "Location": "apse1-az3"
  },
  {

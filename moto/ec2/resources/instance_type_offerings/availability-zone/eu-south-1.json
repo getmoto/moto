@@ -656,6 +656,10 @@
   "Location": "eu-south-1a"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "eu-south-1b"
  },
@@ -1337,6 +1341,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "u-3tb1.56xlarge",
   "Location": "eu-south-1b"
  },
  {

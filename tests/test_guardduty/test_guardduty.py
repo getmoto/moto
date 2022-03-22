@@ -44,7 +44,7 @@ def test_list_detectors():
         DataSources={"S3Logs": {"Enable": True}},
         Tags={},
     )["DetectorId"]
-    d2 = client.create_detector(Enable=False,)["DetectorId"]
+    d2 = client.create_detector(Enable=False)["DetectorId"]
 
     response = client.list_detectors()
     response.should.have.key("DetectorIds")

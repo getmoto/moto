@@ -114,7 +114,7 @@ def test_tag_delivery_stream():
     # Bad tags.
     with pytest.raises(ClientError) as exc:
         client.tag_delivery_stream(
-            DeliveryStreamName=stream_name, Tags=[{"Key": "foo!", "Value": "bar"}],
+            DeliveryStreamName=stream_name, Tags=[{"Key": "foo!", "Value": "bar"}]
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"

@@ -38,10 +38,8 @@ def test_create_target_group_with_invalid_healthcheck_protocol():
 
 @mock_elbv2
 @mock_ec2
-def test_create_target_group_and_listeners():
+def test_create_target_group_with_tags():
     response, vpc, _, _, _, conn = create_load_balancer()
-
-    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = conn.create_target_group(
         Name="a-target",
@@ -62,11 +60,42 @@ def test_create_target_group_and_listeners():
 
     # Add tags to the target group
     conn.add_tags(
-        ResourceArns=[target_group_arn], Tags=[{"Key": "target", "Value": "group"}]
+        ResourceArns=[target_group_arn],
+        Tags=[{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}],
     )
     conn.describe_tags(ResourceArns=[target_group_arn])["TagDescriptions"][0][
         "Tags"
-    ].should.equal([{"Key": "target", "Value": "group"}])
+    ].should.equal([{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}])
+
+    # Verify they can be removed
+    conn.remove_tags(ResourceArns=[target_group_arn], TagKeys=["key1"])
+    conn.describe_tags(ResourceArns=[target_group_arn])["TagDescriptions"][0][
+        "Tags"
+    ].should.equal([{"Key": "key2", "Value": "val2"}])
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_target_group_and_listeners():
+    response, vpc, _, _, _, conn = create_load_balancer()
+
+    load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
+
+    response = conn.create_target_group(
+        Name="a-target",
+        Protocol="HTTP",
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol="HTTP",
+        HealthCheckPort="8080",
+        HealthCheckPath="/",
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={"HttpCode": "200"},
+    )
+    target_group_arn = response.get("TargetGroups")[0]["TargetGroupArn"]
 
     # Check it's in the describe_target_groups response
     response = conn.describe_target_groups()
@@ -77,15 +106,13 @@ def test_create_target_group_and_listeners():
         LoadBalancerArn=load_balancer_arn,
         Protocol="HTTP",
         Port=80,
-        DefaultActions=[
-            {"Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")}
-        ],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
     )
     listener = response.get("Listeners")[0]
     listener.get("Port").should.equal(80)
     listener.get("Protocol").should.equal("HTTP")
     listener.get("DefaultActions").should.equal(
-        [{"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}]
+        [{"TargetGroupArn": target_group_arn, "Type": "forward"}]
     )
     http_listener_arn = listener.get("ListenerArn")
 
@@ -95,7 +122,7 @@ def test_create_target_group_and_listeners():
     response.get("TargetGroups").should.have.length_of(1)
 
     # And another with SSL
-    actions = {"Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")}
+    actions = {"Type": "forward", "TargetGroupArn": target_group_arn}
     response = conn.create_listener(
         LoadBalancerArn=load_balancer_arn,
         Protocol="HTTPS",
@@ -122,7 +149,7 @@ def test_create_target_group_and_listeners():
         ]
     )
     listener.get("DefaultActions").should.equal(
-        [{"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}]
+        [{"TargetGroupArn": target_group_arn, "Type": "forward"}]
     )
 
     https_listener_arn = listener.get("ListenerArn")
@@ -142,14 +169,14 @@ def test_create_target_group_and_listeners():
 
     conn.create_rule(
         ListenerArn=http_listener_arn,
-        Conditions=[{"Field": "path-pattern", "Values": ["/*"]},],
+        Conditions=[{"Field": "path-pattern", "Values": ["/*"]}],
         Priority=3,
         Actions=[actions],
     )
     # Try to delete the target group and it fails because there's a
     # listener referencing it
     with pytest.raises(ClientError) as e:
-        conn.delete_target_group(TargetGroupArn=target_group.get("TargetGroupArn"))
+        conn.delete_target_group(TargetGroupArn=target_group_arn)
     e.value.operation_name.should.equal("DeleteTargetGroup")
     e.value.args.should.equal(
         (
@@ -181,7 +208,7 @@ def test_create_target_group_and_listeners():
     response.get("TargetGroups").should.have.length_of(1)
 
     # Which we'll now delete
-    conn.delete_target_group(TargetGroupArn=target_group.get("TargetGroupArn"))
+    conn.delete_target_group(TargetGroupArn=target_group_arn)
     response = conn.describe_target_groups()
     response.get("TargetGroups").should.have.length_of(0)
 
@@ -537,12 +564,12 @@ def test_delete_target_group_after_modifying_listener():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
     )
     target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
     response = client.create_target_group(
-        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id,
+        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id
     )
     target_group_arn2 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
@@ -556,7 +583,7 @@ def test_delete_target_group_after_modifying_listener():
 
     client.modify_listener(
         ListenerArn=listener_arn,
-        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn2,}],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn2}],
     )
 
     response = conn.describe_listeners(LoadBalancerArn=load_balancer_arn)
@@ -586,12 +613,12 @@ def test_create_listener_with_multiple_target_groups():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
     )
     target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
     response = client.create_target_group(
-        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id,
+        Name="a-target-2", Protocol="HTTPS", Port=8081, VpcId=vpc.id
     )
     target_group_arn2 = response.get("TargetGroups")[0]["TargetGroupArn"]
 
@@ -660,7 +687,7 @@ def test_delete_target_group_while_listener_still_exists():
     load_balancer_arn = response.get("LoadBalancers")[0].get("LoadBalancerArn")
 
     response = client.create_target_group(
-        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id,
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
     )
     target_group_arn1 = response.get("TargetGroups")[0]["TargetGroupArn"]
 

@@ -34,7 +34,6 @@ class PollyResponse(BaseResponse):
     # DescribeVoices
     def voices(self):
         language_code = self._get_param("LanguageCode")
-        next_token = self._get_param("NextToken")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
             msg = (
@@ -45,7 +44,7 @@ class PollyResponse(BaseResponse):
             )
             return msg, dict(status=400)
 
-        voices = self.polly_backend.describe_voices(language_code, next_token)
+        voices = self.polly_backend.describe_voices(language_code)
 
         return json.dumps({"Voices": voices})
 
@@ -83,9 +82,7 @@ class PollyResponse(BaseResponse):
 
     # ListLexicons
     def _get_lexicons_list(self):
-        next_token = self._get_param("NextToken")
-
-        result = {"Lexicons": self.polly_backend.list_lexicons(next_token)}
+        result = {"Lexicons": self.polly_backend.list_lexicons()}
 
         return json.dumps(result)
 

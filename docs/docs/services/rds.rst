@@ -16,7 +16,7 @@ rds
 
 .. sourcecode:: python
 
-            @mock_rds2
+            @mock_rds
             def test_rds_behaviour:
                 boto3.client("rds")
                 ...

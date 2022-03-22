@@ -70,11 +70,7 @@ def validate_roots(org, response):
         utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root["Id"])
     )
     root.should.have.key("Name").should.be.a(str)
-    root.should.have.key("PolicyTypes").should.be.a(list)
-    root["PolicyTypes"][0].should.have.key("Type").should.equal(
-        "SERVICE_CONTROL_POLICY"
-    )
-    root["PolicyTypes"][0].should.have.key("Status").should.equal("ENABLED")
+    root.should.have.key("PolicyTypes").should.equal([])
 
 
 def validate_organizational_unit(org, response):

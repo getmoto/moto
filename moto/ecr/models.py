@@ -153,8 +153,8 @@ class Repository(BaseObject, CloudFormationModel):
         ecr_backend.delete_repository(self.name)
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn", "RepositoryUri"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn", "RepositoryUri"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -244,7 +244,7 @@ class Image(BaseObject):
         self.last_scan = None
 
     def _create_digest(self):
-        image_contents = "docker_image{0}".format(int(random() * 10 ** 6))
+        image_contents = "docker_image{0}".format(int(random() * 10**6))
         self.image_digest = (
             "sha256:%s" % hashlib.sha256(image_contents.encode("utf-8")).hexdigest()
         )
@@ -359,7 +359,7 @@ class ECRBackend(BaseBackend):
             "VpcEndpointPolicySupported": True,
         }
         return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "api.ecr", special_service_name="ecr.api",
+            service_region, zones, "api.ecr", special_service_name="ecr.api"
         ) + [docker_endpoint]
 
     def _get_repository(self, name, registry_id=None) -> Repository:
@@ -505,13 +505,10 @@ class ECRBackend(BaseBackend):
             existing_images[0].update_tag(image_tag)
             return existing_images[0]
 
-    def batch_get_image(
-        self,
-        repository_name,
-        registry_id=None,
-        image_ids=None,
-        accepted_media_types=None,
-    ):
+    def batch_get_image(self, repository_name, registry_id=None, image_ids=None):
+        """
+        The parameter AcceptedMediaTypes has not yet been implemented
+        """
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
         else:

@@ -279,6 +279,25 @@ class EmailResponse(BaseResponse):
         template = self.response_template(UPDATE_RECEIPT_RULE)
         return template.render()
 
+    def set_identity_mail_from_domain(self):
+        identity = self._get_param("Identity")
+        mail_from_domain = self._get_param("MailFromDomain")
+        behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
+
+        ses_backend.set_identity_mail_from_domain(
+            identity, mail_from_domain, behavior_on_mx_failure
+        )
+
+        template = self.response_template(SET_IDENTITY_MAIL_FROM_DOMAIN)
+        return template.render()
+
+    def get_identity_mail_from_domain_attributes(self):
+        identities = self._get_multi_param("Identities.member.")
+        identities = ses_backend.get_identity_mail_from_domain_attributes(identities)
+        template = self.response_template(GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES)
+
+        return template.render(identities=identities)
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -431,13 +450,13 @@ GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.
   <GetSendStatisticsResult>
       <SendDataPoints>
         {% for statistics in all_statistics %}
-            <item>
+            <member>
                 <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
                 <Rejects>{{ statistics["Rejects"] }}</Rejects>
                 <Bounces>{{ statistics["Bounces"] }}</Bounces>
                 <Complaints>{{ statistics["Complaints"] }}</Complaints>
-                <Timestamp>{{ statistics["Timestamp"] }}</Timestamp>
-            </item>
+                <Timestamp>{{ statistics["Timestamp"].isoformat() }}</Timestamp>
+            </member>
         {% endfor %}
       </SendDataPoints>
   </GetSendStatisticsResult>
@@ -633,3 +652,36 @@ UPDATE_RECEIPT_RULE = """<UpdateReceiptRuleResponse xmlns="http://ses.amazonaws.
     <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
   </ResponseMetadata>
 </UpdateReceiptRuleResponse>"""
+
+SET_IDENTITY_MAIL_FROM_DOMAIN = """<SetIdentityMailFromDomainResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <SetIdentityMailFromDomainResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</SetIdentityMailFromDomainResponse>"""
+
+GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <GetIdentityMailFromDomainAttributesResult>
+    {% if identities.items()|length > 0 %}
+    <MailFromDomainAttributes>
+    {% for name, value in identities.items() %}
+      <entry>
+        <key>{{ name }}</key>
+        <value>
+          {% if 'mail_from_domain' in value %}
+          <MailFromDomain>{{ value.get("mail_from_domain") }}</MailFromDomain>
+          <MailFromDomainStatus>Success</MailFromDomainStatus>
+          {% endif %}
+          <BehaviorOnMXFailure>{{ value.get("behavior_on_mx_failure") }}</BehaviorOnMXFailure>
+        </value>
+      </entry>
+    {% endfor %}
+    </MailFromDomainAttributes>
+    {% else %}
+    <MailFromDomainAttributes/>
+    {% endif %}
+  </GetIdentityMailFromDomainAttributesResult>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</GetIdentityMailFromDomainAttributesResponse>"""

@@ -40,16 +40,6 @@ def json_policy_doc():
     )
 
 
-@pytest.fixture(scope="function")
-def aws_credentials():
-    """Mocked AWS Credentials for moto."""
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
-
-
 @mock_logs
 def test_describe_metric_filters_happy_prefix():
     conn = boto3.client("logs", "us-west-2")
@@ -91,7 +81,7 @@ def test_describe_metric_filters_happy_metric_name():
     assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     response = conn.describe_metric_filters(
-        metricName="metricName1", metricNamespace="metricNamespace1",
+        metricName="metricName1", metricNamespace="metricNamespace1"
     )
 
     assert len(response["metricFilters"]) == 1
@@ -122,9 +112,9 @@ def test_put_metric_filters_validation():
     ]
 
     test_cases = [
-        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name,),
+        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name),
         build_put_case(
-            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern,
+            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern
         ),
         build_put_case(
             name="Invalid filter metric transformations",
@@ -149,14 +139,14 @@ def test_describe_metric_filters_validation():
 
     test_cases = [
         build_describe_case(
-            name="Invalid filter name prefix", filter_name_prefix=length_over_512,
+            name="Invalid filter name prefix", filter_name_prefix=length_over_512
         ),
         build_describe_case(
-            name="Invalid log group name", log_group_name=length_over_512,
+            name="Invalid log group name", log_group_name=length_over_512
         ),
-        build_describe_case(name="Invalid metric name", metric_name=length_over_255,),
+        build_describe_case(name="Invalid metric name", metric_name=length_over_255),
         build_describe_case(
-            name="Invalid metric namespace", metric_namespace=length_over_255,
+            name="Invalid metric namespace", metric_namespace=length_over_255
         ),
     ]
 
@@ -732,7 +722,7 @@ def test_put_resource_policy():
     with freeze_time(timedelta(minutes=1)):
         new_document = '{"Statement":[{"Action":"logs:*","Effect":"Allow","Principal":"*","Resource":"*"}]}'
         policy_info = client.put_resource_policy(
-            policyName=policy_name, policyDocument=new_document,
+            policyName=policy_name, policyDocument=new_document
         )["resourcePolicy"]
         assert policy_info["policyName"] == policy_name
         assert policy_info["policyDocument"] == new_document
@@ -1122,7 +1112,7 @@ def test_describe_subscription_filters_errors():
 
     # when
     with pytest.raises(ClientError) as exc:
-        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
+        client.describe_subscription_filters(logGroupName="not-existing-log-group")
 
     # then
     exc_value = exc.value
@@ -1446,7 +1436,7 @@ def test_describe_log_streams_no_prefix():
 
 @mock_s3
 @mock_logs
-def test_create_export_task_happy_path(aws_credentials):
+def test_create_export_task_happy_path():
     log_group_name = "/aws/codebuild/blah1"
     destination = "mybucket"
     fromTime = 1611316574
@@ -1464,7 +1454,7 @@ def test_create_export_task_happy_path(aws_credentials):
 
 
 @mock_logs
-def test_create_export_task_raises_ClientError_when_bucket_not_found(aws_credentials):
+def test_create_export_task_raises_ClientError_when_bucket_not_found():
     log_group_name = "/aws/codebuild/blah1"
     destination = "368a7022dea3dd621"
     fromTime = 1611316574
@@ -1482,9 +1472,7 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(aws_credent
 
 @mock_s3
 @mock_logs
-def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
-    aws_credentials,
-):
+def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
     log_group_name = "/aws/codebuild/blah1"
     destination = "mybucket"
     fromTime = 1611316574

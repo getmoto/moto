@@ -1845,7 +1845,7 @@ def test_put_evaluations():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
-        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200,},}
+        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200}}
     )
 
 

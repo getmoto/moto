@@ -24,9 +24,7 @@ class RevisionNotFoundException(JsonRESTError):
     code = 400
 
     def __init__(self):
-        super().__init__(
-            error_type="ClientException", message="Revision is missing.",
-        )
+        super().__init__(error_type="ClientException", message="Revision is missing.")
 
 
 class TaskSetNotFoundException(JsonRESTError):
@@ -44,7 +42,7 @@ class ClusterNotFoundException(JsonRESTError):
 
     def __init__(self):
         super().__init__(
-            error_type="ClusterNotFoundException", message="Cluster not found.",
+            error_type="ClusterNotFoundException", message="Cluster not found."
         )
 
 
@@ -52,18 +50,14 @@ class EcsClientException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super().__init__(
-            error_type="ClientException", message=message,
-        )
+        super().__init__(error_type="ClientException", message=message)
 
 
 class InvalidParameterException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super().__init__(
-            error_type="InvalidParameterException", message=message,
-        )
+        super().__init__(error_type="InvalidParameterException", message=message)
 
 
 class UnknownAccountSettingException(InvalidParameterException):

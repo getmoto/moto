@@ -1,5 +1,248 @@
 Moto Changelog
-===================
+==============
+
+
+3.1.1
+-----
+Docker Digest for 3.1.1: _sha256:e2b8145574e01d1630be307f418211e09e089b87d8d87b1ac69878a50d8dde0c_
+
+    New Methods:
+        * AWSLambda:
+            * create_alias()
+            * delete_alias()
+            * delete_layer_version()
+            * get_alias()
+            * get_layer_version()
+            * update_alias()
+
+        * EFS:
+            * create_access_point()
+            * delete_access_point()
+            * describe_access_points()
+            * describe_lifecycle_configuration()
+            * describe_mount_target_security_groups()
+            * list_tags_for_resource()
+            * modify_mount_target_security_groups()
+            * put_lifecycle_configuration()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * AWSLambda: get_function now returns the parameters Tags, LastUpdateStatus, TracingConfig
+        * ELBV2:describe_tags() now supports ListenerRules.
+
+
+3.1.0
+-----
+Docker Digest for 3.1.0: _sha256:1656754cf4de441d85b08f584d9dcb095880d3bf250f05da26a03ff219d586c8_
+
+    General:
+        * Users of `mock_dynamodb2` should start using `mock_dynamodb` instead. 
+          The `mock_dynamodb`-decorator has been repurposed to mock the latest version of DynamoDB, making the behaviour equivalent to `mock_dynamodb2`. 
+          The `mock_dynamodb2`-decorator is now considered deprecated, and will be removed in the next major version.
+
+        * Similarly, users of the `mock_rds2` should start using `mock_rds` instead.
+          The `mock_rds`-decorator has been repurposed to mock the latest version of RDS, making the behaviour equivalent to `mock_rds2`.
+          The `mock_rds2`-decorator has also been deprecated, and will be removed in the next major version.
+
+    Internal Changes:
+        * We've upgraded our linting process to use Black 22.1.0, and have enabled more pylint rules.
+          Please continue to run `make lint` prior to creating a PR, to ensure any changes are formatted correctly. 
+
+3.0.7
+-----
+Docker Digest for 3.0.7: _sha256:4db9433e741de635606fd2d997e555c26f51fc82e69d5043d0d9de90bbade229_
+
+    General:
+        * Compatible with the latest `responses`-release (0.19.0)
+
+    New Services:
+        * DataBrew:
+            * create_recipe()
+            * get_recipe()
+            * list_recipes()
+
+        * Pinpoint:
+            * create_app()
+            * delete_app()
+            * delete_event_stream()
+            * get_app()
+            * get_application_settings()
+            * get_apps()
+            * get_event_stream()
+            * list_tags_for_resource()
+            * put_event_stream()
+            * tag_resource()
+            * untag_resource()
+            * update_application_settings()
+
+3.0.6
+-----
+Docker Digest for 3.0.6: _sha256:de6b4ba576e143b3bbae250186b563c836f233afea5b3579629d3565824de74d_
+
+    General:
+        * Feature to start the MotoServer from within Python (in beta)
+
+    Miscellaneous:
+        * CloudFormation now supports creation of type AWS::EC2::VPCEndpoint
+        * ECS: run_task() - The task count now defaults to 1
+
+3.0.5
+-----
+Docker Digest for 3.0.5: _sha256:914ba446c1aad3917029fefe5d1c4a7a6a3866173391fb470151fe4a2163efcb_
+
+    New Services:
+        * Textract:
+            * get_document_text_detection()
+            * start_document_text_detection()
+
+    New Methods:
+        * APIGateway:
+            * delete_gateway_responses()
+            * get_gateway_response()
+            * get_gateway_responses()
+            * put_gateway_response()
+        * CloudTrail:
+            * add_tags()
+            * get_event_selectors()
+            * get_insight_selectors()
+            * list_tags()
+            * put_event_selectors()
+            * put_insight_selectors()
+            * remove_tags()
+            * update_trail()
+        * CognitoIDP:
+            * admin_set_user_mfa_preference()
+        * S3Control:
+            * create_access_point()
+            * delete_access_point()
+            * delete_access_point_policy()
+            * get_access_point()
+            * get_access_point_policy()
+            * get_access_point_policy_status()
+
+    Miscellaneous:
+        * APIGateway: put_integration() now supports the timeoutInMillis-parameter
+        * AWSLambda: Made the docker image repository selectable via the `MOTO_DOCKER_LAMBDA_IMAGE` environment variable.
+        * Batch: register_job_definition() now supports the parameters `platformCapabilities`, `propagateTags` and `retryStrategy`
+        * IAM: list_entities_for_policy() now returns the RoleId/GroupId/UserId-attributes
+        * S3Control is now available in ServerMode.
+
+3.0.4
+-----
+Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c57747fb292ffceee84b6_
+
+    New Services:
+        * Redshift-Data:
+            * cancel_statement()
+            * describe_statement()
+            * execute_statement()
+            * get_statement_result()
+        * Servicediscovery/Cloudmap:
+            * create_http_namespace()
+            * create_private_dns_namespace()
+            * create_public_dns_namespace()
+            * create_service()
+            * delete_namespace()
+            * delete_service()
+            * get_namespace()
+            * get_operation()
+            * get_service()
+            * list_namespaces()
+            * list_operations()
+            * list_services()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_service()
+
+    New Methods:
+        * Athena:
+            * create_data_catalog()
+            * get_data_catalog()
+            * list_data_catalogs()
+        * SES:
+            * get_identity_mail_from_domain_attributes()
+            * set_identity_mail_from_domain()
+
+    Miscellaneous:
+        * SSM: Global infrastructure parameters supplied by AWS are now available in Moto
+
+3.0.3
+-----
+
+    * New Services:
+        * APIGatewayV2
+            * create_api()
+            * create_authorizer()
+            * create_integration()
+            * create_integration_response()
+            * create_model()
+            * create_route()
+            * create_route_response()
+            * create_vpc_link()
+            * delete_api()
+            * delete_authorizer()
+            * delete_cors_configuration()
+            * delete_integration()
+            * delete_integration_response()
+            * delete_model()
+            * delete_route()
+            * delete_route_request_parameter()
+            * delete_route_response()
+            * delete_vpc_link()
+            * get_api()
+            * get_apis()
+            * get_authorizer()
+            * get_integration()
+            * get_integration_response()
+            * get_integration_responses()
+            * get_integrations()
+            * get_model()
+            * get_route()
+            * get_route_response()
+            * get_routes()
+            * get_tags()
+            * get_vpc_link()
+            * get_vpc_links()
+            * reimport_api()
+            * tag_resource()
+            * untag_resource()
+            * update_api()
+            * update_authorizer()
+            * update_integration()
+            * update_integration_response()
+            * update_model()
+            * update_route()
+            * update_vpc_link()
+
+    * New Methods:
+        * APIGateway:
+            * create_vpc_link()
+            * delete_vpc_link()
+            * get_vpc_link()
+            * get_vpc_links()
+        EC2:
+            * create_vpc_endpoint_service_configuration()
+            * delete_vpc_endpoint_service_configurations()
+            * describe_vpc_endpoint_service_configurations()
+            * describe_vpc_endpoint_service_permissions()
+            * modify_vpc_endpoint_service_configuration()
+            * modify_vpc_endpoint_service_permissions()
+        * Route53:
+            * create_reusable_delegation_set()
+            * delete_reusable_delegation_set()
+            * get_hosted_zone_count()
+            * get_reusable_delegation_set()
+            * list_reusable_delegation_sets()
+
+    * Miscellaneous:
+        * CognitoIDP:
+            * initiate_auth()/admin_initiate_auth(): improved behaviour of the AuthFlow-parameter
+        * EC2:
+            * describe_instance_types() now returns the GpuInfo-attribute
+        * Redshift:
+            * describe_cluster_snapshots() now supports the SnapshotType-parameter
 
 3.0.2
 -----

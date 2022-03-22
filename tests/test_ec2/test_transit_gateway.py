@@ -168,7 +168,7 @@ def test_create_transit_gateway_vpn_attachment():
 
     vpn_gateway = ec2.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
     customer_gateway = ec2.create_customer_gateway(
-        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
     ).get("CustomerGateway", {})
     vpn_connection = ec2.create_vpn_connection(
         Type="ipsec.1",

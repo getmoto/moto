@@ -12,7 +12,7 @@ class WAFV2Response(BaseResponse):
 
     @amzn_request_id
     def create_web_acl(self):
-        """  https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section) """
+        """https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)"""
 
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
@@ -30,7 +30,7 @@ class WAFV2Response(BaseResponse):
 
     @amzn_request_id
     def list_web_ac_ls(self):
-        """  https://docs.aws.amazon.com/waf/latest/APIReference/API_ListWebACLs.html (response syntax section) """
+        """https://docs.aws.amazon.com/waf/latest/APIReference/API_ListWebACLs.html (response syntax section)"""
 
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":

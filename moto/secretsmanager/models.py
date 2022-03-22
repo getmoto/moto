@@ -45,7 +45,7 @@ def _matches(secret, filters):
 
 
 class SecretsManager(BaseModel):
-    def __init__(self, region_name, **kwargs):
+    def __init__(self, region_name):
         self.region = region_name
 
 
@@ -111,6 +111,12 @@ class FakeSecret:
         self.versions[version_id] = secret_version
         self.default_version_id = version_id
 
+    def remove_version_stages_from_old_versions(self, version_stages):
+        for version_stage in version_stages:
+            for old_version in self.versions.values():
+                if version_stage in old_version["version_stages"]:
+                    old_version["version_stages"].remove(version_stage)
+
     def delete(self, deleted_date):
         self.deleted_date = deleted_date
 
@@ -120,14 +126,16 @@ class FakeSecret:
     def is_deleted(self):
         return self.deleted_date is not None
 
-    def to_short_dict(self, include_version_stages=False):
+    def to_short_dict(self, include_version_stages=False, version_id=None):
+        if not version_id:
+            version_id = self.default_version_id
         dct = {
             "ARN": self.arn,
             "Name": self.name,
-            "VersionId": self.default_version_id,
+            "VersionId": version_id,
         }
         if include_version_stages:
-            dct["VersionStages"] = self.version_stages
+            dct["VersionStages"] = self.versions[version_id]["version_stages"]
         return json.dumps(dct)
 
     def to_dict(self):
@@ -172,13 +180,17 @@ class SecretsStore(dict):
         new_key = get_secret_name_from_arn(key)
         return dict.__contains__(self, new_key)
 
+    def get(self, key, *args, **kwargs):
+        new_key = get_secret_name_from_arn(key)
+        return super().get(new_key, *args, **kwargs)
+
     def pop(self, key, *args, **kwargs):
         new_key = get_secret_name_from_arn(key)
         return super().pop(new_key, *args, **kwargs)
 
 
 class SecretsManagerBackend(BaseBackend):
-    def __init__(self, region_name=None, **kwargs):
+    def __init__(self, region_name=None):
         super().__init__()
         self.region = region_name
         self.secrets = SecretsStore()
@@ -207,6 +219,14 @@ class SecretsManagerBackend(BaseBackend):
         if token_length < 32 or token_length > 64:
             msg = "ClientRequestToken must be 32-64 characters long."
             raise InvalidParameterException(msg)
+
+    def _from_client_request_token(self, client_request_token):
+        version_id = client_request_token
+        if version_id:
+            self._client_request_token_validator(version_id)
+        else:
+            version_id = str(uuid.uuid4())
+        return version_id
 
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
@@ -272,7 +292,6 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         client_request_token=None,
         kms_key_id=None,
-        **kwargs
     ):
 
         # error if secret does not exist
@@ -309,6 +328,7 @@ class SecretsManagerBackend(BaseBackend):
         description=None,
         tags=None,
         kms_key_id=None,
+        client_request_token=None,
     ):
 
         # error if secret exists
@@ -324,6 +344,7 @@ class SecretsManagerBackend(BaseBackend):
             description=description,
             tags=tags,
             kms_key_id=kms_key_id,
+            version_id=client_request_token,
         )
 
         return secret.to_short_dict()
@@ -343,10 +364,7 @@ class SecretsManagerBackend(BaseBackend):
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
 
-        if version_id:
-            self._client_request_token_validator(version_id)
-        else:
-            version_id = str(uuid.uuid4())
+        version_id = self._from_client_request_token(version_id)
 
         secret_version = {
             "createdate": int(time.time()),
@@ -365,10 +383,11 @@ class SecretsManagerBackend(BaseBackend):
 
             secret.update(description, tags, kms_key_id, last_changed_date=update_time)
 
-            if "AWSPENDING" in version_stages:
-                secret.versions[version_id] = secret_version
-            else:
+            if "AWSCURRENT" in version_stages:
                 secret.reset_default_version(secret_version, version_id)
+            else:
+                secret.remove_version_stages_from_old_versions(version_stages)
+                secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
                 region_name=self.region,
@@ -403,17 +422,19 @@ class SecretsManagerBackend(BaseBackend):
             tags = secret.tags
             description = secret.description
 
+        version_id = self._from_client_request_token(client_request_token)
+
         secret = self._add_secret(
             secret_id,
             secret_string,
             secret_binary,
-            version_id=client_request_token,
+            version_id=version_id,
             description=description,
             tags=tags,
             version_stages=version_stages,
         )
 
-        return secret.to_short_dict(include_version_stages=True)
+        return secret.to_short_dict(include_version_stages=True, version_id=version_id)
 
     def describe_secret(self, secret_id):
         if not self._is_valid_identifier(secret_id):
@@ -516,8 +537,9 @@ class SecretsManagerBackend(BaseBackend):
             request_headers = {}
             response_headers = {}
 
-            func = lambda_backend.get_function(secret.rotation_lambda_arn)
-            if not func:
+            try:
+                func = lambda_backend.get_function(secret.rotation_lambda_arn)
+            except Exception:
                 msg = "Resource not found for ARN '{}'.".format(
                     secret.rotation_lambda_arn
                 )
@@ -658,21 +680,6 @@ class SecretsManagerBackend(BaseBackend):
         self, secret_id, recovery_window_in_days, force_delete_without_recovery
     ):
 
-        if not self._is_valid_identifier(secret_id):
-            raise SecretNotFoundException()
-
-        if self.secrets[secret_id].is_deleted():
-            raise InvalidRequestException(
-                "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
-                perform the operation on a secret that's currently marked deleted."
-            )
-
-        if recovery_window_in_days and force_delete_without_recovery:
-            raise InvalidParameterException(
-                "An error occurred (InvalidParameterException) when calling the DeleteSecret operation: You can't \
-                use ForceDeleteWithoutRecovery in conjunction with RecoveryWindowInDays."
-            )
-
         if recovery_window_in_days and (
             recovery_window_in_days < 7 or recovery_window_in_days > 30
         ):
@@ -681,22 +688,44 @@ class SecretsManagerBackend(BaseBackend):
                 RecoveryWindowInDays value must be between 7 and 30 days (inclusive)."
             )
 
-        deletion_date = datetime.datetime.utcnow()
+        if recovery_window_in_days and force_delete_without_recovery:
+            raise InvalidParameterException(
+                "An error occurred (InvalidParameterException) when calling the DeleteSecret operation: You can't \
+                use ForceDeleteWithoutRecovery in conjunction with RecoveryWindowInDays."
+            )
 
-        if force_delete_without_recovery:
-            secret = self.secrets.pop(secret_id, None)
+        if not self._is_valid_identifier(secret_id):
+            if not force_delete_without_recovery:
+                raise SecretNotFoundException()
+            else:
+                secret = FakeSecret(self.region, secret_id)
+                arn = secret.arn
+                name = secret.name
+                deletion_date = datetime.datetime.utcnow()
+                return arn, name, self._unix_time_secs(deletion_date)
         else:
-            deletion_date += datetime.timedelta(days=recovery_window_in_days or 30)
-            self.secrets[secret_id].delete(self._unix_time_secs(deletion_date))
-            secret = self.secrets.get(secret_id, None)
+            if self.secrets[secret_id].is_deleted():
+                raise InvalidRequestException(
+                    "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
+                    perform the operation on a secret that's currently marked deleted."
+                )
 
-        if not secret:
-            raise SecretNotFoundException()
+            deletion_date = datetime.datetime.utcnow()
 
-        arn = secret.arn
-        name = secret.name
+            if force_delete_without_recovery:
+                secret = self.secrets.pop(secret_id, None)
+            else:
+                deletion_date += datetime.timedelta(days=recovery_window_in_days or 30)
+                self.secrets[secret_id].delete(self._unix_time_secs(deletion_date))
+                secret = self.secrets.get(secret_id, None)
 
-        return arn, name, self._unix_time_secs(deletion_date)
+            if not secret:
+                raise SecretNotFoundException()
+
+            arn = secret.arn
+            name = secret.name
+
+            return arn, name, self._unix_time_secs(deletion_date)
 
     def restore_secret(self, secret_id):
 
@@ -717,6 +746,16 @@ class SecretsManagerBackend(BaseBackend):
         old_tags = secret.tags
 
         for tag in tags:
+            existing_key_name = next(
+                (
+                    old_key
+                    for old_key in old_tags
+                    if old_key.get("Key") == tag.get("Key")
+                ),
+                None,
+            )
+            if existing_key_name:
+                old_tags.remove(existing_key_name)
             old_tags.append(tag)
 
         return secret_id

@@ -42,8 +42,8 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_launch_configurations(self):
         names = self._get_multi_param("LaunchConfigurationNames.member")
-        all_launch_configurations = self.autoscaling_backend.describe_launch_configurations(
-            names
+        all_launch_configurations = (
+            self.autoscaling_backend.describe_launch_configurations(names)
         )
         marker = self._get_param("NextToken")
         all_names = [lc.name for lc in all_launch_configurations]
@@ -114,10 +114,7 @@ class AutoScalingResponse(BaseResponse):
         health_status = self._get_param("HealthStatus")
         if health_status not in ["Healthy", "Unhealthy"]:
             raise ValueError("Valid instance health states are: [Healthy, Unhealthy]")
-        should_respect_grace_period = self._get_param("ShouldRespectGracePeriod")
-        self.autoscaling_backend.set_instance_health(
-            instance_id, health_status, should_respect_grace_period
-        )
+        self.autoscaling_backend.set_instance_health(instance_id, health_status)
         template = self.response_template(SET_INSTANCE_HEALTH_TEMPLATE)
         return template.render()
 
@@ -153,8 +150,8 @@ class AutoScalingResponse(BaseResponse):
     @amzn_request_id
     def describe_load_balancer_target_groups(self):
         group_name = self._get_param("AutoScalingGroupName")
-        target_group_arns = self.autoscaling_backend.describe_load_balancer_target_groups(
-            group_name
+        target_group_arns = (
+            self.autoscaling_backend.describe_load_balancer_target_groups(group_name)
         )
         template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
         return template.render(target_group_arns=target_group_arns)
@@ -200,11 +197,8 @@ class AutoScalingResponse(BaseResponse):
             launch_config_name=self._get_param("LaunchConfigurationName"),
             launch_template=self._get_dict_param("LaunchTemplate."),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
-            default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
             health_check_type=self._get_param("HealthCheckType"),
-            placement_group=self._get_param("PlacementGroup"),
-            termination_policies=self._get_multi_param("TerminationPolicies.member"),
             new_instances_protected_from_scale_in=self._get_bool_param(
                 "NewInstancesProtectedFromScaleIn", None
             ),

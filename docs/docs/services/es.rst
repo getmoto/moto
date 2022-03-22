@@ -40,6 +40,7 @@ es
 - [ ] delete_outbound_cross_cluster_search_connection
 - [ ] delete_package
 - [ ] describe_domain_auto_tunes
+- [ ] describe_domain_change_progress
 - [X] describe_elasticsearch_domain
 - [ ] describe_elasticsearch_domain_config
 - [ ] describe_elasticsearch_domains

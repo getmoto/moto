@@ -1,22 +1,9 @@
 """Handles incoming mq requests, invokes methods, returns responses."""
 import json
-from functools import wraps
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
-from .exceptions import MQError
 from .models import mq_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except MQError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class MQResponse(BaseResponse):
@@ -27,7 +14,6 @@ class MQResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return mq_backends[self.region]
 
-    @error_handler
     def broker(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -44,7 +30,6 @@ class MQResponse(BaseResponse):
         if request.method == "GET":
             return self.list_brokers()
 
-    @error_handler
     def configuration(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -52,7 +37,6 @@ class MQResponse(BaseResponse):
         if request.method == "PUT":
             return self.update_configuration()
 
-    @error_handler
     def configurations(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -72,7 +56,6 @@ class MQResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_tags()
 
-    @error_handler
     def user(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -95,7 +78,6 @@ class MQResponse(BaseResponse):
         auto_minor_version_upgrade = params.get("autoMinorVersionUpgrade")
         broker_name = params.get("brokerName")
         configuration = params.get("configuration")
-        creator_request_id = params.get("creatorRequestId")
         deployment_mode = params.get("deploymentMode")
         encryption_options = params.get("encryptionOptions")
         engine_type = params.get("engineType")
@@ -115,7 +97,6 @@ class MQResponse(BaseResponse):
             auto_minor_version_upgrade=auto_minor_version_upgrade,
             broker_name=broker_name,
             configuration=configuration,
-            creator_request_id=creator_request_id,
             deployment_mode=deployment_mode,
             encryption_options=encryption_options,
             engine_type=engine_type,

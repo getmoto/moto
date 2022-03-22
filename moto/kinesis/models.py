@@ -193,10 +193,10 @@ class Stream(CloudFormationModel):
     def init_shards(self, shard_count):
         self.shard_count = shard_count
 
-        step = 2 ** 128 // shard_count
+        step = 2**128 // shard_count
         hash_ranges = itertools.chain(
             map(lambda i: (i, i * step, (i + 1) * step - 1), range(shard_count - 1)),
-            [(shard_count - 1, (shard_count - 1) * step, 2 ** 128)],
+            [(shard_count - 1, (shard_count - 1) * step, 2**128)],
         )
         for index, start, end in hash_ranges:
             shard = Shard(index, start, end)
@@ -245,9 +245,7 @@ class Stream(CloudFormationModel):
 
         for index in records:
             record = records[index]
-            self.put_record(
-                record.partition_key, record.explicit_hash_key, None, record.data
-            )
+            self.put_record(record.partition_key, record.explicit_hash_key, record.data)
 
     def merge_shards(self, shard_to_merge, adjacent_shard_to_merge):
         shard1 = self.shards[shard_to_merge]
@@ -361,7 +359,7 @@ class Stream(CloudFormationModel):
 
             key = int(explicit_hash_key)
 
-            if key >= 2 ** 128:
+            if key >= 2**128:
                 raise InvalidArgumentError("explicit_hash_key")
 
         else:
@@ -371,9 +369,7 @@ class Stream(CloudFormationModel):
             if shard.starting_hash <= key < shard.ending_hash:
                 return shard
 
-    def put_record(
-        self, partition_key, explicit_hash_key, sequence_number_for_ordering, data
-    ):
+    def put_record(self, partition_key, explicit_hash_key, data):
         shard = self.get_shard_for_key(partition_key, explicit_hash_key)
 
         sequence_number = shard.put_record(partition_key, data, explicit_hash_key)
@@ -439,7 +435,7 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -488,8 +484,8 @@ class Stream(CloudFormationModel):
         )
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["Arn"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -594,13 +590,12 @@ class KinesisBackend(BaseBackend):
         stream_name,
         partition_key,
         explicit_hash_key,
-        sequence_number_for_ordering,
         data,
     ):
         stream = self.describe_stream(stream_name)
 
         sequence_number, shard_id = stream.put_record(
-            partition_key, explicit_hash_key, sequence_number_for_ordering, data
+            partition_key, explicit_hash_key, data
         )
 
         return sequence_number, shard_id
@@ -616,7 +611,7 @@ class KinesisBackend(BaseBackend):
             data = record.get("Data")
 
             sequence_number, shard_id = stream.put_record(
-                partition_key, explicit_hash_key, None, data
+                partition_key, explicit_hash_key, data
             )
             response["Records"].append(
                 {"SequenceNumber": sequence_number, "ShardId": shard_id}

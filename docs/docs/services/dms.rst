@@ -33,6 +33,11 @@ dms
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
+  
+        The following parameters are not yet implemented:
+        CDCStartTime, CDCStartPosition, CDCStopPosition, Tags, TaskData, ResourceIdentifier
+        
+
 - [ ] delete_certificate
 - [ ] delete_connection
 - [ ] delete_endpoint
@@ -61,6 +66,10 @@ dms
 - [ ] describe_replication_task_assessment_runs
 - [ ] describe_replication_task_individual_assessments
 - [X] describe_replication_tasks
+  
+        The parameter WithoutSettings has not yet been implemented
+        
+
 - [ ] describe_schemas
 - [ ] describe_table_statistics
 - [ ] import_certificate
@@ -76,6 +85,11 @@ dms
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [X] start_replication_task
+  
+        The following parameters have not yet been implemented:
+        StartReplicationTaskType, CDCStartTime, CDCStartPosition, CDCStopPosition
+        
+
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
 - [X] stop_replication_task

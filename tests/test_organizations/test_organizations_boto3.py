@@ -230,6 +230,25 @@ def test_list_accounts():
 
 
 @mock_organizations
+def test_list_accounts_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    for i in range(25):
+        name = mockname + str(i)
+        email = name + "@" + mockdomain
+        client.create_account(AccountName=name, Email=email)
+    response = client.list_accounts()
+    response.should_not.have.key("NextToken")
+    len(response["Accounts"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_accounts")
+    page_iterator = paginator.paginate(MaxResults=5)
+    for page in page_iterator:
+        len(page["Accounts"]).should.be.lower_than_or_equal_to(5)
+    page["Accounts"][-1]["Name"].should.contain("24")
+
+
+@mock_organizations
 def test_list_accounts_for_parent():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1109,7 +1128,7 @@ def test_tag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.tag_resource(
-            ResourceId="0A000000X000", Tags=[{"Key": "key", "Value": "value"},],
+            ResourceId="0A000000X000", Tags=[{"Key": "key", "Value": "value"}]
         )
     ex = e.value
     ex.operation_name.should.equal("TagResource")
@@ -1812,10 +1831,7 @@ def test_enable_policy_type():
     )
     root["Name"].should.equal("Root")
     sorted(root["PolicyTypes"], key=lambda x: x["Type"]).should.equal(
-        [
-            {"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"},
-            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"},
-        ]
+        [{"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"}]
     )
 
 
@@ -1842,7 +1858,10 @@ def test_enable_policy_type_errors():
         "You specified a root that doesn't exist."
     )
 
-    # enable policy again ('SERVICE_CONTROL_POLICY' is enabled by default)
+    # enable policy again
+    # given
+    client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
+
     # when
     with pytest.raises(ClientError) as e:
         client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
@@ -1889,9 +1908,7 @@ def test_disable_policy_type():
         utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
     )
     root["Name"].should.equal("Root")
-    root["PolicyTypes"].should.equal(
-        [{"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}]
-    )
+    root["PolicyTypes"].should.equal([])
 
 
 @mock_organizations

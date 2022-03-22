@@ -27,9 +27,7 @@ class TokenResponse(BaseResponse):
             )
 
         name = self.querystring.get("Name")[0]
-        token = sts_backend.get_federation_token(
-            duration=duration, name=name, policy=policy
-        )
+        token = sts_backend.get_federation_token(duration=duration, name=name)
         template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
         return template.render(token=token, account_id=ACCOUNT_ID)
 

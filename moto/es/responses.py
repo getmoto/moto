@@ -1,21 +1,9 @@
 import json
 import re
 
-from functools import wraps
 from moto.core.responses import BaseResponse
-from .exceptions import ElasticSearchError, InvalidDomainName
+from .exceptions import InvalidDomainName
 from .models import es_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except ElasticSearchError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class ElasticsearchServiceResponse(BaseResponse):
@@ -27,7 +15,6 @@ class ElasticsearchServiceResponse(BaseResponse):
         return es_backends[self.region]
 
     @classmethod
-    @error_handler
     def list_domains(cls, request, full_url, headers):
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
@@ -35,7 +22,6 @@ class ElasticsearchServiceResponse(BaseResponse):
             return response.list_domain_names()
 
     @classmethod
-    @error_handler
     def domains(cls, request, full_url, headers):
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
@@ -43,7 +29,6 @@ class ElasticsearchServiceResponse(BaseResponse):
             return response.create_elasticsearch_domain()
 
     @classmethod
-    @error_handler
     def domain(cls, request, full_url, headers):
         response = ElasticsearchServiceResponse()
         response.setup_class(request, full_url, headers)
@@ -71,7 +56,6 @@ class ElasticsearchServiceResponse(BaseResponse):
         domain_endpoint_options = params.get("DomainEndpointOptions")
         advanced_security_options = params.get("AdvancedSecurityOptions")
         auto_tune_options = params.get("AutoTuneOptions")
-        tag_list = params.get("TagList")
         domain_status = self.es_backend.create_elasticsearch_domain(
             domain_name=domain_name,
             elasticsearch_version=elasticsearch_version,
@@ -88,13 +72,12 @@ class ElasticsearchServiceResponse(BaseResponse):
             domain_endpoint_options=domain_endpoint_options,
             advanced_security_options=advanced_security_options,
             auto_tune_options=auto_tune_options,
-            tag_list=tag_list,
         )
         return 200, {}, json.dumps({"DomainStatus": domain_status})
 
     def delete_elasticsearch_domain(self):
         domain_name = self.path.split("/")[-1]
-        self.es_backend.delete_elasticsearch_domain(domain_name=domain_name,)
+        self.es_backend.delete_elasticsearch_domain(domain_name=domain_name)
         return 200, {}, json.dumps(dict())
 
     def describe_elasticsearch_domain(self):
@@ -102,12 +85,10 @@ class ElasticsearchServiceResponse(BaseResponse):
         if not re.match(r"^[a-z][a-z0-9\-]+$", domain_name):
             raise InvalidDomainName(domain_name)
         domain_status = self.es_backend.describe_elasticsearch_domain(
-            domain_name=domain_name,
+            domain_name=domain_name
         )
         return 200, {}, json.dumps({"DomainStatus": domain_status})
 
     def list_domain_names(self):
-        params = self._get_params()
-        engine_type = params.get("EngineType")
-        domain_names = self.es_backend.list_domain_names(engine_type=engine_type,)
+        domain_names = self.es_backend.list_domain_names()
         return 200, {}, json.dumps({"DomainNames": domain_names})

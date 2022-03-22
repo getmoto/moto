@@ -33,7 +33,15 @@ medialive
 - [ ] cancel_input_device_transfer
 - [ ] claim_device
 - [X] create_channel
+  
+        The RequestID and Reserved parameters are not yet implemented
+        
+
 - [X] create_input
+  
+        The VPC and RequestId parameters are not yet implemented
+        
+
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program

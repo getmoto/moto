@@ -56,7 +56,7 @@ class SWFBackend(BaseBackend):
         return domains
 
     def list_open_workflow_executions(
-        self, domain_name, maximum_page_size, tag_filter, reverse_order, **kwargs
+        self, domain_name, maximum_page_size, tag_filter, reverse_order
     ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -77,12 +77,10 @@ class SWFBackend(BaseBackend):
     def list_closed_workflow_executions(
         self,
         domain_name,
-        close_time_filter,
         tag_filter,
         close_status_filter,
         maximum_page_size,
         reverse_order,
-        **kwargs
     ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)

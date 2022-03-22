@@ -39,15 +39,23 @@ iot
 - [ ] cancel_detect_mitigation_actions_task
 - [X] cancel_job
 - [X] cancel_job_execution
+  
+        The parameters ExpectedVersion and StatusDetails are not yet implemented
+        
+
 - [ ] clear_default_authorizer
 - [ ] confirm_topic_rule_destination
 - [ ] create_audit_suppression
 - [ ] create_authorizer
 - [ ] create_billing_group
-- [ ] create_certificate_from_csr
+- [X] create_certificate_from_csr
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
+  
+        The ValidationCertificateArn-parameter is not yet implemented
+        
+
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
@@ -73,7 +81,7 @@ iot
 - [ ] delete_audit_suppression
 - [ ] delete_authorizer
 - [ ] delete_billing_group
-- [ ] delete_ca_certificate
+- [X] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_custom_metric
 - [ ] delete_dimension
@@ -95,7 +103,15 @@ iot
 - [ ] delete_security_profile
 - [ ] delete_stream
 - [X] delete_thing
+  
+        The ExpectedVersion-parameter is not yet implemented
+        
+
 - [X] delete_thing_group
+  
+        The ExpectedVersion-parameter is not yet implemented
+        
+
 - [X] delete_thing_type
 - [X] delete_topic_rule
 - [ ] delete_topic_rule_destination
@@ -108,7 +124,7 @@ iot
 - [ ] describe_audit_task
 - [ ] describe_authorizer
 - [ ] describe_billing_group
-- [ ] describe_ca_certificate
+- [X] describe_ca_certificate
 - [X] describe_certificate
 - [ ] describe_custom_metric
 - [ ] describe_default_authorizer
@@ -151,7 +167,7 @@ iot
 - [ ] get_percentiles
 - [X] get_policy
 - [X] get_policy_version
-- [ ] get_registration_code
+- [X] get_registration_code
 - [ ] get_statistics
 - [X] get_topic_rule
 - [ ] get_topic_rule_destination
@@ -167,7 +183,15 @@ iot
 - [ ] list_billing_groups
 - [ ] list_ca_certificates
 - [X] list_certificates
-- [ ] list_certificates_by_ca
+  
+        Pagination is not yet implemented
+        
+
+- [X] list_certificates_by_ca
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_custom_metrics
 - [ ] list_detect_mitigation_actions_executions
 - [ ] list_detect_mitigation_actions_tasks
@@ -179,6 +203,10 @@ iot
 - [X] list_job_executions_for_thing
 - [ ] list_job_templates
 - [X] list_jobs
+  
+        The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
+        
+
 - [ ] list_managed_job_templates
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
@@ -200,6 +228,10 @@ iot
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_thing_principals
 - [ ] list_thing_registration_task_reports
 - [ ] list_thing_registration_tasks
@@ -207,12 +239,20 @@ iot
 - [X] list_things
 - [ ] list_things_in_billing_group
 - [X] list_things_in_thing_group
+  
+        Pagination and the recursive-parameter is not yet implemented
+        
+
 - [ ] list_topic_rule_destinations
 - [X] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] list_violation_events
 - [ ] put_verification_state_on_violation
-- [ ] register_ca_certificate
+- [X] register_ca_certificate
+  
+        The VerificationCertificate-parameter is not yet implemented
+        
+
 - [X] register_certificate
 - [X] register_certificate_without_ca
 - [ ] register_thing
@@ -220,7 +260,11 @@ iot
 - [ ] remove_thing_from_billing_group
 - [X] remove_thing_from_thing_group
 - [X] replace_topic_rule
-- [ ] search_index
+- [X] search_index
+  
+        Pagination is not yet implemented. Only basic search queries are supported for now.
+        
+
 - [ ] set_default_authorizer
 - [X] set_default_policy_version
 - [ ] set_logging_options
@@ -240,7 +284,11 @@ iot
 - [ ] update_audit_suppression
 - [ ] update_authorizer
 - [ ] update_billing_group
-- [ ] update_ca_certificate
+- [X] update_ca_certificate
+  
+        The newAutoRegistrationStatus and removeAutoRegistration-parameters are not yet implemented
+        
+
 - [X] update_certificate
 - [ ] update_custom_metric
 - [ ] update_dimension
@@ -257,6 +305,10 @@ iot
 - [ ] update_security_profile
 - [ ] update_stream
 - [X] update_thing
+  
+        The ExpectedVersion-parameter is not yet implemented
+        
+
 - [X] update_thing_group
 - [X] update_thing_groups_for_thing
 - [ ] update_topic_rule_destination

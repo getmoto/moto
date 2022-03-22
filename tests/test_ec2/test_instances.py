@@ -1,4 +1,4 @@
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 
 import pytest
 from unittest import SkipTest
@@ -174,6 +174,8 @@ def test_instance_terminate_keep_volumes_implicit():
     for volume in instance.volumes.all():
         instance_volume_ids.append(volume.volume_id)
 
+    instance_volume_ids.shouldnt.be.empty
+
     instance.terminate()
     instance.wait_until_terminated()
 
@@ -216,7 +218,7 @@ def test_instance_detach_volume_wrong_path():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}}],
     )
     instance = result[0]
     for volume in instance.volumes.all():
@@ -729,14 +731,14 @@ def test_get_instances_filtering_by_subnet_id():
     vpc_cidr = ipaddress.ip_network("192.168.42.0/24")
     subnet_cidr = ipaddress.ip_network("192.168.42.0/25")
 
-    resp = client.create_vpc(CidrBlock=str(vpc_cidr),)
+    resp = client.create_vpc(CidrBlock=str(vpc_cidr))
     vpc_id = resp["Vpc"]["VpcId"]
 
     resp = client.create_subnet(CidrBlock=str(subnet_cidr), VpcId=vpc_id)
     subnet_id = resp["Subnet"]["SubnetId"]
 
     client.run_instances(
-        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id,
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, SubnetId=subnet_id
     )
 
     reservations = client.describe_instances(
@@ -1331,7 +1333,7 @@ def test_run_instance_with_nic_preexisting_boto3():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        NetworkInterfaces=[{"DeviceIndex": 0, "NetworkInterfaceId": eni.id,}],
+        NetworkInterfaces=[{"DeviceIndex": 0, "NetworkInterfaceId": eni.id}],
         SecurityGroupIds=[security_group2.group_id],
     )[0]
 
@@ -1527,6 +1529,48 @@ def test_run_instance_with_block_device_mappings_missing_ebs():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Message"].should.equal(
         "The request must contain the parameter ebs"
+    )
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_using_no_device():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": EXAMPLE_AMI_ID,
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "NoDevice": ""}],
+    }
+    resp = ec2_client.run_instances(**kwargs)
+    instance_id = resp["Instances"][0]["InstanceId"]
+
+    instances = ec2_client.describe_instances(InstanceIds=[instance_id])
+    # Assuming that /dev/sda2 is not the root device and that there is a /dev/sda1, boto would
+    # create an instance with one block device instead of two.  However, moto's modeling of
+    # BlockDeviceMappings is simplified, so we will accept that moto creates an instance without
+    # block devices for now
+    # instances["Reservations"][0]["Instances"][0].shouldnt.have.key("BlockDeviceMappings")
+
+    # moto gives the key with an empty list instead of not having it at all, that's also fine
+    instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"].should.be.empty
+
+    # passing None with NoDevice should raise ParamValidationError
+    kwargs["BlockDeviceMappings"][0]["NoDevice"] = None
+    with pytest.raises(ParamValidationError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    # passing a string other than "" with NoDevice should raise InvalidRequest
+    kwargs["BlockDeviceMappings"][0]["NoDevice"] = "yes"
+    with pytest.raises(ClientError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("InvalidRequest")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "The request received was invalid"
     )
 
 
@@ -1838,7 +1882,7 @@ def test_create_instance_ebs_optimized():
     instance.ebs_optimized.should.be(False)
 
     instance = ec2_resource.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1,
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1
     )[0]
     instance.load()
     instance.ebs_optimized.should.be(False)
@@ -2006,6 +2050,43 @@ def test_instance_termination_protection():
 
 
 @mock_ec2
+def test_terminate_unknown_instances():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    # Correct error message for single unknown instance
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=["i-12345678"])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("InvalidInstanceID.NotFound")
+    error["Message"].should.equal("The instance ID 'i-12345678' does not exist")
+
+    # Correct error message for multiple unknown instances
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=["i-12345678", "i-12345668"])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("InvalidInstanceID.NotFound")
+    error["Message"].should.equal(
+        "The instance IDs 'i-12345678, i-12345668' do not exist"
+    )
+
+    # Create an instance
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = resp["Instances"][0]["InstanceId"]
+
+    # Correct error message if one instance is known
+    with pytest.raises(ClientError) as ex:
+        client.terminate_instances(InstanceIds=["i-12345678", instance_id])
+    error = ex.value.response["Error"]
+    error["Code"].should.equal("InvalidInstanceID.NotFound")
+    error["Message"].should.equal("The instance ID 'i-12345678' does not exist")
+
+    # status = still running
+    resp = client.describe_instances(InstanceIds=[instance_id])
+    instance = resp["Reservations"][0]["Instances"][0]
+    instance["State"]["Name"].should.equal("running")
+
+
+@mock_ec2
 def test_instance_lifecycle():
     ec2_resource = boto3.resource("ec2", "us-west-1")
 
@@ -2038,7 +2119,7 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     )
 
     template = client.create_launch_template(
-        LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
+        LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID}
     )["LaunchTemplate"]
 
     with pytest.warns(None) as captured_warnings:
@@ -2150,13 +2231,13 @@ def test_describe_instances_filter_vpcid_via_networkinterface():
     my_interface = {
         "SubnetId": subnet.id,
         "DeviceIndex": 0,
-        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"},],
+        "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"}],
     }
     instance = ec2.create_instances(
         ImageId="myami", NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
     )[0]
 
-    _filter = [{"Name": "vpc-id", "Values": [vpc.id,]}]
+    _filter = [{"Name": "vpc-id", "Values": [vpc.id]}]
     found = list(ec2.instances.filter(Filters=_filter))
     found.should.have.length_of(1)
     found.should.equal([instance])

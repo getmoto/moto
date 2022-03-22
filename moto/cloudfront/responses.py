@@ -1,30 +1,16 @@
 import xmltodict
 
-from functools import wraps
 from moto.core.responses import BaseResponse
 from .models import cloudfront_backend
-from .exceptions import CloudFrontException
 
 
 XMLNS = "http://cloudfront.amazonaws.com/doc/2020-05-31/"
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except CloudFrontException as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class CloudFrontResponse(BaseResponse):
     def _get_xml_body(self):
         return xmltodict.parse(self.body, dict_constructor=dict)
 
-    @error_handler
     def distributions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -36,7 +22,7 @@ class CloudFrontResponse(BaseResponse):
         params = self._get_xml_body()
         distribution_config = params.get("DistributionConfig")
         distribution, location, e_tag = cloudfront_backend.create_distribution(
-            distribution_config=distribution_config,
+            distribution_config=distribution_config
         )
         template = self.response_template(CREATE_DISTRIBUTION_TEMPLATE)
         response = template.render(distribution=distribution, xmlns=XMLNS)
@@ -49,7 +35,6 @@ class CloudFrontResponse(BaseResponse):
         response = template.render(distributions=distributions)
         return 200, {}, response
 
-    @error_handler
     def individual_distribution(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         distribution_id = full_url.split("/")[-1]

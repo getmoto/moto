@@ -3,11 +3,17 @@
 .. role:: bash(code)
    :language: bash
 
+.. role:: raw-html(raw)
+    :format: html
+
 ================================
 Non-Python SDK's / Server Mode
 ================================
 
 Moto has a stand-alone server mode. This allows you to use Moto with any of the official AWS SDK's.
+
+Installation
+-------------
 
 Install the required dependencies using:
 
@@ -41,10 +47,61 @@ interfaces with 0.0.0.0:
 Please be aware this might allow other network users to access your
 server.
 
-To use Moto in your tests, you can pass the `endpoint_url`-parameter to the SDK of your choice.
+Start within Python
+--------------------
+It is possible to start this server from within Python, in a separate thread.  :raw-html:`<br />`
+By default, this server will start on port 5000, but this is configurable.
 
-Examples
---------
+.. code-block:: python
+
+    from moto.server import ThreadedMotoServer
+    server = ThreadedMotoServer()
+    server.start()
+    # run tests
+    client = boto3.client("service", endpoint_url="http://localhost:5000")
+    ...
+    server.stop()
+
+Note that the ThreadedMotoServer and the decorators act on the same state, making it possible to combine the two approaches.  :raw-html:`<br />`
+See the following example:
+
+.. code-block:: python
+
+    class TestThreadedMotoServer(unittest.TestCase):
+
+        def setUp(self):
+            self.server = ThreadedMotoServer()
+            self.server.start()
+
+        def tearDown(self):
+            self.server.stop()
+
+        @mock_s3
+        def test_load_data_using_decorators(self):
+            server_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
+            server_client.create_bucket(Bucket="test")
+
+            in_mem_client = boto3.client("s3")
+            buckets = in_mem_client.list_buckets()["Buckets"]
+            [b["Name"] for b in buckets].should.equal(["test"])
+
+This example shows it is possible to create state using the TreadedMotoServer, and access that state using the usual decorators.  :raw-html:`<br />`
+0Note that the decorators will destroy any resources on start, so make sure to not accidentally destroy any resources created by the ThreadedMotoServer that should be kept.
+
+.. note:: The ThreadedMotoServer is considered in beta for now, and the exact interface and behaviour may still change.   :raw-html:`<br />` Please let us know if you'd like to see any changes.
+
+Run using Docker
+----------------------
+You could also use the official Docker image from https://hub.docker.com/r/motoserver/moto/tags:
+
+.. code-block:: bash
+
+    docker run motoserver/moto:latest
+
+Example Usage
+--------------
+
+To use Moto in your tests, pass the `endpoint_url`-parameter to the SDK of your choice.
 
 In Python:
 

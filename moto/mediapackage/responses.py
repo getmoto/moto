@@ -15,7 +15,7 @@ class MediaPackageResponse(BaseResponse):
         channel_id = self._get_param("id")
         tags = self._get_param("tags")
         channel = self.mediapackage_backend.create_channel(
-            description=description, channel_id=channel_id, tags=tags,
+            description=description, channel_id=channel_id, tags=tags
         )
         return json.dumps(channel.to_dict())
 

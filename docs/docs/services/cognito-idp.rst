@@ -17,7 +17,7 @@ cognito-idp
 .. sourcecode:: python
 
             @mock_cognitoidp
-            def test_cognito-idp_behaviour:
+            def test_cognitoidp_behaviour:
                 boto3.client("cognito-idp")
                 ...
 
@@ -45,7 +45,7 @@ cognito-idp
 - [X] admin_remove_user_from_group
 - [X] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
-- [ ] admin_set_user_mfa_preference
+- [X] admin_set_user_mfa_preference
 - [X] admin_set_user_password
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
@@ -82,11 +82,11 @@ cognito-idp
 - [ ] forget_device
 - [X] forgot_password
   The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
-            Otherwise you get semi-random garbage and HTTP 200 OK, for example:
-            - recovery for username which is not registered in any cognito pool
-            - recovery for username belonging to a different user pool than the client id is registered to
-            - phone-based recovery for a user without phone_number / phone_number_verified attributes
-            - same as above, but email / email_verified
+        Otherwise you get semi-random garbage and HTTP 200 OK, for example:
+        - recovery for username which is not registered in any cognito pool
+        - recovery for username belonging to a different user pool than the client id is registered to
+        - phone-based recovery for a user without phone_number / phone_number_verified attributes
+        - same as above, but email / email_verified
         
 
 - [ ] get_csv_header
@@ -133,5 +133,9 @@ cognito-idp
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
 - [X] verify_software_token
+  
+        The parameter UserCode has not yet been implemented
+        
+
 - [ ] verify_user_attribute
 

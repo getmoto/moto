@@ -1,5 +1,5 @@
 import boto3
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 from moto import mock_iam
 
 

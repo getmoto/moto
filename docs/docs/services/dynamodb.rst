@@ -16,7 +16,7 @@ dynamodb
 
 .. sourcecode:: python
 
-            @mock_dynamodb2
+            @mock_dynamodb
             def test_dynamodb_behaviour:
                 boto3.client("dynamodb")
                 ...

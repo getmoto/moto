@@ -127,14 +127,27 @@ def test_submit_job():
 
     # Test that describe_jobs() returns timestamps in milliseconds
     # github.com/spulec/moto/issues/4364
-    resp = batch_client.describe_jobs(jobs=[job_id])
-    created_at = resp["jobs"][0]["createdAt"]
-    started_at = resp["jobs"][0]["startedAt"]
-    stopped_at = resp["jobs"][0]["stoppedAt"]
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
+    created_at = job["createdAt"]
+    started_at = job["startedAt"]
+    stopped_at = job["stoppedAt"]
 
     created_at.should.be.greater_than(start_time_milliseconds)
     started_at.should.be.greater_than(start_time_milliseconds)
     stopped_at.should.be.greater_than(start_time_milliseconds)
+
+    # Verify we track attempts
+    job.should.have.key("attempts").length_of(1)
+    attempt = job["attempts"][0]
+    attempt.should.have.key("container")
+    attempt["container"].should.have.key("containerInstanceArn")
+    attempt["container"].should.have.key("logStreamName").equals(
+        job["container"]["logStreamName"]
+    )
+    attempt["container"].should.have.key("networkInterfaces")
+    attempt["container"].should.have.key("taskArn")
+    attempt.should.have.key("startedAt").equals(started_at)
+    attempt.should.have.key("stoppedAt").equals(stopped_at)
 
 
 @mock_logs

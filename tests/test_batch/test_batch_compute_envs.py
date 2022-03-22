@@ -1,6 +1,7 @@
 from . import _get_clients, _setup
 import pytest
 import sure  # noqa # pylint: disable=unused-import
+from botocore.exceptions import ClientError
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, settings
 from uuid import uuid4
 
@@ -53,6 +54,93 @@ def test_create_managed_compute_environment():
     # Should have created 1 ECS cluster
     all_clusters = ecs_client.list_clusters()["clusterArns"]
     all_clusters.should.contain(our_env["ecsClusterArn"])
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_create_managed_compute_environment_with_instance_family():
+    """
+    The InstanceType parameter can have multiple values:
+    instance_type     t2.small
+    instance_family   t2       <-- What we're testing here
+    'optimal'
+    unknown value
+    """
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = str(uuid4())
+    batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="MANAGED",
+        state="ENABLED",
+        computeResources={
+            "type": "EC2",
+            "minvCpus": 5,
+            "maxvCpus": 10,
+            "desiredvCpus": 5,
+            "instanceTypes": ["t2"],
+            "imageId": "some_image_id",
+            "subnets": [subnet_id],
+            "securityGroupIds": [sg_id],
+            "ec2KeyPair": "string",
+            "instanceRole": iam_arn.replace("role", "instance-profile"),
+            "tags": {"string": "string"},
+            "bidPercentage": 123,
+            "spotIamFleetRole": "string",
+        },
+        serviceRole=iam_arn,
+    )
+
+    our_env = batch_client.describe_compute_environments(
+        computeEnvironments=[compute_name]
+    )["computeEnvironments"][0]
+    our_env["computeResources"]["instanceTypes"].should.equal(["t2"])
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_create_managed_compute_environment_with_unknown_instance_type():
+    """
+    The InstanceType parameter can have multiple values:
+    instance_type     t2.small
+    instance_family   t2
+    'optimal'
+    unknown value              <-- What we're testing here
+    """
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = str(uuid4())
+    with pytest.raises(ClientError) as exc:
+        batch_client.create_compute_environment(
+            computeEnvironmentName=compute_name,
+            type="MANAGED",
+            state="ENABLED",
+            computeResources={
+                "type": "EC2",
+                "minvCpus": 5,
+                "maxvCpus": 10,
+                "desiredvCpus": 5,
+                "instanceTypes": ["unknown"],
+                "imageId": "some_image_id",
+                "subnets": [subnet_id],
+                "securityGroupIds": [sg_id],
+                "ec2KeyPair": "string",
+                "instanceRole": iam_arn.replace("role", "instance-profile"),
+                "tags": {"string": "string"},
+                "bidPercentage": 123,
+                "spotIamFleetRole": "string",
+            },
+            serviceRole=iam_arn,
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Instance type unknown does not exist")
 
 
 @mock_ec2

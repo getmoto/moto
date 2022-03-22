@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 import pytest
 
-from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds2
+from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds
 from moto.core import set_initial_no_auth_action_count
 from moto.core import ACCOUNT_ID
 from uuid import uuid4
@@ -325,7 +325,7 @@ def test_access_denied_for_run_instances():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.value.response["Error"]["Message"].should.equal(
         "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:RunInstances",
+            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:RunInstances"
         )
     )
 
@@ -599,7 +599,7 @@ def test_allowed_with_temporary_credentials():
 @set_initial_no_auth_action_count(3)
 @mock_iam
 @mock_sts
-@mock_rds2
+@mock_rds
 def test_access_denied_with_temporary_credentials():
     role_name = "test-role"
     session_name = "test-session"

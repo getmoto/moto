@@ -17,6 +17,7 @@ from botocore.awsrequest import AWSResponse
 from types import FunctionType
 
 from moto import settings
+from moto.core.exceptions import HTTPException
 import responses
 import unittest
 from unittest.mock import patch
@@ -26,10 +27,7 @@ from .custom_responses_mock import (
     not_implemented_callback,
     reset_responses_mock,
 )
-from .utils import (
-    convert_regex_to_flask_path,
-    convert_flask_to_responses_response,
-)
+from .utils import convert_regex_to_flask_path, convert_flask_to_responses_response
 
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
@@ -176,7 +174,7 @@ class BaseMockAWS:
                 # Special case for UnitTests-class
                 is_test_method = attr.startswith(unittest.TestLoader.testMethodPrefix)
                 should_reset = False
-                if attr == "setUp":
+                if attr in ["setUp", "setup_method"]:
                     should_reset = True
                 elif not has_setup_method and is_test_method:
                     should_reset = True
@@ -245,7 +243,7 @@ class MockRawResponse(BytesIO):
             response_input = response_input.encode("utf-8")
         super().__init__(response_input)
 
-    def stream(self, **kwargs):
+    def stream(self, **kwargs):  # pylint: disable=unused-argument
         contents = self.read()
         while contents:
             yield contents
@@ -286,9 +284,14 @@ class BotocoreStubber:
             for header, value in request.headers.items():
                 if isinstance(value, bytes):
                     request.headers[header] = value.decode("utf-8")
-            status, headers, body = response_callback(
-                request, request.url, request.headers
-            )
+            try:
+                status, headers, body = response_callback(
+                    request, request.url, request.headers
+                )
+            except HTTPException as e:
+                status = e.code
+                headers = e.get_headers()
+                body = e.get_body()
             body = MockRawResponse(body)
             response = AWSResponse(request.url, status, headers, body)
 
@@ -338,7 +341,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
         botocore_stubber.reset()
         reset_responses_mock(responses_mock)
 
-    def enable_patching(self, reset=True):
+    def enable_patching(self, reset=True):  # pylint: disable=unused-argument
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
             for backend in self.backends_for_urls.values():
@@ -485,7 +488,7 @@ class InstanceTrackerMeta(type):
 
 
 class BaseModel(metaclass=InstanceTrackerMeta):
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):  # pylint: disable=unused-argument
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
         return instance
@@ -637,7 +640,7 @@ class BaseBackend:
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region, zones,
+        service_region, zones
     ):  # pylint: disable=unused-argument
         """Invoke the factory method for any VPC endpoint(s) services."""
         return None

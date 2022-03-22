@@ -37,7 +37,7 @@ from .exceptions import (
     InvalidAttributeValue,
 )
 
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
@@ -262,7 +262,7 @@ class Queue(CloudFormationModel):
         now = unix_time()
         self.created_timestamp = now
         self.queue_arn = "arn:aws:sqs:{0}:{1}:{2}".format(
-            self.region, DEFAULT_ACCOUNT_ID, self.name
+            self.region, ACCOUNT_ID, self.name
         )
         self.dead_letter_queue = None
 
@@ -327,7 +327,7 @@ class Queue(CloudFormationModel):
             if key in integer_fields:
                 value = int(value)
             if key in bool_fields:
-                value = value == "true"
+                value = str(value).lower() == "true"
 
             if key in ["Policy", "RedrivePolicy"] and value is not None:
                 continue
@@ -454,8 +454,11 @@ class Queue(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
+        # ResourceName will be the full queue URL - we only need the name
+        # https://sqs.us-west-1.amazonaws.com/123456789012/queue_name
+        queue_name = resource_name.split("/")[-1]
         sqs_backend = sqs_backends[region_name]
-        sqs_backend.delete_queue(resource_name)
+        sqs_backend.delete_queue(queue_name)
 
     @property
     def approximate_number_of_messages_delayed(self):
@@ -471,7 +474,7 @@ class Queue(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return self.name
+        return f"https://sqs.{self.region}.amazonaws.com/{ACCOUNT_ID}/{self.name}"
 
     @property
     def attributes(self):
@@ -505,7 +508,7 @@ class Queue(CloudFormationModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, DEFAULT_ACCOUNT_ID, self.name
+            request_url.scheme, request_url.netloc, ACCOUNT_ID, self.name
         )
 
     @property
@@ -541,7 +544,7 @@ class Queue(CloudFormationModel):
             your function once for each batch. When your function successfully processes
             a batch, Lambda deletes its messages from the queue.
             """
-            messages = backend.receive_messages(
+            messages = backend.receive_message(
                 self.name,
                 esm.batch_size,
                 self.receive_message_wait_time_seconds,
@@ -586,8 +589,8 @@ class Queue(CloudFormationModel):
         self._messages = new_messages
 
     @classmethod
-    def has_cfn_attr(cls, attribute_name):
-        return attribute_name in ["Arn", "QueueName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["Arn", "QueueName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -852,7 +855,7 @@ class SQSBackend(BaseBackend):
             unique_ids.add(_id)
         return None
 
-    def receive_messages(
+    def receive_message(
         self,
         queue_name,
         count,
@@ -860,20 +863,13 @@ class SQSBackend(BaseBackend):
         visibility_timeout,
         message_attribute_names=None,
     ):
-        """
-        Attempt to retrieve visible messages from a queue.
+        # Attempt to retrieve visible messages from a queue.
 
-        If a message was read by client and not deleted it is considered to be
-        "inflight" and cannot be read. We make attempts to obtain ``count``
-        messages but we may return less if messages are in-flight or there
-        are simple not enough messages in the queue.
+        # If a message was read by client and not deleted it is considered to be
+        # "inflight" and cannot be read. We make attempts to obtain ``count``
+        # messages but we may return less if messages are in-flight or there
+        # are simple not enough messages in the queue.
 
-        :param string queue_name: The name of the queue to read from.
-        :param int count: The maximum amount of messages to retrieve.
-        :param int visibility_timeout: The number of seconds the message should remain invisible to other queue readers.
-        :param int wait_seconds_timeout:  The duration (in seconds) for which the call waits for a message to arrive in
-         the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds
-        """
         if message_attribute_names is None:
             message_attribute_names = []
         queue = self.get_queue(queue_name)

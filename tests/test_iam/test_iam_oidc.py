@@ -155,7 +155,7 @@ def test_delete_open_id_connect_provider():
     client.get_open_id_connect_provider.when.called_with(
         OpenIDConnectProviderArn=open_id_arn
     ).should.throw(
-        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn),
+        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn)
     )
 
     # deleting a non existing provider should be successful

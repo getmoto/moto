@@ -55,6 +55,11 @@ class CrawlerNotFoundException(EntityNotFoundException):
         super().__init__("Crawler %s not found." % crawler)
 
 
+class JobNotFoundException(EntityNotFoundException):
+    def __init__(self, job):
+        super().__init__("Job %s not found." % job)
+
+
 class VersionNotFoundException(EntityNotFoundException):
     def __init__(self):
         super().__init__("Version not found.")
@@ -68,3 +73,8 @@ class CrawlerRunningException(GlueClientError):
 class CrawlerNotRunningException(GlueClientError):
     def __init__(self, msg):
         super().__init__("CrawlerNotRunningException", msg)
+
+
+class ConcurrentRunsExceededException(GlueClientError):
+    def __init__(self, msg):
+        super().__init__("ConcurrentRunsExceededException", msg)

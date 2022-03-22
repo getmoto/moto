@@ -682,5 +682,9 @@
  {
   "InstanceType": "t4g.xlarge",
   "Location": "eu-south-1"
+ },
+ {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "eu-south-1"
  }
 ]

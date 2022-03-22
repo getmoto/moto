@@ -12,6 +12,8 @@
 ssm
 ===
 
+.. autoclass:: moto.ssm.models.SimpleSystemManagerBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -69,6 +71,10 @@ ssm
 - [ ] describe_available_patches
 - [X] describe_document
 - [X] describe_document_permission
+  
+        Parameters max_results, permission_type, and next_token not yet implemented
+        
+
 - [ ] describe_effective_instance_associations
 - [ ] describe_effective_patches_for_patch_baseline
 - [ ] describe_instance_associations_status

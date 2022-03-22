@@ -114,3 +114,33 @@ class AthenaResponse(BaseResponse):
                 }
             }
         )
+
+    def list_data_catalogs(self):
+        return json.dumps(
+            {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
+        )
+
+    def get_data_catalog(self):
+        name = self._get_param("Name")
+        return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
+
+    def create_data_catalog(self):
+        name = self._get_param("Name")
+        catalog_type = self._get_param("Type")
+        description = self._get_param("Description")
+        parameters = self._get_param("Parameters")
+        tags = self._get_param("Tags")
+        data_catalog = self.athena_backend.create_data_catalog(
+            name, catalog_type, description, parameters, tags
+        )
+        if not data_catalog:
+            return self.error("DataCatalog already exists", 400)
+        return json.dumps(
+            {
+                "CreateDataCatalogResponse": {
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    }
+                }
+            }
+        )

@@ -182,7 +182,7 @@ def wait_for_log_msg(expected_msg, log_group):
 
         for log_stream in log_streams:
             result = logs_conn.get_log_events(
-                logGroupName=log_group, logStreamName=log_stream["logStreamName"],
+                logGroupName=log_group, logStreamName=log_stream["logStreamName"]
             )
             received_messages.extend(
                 [event["message"] for event in result.get("events")]

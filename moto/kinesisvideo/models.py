@@ -1,9 +1,6 @@
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
-from .exceptions import (
-    ResourceNotFoundException,
-    ResourceInUseException,
-)
+from .exceptions import ResourceNotFoundException, ResourceInUseException
 import random
 import string
 from moto.core.utils import get_random_hex, BackendDict
@@ -116,12 +113,18 @@ class KinesisVideoBackend(BaseBackend):
         stream_info = stream.to_dict()
         return stream_info
 
-    def list_streams(self, max_results, next_token, stream_name_condition):
+    def list_streams(self):
+        """
+        Pagination and the StreamNameCondition-parameter are not yet implemented
+        """
         stream_info_list = [_.to_dict() for _ in self.streams.values()]
         next_token = None
         return stream_info_list, next_token
 
-    def delete_stream(self, stream_arn, current_version):
+    def delete_stream(self, stream_arn):
+        """
+        The CurrentVersion-parameter is not yet implemented
+        """
         stream = self.streams.get(stream_arn)
         if stream is None:
             raise ResourceNotFoundException()

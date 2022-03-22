@@ -1,9 +1,6 @@
 import json
 
-try:
-    from urllib import unquote
-except ImportError:
-    from urllib.parse import unquote
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import resourcegroups_backends
@@ -95,16 +92,7 @@ class ResourceGroupsResponse(BaseResponse):
         )
 
     def list_groups(self):
-        filters = self._get_param("Filters")
-        if filters:
-            raise NotImplementedError(
-                "ResourceGroups.list_groups with filter parameter is not yet implemented"
-            )
-        max_results = self._get_int_param("MaxResults", 50)
-        next_token = self._get_param("NextToken")
-        groups = self.resourcegroups_backend.list_groups(
-            filters=filters, max_results=max_results, next_token=next_token
-        )
+        groups = self.resourcegroups_backend.list_groups()
         return json.dumps(
             {
                 "GroupIdentifiers": [
@@ -119,7 +107,7 @@ class ResourceGroupsResponse(BaseResponse):
                     }
                     for group in groups.values()
                 ],
-                "NextToken": next_token,
+                "NextToken": None,
             }
         )
 

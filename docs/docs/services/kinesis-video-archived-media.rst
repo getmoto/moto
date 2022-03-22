@@ -17,7 +17,7 @@ kinesis-video-archived-media
 .. sourcecode:: python
 
             @mock_kinesisvideoarchivedmedia
-            def test_kinesis-video-archived-media_behaviour:
+            def test_kinesisvideoarchivedmedia_behaviour:
                 boto3.client("kinesis-video-archived-media")
                 ...
 

@@ -51,6 +51,7 @@ class Topic(CloudFormationModel):
         self.subscriptions_pending = 0
         self.subscriptions_confimed = 0
         self.subscriptions_deleted = 0
+        self.sent_notifications = []
 
         self._policy_json = self._create_default_topic_policy(
             sns_backend.region_name, self.account_id, name
@@ -70,11 +71,14 @@ class Topic(CloudFormationModel):
                 message_attributes=message_attributes,
                 group_id=group_id,
             )
+        self.sent_notifications.append(
+            (message_id, message, subject, message_attributes, group_id)
+        )
         return message_id
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["TopicName"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["TopicName"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -89,7 +93,7 @@ class Topic(CloudFormationModel):
 
     @property
     def policy(self):
-        return json.dumps(self._policy_json)
+        return json.dumps(self._policy_json, separators=(",", ":"))
 
     @policy.setter
     def policy(self, policy):
@@ -215,7 +219,7 @@ class Subscription(BaseModel):
                     if value["Type"].startswith("Binary"):
                         attr_type = "binary_value"
                     elif value["Type"].startswith("Number"):
-                        type_value = "{0:g}".format(value["Value"])
+                        type_value = str(value["Value"])
 
                     raw_message_attributes[key] = {
                         "data_type": value["Type"],
@@ -385,12 +389,14 @@ class PlatformEndpoint(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
-            region=self.region,
-            AccountId=DEFAULT_ACCOUNT_ID,
-            platform=self.application.platform,
-            name=self.application.name,
-            id=self.id,
+        return (
+            "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
+                region=self.region,
+                AccountId=DEFAULT_ACCOUNT_ID,
+                platform=self.application.platform,
+                name=self.application.name,
+                id=self.id,
+            )
         )
 
     def publish(self, message):
@@ -404,6 +410,20 @@ class PlatformEndpoint(BaseModel):
 
 
 class SNSBackend(BaseBackend):
+    """
+    Responsible for mocking calls to SNS. Integration with SQS/HTTP/etc is supported.
+
+    Messages published to a topic are persisted in the backend. If you need to verify that a message was published successfully, you can use the internal API to check the message was published successfully:
+
+    .. sourcecode:: python
+
+        from moto.sns import sns_backends
+        sns_backend = sns_backends["us-east-1"]  # Use the appropriate region
+        all_send_notifications = sns_backend.topics[topic_arn].sent_notifications
+
+    Note that, as this is an internal API, the exact format may differ per versions.
+    """
+
     def __init__(self, region_name):
         super().__init__()
         self.topics = OrderedDict()
@@ -880,7 +900,7 @@ class SNSBackend(BaseBackend):
                     message=entry["Message"],
                     arn=topic_arn,
                     subject=entry.get("Subject"),
-                    message_attributes=entry.get("MessageAttributes", []),
+                    message_attributes=entry.get("MessageAttributes", {}),
                     group_id=entry.get("MessageGroupId"),
                 )
                 successful.append({"MessageId": message_id, "Id": entry["Id"]})

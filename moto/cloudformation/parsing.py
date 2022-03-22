@@ -21,7 +21,7 @@ from moto.batch import models  # noqa  # pylint: disable=all
 from moto.cloudformation.custom_model import CustomModel
 from moto.cloudwatch import models  # noqa  # pylint: disable=all
 from moto.datapipeline import models  # noqa  # pylint: disable=all
-from moto.dynamodb2 import models  # noqa  # pylint: disable=all
+from moto.dynamodb import models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models
 from moto.ecr import models  # noqa  # pylint: disable=all
 from moto.ecs import models  # noqa  # pylint: disable=all
@@ -33,7 +33,7 @@ from moto.iam import models  # noqa  # pylint: disable=all
 from moto.kinesis import models  # noqa  # pylint: disable=all
 from moto.kms import models  # noqa  # pylint: disable=all
 from moto.rds import models  # noqa  # pylint: disable=all
-from moto.rds2 import models  # noqa  # pylint: disable=all
+from moto.rds import models  # noqa  # pylint: disable=all
 from moto.redshift import models  # noqa  # pylint: disable=all
 from moto.route53 import models  # noqa  # pylint: disable=all
 from moto.s3 import models  # noqa  # pylint: disable=all
@@ -272,9 +272,7 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
-def parse_resource(
-    resource_json, resources_map,
-):
+def parse_resource(resource_json, resources_map):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
@@ -293,9 +291,7 @@ def parse_resource(
     return resource_class, resource_json, resource_type
 
 
-def parse_resource_and_generate_name(
-    logical_id, resource_json, resources_map,
-):
+def parse_resource_and_generate_name(logical_id, resource_json, resources_map):
     resource_tuple = parse_resource(resource_json, resources_map)
     if not resource_tuple:
         return None
@@ -538,7 +534,7 @@ class ResourceMap(collections_abc.Mapping):
         # The Value in SSM parameters is the SSM parameter path
         # we need to use ssm_backend to retrieve the
         # actual value from parameter store
-        parameter = ssm_backends[self._region_name].get_parameter(value, False)
+        parameter = ssm_backends[self._region_name].get_parameter(value)
         actual_value = parameter.value
         if value_type.find("List") > 0:
             return actual_value.split(",")
@@ -780,7 +776,7 @@ class ResourceMap(collections_abc.Mapping):
                             ]
 
                             parse_and_delete_resource(
-                                resource_name, resource_json, self._region_name,
+                                resource_name, resource_json, self._region_name
                             )
 
                         self._parsed_resources.pop(parsed_resource.logical_resource_id)

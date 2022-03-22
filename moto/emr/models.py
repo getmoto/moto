@@ -40,7 +40,7 @@ class FakeBootstrapAction(BaseModel):
 
 class FakeInstance(BaseModel):
     def __init__(
-        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None,
+        self, ec2_instance_id, instance_group, instance_fleet_id=None, instance_id=None
     ):
         self.id = instance_id or random_instance_group_id()
         self.ec2_instance_id = ec2_instance_id
@@ -440,7 +440,7 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         for instance in response.instances:
             instance = FakeInstance(
-                ec2_instance_id=instance.id, instance_group=instance_group,
+                ec2_instance_id=instance.id, instance_group=instance_group
             )
             cluster.add_instance(instance)
 
@@ -560,7 +560,11 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
         max_items = 50
-        steps = self.clusters[cluster_id].steps
+        steps = sorted(
+            self.clusters[cluster_id].steps,
+            key=lambda o: o.creation_datetime,
+            reverse=True,
+        )
         if step_ids:
             steps = [s for s in steps if s.id in step_ids]
         if step_states:
@@ -670,14 +674,8 @@ class ElasticMapReduceBackend(BaseBackend):
         instance_group.auto_scaling_policy = auto_scaling_policy
         return instance_group
 
-    def remove_auto_scaling_policy(self, cluster_id, instance_group_id):
-        instance_groups = self.get_instance_groups(
-            instance_group_ids=[instance_group_id]
-        )
-        if len(instance_groups) == 0:
-            return None
-        instance_group = instance_groups[0]
-        instance_group.auto_scaling_policy = None
+    def remove_auto_scaling_policy(self, instance_group_id):
+        self.put_auto_scaling_policy(instance_group_id, auto_scaling_policy=None)
 
     def create_security_configuration(self, name, security_configuration):
         if name in self.security_configurations:

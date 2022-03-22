@@ -192,6 +192,7 @@ from .utils import (
 )
 
 INSTANCE_TYPES = load_resource(__name__, "resources/instance_types.json")
+INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 
 root = pathlib.Path(__file__).parent
 offerings_path = "resources/instance_type_offerings"
@@ -217,7 +218,11 @@ DEFAULT_VPC_ENDPOINT_SERVICES = []
 
 
 def utc_date_and_time():
-    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    x = datetime.utcnow()
+    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return "{}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.000Z".format(
+        x.year, x.month, x.day, x.hour, x.minute, x.second
+    )
 
 
 def validate_resource_ids(resource_ids):
@@ -434,8 +439,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return self._group_set
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["PrimaryPrivateIpAddress", "SecondaryPrivateIpAddresses"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["PrimaryPrivateIpAddress", "SecondaryPrivateIpAddresses"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -897,7 +902,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def physical_resource_id(self):
         return self.id
 
-    def start(self, *args, **kwargs):
+    def start(self):
         for nic in self.nics.values():
             nic.start()
 
@@ -907,7 +912,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._reason = ""
         self._state_reason = StateReason()
 
-    def stop(self, *args, **kwargs):
+    def stop(self):
         for nic in self.nics.values():
             nic.stop()
 
@@ -922,10 +927,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown",
         )
 
-    def delete(self, region):
+    def delete(self, region):  # pylint: disable=unused-argument
         self.terminate()
 
-    def terminate(self, *args, **kwargs):
+    def terminate(self):
         for nic in self.nics.values():
             nic.stop()
 
@@ -964,7 +969,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 ].id
             )
 
-    def reboot(self, *args, **kwargs):
+    def reboot(self):
         self._state.name = "running"
         self._state.code = 16
 
@@ -1026,13 +1031,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     subnet = self.ec2_backend.get_subnet(nic["SubnetId"])
                 else:
                     # Get default Subnet
-                    subnet = [
-                        subnet
-                        for subnet in self.ec2_backend.get_all_subnets(
-                            filters={"availabilityZone": self._placement.zone}
-                        )
-                        if subnet.default_for_az
-                    ][0]
+                    zone = self._placement.zone
+                    subnet = self.ec2_backend.get_default_subnet(availability_zone=zone)
 
                 group_id = nic.get("SecurityGroupId")
                 group_ids = [group_id] if group_id else []
@@ -1067,8 +1067,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         eni.device_index = None
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "AvailabilityZone",
             "PrivateDnsName",
             "PublicDnsName",
@@ -1155,14 +1155,15 @@ class InstanceBackend(object):
                         "DeleteOnTermination", False
                     )
                     kms_key_id = block_device["Ebs"].get("KmsKeyId")
-                    new_instance.add_block_device(
-                        volume_size,
-                        device_name,
-                        snapshot_id,
-                        encrypted,
-                        delete_on_termination,
-                        kms_key_id,
-                    )
+                    if block_device.get("NoDevice") != "":
+                        new_instance.add_block_device(
+                            volume_size,
+                            device_name,
+                            snapshot_id,
+                            encrypted,
+                            delete_on_termination,
+                            kms_key_id,
+                        )
             else:
                 new_instance.setup_defaults()
             if kwargs.get("instance_market_options"):
@@ -1278,9 +1279,10 @@ class InstanceBackend(object):
                     if instance.applies(filters):
                         result.append(instance)
 
-        # TODO: Trim error message down to specific invalid id.
         if instance_ids and len(instance_ids) > len(result):
-            raise InvalidInstanceIdError(instance_ids)
+            result_ids = [i.id for i in result]
+            missing_instance_ids = [i for i in instance_ids if i not in result_ids]
+            raise InvalidInstanceIdError(missing_instance_ids)
 
         return result
 
@@ -1727,7 +1729,6 @@ class AmiBackend(object):
         instance_id,
         name=None,
         description=None,
-        context=None,
         tag_specifications=None,
     ):
         # TODO: check that instance exists and pull info from it.
@@ -1774,9 +1775,7 @@ class AmiBackend(object):
         self.amis[ami_id] = ami
         return ami
 
-    def describe_images(
-        self, ami_ids=(), filters=None, exec_users=None, owners=None, context=None
-    ):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
         images = self.amis.copy().values()
 
         if len(ami_ids):
@@ -1805,9 +1804,7 @@ class AmiBackend(object):
             if owners:
                 # support filtering by Owners=['self']
                 if "self" in owners:
-                    owners = list(
-                        map(lambda o: OWNER_ID if o == "self" else o, owners,)
-                    )
+                    owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners))
                 images = [
                     ami
                     for ami in images
@@ -2374,8 +2371,8 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             security_group.add_tag(tag_key, tag_value)
 
         for ingress_rule in properties.get("SecurityGroupIngress", []):
-            source_group_id = ingress_rule.get("SourceSecurityGroupId",)
-            source_group_name = ingress_rule.get("SourceSecurityGroupName",)
+            source_group_id = ingress_rule.get("SourceSecurityGroupId")
+            source_group_name = ingress_rule.get("SourceSecurityGroupName")
             source_group = {}
             if source_group_id:
                 source_group["GroupId"] = source_group_id
@@ -2422,7 +2419,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         if security_group:
             security_group.delete(region_name)
 
-    def delete(self, region_name):
+    def delete(self, region_name):  # pylint: disable=unused-argument
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
@@ -2594,8 +2591,8 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         return True
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["GroupId"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["GroupId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -2770,7 +2767,7 @@ class SecurityGroupBackend(object):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
-            group, group.get_number_of_ingress_rules(), ip_ranges, source_groups,
+            group, group.get_number_of_ingress_rules(), ip_ranges, source_groups
         )
 
         _source_groups = self._add_source_group(source_groups, vpc_id)
@@ -3202,7 +3199,7 @@ class SecurityGroupBackend(object):
         return _source_groups
 
     def _verify_group_will_respect_rule_count_limit(
-        self, group, current_rule_nb, ip_ranges, source_groups=None, egress=False,
+        self, group, current_rule_nb, ip_ranges, source_groups=None, egress=False
     ):
         max_nb_rules = 60 if group.vpc_id else 100
         future_group_nb_rules = current_rule_nb
@@ -3601,8 +3598,7 @@ class EBSBackend(object):
         if snapshot_ids:
             matches = [snap for snap in matches if snap.id in snapshot_ids]
             if len(snapshot_ids) > len(matches):
-                unknown_ids = set(snapshot_ids) - set(matches)
-                raise InvalidSnapshotIdError(unknown_ids)
+                raise InvalidSnapshotIdError()
         if filters:
             matches = generic_filter(filters, matches)
         return matches
@@ -3625,7 +3621,7 @@ class EBSBackend(object):
     def get_snapshot(self, snapshot_id):
         snapshot = self.snapshots.get(snapshot_id, None)
         if not snapshot:
-            raise InvalidSnapshotIdError(snapshot_id)
+            raise InvalidSnapshotIdError()
         return snapshot
 
     def delete_snapshot(self, snapshot_id):
@@ -3634,7 +3630,7 @@ class EBSBackend(object):
             if snapshot.from_ami and snapshot.from_ami in self.amis:
                 raise InvalidSnapshotInUse(snapshot_id, snapshot.from_ami)
             return self.snapshots.pop(snapshot_id)
-        raise InvalidSnapshotIdError(snapshot_id)
+        raise InvalidSnapshotIdError()
 
     def get_create_volume_permission_groups(self, snapshot_id):
         snapshot = self.get_snapshot(snapshot_id)
@@ -4136,7 +4132,7 @@ class VPCBackend(object):
         for vpce_id in vpce_ids or []:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
-                if vpc_endpoint.type.lower() == "interface":
+                if vpc_endpoint.endpoint_type.lower() == "interface":
                     for eni_id in vpc_endpoint.network_interface_ids:
                         self.enis.pop(eni_id, None)
                 else:
@@ -4620,8 +4616,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeSubnets")
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["AvailabilityZone"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["AvailabilityZone"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -4701,6 +4697,15 @@ class SubnetBackend(object):
                 return subnets[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
 
+    def get_default_subnet(self, availability_zone):
+        return [
+            subnet
+            for subnet in self.get_all_subnets(
+                filters={"availabilityZone": availability_zone}
+            )
+            if subnet.default_for_az
+        ][0]
+
     def create_subnet(
         self,
         vpc_id,
@@ -4708,7 +4713,6 @@ class SubnetBackend(object):
         ipv6_cidr_block=None,
         availability_zone=None,
         availability_zone_id=None,
-        context=None,
         tags=None,
     ):
         subnet_id = random_subnet_id()
@@ -4978,20 +4982,18 @@ class FlowLogsBackend(object):
     ):
         if log_group_name is None and log_destination is None:
             raise InvalidDependantParameterError(
-                "LogDestination", "LogGroupName", "not provided",
+                "LogDestination", "LogGroupName", "not provided"
             )
 
         if log_destination_type == "s3":
             if log_group_name is not None:
                 raise InvalidDependantParameterTypeError(
-                    "LogDestination", "cloud-watch-logs", "LogGroupName",
+                    "LogDestination", "cloud-watch-logs", "LogGroupName"
                 )
         elif log_destination_type == "cloud-watch-logs":
             if deliver_logs_permission_arn is None:
                 raise InvalidDependantParameterError(
-                    "DeliverLogsPermissionArn",
-                    "LogDestinationType",
-                    "cloud-watch-logs",
+                    "DeliverLogsPermissionArn", "LogDestinationType", "cloud-watch-logs"
                 )
 
         if max_aggregation_interval not in ["60", "600"]:
@@ -5132,7 +5134,7 @@ class FlowLogsBackend(object):
 
         if non_existing:
             raise InvalidFlowLogIdError(
-                len(flow_log_ids), " ".join(x for x in flow_log_ids),
+                len(flow_log_ids), " ".join(x for x in flow_log_ids)
             )
         return True
 
@@ -5440,7 +5442,7 @@ class Route(CloudFormationModel):
         return route_table
 
 
-class VPCEndPoint(TaggedEC2Resource):
+class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         ec2_backend,
@@ -5463,7 +5465,7 @@ class VPCEndPoint(TaggedEC2Resource):
         self.id = endpoint_id
         self.vpc_id = vpc_id
         self.service_name = service_name
-        self.type = endpoint_type
+        self.endpoint_type = endpoint_type
         self.state = "available"
         self.policy_document = policy_document
         self.route_table_ids = route_table_ids
@@ -5476,13 +5478,51 @@ class VPCEndPoint(TaggedEC2Resource):
         self.add_tags(tags or {})
         self.destination_prefix_list_id = destination_prefix_list_id
 
+        self.created_at = utc_date_and_time()
+
     @property
     def owner_id(self):
         return ACCOUNT_ID
 
     @property
-    def created_at(self):
-        return utc_date_and_time()
+    def physical_resource_id(self):
+        return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::EC2::VPCEndpoint"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name, **kwargs
+    ):
+        properties = cloudformation_json["Properties"]
+
+        service_name = properties.get("ServiceName")
+        subnet_ids = properties.get("SubnetIds")
+        vpc_endpoint_type = properties.get("VpcEndpointType")
+        vpc_id = properties.get("VpcId")
+        policy_document = properties.get("PolicyDocument")
+        private_dns_enabled = properties.get("PrivateDnsEnabled")
+        route_table_ids = properties.get("RouteTableIds")
+        security_group_ids = properties.get("SecurityGroupIds")
+
+        ec2_backend = ec2_backends[region_name]
+        vpc_endpoint = ec2_backend.create_vpc_endpoint(
+            vpc_id=vpc_id,
+            service_name=service_name,
+            endpoint_type=vpc_endpoint_type,
+            subnet_ids=subnet_ids,
+            policy_document=policy_document,
+            private_dns_enabled=private_dns_enabled,
+            route_table_ids=route_table_ids,
+            security_group_ids=security_group_ids,
+        )
+        return vpc_endpoint
 
 
 class ManagedPrefixList(TaggedEC2Resource):
@@ -5991,7 +6031,7 @@ class EgressOnlyInternetGatewayBackend(object):
         self.egress_only_internet_gateway_backend[egress_only_igw.id] = egress_only_igw
         return egress_only_igw
 
-    def describe_egress_only_internet_gateways(self, ids=None, filters=None):
+    def describe_egress_only_internet_gateways(self, ids=None):
         """
         The Filters-argument is not yet supported
         """
@@ -6618,8 +6658,8 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         return self.public_ip
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["AllocationId"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["AllocationId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -7206,7 +7246,7 @@ class NetworkAclAssociation(object):
 
 class NetworkAcl(TaggedEC2Resource):
     def __init__(
-        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID,
+        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID
     ):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
@@ -7697,7 +7737,7 @@ class TransitGatewayRouteTableBackend(object):
         return transit_gateways_route_table.routes[destination_cidr_block]
 
     def delete_transit_gateway_route(
-        self, transit_gateway_route_table_id, destination_cidr_block,
+        self, transit_gateway_route_table_id, destination_cidr_block
     ):
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
@@ -7714,10 +7754,7 @@ class TransitGatewayRouteTableBackend(object):
         if not transit_gateway_route_table:
             return []
 
-        attr_pairs = (
-            ("type", "type"),
-            ("state", "state"),
-        )
+        attr_pairs = (("type", "type"), ("state", "state"))
 
         routes = transit_gateway_route_table.routes.copy()
         for key in transit_gateway_route_table.routes:
@@ -7959,7 +7996,7 @@ class TransitGatewayAttachmentBackend(object):
         return transit_gateway_vpc_attachment
 
     def describe_transit_gateway_attachments(
-        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+        self, transit_gateways_attachment_ids=None, filters=None
     ):
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
@@ -7985,7 +8022,7 @@ class TransitGatewayAttachmentBackend(object):
         return result
 
     def describe_transit_gateway_vpc_attachments(
-        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+        self, transit_gateways_attachment_ids=None, filters=None
     ):
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
@@ -8093,7 +8130,7 @@ class TransitGatewayAttachmentBackend(object):
         return transit_gateway_peering_attachment
 
     def describe_transit_gateway_peering_attachments(
-        self, transit_gateways_attachment_ids=None, filters=None, max_results=0
+        self, transit_gateways_attachment_ids=None, filters=None
     ):
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
 
@@ -8497,10 +8534,7 @@ class IamInstanceProfileAssociationBackend(object):
         super().__init__()
 
     def associate_iam_instance_profile(
-        self,
-        instance_id,
-        iam_instance_profile_name=None,
-        iam_instance_profile_arn=None,
+        self, instance_id, iam_instance_profile_name=None, iam_instance_profile_arn=None
     ):
         iam_association_id = random_iam_instance_profile_association_id()
 
@@ -8555,9 +8589,9 @@ class IamInstanceProfileAssociationBackend(object):
                 self.iam_instance_profile_associations[association_key].id
                 == association_id
             ):
-                iam_instance_profile_associations = self.iam_instance_profile_associations[
-                    association_key
-                ]
+                iam_instance_profile_associations = (
+                    self.iam_instance_profile_associations[association_key]
+                )
                 del self.iam_instance_profile_associations[association_key]
                 # Deleting once and avoiding `RuntimeError: dictionary changed size during iteration`
                 break
@@ -8586,9 +8620,9 @@ class IamInstanceProfileAssociationBackend(object):
                 self.iam_instance_profile_associations[
                     association_key
                 ].iam_instance_profile = instance_profile
-                iam_instance_profile_association = self.iam_instance_profile_associations[
-                    association_key
-                ]
+                iam_instance_profile_association = (
+                    self.iam_instance_profile_associations[association_key]
+                )
                 break
 
         if not iam_instance_profile_association:
@@ -8639,6 +8673,20 @@ class EC2Backend(
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,
 ):
+    """
+    Implementation of the AWS EC2 endpoint.
+
+    moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.  If you require specific
+    AMIs to be available during your tests, you can provide your own AMI definitions by setting the
+    environment variable `MOTO_AMIS_PATH` to point to a JSON file containing definitions of the
+    required AMIs.
+
+    To create such a file, refer to `scripts/get_amis.py`
+
+    .. note:: You must set `MOTO_AMIS_PATH` before importing moto.
+
+    """
+
     def __init__(self, region_name):
         self.region_name = region_name
         super().__init__()

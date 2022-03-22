@@ -186,16 +186,9 @@ class DAXBackend(BaseBackend):
         node_type,
         description,
         replication_factor,
-        availability_zones,
-        subnet_group_name,
-        security_group_ids,
-        preferred_maintenance_window,
-        notification_topic_arn,
         iam_role_arn,
-        parameter_group_name,
         tags,
         sse_specification,
-        cluster_endpoint_encryption_type,
     ):
         """
         The following parameters are not yet processed:
@@ -247,9 +240,10 @@ class DAXBackend(BaseBackend):
             raise ClusterNotFoundFault()
         return self._tagger.list_tags_for_resource(self.clusters[name].arn)
 
-    def increase_replication_factor(
-        self, cluster_name, new_replication_factor, availability_zones
-    ):
+    def increase_replication_factor(self, cluster_name, new_replication_factor):
+        """
+        The AvailabilityZones-parameter is not yet implemented
+        """
         if cluster_name not in self.clusters:
             raise ClusterNotFoundFault()
         self.clusters[cluster_name].increase_replication_factor(new_replication_factor)
@@ -259,7 +253,6 @@ class DAXBackend(BaseBackend):
         self,
         cluster_name,
         new_replication_factor,
-        availability_zones,
         node_ids_to_remove,
     ):
         """

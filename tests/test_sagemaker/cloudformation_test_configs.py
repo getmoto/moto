@@ -183,7 +183,7 @@ class ModelTestConfig(TestConfig):
                     "Type": "AWS::SageMaker::Model",
                     "Properties": {
                         "ExecutionRoleArn": execution_role_arn,
-                        "PrimaryContainer": {"Image": image,},
+                        "PrimaryContainer": {"Image": image},
                     },
                 },
             },

@@ -1,7 +1,13 @@
 from moto.core.exceptions import RESTError
 
 
-class SNSNotFoundError(RESTError):
+class SNSException(RESTError):
+    def __init__(self, *args, **kwargs):
+        kwargs["template"] = "wrapped_single_error"
+        super().__init__(*args, **kwargs)
+
+
+class SNSNotFoundError(SNSException):
     code = 404
 
     def __init__(self, message, **kwargs):
@@ -13,42 +19,42 @@ class TopicNotFound(SNSNotFoundError):
         super().__init__(message="Topic does not exist")
 
 
-class ResourceNotFoundError(RESTError):
+class ResourceNotFoundError(SNSException):
     code = 404
 
     def __init__(self):
         super().__init__("ResourceNotFound", "Resource does not exist")
 
 
-class DuplicateSnsEndpointError(RESTError):
+class DuplicateSnsEndpointError(SNSException):
     code = 400
 
     def __init__(self, message):
         super().__init__("DuplicateEndpoint", message)
 
 
-class SnsEndpointDisabled(RESTError):
+class SnsEndpointDisabled(SNSException):
     code = 400
 
     def __init__(self, message):
         super().__init__("EndpointDisabled", message)
 
 
-class SNSInvalidParameter(RESTError):
+class SNSInvalidParameter(SNSException):
     code = 400
 
     def __init__(self, message):
         super().__init__("InvalidParameter", message)
 
 
-class InvalidParameterValue(RESTError):
+class InvalidParameterValue(SNSException):
     code = 400
 
     def __init__(self, message):
         super().__init__("InvalidParameterValue", message)
 
 
-class TagLimitExceededError(RESTError):
+class TagLimitExceededError(SNSException):
     code = 400
 
     def __init__(self):
@@ -58,14 +64,14 @@ class TagLimitExceededError(RESTError):
         )
 
 
-class InternalError(RESTError):
+class InternalError(SNSException):
     code = 500
 
     def __init__(self, message):
         super().__init__("InternalFailure", message)
 
 
-class TooManyEntriesInBatchRequest(RESTError):
+class TooManyEntriesInBatchRequest(SNSException):
     code = 400
 
     def __init__(self):
@@ -75,7 +81,7 @@ class TooManyEntriesInBatchRequest(RESTError):
         )
 
 
-class BatchEntryIdsNotDistinct(RESTError):
+class BatchEntryIdsNotDistinct(SNSException):
     code = 400
 
     def __init__(self):

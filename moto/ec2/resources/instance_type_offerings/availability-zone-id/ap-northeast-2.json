@@ -840,6 +840,42 @@
   "Location": "apne2-az1"
  },
  {
+  "InstanceType": "r5b.12xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.16xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.24xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.2xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.4xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.8xlarge",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.large",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.metal",
+  "Location": "apne2-az1"
+ },
+ {
+  "InstanceType": "r5b.xlarge",
+  "Location": "apne2-az1"
+ },
+ {
   "InstanceType": "r5d.12xlarge",
   "Location": "apne2-az1"
  },
@@ -1633,6 +1669,42 @@
  },
  {
   "InstanceType": "r5.xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.12xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.16xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.24xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.2xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.4xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.8xlarge",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.large",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.metal",
+  "Location": "apne2-az2"
+ },
+ {
+  "InstanceType": "r5b.xlarge",
   "Location": "apne2-az2"
  },
  {
@@ -2681,6 +2753,42 @@
  },
  {
   "InstanceType": "r5ad.xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.12xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.16xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.24xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.2xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.4xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.8xlarge",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.large",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.metal",
+  "Location": "apne2-az3"
+ },
+ {
+  "InstanceType": "r5b.xlarge",
   "Location": "apne2-az3"
  },
  {

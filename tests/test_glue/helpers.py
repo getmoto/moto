@@ -142,5 +142,5 @@ def create_crawler(
         }
 
     return client.create_crawler(
-        Name=crawler_name, Role=crawler_role, Targets=crawler_targets, **params,
+        Name=crawler_name, Role=crawler_role, Targets=crawler_targets, **params
     )

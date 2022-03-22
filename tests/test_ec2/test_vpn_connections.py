@@ -55,7 +55,7 @@ def test_create_vpn_connection_with_vpn_gateway():
 
     vpn_gateway = client.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
     customer_gateway = client.create_customer_gateway(
-        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
     ).get("CustomerGateway", {})
     vpn_connection = client.create_vpn_connection(
         Type="ipsec.1",
@@ -76,7 +76,7 @@ def test_describe_vpn_connections_boto3():
 
     vpn_gateway = client.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
     customer_gateway = client.create_customer_gateway(
-        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534,
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
     ).get("CustomerGateway", {})
     vpn_connection1 = client.create_vpn_connection(
         Type="ipsec.1",

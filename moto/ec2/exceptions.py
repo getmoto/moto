@@ -49,6 +49,11 @@ class InvalidDHCPOptionsIdError(EC2ClientError):
         )
 
 
+class InvalidRequest(EC2ClientError):
+    def __init__(self):
+        super().__init__("InvalidRequest", "The request received was invalid")
+
+
 class InvalidParameterCombination(EC2ClientError):
     def __init__(self, msg):
         super().__init__("InvalidParameterCombination", msg)
@@ -87,7 +92,7 @@ class InvalidVPCIdError(EC2ClientError):
     def __init__(self, vpc_id):
 
         super().__init__(
-            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id),
+            "InvalidVpcID.NotFound", "VpcID {0} does not exist.".format(vpc_id)
         )
 
 
@@ -228,10 +233,13 @@ class InvalidRouteError(EC2ClientError):
 
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id):
-        super().__init__(
-            "InvalidInstanceID.NotFound",
-            "The instance ID '{0}' does not exist".format(instance_id),
-        )
+        if isinstance(instance_id, str):
+            instance_id = [instance_id]
+        if len(instance_id) > 1:
+            msg = f"The instance IDs '{', '.join(instance_id)}' do not exist"
+        else:
+            msg = f"The instance ID '{instance_id[0]}' does not exist"
+        super().__init__("InvalidInstanceID.NotFound", msg)
 
 
 class InvalidInstanceTypeError(EC2ClientError):
@@ -269,10 +277,9 @@ class MalformedAMIIdError(EC2ClientError):
 
 
 class InvalidSnapshotIdError(EC2ClientError):
-    def __init__(self, snapshot_id):
-        super().__init__(
-            "InvalidSnapshot.NotFound", ""
-        )  # Note: AWS returns empty message for this, as of 2014.08.22.
+    def __init__(self):
+        # Note: AWS returns empty message for this, as of 2014.08.22.
+        super().__init__("InvalidSnapshot.NotFound", "")
 
 
 class InvalidSnapshotInUse(EC2ClientError):
@@ -410,7 +417,7 @@ class InvalidDependantParameterError(EC2ClientError):
         super().__init__(
             "InvalidParameter",
             "{0} can't be empty if {1} is {2}.".format(
-                dependant_parameter, parameter, parameter_value,
+                dependant_parameter, parameter, parameter_value
             ),
         )
 
@@ -420,16 +427,14 @@ class InvalidDependantParameterTypeError(EC2ClientError):
         super().__init__(
             "InvalidParameter",
             "{0} type must be {1} if {2} is provided.".format(
-                dependant_parameter, parameter_value, parameter,
+                dependant_parameter, parameter_value, parameter
             ),
         )
 
 
 class InvalidAggregationIntervalParameterError(EC2ClientError):
     def __init__(self, parameter):
-        super().__init__(
-            "InvalidParameter", "Invalid {0}".format(parameter),
-        )
+        super().__init__("InvalidParameter", "Invalid {0}".format(parameter))
 
 
 class InvalidParameterValueError(EC2ClientError):

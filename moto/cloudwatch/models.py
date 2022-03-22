@@ -1,10 +1,6 @@
 import json
 
-from moto.core import (
-    BaseBackend,
-    BaseModel,
-    CloudWatchMetricProvider,
-)
+from moto.core import BaseBackend, BaseModel, CloudWatchMetricProvider
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,

@@ -1,22 +1,9 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
 import json
 
-from functools import wraps
 from moto.core.responses import BaseResponse
 from urllib.parse import unquote
-from .exceptions import AppSyncExceptions
 from .models import appsync_backends
-
-
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except AppSyncExceptions as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
 
 
 class AppSyncResponse(BaseResponse):
@@ -34,7 +21,6 @@ class AppSyncResponse(BaseResponse):
         if request.method == "GET":
             return self.list_graphql_apis()
 
-    @error_handler
     def graph_ql_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -164,7 +150,7 @@ class AppSyncResponse(BaseResponse):
         description = params.get("description")
         expires = params.get("expires")
         api_key = self.appsync_backend.create_api_key(
-            api_id=api_id, description=description, expires=expires,
+            api_id=api_id, description=description, expires=expires
         )
         print(api_key.to_json())
         return 200, {}, json.dumps(dict(apiKey=api_key.to_json()))
@@ -172,9 +158,7 @@ class AppSyncResponse(BaseResponse):
     def delete_api_key(self):
         api_id = self.path.split("/")[-3]
         api_key_id = self.path.split("/")[-1]
-        self.appsync_backend.delete_api_key(
-            api_id=api_id, api_key_id=api_key_id,
-        )
+        self.appsync_backend.delete_api_key(api_id=api_id, api_key_id=api_key_id)
         return 200, {}, json.dumps(dict())
 
     def list_api_keys(self):
@@ -202,37 +186,33 @@ class AppSyncResponse(BaseResponse):
         api_id = self.path.split("/")[-2]
         definition = params.get("definition")
         status = self.appsync_backend.start_schema_creation(
-            api_id=api_id, definition=definition,
+            api_id=api_id, definition=definition
         )
         return 200, {}, json.dumps({"status": status})
 
     def get_schema_creation_status(self):
         api_id = self.path.split("/")[-2]
-        status, details = self.appsync_backend.get_schema_creation_status(
-            api_id=api_id,
-        )
+        status, details = self.appsync_backend.get_schema_creation_status(api_id=api_id)
         return 200, {}, json.dumps(dict(status=status, details=details))
 
     def tag_resource(self):
         resource_arn = self._extract_arn_from_path()
         params = json.loads(self.body)
         tags = params.get("tags")
-        self.appsync_backend.tag_resource(
-            resource_arn=resource_arn, tags=tags,
-        )
+        self.appsync_backend.tag_resource(resource_arn=resource_arn, tags=tags)
         return 200, {}, json.dumps(dict())
 
     def untag_resource(self):
         resource_arn = self._extract_arn_from_path()
         tag_keys = self.querystring.get("tagKeys", [])
         self.appsync_backend.untag_resource(
-            resource_arn=resource_arn, tag_keys=tag_keys,
+            resource_arn=resource_arn, tag_keys=tag_keys
         )
         return 200, {}, json.dumps(dict())
 
     def list_tags_for_resource(self):
         resource_arn = self._extract_arn_from_path()
-        tags = self.appsync_backend.list_tags_for_resource(resource_arn=resource_arn,)
+        tags = self.appsync_backend.list_tags_for_resource(resource_arn=resource_arn)
         return 200, {}, json.dumps(dict(tags=tags))
 
     def _extract_arn_from_path(self):
@@ -245,6 +225,6 @@ class AppSyncResponse(BaseResponse):
         type_name = self.path.split("/")[-1]
         type_format = self.querystring.get("format")[0]
         graphql_type = self.appsync_backend.get_type(
-            api_id=api_id, type_name=type_name, type_format=type_format,
+            api_id=api_id, type_name=type_name, type_format=type_format
         )
         return 200, {}, json.dumps(dict(type=graphql_type))

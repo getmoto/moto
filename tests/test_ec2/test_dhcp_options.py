@@ -16,7 +16,7 @@ SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
 
 @mock_ec2
 def test_dhcp_options_associate_boto3():
-    """ associate dhcp option """
+    """associate dhcp option"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -36,7 +36,7 @@ def test_dhcp_options_associate_boto3():
 
 @mock_ec2
 def test_dhcp_options_associate_invalid_dhcp_id_boto3():
-    """ associate dhcp option bad dhcp options id """
+    """associate dhcp option bad dhcp options id"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -50,7 +50,7 @@ def test_dhcp_options_associate_invalid_dhcp_id_boto3():
 
 @mock_ec2
 def test_dhcp_options_associate_invalid_vpc_id_boto3():
-    """ associate dhcp option invalid vpc id """
+    """associate dhcp option invalid vpc id"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     dhcp_options = ec2.create_dhcp_options(
@@ -430,15 +430,15 @@ def test_dhcp_options_get_by_key_filter():
     random_domain_name = str(uuid.uuid4())[0:6]
 
     ec2.create_dhcp_options(
-        DhcpConfigurations=[{"Key": "domain-name", "Values": [random_domain_name]},]
+        DhcpConfigurations=[{"Key": "domain-name", "Values": [random_domain_name]}]
     )
 
     ec2.create_dhcp_options(
-        DhcpConfigurations=[{"Key": "domain-name", "Values": ["example.com"]},]
+        DhcpConfigurations=[{"Key": "domain-name", "Values": ["example.com"]}]
     )
 
     ec2.create_dhcp_options(
-        DhcpConfigurations=[{"Key": "domain-name", "Values": [random_domain_name]},]
+        DhcpConfigurations=[{"Key": "domain-name", "Values": [random_domain_name]}]
     )
 
     filters = [{"Name": "key", "Values": ["domain-name"]}]

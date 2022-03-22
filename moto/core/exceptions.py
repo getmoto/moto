@@ -64,13 +64,13 @@ class RESTError(HTTPException):
             )
             self.content_type = "application/xml"
 
-    def get_headers(self, *args, **kwargs):
+    def get_headers(self, *args, **kwargs):  # pylint: disable=unused-argument
         return {
             "X-Amzn-ErrorType": self.error_type or "UnknownError",
             "Content-Type": self.content_type,
         }
 
-    def get_body(self, *args, **kwargs):
+    def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         return self.description
 
 
@@ -132,20 +132,13 @@ class AuthFailureError(RESTError):
         )
 
 
-class AWSError(Exception):
+class AWSError(JsonRESTError):
     TYPE = None
     STATUS = 400
 
     def __init__(self, message, exception_type=None, status=None):
-        self.message = message
-        self.type = exception_type or self.TYPE
-        self.status = status or self.STATUS
-
-    def response(self):
-        return (
-            json.dumps({"__type": self.type, "message": self.message}),
-            dict(status=self.status),
-        )
+        super().__init__(exception_type or self.TYPE, message)
+        self.code = status or self.STATUS
 
 
 class InvalidNextTokenException(JsonRESTError):
@@ -160,8 +153,7 @@ class InvalidNextTokenException(JsonRESTError):
 
 
 class InvalidToken(AWSError):
-    TYPE = "InvalidToken"
-    STATUS = 400
+    code = 400
 
     def __init__(self, message="Invalid token"):
-        super().__init__("Invalid Token: {}".format(message))
+        super().__init__("Invalid Token: {}".format(message), "InvalidToken")

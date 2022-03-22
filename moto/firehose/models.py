@@ -151,7 +151,7 @@ class DeliveryStream(
             del self.destinations[0][destination_name]["S3Configuration"]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:/delivery_stream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{ACCOUNT_ID}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
@@ -282,7 +282,7 @@ class FirehoseBackend(BaseBackend):
         self.delivery_streams.pop(delivery_stream_name)
 
     def describe_delivery_stream(
-        self, delivery_stream_name, limit, exclusive_start_destination_id,
+        self, delivery_stream_name, limit, exclusive_start_destination_id
     ):  # pylint: disable=unused-argument
         """Return description of specified delivery stream and its status.
 
@@ -369,7 +369,7 @@ class FirehoseBackend(BaseBackend):
         return result
 
     def list_tags_for_delivery_stream(
-        self, delivery_stream_name, exclusive_start_tag_key, limit,
+        self, delivery_stream_name, exclusive_start_tag_key, limit
     ):
         """Return list of tags."""
         result = {"Tags": [], "HasMoreTags": False}

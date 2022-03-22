@@ -1,7 +1,7 @@
 import json
 import boto3
 
-import sure  # pylint: disable=unused-import
+import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_s3, mock_cloudformation
 
@@ -14,7 +14,7 @@ def test_s3_bucket_cloudformation_basic():
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket", "Properties": {},}},
+        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket", "Properties": {}}},
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)

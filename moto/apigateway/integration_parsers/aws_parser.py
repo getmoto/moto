@@ -1,7 +1,9 @@
 import requests
 
+from . import IntegrationParser
 
-class TypeAwsParser:
+
+class TypeAwsParser(IntegrationParser):
     def invoke(self, request, integration):
         # integration.uri = arn:aws:apigateway:{region}:{subdomain.service|service}:path|action/{service_api}
         # example value = 'arn:aws:apigateway:us-west-2:dynamodb:action/PutItem'

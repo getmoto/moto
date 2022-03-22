@@ -661,7 +661,7 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
 
     destination_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
-        route = route_table.create_route(
+        route_table.create_route(
             DestinationCidrBlock=destination_cidr_block, GatewayId=internet_gateway.id
         )
     str(ex.value).should.equal(
@@ -880,9 +880,9 @@ def test_associate_route_table_by_gateway():
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
     route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
     igw_id = ec2.create_internet_gateway()["InternetGateway"]["InternetGatewayId"]
-    assoc_id = ec2.associate_route_table(
-        RouteTableId=route_table_id, GatewayId=igw_id,
-    )["AssociationId"]
+    assoc_id = ec2.associate_route_table(RouteTableId=route_table_id, GatewayId=igw_id)[
+        "AssociationId"
+    ]
     verify = ec2.describe_route_tables(
         Filters=[
             {"Name": "association.route-table-association-id", "Values": [assoc_id]}
@@ -908,7 +908,7 @@ def test_associate_route_table_by_subnet():
         "SubnetId"
     ]
     assoc_id = ec2.associate_route_table(
-        RouteTableId=route_table_id, SubnetId=subnet_id,
+        RouteTableId=route_table_id, SubnetId=subnet_id
     )["AssociationId"]
     verify = ec2.describe_route_tables(
         Filters=[

@@ -57,16 +57,15 @@ EC2_RESOURCE_TO_PREFIX = {
 
 
 EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
+HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
 
 
 def random_resource_id(size=8):
-    chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-    resource_id = "".join(str(random.choice(chars)) for _ in range(size))
-    return resource_id
+    return "".join(random.choice(HEX_CHARS) for _ in range(size))
 
 
 def random_id(prefix="", size=8):
-    return "{0}-{1}".format(prefix, random_resource_id(size))
+    return f"{prefix}-{random_resource_id(size)}"
 
 
 def random_ami_id():
@@ -786,4 +785,56 @@ def describe_tag_filter(filters, instances):
                             need_delete = True
                     if need_delete:
                         result.remove(instance)
+    return result
+
+
+def gen_moto_amis(described_images, drop_images_missing_keys=True):
+    """Convert `boto3.EC2.Client.describe_images` output to form acceptable to `MOTO_AMIS_PATH`
+
+    Parameters
+    ==========
+    described_images : list of dicts
+        as returned by :ref:`boto3:EC2.Client.describe_images` in "Images" key
+    drop_images_missing_keys : bool, default=True
+        When `True` any entry in `images` that is missing a required key will silently
+        be excluded from the returned list
+
+    Throws
+    ======
+    `KeyError` when `drop_images_missing_keys` is `False` and a required key is missing
+    from an element of `images`
+
+    Returns
+    =======
+    list of dicts suitable to be serialized into JSON as a target for `MOTO_AMIS_PATH` environment
+    variable.
+
+    See Also
+    ========
+    * :ref:`moto.ec2.models.EC2Backend`
+    """
+    result = []
+    for image in described_images:
+        try:
+            tmp = {
+                "ami_id": image["ImageId"],
+                "name": image["Name"],
+                "description": image["Description"],
+                "owner_id": image["OwnerId"],
+                "public": image["Public"],
+                "virtualization_type": image["VirtualizationType"],
+                "architecture": image["Architecture"],
+                "state": image["State"],
+                "platform": image.get("Platform"),
+                "image_type": image["ImageType"],
+                "hypervisor": image["Hypervisor"],
+                "root_device_name": image["RootDeviceName"],
+                "root_device_type": image["RootDeviceType"],
+                "sriov": image.get("SriovNetSupport", "simple"),
+            }
+            result.append(tmp)
+        except Exception as err:
+            if not drop_images_missing_keys:
+                raise err
+
     return result

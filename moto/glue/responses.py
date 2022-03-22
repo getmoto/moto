@@ -366,6 +366,22 @@ class GlueResponse(BaseResponse):
         )
         return json.dumps(dict(Name=name))
 
+    def get_job(self):
+        name = self.parameters.get("JobName")
+        job = self.glue_backend.get_job(name)
+        return json.dumps({"Job": job.as_dict()})
+
+    def start_job_run(self):
+        name = self.parameters.get("JobName")
+        job_run_id = self.glue_backend.start_job_run(name)
+        return json.dumps(dict(JobRunId=job_run_id))
+
+    def get_job_run(self):
+        name = self.parameters.get("JobName")
+        run_id = self.parameters.get("RunId")
+        job_run = self.glue_backend.get_job_run(name, run_id)
+        return json.dumps({"JobRun": job_run.as_dict()})
+
     def list_jobs(self):
         next_token = self._get_param("NextToken")
         max_results = self._get_int_param("MaxResults")

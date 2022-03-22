@@ -358,9 +358,7 @@ def test_state_machine_can_deleted_nonexisting_machine():
 @mock_stepfunctions
 def test_state_machine_tagging_non_existent_resource_fails():
     client = boto3.client("stepfunctions", region_name=region)
-    non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
-        region=region, account=ACCOUNT_ID
-    )
+    non_existent_arn = f"arn:aws:states:{region}:{ACCOUNT_ID}:stateMachine:non-existent"
     with pytest.raises(ClientError) as ex:
         client.tag_resource(resourceArn=non_existent_arn, tags=[])
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
@@ -370,9 +368,7 @@ def test_state_machine_tagging_non_existent_resource_fails():
 @mock_stepfunctions
 def test_state_machine_untagging_non_existent_resource_fails():
     client = boto3.client("stepfunctions", region_name=region)
-    non_existent_arn = "arn:aws:states:{region}:{account}:stateMachine:non-existent".format(
-        region=region, account=ACCOUNT_ID
-    )
+    non_existent_arn = f"arn:aws:states:{region}:{ACCOUNT_ID}:stateMachine:non-existent"
     with pytest.raises(ClientError) as ex:
         client.untag_resource(resourceArn=non_existent_arn, tagKeys=[])
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
@@ -388,7 +384,7 @@ def test_state_machine_tagging():
         {"key": "tag_key2", "value": "tag_value2"},
     ]
     machine = client.create_state_machine(
-        name="test", definition=str(simple_definition), roleArn=_get_default_role(),
+        name="test", definition=str(simple_definition), roleArn=_get_default_role()
     )
     client.tag_resource(resourceArn=machine["stateMachineArn"], tags=tags)
     resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])

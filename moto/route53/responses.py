@@ -1,32 +1,29 @@
 """Handles Route53 API requests, invokes method and returns response."""
-from functools import wraps
 from urllib.parse import parse_qs, urlparse
 
 from jinja2 import Template
 import xmltodict
 
 from moto.core.responses import BaseResponse
-from moto.route53.exceptions import Route53ClientError, InvalidChangeBatch
+from moto.route53.exceptions import InvalidChangeBatch
 from moto.route53.models import route53_backend
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
 
-def error_handler(f):
-    @wraps(f)
-    def _wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Route53ClientError as e:
-            return e.code, e.get_headers(), e.get_body()
-
-    return _wrapper
-
-
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
 
-    @error_handler
+    @staticmethod
+    def _convert_to_bool(bool_str):
+        if isinstance(bool_str, bool):
+            return bool_str
+
+        if isinstance(bool_str, str):
+            return str(bool_str).lower() == "true"
+
+        return False
+
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -40,14 +37,19 @@ class Route53(BaseResponse):
             if "HostedZoneConfig" in zone_request:
                 zone_config = zone_request["HostedZoneConfig"]
                 comment = zone_config["Comment"]
-                private_zone = zone_config.get("PrivateZone", False)
+                if zone_request.get("VPC", {}).get("VPCId", None):
+                    private_zone = True
+                else:
+                    private_zone = self._convert_to_bool(
+                        zone_config.get("PrivateZone", False)
+                    )
             else:
                 comment = None
                 private_zone = False
 
             # It is possible to create a Private Hosted Zone without
             # associating VPC at the time of creation.
-            if private_zone == "true":
+            if self._convert_to_bool(private_zone):
                 if zone_request.get("VPC", None) is not None:
                     vpcid = zone_request["VPC"].get("VPCId", None)
                     vpcregion = zone_request["VPC"].get("VPCRegion", None)
@@ -90,8 +92,7 @@ class Route53(BaseResponse):
         parsed_url = urlparse(full_url)
         query_params = parse_qs(parsed_url.query)
         vpc_id = query_params.get("vpcid")[0]
-        vpc_region = query_params.get("vpcregion")[0]
-        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id, vpc_region)
+        zones = route53_backend.list_hosted_zones_by_vpc(vpc_id)
         template = Template(LIST_HOSTED_ZONES_BY_VPC_RESPONSE)
         return 200, headers, template.render(zones=zones, xmlns=XMLNS)
 
@@ -101,7 +102,6 @@ class Route53(BaseResponse):
         template = Template(GET_HOSTED_ZONE_COUNT_RESPONSE)
         return 200, headers, template.render(zone_count=num_zones, xmlns=XMLNS)
 
-    @error_handler
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
@@ -115,7 +115,6 @@ class Route53(BaseResponse):
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
-    @error_handler
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -284,7 +283,6 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
-    @error_handler
     def list_or_create_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -329,7 +327,6 @@ class Route53(BaseResponse):
                 ),
             )
 
-    @error_handler
     def get_or_delete_query_logging_config_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
@@ -371,7 +368,7 @@ class Route53(BaseResponse):
             caller_reference = root_elem.get("CallerReference")
             hosted_zone_id = root_elem.get("HostedZoneId")
             delegation_set = route53_backend.create_reusable_delegation_set(
-                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id,
+                caller_reference=caller_reference, hosted_zone_id=hosted_zone_id
             )
             template = self.response_template(CREATE_REUSABLE_DELEGATION_SET_TEMPLATE)
             return (
@@ -380,7 +377,6 @@ class Route53(BaseResponse):
                 template.render(delegation_set=delegation_set),
             )
 
-    @error_handler
     def reusable_delegation_set(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
@@ -501,7 +497,7 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
-        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
    <DelegationSet>
@@ -528,7 +524,7 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
-        <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
    <DelegationSet>
@@ -553,7 +549,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
             {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>
@@ -575,7 +571,7 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
             {% endif %}
-           <PrivateZone>{{ zone.private_zone }}</PrivateZone>
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
          </Config>
          <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
       </HostedZone>

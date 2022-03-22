@@ -63,7 +63,7 @@ def test_warnings():
     # Can't update a delivery stream to Splunk as it's unimplemented.
     stream_name = f"test_update_splunk_destination_{get_random_hex(6)}"
     client.create_delivery_stream(
-        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config,
+        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config
     )
 
     with warnings.catch_warnings(record=True) as warn_msg:
@@ -248,7 +248,7 @@ def test_describe_delivery_stream():
     assert description["DeliveryStreamName"] == stream_name
     assert (
         description["DeliveryStreamARN"]
-        == f"arn:aws:firehose:{TEST_REGION}:{ACCOUNT_ID}:/delivery_stream/{stream_name}"
+        == f"arn:aws:firehose:{TEST_REGION}:{ACCOUNT_ID}:deliverystream/{stream_name}"
     )
     assert description["DeliveryStreamStatus"] == "ACTIVE"
     assert description["DeliveryStreamType"] == "KinesisStreamAsSource"
@@ -281,7 +281,7 @@ def test_describe_delivery_stream():
     assert description["DeliveryStreamName"] == stream_name
     assert (
         description["DeliveryStreamARN"]
-        == f"arn:aws:firehose:{TEST_REGION}:{ACCOUNT_ID}:/delivery_stream/{stream_name}"
+        == f"arn:aws:firehose:{TEST_REGION}:{ACCOUNT_ID}:deliverystream/{stream_name}"
     )
     assert description["DeliveryStreamStatus"] == "ACTIVE"
     assert description["DeliveryStreamType"] == "KinesisStreamAsSource"
@@ -520,7 +520,7 @@ def test_lookup_name_from_arn():
     stream_name = "test_lookup"
 
     arn = client.create_delivery_stream(
-        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config,
+        DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config
     )["DeliveryStreamARN"]
 
     from moto.firehose.models import (  # pylint: disable=import-outside-toplevel

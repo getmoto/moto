@@ -37,6 +37,7 @@ from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
+    CopyObjectMustChangeSomething,
     MissingBucket,
     InvalidBucketName,
     InvalidPart,
@@ -364,6 +365,9 @@ class FakeMultipart(BaseModel):
             last = part
             count += 1
 
+        if count == 0:
+            raise MalformedXML
+
         etag = hashlib.md5()
         etag.update(bytes(md5s))
         return total, "{0}-{1}".format(etag.hexdigest(), count)
@@ -574,7 +578,7 @@ class LifecycleAndFilter(BaseModel):
 
         for key, value in self.tags.items():
             data.append(
-                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
+                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value}}
             )
 
         return data
@@ -1105,8 +1109,8 @@ class FakeBucket(CloudFormationModel):
         self.accelerate_configuration = accelerate_config
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in [
+    def has_cfn_attr(cls, attr):
+        return attr in [
             "Arn",
             "DomainName",
             "DualStackDomainName",
@@ -1185,7 +1189,7 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1460,14 +1464,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return self.get_bucket(bucket_name).encryption
 
     def list_object_versions(
-        self,
-        bucket_name,
-        delimiter=None,
-        encoding_type=None,
-        key_marker=None,
-        max_keys=None,
-        version_id_marker=None,
-        prefix="",
+        self, bucket_name, delimiter=None, key_marker=None, prefix=""
     ):
         bucket = self.get_bucket(bucket_name)
 
@@ -1487,10 +1484,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             version.is_latest = name != last_name
             if version.is_latest:
                 last_name = name
-            # Differentiate between FakeKey and FakeDeleteMarkers
-            if not isinstance(version, FakeKey):
-                delete_markers.append(version)
-                continue
             # skip all keys that alphabetically come before keymarker
             if key_marker and name < key_marker:
                 continue
@@ -1502,6 +1495,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 index = name.index(delimiter) + len(delimiter)
                 prefix_including_delimiter = name[0:index]
                 common_prefixes.append(prefix_including_delimiter)
+                continue
+
+            # Differentiate between FakeKey and FakeDeleteMarkers
+            if not isinstance(version, FakeKey):
+                delete_markers.append(version)
                 continue
 
             requested_versions.append(version)
@@ -1516,7 +1514,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_policy(self, bucket_name, policy):
         self.get_bucket(bucket_name).policy = policy
 
-    def delete_bucket_policy(self, bucket_name, body):
+    def delete_bucket_policy(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         bucket.policy = None
 
@@ -1720,9 +1718,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if errmsg:
             raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
-        self.tagger.tag_resource(
-            key.arn, boto_tags_dict,
-        )
+        self.tagger.tag_resource(key.arn, boto_tags_dict)
         return key
 
     def get_bucket_tagging(self, bucket_name):
@@ -1733,7 +1729,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
-            bucket.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
+            bucket.arn, [{"Key": key, "Value": value} for key, value in tags.items()]
         )
 
     def put_object_lock_configuration(
@@ -2015,7 +2011,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         encryption=None,
         kms_key_id=None,
         bucket_key_enabled=False,
+        mdirective=None,
     ):
+        if (
+            src_key.name == dest_key_name
+            and src_key.bucket_name == dest_bucket_name
+            and storage == src_key.storage_class
+            and acl == src_key.acl
+            and encryption == src_key.encryption
+            and kms_key_id == src_key.kms_key_id
+            and bucket_key_enabled == (src_key.bucket_key_enabled or False)
+            and mdirective != "REPLACE"
+        ):
+            raise CopyObjectMustChangeSomething
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,

@@ -17,6 +17,4 @@ class ResourceNotFoundException(KinesisvideoClientError):
 class ResourceInUseException(KinesisvideoClientError):
     def __init__(self, message):
         self.code = 400
-        super().__init__(
-            "ResourceInUseException", message,
-        )
+        super().__init__("ResourceInUseException", message)

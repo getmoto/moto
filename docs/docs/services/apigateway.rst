@@ -41,7 +41,7 @@ apigateway
 - [X] create_stage
 - [X] create_usage_plan
 - [X] create_usage_plan_key
-- [ ] create_vpc_link
+- [X] create_vpc_link
 - [X] delete_api_key
 - [X] delete_authorizer
 - [X] delete_base_path_mapping
@@ -50,7 +50,7 @@ apigateway
 - [ ] delete_documentation_part
 - [ ] delete_documentation_version
 - [X] delete_domain_name
-- [ ] delete_gateway_response
+- [X] delete_gateway_response
 - [X] delete_integration
 - [X] delete_integration_response
 - [X] delete_method
@@ -62,7 +62,7 @@ apigateway
 - [X] delete_stage
 - [X] delete_usage_plan
 - [X] delete_usage_plan_key
-- [ ] delete_vpc_link
+- [X] delete_vpc_link
 - [ ] flush_stage_authorizers_cache
 - [ ] flush_stage_cache
 - [ ] generate_client_certificate
@@ -84,8 +84,12 @@ apigateway
 - [X] get_domain_name
 - [X] get_domain_names
 - [ ] get_export
-- [ ] get_gateway_response
-- [ ] get_gateway_responses
+- [X] get_gateway_response
+- [X] get_gateway_responses
+  
+        Pagination is not yet implemented
+        
+
 - [X] get_integration
 - [X] get_integration_response
 - [X] get_method
@@ -110,12 +114,16 @@ apigateway
 - [X] get_usage_plan_key
 - [X] get_usage_plan_keys
 - [X] get_usage_plans
-- [ ] get_vpc_link
-- [ ] get_vpc_links
+- [X] get_vpc_link
+- [X] get_vpc_links
+  
+        Pagination has not yet been implemented
+        
+
 - [ ] import_api_keys
 - [ ] import_documentation_parts
 - [ ] import_rest_api
-- [ ] put_gateway_response
+- [X] put_gateway_response
 - [X] put_integration
 - [X] put_integration_response
 - [X] put_method

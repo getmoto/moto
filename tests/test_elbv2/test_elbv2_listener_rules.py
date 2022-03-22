@@ -117,6 +117,10 @@ def test_create_rule_condition(condition):
     response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
     response["Rules"].should.equal([rule])
 
+    # assert describe_tags response
+    response = conn.describe_tags(ResourceArns=[rule["RuleArn"]])
+    response["TagDescriptions"].should.have.length_of(1)
+
 
 @mock_elbv2
 @mock_ec2
@@ -271,7 +275,7 @@ def test_modify_rule_condition(create_condition, modify_condition):
             "A 'source-ip' value must be specified",
         ),
         (
-            {"Field": "source-ip",},
+            {"Field": "source-ip"},
             "A 'SourceIpConfig' must be specified with 'source-ip'",
         ),
     ],
@@ -292,3 +296,15 @@ def test_create_rule_validate_condition(condition, expected_message):
     err = ex.value.response["Error"]
     err["Code"].should.equal("ValidationError")
     err["Message"].should.equal(expected_message)
+
+
+@mock_elbv2
+@mock_ec2
+def test_describe_unknown_rule():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        conn.describe_rules(RuleArns=["unknown_arn"])
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("RuleNotFound")
+    err["Message"].should.equal("One or more rules not found")

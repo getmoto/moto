@@ -340,9 +340,7 @@ def test_remove_targets():
 @mock_events
 def test_update_rule_with_targets():
     client = boto3.client("events", "us-west-2")
-    client.put_rule(
-        Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="",
-    )
+    client.put_rule(Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="")
 
     client.put_targets(
         Rule="test1",
@@ -358,9 +356,7 @@ def test_update_rule_with_targets():
     targets_before = len(targets)
     assert targets_before == 1
 
-    client.put_rule(
-        Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="",
-    )
+    client.put_rule(Name="test1", ScheduleExpression="rate(1 minute)", EventPattern="")
 
     targets = client.list_targets_by_rule(Rule="test1")["Targets"]
 
@@ -1345,12 +1341,8 @@ def test_list_archives_with_name_prefix():
     # given
     client = boto3.client("events", "eu-central-1")
     source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
-    client.create_archive(
-        ArchiveName="test", EventSourceArn=source_arn,
-    )
-    client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=source_arn,
-    )
+    client.create_archive(ArchiveName="test", EventSourceArn=source_arn)
+    client.create_archive(ArchiveName="test-archive", EventSourceArn=source_arn)
 
     # when
     archives = client.list_archives(NamePrefix="test-")["Archives"]
@@ -1366,12 +1358,8 @@ def test_list_archives_with_source_arn():
     client = boto3.client("events", "eu-central-1")
     source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
     source_arn_2 = client.create_event_bus(Name="test-bus")["EventBusArn"]
-    client.create_archive(
-        ArchiveName="test", EventSourceArn=source_arn,
-    )
-    client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=source_arn_2,
-    )
+    client.create_archive(ArchiveName="test", EventSourceArn=source_arn)
+    client.create_archive(ArchiveName="test-archive", EventSourceArn=source_arn_2)
 
     # when
     archives = client.list_archives(EventSourceArn=source_arn)["Archives"]
@@ -1386,12 +1374,8 @@ def test_list_archives_with_state():
     # given
     client = boto3.client("events", "eu-central-1")
     source_arn = "arn:aws:events:eu-central-1:{}:event-bus/default".format(ACCOUNT_ID)
-    client.create_archive(
-        ArchiveName="test", EventSourceArn=source_arn,
-    )
-    client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=source_arn,
-    )
+    client.create_archive(ArchiveName="test", EventSourceArn=source_arn)
+    client.create_archive(ArchiveName="test-archive", EventSourceArn=source_arn)
 
     # when
     archives = client.list_archives(State="DISABLED")["Archives"]
@@ -1494,9 +1478,7 @@ def test_update_archive_error_invalid_event_pattern():
 
     # when
     with pytest.raises(ClientError) as e:
-        client.update_archive(
-            ArchiveName=name, EventPattern="invalid",
-        )
+        client.update_archive(ArchiveName=name, EventPattern="invalid")
 
     # then
     ex = e.value
@@ -1652,7 +1634,7 @@ def test_start_replay():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
 
     # when
@@ -1718,7 +1700,9 @@ def test_start_replay_error_invalid_event_bus_arn():
             ),
             EventStartTime=datetime(2021, 2, 1),
             EventEndTime=datetime(2021, 2, 2),
-            Destination={"Arn": "invalid",},
+            Destination={
+                "Arn": "invalid",
+            },
         )
 
     # then
@@ -1805,7 +1789,7 @@ def test_start_replay_error_invalid_end_time():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
 
     # when
@@ -1838,7 +1822,7 @@ def test_start_replay_error_duplicate():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -1877,7 +1861,7 @@ def test_describe_replay():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -1935,7 +1919,7 @@ def test_list_replays():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -1969,7 +1953,7 @@ def test_list_replays_with_name_prefix():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName="test",
@@ -2002,7 +1986,7 @@ def test_list_replays_with_source_arn():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName="test",
@@ -2034,7 +2018,7 @@ def test_list_replays_with_state():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-replay", EventSourceArn=event_bus_arn,
+        ArchiveName="test-replay", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName="test",
@@ -2109,7 +2093,7 @@ def test_cancel_replay():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -2162,7 +2146,7 @@ def test_cancel_replay_error_illegal_state():
         ACCOUNT_ID
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     client.start_replay(
         ReplayName=name,
@@ -2213,7 +2197,7 @@ def test_start_replay_send_to_log_group():
         ],
     )
     archive_arn = client.create_archive(
-        ArchiveName="test-archive", EventSourceArn=event_bus_arn,
+        ArchiveName="test-archive", EventSourceArn=event_bus_arn
     )["ArchiveArn"]
     event_time = datetime(2021, 1, 1, 12, 23, 34)
     client.put_events(

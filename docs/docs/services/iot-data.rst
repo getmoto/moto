@@ -17,7 +17,7 @@ iot-data
 .. sourcecode:: python
 
             @mock_iotdata
-            def test_iot-data_behaviour:
+            def test_iotdata_behaviour:
                 boto3.client("iot-data")
                 ...
 

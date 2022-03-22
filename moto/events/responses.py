@@ -24,8 +24,8 @@ class EventsHandler(BaseResponse):
                 self._json_body = {}
         return self._json_body
 
-    def _get_param(self, param, if_none=None):
-        return self.request_params.get(param, if_none)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def _create_response(self, result):
         """

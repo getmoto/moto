@@ -16,7 +16,7 @@ class ConfigResponse(BaseResponse):
 
     def put_configuration_aggregator(self):
         aggregator = self.config_backend.put_configuration_aggregator(
-            json.loads(self.body), self.region
+            json.loads(self.body)
         )
         schema = {"ConfigurationAggregator": aggregator}
         return json.dumps(schema)
@@ -37,7 +37,6 @@ class ConfigResponse(BaseResponse):
 
     def put_aggregation_authorization(self):
         agg_auth = self.config_backend.put_aggregation_authorization(
-            self.region,
             self._get_param("AuthorizedAccountId"),
             self._get_param("AuthorizedAwsRegion"),
             self._get_param("Tags"),
@@ -170,7 +169,6 @@ class ConfigResponse(BaseResponse):
 
     def put_organization_conformance_pack(self):
         conformance_pack = self.config_backend.put_organization_conformance_pack(
-            region=self.region,
             name=self._get_param("OrganizationConformancePackName"),
             template_s3_uri=self._get_param("TemplateS3Uri"),
             template_body=self._get_param("TemplateBody"),
@@ -196,8 +194,10 @@ class ConfigResponse(BaseResponse):
 
     def get_organization_conformance_pack_detailed_status(self):
         # 'Filters' parameter is not implemented yet
-        statuses = self.config_backend.get_organization_conformance_pack_detailed_status(
-            self._get_param("OrganizationConformancePackName")
+        statuses = (
+            self.config_backend.get_organization_conformance_pack_detailed_status(
+                self._get_param("OrganizationConformancePackName")
+            )
         )
         return json.dumps(statuses)
 
@@ -209,25 +209,25 @@ class ConfigResponse(BaseResponse):
 
     def tag_resource(self):
         self.config_backend.tag_resource(
-            self._get_param("ResourceArn"), self._get_param("Tags"),
+            self._get_param("ResourceArn"), self._get_param("Tags")
         )
         return ""
 
     def untag_resource(self):
         self.config_backend.untag_resource(
-            self._get_param("ResourceArn"), self._get_param("TagKeys"),
+            self._get_param("ResourceArn"), self._get_param("TagKeys")
         )
         return ""
 
     def put_config_rule(self):
         self.config_backend.put_config_rule(
-            self.region, self._get_param("ConfigRule"), self._get_param("Tags"),
+            self._get_param("ConfigRule"), self._get_param("Tags")
         )
         return ""
 
     def describe_config_rules(self):
         rules = self.config_backend.describe_config_rules(
-            self._get_param("ConfigRuleNames"), self._get_param("NextToken"),
+            self._get_param("ConfigRuleNames"), self._get_param("NextToken")
         )
         return json.dumps(rules)
 

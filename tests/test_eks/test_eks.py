@@ -262,7 +262,7 @@ def test_create_cluster_throws_exception_when_cluster_exists(ClusterBuilder):
     client, generated_test_data = ClusterBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceInUseException
     expected_msg = CLUSTER_EXISTS_MSG.format(
-        clusterName=generated_test_data.existing_cluster_name,
+        clusterName=generated_test_data.existing_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -347,7 +347,7 @@ def test_describe_cluster_throws_exception_when_cluster_not_found(ClusterBuilder
     client, generated_test_data = ClusterBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -384,7 +384,7 @@ def test_delete_cluster_throws_exception_when_cluster_not_found(ClusterBuilder):
     client, generated_test_data = ClusterBuilder(BatchCountSize.SMALL)
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -487,7 +487,7 @@ def test_create_nodegroup_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
     non_existent_cluster_name = random_string()
     expected_exception = ResourceNotFoundException
-    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name,)
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name)
 
     with pytest.raises(ClientError) as raised_exception:
         client.create_nodegroup(
@@ -527,15 +527,13 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
 
 
 @mock_eks
-def test_create_nodegroup_throws_exception_when_cluster_not_active(
-    NodegroupBuilder, monkeypatch
-):
+def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuilder):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = NodegroupBuilder(BatchCountSize.SMALL)
     expected_exception = InvalidRequestException
     expected_msg = CLUSTER_NOT_READY_MSG.format(
-        clusterName=generated_test_data.cluster_name,
+        clusterName=generated_test_data.cluster_name
     )
 
     with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
@@ -649,7 +647,7 @@ def test_describe_nodegroup_throws_exception_when_cluster_not_found(NodegroupBui
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -666,7 +664,7 @@ def test_describe_nodegroup_throws_exception_when_nodegroup_not_found(NodegroupB
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = NODEGROUP_NOT_FOUND_MSG.format(
-        nodegroupName=generated_test_data.nonexistent_nodegroup_name,
+        nodegroupName=generated_test_data.nonexistent_nodegroup_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -726,7 +724,7 @@ def test_delete_nodegroup_throws_exception_when_cluster_not_found(NodegroupBuild
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -743,7 +741,7 @@ def test_delete_nodegroup_throws_exception_when_nodegroup_not_found(NodegroupBui
     client, generated_test_data = NodegroupBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = NODEGROUP_NOT_FOUND_MSG.format(
-        nodegroupName=generated_test_data.nonexistent_nodegroup_name,
+        nodegroupName=generated_test_data.nonexistent_nodegroup_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -939,7 +937,7 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_found():
     client = boto3.client(SERVICE, region_name=REGION)
     non_existent_cluster_name = random_string()
     expected_exception = ResourceNotFoundException
-    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name,)
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=non_existent_cluster_name)
 
     with pytest.raises(ClientError) as raised_exception:
         client.create_fargate_profile(
@@ -977,14 +975,14 @@ def test_create_fargate_profile_throws_exception_when_fargate_profile_already_ex
 
 @mock_eks
 def test_create_fargate_profile_throws_exception_when_cluster_not_active(
-    FargateProfileBuilder, monkeypatch
+    FargateProfileBuilder,
 ):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
     expected_exception = InvalidRequestException
     expected_msg = CLUSTER_NOT_READY_MSG.format(
-        clusterName=generated_test_data.cluster_name,
+        clusterName=generated_test_data.cluster_name
     )
 
     with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
@@ -1057,7 +1055,7 @@ def test_describe_fargate_profile_throws_exception_when_cluster_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1076,7 +1074,7 @@ def test_describe_fargate_profile_throws_exception_when_profile_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = FARGATE_PROFILE_NOT_FOUND_MSG.format(
-        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1124,7 +1122,7 @@ def test_delete_fargate_profile_throws_exception_when_cluster_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(
-        clusterName=generated_test_data.nonexistent_cluster_name,
+        clusterName=generated_test_data.nonexistent_cluster_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1143,7 +1141,7 @@ def test_delete_fargate_profile_throws_exception_when_fargate_profile_not_found(
     client, generated_test_data = FargateProfileBuilder()
     expected_exception = ResourceNotFoundException
     expected_msg = FARGATE_PROFILE_NOT_FOUND_MSG.format(
-        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name,
+        fargateProfileName=generated_test_data.nonexistent_fargate_profile_name
     )
 
     with pytest.raises(ClientError) as raised_exception:
@@ -1290,7 +1288,7 @@ selector_formatting_test_cases = [
 
 
 @pytest.mark.parametrize(
-    "selectors, expected_message, expected_result", selector_formatting_test_cases,
+    "selectors, expected_message, expected_result", selector_formatting_test_cases
 )
 @mock_eks
 def test_create_fargate_selectors(

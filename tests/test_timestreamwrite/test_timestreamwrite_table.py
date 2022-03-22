@@ -1,6 +1,7 @@
+import time
 import boto3
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_timestreamwrite
+from moto import mock_timestreamwrite, settings
 from moto.core import ACCOUNT_ID
 
 
@@ -176,8 +177,58 @@ def test_write_records():
     ts.create_database(DatabaseName="mydatabase")
     ts.create_table(DatabaseName="mydatabase", TableName="mytable")
 
-    ts.write_records(
+    # Sample records from https://docs.aws.amazon.com/timestream/latest/developerguide/code-samples.write.html
+    dimensions = [
+        {"Name": "region", "Value": "us-east-1"},
+        {"Name": "az", "Value": "az1"},
+        {"Name": "hostname", "Value": "host1"},
+    ]
+
+    cpu_utilization = {
+        "Dimensions": dimensions,
+        "MeasureName": "cpu_utilization",
+        "MeasureValue": "13.5",
+        "MeasureValueType": "DOUBLE",
+        "Time": str(time.time()),
+    }
+
+    memory_utilization = {
+        "Dimensions": dimensions,
+        "MeasureName": "memory_utilization",
+        "MeasureValue": "40",
+        "MeasureValueType": "DOUBLE",
+        "Time": str(time.time()),
+    }
+
+    sample_records = [cpu_utilization, memory_utilization]
+
+    resp = ts.write_records(
         DatabaseName="mydatabase",
         TableName="mytable",
-        Records=[{"Dimensions": [], "MeasureName": "mn", "MeasureValue": "mv"}],
-    )
+        Records=sample_records,
+    ).get("RecordsIngested", {})
+    resp["Total"].should.equal(len(sample_records))
+    (resp["MemoryStore"] + resp["MagneticStore"]).should.equal(resp["Total"])
+
+    if not settings.TEST_SERVER_MODE:
+        from moto.timestreamwrite.models import timestreamwrite_backends
+
+        backend = timestreamwrite_backends["us-east-1"]
+        records = backend.databases["mydatabase"].tables["mytable"].records
+        records.should.equal(sample_records)
+
+        disk_utilization = {
+            "Dimensions": dimensions,
+            "MeasureName": "disk_utilization",
+            "MeasureValue": "100",
+            "MeasureValueType": "DOUBLE",
+            "Time": str(time.time()),
+        }
+        sample_records.append(disk_utilization)
+
+        ts.write_records(
+            DatabaseName="mydatabase",
+            TableName="mytable",
+            Records=[disk_utilization],
+        )
+        records.should.equal(sample_records)

@@ -350,9 +350,7 @@ class ManagedBlockchainInvitation(BaseModel):
 
 
 class ManagedBlockchainMember(BaseModel):
-    def __init__(
-        self, member_id, networkid, member_configuration, region,
-    ):
+    def __init__(self, member_id, networkid, member_configuration, region):
         self.creationdate = datetime.datetime.utcnow()
         self.id = member_id
         self.networkid = networkid
@@ -581,9 +579,7 @@ class ManagedBlockchainBackend(BaseBackend):
             )
         return self.networks.get(network_id)
 
-    def create_proposal(
-        self, networkid, memberid, actions, description=None,
-    ):
+    def create_proposal(self, networkid, memberid, actions, description=None):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -779,9 +775,7 @@ class ManagedBlockchainBackend(BaseBackend):
             )
         self.invitations.get(invitationid).reject_invitation()
 
-    def create_member(
-        self, invitationid, networkid, member_configuration,
-    ):
+    def create_member(self, invitationid, networkid, member_configuration):
         # Check if network exists
         if networkid not in self.networks:
             raise ResourceNotFoundException(
@@ -985,7 +979,7 @@ class ManagedBlockchainBackend(BaseBackend):
         chkregionpreregex = self.region_name + "[a-z]"
         if re.match(chkregionpreregex, availabilityzone, re.IGNORECASE) is None:
             raise InvalidRequestException(
-                "CreateNode", "Availability Zone is not valid",
+                "CreateNode", "Availability Zone is not valid"
             )
 
         node_id = get_node_id()

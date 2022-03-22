@@ -2,7 +2,7 @@ import json
 import base64
 
 from moto.core.responses import BaseResponse
-from .models import acm_backends, AWSError, AWSValidationException
+from .models import acm_backends, AWSValidationException
 
 
 class AWSCertificateManagerResponse(BaseResponse):
@@ -23,8 +23,8 @@ class AWSCertificateManagerResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param, default=None):
-        return self.request_params.get(param, default)
+    def _get_param(self, param_name, if_none=None):
+        return self.request_params.get(param_name, if_none)
 
     def add_tags_to_certificate(self):
         arn = self._get_param("CertificateArn")
@@ -37,10 +37,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            self.acm_backend.add_tags_to_certificate(arn, tags)
-        except AWSError as err:
-            return err.response()
+        self.acm_backend.add_tags_to_certificate(arn, tags)
 
         return ""
 
@@ -54,10 +51,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            self.acm_backend.delete_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        self.acm_backend.delete_certificate(arn)
 
         return ""
 
@@ -71,10 +65,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
         return json.dumps(cert_bundle.describe())
 
@@ -88,10 +79,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
         result = {
             "Certificate": cert_bundle.cert.decode(),
@@ -123,29 +111,26 @@ class AWSCertificateManagerResponse(BaseResponse):
         try:
             certificate = base64.standard_b64decode(certificate)
         except Exception:
-            return AWSValidationException(
+            raise AWSValidationException(
                 "The certificate is not PEM-encoded or is not valid."
-            ).response()
+            )
         try:
             private_key = base64.standard_b64decode(private_key)
         except Exception:
-            return AWSValidationException(
+            raise AWSValidationException(
                 "The private key is not PEM-encoded or is not valid."
-            ).response()
+            )
         if chain is not None:
             try:
                 chain = base64.standard_b64decode(chain)
             except Exception:
-                return AWSValidationException(
+                raise AWSValidationException(
                     "The certificate chain is not PEM-encoded or is not valid."
-                ).response()
+                )
 
-        try:
-            arn = self.acm_backend.import_cert(
-                certificate, private_key, chain=chain, arn=current_arn, tags=tags
-            )
-        except AWSError as err:
-            return err.response()
+        arn = self.acm_backend.import_cert(
+            certificate, private_key, chain=chain, arn=current_arn, tags=tags
+        )
 
         return json.dumps({"CertificateArn": arn})
 
@@ -170,10 +155,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return {"__type": "MissingParameter", "message": msg}, dict(status=400)
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
-        except AWSError as err:
-            return err.response()
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
         result = {"Tags": []}
         # Tag "objects" can not contain the Value part
@@ -196,18 +178,12 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            self.acm_backend.remove_tags_from_certificate(arn, tags)
-        except AWSError as err:
-            return err.response()
+        self.acm_backend.remove_tags_from_certificate(arn, tags)
 
         return ""
 
     def request_certificate(self):
         domain_name = self._get_param("DomainName")
-        domain_validation_options = self._get_param(
-            "DomainValidationOptions"
-        )  # is ignored atm
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
         tags = self._get_param("Tags")  # Optional
@@ -222,16 +198,12 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            arn = self.acm_backend.request_certificate(
-                domain_name,
-                domain_validation_options,
-                idempotency_token,
-                subject_alt_names,
-                tags,
-            )
-        except AWSError as err:
-            return err.response()
+        arn = self.acm_backend.request_certificate(
+            domain_name,
+            idempotency_token,
+            subject_alt_names,
+            tags,
+        )
 
         return json.dumps({"CertificateArn": arn})
 
@@ -251,16 +223,12 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            cert_bundle = self.acm_backend.get_certificate(arn)
+        cert_bundle = self.acm_backend.get_certificate(arn)
 
-            if cert_bundle.common_name != domain:
-                msg = "Parameter Domain does not match certificate domain"
-                _type = "InvalidDomainValidationOptionsException"
-                return json.dumps({"__type": _type, "message": msg}), dict(status=400)
-
-        except AWSError as err:
-            return err.response()
+        if cert_bundle.common_name != domain:
+            msg = "Parameter Domain does not match certificate domain"
+            _type = "InvalidDomainValidationOptionsException"
+            return json.dumps({"__type": _type, "message": msg}), dict(status=400)
 
         return ""
 
@@ -275,20 +243,17 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        try:
-            (
-                certificate,
-                certificate_chain,
-                private_key,
-            ) = self.acm_backend.export_certificate(
-                certificate_arn=certificate_arn, passphrase=passphrase,
+        (
+            certificate,
+            certificate_chain,
+            private_key,
+        ) = self.acm_backend.export_certificate(
+            certificate_arn=certificate_arn, passphrase=passphrase
+        )
+        return json.dumps(
+            dict(
+                Certificate=certificate,
+                CertificateChain=certificate_chain,
+                PrivateKey=private_key,
             )
-            return json.dumps(
-                dict(
-                    Certificate=certificate,
-                    CertificateChain=certificate_chain,
-                    PrivateKey=private_key,
-                )
-            )
-        except AWSError as err:
-            return err.response()
+        )

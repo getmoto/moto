@@ -7,7 +7,7 @@ import boto3
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-alternative_service_names = {"lambda": "awslambda", "dynamodb": "dynamodb2", "rds": "rds2"}
+alternative_service_names = {"lambda": "awslambda"}
 
 
 def get_moto_implementation(service_name):
@@ -221,7 +221,7 @@ def write_implementation_coverage_to_docs(coverage):
             file.write(f""".. sourcecode:: python
 
             @{coverage[service_name]['name']}
-            def test_{service_name}_behaviour:
+            def test_{coverage[service_name]['name'][5:]}_behaviour:
                 boto3.client("{service_name}")
                 ...
 

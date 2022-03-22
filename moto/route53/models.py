@@ -213,7 +213,7 @@ class RecordSet(CloudFormationModel):
     def physical_resource_id(self):
         return self.name
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args, **kwargs):  # pylint: disable=unused-argument
         """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
         hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
         if not hosted_zone:
@@ -518,13 +518,15 @@ class Route53Backend(BaseBackend):
             zones = sorted(zones, key=sort_key)
         return dnsname, zones
 
-    def list_hosted_zones_by_vpc(self, VPCId, VPCRegion, MaxItems=None, NextToken=None):
-
+    def list_hosted_zones_by_vpc(self, vpc_id):
+        """
+        Pagination is not yet implemented
+        """
         zone_list = []
         for zone in self.list_hosted_zones():
-            if zone.private_zone == "true":
+            if zone.private_zone is True:
                 this_zone = self.get_hosted_zone(zone.id)
-                if this_zone.vpcid == VPCId:
+                if this_zone.vpcid == vpc_id:
                     this_id = f"/hostedzone/{zone.id}"
                     zone_list.append(
                         {
@@ -570,7 +572,7 @@ class Route53Backend(BaseBackend):
 
     @staticmethod
     def _validate_arn(region, arn):
-        match = re.match(fr"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
+        match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
             raise InvalidInput()
 

@@ -12,6 +12,8 @@
 sns
 ===
 
+.. autoclass:: moto.sns.models.SNSBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python

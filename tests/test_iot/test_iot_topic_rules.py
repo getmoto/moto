@@ -96,9 +96,7 @@ def test_topic_rule_replace():
 
     my_payload = payload.copy()
     my_payload["description"] = "new-description"
-    client.replace_topic_rule(
-        ruleName=name, topicRulePayload=my_payload,
-    )
+    client.replace_topic_rule(ruleName=name, topicRulePayload=my_payload)
 
     rule = client.get_topic_rule(ruleName=name)
     rule["rule"]["ruleName"].should.equal(name)

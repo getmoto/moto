@@ -14,7 +14,7 @@ from moto.sts.utils import (
 
 
 class Token(BaseModel):
-    def __init__(self, duration, name=None, policy=None):
+    def __init__(self, duration, name=None):
         now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
@@ -48,10 +48,12 @@ class AssumedRole(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-            account_id=ACCOUNT_ID,
-            role_name=self.role_arn.split("/")[-1],
-            session_name=self.session_name,
+        return (
+            "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
+                account_id=ACCOUNT_ID,
+                role_name=self.role_arn.split("/")[-1],
+                session_name=self.session_name,
+            )
         )
 
 
@@ -70,8 +72,8 @@ class STSBackend(BaseBackend):
         token = Token(duration=duration)
         return token
 
-    def get_federation_token(self, name, duration, policy):
-        token = Token(duration=duration, name=name, policy=policy)
+    def get_federation_token(self, name, duration):
+        token = Token(duration=duration, name=name)
         return token
 
     def assume_role(self, **kwargs):
@@ -102,22 +104,23 @@ class STSBackend(BaseBackend):
             force_cdata=True,
             process_namespaces=True,
             namespaces=namespaces,
+            namespace_separator="|",
         )
 
-        saml_assertion_attributes = saml_assertion["samlp:Response"]["saml:Assertion"][
-            "saml:AttributeStatement"
-        ]["saml:Attribute"]
+        saml_assertion_attributes = saml_assertion["samlp|Response"]["saml|Assertion"][
+            "saml|AttributeStatement"
+        ]["saml|Attribute"]
         for attribute in saml_assertion_attributes:
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/RoleSessionName"
             ):
-                kwargs["role_session_name"] = attribute["saml:AttributeValue"]["#text"]
+                kwargs["role_session_name"] = attribute["saml|AttributeValue"]["#text"]
             if (
                 attribute["@Name"]
                 == "https://aws.amazon.com/SAML/Attributes/SessionDuration"
             ):
-                kwargs["duration"] = int(attribute["saml:AttributeValue"]["#text"])
+                kwargs["duration"] = int(attribute["saml|AttributeValue"]["#text"])
 
         if "duration" not in kwargs:
             kwargs["duration"] = DEFAULT_STS_SESSION_DURATION

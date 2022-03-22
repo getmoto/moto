@@ -58,7 +58,7 @@ def create_lambda_for_config_rule():
             lambda_role = iam_client.get_role(RoleName=role_name)["Role"]["Arn"]
         except ClientError:
             lambda_role = iam_client.create_role(
-                RoleName=role_name, AssumeRolePolicyDocument="test policy", Path="/",
+                RoleName=role_name, AssumeRolePolicyDocument="test policy", Path="/"
             )["Role"]["Arn"]
 
     # Create the lambda function and identify its location.

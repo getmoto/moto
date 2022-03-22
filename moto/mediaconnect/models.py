@@ -7,7 +7,7 @@ from moto.mediaconnect.exceptions import NotFoundException
 
 
 class Flow(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.availability_zone = kwargs.get("availability_zone")
         self.entitlements = kwargs.get("entitlements", [])
         self.name = kwargs.get("name")
@@ -59,7 +59,7 @@ class Flow(BaseModel):
 
 
 class Resource(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.resource_arn = kwargs.get("resource_arn")
         self.tags = OrderedDict()
 

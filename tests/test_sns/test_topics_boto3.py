@@ -214,7 +214,7 @@ def test_topic_attributes():
     )
 
     attributes = conn.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
-    attributes["Policy"].should.equal('{"foo": "bar"}')
+    attributes["Policy"].should.equal('{"foo":"bar"}')
     attributes["DisplayName"].should.equal("My display name")
     attributes["DeliveryPolicy"].should.equal(
         '{"http": {"defaultHealthyRetryPolicy": {"numRetries": 5}}}'
@@ -551,7 +551,7 @@ def test_create_fifo_topic():
 @mock_sns
 def test_topic_kms_master_key_id_attribute():
     client = boto3.client("sns", region_name="us-west-2")
-    resp = client.create_topic(Name="test-sns-no-key-attr",)
+    resp = client.create_topic(Name="test-sns-no-key-attr")
     topic_arn = resp["TopicArn"]
     resp = client.get_topic_attributes(TopicArn=topic_arn)
     resp["Attributes"].should_not.have.key("KmsMasterKeyId")
@@ -564,7 +564,7 @@ def test_topic_kms_master_key_id_attribute():
     resp["Attributes"]["KmsMasterKeyId"].should.equal("test-key")
 
     resp = client.create_topic(
-        Name="test-sns-with-key-attr", Attributes={"KmsMasterKeyId": "key-id",},
+        Name="test-sns-with-key-attr", Attributes={"KmsMasterKeyId": "key-id"}
     )
     topic_arn = resp["TopicArn"]
     resp = client.get_topic_attributes(TopicArn=topic_arn)

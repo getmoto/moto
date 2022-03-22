@@ -8,10 +8,7 @@ from copy import copy
 
 import time
 
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
+from urllib.parse import urlparse
 import responses
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
@@ -20,6 +17,8 @@ from .integration_parsers.aws_parser import TypeAwsParser
 from .integration_parsers.http_parser import TypeHttpParser
 from .integration_parsers.unknown_parser import TypeUnknownParser
 from .exceptions import (
+    ConflictException,
+    DeploymentNotFoundException,
     ApiKeyNotFoundException,
     UsagePlanNotFoundException,
     AwsProxyNotAllowed,
@@ -49,6 +48,10 @@ from .exceptions import (
     InvalidStageException,
     BasePathConflictException,
     BasePathNotFoundException,
+    StageStillActive,
+    VpcLinkNotFound,
+    ValidationException,
+    GatewayResponseNotFound,
 )
 from ..core.models import responses_mock
 from moto.apigateway.exceptions import MethodNotFoundException
@@ -118,6 +121,7 @@ class Integration(BaseModel, dict):
         request_templates=None,
         tls_config=None,
         cache_namespace=None,
+        timeout_in_millis=None,
     ):
         super().__init__()
         self["type"] = integration_type
@@ -130,6 +134,7 @@ class Integration(BaseModel, dict):
         ] = None  # prevent json serialization from including them if none provided
         self["tlsConfig"] = tls_config
         self["cacheNamespace"] = cache_namespace
+        self["timeoutInMillis"] = timeout_in_millis
 
     def create_integration_response(
         self, status_code, selection_pattern, response_templates, content_handling
@@ -147,7 +152,7 @@ class Integration(BaseModel, dict):
     def get_integration_response(self, status_code):
         result = self.get("integrationResponses", {}).get(status_code)
         if not result:
-            raise NoIntegrationResponseDefined(status_code)
+            raise NoIntegrationResponseDefined()
         return result
 
     def delete_integration_response(self, status_code):
@@ -360,6 +365,7 @@ class Resource(CloudFormationModel):
         integration_method=None,
         tls_config=None,
         cache_namespace=None,
+        timeout_in_millis=None,
     ):
         integration_method = integration_method or method_type
         integration = Integration(
@@ -369,6 +375,7 @@ class Resource(CloudFormationModel):
             request_templates=request_templates,
             tls_config=tls_config,
             cache_namespace=cache_namespace,
+            timeout_in_millis=timeout_in_millis,
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
@@ -450,6 +457,7 @@ class Stage(BaseModel, dict):
         self["description"] = description
         self["cacheClusterEnabled"] = cacheClusterEnabled
         if self["cacheClusterEnabled"]:
+            self["cacheClusterStatus"] = "AVAILABLE"
             self["cacheClusterSize"] = str(0.5)
         if cacheClusterSize is not None:
             self["cacheClusterSize"] = str(cacheClusterSize)
@@ -464,25 +472,39 @@ class Stage(BaseModel, dict):
                 self._apply_operation_to_variables(op)
             elif "/cacheClusterEnabled" in op["path"]:
                 self["cacheClusterEnabled"] = self._str2bool(op["value"])
-                if "cacheClusterSize" not in self and self["cacheClusterEnabled"]:
-                    self["cacheClusterSize"] = str(0.5)
+                if self["cacheClusterEnabled"]:
+                    self["cacheClusterStatus"] = "AVAILABLE"
+                    if "cacheClusterSize" not in self:
+                        self["cacheClusterSize"] = str(0.5)
+                else:
+                    self["cacheClusterStatus"] = "NOT_AVAILABLE"
             elif "/cacheClusterSize" in op["path"]:
-                self["cacheClusterSize"] = str(float(op["value"]))
+                self["cacheClusterSize"] = str(op["value"])
             elif "/description" in op["path"]:
                 self["description"] = op["value"]
             elif "/deploymentId" in op["path"]:
                 self["deploymentId"] = op["value"]
             elif op["op"] == "replace":
-                # Method Settings drop into here
-                # (e.g., path could be '/*/*/logging/loglevel')
-                split_path = op["path"].split("/", 3)
-                if len(split_path) != 4:
-                    continue
-                self._patch_method_setting(
-                    "/".join(split_path[1:3]), split_path[3], op["value"]
-                )
+                if op["path"] == "/tracingEnabled":
+                    self["tracingEnabled"] = self._str2bool(op["value"])
+                elif op["path"].startswith("/accessLogSettings/"):
+                    self["accessLogSettings"] = self.get("accessLogSettings", {})
+                    self["accessLogSettings"][op["path"].split("/")[-1]] = op["value"]
+                else:
+                    # (e.g., path could be '/*/*/logging/loglevel')
+                    split_path = op["path"].split("/", 3)
+                    if len(split_path) != 4:
+                        continue
+                    self._patch_method_setting(
+                        "/".join(split_path[1:3]), split_path[3], op["value"]
+                    )
+            elif op["op"] == "remove":
+                if op["path"] == "/accessLogSettings":
+                    self["accessLogSettings"] = None
             else:
-                raise Exception('Patch operation "%s" not implemented' % op["op"])
+                raise ValidationException(
+                    "Member must satisfy enum value set: [add, remove, move, test, replace, copy]"
+                )
         return self
 
     def _patch_method_setting(self, resource_path_and_method, key, value):
@@ -575,7 +597,7 @@ class ApiKey(BaseModel, dict):
         name=None,
         description=None,
         enabled=False,
-        generateDistinctId=False,
+        generateDistinctId=False,  # pylint: disable=unused-argument
         value=None,
         stageKeys=None,
         tags=None,
@@ -583,10 +605,8 @@ class ApiKey(BaseModel, dict):
     ):
         super().__init__()
         self["id"] = create_id()
-        self["value"] = (
-            value
-            if value
-            else "".join(random.sample(string.ascii_letters + string.digits, 40))
+        self["value"] = value or "".join(
+            random.sample(string.ascii_letters + string.digits, 40)
         )
         self["name"] = name
         self["customerId"] = customerId
@@ -712,6 +732,17 @@ class UsagePlanKey(BaseModel, dict):
         self["value"] = value
 
 
+class VpcLink(BaseModel, dict):
+    def __init__(self, name, description, target_arns, tags):
+        super().__init__()
+        self["id"] = create_id()
+        self["name"] = name
+        self["description"] = description
+        self["targetArns"] = target_arns
+        self["tags"] = tags
+        self["status"] = "AVAILABLE"
+
+
 class RestAPI(CloudFormationModel):
 
     PROP_ID = "id"
@@ -756,6 +787,7 @@ class RestAPI(CloudFormationModel):
         self.minimum_compression_size = kwargs.get("minimum_compression_size")
         self.deployments = {}
         self.authorizers = {}
+        self.gateway_responses = {}
         self.stages = {}
         self.resources = {}
         self.models = {}
@@ -812,8 +844,8 @@ class RestAPI(CloudFormationModel):
                     self.description = ""
 
     @classmethod
-    def has_cfn_attr(cls, attribute):
-        return attribute in ["RootResourceId"]
+    def has_cfn_attr(cls, attr):
+        return attr in ["RootResourceId"]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -960,6 +992,8 @@ class RestAPI(CloudFormationModel):
         tags=None,
         tracing_enabled=None,
     ):
+        if name in self.stages:
+            raise ConflictException("Stage already exists")
         if variables is None:
             variables = {}
         stage = Stage(
@@ -982,9 +1016,10 @@ class RestAPI(CloudFormationModel):
         deployment_id = create_id()
         deployment = Deployment(deployment_id, name, description)
         self.deployments[deployment_id] = deployment
-        self.stages[name] = Stage(
-            name=name, deployment_id=deployment_id, variables=stage_variables
-        )
+        if name:
+            self.stages[name] = Stage(
+                name=name, deployment_id=deployment_id, variables=stage_variables
+            )
         self.update_integration_mocks(name)
 
         return deployment
@@ -1002,6 +1037,13 @@ class RestAPI(CloudFormationModel):
         return list(self.deployments.values())
 
     def delete_deployment(self, deployment_id):
+        if deployment_id not in self.deployments:
+            raise DeploymentNotFoundException()
+        deployment = self.deployments[deployment_id]
+        if deployment["stageName"] and deployment["stageName"] in self.stages:
+            # Stage is still active
+            raise StageStillActive()
+
         return self.deployments.pop(deployment_id)
 
     def create_request_validator(
@@ -1033,6 +1075,29 @@ class RestAPI(CloudFormationModel):
     def update_request_validator(self, validator_id, patch_operations):
         self.request_validators[validator_id].apply_patch_operations(patch_operations)
         return self.request_validators[validator_id]
+
+    def put_gateway_response(
+        self, response_type, status_code, response_parameters, response_templates
+    ):
+        response = GatewayResponse(
+            response_type=response_type,
+            status_code=status_code,
+            response_parameters=response_parameters,
+            response_templates=response_templates,
+        )
+        self.gateway_responses[response_type] = response
+        return response
+
+    def get_gateway_response(self, response_type):
+        if response_type not in self.gateway_responses:
+            raise GatewayResponseNotFound()
+        return self.gateway_responses[response_type]
+
+    def get_gateway_responses(self):
+        return list(self.gateway_responses.values())
+
+    def delete_gateway_response(self, response_type):
+        self.gateway_responses.pop(response_type, None)
 
 
 class DomainName(BaseModel, dict):
@@ -1124,6 +1189,21 @@ class BasePathMapping(BaseModel, dict):
                     self["stage"] = value
 
 
+class GatewayResponse(BaseModel, dict):
+    def __init__(
+        self, response_type, status_code, response_parameters, response_templates
+    ):
+        super().__init__()
+        self["responseType"] = response_type
+        if status_code is not None:
+            self["statusCode"] = status_code
+        if response_parameters is not None:
+            self["responseParameters"] = response_parameters
+        if response_templates is not None:
+            self["responseTemplates"] = response_templates
+        self["defaultResponse"] = False
+
+
 class APIGatewayBackend(BaseBackend):
     """
     API Gateway mock.
@@ -1136,7 +1216,7 @@ class APIGatewayBackend(BaseBackend):
             restApiId=api_id,
             ...,
             uri="http://httpbin.org/robots.txt",
-            integrationHttpMethod="GET",
+            integrationHttpMethod="GET"
         )
         deploy_url = f"https://{api_id}.execute-api.us-east-1.amazonaws.com/dev"
         requests.get(deploy_url).content.should.equal(b"a fake response")
@@ -1161,6 +1241,7 @@ class APIGatewayBackend(BaseBackend):
         self.models = {}
         self.region_name = region_name
         self.base_path_mappings = {}
+        self.vpc_links = {}
 
     def reset(self):
         region_name = self.region_name
@@ -1410,6 +1491,7 @@ class APIGatewayBackend(BaseBackend):
         request_templates=None,
         tls_config=None,
         cache_namespace=None,
+        timeout_in_millis=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1449,6 +1531,7 @@ class APIGatewayBackend(BaseBackend):
             request_templates=request_templates,
             tls_config=tls_config,
             cache_namespace=cache_namespace,
+            timeout_in_millis=timeout_in_millis,
         )
         return integration
 
@@ -1759,7 +1842,7 @@ class APIGatewayBackend(BaseBackend):
     def create_request_validator(self, restapi_id, name, body, params):
         restApi = self.get_rest_api(restapi_id)
         return restApi.create_request_validator(
-            name=name, validateRequestBody=body, validateRequestParameters=params,
+            name=name, validateRequestBody=body, validateRequestParameters=params
         )
 
     def get_request_validator(self, restapi_id, validator_id):
@@ -1880,6 +1963,59 @@ class APIGatewayBackend(BaseBackend):
             self.base_path_mappings[domain_name][modified_base_path] = base_path_mapping
 
         return base_path_mapping
+
+    def create_vpc_link(self, name, description, target_arns, tags):
+        vpc_link = VpcLink(
+            name, description=description, target_arns=target_arns, tags=tags
+        )
+        self.vpc_links[vpc_link["id"]] = vpc_link
+        return vpc_link
+
+    def delete_vpc_link(self, vpc_link_id):
+        self.vpc_links.pop(vpc_link_id, None)
+
+    def get_vpc_link(self, vpc_link_id):
+        if vpc_link_id not in self.vpc_links:
+            raise VpcLinkNotFound
+        return self.vpc_links[vpc_link_id]
+
+    def get_vpc_links(self):
+        """
+        Pagination has not yet been implemented
+        """
+        return list(self.vpc_links.values())
+
+    def put_gateway_response(
+        self,
+        rest_api_id,
+        response_type,
+        status_code,
+        response_parameters,
+        response_templates,
+    ):
+        api = self.get_rest_api(rest_api_id)
+        response = api.put_gateway_response(
+            response_type,
+            status_code=status_code,
+            response_parameters=response_parameters,
+            response_templates=response_templates,
+        )
+        return response
+
+    def get_gateway_response(self, rest_api_id, response_type):
+        api = self.get_rest_api(rest_api_id)
+        return api.get_gateway_response(response_type)
+
+    def get_gateway_responses(self, rest_api_id):
+        """
+        Pagination is not yet implemented
+        """
+        api = self.get_rest_api(rest_api_id)
+        return api.get_gateway_responses()
+
+    def delete_gateway_response(self, rest_api_id, response_type):
+        api = self.get_rest_api(rest_api_id)
+        api.delete_gateway_response(response_type)
 
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")

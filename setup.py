@@ -80,7 +80,8 @@ for service_name in [
     extras_per_service[service_name] = []
 extras_per_service.update(
     {
-        "apigateway": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "apigateway": [_dep_PyYAML, _dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "apigatewayv2": [_dep_PyYAML],
         "appsync": [_dep_graphql],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],
@@ -101,7 +102,8 @@ extras_per_service.update(
 )
 
 # When a Table has a Stream, we'll always need to import AWSLambda to search for a corresponding function to send the table data to
-extras_per_service["dynamodb2"] = extras_per_service["awslambda"]
+extras_per_service["dynamodb"] = extras_per_service["awslambda"]
+extras_per_service["dynamodb2"] = extras_per_service["dynamodb"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
@@ -128,6 +130,7 @@ setup(
     url="https://github.com/spulec/moto",
     entry_points={"console_scripts": ["moto_server = moto.server:main"]},
     packages=find_packages(exclude=("tests", "tests.*")),
+    python_requires=">=3.6",
     install_requires=install_requires,
     extras_require=extras_require,
     include_package_data=True,

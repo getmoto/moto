@@ -3,7 +3,7 @@ from __future__ import print_function
 import pytest
 
 import boto3
-from moto import mock_dynamodb2, mock_dynamodbstreams
+from moto import mock_dynamodb, mock_dynamodbstreams
 
 
 class TestCore:
@@ -11,7 +11,7 @@ class TestCore:
     mocks = []
 
     def setup(self):
-        self.mocks = [mock_dynamodb2(), mock_dynamodbstreams()]
+        self.mocks = [mock_dynamodb(), mock_dynamodbstreams()]
         for m in self.mocks:
             m.start()
 
@@ -197,7 +197,7 @@ class TestEdges:
     mocks = []
 
     def setup(self):
-        self.mocks = [mock_dynamodb2(), mock_dynamodbstreams()]
+        self.mocks = [mock_dynamodb(), mock_dynamodbstreams()]
         for m in self.mocks:
             m.start()
 

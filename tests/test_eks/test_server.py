@@ -92,7 +92,7 @@ def create_cluster(test_client):
         data = deepcopy(TestCluster.data)
         data.update(name=name)
         response = client.post(
-            TestCluster.endpoint, data=json.dumps(data), headers=DEFAULT_HTTP_HEADERS,
+            TestCluster.endpoint, data=json.dumps(data), headers=DEFAULT_HTTP_HEADERS
         )
         response.status_code.should.equal(StatusCodes.OK)
 
@@ -113,7 +113,7 @@ def create_nodegroup(test_client):
         data = deepcopy(TestNodegroup.data)
         data.update(nodegroupName=name)
         response = client.post(
-            TestNodegroup.endpoint, data=json.dumps(data), headers=DEFAULT_HTTP_HEADERS,
+            TestNodegroup.endpoint, data=json.dumps(data), headers=DEFAULT_HTTP_HEADERS
         )
         response.status_code.should.equal(StatusCodes.OK)
 

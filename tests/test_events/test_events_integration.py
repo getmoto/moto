@@ -45,7 +45,7 @@ def test_send_to_cw_log_group():
                 "DetailType": "type",
                 "Detail": json.dumps({"key": "value"}),
             }
-        ],
+        ]
     )
 
     # then
@@ -121,7 +121,7 @@ def test_send_to_sqs_fifo_queue():
                 "DetailType": "type",
                 "Detail": json.dumps({"key": "value"}),
             }
-        ],
+        ]
     )
 
     # then
@@ -172,9 +172,7 @@ def test_send_to_sqs_queue():
         EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
         State="ENABLED",
     )
-    client_events.put_targets(
-        Rule=rule_name, Targets=[{"Id": "sqs", "Arn": queue_arn}],
-    )
+    client_events.put_targets(Rule=rule_name, Targets=[{"Id": "sqs", "Arn": queue_arn}])
 
     # when
     event_time = datetime(2021, 1, 1, 12, 23, 34)
@@ -186,7 +184,7 @@ def test_send_to_sqs_queue():
                 "DetailType": "type",
                 "Detail": json.dumps({"key": "value"}),
             }
-        ],
+        ]
     )
 
     # then
@@ -242,7 +240,7 @@ def test_send_to_sqs_queue_with_custom_event_bus():
                 "Detail": json.dumps({"key": "value"}),
                 "EventBusName": event_bus_arn,
             }
-        ],
+        ]
     )
 
     # then

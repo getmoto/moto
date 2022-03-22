@@ -532,9 +532,8 @@ class CognitoIdpResponse(BaseResponse):
     def confirm_sign_up(self):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
-        confirmation_code = self._get_param("ConfirmationCode")
         cognitoidp_backends[self.region].confirm_sign_up(
-            client_id=client_id, username=username, confirmation_code=confirmation_code,
+            client_id=client_id, username=username
         )
         return ""
 
@@ -556,10 +555,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def verify_software_token(self):
         access_token = self._get_param("AccessToken")
-        user_code = self._get_param("UserCode")
-        result = cognitoidp_backends[self.region].verify_software_token(
-            access_token, user_code
-        )
+        result = cognitoidp_backends[self.region].verify_software_token(access_token)
         return json.dumps(result)
 
     def set_user_mfa_preference(self):
@@ -568,6 +564,16 @@ class CognitoIdpResponse(BaseResponse):
         sms_mfa_settings = self._get_param("SMSMfaSettings")
         cognitoidp_backends[self.region].set_user_mfa_preference(
             access_token, software_token_mfa_settings, sms_mfa_settings
+        )
+        return ""
+
+    def admin_set_user_mfa_preference(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        software_token_mfa_settings = self._get_param("SoftwareTokenMfaSettings")
+        sms_mfa_settings = self._get_param("SMSMfaSettings")
+        cognitoidp_backends[self.region].admin_set_user_mfa_preference(
+            user_pool_id, username, software_token_mfa_settings, sms_mfa_settings
         )
         return ""
 
@@ -597,5 +603,7 @@ class CognitoIdpJsonWebKeyResponse(BaseResponse):
         ) as f:
             self.json_web_key = f.read()
 
-    def serve_json_web_key(self, request, full_url, headers):
+    def serve_json_web_key(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         return 200, {"Content-Type": "application/json"}, self.json_web_key

@@ -29,9 +29,7 @@ def test_vote_on_proposal_one_member_total_yes():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -78,9 +76,7 @@ def test_vote_on_proposal_one_member_total_no():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -91,10 +87,7 @@ def test_vote_on_proposal_one_member_total_no():
 
     # Vote no
     response = conn.vote_on_proposal(
-        NetworkId=network_id,
-        ProposalId=proposal_id,
-        VoterMemberId=member_id,
-        Vote="NO",
+        NetworkId=network_id, ProposalId=proposal_id, VoterMemberId=member_id, Vote="NO"
     )
 
     # List proposal votes
@@ -134,9 +127,7 @@ def test_vote_on_proposal_yes_greater_than():
     member_id = response["MemberId"]
 
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -165,9 +156,7 @@ def test_vote_on_proposal_yes_greater_than():
 
     # Create another proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -223,9 +212,7 @@ def test_vote_on_proposal_no_greater_than():
     member_id = response["MemberId"]
 
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -254,19 +241,14 @@ def test_vote_on_proposal_no_greater_than():
 
     # Create another proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
 
     # Vote no with member 1
     response = conn.vote_on_proposal(
-        NetworkId=network_id,
-        ProposalId=proposal_id,
-        VoterMemberId=member_id,
-        Vote="NO",
+        NetworkId=network_id, ProposalId=proposal_id, VoterMemberId=member_id, Vote="NO"
     )
 
     # Vote no with member 2
@@ -405,9 +387,7 @@ def test_vote_on_proposal_status_check():
 
     # Create another proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -520,9 +500,7 @@ def test_vote_on_proposal_badmember():
     member_id = response["MemberId"]
 
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -556,9 +534,7 @@ def test_vote_on_proposal_badvote():
     member_id = response["MemberId"]
 
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -600,9 +576,7 @@ def test_vote_on_proposal_alreadyvoted():
     member_id = response["MemberId"]
 
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -630,9 +604,7 @@ def test_vote_on_proposal_alreadyvoted():
 
     # Create another proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
 
     proposal_id = response["ProposalId"]
@@ -696,7 +668,7 @@ def test_list_proposal_votes_badproposal():
 
     with pytest.raises(ClientError) as ex:
         conn.list_proposal_votes(
-            NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
+            NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789"
         )
     err = ex.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")

@@ -27,7 +27,7 @@ athena
 
 - [ ] batch_get_named_query
 - [ ] batch_get_query_execution
-- [ ] create_data_catalog
+- [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_prepared_statement
 - [X] create_work_group
@@ -35,7 +35,7 @@ athena
 - [ ] delete_named_query
 - [ ] delete_prepared_statement
 - [ ] delete_work_group
-- [ ] get_data_catalog
+- [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
 - [ ] get_prepared_statement
@@ -43,7 +43,7 @@ athena
 - [ ] get_query_results
 - [ ] get_table_metadata
 - [X] get_work_group
-- [ ] list_data_catalogs
+- [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
 - [ ] list_named_queries
@@ -57,6 +57,7 @@ athena
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_data_catalog
+- [ ] update_named_query
 - [ ] update_prepared_statement
 - [ ] update_work_group
 
