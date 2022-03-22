@@ -157,7 +157,12 @@ class LogStream(BaseModel):
         return "{:056d}".format(self.upload_sequence_token)
 
     def get_log_events(
-        self, start_time, end_time, limit, next_token, start_from_head,
+        self,
+        start_time,
+        end_time,
+        limit,
+        next_token,
+        start_from_head,
     ):
         if limit is None:
             limit = 10000
@@ -367,13 +372,23 @@ class LogGroup(CloudFormationModel):
         return stream.put_log_events(log_group_name, log_stream_name, log_events)
 
     def get_log_events(
-        self, log_stream_name, start_time, end_time, limit, next_token, start_from_head,
+        self,
+        log_stream_name,
+        start_time,
+        end_time,
+        limit,
+        next_token,
+        start_from_head,
     ):
         if log_stream_name not in self.streams:
             raise ResourceNotFoundException()
         stream = self.streams[log_stream_name]
         return stream.get_log_events(
-            start_time, end_time, limit, next_token, start_from_head,
+            start_time,
+            end_time,
+            limit,
+            next_token,
+            start_from_head,
         )
 
     def filter_log_events(
