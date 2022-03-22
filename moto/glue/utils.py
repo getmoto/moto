@@ -98,10 +98,12 @@ _ALLOWED_KEY_TYPES = (
 
 class PartitionFilter:
     def __init__(self, expression, keys):
-        self._expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(expression)
+        self.expression = expression
+        self.keys = keys
 
-    def __call__(self, values):
-        if self._expression is None:
+    def __call__(self, value):
+        if self.expression is None:
             return True
 
         warnings.warn("Expression filtering is experimental")
+        expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(self.expression)
