@@ -211,9 +211,9 @@ class GlueBackend(BaseBackend):
         job = self.get_job(name)
         return job.start_job_run()
 
-    def get_job_run(self, name):
+    def get_job_run(self, name, run_id):
         job = self.get_job(name)
-        return job.get_job_run()
+        return job.get_job_run(run_id)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
@@ -521,8 +521,8 @@ class FakeJob:
         self.state = "RUNNING"
         return fake_job_run.job_run_id
 
-    def get_job_run(self):
-        fake_job_run = FakeJobRun(job_name=self.name)
+    def get_job_run(self, run_id):
+        fake_job_run = FakeJobRun(job_name=self.name, job_run_id=run_id)
         return fake_job_run
 
 
