@@ -45,6 +45,8 @@ class FakeThing(BaseModel):
         self.thing_shadow = None
 
     def matches(self, query_string):
+        if query_string == "*":
+            return True
         if query_string.startswith("thingName:"):
             qs = query_string[10:].replace("*", ".*").replace("?", ".")
             return re.search(f"^{qs}$", self.thing_name)
