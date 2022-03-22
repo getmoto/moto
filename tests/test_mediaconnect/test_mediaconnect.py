@@ -23,9 +23,14 @@ def _create_flow_config(name, **kwargs):
             }
         ],
     )
-    outputs = kwargs.get("outputs", [{"Name": "Output 1", "Protocol": "zixi-push"},
-                                     {"Name": "Output 2", "Protocol": "zixi-pull"},
-                                     {"Name": "Output 3", "Protocol": "srt-listener"}])
+    outputs = kwargs.get(
+        "outputs",
+        [
+            {"Name": "Output 1", "Protocol": "zixi-push"},
+            {"Name": "Output 2", "Protocol": "zixi-pull"},
+            {"Name": "Output 3", "Protocol": "srt-listener"},
+        ],
+    )
     source = kwargs.get(
         "source",
         {
