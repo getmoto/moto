@@ -32,7 +32,9 @@ def test_cancel_pending_job():
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, "test")
 
     resp = batch_client.submit_job(
-        jobName="test_job_name", jobQueue=queue_arn, jobDefinition=job_def_arn,
+        jobName="test_job_name",
+        jobQueue=queue_arn,
+        jobDefinition=job_def_arn,
     )
     job_id = resp["jobId"]
 

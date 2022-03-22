@@ -32,10 +32,12 @@ class ManagedState:
         Transitions the status as appropriate before returning
         """
         transition_config = state_manager.get_transition(self.model_name)
-        target_status = self._get_next_status(previous=self._status)
+        if transition_config["progression"] == "immediate":
+            self._status = self._get_last_status(previous=self._status)
+
         if transition_config["progression"] == "manual":
             if self._tick >= transition_config["times"]:
-                self._status = target_status
+                self._status = self._get_next_status(previous=self._status)
                 self._tick = 0
 
         if transition_config["progression"] == "time":
@@ -43,7 +45,7 @@ class ManagedState:
                 seconds=transition_config["seconds"]
             )
             if datetime.now() > next_transition_at:
-                self._status = target_status
+                self._status = self._get_next_status(previous=self._status)
                 self._time_progressed = datetime.now()
 
         return self._status
@@ -56,3 +58,10 @@ class ManagedState:
         return next(
             (nxt for prev, nxt in self._transitions if previous == prev), previous
         )
+
+    def _get_last_status(self, previous):
+        next_state = self._get_next_status(previous)
+        while next_state != previous:
+            previous = next_state
+            next_state = self._get_next_status(previous)
+        return next_state

@@ -66,7 +66,9 @@ class MotoAPIResponse(BaseResponse):
 
         return render_template("dashboard.html")
 
-    def get_transition(self, request, full_url, headers):
+    def get_transition(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         from .models import moto_api_backend
 
         qs_dict = dict(
@@ -78,7 +80,9 @@ class MotoAPIResponse(BaseResponse):
 
         return 200, {}, json.dumps(resp)
 
-    def set_transition(self, request, full_url, headers):
+    def set_transition(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         from .models import moto_api_backend
 
         request_body_size = int(headers["Content-Length"])
@@ -90,7 +94,9 @@ class MotoAPIResponse(BaseResponse):
         moto_api_backend.set_transition(model_name, transition)
         return 201, {}, ""
 
-    def unset_transition(self, request, full_url, headers):
+    def unset_transition(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         from .models import moto_api_backend
 
         request_body_size = int(headers["Content-Length"])

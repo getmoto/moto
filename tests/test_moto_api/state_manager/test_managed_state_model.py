@@ -10,6 +10,10 @@ class ExampleModel(ManagedState):
             model_name="example::model", transitions=[("frist_status", "second_status")]
         )
 
+    state_manager.register_default_transition(
+        model_name="example::model", transition={"progression": "manual", "times": 999}
+    )
+
 
 def test_initial_state():
     ExampleModel().status.should.equal("frist_status")
@@ -20,6 +24,25 @@ def test_advancing_without_specifying_configuration_does_nothing():
     for _ in range(5):
         model.status.should.equal("frist_status")
         model.advance()
+
+
+def test_advance_immediately():
+    model = ExampleModel()
+    model._transitions = [
+        ("frist_status", "second"),
+        ("second", "third"),
+        ("third", "fourth"),
+        ("fourth", "fifth"),
+    ]
+    state_manager.set_transition(
+        model_name="example::model", transition={"progression": "immediate"}
+    )
+
+    model.status.should.equal("fifth")
+
+    model.advance()
+
+    model.status.should.equal("fifth")
 
 
 def test_advance_x_times():

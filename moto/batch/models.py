@@ -790,8 +790,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             self.job_stopped_reason = reason
 
     def _wait_for_dependencies(self):
-        # TODO: What happens if a job is canceled while we wait?
-        # Maybe we should also check the self.stop inside this loop
         dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
         successful_dependencies = set()
         while len(successful_dependencies) != len(dependent_ids):
