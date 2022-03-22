@@ -305,9 +305,7 @@ class LogGroup(CloudFormationModel):
         if filters:
             stream.destination_arn = filters[0]["destinationArn"]
             stream.filter_name = filters[0]["filterName"]
-
         self.streams[log_stream_name] = stream
-
 
     def delete_log_stream(self, log_stream_name):
         if log_stream_name not in self.streams:

@@ -251,6 +251,7 @@ def test_subscription_filter_applies_to_new_streams():
     log_events[1]["message"].should.equal("test 2")
     log_events[1]["timestamp"].should.equal(ts_1)
 
+
 @mock_s3
 @mock_firehose
 @mock_logs
