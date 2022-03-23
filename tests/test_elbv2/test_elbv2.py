@@ -1,7 +1,6 @@
 import copy
 import os
 import boto3
-import botocore
 from botocore.exceptions import ClientError
 import pytest
 import sure  # noqa # pylint: disable=unused-import
@@ -178,9 +177,12 @@ def test_add_remove_tags():
         ],
     )
 
-    conn.add_tags.when.called_with(
-        ResourceArns=[lb.get("LoadBalancerArn")], Tags=[{"Key": "k", "Value": "b"}]
-    ).should.throw(botocore.exceptions.ClientError)
+    with pytest.raises(ClientError) as exc:
+        conn.add_tags(
+            ResourceArns=[lb.get("LoadBalancerArn")], Tags=[{"Key": "k", "Value": "b"}]
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("TooManyTagsError")
 
     conn.add_tags(
         ResourceArns=[lb.get("LoadBalancerArn")], Tags=[{"Key": "j", "Value": "c"}]
@@ -331,7 +333,7 @@ def test_create_rule_forward_config_as_second_arg():
     elbv2.create_rule(
         ListenerArn=http_listener_arn,
         Conditions=[
-            {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*"]}}
+            {"Field": "path-pattern", "PathPatternConfig": {"Values": ["/sth*"]}}
         ],
         Priority=priority,
         Actions=[
@@ -699,7 +701,7 @@ def test_modify_rule_conditions():
             "StatusCode": "HTTP_301",
         },
     }
-    condition = {"Field": "path-pattern", "PathPatternConfig": {"Values": [f"/sth*"]}}
+    condition = {"Field": "path-pattern", "PathPatternConfig": {"Values": ["/sth*"]}}
 
     response = elbv2.create_listener(
         LoadBalancerArn=load_balancer_arn,
