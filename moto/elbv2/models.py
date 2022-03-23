@@ -11,6 +11,7 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.ec2.models import ec2_backends
+from moto.utilities.tagging_service import TaggingService
 from .utils import make_arn_for_target_group
 from .utils import make_arn_for_load_balancer
 from .exceptions import (
@@ -81,7 +82,6 @@ class FakeTargetGroup(CloudFormationModel):
         matcher=None,
         target_type=None,
     ):
-
         # TODO: default values differs when you add Network Load balancer
         self.name = name
         self.arn = arn
@@ -106,7 +106,6 @@ class FakeTargetGroup(CloudFormationModel):
         self.healthy_threshold_count = healthy_threshold_count or 5
         self.unhealthy_threshold_count = unhealthy_threshold_count or 2
         self.load_balancer_arns = []
-        self.tags = {}
         if self.healthcheck_protocol != "TCP":
             self.matcher = matcher or {"HttpCode": "200"}
             self.healthcheck_path = self.healthcheck_path or "/"
@@ -141,14 +140,6 @@ class FakeTargetGroup(CloudFormationModel):
         for target_id in list(self.targets.keys()):
             if target_id in instance_ids:
                 del self.targets[target_id]
-
-    def add_tag(self, key, value):
-        if len(self.tags) >= 10 and key not in self.tags:
-            raise TooManyTagsError()
-        self.tags[key] = value
-
-    def remove_tag(self, key):
-        self.tags.pop(key, None)
 
     def health_for(self, target, ec2_backend):
         t = self.targets.get(target["id"])
@@ -245,7 +236,6 @@ class FakeListener(CloudFormationModel):
             actions=default_actions,
             is_default=True,
         )
-        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -263,14 +253,6 @@ class FakeListener(CloudFormationModel):
     def register(self, arn, rule):
         self._non_default_rules[arn] = rule
         sorted(self._non_default_rules.values(), key=lambda x: x.priority)
-
-    def add_tag(self, key, value):
-        if len(self.tags) >= 10 and key not in self.tags:
-            raise TooManyTagsError()
-        self.tags[key] = value
-
-    def remove_tag(self, key):
-        self.tags.pop(key, None)
 
     @staticmethod
     def cloudformation_name_type():
@@ -333,7 +315,6 @@ class FakeListenerRule(CloudFormationModel):
         self.conditions = conditions
         self.actions = actions
         self.priority = priority
-        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -558,18 +539,6 @@ class FakeLoadBalancer(CloudFormationModel):
     def physical_resource_id(self):
         return self.arn
 
-    def add_tag(self, key, value):
-        if len(self.tags) >= 10 and key not in self.tags:
-            raise TooManyTagsError()
-        self.tags[key] = value
-
-    def list_tags(self):
-        return self.tags
-
-    def remove_tag(self, key):
-        if key in self.tags:
-            del self.tags[key]
-
     def activate(self):
         if self.state == "provisioning":
             self.state = "active"
@@ -651,6 +620,7 @@ class ELBv2Backend(BaseBackend):
         self.region_name = region_name
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
+        self.tagging_service = TaggingService()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -682,6 +652,7 @@ class ELBv2Backend(BaseBackend):
         subnet_mappings=None,
         scheme="internet-facing",
         loadbalancer_type=None,
+        tags=None,
     ):
         vpc_id = None
         subnets = []
@@ -722,6 +693,7 @@ class ELBv2Backend(BaseBackend):
             loadbalancer_type=loadbalancer_type,
         )
         self.load_balancers[arn] = new_load_balancer
+        self.tagging_service.tag_resource(arn, tags)
         return new_load_balancer
 
     def convert_and_validate_action_properties(self, properties):
@@ -736,7 +708,7 @@ class ELBv2Backend(BaseBackend):
                 raise InvalidActionTypeError(action_type, i + 1)
         return default_actions
 
-    def create_rule(self, listener_arn, conditions, priority, actions):
+    def create_rule(self, listener_arn, conditions, priority, actions, tags=None):
         actions = [FakeAction(action) for action in actions]
         listeners = self.describe_listeners(None, [listener_arn])
         if not listeners:
@@ -768,6 +740,7 @@ class ELBv2Backend(BaseBackend):
         # create rule
         rule = FakeListenerRule(listener.arn, arn, conditions, priority, actions)
         listener.register(arn, rule)
+        self.tagging_service.tag_resource(arn, tags)
         return rule
 
     def _validate_conditions(self, conditions):
@@ -1076,6 +1049,7 @@ Member must satisfy regular expression pattern: {}".format(
         certificate,
         default_actions,
         alpn_policy=None,
+        tags=None,
     ):
         default_actions = [FakeAction(action) for action in default_actions]
         balancer = self.load_balancers.get(load_balancer_arn)
@@ -1107,6 +1081,8 @@ Member must satisfy regular expression pattern: {}".format(
                 for arn in found_arns:
                     target_group = self.target_groups[arn]
                     target_group.load_balancer_arns.append(load_balancer_arn)
+
+        self.tagging_service.tag_resource(listener.arn, tags)
 
         return listener
 
@@ -1598,6 +1574,59 @@ Member must satisfy regular expression pattern: {}".format(
         ]
         cert_arns = [c["certificate_arn"] for c in certificates]
         listener.certificates = [c for c in listener.certificates if c not in cert_arns]
+
+    def add_tags(self, resource_arns, tags):
+        tag_dict = self.tagging_service.flatten_tag_list(tags)
+        for arn in resource_arns:
+            existing = self.tagging_service.get_tag_dict_for_resource(arn)
+            for key in tag_dict:
+                if len(existing) >= 10 and key not in existing:
+                    raise TooManyTagsError()
+            self._get_resource_by_arn(arn)
+            self.tagging_service.tag_resource(arn, tags)
+
+    def remove_tags(self, resource_arns, tag_keys):
+        for arn in resource_arns:
+            self.tagging_service.untag_resource_using_names(arn, tag_keys)
+
+    def describe_tags(self, resource_arns):
+        return {
+            arn: self.tagging_service.get_tag_dict_for_resource(arn)
+            for arn in resource_arns
+        }
+
+    def _get_resource_by_arn(self, arn):
+        if ":targetgroup" in arn:
+            resource = self.target_groups.get(arn)
+            if not resource:
+                raise TargetGroupNotFoundError()
+        elif ":loadbalancer" in arn:
+            resource = self.load_balancers.get(arn)
+            if not resource:
+                raise LoadBalancerNotFoundError()
+        elif ":listener-rule" in arn:
+            lb_arn = arn.replace(":listener-rule", ":loadbalancer").rsplit("/", 2)[0]
+            balancer = self.load_balancers.get(lb_arn)
+            if not balancer:
+                raise LoadBalancerNotFoundError()
+            listener_arn = arn.replace(":listener-rule", ":listener").rsplit("/", 1)[0]
+            listener = balancer.listeners.get(listener_arn)
+            if not listener:
+                raise ListenerNotFoundError()
+            resource = listener.rules.get(arn)
+            if not resource:
+                raise RuleNotFoundError()
+        elif ":listener" in arn:
+            lb_arn, _, _ = arn.replace(":listener", ":loadbalancer").rpartition("/")
+            balancer = self.load_balancers.get(lb_arn)
+            if not balancer:
+                raise LoadBalancerNotFoundError()
+            resource = balancer.listeners.get(arn)
+            if not resource:
+                raise ListenerNotFoundError()
+        else:
+            raise LoadBalancerNotFoundError()
+        return resource
 
 
 elbv2_backends = BackendDict(ELBv2Backend, "ec2")

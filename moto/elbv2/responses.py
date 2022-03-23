@@ -2,10 +2,7 @@ from moto.core.exceptions import RESTError
 from moto.core.utils import amzn_request_id
 from moto.core.responses import BaseResponse
 from .models import elbv2_backends
-from .exceptions import DuplicateTagKeysError, RuleNotFoundError
-from .exceptions import LoadBalancerNotFoundError
 from .exceptions import TargetGroupNotFoundError
-from .exceptions import ListenerNotFoundError
 from .exceptions import ListenerOrBalancerMissingError
 
 SSL_POLICIES = [
@@ -144,12 +141,14 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_load_balancer(self):
-        load_balancer_name = self._get_param("Name")
+        params = self._get_params()
+        load_balancer_name = params.get("Name")
         subnet_ids = self._get_multi_param("Subnets.member")
-        subnet_mappings = self._get_params().get("SubnetMappings", [])
+        subnet_mappings = params.get("SubnetMappings", [])
         security_groups = self._get_multi_param("SecurityGroups.member")
-        scheme = self._get_param("Scheme")
-        loadbalancer_type = self._get_param("Type")
+        scheme = params.get("Scheme")
+        loadbalancer_type = params.get("Type")
+        tags = params.get("Tags")
 
         load_balancer = self.elbv2_backend.create_load_balancer(
             name=load_balancer_name,
@@ -158,8 +157,8 @@ class ELBV2Response(BaseResponse):
             subnet_mappings=subnet_mappings,
             scheme=scheme,
             loadbalancer_type=loadbalancer_type,
+            tags=tags,
         )
-        self._add_tags(load_balancer)
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render(load_balancer=load_balancer)
 
@@ -171,6 +170,7 @@ class ELBV2Response(BaseResponse):
             conditions=params["Conditions"],
             priority=params["Priority"],
             actions=params["Actions"],
+            tags=params.get("Tags"),
         )
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
@@ -228,6 +228,7 @@ class ELBV2Response(BaseResponse):
             certificate = None
         default_actions = params.get("DefaultActions", [])
         alpn_policy = params.get("AlpnPolicy", [])
+        tags = params.get("Tags")
 
         listener = self.elbv2_backend.create_listener(
             load_balancer_arn=load_balancer_arn,
@@ -237,8 +238,8 @@ class ELBV2Response(BaseResponse):
             certificate=certificate,
             default_actions=default_actions,
             alpn_policy=alpn_policy,
+            tags=tags,
         )
-        self._add_tags(listener)
 
         template = self.response_template(CREATE_LISTENER_TEMPLATE)
         return template.render(listener=listener)
@@ -421,10 +422,10 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def add_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
+        tags = self._get_params().get("Tags")
+        tags = self._get_params().get("Tags")
 
-        for arn in resource_arns:
-            resource = self._get_resource_by_arn(arn)
-            self._add_tags(resource)
+        self.elbv2_backend.add_tags(resource_arns, tags)
 
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
@@ -434,9 +435,7 @@ class ELBV2Response(BaseResponse):
         resource_arns = self._get_multi_param("ResourceArns.member")
         tag_keys = self._get_multi_param("TagKeys.member")
 
-        for arn in resource_arns:
-            resource = self._get_resource_by_arn(arn)
-            [resource.remove_tag(key) for key in tag_keys]
+        self.elbv2_backend.remove_tags(resource_arns, tag_keys)
 
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
@@ -444,46 +443,10 @@ class ELBV2Response(BaseResponse):
     @amzn_request_id
     def describe_tags(self):
         resource_arns = self._get_multi_param("ResourceArns.member")
-        resources = []
-        for arn in resource_arns:
-            resource = self._get_resource_by_arn(arn)
-            resources.append(resource)
+        resource_tags = self.elbv2_backend.describe_tags(resource_arns)
 
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
-        return template.render(resources=resources)
-
-    def _get_resource_by_arn(self, arn):
-        if ":targetgroup" in arn:
-            resource = self.elbv2_backend.target_groups.get(arn)
-            if not resource:
-                raise TargetGroupNotFoundError()
-        elif ":loadbalancer" in arn:
-            resource = self.elbv2_backend.load_balancers.get(arn)
-            if not resource:
-                raise LoadBalancerNotFoundError()
-        elif ":listener-rule" in arn:
-            lb_arn = arn.replace(":listener-rule", ":loadbalancer").rsplit("/", 2)[0]
-            balancer = self.elbv2_backend.load_balancers.get(lb_arn)
-            if not balancer:
-                raise LoadBalancerNotFoundError()
-            listener_arn = arn.replace(":listener-rule", ":listener").rsplit("/", 1)[0]
-            listener = balancer.listeners.get(listener_arn)
-            if not listener:
-                raise ListenerNotFoundError()
-            resource = listener.rules.get(arn)
-            if not resource:
-                raise RuleNotFoundError()
-        elif ":listener" in arn:
-            lb_arn, _, _ = arn.replace(":listener", ":loadbalancer").rpartition("/")
-            balancer = self.elbv2_backend.load_balancers.get(lb_arn)
-            if not balancer:
-                raise LoadBalancerNotFoundError()
-            resource = balancer.listeners.get(arn)
-            if not resource:
-                raise ListenerNotFoundError()
-        else:
-            raise LoadBalancerNotFoundError()
-        return resource
+        return template.render(resource_tags=resource_tags)
 
     @amzn_request_id
     def describe_account_limits(self):
@@ -654,30 +617,6 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(REMOVE_LISTENER_CERTIFICATES_TEMPLATE)
         return template.render(certificates=certificates)
 
-    def _add_tags(self, resource):
-        tag_values = []
-        tag_keys = []
-
-        for t_key, t_val in sorted(self.querystring.items()):
-            if t_key.startswith("Tags.member."):
-                if t_key.split(".")[3] == "Key":
-                    tag_keys.extend(t_val)
-                elif t_key.split(".")[3] == "Value":
-                    tag_values.extend(t_val)
-
-        counts = {}
-        for i in tag_keys:
-            counts[i] = tag_keys.count(i)
-
-        counts = sorted(counts.items(), key=lambda i: i[1], reverse=True)
-
-        if counts and counts[0][1] > 1:
-            # We have dupes...
-            raise DuplicateTagKeysError(counts[0])
-
-        for tag_key, tag_value in zip(tag_keys, tag_values):
-            resource.add_tag(tag_key, tag_value)
-
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <AddTagsResult/>
@@ -696,11 +635,11 @@ REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing
 DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <DescribeTagsResult>
     <TagDescriptions>
-      {% for resource in resources %}
+      {% for resource, tags in resource_tags.items() %}
       <member>
         <ResourceArn>{{ resource.arn }}</ResourceArn>
         <Tags>
-          {% for key, value in resource.tags.items() %}
+          {% for key, value in tags.items() %}
           <member>
             <Value>{{ value }}</Value>
             <Key>{{ key }}</Key>
