@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class ElasticBlockStore(BaseResponse):
+class ElasticBlockStore(EC2BaseResponse):
     def attach_volume(self):
         volume_id = self._get_param("VolumeId")
         instance_id = self._get_param("InstanceId")
@@ -88,7 +87,7 @@ class ElasticBlockStore(BaseResponse):
             return DELETE_VOLUME_RESPONSE
 
     def describe_snapshots(self):
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         snapshot_ids = self._get_multi_param("SnapshotId")
         snapshots = self.ec2_backend.describe_snapshots(
             snapshot_ids=snapshot_ids, filters=filters
@@ -97,7 +96,7 @@ class ElasticBlockStore(BaseResponse):
         return template.render(snapshots=snapshots)
 
     def describe_volumes(self):
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         volume_ids = self._get_multi_param("VolumeId")
         volumes = self.ec2_backend.describe_volumes(
             volume_ids=volume_ids, filters=filters

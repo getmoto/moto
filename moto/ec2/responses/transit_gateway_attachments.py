@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, add_tag_specification
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class TransitGatewayAttachment(BaseResponse):
+class TransitGatewayAttachment(EC2BaseResponse):
     def create_transit_gateway_vpc_attachment(self):
         options = self._get_multi_param_dict("Options")
         subnet_ids = self._get_multi_param("SubnetIds")
@@ -30,7 +30,7 @@ class TransitGatewayAttachment(BaseResponse):
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
         )
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateway_vpc_attachments = (
             self.ec2_backend.describe_transit_gateway_vpc_attachments(
                 transit_gateways_attachment_ids=transit_gateways_attachment_ids,
@@ -63,7 +63,7 @@ class TransitGatewayAttachment(BaseResponse):
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
         )
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateway_attachments = (
             self.ec2_backend.describe_transit_gateway_attachments(
                 transit_gateways_attachment_ids=transit_gateways_attachment_ids,
@@ -154,7 +154,7 @@ class TransitGatewayAttachment(BaseResponse):
         transit_gateways_attachment_ids = self._get_multi_param(
             "TransitGatewayAttachmentIds"
         )
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateway_peering_attachments = (
             self.ec2_backend.describe_transit_gateway_peering_attachments(
                 transit_gateways_attachment_ids=transit_gateways_attachment_ids,

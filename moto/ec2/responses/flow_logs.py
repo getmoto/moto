@@ -1,9 +1,8 @@
-from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class FlowLogs(BaseResponse):
+class FlowLogs(EC2BaseResponse):
     def create_flow_logs(self):
         resource_type = self._get_param("ResourceType")
         resource_ids = self._get_multi_param("ResourceId")
@@ -37,7 +36,7 @@ class FlowLogs(BaseResponse):
 
     def describe_flow_logs(self):
         flow_log_ids = self._get_multi_param("FlowLogId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         flow_logs = self.ec2_backend.describe_flow_logs(flow_log_ids, filters)
         if self.is_not_dryrun("DescribeFlowLogs"):
             template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)

@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class InternetGateways(BaseResponse):
+class InternetGateways(EC2BaseResponse):
     def attach_internet_gateway(self):
         igw_id = self._get_param("InternetGatewayId")
         vpc_id = self._get_param("VpcId")
@@ -30,7 +29,7 @@ class InternetGateways(BaseResponse):
             return template.render()
 
     def describe_internet_gateways(self):
-        filter_dict = filters_from_querystring(self.querystring)
+        filter_dict = self._filters_from_querystring()
         if "InternetGatewayId.1" in self.querystring:
             igw_ids = self._get_multi_param("InternetGatewayId")
             igws = self.ec2_backend.describe_internet_gateways(
