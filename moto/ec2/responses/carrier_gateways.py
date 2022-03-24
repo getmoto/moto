@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, add_tag_specification
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class CarrierGateway(BaseResponse):
+class CarrierGateway(EC2BaseResponse):
     def create_carrier_gateway(self):
         vpc_id = self._get_param("VpcId")
         tags = self._get_multi_param("TagSpecification")
@@ -23,7 +23,7 @@ class CarrierGateway(BaseResponse):
 
     def describe_carrier_gateways(self):
         carrier_gateway_ids = self._get_multi_param("CarrierGatewayId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
 
         carrier_gateways = self.ec2_backend.describe_carrier_gateways(
             carrier_gateway_ids, filters

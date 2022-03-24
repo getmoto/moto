@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class VirtualPrivateGateways(BaseResponse):
+class VirtualPrivateGateways(EC2BaseResponse):
     def attach_vpn_gateway(self):
         vpn_gateway_id = self._get_param("VpnGatewayId")
         vpc_id = self._get_param("VpcId")
@@ -34,7 +33,7 @@ class VirtualPrivateGateways(BaseResponse):
         return template.render(vpn_gateway=vpn_gateway)
 
     def describe_vpn_gateways(self):
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         vpn_gw_ids = self._get_multi_param("VpnGatewayId")
         vpn_gateways = self.ec2_backend.describe_vpn_gateways(filters, vpn_gw_ids)
         template = self.response_template(DESCRIBE_VPN_GATEWAYS_RESPONSE)

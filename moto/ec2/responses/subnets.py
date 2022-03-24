@@ -1,10 +1,10 @@
 import random
-from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.utils import filters_from_querystring
+
+from ._base_response import EC2BaseResponse
 
 
-class Subnets(BaseResponse):
+class Subnets(EC2BaseResponse):
     def create_subnet(self):
         vpc_id = self._get_param("VpcId")
         cidr_block = self._get_param("CidrBlock")
@@ -39,7 +39,7 @@ class Subnets(BaseResponse):
     def describe_subnets(self):
         self.error_on_dryrun()
         subnet_ids = self._get_multi_param("SubnetId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)
         template = self.response_template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)

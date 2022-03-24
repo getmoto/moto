@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, add_tag_specification
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class ElasticIPAddresses(BaseResponse):
+class ElasticIPAddresses(EC2BaseResponse):
     def allocate_address(self):
         domain = self._get_param("Domain", if_none="standard")
         reallocate_address = self._get_param("Address", if_none=None)
@@ -72,7 +72,7 @@ class ElasticIPAddresses(BaseResponse):
         self.error_on_dryrun()
         allocation_ids = self._get_multi_param("AllocationId")
         public_ips = self._get_multi_param("PublicIp")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         addresses = self.ec2_backend.describe_addresses(
             allocation_ids, public_ips, filters
         )

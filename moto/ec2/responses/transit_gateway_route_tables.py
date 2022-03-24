@@ -1,9 +1,8 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 from moto.utilities.utils import str2bool
 
 
-class TransitGatewayRouteTable(BaseResponse):
+class TransitGatewayRouteTable(EC2BaseResponse):
     def create_transit_gateway_route_table(self):
         transit_gateway_id = self._get_param("TransitGatewayId")
         tags = self._get_multi_param("TagSpecifications")
@@ -20,7 +19,7 @@ class TransitGatewayRouteTable(BaseResponse):
         return template.render(transit_gateway_route_table=transit_gateway_route_table)
 
     def describe_transit_gateway_route_tables(self):
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateway_route_table_ids = (
             self._get_multi_param("TransitGatewayRouteTableIds") or None
         )
@@ -78,7 +77,7 @@ class TransitGatewayRouteTable(BaseResponse):
 
     def search_transit_gateway_routes(self):
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         max_results = self._get_param("MaxResults")
         transit_gateway_routes = self.ec2_backend.search_transit_gateway_routes(
             transit_gateway_route_table_id=transit_gateway_route_table_id,
@@ -90,7 +89,7 @@ class TransitGatewayRouteTable(BaseResponse):
 
     def get_transit_gateway_route_table_associations(self):
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateway_route_table_associations = (
             self.ec2_backend.get_all_transit_gateway_route_table_associations(
                 transit_gateway_route_table_id, filters
@@ -105,7 +104,7 @@ class TransitGatewayRouteTable(BaseResponse):
 
     def get_transit_gateway_route_table_propagations(self):
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         transit_gateway_route_table_propagations = (
             self.ec2_backend.get_all_transit_gateway_route_table_propagations(
                 transit_gateway_route_table_id, filters

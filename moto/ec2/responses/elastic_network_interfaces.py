@@ -1,12 +1,8 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import (
-    filters_from_querystring,
-    get_attribute_value,
-    add_tag_specification,
-)
+from moto.ec2.utils import get_attribute_value, add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class ElasticNetworkInterfaces(BaseResponse):
+class ElasticNetworkInterfaces(EC2BaseResponse):
     def create_network_interface(self):
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
@@ -49,7 +45,7 @@ class ElasticNetworkInterfaces(BaseResponse):
 
     def describe_network_interfaces(self):
         eni_ids = self._get_multi_param("NetworkInterfaceId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)

@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class SpotInstances(BaseResponse):
+class SpotInstances(EC2BaseResponse):
     def cancel_spot_instance_requests(self):
         request_ids = self._get_multi_param("SpotInstanceRequestId")
         if self.is_not_dryrun("CancelSpotInstance"):
@@ -29,7 +28,7 @@ class SpotInstances(BaseResponse):
 
     def describe_spot_instance_requests(self):
         spot_instance_ids = self._get_multi_param("SpotInstanceRequestId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         requests = self.ec2_backend.describe_spot_instance_requests(
             filters=filters, spot_instance_ids=spot_instance_ids
         )
@@ -38,7 +37,7 @@ class SpotInstances(BaseResponse):
 
     def describe_spot_price_history(self):
         instance_types_filters = self._get_multi_param("InstanceType")
-        filter_dict = filters_from_querystring(self.querystring)
+        filter_dict = self._filters_from_querystring()
         prices = self.ec2_backend.describe_spot_price_history(
             instance_types_filters, filter_dict
         )

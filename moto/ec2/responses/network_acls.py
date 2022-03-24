@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class NetworkACLs(BaseResponse):
+class NetworkACLs(EC2BaseResponse):
     def create_network_acl(self):
         vpc_id = self._get_param("VpcId")
         tags = self._get_multi_param("TagSpecification")
@@ -84,7 +83,7 @@ class NetworkACLs(BaseResponse):
 
     def describe_network_acls(self):
         network_acl_ids = self._get_multi_param("NetworkAclId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         network_acls = self.ec2_backend.describe_network_acls(network_acl_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)

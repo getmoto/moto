@@ -1,5 +1,4 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
 def try_parse_int(value, default=None):
@@ -68,7 +67,7 @@ def parse_sg_attributes_from_dict(sg_attributes):
     return (ip_protocol, from_port, to_port, ip_ranges, source_groups, prefix_list_ids)
 
 
-class SecurityGroups(BaseResponse):
+class SecurityGroups(EC2BaseResponse):
     def _process_rules_from_querystring(self):
         group_name_or_id = self._get_param("GroupName") or self._get_param("GroupId")
 
@@ -186,7 +185,7 @@ class SecurityGroups(BaseResponse):
     def describe_security_groups(self):
         groupnames = self._get_multi_param("GroupName")
         group_ids = self._get_multi_param("GroupId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
 
         groups = self.ec2_backend.describe_security_groups(
             group_ids=group_ids, groupnames=groupnames, filters=filters
