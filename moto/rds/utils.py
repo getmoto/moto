@@ -1,4 +1,3 @@
-import re
 from collections import namedtuple
 
 from botocore.utils import merge_dicts
@@ -16,35 +15,6 @@ FilterDef = namedtuple(
         "description",
     ],
 )
-
-
-def filters_from_querystring(querystring):
-    """Parses filters out of the query string computed by the
-    moto.core.responses.BaseResponse class.
-
-    :param dict[str, list[str]] querystring:
-        The `moto`-processed URL query string dictionary.
-    :returns:
-        Dict mapping filter names to filter values.
-    :rtype:
-        dict[str, list[str]]
-    """
-    response_values = {}
-    for key, value in sorted(querystring.items()):
-        match = re.search(r"Filters.Filter.(\d).Name", key)
-        if match:
-            filter_index = match.groups()[0]
-            value_prefix = "Filters.Filter.{0}.Value".format(filter_index)
-            filter_values = [
-                filter_value[0]
-                for filter_key, filter_value in querystring.items()
-                if filter_key.startswith(value_prefix)
-            ]
-            # The AWS query protocol serializes empty lists as an empty string.
-            if filter_values == [""]:
-                filter_values = []
-            response_values[value[0]] = filter_values
-    return response_values
 
 
 def get_object_value(obj, attr):

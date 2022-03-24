@@ -4,7 +4,6 @@ from moto.rds.utils import (
     FilterDef,
     apply_filter,
     merge_filters,
-    filters_from_querystring,
     validate_filters,
 )
 
@@ -135,38 +134,3 @@ class TestMergingFilters(object):
         assert len(merged.keys()) == 4
         for key in merged.keys():
             assert merged[key] == ["value1", "value2"]
-
-
-class TestParsingFiltersFromQuerystring(object):
-    def test_parse_empty_list(self):
-        # The AWS query protocol serializes empty lists as an empty string.
-        querystring = {
-            "Filters.Filter.1.Name": ["empty-filter"],
-            "Filters.Filter.1.Value.1": [""],
-        }
-        filters = filters_from_querystring(querystring)
-        assert filters == {"empty-filter": []}
-
-    def test_multiple_values(self):
-        querystring = {
-            "Filters.Filter.1.Name": ["multi-value"],
-            "Filters.Filter.1.Value.1": ["value1"],
-            "Filters.Filter.1.Value.2": ["value2"],
-        }
-        filters = filters_from_querystring(querystring)
-        values = filters["multi-value"]
-        assert len(values) == 2
-        assert "value1" in values
-        assert "value2" in values
-
-    def test_multiple_filters(self):
-        querystring = {
-            "Filters.Filter.1.Name": ["filter-1"],
-            "Filters.Filter.1.Value.1": ["value1"],
-            "Filters.Filter.2.Name": ["filter-2"],
-            "Filters.Filter.2.Value.1": ["value2"],
-        }
-        filters = filters_from_querystring(querystring)
-        assert len(filters.keys()) == 2
-        assert filters["filter-1"] == ["value1"]
-        assert filters["filter-2"] == ["value2"]
