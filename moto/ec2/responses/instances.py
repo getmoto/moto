@@ -1,20 +1,20 @@
-from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     MissingParameterError,
     InvalidParameterCombination,
     InvalidRequest,
 )
-from moto.ec2.utils import filters_from_querystring, dict_from_querystring
 from moto.core import ACCOUNT_ID
 
 from copy import deepcopy
 
+from ._base_response import EC2BaseResponse
 
-class InstanceResponse(BaseResponse):
+
+class InstanceResponse(EC2BaseResponse):
     def describe_instances(self):
         self.error_on_dryrun()
-        filter_dict = filters_from_querystring(self.querystring)
+        filter_dict = self._filters_from_querystring()
         instance_ids = self._get_multi_param("InstanceId")
         token = self._get_param("NextToken")
         if instance_ids:
@@ -55,7 +55,7 @@ class InstanceResponse(BaseResponse):
             "owner_id": owner_id,
             "key_name": self._get_param("KeyName"),
             "security_group_ids": self._get_multi_param("SecurityGroupId"),
-            "nics": dict_from_querystring("NetworkInterface", self.querystring),
+            "nics": self._get_multi_param("NetworkInterface."),
             "private_ip": self._get_param("PrivateIpAddress"),
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification("TagSpecification"),
@@ -154,7 +154,7 @@ class InstanceResponse(BaseResponse):
 
     def describe_instance_type_offerings(self):
         location_type_filters = self._get_param("LocationType")
-        filter_dict = filters_from_querystring(self.querystring)
+        filter_dict = self._filters_from_querystring()
         offerings = self.ec2_backend.describe_instance_type_offerings(
             location_type_filters, filter_dict
         )

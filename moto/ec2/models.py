@@ -680,7 +680,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.subnet_id = kwargs.get("subnet_id")
         if not self.subnet_id:
             self.subnet_id = next(
-                (n["SubnetId"] for n in nics.values() if "SubnetId" in n), None
+                (n["SubnetId"] for n in nics if "SubnetId" in n), None
             )
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
@@ -1008,11 +1008,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         # If empty NIC spec but primary NIC values provided, create NIC from
         # them.
         if primary_nic and not nic_spec:
-            nic_spec[0] = primary_nic
+            nic_spec = [primary_nic]
             nic_spec[0]["DeviceIndex"] = 0
 
         # Flesh out data structures and associations
-        for nic in nic_spec.values():
+        for nic in nic_spec:
             device_index = int(nic.get("DeviceIndex"))
 
             nic_id = nic.get("NetworkInterfaceId")
@@ -1031,13 +1031,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     subnet = self.ec2_backend.get_subnet(nic["SubnetId"])
                 else:
                     # Get default Subnet
-                    subnet = [
-                        subnet
-                        for subnet in self.ec2_backend.get_all_subnets(
-                            filters={"availabilityZone": self._placement.zone}
-                        )
-                        if subnet.default_for_az
-                    ][0]
+                    zone = self._placement.zone
+                    subnet = self.ec2_backend.get_default_subnet(availability_zone=zone)
 
                 group_id = nic.get("SecurityGroupId")
                 group_ids = [group_id] if group_id else []
@@ -4701,6 +4696,15 @@ class SubnetBackend(object):
             if subnet_id in subnets:
                 return subnets[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
+
+    def get_default_subnet(self, availability_zone):
+        return [
+            subnet
+            for subnet in self.get_all_subnets(
+                filters={"availabilityZone": availability_zone}
+            )
+            if subnet.default_for_az
+        ][0]
 
     def create_subnet(
         self,

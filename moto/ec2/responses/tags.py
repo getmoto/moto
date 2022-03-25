@@ -1,10 +1,9 @@
-from moto.core.responses import BaseResponse
 from moto.ec2.models import validate_resource_ids
-from moto.ec2.utils import filters_from_querystring
 from moto.core.utils import tags_from_query_string
+from ._base_response import EC2BaseResponse
 
 
-class TagResponse(BaseResponse):
+class TagResponse(EC2BaseResponse):
     def create_tags(self):
         resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
@@ -23,7 +22,7 @@ class TagResponse(BaseResponse):
             return DELETE_RESPONSE
 
     def describe_tags(self):
-        filters = filters_from_querystring(querystring_dict=self.querystring)
+        filters = self._filters_from_querystring()
         tags = self.ec2_backend.describe_tags(filters=filters)
         template = self.response_template(DESCRIBE_RESPONSE)
         return template.render(tags=tags)

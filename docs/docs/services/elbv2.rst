@@ -25,7 +25,7 @@ elbv2
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_listener_certificates
+- [X] add_listener_certificates
 - [ ] add_tags
 - [X] create_listener
 - [X] create_load_balancer
@@ -37,7 +37,7 @@ elbv2
 - [X] delete_target_group
 - [X] deregister_targets
 - [ ] describe_account_limits
-- [ ] describe_listener_certificates
+- [X] describe_listener_certificates
 - [X] describe_listeners
 - [X] describe_load_balancer_attributes
 - [X] describe_load_balancers
@@ -53,7 +53,7 @@ elbv2
 - [X] modify_target_group
 - [X] modify_target_group_attributes
 - [X] register_targets
-- [ ] remove_listener_certificates
+- [X] remove_listener_certificates
 - [ ] remove_tags
 - [X] set_ip_address_type
 - [X] set_rule_priorities

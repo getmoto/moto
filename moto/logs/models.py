@@ -297,9 +297,13 @@ class LogGroup(CloudFormationModel):
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
-        self.streams[log_stream_name] = LogStream(
-            self.region, self.name, log_stream_name
-        )
+        stream = LogStream(self.region, self.name, log_stream_name)
+        filters = self.describe_subscription_filters()
+
+        if filters:
+            stream.destination_arn = filters[0]["destinationArn"]
+            stream.filter_name = filters[0]["filterName"]
+        self.streams[log_stream_name] = stream
 
     def delete_log_stream(self, log_stream_name):
         if log_stream_name not in self.streams:

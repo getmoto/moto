@@ -12,6 +12,7 @@ from moto import mock_iot
         ["thingName:abc", {"abc"}],
         ["thingName:ab*", {"abc", "abd", "abcefg"}],
         ["thingName:ab?", {"abc", "abd"}],
+        ["*", {"abc", "abd", "bbe", "abcefg", "uuuabc", "bbefg"}],
     ],
 )
 def test_search_things(query_string, results):

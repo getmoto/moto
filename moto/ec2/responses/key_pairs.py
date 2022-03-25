@@ -1,8 +1,7 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class KeyPairs(BaseResponse):
+class KeyPairs(EC2BaseResponse):
     def create_key_pair(self):
         name = self._get_param("KeyName")
         if self.is_not_dryrun("CreateKeyPair"):
@@ -20,7 +19,7 @@ class KeyPairs(BaseResponse):
 
     def describe_key_pairs(self):
         names = self._get_multi_param("KeyName")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         keypairs = self.ec2_backend.describe_key_pairs(names, filters)
         template = self.response_template(DESCRIBE_KEY_PAIRS_RESPONSE)
         return template.render(keypairs=keypairs)

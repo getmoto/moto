@@ -1,9 +1,9 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, add_tag_specification
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 from xml.sax.saxutils import escape
 
 
-class VPNConnections(BaseResponse):
+class VPNConnections(EC2BaseResponse):
     def create_vpn_connection(self):
         vpn_conn_type = self._get_param("Type")
         cgw_id = self._get_param("CustomerGatewayId")
@@ -41,7 +41,7 @@ class VPNConnections(BaseResponse):
 
     def describe_vpn_connections(self):
         vpn_connection_ids = self._get_multi_param("VpnConnectionId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         vpn_connections = self.ec2_backend.get_all_vpn_connections(
             vpn_connection_ids=vpn_connection_ids, filters=filters
         )

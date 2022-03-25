@@ -1,8 +1,8 @@
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring, add_tag_specification
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class NatGateways(BaseResponse):
+class NatGateways(EC2BaseResponse):
     def create_nat_gateway(self):
         subnet_id = self._get_param("SubnetId")
         allocation_id = self._get_param("AllocationId")
@@ -26,7 +26,7 @@ class NatGateways(BaseResponse):
         return template.render(nat_gateway=nat_gateway)
 
     def describe_nat_gateways(self):
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         nat_gateway_ids = self._get_multi_param("NatGatewayId")
         nat_gateways = self.ec2_backend.describe_nat_gateways(filters, nat_gateway_ids)
         template = self.response_template(DESCRIBE_NAT_GATEWAYS_RESPONSE)

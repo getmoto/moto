@@ -4,7 +4,6 @@ from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
 from .models import rds_backends
 from .exceptions import DBParameterGroupNotFoundError
-from .utils import filters_from_querystring
 
 
 class RDSResponse(BaseResponse):
@@ -171,7 +170,8 @@ class RDSResponse(BaseResponse):
 
     def describe_db_instances(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._get_multi_param("Filters.Filter.")
+        filters = {f["Name"]: f["Values"] for f in filters}
         all_instances = list(
             self.backend.describe_databases(db_instance_identifier, filters=filters)
         )
@@ -240,7 +240,8 @@ class RDSResponse(BaseResponse):
     def describe_db_snapshots(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._get_multi_param("Filters.Filter.")
+        filters = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_database_snapshots(
             db_instance_identifier, db_snapshot_identifier, filters
         )
@@ -549,7 +550,8 @@ class RDSResponse(BaseResponse):
     def describe_db_cluster_snapshots(self):
         db_cluster_identifier = self._get_param("DBClusterIdentifier")
         db_snapshot_identifier = self._get_param("DBClusterSnapshotIdentifier")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._get_multi_param("Filters.Filter.")
+        filters = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_db_cluster_snapshots(
             db_cluster_identifier, db_snapshot_identifier, filters
         )

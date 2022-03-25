@@ -1,8 +1,7 @@
 import uuid
-from moto.core.responses import BaseResponse
 from moto.ec2.models import OWNER_ID
 from moto.ec2.exceptions import FilterNotImplementedError
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 from xml.etree import ElementTree
 from xml.dom import minidom
@@ -91,7 +90,7 @@ def parse_lists(data):
     return data
 
 
-class LaunchTemplates(BaseResponse):
+class LaunchTemplates(EC2BaseResponse):
     def create_launch_template(self):
         name = self._get_param("LaunchTemplateName")
         version_description = self._get_param("VersionDescription")
@@ -195,7 +194,7 @@ class LaunchTemplates(BaseResponse):
         min_version = self._get_int_param("MinVersion")
         max_version = self._get_int_param("MaxVersion")
 
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         if filters:
             raise FilterNotImplementedError(
                 "all filters", "DescribeLaunchTemplateVersions"
@@ -255,7 +254,7 @@ class LaunchTemplates(BaseResponse):
         max_results = self._get_int_param("MaxResults", 15)
         template_names = self._get_multi_param("LaunchTemplateName")
         template_ids = self._get_multi_param("LaunchTemplateId")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
 
         if self.is_not_dryrun("DescribeLaunchTemplates"):
             tree = ElementTree.Element("DescribeLaunchTemplatesResponse")

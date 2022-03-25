@@ -109,6 +109,55 @@ def test_get_job_exists():
 
 
 @mock_glue
+def test_start_job_run():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    response = client.start_job_run(JobName=job_name)
+    assert response["JobRunId"]
+
+
+@mock_glue
+def test_start_job_run_already_running():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    client.start_job_run(JobName=job_name)
+    with pytest.raises(ClientError) as exc:
+        client.start_job_run(JobName=job_name)
+    exc.value.response["Error"]["Code"].should.equal("ConcurrentRunsExceededException")
+    exc.value.response["Error"]["Message"].should.match(
+        f"Job with name {job_name} already running"
+    )
+
+
+@mock_glue
+def test_get_job_run():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    response = client.get_job_run(JobName=job_name, RunId="01")
+    assert response["JobRun"]["Id"]
+    assert response["JobRun"]["Attempt"]
+    assert response["JobRun"]["PreviousRunId"]
+    assert response["JobRun"]["TriggerName"]
+    assert response["JobRun"]["StartedOn"]
+    assert response["JobRun"]["LastModifiedOn"]
+    assert response["JobRun"]["CompletedOn"]
+    assert response["JobRun"]["JobRunState"]
+    assert response["JobRun"]["Arguments"]
+    assert response["JobRun"]["ErrorMessage"] == ""
+    assert response["JobRun"]["PredecessorRuns"]
+    assert response["JobRun"]["AllocatedCapacity"]
+    assert response["JobRun"]["ExecutionTime"]
+    assert response["JobRun"]["Timeout"]
+    assert response["JobRun"]["MaxCapacity"]
+    assert response["JobRun"]["WorkerType"]
+    assert response["JobRun"]["NumberOfWorkers"]
+    assert response["JobRun"]["SecurityConfiguration"]
+    assert response["JobRun"]["LogGroupName"]
+    assert response["JobRun"]["NotificationProperty"]
+    assert response["JobRun"]["GlueVersion"]
+
+
+@mock_glue
 def test_list_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)

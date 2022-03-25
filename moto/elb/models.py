@@ -2,11 +2,11 @@ import datetime
 
 import pytz
 
-from moto.packages.boto.ec2.elb.policies import Policies, OtherPolicy
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
+from uuid import uuid4
 from .exceptions import (
     BadHealthCheckDefinition,
     DuplicateLoadBalancerName,
@@ -14,9 +14,11 @@ from .exceptions import (
     EmptyListenersError,
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
+    PolicyNotFoundError,
     TooManyTagsError,
     CertificateNotFoundException,
 )
+from .policies import AppCookieStickinessPolicy, LbCookieStickinessPolicy, OtherPolicy
 
 
 class FakeHealthCheck(BaseModel):
@@ -84,13 +86,10 @@ class FakeLoadBalancer(CloudFormationModel):
         self.created_time = datetime.datetime.now(pytz.utc)
         self.scheme = scheme or "internet-facing"
         self.attributes = FakeLoadBalancer.get_default_attributes()
-        self.policies = Policies()
-        self.policies.other_policies = []
-        self.policies.app_cookie_stickiness_policies = []
-        self.policies.lb_cookie_stickiness_policies = []
+        self.policies = []
         self.security_groups = security_groups or []
         self.subnets = subnets or []
-        self.vpc_id = vpc_id or "vpc-56e10e3d"
+        self.vpc_id = vpc_id
         self.tags = {}
         self.dns_name = "%s.us-east-1.elb.amazonaws.com" % (name)
 
@@ -105,7 +104,10 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
-            if listener.ssl_certificate_id:
+            if (
+                listener.ssl_certificate_id
+                and not listener.ssl_certificate_id.startswith("arn:aws:iam:")
+            ):
                 elb_backend._register_certificate(
                     listener.ssl_certificate_id, self.dns_name
                 )
@@ -290,12 +292,24 @@ class ELBBackend(BaseBackend):
         if subnets:
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
+        elif zones:
+            subnets = [
+                ec2_backend.get_default_subnet(availability_zone=zone).id
+                for zone in zones
+            ]
+            subnet = ec2_backend.get_subnet(subnets[0])
+            vpc_id = subnet.vpc_id
         if name in self.load_balancers:
             raise DuplicateLoadBalancerName(name)
         if not ports:
             raise EmptyListenersError()
         if not security_groups:
-            security_groups = []
+            sg = ec2_backend.create_security_group(
+                name=f"default_elb_{uuid4()}",
+                description="ELB created security group used when no security group is specified during ELB creation - modifications could impact traffic to future ELBs",
+                vpc_id=vpc_id,
+            )
+            security_groups = [sg.id]
         for security_group in security_groups:
             if ec2_backend.get_security_group_from_id(security_group) is None:
                 raise InvalidSecurityGroupError()
@@ -322,7 +336,7 @@ class ELBBackend(BaseBackend):
                 ssl_certificate_id = port.get("ssl_certificate_id")
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
-                        if protocol != listener.protocol:
+                        if protocol.lower() != listener.protocol.lower():
                             raise DuplicateListenerError(name, lb_port)
                         if instance_port != listener.instance_port:
                             raise DuplicateListenerError(name, lb_port)
@@ -330,7 +344,9 @@ class ELBBackend(BaseBackend):
                             raise DuplicateListenerError(name, lb_port)
                         break
                 else:
-                    if ssl_certificate_id:
+                    if ssl_certificate_id and not ssl_certificate_id.startswith(
+                        "arn:aws:iam::"
+                    ):
                         self._register_certificate(
                             ssl_certificate_id, balancer.dns_name
                         )
@@ -355,6 +371,15 @@ class ELBBackend(BaseBackend):
         else:
             return balancers
 
+    def describe_load_balancer_policies(self, lb_name, policy_names):
+        lb = self.describe_load_balancers([lb_name])[0]
+        policies = lb.policies
+        if policy_names:
+            policies = [p for p in policies if p.policy_name in policy_names]
+            if len(policy_names) != len(policies):
+                raise PolicyNotFoundError()
+        return policies
+
     def delete_load_balancer_listeners(self, name, ports):
         balancer = self.load_balancers.get(name, None)
         listeners = []
@@ -370,6 +395,10 @@ class ELBBackend(BaseBackend):
 
     def delete_load_balancer(self, load_balancer_name):
         self.load_balancers.pop(load_balancer_name, None)
+
+    def delete_load_balancer_policy(self, lb_name, policy_name):
+        lb = self.get_load_balancer(lb_name)
+        lb.policies = [p for p in lb.policies if p.policy_name != policy_name]
 
     def get_load_balancer(self, load_balancer_name):
         return self.load_balancers.get(load_balancer_name)
@@ -471,23 +500,31 @@ class ELBBackend(BaseBackend):
         if access_log:
             load_balancer.attributes["access_log"] = access_log
 
-    def create_lb_other_policy(self, load_balancer_name, other_policy):
+    def create_lb_other_policy(
+        self, load_balancer_name, policy_name, policy_type_name, policy_attrs
+    ):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        if other_policy.policy_name not in [
-            p.policy_name for p in load_balancer.policies.other_policies
-        ]:
-            load_balancer.policies.other_policies.append(other_policy)
+        if policy_name not in [p.policy_name for p in load_balancer.policies]:
+            load_balancer.policies.append(
+                OtherPolicy(policy_name, policy_type_name, policy_attrs)
+            )
 
         return load_balancer
 
-    def create_app_cookie_stickiness_policy(self, load_balancer_name, policy):
+    def create_app_cookie_stickiness_policy(
+        self, load_balancer_name, policy_name, cookie_name
+    ):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.policies.app_cookie_stickiness_policies.append(policy)
+        policy = AppCookieStickinessPolicy(policy_name, cookie_name)
+        load_balancer.policies.append(policy)
         return load_balancer
 
-    def create_lb_cookie_stickiness_policy(self, load_balancer_name, policy):
+    def create_lb_cookie_stickiness_policy(
+        self, load_balancer_name, policy_name, cookie_expiration_period
+    ):
         load_balancer = self.get_load_balancer(load_balancer_name)
-        load_balancer.policies.lb_cookie_stickiness_policies.append(policy)
+        policy = LbCookieStickinessPolicy(policy_name, cookie_expiration_period)
+        load_balancer.policies.append(policy)
         return load_balancer
 
     def set_load_balancer_policies_of_backend_server(
@@ -524,6 +561,36 @@ class ELBBackend(BaseBackend):
             acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
         except AWSResourceNotFoundException:
             raise CertificateNotFoundException()
+
+    def enable_availability_zones_for_load_balancer(
+        self, load_balancer_name, availability_zones
+    ):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.zones = sorted(
+            list(set(load_balancer.zones + availability_zones))
+        )
+        return load_balancer.zones
+
+    def disable_availability_zones_for_load_balancer(
+        self, load_balancer_name, availability_zones
+    ):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.zones = sorted(
+            list(
+                set([az for az in load_balancer.zones if az not in availability_zones])
+            )
+        )
+        return load_balancer.zones
+
+    def attach_load_balancer_to_subnets(self, load_balancer_name, subnets):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.subnets = list(set(load_balancer.subnets + subnets))
+        return load_balancer.subnets
+
+    def detach_load_balancer_from_subnets(self, load_balancer_name, subnets):
+        load_balancer = self.get_load_balancer(load_balancer_name)
+        load_balancer.subnets = [s for s in load_balancer.subnets if s not in subnets]
+        return load_balancer.subnets
 
 
 # Use the same regions as EC2
