@@ -631,24 +631,24 @@ class ECRBackend(BaseBackend):
                     else:
                         repository.images.remove(image)
 
-                if not image_found:
-                    failure_response = {
-                        "imageId": {},
-                        "failureCode": "ImageNotFound",
-                        "failureReason": "Requested image not found",
-                    }
+            if not image_found:
+                failure_response = {
+                    "imageId": {},
+                    "failureCode": "ImageNotFound",
+                    "failureReason": "Requested image not found",
+                }
 
-                    if "imageDigest" in image_id:
-                        failure_response["imageId"]["imageDigest"] = image_id.get(
-                            "imageDigest", "null"
-                        )
+                if "imageDigest" in image_id:
+                    failure_response["imageId"]["imageDigest"] = image_id.get(
+                        "imageDigest", "null"
+                    )
 
-                    if "imageTag" in image_id:
-                        failure_response["imageId"]["imageTag"] = image_id.get(
-                            "imageTag", "null"
-                        )
+                if "imageTag" in image_id:
+                    failure_response["imageId"]["imageTag"] = image_id.get(
+                        "imageTag", "null"
+                    )
 
-                    response["failures"].append(failure_response)
+                response["failures"].append(failure_response)
 
         return response
 
