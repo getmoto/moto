@@ -1250,6 +1250,40 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
 
 
 @mock_ecr
+def test_delete_batch_image_with_multiple_images():
+    client = boto3.client("ecr", region_name="us-east-1")
+    repo_name = "test-repo"
+    client.create_repository(repositoryName=repo_name)
+
+    # Populate mock repo with images
+    for i in range(10):
+        client.put_image(
+            repositoryName=repo_name, imageManifest=f"manifest{i}", imageTag=f"tag{i}"
+        )
+
+    # Pull down image digests for each image in the mock repo
+    repo_images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    image_digests = [{"imageDigest": image["imageDigest"]} for image in repo_images]
+
+    # Pick a couple of images to delete
+    images_to_delete = image_digests[5:7]
+
+    # Delete the images
+    response = client.batch_delete_image(
+        repositoryName=repo_name, imageIds=images_to_delete
+    )
+    response["imageIds"].should.have.length_of(2)
+    response["failures"].should.equal([])
+
+    # Verify other images still exist
+    repo_images = client.describe_images(repositoryName=repo_name)["imageDetails"]
+    image_tags = [img["imageTags"][0] for img in repo_images]
+    image_tags.should.equal(
+        ["tag0", "tag1", "tag2", "tag3", "tag4", "tag7", "tag8", "tag9"]
+    )
+
+
+@mock_ecr
 def test_list_tags_for_resource():
     # given
     client = boto3.client("ecr", region_name="eu-central-1")
