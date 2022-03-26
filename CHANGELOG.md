@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.2
 -----
-Docker Digest for 3.1.2: <autopopulateddigest>
+Docker Digest for 3.1.2: _sha256:884923ae6449b2db64e6805ef82209fcc5aab4991024c495aea07a191257aa4d_
 
     New Methods:
         * ELB
