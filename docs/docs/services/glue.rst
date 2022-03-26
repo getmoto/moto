@@ -100,9 +100,9 @@ glue
 - [ ] get_dataflow_graph
 - [ ] get_dev_endpoint
 - [ ] get_dev_endpoints
-- [ ] get_job
+- [X] get_job
 - [ ] get_job_bookmark
-- [ ] get_job_run
+- [X] get_job_run
 - [ ] get_job_runs
 - [ ] get_jobs
 - [ ] get_mapping
@@ -165,7 +165,7 @@ glue
 - [ ] start_crawler_schedule
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
-- [ ] start_job_run
+- [X] start_job_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [ ] start_trigger
