@@ -224,7 +224,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ 3.8 ]
-        part: ["aa", "ab", "ac", "ad", "ae", "af"]
+        part: ["aa", "ab", "ac", "ad", "ae", "af", "ag"]
 
     steps:
     - uses: actions/checkout@v2
@@ -259,7 +259,7 @@ jobs:
       run: |
         cd moto-terraform-tests
         bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
-        split -n l/6 tftestlist.txt tf-split-
+        split -n l/7 tftestlist.txt tf-split-
         cd ..
     - name: Run Terraform Tests
       run: |

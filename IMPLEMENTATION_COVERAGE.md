@@ -5472,7 +5472,7 @@
 
 ## timestream-write
 <details>
-<summary>80% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_database
 - [X] create_table
@@ -5483,9 +5483,9 @@
 - [X] describe_table
 - [X] list_databases
 - [X] list_tables
-- [ ] list_tags_for_resource
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] list_tags_for_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_database
 - [X] update_table
 - [X] write_records
