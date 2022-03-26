@@ -26,7 +26,7 @@ elbv2
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_listener_certificates
-- [ ] add_tags
+- [X] add_tags
 - [X] create_listener
 - [X] create_load_balancer
 - [X] create_rule
@@ -43,7 +43,7 @@ elbv2
 - [X] describe_load_balancers
 - [X] describe_rules
 - [ ] describe_ssl_policies
-- [ ] describe_tags
+- [X] describe_tags
 - [ ] describe_target_group_attributes
 - [X] describe_target_groups
 - [X] describe_target_health
@@ -54,7 +54,7 @@ elbv2
 - [X] modify_target_group_attributes
 - [X] register_targets
 - [X] remove_listener_certificates
-- [ ] remove_tags
+- [X] remove_tags
 - [X] set_ip_address_type
 - [X] set_rule_priorities
 - [X] set_security_groups

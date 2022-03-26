@@ -1,6 +1,38 @@
 Moto Changelog
 ==============
 
+3.1.2
+-----
+Docker Digest for 3.1.2: <autopopulateddigest>
+
+    New Methods:
+        * ELB
+            * attach_load_balancer_to_subnets()
+            * detach_load_balancer_from_subnets()
+            * describe_load_balancer_policies()
+            * delete_load_balancer_policy()
+            * enable_availability_zones_for_load_balancer()
+            * disable_availability_zones_for_load_balancer()
+
+        * ELBv2:
+            * add_listener_certificates()
+            * describe_listener_certificates()
+            * remove_listener_certificates()
+
+        * Glue:
+            * get_job()
+            * get_job_run()
+            * start_job_run()
+
+    Miscellaneous:
+        * AWSLambda:add_permission() now supports the Qualifier-parameter
+        * ELB:create_load_balancer() now retrieves the subnets based on the AvailabilityZones-parameter
+        * ELB:create_load_balancer() now creates a default SecurityGroup, if none is provided
+        * ELBv2:create_load_balancer() now supports the SubnetMappings-parameter
+        * ELBv2:create_listener() now supports the AlpnPolicy-parameter
+        * ELBv2: Improved tagging support
+        * ELBv2: Exposes the TargetGroupStickinessConfig-attribute when describing a Action of type ForwardConfig
+
 
 3.1.1
 -----
