@@ -1,6 +1,9 @@
 import time
 import boto3
+import pytest
 import sure  # noqa # pylint: disable=unused-import
+
+from botocore.exceptions import ClientError
 from moto import mock_timestreamwrite, settings
 from moto.core import ACCOUNT_ID
 
@@ -46,7 +49,12 @@ def test_create_table_without_retention_properties():
     table.should.have.key("TableName").equal("mytable")
     table.should.have.key("DatabaseName").equal("mydatabase")
     table.should.have.key("TableStatus").equal("ACTIVE")
-    table.shouldnt.have.key("RetentionProperties")
+    table.should.have.key("RetentionProperties").equals(
+        {
+            "MemoryStoreRetentionPeriodInHours": 123,
+            "MagneticStoreRetentionPeriodInDays": 123,
+        }
+    )
 
 
 @mock_timestreamwrite
@@ -76,6 +84,18 @@ def test_describe_table():
             "MagneticStoreRetentionPeriodInDays": 12,
         }
     )
+
+
+@mock_timestreamwrite
+def test_describe_unknown_database():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    with pytest.raises(ClientError) as exc:
+        ts.describe_table(DatabaseName="mydatabase", TableName="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("The table unknown does not exist.")
 
 
 @mock_timestreamwrite
