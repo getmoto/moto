@@ -1,9 +1,27 @@
 Moto Changelog
 ==============
 
+3.1.3
+-----
+Docker Digest for 3.1.3: <autopopulateddigest>
+
+    New Methods:
+        * TimestreamWrite:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * EC2:run_instances(): Fixed a bug when supplying the NetworkInterfaces.Groups-parameter
+        * Logs:delete_metric_filter(): Fixed a bug where the logGroupName-validator was too strict
+
+
 3.1.2
 -----
 Docker Digest for 3.1.2: _sha256:884923ae6449b2db64e6805ef82209fcc5aab4991024c495aea07a191257aa4d_
+
+    Known Bugs:
+        * EC2:run_instances(): This call will fail when supplying the NetworkInterfaces.Groups-parameter 
 
     New Methods:
         * ELB

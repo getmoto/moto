@@ -103,9 +103,11 @@ config
 - [ ] get_compliance_summary_by_resource_type
 - [ ] get_conformance_pack_compliance_details
 - [ ] get_conformance_pack_compliance_summary
+- [ ] get_custom_rule_policy
 - [ ] get_discovered_resource_counts
 - [ ] get_organization_config_rule_detailed_status
 - [X] get_organization_conformance_pack_detailed_status
+- [ ] get_organization_custom_rule_policy
 - [X] get_resource_config_history
   Returns configuration of resource for the current regional backend.
 
