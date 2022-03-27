@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.3
 -----
-Docker Digest for 3.1.3: <autopopulateddigest>
+Docker Digest for 3.1.3: _sha256:d0716d84d376e7aafeb4a40a29d298725aa39e6553b64f55a6be1287e4bee80c_
 
     New Methods:
         * TimestreamWrite:
