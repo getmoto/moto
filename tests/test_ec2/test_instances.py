@@ -1361,6 +1361,46 @@ def test_run_instance_with_nic_preexisting_boto3():
 
 
 @mock_ec2
+def test_run_instance_with_new_nic_and_security_groups():
+    ec2 = boto3.resource("ec2", "us-west-1")
+    client = boto3.client("ec2", "us-west-1")
+    security_group1 = ec2.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
+    security_group2 = ec2.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
+
+    instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        NetworkInterfaces=[
+            {
+                "DeviceIndex": 0,
+                "Groups": [security_group1.group_id, security_group2.group_id],
+            }
+        ],
+    )[0]
+
+    nii = instance.network_interfaces_attribute[0]["NetworkInterfaceId"]
+
+    all_enis = client.describe_network_interfaces(NetworkInterfaceIds=[nii])[
+        "NetworkInterfaces"
+    ]
+    all_enis.should.have.length_of(1)
+
+    instance_enis = instance.network_interfaces_attribute
+    instance_enis.should.have.length_of(1)
+    instance_eni = instance_enis[0]
+
+    instance_eni["Groups"].should.have.length_of(2)
+    set([group["GroupId"] for group in instance_eni["Groups"]]).should.equal(
+        set([security_group1.id, security_group2.id])
+    )
+
+
+@mock_ec2
 def test_instance_with_nic_attach_detach_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
