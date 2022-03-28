@@ -1430,9 +1430,9 @@ class BatchBackend(BaseBackend):
 
         job_def = self.get_job_definition_by_name(def_name)
         if retry_strategy is not None and "evaluateOnExit" in retry_strategy:
-            for strat in retry_strategy["evaluateOnExit"]:
-                if "action" in strat:
-                    strat["action"] = strat["action"].lower()
+            for start in retry_strategy["evaluateOnExit"]:
+                if "action" in start:
+                    start["action"] = start["action"].lower()
         if not tags:
             tags = {}
         if job_def is None:
