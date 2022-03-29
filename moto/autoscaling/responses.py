@@ -268,7 +268,7 @@ class AutoScalingResponse(BaseResponse):
 
     def put_scaling_policy(self):
         params = self._get_params()
-        policy = self.autoscaling_backend.create_autoscaling_policy(
+        policy = self.autoscaling_backend.put_scaling_policy(
             name=params.get("PolicyName"),
             policy_type=params.get("PolicyType", "SimpleScaling"),
             metric_aggregation_type=params.get("MetricAggregationType"),

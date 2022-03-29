@@ -971,7 +971,7 @@ class AutoScalingBackend(BaseBackend):
     def delete_lifecycle_hook(self, as_name, name):
         self.lifecycle_hooks.pop("%s_%s" % (as_name, name), None)
 
-    def create_autoscaling_policy(
+    def put_scaling_policy(
         self,
         name,
         policy_type,
