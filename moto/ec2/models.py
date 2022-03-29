@@ -70,7 +70,6 @@ from .exceptions import (
     InvalidDependantParameterError,
     InvalidDependantParameterTypeError,
     InvalidFlowLogIdError,
-    InvalidLaunchTemplateNameError,
     InvalidNetworkAclIdError,
     InvalidNetworkAttachmentIdError,
     InvalidNetworkInterfaceIdError,
@@ -122,6 +121,7 @@ from .exceptions import (
     InvalidCarrierGatewayID,
 )
 from ._models.core import TaggedEC2Resource
+from ._models.launch_templates import LaunchTemplateBackend
 from ._models.vpc_service_configuration import VPCServiceConfigurationBackend
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -142,7 +142,6 @@ from .utils import (
     random_transit_gateway_attachment_id,
     random_transit_gateway_route_table_id,
     random_vpc_ep_id,
-    random_launch_template_id,
     random_nat_gateway_id,
     random_transit_gateway_id,
     random_key_pair,
@@ -189,6 +188,7 @@ from .utils import (
     rsa_public_key_parse,
     rsa_public_key_fingerprint,
     describe_tag_filter,
+    utc_date_and_time,
 )
 
 INSTANCE_TYPES = load_resource(__name__, "resources/instance_types.json")
@@ -215,14 +215,6 @@ else:
 OWNER_ID = ACCOUNT_ID
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
 DEFAULT_VPC_ENDPOINT_SERVICES = []
-
-
-def utc_date_and_time():
-    x = datetime.utcnow()
-    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    return "{}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.000Z".format(
-        x.year, x.month, x.day, x.hour, x.minute, x.second
-    )
 
 
 def validate_resource_ids(resource_ids):
@@ -8413,109 +8405,6 @@ class NatGatewayBackend(object):
         nat_gw = self.nat_gateways.get(nat_gateway_id)
         nat_gw.state = "deleted"
         return nat_gw
-
-
-class LaunchTemplateVersion(object):
-    def __init__(self, template, number, data, description):
-        self.template = template
-        self.number = number
-        self.data = data
-        self.description = description
-        self.create_time = utc_date_and_time()
-
-    @property
-    def image_id(self):
-        return self.data.get("ImageId", "")
-
-    @property
-    def instance_type(self):
-        return self.data.get("InstanceType", "")
-
-    @property
-    def security_groups(self):
-        return self.data.get("SecurityGroups", [])
-
-    @property
-    def user_data(self):
-        return self.data.get("UserData", "")
-
-
-class LaunchTemplate(TaggedEC2Resource):
-    def __init__(self, backend, name, template_data, version_description):
-        self.ec2_backend = backend
-        self.name = name
-        self.id = random_launch_template_id()
-        self.create_time = utc_date_and_time()
-
-        self.versions = []
-        self.create_version(template_data, version_description)
-        self.default_version_number = 1
-
-    def create_version(self, data, description):
-        num = len(self.versions) + 1
-        version = LaunchTemplateVersion(self, num, data, description)
-        self.versions.append(version)
-        return version
-
-    def is_default(self, version):
-        return self.default_version == version.number
-
-    def get_version(self, num):
-        return self.versions[num - 1]
-
-    def default_version(self):
-        return self.versions[self.default_version_number - 1]
-
-    def latest_version(self):
-        return self.versions[-1]
-
-    @property
-    def latest_version_number(self):
-        return self.latest_version().number
-
-    def get_filter_value(self, filter_name):
-        if filter_name == "launch-template-name":
-            return self.name
-        else:
-            return super().get_filter_value(filter_name, "DescribeLaunchTemplates")
-
-
-class LaunchTemplateBackend(object):
-    def __init__(self):
-        self.launch_template_name_to_ids = {}
-        self.launch_templates = OrderedDict()
-        self.launch_template_insert_order = []
-        super().__init__()
-
-    def create_launch_template(self, name, description, template_data):
-        if name in self.launch_template_name_to_ids:
-            raise InvalidLaunchTemplateNameError()
-        template = LaunchTemplate(self, name, template_data, description)
-        self.launch_templates[template.id] = template
-        self.launch_template_name_to_ids[template.name] = template.id
-        self.launch_template_insert_order.append(template.id)
-        return template
-
-    def get_launch_template(self, template_id):
-        return self.launch_templates[template_id]
-
-    def get_launch_template_by_name(self, name):
-        return self.get_launch_template(self.launch_template_name_to_ids[name])
-
-    def describe_launch_templates(
-        self, template_names=None, template_ids=None, filters=None
-    ):
-        if template_names and not template_ids:
-            template_ids = []
-            for name in template_names:
-                template_ids.append(self.launch_template_name_to_ids[name])
-
-        if template_ids:
-            templates = [self.launch_templates[tid] for tid in template_ids]
-        else:
-            templates = list(self.launch_templates.values())
-
-        return generic_filter(filters, templates)
 
 
 class IamInstanceProfileAssociation(CloudFormationModel):

@@ -644,5 +644,22 @@
     "name": "amzn-ami-minimal-hvm-2018.03.0.20181129-x86_64-ebs",
     "virtualization_type": "hvm",
     "hypervisor": "xen"
+  },
+  {
+    "architecture": "x86_64",
+    "ami_id": "ami-04681a1dbd79675a5",
+    "image_location": "amazon/amzn2-ami-hvm-2.0.20180810-x86_64-gp2",
+    "image_type": "machine",
+    "public": true,
+    "owner_id": "137112412989",
+    "platform": "Linux/UNIX",
+    "state": "available",
+    "description": "Amazon Linux 2 AMI 2.0.20180810 x86_64 HVM gp2",
+    "hypervisor": "xen",
+    "name": "amzn2-ami-hvm-2.0.20180810-x86_64-gp2",
+    "root_device_name": "/dev/xvda",
+    "root_device_type": "ebs",
+    "sriov": "simple",
+    "virtualization_type": "hvm"
   }
 ]

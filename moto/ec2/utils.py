@@ -5,6 +5,7 @@ import random
 import re
 import ipaddress
 
+from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -295,6 +296,14 @@ def create_dns_entries(service_name, vpc_endpoint_id):
     )
     dns_entries["hosted_zone_id"] = random_resource_id(13).upper()
     return dns_entries
+
+
+def utc_date_and_time():
+    x = datetime.utcnow()
+    # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return "{}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.000Z".format(
+        x.year, x.month, x.day, x.hour, x.minute, x.second
+    )
 
 
 def split_route_id(route_id):

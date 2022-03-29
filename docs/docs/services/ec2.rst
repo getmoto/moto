@@ -163,7 +163,7 @@ ec2
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
-- [ ] delete_launch_template
+- [X] delete_launch_template
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
 - [ ] delete_local_gateway_route_table_vpc_association
