@@ -1995,21 +1995,21 @@
 
 ## ecs
 <details>
-<summary>73% implemented</summary>
+<summary>78% implemented</summary>
 
-- [ ] create_capacity_provider
+- [X] create_capacity_provider
 - [X] create_cluster
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
 - [X] delete_attributes
-- [ ] delete_capacity_provider
+- [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
 - [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
-- [ ] describe_capacity_providers
+- [X] describe_capacity_providers
 - [X] describe_clusters
 - [X] describe_container_instances
 - [X] describe_services
