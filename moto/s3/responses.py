@@ -4,7 +4,11 @@ import re
 from typing import List, Union
 
 from moto import settings
-from moto.core.utils import amzn_request_id, extract_region_from_aws_authorization, str_to_rfc_1123_datetime
+from moto.core.utils import (
+    amzn_request_id,
+    extract_region_from_aws_authorization,
+    str_to_rfc_1123_datetime,
+)
 from urllib.parse import parse_qs, urlparse, unquote, urlencode, urlunparse
 
 import xmltodict
@@ -280,7 +284,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         method = request.method
         region_name = parse_region_from_url(full_url, use_default_region=False)
         if region_name is None:
-            region_name = extract_region_from_aws_authorization(headers.get('Authorization',''))
+            region_name = extract_region_from_aws_authorization(
+                headers.get("Authorization", "")
+            )
             region_name = region_name or DEFAULT_REGION_NAME
 
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
