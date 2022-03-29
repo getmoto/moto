@@ -69,6 +69,8 @@ def test_create_file_system_correct_use(efs):
     assert create_fs_resp["PerformanceMode"] == "generalPurpose"
     assert create_fs_resp["Encrypted"] is False
     assert create_fs_resp["NumberOfMountTargets"] == 0
+    assert create_fs_resp["Name"] == "Test EFS Container"
+
     for key_name in ["Value", "ValueInIA", "ValueInStandard"]:
         assert key_name in create_fs_resp["SizeInBytes"]
         assert create_fs_resp["SizeInBytes"][key_name] == 0
@@ -107,10 +109,12 @@ def test_create_file_system_aws_sample_1(efs):
         "SizeInBytes",
         "Tags",
         "ThroughputMode",
+        "Name",
     }
     assert resp["Tags"] == [{"Key": "Name", "Value": "Test Group1"}]
     assert resp["PerformanceMode"] == "generalPurpose"
     assert resp["Encrypted"]
+    assert resp["Name"] == "Test Group1"
 
     policy_resp = efs.describe_backup_policy(FileSystemId=resp["FileSystemId"])
     assert policy_resp["BackupPolicy"]["Status"] == "ENABLED"
@@ -136,11 +140,13 @@ def test_create_file_system_aws_sample_2(efs):
         "FileSystemArn",
         "NumberOfMountTargets",
         "OwnerId",
+        "Name",
     }
     assert resp["ProvisionedThroughputInMibps"] == 60
     assert resp["AvailabilityZoneId"] == "usw2-az1"
     assert resp["AvailabilityZoneName"] == "us-west-2b"
     assert resp["ThroughputMode"] == "provisioned"
+    assert resp["Name"] == "Test Group1"
 
     policy_resp = efs.describe_backup_policy(FileSystemId=resp["FileSystemId"])
     assert policy_resp["BackupPolicy"]["Status"] == "ENABLED"
@@ -183,6 +189,7 @@ def test_describe_file_systems_using_identifier(efs):
     desc_fs_resp = efs.describe_file_systems(FileSystemId=fs_id)
     desc_fs_resp.should.have.key("FileSystems").length_of(1)
     desc_fs_resp["FileSystems"][0].should.have.key("FileSystemId").equals(fs_id)
+    assert desc_fs_resp["FileSystems"][0]["Name"] == ""
 
 
 def test_describe_file_systems_using_unknown_identifier(efs):
@@ -219,8 +226,10 @@ def test_describe_file_systems_minimal_case(efs):
         "FileSystemArn",
         "NumberOfMountTargets",
         "OwnerId",
+        "Name",
     }
     assert file_system["FileSystemId"] == create_fs_resp["FileSystemId"]
+    assert file_system["Name"] == ""
 
     # Pop out the timestamps and see if the rest of the description is the same.
     create_fs_resp["SizeInBytes"].pop("Timestamp")
@@ -257,11 +266,13 @@ def test_describe_file_systems_aws_create_sample_2(efs):
         "FileSystemArn",
         "NumberOfMountTargets",
         "OwnerId",
+        "Name",
     }
     assert file_system["ProvisionedThroughputInMibps"] == 60
     assert file_system["AvailabilityZoneId"] == "usw2-az1"
     assert file_system["AvailabilityZoneName"] == "us-west-2b"
     assert file_system["ThroughputMode"] == "provisioned"
+    assert file_system["Name"] == "Test Group1"
 
 
 def test_describe_file_systems_paging(efs):
