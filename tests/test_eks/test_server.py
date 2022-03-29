@@ -274,6 +274,7 @@ def test_eks_describe_existing_cluster(test_client, create_cluster):
 
     response.status_code.should.equal(StatusCodes.OK)
     result_data[ClusterAttributes.NAME].should.equal(TestCluster.cluster_name)
+    result_data[ClusterAttributes.ENCRYPTION_CONFIG].should.equal([])
     all_arn_values_should_be_valid(
         expected_arn_values=TestCluster.expected_arn_values,
         pattern=RegExTemplates.CLUSTER_ARN,
