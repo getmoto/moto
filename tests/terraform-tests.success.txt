@@ -131,6 +131,8 @@ TestAccAWSSQSQueuePolicy
 TestAccAWSSSMDocument
 TestAccAWSSsmDocumentDataSource
 TestAccAWSSsmParameterDataSource
+TestAccAWSTimestreamWriteDatabase
+TestAccAWSTimestreamWriteTable
 TestAccAWSUserGroupMembership
 TestAccAWSUserPolicyAttachment
 TestAccAWSUserSSHKey

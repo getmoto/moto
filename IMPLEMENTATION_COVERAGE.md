@@ -975,7 +975,7 @@
 
 ## config
 <details>
-<summary>37% implemented</summary>
+<summary>36% implemented</summary>
 
 - [X] batch_get_aggregate_resource_config
 - [X] batch_get_resource_config
@@ -1031,9 +1031,11 @@
 - [ ] get_compliance_summary_by_resource_type
 - [ ] get_conformance_pack_compliance_details
 - [ ] get_conformance_pack_compliance_summary
+- [ ] get_custom_rule_policy
 - [ ] get_discovered_resource_counts
 - [ ] get_organization_config_rule_detailed_status
 - [X] get_organization_conformance_pack_detailed_status
+- [ ] get_organization_custom_rule_policy
 - [X] get_resource_config_history
 - [ ] get_stored_query
 - [X] list_aggregate_discovered_resources
@@ -2309,10 +2311,10 @@
 
 ## elbv2
 <details>
-<summary>82% implemented</summary>
+<summary>91% implemented</summary>
 
 - [X] add_listener_certificates
-- [ ] add_tags
+- [X] add_tags
 - [X] create_listener
 - [X] create_load_balancer
 - [X] create_rule
@@ -2329,7 +2331,7 @@
 - [X] describe_load_balancers
 - [X] describe_rules
 - [ ] describe_ssl_policies
-- [ ] describe_tags
+- [X] describe_tags
 - [ ] describe_target_group_attributes
 - [X] describe_target_groups
 - [X] describe_target_health
@@ -2340,7 +2342,7 @@
 - [X] modify_target_group_attributes
 - [X] register_targets
 - [X] remove_listener_certificates
-- [ ] remove_tags
+- [X] remove_tags
 - [X] set_ip_address_type
 - [X] set_rule_priorities
 - [X] set_security_groups
@@ -2640,7 +2642,7 @@
 
 ## glue
 <details>
-<summary>9% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2657,6 +2659,7 @@
 - [ ] batch_stop_job_run
 - [ ] batch_update_partition
 - [ ] cancel_ml_task_run
+- [ ] cancel_statement
 - [ ] check_schema_version_validity
 - [ ] create_blueprint
 - [ ] create_classifier
@@ -2672,6 +2675,7 @@
 - [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
+- [ ] create_session
 - [X] create_table
 - [ ] create_trigger
 - [ ] create_user_defined_function
@@ -2693,6 +2697,7 @@
 - [ ] delete_schema
 - [ ] delete_schema_versions
 - [ ] delete_security_configuration
+- [ ] delete_session
 - [X] delete_table
 - [ ] delete_table_version
 - [ ] delete_trigger
@@ -2717,9 +2722,9 @@
 - [ ] get_dataflow_graph
 - [ ] get_dev_endpoint
 - [ ] get_dev_endpoints
-- [ ] get_job
+- [X] get_job
 - [ ] get_job_bookmark
-- [ ] get_job_run
+- [X] get_job_run
 - [ ] get_job_runs
 - [ ] get_jobs
 - [ ] get_mapping
@@ -2740,6 +2745,8 @@
 - [ ] get_schema_versions_diff
 - [ ] get_security_configuration
 - [ ] get_security_configurations
+- [ ] get_session
+- [ ] get_statement
 - [X] get_table
 - [ ] get_table_version
 - [ ] get_table_versions
@@ -2765,6 +2772,8 @@
 - [ ] list_registries
 - [ ] list_schema_versions
 - [ ] list_schemas
+- [ ] list_sessions
+- [ ] list_statements
 - [ ] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
@@ -2776,19 +2785,21 @@
 - [ ] remove_schema_version_metadata
 - [ ] reset_job_bookmark
 - [ ] resume_workflow_run
+- [ ] run_statement
 - [ ] search_tables
 - [ ] start_blueprint_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
-- [ ] start_job_run
+- [X] start_job_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [ ] start_trigger
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
+- [ ] stop_session
 - [ ] stop_trigger
 - [ ] stop_workflow_run
 - [ ] tag_resource
@@ -5472,7 +5483,7 @@
 
 ## timestream-write
 <details>
-<summary>80% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_database
 - [X] create_table
@@ -5483,9 +5494,9 @@
 - [X] describe_table
 - [X] list_databases
 - [X] list_tables
-- [ ] list_tags_for_resource
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] list_tags_for_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_database
 - [X] update_table
 - [X] write_records
@@ -5667,6 +5678,7 @@
 - frauddetector
 - fsx
 - gamelift
+- gamesparks
 - globalaccelerator
 - grafana
 - greengrass

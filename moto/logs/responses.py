@@ -9,6 +9,9 @@ from .models import logs_backends
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
 
+REGEX_LOG_GROUP_NAME = r"[-._\/#A-Za-z0-9]+"
+
+
 def validate_param(
     param_name, param_value, constraint, constraint_expression, pattern=None
 ):
@@ -20,7 +23,7 @@ def validate_param(
         )
     if pattern and param_value:
         try:
-            assert re.match(pattern, param_value)
+            assert re.fullmatch(pattern, param_value)
         except (AssertionError, TypeError):
             raise InvalidParameterException(
                 constraint=f"Must match pattern: {pattern}",
@@ -67,7 +70,7 @@ class LogsResponse(BaseResponse):
             "logGroupName",
             "Minimum length of 1. Maximum length of 512.",
             lambda x: 1 <= len(x) <= 512,
-            pattern="[.-_/#A-Za-z0-9]+",
+            pattern=REGEX_LOG_GROUP_NAME,
         )
         metric_transformations = self._get_validated_param(
             "metricTransformations", "Fixed number of 1 item.", lambda x: len(x) == 1
@@ -90,7 +93,7 @@ class LogsResponse(BaseResponse):
             "logGroupName",
             "Minimum length of 1. Maximum length of 512",
             lambda x: x is None or 1 <= len(x) <= 512,
-            pattern="[.-_/#A-Za-z0-9]+",
+            pattern=REGEX_LOG_GROUP_NAME,
         )
         metric_name = self._get_validated_param(
             "metricName",
@@ -139,7 +142,7 @@ class LogsResponse(BaseResponse):
             "logGroupName",
             "Minimum length of 1. Maximum length of 512.",
             lambda x: 1 <= len(x) <= 512,
-            pattern="[.-_/#A-Za-z0-9]+$",
+            pattern=REGEX_LOG_GROUP_NAME,
         )
 
         self.logs_backend.delete_metric_filter(filter_name, log_group_name)

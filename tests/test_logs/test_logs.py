@@ -181,26 +181,32 @@ def test_describe_metric_filters_multiple_happy():
 
 @mock_logs
 def test_delete_metric_filter():
-    conn = boto3.client("logs", "us-west-2")
+    client = boto3.client("logs", "us-west-2")
 
-    response = put_metric_filter(conn, 1)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    lg_name = "/hello-world/my-cool-endpoint"
+    client.create_log_group(logGroupName=lg_name)
+    client.put_metric_filter(
+        logGroupName=lg_name,
+        filterName="my-cool-filter",
+        filterPattern="{ $.val = * }",
+        metricTransformations=[
+            {
+                "metricName": "my-metric",
+                "metricNamespace": "my-namespace",
+                "metricValue": "$.value",
+            }
+        ],
+    )
 
-    response = put_metric_filter(conn, 2)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = conn.delete_metric_filter(
-        filterName="filterName", logGroupName="logGroupName1"
+    response = client.delete_metric_filter(
+        filterName="filterName", logGroupName=lg_name
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    response = conn.describe_metric_filters(
+    response = client.describe_metric_filters(
         filterNamePrefix="filter", logGroupName="logGroupName2"
     )
-    assert response["metricFilters"][0]["filterName"] == "filterName2"
-
-    response = conn.describe_metric_filters(logGroupName="logGroupName2")
-    assert response["metricFilters"][0]["filterName"] == "filterName2"
+    response.should.have.key("metricFilters").equals([])
 
 
 @mock_logs

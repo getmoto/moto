@@ -1,6 +1,56 @@
 Moto Changelog
 ==============
 
+3.1.3
+-----
+Docker Digest for 3.1.3: _sha256:d0716d84d376e7aafeb4a40a29d298725aa39e6553b64f55a6be1287e4bee80c_
+
+    New Methods:
+        * TimestreamWrite:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * EC2:run_instances(): Fixed a bug when supplying the NetworkInterfaces.Groups-parameter
+        * Logs:delete_metric_filter(): Fixed a bug where the logGroupName-validator was too strict
+
+
+3.1.2
+-----
+Docker Digest for 3.1.2: _sha256:884923ae6449b2db64e6805ef82209fcc5aab4991024c495aea07a191257aa4d_
+
+    Known Bugs:
+        * EC2:run_instances(): This call will fail when supplying the NetworkInterfaces.Groups-parameter 
+
+    New Methods:
+        * ELB
+            * attach_load_balancer_to_subnets()
+            * detach_load_balancer_from_subnets()
+            * describe_load_balancer_policies()
+            * delete_load_balancer_policy()
+            * enable_availability_zones_for_load_balancer()
+            * disable_availability_zones_for_load_balancer()
+
+        * ELBv2:
+            * add_listener_certificates()
+            * describe_listener_certificates()
+            * remove_listener_certificates()
+
+        * Glue:
+            * get_job()
+            * get_job_run()
+            * start_job_run()
+
+    Miscellaneous:
+        * AWSLambda:add_permission() now supports the Qualifier-parameter
+        * ELB:create_load_balancer() now retrieves the subnets based on the AvailabilityZones-parameter
+        * ELB:create_load_balancer() now creates a default SecurityGroup, if none is provided
+        * ELBv2:create_load_balancer() now supports the SubnetMappings-parameter
+        * ELBv2:create_listener() now supports the AlpnPolicy-parameter
+        * ELBv2: Improved tagging support
+        * ELBv2: Exposes the TargetGroupStickinessConfig-attribute when describing a Action of type ForwardConfig
+
 
 3.1.1
 -----
