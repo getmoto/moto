@@ -131,6 +131,9 @@ mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
 )
+mock_rekognition = lazy_load(
+    ".rekognition", "mock_rekognition", boto3_name="rekognition"
+)
 mock_resourcegroups = lazy_load(
     ".resourcegroups", "mock_resourcegroups", boto3_name="resource-groups"
 )
