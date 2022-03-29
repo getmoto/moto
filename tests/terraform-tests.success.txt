@@ -113,6 +113,8 @@ TestAccAWSPartition
 TestAccAWSPinpointApp
 TestAccAWSPinpointEventStream
 TestAccAWSProvider
+TestAccAWSQuickSightGroup
+TestAccAWSQuickSightUser
 TestAccAWSRedshiftServiceAccount
 TestAccAWSRolePolicyAttachment
 TestAccAWSRouteTable_
