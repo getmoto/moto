@@ -322,7 +322,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         service = self.get_service(service_id)
         service.update(details=details)
         operation_id = self._create_operation(
-            "UPDATE_SERVICE", targets={"SEVICE": service.id}
+            "UPDATE_SERVICE", targets={"SERVICE": service.id}
         )
         return operation_id
 
