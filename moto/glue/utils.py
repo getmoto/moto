@@ -1,9 +1,12 @@
+import abc
 import warnings
+from typing import Any, Dict, List, Optional, cast
 
 from pyparsing import (
     CaselessKeyword,
     OpAssoc,
     ParserElement,
+    ParseResults,
     QuotedString,
     Suppress,
     Word,
@@ -30,59 +33,7 @@ from pyparsing import (
 # arbitrary whitespace (including none) between operands and operators
 # literals in parentheses are allowed, e.g. col = (5)
 
-
-class _PartitionFilterExpressionCache:
-    def __init__(self):
-        # build grammar according to Glue.Client.get_partitions(Expression)
-        lpar, rpar = map(Suppress, "()")
-
-        # NOTE these are AWS Athena column name best practices
-        ident = Word(alphanums + "._").set_name("ident")
-
-        num_literal = pyparsing_common.number.set_name("number")
-        str_literal = QuotedString(quote_char="'", esc_quote="''").set_name("str")
-        any_literal = (num_literal | str_literal).set_name("literal")
-
-        bin_op = one_of("= <> > < >= <=").set_name("binary op")
-
-        and_, or_, in_, between, like, not_, is_, null = map(
-            CaselessKeyword, "and or in between like not is null".split()
-        )
-
-        cond = (
-            ident + is_ + null
-            | ident + is_ + not_ + null
-            | ident + bin_op + any_literal
-            | ident + like + str_literal
-            | ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
-            | ident + between + any_literal + and_ + any_literal
-        ).set_name("cond")
-
-        # conditions can be joined using 2-ary AND and/or OR
-        self._expr = infix_notation(
-            cond, [(and_, 2, OpAssoc.LEFT), (or_, 2, OpAssoc.LEFT)]
-        ).set_name("expr")
-
-        self._cache = {}
-
-    def get(self, expression):
-        if expression is None:
-            return None
-
-        if expression not in self._cache:
-            ParserElement.enable_packrat()
-
-            try:
-                self._cache[expression] = self._expr.parse_string(expression)
-            except exceptions.ParseException as ex:
-                raise ValueError(f"Could not parse expression='{expression}'") from ex
-
-        return self._cache[expression]
-
-
-_PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
-
-
+# partition key types that can be filtered on
 _ALLOWED_KEY_TYPES = (
     "bigint",  # [-2^63, 2^63 - 1]
     "date",  # 'YYYY-MM-DD'
@@ -96,14 +47,112 @@ _ALLOWED_KEY_TYPES = (
 )
 
 
-class PartitionFilter:
-    def __init__(self, expression, keys):
-        self.expression = expression
-        self.keys = keys
+def _cast_type_to_python(type_: str, value: Any):
+    if type_ not in _ALLOWED_KEY_TYPES:
+        # TODO raise appropriate exception for unsupported types
+        assert False
 
-    def __call__(self, value):
-        if self.expression is None:
+    # TODO implement
+
+
+class _Expr(abc.ABC):
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+        raise NotImplementedError()
+
+
+class _Ident(_Expr):
+    def __init__(self, tokens: ParseResults):
+        self.ident: str = cast(str, tokens[0])
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+        for key, value in zip(part_keys, part_input["Values"]):
+            if self.ident == key["Name"]:
+                return _cast_type_to_python(key["Type"], value)
+
+        # TODO raise appropriate exception for unknown columns
+        assert False
+
+
+class _IdentIsNull(_Expr):
+    def __init__(self, tokens: ParseResults) -> None:
+        self.ident: _Ident = cast(_Ident, tokens[0])
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+        return self.ident.eval(part_keys, part_input) is None
+
+
+class _IdentIsNotNull(_Expr):
+    def __init__(self, tokens: ParseResults) -> None:
+        self.ident: _Ident = cast(_Ident, tokens[0])
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+        return self.ident.eval(part_keys, part_input) is not None
+
+
+class _PartitionFilterExpressionCache:
+    def __init__(self):
+        # build grammar according to Glue.Client.get_partitions(Expression)
+        lpar, rpar = map(Suppress, "()")
+
+        # NOTE these are AWS Athena column name best practices
+        ident = Word(alphanums + "._")
+        ident.set_parse_action(_Ident).set_name("ident")
+
+        num_literal = pyparsing_common.number.set_name("number")
+        str_literal = QuotedString(quote_char="'", esc_quote="''").set_name("str")
+        any_literal = (num_literal | str_literal).set_name("literal")
+
+        bin_op = one_of("<> >= <= > < =").set_name("binary op")
+
+        and_, or_, in_, between, like, not_, is_, null = map(
+            CaselessKeyword, "and or in between like not is null".split()
+        )
+
+        cond = (
+            (ident + is_ + null).set_parse_action(_IdentIsNull)
+            | (ident + is_ + not_ + null).set_parse_action(_IdentIsNotNull)
+            | ident + bin_op + any_literal
+            | ident + like + str_literal
+            | ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
+            | ident + between + any_literal + and_ + any_literal
+        ).set_name("cond")
+
+        # conditions can be joined using 2-ary AND and/or OR
+        self._expr = infix_notation(
+            cond, [(and_, 2, OpAssoc.LEFT), (or_, 2, OpAssoc.LEFT)]
+        ).set_name("expr")
+
+        self._cache: Dict[str, _Expr] = {}
+
+    def get(self, expression: Optional[str]) -> Optional[_Expr]:
+        if expression is None:
+            return None
+
+        if expression not in self._cache:
+            ParserElement.enable_packrat()
+
+            try:
+                expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
+                self._cache[expression] = cast(_Expr, expr[0])
+            except exceptions.ParseException as ex:
+                raise ValueError(f"Could not parse expression='{expression}'") from ex
+
+        return self._cache[expression]
+
+
+_PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
+
+
+class PartitionFilter:
+    def __init__(self, expression: Optional[str], part_keys: List[Dict[str, str]]):
+        self.expression = expression
+        self.part_keys = part_keys
+
+    def __call__(self, part_input: Dict[str, Any]) -> bool:
+        warnings.warn("Expression filtering is experimental")
+
+        expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(self.expression)
+        if expression is None:
             return True
 
-        warnings.warn("Expression filtering is experimental")
-        expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(self.expression)
+        return expression.eval(self.part_keys, part_input)
