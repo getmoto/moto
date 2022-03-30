@@ -13,10 +13,17 @@ class QuickSightResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return quicksight_backends[self.region]
 
+    def dataset(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return self.create_data_set()
+
     def groups(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_group()
+        if request.method == "GET":
+            return self.list_groups()
 
     def group(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -27,10 +34,29 @@ class QuickSightResponse(BaseResponse):
         if request.method == "PUT":
             return self.update_group()
 
+    def group_member(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "PUT":
+            return self.create_group_membership()
+        if request.method == "GET":
+            return self.describe_group_membership()
+
+    def group_members(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self.list_group_memberships()
+
+    def ingestion(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "PUT":
+            return self.create_ingestion()
+
     def users(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.register_user()
+        if request.method == "GET":
+            return self.list_users()
 
     def user(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -38,6 +64,13 @@ class QuickSightResponse(BaseResponse):
             return self.describe_user()
         if request.method == "DELETE":
             return self.delete_user()
+
+    def create_data_set(self):
+        params = json.loads(self.body)
+        data_set_id = params.get("DataSetId")
+        name = params.get("Name")
+        data_set = self.quicksight_backend.create_data_set(data_set_id, name)
+        return 200, {}, json.dumps(data_set.to_json())
 
     def create_group(self):
         params = json.loads(self.body)
@@ -52,6 +85,53 @@ class QuickSightResponse(BaseResponse):
             namespace=namespace,
         )
         return 200, {}, json.dumps(dict(Group=group.to_json()))
+
+    def create_group_membership(self):
+        aws_account_id = self.path.split("/")[-7]
+        namespace = self.path.split("/")[-5]
+        group_name = self.path.split("/")[-3]
+        user_name = self.path.split("/")[-1]
+        member = self.quicksight_backend.create_group_membership(
+            aws_account_id, namespace, group_name, user_name
+        )
+        return 200, {}, json.dumps({"GroupMember": member.to_json()})
+
+    def create_ingestion(self):
+        data_set_id = self.path.split("/")[-3]
+        ingestion_id = self.path.split("/")[-1]
+        ingestion = self.quicksight_backend.create_ingestion(data_set_id, ingestion_id)
+        return 200, {}, json.dumps(ingestion.to_json())
+
+    def describe_group_membership(self):
+        aws_account_id = self.path.split("/")[-7]
+        namespace = self.path.split("/")[-5]
+        group_name = self.path.split("/")[-3]
+        user_name = self.path.split("/")[-1]
+        member = self.quicksight_backend.describe_group_membership(
+            aws_account_id, namespace, group_name, user_name
+        )
+        return 200, {}, json.dumps({"GroupMember": member.to_json()})
+
+    def list_groups(self):
+        aws_account_id = self.path.split("/")[-4]
+        namespace = self.path.split("/")[-2]
+        groups = self.quicksight_backend.list_groups(aws_account_id, namespace)
+        return 200, {}, json.dumps(dict(GroupList=[g.to_json() for g in groups]))
+
+    def list_group_memberships(self):
+        aws_account_id = self.path.split("/")[-6]
+        namespace = self.path.split("/")[-4]
+        group_name = self.path.split("/")[-2]
+        members = self.quicksight_backend.list_group_memberships(
+            aws_account_id, namespace, group_name
+        )
+        return 200, {}, json.dumps({"GroupMemberList": [m.to_json() for m in members]})
+
+    def list_users(self):
+        aws_account_id = self.path.split("/")[-4]
+        namespace = self.path.split("/")[-2]
+        users = self.quicksight_backend.list_users(aws_account_id, namespace)
+        return 200, {}, json.dumps(dict(UserList=[u.to_json() for u in users]))
 
     def register_user(self):
         params = json.loads(self.body)
