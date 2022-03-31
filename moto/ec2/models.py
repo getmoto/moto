@@ -7180,7 +7180,7 @@ class NetworkAclBackend(object):
         )
 
         subnet_id = None
-        for key, value in default_acl.associations.items():
+        for key in default_acl.associations:
             if key == association_id:
                 subnet_id = default_acl.associations[key].subnet_id
                 del default_acl.associations[key]
