@@ -4042,20 +4042,20 @@
 
 ## quicksight
 <details>
-<summary>6% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_analysis
 - [ ] create_dashboard
-- [ ] create_data_set
+- [X] create_data_set
 - [ ] create_data_source
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
-- [ ] create_group_membership
+- [X] create_group_membership
 - [ ] create_iam_policy_assignment
-- [ ] create_ingestion
+- [X] create_ingestion
 - [ ] create_namespace
 - [ ] create_template
 - [ ] create_template_alias
@@ -4092,6 +4092,7 @@
 - [ ] describe_folder_permissions
 - [ ] describe_folder_resolved_permissions
 - [X] describe_group
+- [X] describe_group_membership
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
@@ -4114,8 +4115,8 @@
 - [ ] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
-- [ ] list_group_memberships
-- [ ] list_groups
+- [X] list_group_memberships
+- [X] list_groups
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_ingestions
@@ -4128,12 +4129,13 @@
 - [ ] list_theme_versions
 - [ ] list_themes
 - [ ] list_user_groups
-- [ ] list_users
+- [X] list_users
 - [X] register_user
 - [ ] restore_analysis
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_folders
+- [ ] search_groups
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization

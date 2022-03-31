@@ -31,14 +31,14 @@ quicksight
 - [ ] create_account_customization
 - [ ] create_analysis
 - [ ] create_dashboard
-- [ ] create_data_set
+- [X] create_data_set
 - [ ] create_data_source
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
-- [ ] create_group_membership
+- [X] create_group_membership
 - [ ] create_iam_policy_assignment
-- [ ] create_ingestion
+- [X] create_ingestion
 - [ ] create_namespace
 - [ ] create_template
 - [ ] create_template_alias
@@ -75,6 +75,7 @@ quicksight
 - [ ] describe_folder_permissions
 - [ ] describe_folder_resolved_permissions
 - [X] describe_group
+- [X] describe_group_membership
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
@@ -97,8 +98,16 @@ quicksight
 - [ ] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
-- [ ] list_group_memberships
-- [ ] list_groups
+- [X] list_group_memberships
+  
+        The NextToken and MaxResults parameters are not yet implemented
+        
+
+- [X] list_groups
+  
+        The NextToken and MaxResults parameters are not yet implemented
+        
+
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_ingestions
@@ -111,7 +120,11 @@ quicksight
 - [ ] list_theme_versions
 - [ ] list_themes
 - [ ] list_user_groups
-- [ ] list_users
+- [X] list_users
+  
+        The NextToken and MaxResults parameters are not yet implemented
+        
+
 - [X] register_user
   
         The following parameters are not yet implemented:
@@ -122,6 +135,7 @@ quicksight
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_folders
+- [ ] search_groups
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
