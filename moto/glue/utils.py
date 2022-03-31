@@ -1,6 +1,8 @@
 import abc
+import itertools
 import warnings
-from typing import Any, Dict, List, Optional, cast
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional, Union
 
 from pyparsing import (
     CaselessKeyword,
@@ -47,7 +49,7 @@ _ALLOWED_KEY_TYPES = (
 )
 
 
-def _cast_type_to_python(type_: str, value: Any):
+def _cast(type_: str, value: str) -> Union[date, datetime, float, int, str]:
     if type_ not in _ALLOWED_KEY_TYPES:
         # TODO raise appropriate exception for unsupported types
         assert False
@@ -62,30 +64,30 @@ class _Expr(abc.ABC):
 
 class _Ident(_Expr):
     def __init__(self, tokens: ParseResults):
-        self.ident: str = cast(str, tokens[0])
+        self.ident: str = tokens[0]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
         for key, value in zip(part_keys, part_input["Values"]):
             if self.ident == key["Name"]:
-                return _cast_type_to_python(key["Type"], value)
+                return _cast(key["Type"], value)
 
         # TODO raise appropriate exception for unknown columns
         assert False
 
 
 class _IdentIsNull(_Expr):
-    def __init__(self, tokens: ParseResults) -> None:
-        self.ident: _Ident = cast(_Ident, tokens[0])
+    def __init__(self, tokens: ParseResults):
+        self.ident: _Ident = tokens[0]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
         return self.ident.eval(part_keys, part_input) is None
 
 
 class _IdentIsNotNull(_Expr):
-    def __init__(self, tokens: ParseResults) -> None:
-        self.ident: _Ident = cast(_Ident, tokens[0])
+    def __init__(self, tokens: ParseResults):
+        self.ident: _Ident = tokens[0]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
         return self.ident.eval(part_keys, part_input) is not None
 
 
@@ -133,7 +135,7 @@ class _PartitionFilterExpressionCache:
 
             try:
                 expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
-                self._cache[expression] = cast(_Expr, expr[0])
+                self._cache[expression] = expr[0]
             except exceptions.ParseException as ex:
                 raise ValueError(f"Could not parse expression='{expression}'") from ex
 
