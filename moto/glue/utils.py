@@ -76,6 +76,10 @@ class _Ident(_Expr):
         # TODO raise appropriate exception for unknown columns
         assert False
 
+    def leval(self, part_keys: List[Dict[str, str]], literal: Any) -> Any:
+        # evaluate literal by simulating partition input
+        return self.eval(part_keys, part_input={"Values": itertools.repeat(literal)})
+
 
 class _IsNull(_Expr):
     def __init__(self, tokens: ParseResults):
@@ -103,7 +107,7 @@ class _BinOp(_Expr):
         ident = self.ident.eval(part_keys, part_input)
 
         # simulate partition input for the lateral
-        rhs = self.ident.eval(part_keys, {"Values": itertools.repeat(self.literal)})
+        rhs = self.ident.leval(part_keys, self.literal)
 
         return {
             "<>": operator.ne,
@@ -145,10 +149,7 @@ class _In(_Expr):
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
         ident = self.ident.eval(part_keys, part_input)
-        values = (
-            self.ident.eval(part_keys, {"Values": itertools.repeat(value)})
-            for value in self.values
-        )
+        values = (self.ident.leval(part_keys, value) for value in self.values)
 
         return ident in values
 
@@ -161,8 +162,8 @@ class _Between(_Expr):
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
         ident = self.ident.eval(part_keys, part_input)
-        left = self.ident.eval(part_keys, {"Values": itertools.repeat(self.left)})
-        right = self.ident.eval(part_keys, {"Values": itertools.repeat(self.right)})
+        left = self.ident.leval(part_keys, self.left)
+        right = self.ident.leval(part_keys, self.right)
 
         return left <= ident <= right
 
