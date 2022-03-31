@@ -51,7 +51,7 @@ _ALLOWED_KEY_TYPES = (
 )
 
 
-def _cast(type_: str, value: str) -> Union[date, datetime, float, int, str]:
+def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
     if type_ not in _ALLOWED_KEY_TYPES:
         # TODO raise appropriate exception for unsupported types
         assert False
@@ -97,7 +97,7 @@ class _IdentBinOp(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
         self.bin_op: str = tokens[1]
-        self.literal: str = tokens[2]
+        self.literal: Any = tokens[2]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
         lhs = self.ident.eval(part_keys, part_input)
