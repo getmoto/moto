@@ -285,7 +285,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         region_name = parse_region_from_url(full_url, use_default_region=False)
         if region_name is None:
             region_name = extract_region_from_aws_authorization(
-                headers.get("Authorization", "")
+                request.headers.get("Authorization", "")
             )
             region_name = region_name or DEFAULT_REGION_NAME
 
