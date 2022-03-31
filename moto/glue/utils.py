@@ -100,7 +100,7 @@ class _IdentBinOp(_Expr):
         self.literal: Any = tokens[2]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
-        lhs = self.ident.eval(part_keys, part_input)
+        ident = self.ident.eval(part_keys, part_input)
 
         # simulate partition input for the lateral
         rhs = self.ident.eval(part_keys, {"Values": itertools.repeat(self.literal)})
@@ -112,7 +112,7 @@ class _IdentBinOp(_Expr):
             ">": operator.gt,
             "<": operator.lt,
             "=": operator.eq,
-        }[self.bin_op](lhs, rhs)
+        }[self.bin_op](ident, rhs)
 
 
 class _IdentLike(_Expr):
@@ -121,12 +121,12 @@ class _IdentLike(_Expr):
         self.literal: str = tokens[2]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
-        lhs = self.ident.eval(part_keys, part_input)
-        if not isinstance(lhs, str):
+        ident = self.ident.eval(part_keys, part_input)
+        if not isinstance(ident, str):
             # TODO raise appropriate exception for LIKE without string
             assert False
 
-        rhs = (
+        pattern = (
             # LIKE clauses always start at the beginning
             "^"
             # convert wildcards to regex, no literal matches possible
@@ -135,7 +135,7 @@ class _IdentLike(_Expr):
             + "$"
         )
 
-        return re.search(rhs, lhs) is not None
+        return re.search(pattern, ident) is not None
 
 
 class _PartitionFilterExpressionCache:
