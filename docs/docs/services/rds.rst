@@ -44,13 +44,13 @@ rds
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
 - [X] create_db_cluster_snapshot
-- [ ] create_db_instance
+- [X] create_db_instance
 - [ ] create_db_instance_read_replica
 - [X] create_db_parameter_group
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint
-- [ ] create_db_security_group
-- [ ] create_db_snapshot
+- [X] create_db_security_group
+- [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
 - [ ] create_global_cluster
@@ -61,13 +61,13 @@ rds
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
 - [X] delete_db_cluster_snapshot
-- [ ] delete_db_instance
+- [X] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
 - [ ] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
-- [ ] delete_db_snapshot
+- [X] delete_db_snapshot
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [ ] delete_global_cluster
@@ -126,7 +126,7 @@ rds
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
 - [ ] modify_db_cluster_snapshot_attribute
-- [ ] modify_db_instance
+- [X] modify_db_instance
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
@@ -159,11 +159,11 @@ rds
 - [ ] revoke_db_security_group_ingress
 - [ ] start_activity_stream
 - [X] start_db_cluster
-- [ ] start_db_instance
+- [X] start_db_instance
 - [ ] start_db_instance_automated_backups_replication
 - [X] start_export_task
 - [ ] stop_activity_stream
 - [X] stop_db_cluster
-- [ ] stop_db_instance
+- [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
 
