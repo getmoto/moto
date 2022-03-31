@@ -1,5 +1,7 @@
 import abc
 import itertools
+import operator
+import re
 import warnings
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Union
@@ -91,6 +93,51 @@ class _IdentIsNotNull(_Expr):
         return self.ident.eval(part_keys, part_input) is not None
 
 
+class _IdentBinOp(_Expr):
+    def __init__(self, tokens: ParseResults):
+        self.ident: _Ident = tokens[0]
+        self.bin_op: str = tokens[1]
+        self.literal: str = tokens[2]
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        lhs = self.ident.eval(part_keys, part_input)
+
+        # simulate partition input for the lateral
+        rhs = self.ident.eval(part_keys, {"Values": itertools.repeat(self.literal)})
+
+        return {
+            "<>": operator.ne,
+            ">=": operator.ge,
+            "<=": operator.le,
+            ">": operator.gt,
+            "<": operator.lt,
+            "=": operator.eq,
+        }[self.bin_op](lhs, rhs)
+
+
+class _IdentLike(_Expr):
+    def __init__(self, tokens: ParseResults):
+        self.ident: _Ident = tokens[0]
+        self.literal: str = tokens[2]
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        lhs = self.ident.eval(part_keys, part_input)
+        if not isinstance(lhs, str):
+            # TODO raise appropriate exception for LIKE without string
+            assert False
+
+        rhs = (
+            # LIKE clauses always start at the beginning
+            "^"
+            # convert wildcards to regex, no literal matches possible
+            + _cast("string", self.literal).replace("_", ".").replace("%", ".*")
+            # LIKE clauses always stop at the end
+            + "$"
+        )
+
+        return re.search(rhs, lhs) is not None
+
+
 class _PartitionFilterExpressionCache:
     def __init__(self):
         # build grammar according to Glue.Client.get_partitions(Expression)
@@ -113,8 +160,8 @@ class _PartitionFilterExpressionCache:
         cond = (
             (ident + is_ + null).set_parse_action(_IdentIsNull)
             | (ident + is_ + not_ + null).set_parse_action(_IdentIsNotNull)
-            | ident + bin_op + any_literal
-            | ident + like + str_literal
+            | (ident + bin_op + any_literal).set_parse_action(_IdentBinOp)
+            | (ident + like + str_literal).set_parse_action(_IdentLike)
             | ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
             | ident + between + any_literal + and_ + any_literal
         ).set_name("cond")
