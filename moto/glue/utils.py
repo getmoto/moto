@@ -77,7 +77,7 @@ class _Ident(_Expr):
         assert False
 
 
-class _IdentIsNull(_Expr):
+class _IsNull(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
 
@@ -85,7 +85,7 @@ class _IdentIsNull(_Expr):
         return self.ident.eval(part_keys, part_input) is None
 
 
-class _IdentIsNotNull(_Expr):
+class _IsNotNull(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
 
@@ -93,7 +93,7 @@ class _IdentIsNotNull(_Expr):
         return self.ident.eval(part_keys, part_input) is not None
 
 
-class _IdentBinOp(_Expr):
+class _BinOp(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
         self.bin_op: str = tokens[1]
@@ -115,7 +115,7 @@ class _IdentBinOp(_Expr):
         }[self.bin_op](ident, rhs)
 
 
-class _IdentLike(_Expr):
+class _Like(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
         self.literal: str = tokens[2]
@@ -138,7 +138,7 @@ class _IdentLike(_Expr):
         return re.search(pattern, ident) is not None
 
 
-class _IdentIn(_Expr):
+class _In(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
         self.values: List[Any] = tokens[2:]
@@ -153,7 +153,7 @@ class _IdentIn(_Expr):
         return ident in values
 
 
-class _IdentBetween(_Expr):
+class _Between(_Expr):
     def __ini__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
         self.left: Any = tokens[2]
@@ -173,12 +173,12 @@ class _PartitionFilterExpressionCache:
         lpar, rpar = map(Suppress, "()")
 
         # NOTE these are AWS Athena column name best practices
-        ident = Word(alphanums + "._")
-        ident.set_parse_action(_Ident).set_name("ident")
+        ident = Word(alphanums + "._").set_parse_action(_Ident).set_name("ident")
 
         num_literal = pyparsing_common.number.set_name("number")
         str_literal = QuotedString(quote_char="'", esc_quote="''").set_name("str")
-        any_literal = (num_literal | str_literal).set_name("literal")
+        literal = (num_literal | str_literal).set_name("literal")
+        literal_list = delimited_list(literal, min=1).set_name("list")
 
         bin_op = one_of("<> >= <= > < =").set_name("binary op")
 
@@ -187,22 +187,17 @@ class _PartitionFilterExpressionCache:
         )
 
         cond = (
-            (ident + is_ + null).set_parse_action(_IdentIsNull)
-            | (ident + is_ + not_ + null).set_parse_action(_IdentIsNotNull)
-            | (ident + bin_op + any_literal).set_parse_action(_IdentBinOp)
-            | (ident + like + str_literal).set_parse_action(_IdentLike)
-            | (
-                ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
-            ).set_parse_action(_IdentIn)
-            | (ident + between + any_literal + and_ + any_literal).set_parse_action(
-                _IdentBetween
-            )
+            (ident + is_ + null).set_parse_action(_IsNull)
+            | (ident + is_ + not_ + null).set_parse_action(_IsNotNull)
+            | (ident + bin_op + literal).set_parse_action(_BinOp)
+            | (ident + like + str_literal).set_parse_action(_Like)
+            | (ident + in_ + lpar + literal_list + rpar).set_parse_action(_In)
+            | (ident + between + literal + and_ + literal).set_parse_action(_Between)
         ).set_name("cond")
 
         # conditions can be joined using 2-ary AND and/or OR
-        self._expr = infix_notation(
-            cond, [(and_, 2, OpAssoc.LEFT), (or_, 2, OpAssoc.LEFT)]
-        ).set_name("expr")
+        expr = infix_notation(cond, [(and_, 2, OpAssoc.LEFT), (or_, 2, OpAssoc.LEFT)])
+        self._expr = expr.set_name("expr")
 
         self._cache: Dict[str, _Expr] = {}
 
