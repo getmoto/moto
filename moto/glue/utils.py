@@ -138,6 +138,35 @@ class _IdentLike(_Expr):
         return re.search(pattern, ident) is not None
 
 
+class _IdentIn(_Expr):
+    def __init__(self, tokens: ParseResults):
+        self.ident: _Ident = tokens[0]
+        self.values: List[Any] = tokens[2:]
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        ident = self.ident.eval(part_keys, part_input)
+        values = (
+            self.ident.eval(part_keys, {"Values": itertools.repeat(value)})
+            for value in self.values
+        )
+
+        return ident in values
+
+
+class _IdentBetween(_Expr):
+    def __ini__(self, tokens: ParseResults):
+        self.ident: _Ident = tokens[0]
+        self.left: Any = tokens[2]
+        self.right: Any = tokens[4]
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        ident = self.ident.eval(part_keys, part_input)
+        left = self.ident.eval(part_keys, {"Values": itertools.repeat(self.left)})
+        right = self.ident.eval(part_keys, {"Values": itertools.repeat(self.right)})
+
+        return left <= ident <= right
+
+
 class _PartitionFilterExpressionCache:
     def __init__(self):
         # build grammar according to Glue.Client.get_partitions(Expression)
@@ -162,8 +191,12 @@ class _PartitionFilterExpressionCache:
             | (ident + is_ + not_ + null).set_parse_action(_IdentIsNotNull)
             | (ident + bin_op + any_literal).set_parse_action(_IdentBinOp)
             | (ident + like + str_literal).set_parse_action(_IdentLike)
-            | ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
-            | ident + between + any_literal + and_ + any_literal
+            | (
+                ident + in_ + lpar + delimited_list(any_literal, min=1) + rpar
+            ).set_parse_action(_IdentIn)
+            | (ident + between + any_literal + and_ + any_literal).set_parse_action(
+                _IdentBetween
+            )
         ).set_name("cond")
 
         # conditions can be joined using 2-ary AND and/or OR
