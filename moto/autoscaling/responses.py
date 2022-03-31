@@ -268,15 +268,21 @@ class AutoScalingResponse(BaseResponse):
 
     def put_scaling_policy(self):
         params = self._get_params()
-        policy = self.autoscaling_backend.create_autoscaling_policy(
+        policy = self.autoscaling_backend.put_scaling_policy(
             name=params.get("PolicyName"),
             policy_type=params.get("PolicyType", "SimpleScaling"),
+            metric_aggregation_type=params.get("MetricAggregationType"),
             adjustment_type=params.get("AdjustmentType"),
             as_name=params.get("AutoScalingGroupName"),
+            min_adjustment_magnitude=params.get("MinAdjustmentMagnitude"),
             scaling_adjustment=self._get_int_param("ScalingAdjustment"),
             cooldown=self._get_int_param("Cooldown"),
             target_tracking_config=params.get("TargetTrackingConfiguration", {}),
             step_adjustments=params.get("StepAdjustments", []),
+            estimated_instance_warmup=params.get("EstimatedInstanceWarmup"),
+            predictive_scaling_configuration=params.get(
+                "PredictiveScalingConfiguration", {}
+            ),
         )
         template = self.response_template(CREATE_SCALING_POLICY_TEMPLATE)
         return template.render(policy=policy)
@@ -441,7 +447,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
     <LaunchConfigurations>
       {% for launch_configuration in launch_configurations %}
         <member>
-          <AssociatePublicIpAddress>{{ launch_configuration.associate_public_ip_address }}</AssociatePublicIpAddress>
+          <AssociatePublicIpAddress>{{ 'true' if launch_configuration.associate_public_ip_address else 'false' }}</AssociatePublicIpAddress>
           <SecurityGroups>
             {% for security_group in launch_configuration.security_groups %}
               <member>{{ security_group }}</member>
@@ -805,37 +811,197 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
       {% for policy in policies %}
       <member>
         <PolicyARN>{{ policy.arn }}</PolicyARN>
+        {% if policy.adjustment_type %}
         <AdjustmentType>{{ policy.adjustment_type }}</AdjustmentType>
+        {% endif %}
         {% if policy.scaling_adjustment %}
         <ScalingAdjustment>{{ policy.scaling_adjustment }}</ScalingAdjustment>
         {% endif %}
+        {% if policy.min_adjustment_magnitude %}
+        <MinAdjustmentMagnitude>{{ policy.min_adjustment_magnitude }}</MinAdjustmentMagnitude>
+        {% endif %}
         <PolicyName>{{ policy.name }}</PolicyName>
         <PolicyType>{{ policy.policy_type }}</PolicyType>
+        <MetricAggregationType>{{ policy.metric_aggregation_type }}</MetricAggregationType>
         <AutoScalingGroupName>{{ policy.as_name }}</AutoScalingGroupName>
         {% if policy.policy_type == 'SimpleScaling' %}
         <Cooldown>{{ policy.cooldown }}</Cooldown>
         {% endif %}
         {% if policy.policy_type == 'TargetTrackingScaling' %}
         <TargetTrackingConfiguration>
+            {% if policy.target_tracking_config.get("PredefinedMetricSpecification") %}
             <PredefinedMetricSpecification>
                 <PredefinedMetricType>{{ policy.target_tracking_config.get("PredefinedMetricSpecification", {}).get("PredefinedMetricType", "") }}</PredefinedMetricType>
                 {% if policy.target_tracking_config.get("PredefinedMetricSpecification", {}).get("ResourceLabel") %}
                 <ResourceLabel>{{ policy.target_tracking_config.get("PredefinedMetricSpecification", {}).get("ResourceLabel") }}</ResourceLabel>
                 {% endif %}
             </PredefinedMetricSpecification>
+            {% endif %}
+            {% if policy.target_tracking_config.get("CustomizedMetricSpecification") %}
+            <CustomizedMetricSpecification>
+              <MetricName>{{ policy.target_tracking_config["CustomizedMetricSpecification"].get("MetricName") }}</MetricName>
+              <Namespace>{{ policy.target_tracking_config["CustomizedMetricSpecification"].get("Namespace") }}</Namespace>
+              <Dimensions>
+                {% for dim in policy.target_tracking_config["CustomizedMetricSpecification"].get("Dimensions", []) %}
+                <member>
+                  <Name>{{ dim.get("Name") }}</Name>
+                  <Value>{{ dim.get("Value") }}</Value>
+                </member>
+                {% endfor %}
+              </Dimensions>
+              <Statistic>{{ policy.target_tracking_config["CustomizedMetricSpecification"].get("Statistic") }}</Statistic>
+              {% if policy.target_tracking_config["CustomizedMetricSpecification"].get("Unit") %}
+              <Unit>{{ policy.target_tracking_config["CustomizedMetricSpecification"].get("Unit") }}</Unit>
+              {% endif %}
+            </CustomizedMetricSpecification>
+            {% endif %}
             <TargetValue>{{ policy.target_tracking_config.get("TargetValue") }}</TargetValue>
         </TargetTrackingConfiguration>
         {% endif %}
         {% if policy.policy_type == 'StepScaling' %}
         <StepAdjustments>
         {% for step in policy.step_adjustments %}
-        <entry>
+        <member>
+            {% if "MetricIntervalLowerBound" in step %}
             <MetricIntervalLowerBound>{{ step.get("MetricIntervalLowerBound") }}</MetricIntervalLowerBound>
+            {% endif %}
+            {% if "MetricIntervalUpperBound" in step %}
             <MetricIntervalUpperBound>{{ step.get("MetricIntervalUpperBound") }}</MetricIntervalUpperBound>
+            {% endif %}
+            {% if "ScalingAdjustment" in step %}
             <ScalingAdjustment>{{ step.get("ScalingAdjustment") }}</ScalingAdjustment>
-        </entry>
+            {% endif %}
+        </member>
         {% endfor %}
         </StepAdjustments>
+        {% endif %}
+        {% if policy.estimated_instance_warmup %}
+        <EstimatedInstanceWarmup>{{ policy.estimated_instance_warmup }}</EstimatedInstanceWarmup>
+        {% endif %}
+        {% if policy.policy_type == 'PredictiveScaling' %}
+        <PredictiveScalingConfiguration>
+            <MetricSpecifications>
+                {% for config in policy.predictive_scaling_configuration.get("MetricSpecifications", []) %}
+                <member>
+                  <TargetValue>{{ config.get("TargetValue") }}</TargetValue>
+                  {% if config.get("PredefinedMetricPairSpecification", {}).get("PredefinedMetricType") %}
+                  <PredefinedMetricPairSpecification>
+                    <PredefinedMetricType>{{ config.get("PredefinedMetricPairSpecification", {}).get("PredefinedMetricType") }}</PredefinedMetricType>
+                    <ResourceLabel>{{ config.get("PredefinedMetricPairSpecification", {}).get("ResourceLabel", "") }}</ResourceLabel>
+                  </PredefinedMetricPairSpecification>
+                  {% endif %}
+                  {% if config.get("PredefinedScalingMetricSpecification", {}).get("PredefinedMetricType") %}
+                  <PredefinedScalingMetricSpecification>
+                    <PredefinedMetricType>{{ config.get("PredefinedScalingMetricSpecification", {}).get("PredefinedMetricType", "") }}</PredefinedMetricType>
+                    <ResourceLabel>{{ config.get("PredefinedScalingMetricSpecification", {}).get("ResourceLabel", "") }}</ResourceLabel>
+                  </PredefinedScalingMetricSpecification>
+                  {% endif %}
+                  {% if config.get("PredefinedLoadMetricSpecification", {}).get("PredefinedMetricType") %}
+                  <PredefinedLoadMetricSpecification>
+                    <PredefinedMetricType>{{ config.get("PredefinedLoadMetricSpecification", {}).get("PredefinedMetricType", "") }}</PredefinedMetricType>
+                    <ResourceLabel>{{ config.get("PredefinedLoadMetricSpecification", {}).get("ResourceLabel", "") }}</ResourceLabel>
+                  </PredefinedLoadMetricSpecification>
+                  {% endif %}
+                  {% if config.get("CustomizedScalingMetricSpecification", {}).get("MetricDataQueries") %}
+                  <CustomizedScalingMetricSpecification>
+                    <MetricDataQueries>
+                    {% for query in config.get("CustomizedScalingMetricSpecification", {}).get("MetricDataQueries", []) %}
+                    <member>
+                      <Id>{{ query.get("Id") }}</Id>
+                      <Expression>{{ query.get("Expression") }}</Expression>
+                      <MetricStat>
+                        <Metric>
+                          <Namespace>{{ query.get("MetricStat", {}).get("Metric", {}).get("Namespace") }}</Namespace>
+                          <MetricName>{{ query.get("MetricStat", {}).get("Metric", {}).get("MetricName") }}</MetricName>
+                          <Dimensions>
+                          {% for dim in query.get("MetricStat", {}).get("Metric", {}).get("Dimensions", []) %}
+                            <Name>{{ dim.get("Name") }}</Name>
+                            <Value>{{ dim.get("Value") }}</Value>
+                          {% endfor %}
+                          </Dimensions>
+                        </Metric>
+                        <Stat>{{ query.get("MetricStat", {}).get("Stat") }}</Stat>
+                        <Unit>{{ query.get("MetricStat", {}).get("Unit") }}</Unit>
+                      </MetricStat>
+                      <Label>{{ query.get("Label") }}</Label>
+                      <ReturnData>{{ 'true' if query.get("ReturnData") else 'false' }}</ReturnData>
+                    </member>
+                    {% endfor %}
+                    </MetricDataQueries>
+                  </CustomizedScalingMetricSpecification>
+                  {% endif %}
+                  {% if config.get("CustomizedLoadMetricSpecification", {}).get("MetricDataQueries") %}
+                  <CustomizedLoadMetricSpecification>
+                    <MetricDataQueries>
+                    {% for query in config.get("CustomizedLoadMetricSpecification", {}).get("MetricDataQueries", []) %}
+                    <member>
+                      <Id>{{ query.get("Id") }}</Id>
+                      <Expression>{{ query.get("Expression") }}</Expression>
+                      <MetricStat>
+                        <Metric>
+                          <Namespace>{{ query.get("MetricStat", {}).get("Metric", {}).get("Namespace") }}</Namespace>
+                          <MetricName>{{ query.get("MetricStat", {}).get("Metric", {}).get("MetricName") }}</MetricName>
+                          <Dimensions>
+                          {% for dim in query.get("MetricStat", {}).get("Metric", {}).get("Dimensions", []) %}
+                            <Name>{{ dim.get("Name") }}</Name>
+                            <Value>{{ dim.get("Value") }}</Value>
+                          {% endfor %}
+                          </Dimensions>
+                        </Metric>
+                        <Stat>{{ query.get("MetricStat", {}).get("Stat") }}</Stat>
+                        <Unit>{{ query.get("MetricStat", {}).get("Unit") }}</Unit>
+                      </MetricStat>
+                      <Label>{{ query.get("Label") }}</Label>
+                      <ReturnData>{{ 'true' if query.get("ReturnData") else 'false' }}</ReturnData>
+                    </member>
+                    {% endfor %}
+                    </MetricDataQueries>
+                  </CustomizedLoadMetricSpecification>
+                  {% endif %}
+                  {% if config.get("CustomizedCapacityMetricSpecification", {}).get("MetricDataQueries") %}
+                  <CustomizedCapacityMetricSpecification>
+                    <MetricDataQueries>
+                    {% for query in config.get("CustomizedCapacityMetricSpecification", {}).get("MetricDataQueries", []) %}
+                    <member>
+                      <Id>{{ query.get("Id") }}</Id>
+                      <Expression>{{ query.get("Expression") }}</Expression>
+                      <MetricStat>
+                        <Metric>
+                          <Namespace>{{ query.get("MetricStat", {}).get("Metric", {}).get("Namespace") }}</Namespace>
+                          <MetricName>{{ query.get("MetricStat", {}).get("Metric", {}).get("MetricName") }}</MetricName>
+                          <Dimensions>
+                          {% for dim in query.get("MetricStat", {}).get("Metric", {}).get("Dimensions", []) %}
+                            <Name>{{ dim.get("Name") }}</Name>
+                            <Value>{{ dim.get("Value") }}</Value>
+                          {% endfor %}
+                          </Dimensions>
+                        </Metric>
+                        <Stat>{{ query.get("MetricStat", {}).get("Stat") }}</Stat>
+                        <Unit>{{ query.get("MetricStat", {}).get("Unit") }}</Unit>
+                      </MetricStat>
+                      <Label>{{ query.get("Label") }}</Label>
+                      <ReturnData>{{ 'true' if query.get("ReturnData") else 'false' }}</ReturnData>
+                    </member>
+                    {% endfor %}
+                    </MetricDataQueries>
+                  </CustomizedCapacityMetricSpecification>
+                  {% endif %}
+                </member>
+                {% endfor %}
+            </MetricSpecifications>
+            {% if "Mode" in policy.predictive_scaling_configuration %}
+            <Mode>{{ policy.predictive_scaling_configuration.get("Mode") }}</Mode>
+            {% endif %}
+            {% if "SchedulingBufferTime" in policy.predictive_scaling_configuration %}
+            <SchedulingBufferTime>{{ policy.predictive_scaling_configuration.get("SchedulingBufferTime") }}</SchedulingBufferTime>
+            {% endif %}
+            {% if "MaxCapacityBreachBehavior" in policy.predictive_scaling_configuration %}
+            <MaxCapacityBreachBehavior>{{ policy.predictive_scaling_configuration.get("MaxCapacityBreachBehavior") }}</MaxCapacityBreachBehavior>
+            {% endif %}
+            {% if "MaxCapacityBuffer" in policy.predictive_scaling_configuration %}
+            <MaxCapacityBuffer>{{ policy.predictive_scaling_configuration.get("MaxCapacityBuffer") }}</MaxCapacityBuffer>
+            {% endif %}
+        </PredictiveScalingConfiguration>
         {% endif %}
         <Alarms/>
       </member>

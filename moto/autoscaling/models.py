@@ -66,18 +66,24 @@ class FakeScalingPolicy(BaseModel):
         self,
         name,
         policy_type,
+        metric_aggregation_type,
         adjustment_type,
         as_name,
+        min_adjustment_magnitude,
         scaling_adjustment,
         cooldown,
         target_tracking_config,
         step_adjustments,
+        estimated_instance_warmup,
+        predictive_scaling_configuration,
         autoscaling_backend,
     ):
         self.name = name
         self.policy_type = policy_type
+        self.metric_aggregation_type = metric_aggregation_type
         self.adjustment_type = adjustment_type
         self.as_name = as_name
+        self.min_adjustment_magnitude = min_adjustment_magnitude
         self.scaling_adjustment = scaling_adjustment
         if cooldown is not None:
             self.cooldown = cooldown
@@ -85,6 +91,8 @@ class FakeScalingPolicy(BaseModel):
             self.cooldown = DEFAULT_COOLDOWN
         self.target_tracking_config = target_tracking_config
         self.step_adjustments = step_adjustments
+        self.estimated_instance_warmup = estimated_instance_warmup
+        self.predictive_scaling_configuration = predictive_scaling_configuration
         self.autoscaling_backend = autoscaling_backend
 
     @property
@@ -390,7 +398,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 self.launch_template = self.ec2_backend.get_launch_template_by_name(
                     launch_template_name
                 )
-            self.launch_template_version = int(launch_template["version"])
+            self.launch_template_version = launch_template["version"]
 
     @staticmethod
     def __set_string_propagate_at_launch_booleans_on_tags(tags):
@@ -963,27 +971,35 @@ class AutoScalingBackend(BaseBackend):
     def delete_lifecycle_hook(self, as_name, name):
         self.lifecycle_hooks.pop("%s_%s" % (as_name, name), None)
 
-    def create_autoscaling_policy(
+    def put_scaling_policy(
         self,
         name,
         policy_type,
+        metric_aggregation_type,
         adjustment_type,
         as_name,
+        min_adjustment_magnitude,
         scaling_adjustment,
         cooldown,
         target_tracking_config,
         step_adjustments,
+        estimated_instance_warmup,
+        predictive_scaling_configuration,
     ):
         policy = FakeScalingPolicy(
             name,
             policy_type,
-            adjustment_type,
-            as_name,
-            scaling_adjustment,
-            cooldown,
-            target_tracking_config,
-            step_adjustments,
-            self,
+            metric_aggregation_type,
+            adjustment_type=adjustment_type,
+            as_name=as_name,
+            min_adjustment_magnitude=min_adjustment_magnitude,
+            scaling_adjustment=scaling_adjustment,
+            cooldown=cooldown,
+            target_tracking_config=target_tracking_config,
+            step_adjustments=step_adjustments,
+            estimated_instance_warmup=estimated_instance_warmup,
+            predictive_scaling_configuration=predictive_scaling_configuration,
+            autoscaling_backend=self,
         )
 
         self.policies[name] = policy

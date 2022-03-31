@@ -10,6 +10,9 @@ TestAccAWSAPIGatewayV2RouteResponse
 TestAccAWSAPIGatewayV2VpcLink
 TestAccAWSAppsyncApiKey
 TestAccAWSAppsyncGraphqlApi
+TestAccAWSAutoscalingAttachment
+TestAccAwsAutoScalingGroupDataSource
+TestAccAWSAutoscalingPolicy
 TestAccAWSAvailabilityZones
 TestAccAWSBatchJobDefinition
 TestAccAWSBatchJobQueue
@@ -72,6 +75,7 @@ TestAccAWSEcrRepositoryPolicy
 TestAccAWSEFSAccessPoint
 TestAccAWSEFSMountTarget
 TestAccAWSEgressOnlyInternetGateway
+TestAccAWSEksClusterDataSource
 TestAccAWSElasticBeanstalkSolutionStackDataSource
 TestAccAWSELBAttachment
 TestAccAWSElbHostedZoneId
@@ -113,6 +117,8 @@ TestAccAWSPartition
 TestAccAWSPinpointApp
 TestAccAWSPinpointEventStream
 TestAccAWSProvider
+TestAccAWSQuickSightGroup
+TestAccAWSQuickSightUser
 TestAccAWSRedshiftServiceAccount
 TestAccAWSRolePolicyAttachment
 TestAccAWSRouteTable_

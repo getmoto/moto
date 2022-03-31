@@ -338,7 +338,7 @@
 
 ## autoscaling
 <details>
-<summary>47% implemented</summary>
+<summary>49% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -389,7 +389,7 @@
 - [ ] get_predictive_scaling_forecast
 - [ ] put_lifecycle_hook
 - [ ] put_notification_configuration
-- [ ] put_scaling_policy
+- [X] put_scaling_policy
 - [ ] put_scheduled_update_group_action
 - [ ] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
@@ -1547,7 +1547,7 @@
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
-- [ ] delete_launch_template
+- [X] delete_launch_template
 - [ ] delete_launch_template_versions
 - [ ] delete_local_gateway_route
 - [ ] delete_local_gateway_route_table_vpc_association
@@ -1995,21 +1995,21 @@
 
 ## ecs
 <details>
-<summary>73% implemented</summary>
+<summary>78% implemented</summary>
 
-- [ ] create_capacity_provider
+- [X] create_capacity_provider
 - [X] create_cluster
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
 - [X] delete_attributes
-- [ ] delete_capacity_provider
+- [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
 - [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
-- [ ] describe_capacity_providers
+- [X] describe_capacity_providers
 - [X] describe_clusters
 - [X] describe_container_instances
 - [X] describe_services
@@ -4040,6 +4040,127 @@
 - [ ] synthesize_speech
 </details>
 
+## quicksight
+<details>
+<summary>6% implemented</summary>
+
+- [ ] cancel_ingestion
+- [ ] create_account_customization
+- [ ] create_analysis
+- [ ] create_dashboard
+- [ ] create_data_set
+- [ ] create_data_source
+- [ ] create_folder
+- [ ] create_folder_membership
+- [X] create_group
+- [ ] create_group_membership
+- [ ] create_iam_policy_assignment
+- [ ] create_ingestion
+- [ ] create_namespace
+- [ ] create_template
+- [ ] create_template_alias
+- [ ] create_theme
+- [ ] create_theme_alias
+- [ ] delete_account_customization
+- [ ] delete_analysis
+- [ ] delete_dashboard
+- [ ] delete_data_set
+- [ ] delete_data_source
+- [ ] delete_folder
+- [ ] delete_folder_membership
+- [X] delete_group
+- [ ] delete_group_membership
+- [ ] delete_iam_policy_assignment
+- [ ] delete_namespace
+- [ ] delete_template
+- [ ] delete_template_alias
+- [ ] delete_theme
+- [ ] delete_theme_alias
+- [X] delete_user
+- [ ] delete_user_by_principal_id
+- [ ] describe_account_customization
+- [ ] describe_account_settings
+- [ ] describe_analysis
+- [ ] describe_analysis_permissions
+- [ ] describe_dashboard
+- [ ] describe_dashboard_permissions
+- [ ] describe_data_set
+- [ ] describe_data_set_permissions
+- [ ] describe_data_source
+- [ ] describe_data_source_permissions
+- [ ] describe_folder
+- [ ] describe_folder_permissions
+- [ ] describe_folder_resolved_permissions
+- [X] describe_group
+- [ ] describe_iam_policy_assignment
+- [ ] describe_ingestion
+- [ ] describe_ip_restriction
+- [ ] describe_namespace
+- [ ] describe_template
+- [ ] describe_template_alias
+- [ ] describe_template_permissions
+- [ ] describe_theme
+- [ ] describe_theme_alias
+- [ ] describe_theme_permissions
+- [X] describe_user
+- [ ] generate_embed_url_for_anonymous_user
+- [ ] generate_embed_url_for_registered_user
+- [ ] get_dashboard_embed_url
+- [ ] get_session_embed_url
+- [ ] list_analyses
+- [ ] list_dashboard_versions
+- [ ] list_dashboards
+- [ ] list_data_sets
+- [ ] list_data_sources
+- [ ] list_folder_members
+- [ ] list_folders
+- [ ] list_group_memberships
+- [ ] list_groups
+- [ ] list_iam_policy_assignments
+- [ ] list_iam_policy_assignments_for_user
+- [ ] list_ingestions
+- [ ] list_namespaces
+- [ ] list_tags_for_resource
+- [ ] list_template_aliases
+- [ ] list_template_versions
+- [ ] list_templates
+- [ ] list_theme_aliases
+- [ ] list_theme_versions
+- [ ] list_themes
+- [ ] list_user_groups
+- [ ] list_users
+- [X] register_user
+- [ ] restore_analysis
+- [ ] search_analyses
+- [ ] search_dashboards
+- [ ] search_folders
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_account_customization
+- [ ] update_account_settings
+- [ ] update_analysis
+- [ ] update_analysis_permissions
+- [ ] update_dashboard
+- [ ] update_dashboard_permissions
+- [ ] update_dashboard_published_version
+- [ ] update_data_set
+- [ ] update_data_set_permissions
+- [ ] update_data_source
+- [ ] update_data_source_permissions
+- [ ] update_folder
+- [ ] update_folder_permissions
+- [X] update_group
+- [ ] update_iam_policy_assignment
+- [ ] update_ip_restriction
+- [ ] update_template
+- [ ] update_template_alias
+- [ ] update_template_permissions
+- [ ] update_theme
+- [ ] update_theme_alias
+- [ ] update_theme_permissions
+- [ ] update_user
+</details>
+
 ## ram
 <details>
 <summary>20% implemented</summary>
@@ -5762,7 +5883,6 @@
 - proton
 - qldb
 - qldb-session
-- quicksight
 - rbin
 - rds-data
 - rekognition

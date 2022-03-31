@@ -168,9 +168,19 @@ class FileSystem(CloudFormationModel):
             for k, v in self.__dict__.items()
             if not k.startswith("_")
         }
-        ret["Tags"] = self._context.list_tags_for_resource(self.file_system_id)
-        ret["SizeInBytes"] = self.size_in_bytes
-        ret["NumberOfMountTargets"] = self.number_of_mount_targets
+        tags = self._context.list_tags_for_resource(self.file_system_id)
+        name = ""
+        for tag in tags:
+            if tag["Key"] == "Name":
+                name = tag["Value"]
+                break
+
+        ret.update(
+            Tags=tags,
+            SizeInBytes=self.size_in_bytes,
+            NumberOfMountTargets=self.number_of_mount_targets,
+            Name=name,
+        )
         return ret
 
     def add_mount_target(self, subnet, mount_target):

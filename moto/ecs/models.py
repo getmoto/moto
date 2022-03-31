@@ -61,7 +61,7 @@ class AccountSetting(BaseObject):
 
 
 class Cluster(BaseObject, CloudFormationModel):
-    def __init__(self, cluster_name, region_name):
+    def __init__(self, cluster_name, region_name, cluster_settings=None):
         self.active_services_count = 0
         self.arn = "arn:aws:ecs:{0}:{1}:cluster/{2}".format(
             region_name, ACCOUNT_ID, cluster_name
@@ -72,6 +72,7 @@ class Cluster(BaseObject, CloudFormationModel):
         self.running_tasks_count = 0
         self.status = "ACTIVE"
         self.region_name = region_name
+        self.settings = cluster_settings
 
     @property
     def physical_resource_id(self):
@@ -323,6 +324,31 @@ class Task(BaseObject):
     def response_object(self):
         response_object = self.gen_response_object()
         response_object["taskArn"] = self.task_arn
+        return response_object
+
+
+class CapacityProvider(BaseObject):
+    def __init__(self, region_name, name, asg_details, tags):
+        self._id = str(uuid.uuid4())
+        self.capacity_provider_arn = f"arn:aws:ecs:{region_name}:{ACCOUNT_ID}:capacity_provider/{name}/{self._id}"
+        self.name = name
+        self.status = "ACTIVE"
+        self.auto_scaling_group_provider = asg_details
+        self.tags = tags
+
+
+class CapacityProviderFailure(BaseObject):
+    def __init__(self, reason, name, region_name):
+        self.reason = reason
+        self.arn = "arn:aws:ecs:{0}:{1}:capacity_provider/{2}".format(
+            region_name, ACCOUNT_ID, name
+        )
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        response_object["reason"] = self.reason
+        response_object["arn"] = self.arn
         return response_object
 
 
@@ -727,6 +753,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     def __init__(self, region_name):
         super().__init__()
         self.account_settings = dict()
+        self.capacity_providers = dict()
         self.clusters = {}
         self.task_definitions = {}
         self.tasks = {}
@@ -760,6 +787,13 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return cluster
 
+    def create_capacity_provider(self, name, asg_details, tags):
+        capacity_provider = CapacityProvider(self.region_name, name, asg_details, tags)
+        self.capacity_providers[name] = capacity_provider
+        if tags:
+            self.tagger.tag_resource(capacity_provider.capacity_provider_arn, tags)
+        return capacity_provider
+
     def describe_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split("/")[-1]
         if ":" in task_definition_name:
@@ -777,12 +811,41 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
-    def create_cluster(self, cluster_name, tags=None):
-        cluster = Cluster(cluster_name, self.region_name)
+    def create_cluster(self, cluster_name, tags=None, cluster_settings=None):
+        """
+        The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
+        """
+        cluster = Cluster(cluster_name, self.region_name, cluster_settings)
         self.clusters[cluster_name] = cluster
         if tags:
             self.tagger.tag_resource(cluster.arn, tags)
         return cluster
+
+    def _get_provider(self, name_or_arn):
+        for provider in self.capacity_providers.values():
+            if (
+                provider.name == name_or_arn
+                or provider.capacity_provider_arn == name_or_arn
+            ):
+                return provider
+
+    def describe_capacity_providers(self, names):
+        providers = []
+        failures = []
+        for name in names:
+            provider = self._get_provider(name)
+            if provider:
+                providers.append(provider)
+            else:
+                failures.append(
+                    CapacityProviderFailure("MISSING", name, self.region_name)
+                )
+        return providers, failures
+
+    def delete_capacity_provider(self, name_or_arn):
+        provider = self._get_provider(name_or_arn)
+        self.capacity_providers.pop(provider.name)
+        return provider
 
     def list_clusters(self):
         """
@@ -1165,6 +1228,15 @@ class EC2ContainerServiceBackend(BaseBackend):
             "Could not find task {} on cluster {}".format(task_str, cluster.name)
         )
 
+    def _get_service(self, cluster_str, service_str):
+        cluster = self._get_cluster(cluster_str)
+        for service in self.services.values():
+            if service.cluster_name == cluster.name and (
+                service.name == service_str or service.arn == service_str
+            ):
+                return service
+        raise ServiceNotFoundException
+
     def create_service(
         self,
         cluster_str,
@@ -1223,31 +1295,19 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def describe_services(self, cluster_str, service_names_or_arns):
         cluster = self._get_cluster(cluster_str)
+        service_names = [name.split("/")[-1] for name in service_names_or_arns]
 
         result = []
         failures = []
-        for existing_service_name, existing_service_obj in sorted(
-            self.services.items()
-        ):
-            for requested_name_or_arn in service_names_or_arns:
-                cluster_service_pair = "{0}:{1}".format(
-                    cluster.name, requested_name_or_arn
+        for name in service_names:
+            cluster_service_pair = "{0}:{1}".format(cluster.name, name)
+            if cluster_service_pair in self.services:
+                result.append(self.services[cluster_service_pair])
+            else:
+                missing_arn = (
+                    f"arn:aws:ecs:{self.region_name}:{ACCOUNT_ID}:service/{name}"
                 )
-                if (
-                    cluster_service_pair == existing_service_name
-                    or existing_service_obj.arn == requested_name_or_arn
-                ):
-                    result.append(existing_service_obj)
-                else:
-                    service_name = requested_name_or_arn.split("/")[-1]
-                    failures.append(
-                        {
-                            "arn": "arn:aws:ecs:eu-central-1:{0}:service/{1}".format(
-                                ACCOUNT_ID, service_name
-                            ),
-                            "reason": "MISSING",
-                        }
-                    )
+                failures.append({"arn": missing_arn, "reason": "MISSING"})
 
         return result, failures
 
@@ -1272,18 +1332,17 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def delete_service(self, cluster_name, service_name, force):
         cluster = self._get_cluster(cluster_name)
-        cluster_service_pair = "{0}:{1}".format(cluster.name, service_name)
+        service = self._get_service(cluster_name, service_name)
 
-        if cluster_service_pair in self.services:
-            service = self.services[cluster_service_pair]
-            if service.desired_count > 0 and not force:
-                raise InvalidParameterException(
-                    "The service cannot be stopped while it is scaled above 0."
-                )
-            else:
-                return self.services.pop(cluster_service_pair)
+        cluster_service_pair = "{0}:{1}".format(cluster.name, service.name)
+
+        service = self.services[cluster_service_pair]
+        if service.desired_count > 0 and not force:
+            raise InvalidParameterException(
+                "The service cannot be stopped while it is scaled above 0."
+            )
         else:
-            raise ServiceNotFoundException
+            return self.services.pop(cluster_service_pair)
 
     def register_container_instance(self, cluster_str, ec2_instance_id):
         cluster_name = cluster_str.split("/")[-1]

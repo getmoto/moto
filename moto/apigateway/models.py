@@ -747,7 +747,7 @@ class RestAPI(CloudFormationModel):
 
     PROP_ID = "id"
     PROP_NAME = "name"
-    PROP_DESCRIPTON = "description"
+    PROP_DESCRIPTION = "description"
     PROP_VERSION = "version"
     PROP_BINARY_MEDIA_TYPES = "binaryMediaTypes"
     PROP_CREATED_DATE = "createdDate"
@@ -801,7 +801,7 @@ class RestAPI(CloudFormationModel):
         return {
             self.PROP_ID: self.id,
             self.PROP_NAME: self.name,
-            self.PROP_DESCRIPTON: self.description,
+            self.PROP_DESCRIPTION: self.description,
             self.PROP_VERSION: self.version,
             self.PROP_BINARY_MEDIA_TYPES: self.binaryMediaTypes,
             self.PROP_CREATED_DATE: self.create_date,
@@ -826,7 +826,7 @@ class RestAPI(CloudFormationModel):
             if operaton == self.OPERATION_REPLACE:
                 if to_path(self.PROP_NAME) in path:
                     self.name = value
-                if to_path(self.PROP_DESCRIPTON) in path:
+                if to_path(self.PROP_DESCRIPTION) in path:
                     self.description = value
                 if to_path(self.PROP_API_KEY_SOURCE) in path:
                     self.api_key_source = value
@@ -840,7 +840,7 @@ class RestAPI(CloudFormationModel):
             elif operaton == self.OPERATION_REMOVE:
                 if to_path(self.PROP_BINARY_MEDIA_TYPES) in path:
                     self.binaryMediaTypes.remove(value)
-                if to_path(self.PROP_DESCRIPTON) in path:
+                if to_path(self.PROP_DESCRIPTION) in path:
                     self.description = ""
 
     @classmethod
