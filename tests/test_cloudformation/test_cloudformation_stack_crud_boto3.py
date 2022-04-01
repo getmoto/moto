@@ -1857,7 +1857,9 @@ def test_update_stack_when_rolled_back():
     err = ex.value.response["Error"]
     err.should.have.key("Code").being.equal("ValidationError")
     err.should.have.key("Message").match(
-        r"Stack:arn:aws:cloudformation:us-east-1:{}:stack/test_stack/[a-z0-9-]+ is in ROLLBACK_COMPLETE state and can not be updated.".format(ACCOUNT_ID)
+        r"Stack:arn:aws:cloudformation:us-east-1:{}:stack/test_stack/[a-z0-9-]+ is in ROLLBACK_COMPLETE state and can not be updated.".format(
+            ACCOUNT_ID
+        )
     )
 
 
