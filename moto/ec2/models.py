@@ -266,6 +266,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             self.subnet = self.ec2_backend.get_subnet(subnet)
         self.instance = None
         self.attachment_id = None
+        self.attach_time = None
+        self.delete_on_termination = False
         self.description = description
         self.source_dest_check = True
 
@@ -274,7 +276,6 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.start()
         self.add_tags(tags or {})
         self.status = "available"
-        self.attachments = []
         self.mac_address = random_mac_address()
         self.interface_type = "interface"
         # Local set to the ENI. When attached to an instance, @property group_set
@@ -640,6 +641,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         super().__init__()
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
+        self.owner_id = OWNER_ID
         self.lifecycle = kwargs.get("lifecycle")
 
         nics = kwargs.get("nics", {})
@@ -1047,6 +1049,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         # This is used upon associate/disassociate public IP.
         eni.instance = self
         eni.attachment_id = random_eni_attach_id()
+        eni.attach_time = utc_date_and_time()
+        eni.status = "in-use"
         eni.device_index = device_index
 
         return eni.attachment_id
@@ -1055,6 +1059,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.nics.pop(eni.device_index, None)
         eni.instance = None
         eni.attachment_id = None
+        eni.attach_time = None
+        eni.status = "available"
         eni.device_index = None
 
     @classmethod
