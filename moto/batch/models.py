@@ -313,13 +313,13 @@ class JobDefinition(CloudFormationModel):
         memory = self._get_resource_requirement("memory")
         if memory is None:
             raise ClientException("containerProperties must contain memory")
-        if memory < 4:
+        if float(memory) < 4:
             raise ClientException("container memory limit must be greater than 4")
 
         vcpus = self._get_resource_requirement("vcpus")
         if vcpus is None:
             raise ClientException("containerProperties must contain vcpus")
-        if vcpus <= 0:
+        if float(vcpus) <= 0:
             raise ClientException("container vcpus limit must be greater than 0")
 
     def deregister(self):
