@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.4
 -----
-Docker Digest for 3.1.4: <autopopulateddigest>
+Docker Digest for 3.1.4: _sha256:795eb8a1d966ef30c53f504e358afb23ec262e5ad1cba18d474096c0fba794bd_
 
     General:
         * Compatible with botocore 1.24.30.
