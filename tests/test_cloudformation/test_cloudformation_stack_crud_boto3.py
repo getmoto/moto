@@ -1073,10 +1073,10 @@ def test_creating_stacks_across_regions():
     list(west2_cf.stacks.all()).should.have.length_of(1)
 
     list(west1_cf.stacks.all())[0].stack_id.should.contain(
-        "arn:aws:cloudformation:us-west-1:123456789:stack/test_stack/"
+        "arn:aws:cloudformation:us-west-1:{}:stack/test_stack/".format(ACCOUNT_ID)
     )
     list(west2_cf.stacks.all())[0].stack_id.should.contain(
-        "arn:aws:cloudformation:us-west-2:123456789:stack/test_stack/"
+        "arn:aws:cloudformation:us-west-2:{}:stack/test_stack/".format(ACCOUNT_ID)
     )
 
 
@@ -1379,11 +1379,11 @@ def test_create_change_set_from_s3_url():
         Tags=[{"Key": "tag-key", "Value": "tag-value"}],
     )
     assert (
-        "arn:aws:cloudformation:us-west-1:123456789:changeSet/NewChangeSet/"
+        "arn:aws:cloudformation:us-west-1:{}:changeSet/NewChangeSet/".format(ACCOUNT_ID)
         in response["Id"]
     )
     assert (
-        "arn:aws:cloudformation:us-west-1:123456789:stack/NewStack"
+        "arn:aws:cloudformation:us-west-1:{}:stack/NewStack".format(ACCOUNT_ID)
         in response["StackId"]
     )
 
@@ -1857,7 +1857,9 @@ def test_update_stack_when_rolled_back():
     err = ex.value.response["Error"]
     err.should.have.key("Code").being.equal("ValidationError")
     err.should.have.key("Message").match(
-        r"Stack:arn:aws:cloudformation:us-east-1:123456789:stack/test_stack/[a-z0-9-]+ is in ROLLBACK_COMPLETE state and can not be updated."
+        r"Stack:arn:aws:cloudformation:us-east-1:{}:stack/test_stack/[a-z0-9-]+ is in ROLLBACK_COMPLETE state and can not be updated.".format(
+            ACCOUNT_ID
+        )
     )
 
 
