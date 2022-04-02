@@ -1,6 +1,53 @@
 Moto Changelog
 ==============
 
+3.1.4
+-----
+Docker Digest for 3.1.4: <autopopulateddigest>
+
+    General:
+        * Compatible with botocore 1.24.30.
+          The IOTData service in older versions of Moto is incompatible with botocore >= 1.24.30, due to the fact that AWS changed their URL endpoints. 
+
+    New Services:
+        * QuickSight:
+            * create_data_set()
+            * create_group()
+            * create_group_membership()
+            * create_ingestion()
+            * delete_group()
+            * delete_user()
+            * describe_group()
+            * describe_group_membership()
+            * describe_user()
+            * list_groups()
+            * list_group_memberships()
+            * list_users()
+            * register_user()
+            * update_group()
+            * describe_group()
+            * describe_group()
+            * describe_group()
+
+        * Rekognition:
+            * get_text_detection()
+            * start_text_detection()
+
+    New Methods:
+        * EC2:
+            * delete_launch_template()
+
+        * ECS:
+            * create_capacity_provider()
+            * delete_capacity_provider()
+            * describe_capacity_providers()
+
+    Miscellaneous:
+        * Autoscaling:put_scaling_policy() now supports the parameters MetricAggregationType, MinAdjustmentMagnitude, EstimatedInstanceWarmup, PredictiveScalingConfiguration
+        * Autoscaling:create_auto_scaling_group() now supports launch template versions '$Latest' and '$Default'
+        * RDS: Improved tagging support for Clusters and ClusterSnapshots
+
+
 3.1.3
 -----
 Docker Digest for 3.1.3: _sha256:d0716d84d376e7aafeb4a40a29d298725aa39e6553b64f55a6be1287e4bee80c_
