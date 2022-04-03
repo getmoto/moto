@@ -78,3 +78,13 @@ class CrawlerNotRunningException(GlueClientError):
 class ConcurrentRunsExceededException(GlueClientError):
     def __init__(self, msg):
         super().__init__("ConcurrentRunsExceededException", msg)
+
+
+class InvalidInputException(GlueClientError):
+    def __init__(self, msg):
+        super().__init__("InvalidInputException", msg)
+
+
+class InvalidStateException(GlueClientError):
+    def __init__(self, msg):
+        super().__init__("InvalidStateException", msg)
