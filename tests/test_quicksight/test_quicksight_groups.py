@@ -106,3 +106,42 @@ def test_delete_group():
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_quicksight
+def test_list_groups__initial():
+    client = boto3.client("quicksight", region_name="us-east-2")
+    resp = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
+
+    resp.should.have.key("GroupList").equals([])
+    resp.should.have.key("Status").equals(200)
+
+
+@mock_quicksight
+def test_list_groups():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    for i in range(4):
+        client.create_group(
+            AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName=f"group{i}"
+        )
+
+    resp = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
+
+    resp.should.have.key("GroupList").length_of(4)
+    resp.should.have.key("Status").equals(200)
+
+    resp["GroupList"].should.contain(
+        {
+            "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group0",
+            "GroupName": "group0",
+            "PrincipalId": ACCOUNT_ID,
+        }
+    )
+
+    resp["GroupList"].should.contain(
+        {
+            "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group3",
+            "GroupName": "group3",
+            "PrincipalId": ACCOUNT_ID,
+        }
+    )

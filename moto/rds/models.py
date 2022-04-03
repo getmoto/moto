@@ -728,7 +728,7 @@ class Database(CloudFormationModel):
             db_kwargs["source_db_identifier"] = source_db_identifier
             database = rds_backend.create_database_replica(db_kwargs)
         else:
-            database = rds_backend.create_database(db_kwargs)
+            database = rds_backend.create_db_instance(db_kwargs)
         return database
 
     def to_json(self):
@@ -820,7 +820,7 @@ class Database(CloudFormationModel):
 
     def delete(self, region_name):
         backend = rds_backends[region_name]
-        backend.delete_database(self.db_instance_identifier)
+        backend.delete_db_instance(self.db_instance_identifier)
 
 
 class DatabaseSnapshot(BaseModel):
@@ -1094,7 +1094,7 @@ class SecurityGroup(CloudFormationModel):
 
         ec2_backend = ec2_backends[region_name]
         rds_backend = rds_backends[region_name]
-        security_group = rds_backend.create_security_group(
+        security_group = rds_backend.create_db_security_group(
             group_name, description, tags
         )
         for security_group_ingress in security_group_ingress_rules:
@@ -1257,13 +1257,13 @@ class RDSBackend(BaseBackend):
             service_region, zones, "rds-data"
         )
 
-    def create_database(self, db_kwargs):
+    def create_db_instance(self, db_kwargs):
         database_id = db_kwargs["db_instance_identifier"]
         database = Database(**db_kwargs)
         self.databases[database_id] = database
         return database
 
-    def create_database_snapshot(
+    def create_db_snapshot(
         self, db_instance_identifier, db_snapshot_identifier, tags=None
     ):
         database = self.databases.get(db_instance_identifier)
@@ -1307,7 +1307,7 @@ class RDSBackend(BaseBackend):
 
         return target_snapshot
 
-    def delete_database_snapshot(self, db_snapshot_identifier):
+    def delete_db_snapshot(self, db_snapshot_identifier):
         if db_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(db_snapshot_identifier)
 
@@ -1358,7 +1358,7 @@ class RDSBackend(BaseBackend):
             raise DBSnapshotNotFoundError(db_snapshot_identifier)
         return list(snapshots.values())
 
-    def modify_database(self, db_instance_identifier, db_kwargs):
+    def modify_db_instance(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
         if "new_db_instance_identifier" in db_kwargs:
             del self.databases[db_instance_identifier]
@@ -1388,9 +1388,9 @@ class RDSBackend(BaseBackend):
             if value:
                 new_instance_props[key] = value
 
-        return self.create_database(new_instance_props)
+        return self.create_db_instance(new_instance_props)
 
-    def stop_database(self, db_instance_identifier, db_snapshot_identifier=None):
+    def stop_db_instance(self, db_instance_identifier, db_snapshot_identifier=None):
         database = self.describe_databases(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html#USER_StopInstance.Limitations
@@ -1402,13 +1402,11 @@ class RDSBackend(BaseBackend):
         if database.status != "available":
             raise InvalidDBInstanceStateError(db_instance_identifier, "stop")
         if db_snapshot_identifier:
-            self.create_database_snapshot(
-                db_instance_identifier, db_snapshot_identifier
-            )
+            self.create_db_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = "stopped"
         return database
 
-    def start_database(self, db_instance_identifier):
+    def start_db_instance(self, db_instance_identifier):
         database = self.describe_databases(db_instance_identifier)[0]
         # todo: bunch of different error messages to be generated from this api call
         if database.status != "stopped":
@@ -1428,14 +1426,14 @@ class RDSBackend(BaseBackend):
 
         return backend.describe_databases(db_name)[0]
 
-    def delete_database(self, db_instance_identifier, db_snapshot_name=None):
+    def delete_db_instance(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
             if self.databases[db_instance_identifier].deletion_protection:
                 raise InvalidParameterValue(
                     "Can't delete Instance with protection enabled"
                 )
             if db_snapshot_name:
-                self.create_database_snapshot(db_instance_identifier, db_snapshot_name)
+                self.create_db_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
@@ -1445,7 +1443,7 @@ class RDSBackend(BaseBackend):
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
 
-    def create_security_group(self, group_name, description, tags):
+    def create_db_security_group(self, group_name, description, tags):
         security_group = SecurityGroup(group_name, description, tags)
         self.security_groups[group_name] = security_group
         return security_group
@@ -1985,6 +1983,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "snapshot":  # DB Snapshot
                 if resource_name in self.database_snapshots:
                     return self.database_snapshots[resource_name].remove_tags(tag_keys)
+            elif resource_type == "cluster":
+                if resource_name in self.clusters:
+                    return self.clusters[resource_name].remove_tags(tag_keys)
             elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].remove_tags(tag_keys)
@@ -1999,8 +2000,8 @@ class RDSBackend(BaseBackend):
     def add_tags_to_resource(self, arn, tags):
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
-            resource_type = arn_breakdown[len(arn_breakdown) - 2]
-            resource_name = arn_breakdown[len(arn_breakdown) - 1]
+            resource_type = arn_breakdown[-2]
+            resource_name = arn_breakdown[-1]
             if resource_type == "db":  # Database
                 if resource_name in self.databases:
                     return self.databases[resource_name].add_tags(tags)
@@ -2021,6 +2022,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "snapshot":  # DB Snapshot
                 if resource_name in self.database_snapshots:
                     return self.database_snapshots[resource_name].add_tags(tags)
+            elif resource_type == "cluster":
+                if resource_name in self.clusters:
+                    return self.clusters[resource_name].add_tags(tags)
             elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].add_tags(tags)
@@ -2111,95 +2115,6 @@ class OptionGroup(object):
 
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
-
-class OptionGroupOption(object):
-    def __init__(self, **kwargs):
-        self.default_port = kwargs.get("default_port")
-        self.description = kwargs.get("description")
-        self.engine_name = kwargs.get("engine_name")
-        self.major_engine_version = kwargs.get("major_engine_version")
-        self.name = kwargs.get("name")
-        self.option_group_option_settings = self._make_option_group_option_settings(
-            kwargs.get("option_group_option_settings", [])
-        )
-        self.options_depended_on = kwargs.get("options_depended_on", [])
-        self.permanent = kwargs.get("permanent")
-        self.persistent = kwargs.get("persistent")
-        self.port_required = kwargs.get("port_required")
-
-    def _make_option_group_option_settings(self, option_group_option_settings_kwargs):
-        return [
-            OptionGroupOptionSetting(**setting_kwargs)
-            for setting_kwargs in option_group_option_settings_kwargs
-        ]
-
-    def to_json(self):
-        template = Template(
-            """{ "MinimumRequiredMinorEngineVersion":
-            "2789.0.v1",
-            "OptionsDependedOn": [],
-            "MajorEngineVersion": "10.50",
-            "Persistent": false,
-            "DefaultPort": null,
-            "Permanent": false,
-            "OptionGroupOptionSettings": [],
-            "EngineName": "sqlserver-se",
-            "Name": "Mirroring",
-            "PortRequired": false,
-            "Description": "SQLServer Database Mirroring"
-        }"""
-        )
-        return template.render(option_group=self)
-
-    def to_xml(self):
-        template = Template(
-            """<OptionGroupOption>
-    <MajorEngineVersion>{{ option_group.major_engine_version }}</MajorEngineVersion>
-    <DefaultPort>{{ option_group.default_port }}</DefaultPort>
-    <PortRequired>{{ option_group.port_required }}</PortRequired>
-    <Persistent>{{ option_group.persistent }}</Persistent>
-    <OptionsDependedOn>
-    {%- for option_name in option_group.options_depended_on -%}
-      <OptionName>{{ option_name }}</OptionName>
-    {%- endfor -%}
-    </OptionsDependedOn>
-    <Permanent>{{ option_group.permanent }}</Permanent>
-    <Description>{{ option_group.description }}</Description>
-    <Name>{{ option_group.name }}</Name>
-    <OptionGroupOptionSettings>
-    {%- for setting in option_group.option_group_option_settings -%}
-      {{ setting.to_xml() }}
-    {%- endfor -%}
-    </OptionGroupOptionSettings>
-    <EngineName>{{ option_group.engine_name }}</EngineName>
-    <MinimumRequiredMinorEngineVersion>{{ option_group.minimum_required_minor_engine_version }}</MinimumRequiredMinorEngineVersion>
-</OptionGroupOption>"""
-        )
-        return template.render(option_group=self)
-
-
-class OptionGroupOptionSetting(object):
-    def __init__(self, *kwargs):
-        self.allowed_values = kwargs.get("allowed_values")
-        self.apply_type = kwargs.get("apply_type")
-        self.default_value = kwargs.get("default_value")
-        self.is_modifiable = kwargs.get("is_modifiable")
-        self.setting_description = kwargs.get("setting_description")
-        self.setting_name = kwargs.get("setting_name")
-
-    def to_xml(self):
-        template = Template(
-            """<OptionGroupOptionSetting>
-    <AllowedValues>{{ option_group_option_setting.allowed_values }}</AllowedValues>
-    <ApplyType>{{ option_group_option_setting.apply_type }}</ApplyType>
-    <DefaultValue>{{ option_group_option_setting.default_value }}</DefaultValue>
-    <IsModifiable>{{ option_group_option_setting.is_modifiable }}</IsModifiable>
-    <SettingDescription>{{ option_group_option_setting.setting_description }}</SettingDescription>
-    <SettingName>{{ option_group_option_setting.setting_name }}</SettingName>
-</OptionGroupOptionSetting>"""
-        )
-        return template.render(option_group_option_setting=self)
 
 
 def make_rds_arn(region, name):

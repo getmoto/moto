@@ -1835,6 +1835,7 @@
 - [ ] modify_instance_credit_specification
 - [ ] modify_instance_event_start_time
 - [ ] modify_instance_event_window
+- [ ] modify_instance_maintenance_options
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam
@@ -3845,11 +3846,12 @@
 
 ## organizations
 <details>
-<summary>76% implemented</summary>
+<summary>75% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
 - [ ] cancel_handshake
+- [ ] close_account
 - [X] create_account
 - [ ] create_gov_cloud_account
 - [X] create_organization
@@ -4042,20 +4044,20 @@
 
 ## quicksight
 <details>
-<summary>6% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_analysis
 - [ ] create_dashboard
-- [ ] create_data_set
+- [X] create_data_set
 - [ ] create_data_source
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
-- [ ] create_group_membership
+- [X] create_group_membership
 - [ ] create_iam_policy_assignment
-- [ ] create_ingestion
+- [X] create_ingestion
 - [ ] create_namespace
 - [ ] create_template
 - [ ] create_template_alias
@@ -4092,6 +4094,7 @@
 - [ ] describe_folder_permissions
 - [ ] describe_folder_resolved_permissions
 - [X] describe_group
+- [X] describe_group_membership
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
@@ -4114,8 +4117,8 @@
 - [ ] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
-- [ ] list_group_memberships
-- [ ] list_groups
+- [X] list_group_memberships
+- [X] list_groups
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_ingestions
@@ -4128,12 +4131,13 @@
 - [ ] list_theme_versions
 - [ ] list_themes
 - [ ] list_user_groups
-- [ ] list_users
+- [X] list_users
 - [X] register_user
 - [ ] restore_analysis
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_folders
+- [ ] search_groups
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
@@ -4194,7 +4198,7 @@
 
 ## rds
 <details>
-<summary>21% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -4215,13 +4219,13 @@
 - [ ] create_db_cluster_endpoint
 - [ ] create_db_cluster_parameter_group
 - [X] create_db_cluster_snapshot
-- [ ] create_db_instance
+- [X] create_db_instance
 - [ ] create_db_instance_read_replica
 - [X] create_db_parameter_group
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint
-- [ ] create_db_security_group
-- [ ] create_db_snapshot
+- [X] create_db_security_group
+- [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
 - [ ] create_global_cluster
@@ -4232,13 +4236,13 @@
 - [ ] delete_db_cluster_endpoint
 - [ ] delete_db_cluster_parameter_group
 - [X] delete_db_cluster_snapshot
-- [ ] delete_db_instance
+- [X] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
 - [ ] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
-- [ ] delete_db_snapshot
+- [X] delete_db_snapshot
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [ ] delete_global_cluster
@@ -4297,7 +4301,7 @@
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
 - [ ] modify_db_cluster_snapshot_attribute
-- [ ] modify_db_instance
+- [X] modify_db_instance
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
@@ -4330,12 +4334,12 @@
 - [ ] revoke_db_security_group_ingress
 - [ ] start_activity_stream
 - [X] start_db_cluster
-- [ ] start_db_instance
+- [X] start_db_instance
 - [ ] start_db_instance_automated_backups_replication
 - [X] start_export_task
 - [ ] stop_activity_stream
 - [X] stop_db_cluster
-- [ ] stop_db_instance
+- [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
 </details>
 
@@ -4477,6 +4481,70 @@
 - [ ] list_schemas
 - [ ] list_statements
 - [ ] list_tables
+</details>
+
+## rekognition
+<details>
+<summary>3% implemented</summary>
+
+- [ ] compare_faces
+- [ ] create_collection
+- [ ] create_dataset
+- [ ] create_project
+- [ ] create_project_version
+- [ ] create_stream_processor
+- [ ] delete_collection
+- [ ] delete_dataset
+- [ ] delete_faces
+- [ ] delete_project
+- [ ] delete_project_version
+- [ ] delete_stream_processor
+- [ ] describe_collection
+- [ ] describe_dataset
+- [ ] describe_project_versions
+- [ ] describe_projects
+- [ ] describe_stream_processor
+- [ ] detect_custom_labels
+- [ ] detect_faces
+- [ ] detect_labels
+- [ ] detect_moderation_labels
+- [ ] detect_protective_equipment
+- [ ] detect_text
+- [ ] distribute_dataset_entries
+- [ ] get_celebrity_info
+- [ ] get_celebrity_recognition
+- [ ] get_content_moderation
+- [ ] get_face_detection
+- [ ] get_face_search
+- [ ] get_label_detection
+- [ ] get_person_tracking
+- [ ] get_segment_detection
+- [X] get_text_detection
+- [ ] index_faces
+- [ ] list_collections
+- [ ] list_dataset_entries
+- [ ] list_dataset_labels
+- [ ] list_faces
+- [ ] list_stream_processors
+- [ ] list_tags_for_resource
+- [ ] recognize_celebrities
+- [ ] search_faces
+- [ ] search_faces_by_image
+- [ ] start_celebrity_recognition
+- [ ] start_content_moderation
+- [ ] start_face_detection
+- [ ] start_face_search
+- [ ] start_label_detection
+- [ ] start_person_tracking
+- [ ] start_project_version
+- [ ] start_segment_detection
+- [ ] start_stream_processor
+- [X] start_text_detection
+- [ ] stop_project_version
+- [ ] stop_stream_processor
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_dataset_entries
 </details>
 
 ## resource-groups
@@ -5879,13 +5947,13 @@
 - pi
 - pinpoint-email
 - pinpoint-sms-voice
+- pinpoint-sms-voice-v2
 - pricing
 - proton
 - qldb
 - qldb-session
 - rbin
 - rds-data
-- rekognition
 - resiliencehub
 - robomaker
 - route53-recovery-cluster
