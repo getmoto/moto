@@ -1,9 +1,8 @@
 import abc
-import itertools
 import operator
 import re
 import warnings
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
 from pyparsing import (
@@ -22,6 +21,8 @@ from pyparsing import (
     pyparsing_common,
 )
 
+from .exceptions import InvalidInputException, InvalidStateException
+
 # LIKE only for strings
 # LIKE supports % (zero or more matches) and _ (exactly one match) wildcards
 # unary not supported, e.g. "not column > 4" does not work
@@ -37,26 +38,56 @@ from pyparsing import (
 # arbitrary whitespace (including none) between operands and operators
 # literals in parentheses are allowed, e.g. col = (5)
 
-# partition key types that can be filtered on
-_ALLOWED_KEY_TYPES = (
-    "bigint",  # [-2^63, 2^63 - 1]
-    "date",  # 'YYYY-MM-DD'
-    "decimal",  # floating point, integer or scientific
-    "int",  # [-2^31, 2^31 - 1]
-    "long",  # NOTE supposedly supported, assume bigint
-    "smallint",  # [-2^15, 2^15 - 1]
-    "string",  # single quoted string
-    "timestamp",  # 'yyyy-MM-dd HH:mm:ss[.fffffffff]'
-    "tinyint",  # [-2^7, 2^7 - 1]
-)
-
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
-    if type_ not in _ALLOWED_KEY_TYPES:
-        # TODO raise appropriate exception for unsupported types
-        assert False
+    if type_ in ("bigint", "int", "smallint", "tinyint"):
+        try:
+            return int(value)  # no size is enforced
+        except:
+            raise ValueError(f'"{value}" is not an integer.')
 
-    # TODO implement
+    if type_ == "decimal":
+        try:
+            return float(value)
+        except:
+            raise ValueError(f"{value} is not a decimal.")
+
+    if type_ in ("char", "string", "varchar"):
+        return str(value)  # no length is enforced
+
+    if type_ == "date":
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except:
+            raise ValueError(f"{value} is not a date.")
+
+    if type_ == "timestamp":
+        match = re.search(
+            r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?P<ns>\.\d{1,9})?$",
+            value,
+        )
+        if match is None:
+            raise ValueError(
+                "Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]"
+                f" {value} is not a timestamp."
+            )
+
+        timestamp = datetime.strptime(match.group("timestamp"), "%Y-%m-%d %H:%M:%S")
+
+        nanoseconds = match.group("ns")
+        if nanoseconds is not None:
+            # strip leading dot and left pad with zeros to nanoseconds
+            nanoseconds = nanoseconds[1:].zfill(9)
+            for i, nanosecond in enumerate(reversed(nanoseconds)):
+                # precision loss here, as nanoseconds are not supported in datetime
+                timestamp += timedelta(microseconds=(int(nanosecond) * 10**i) / 1000)
+
+        return timestamp
+
+    raise InvalidInputException(
+        "An error occurred (InvalidInputException) when calling the"
+        f" GetPartitions operation: Unknown type : '{type_}'"
+    )
 
 
 class _Expr(abc.ABC):
@@ -71,14 +102,47 @@ class _Ident(_Expr):
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
         for key, value in zip(part_keys, part_input["Values"]):
             if self.ident == key["Name"]:
-                return _cast(key["Type"], value)
+                try:
+                    return _cast(key["Type"], value)
+                except ValueError as e:
+                    # existing partition values cannot be cast to current schema
+                    raise InvalidStateException(
+                        "An error occurred (InvalidStateException) when calling the"
+                        f" GePartitions operation: {e}"
+                    )
 
-        # TODO raise appropriate exception for unknown columns
-        assert False
+        raise InvalidInputException(
+            "An error occurred (InvalidInputException) when calling the"
+            f" GetPartitions operation: Unknown column '{self.ident}'"
+        )
 
     def leval(self, part_keys: List[Dict[str, str]], literal: Any) -> Any:
         # evaluate literal by simulating partition input
-        return self.eval(part_keys, part_input={"Values": itertools.repeat(literal)})
+        for key in part_keys:
+            if self.ident == key["Name"]:
+                try:
+                    return _cast(key["Type"], literal)
+                except ValueError as e:
+                    # expression literal cannot be cast to current schema
+                    raise InvalidInputException(
+                        "An error occurred (InvalidInputException) when calling the"
+                        f" GePartitions operation: {e}"
+                    )
+
+        raise InvalidInputException(
+            "An error occurred (InvalidInputException) when calling the"
+            f" GetPartitions operation: Unknown column '{self.ident}'"
+        )
+
+    def type_(self, part_keys: List[Dict[str, str]]) -> str:
+        for key in part_keys:
+            if self.ident == key["Name"]:
+                return key["Type"]
+
+        raise InvalidInputException(
+            "An error occurred (InvalidInputException) when calling the"
+            f" GetPartitions operation: Unknown column '{self.ident}'"
+        )
 
 
 class _IsNull(_Expr):
@@ -125,11 +189,23 @@ class _Like(_Expr):
         self.literal: str = tokens[2]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
-        ident = self.ident.eval(part_keys, part_input)
-        if not isinstance(ident, str):
-            # TODO raise appropriate exception for LIKE without string
-            assert False
+        type_ = self.ident.type_(part_keys)
+        if type_ in ("bigint", "int", "smallint", "tinyint"):
+            raise InvalidInputException(
+                "An error occurred (InvalidInputException) when calling the "
+                "GetPartitions operation: Integral data type"
+                " doesn't support operation 'LIKE'"
+            )
 
+        if type_ in ("date", "decimal", "timestamp"):
+            raise InvalidInputException(
+                "An error occurred (InvalidInputException) when calling the "
+                f"GetPartitions operation: {type_[0].upper()}{type_[1:]} data type"
+                " doesn't support operation 'LIKE'"
+            )
+
+        ident = self.ident.eval(part_keys, part_input)
+        assert isinstance(ident, str)
         pattern = (
             # LIKE clauses always start at the beginning
             "^"
@@ -176,9 +252,9 @@ class _PartitionFilterExpressionCache:
         # NOTE these are AWS Athena column name best practices
         ident = Word(alphanums + "._").set_parse_action(_Ident).set_name("ident")
 
-        num_literal = pyparsing_common.number.set_name("number")
-        str_literal = QuotedString(quote_char="'", esc_quote="''").set_name("str")
-        literal = (num_literal | str_literal).set_name("literal")
+        number = pyparsing_common.number.set_name("number")
+        string = QuotedString(quote_char="'", esc_quote="''").set_name("string")
+        literal = (number | string).set_name("literal")
         literal_list = delimited_list(literal, min=1).set_name("list")
 
         bin_op = one_of("<> >= <= > < =").set_name("binary op")
@@ -191,7 +267,7 @@ class _PartitionFilterExpressionCache:
             (ident + is_ + null).set_parse_action(_IsNull)
             | (ident + is_ + not_ + null).set_parse_action(_IsNotNull)
             | (ident + bin_op + literal).set_parse_action(_BinOp)
-            | (ident + like + str_literal).set_parse_action(_Like)
+            | (ident + like + string).set_parse_action(_Like)
             | (ident + in_ + lpar + literal_list + rpar).set_parse_action(_In)
             | (ident + between + literal + and_ + literal).set_parse_action(_Between)
         ).set_name("cond")
@@ -213,7 +289,10 @@ class _PartitionFilterExpressionCache:
                 expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
                 self._cache[expression] = expr[0]
             except exceptions.ParseException as ex:
-                raise ValueError(f"Could not parse expression='{expression}'") from ex
+                raise InvalidInputException(
+                    "An error occurred (InvalidInputException) when calling the"
+                    f" GetPartitions operation: Unsupported expression '{expression}'"
+                )
 
         return self._cache[expression]
 
