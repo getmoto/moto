@@ -1210,13 +1210,14 @@ class User(CloudFormationModel):
                 else self.access_keys[1].last_used.strftime(date_format)
             )
 
-        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},not_supported,not_supported,{9},{10},{11},not_supported,not_supported,false,N/A,false,N/A\n".format(
+        return "{0},{1},{2},{3},{4},{5},not_supported,{6},{7},{8},{9},not_supported,not_supported,{10},{11},{12},not_supported,not_supported,false,N/A,false,N/A\n".format(
             self.name,
             self.arn,
             date_created.strftime(date_format),
             password_enabled,
             password_last_used,
             date_created.strftime(date_format),
+            "true" if len(self.mfa_devices) else "false",
             access_key_1_active,
             access_key_1_last_rotated,
             access_key_1_last_used,
