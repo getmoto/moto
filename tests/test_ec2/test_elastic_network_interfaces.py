@@ -120,9 +120,20 @@ def test_elastic_network_interfaces_with_groups_boto3():
     all_enis = client.describe_network_interfaces()["NetworkInterfaces"]
     [eni["NetworkInterfaceId"] for eni in all_enis].should.contain(my_eni.id)
 
-    my_eni = [eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id][0]
-    my_eni["Groups"].should.have.length_of(2)
-    set([group["GroupId"] for group in my_eni["Groups"]]).should.equal(
+    my_eni_description = [
+        eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id
+    ][0]
+    my_eni_description["Groups"].should.have.length_of(2)
+    set([group["GroupId"] for group in my_eni_description["Groups"]]).should.equal(
+        set([sec_group1.id, sec_group2.id])
+    )
+
+    eni_groups_attribute = client.describe_network_interface_attribute(
+        NetworkInterfaceId=my_eni.id, Attribute="groupSet"
+    ).get("Groups")
+
+    eni_groups_attribute.should.have.length_of(2)
+    set([group["GroupId"] for group in eni_groups_attribute]).should.equal(
         set([sec_group1.id, sec_group2.id])
     )
 
@@ -970,3 +981,56 @@ def test_unassign_ipv6_addresses():
     my_eni.should.have.key("Ipv6Addresses").length_of(2)
     my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_orig})
     my_eni.should.have.key("Ipv6Addresses").should.contain({"Ipv6Address": ipv6_3})
+
+
+@mock_ec2
+def test_elastic_network_interfaces_describe_attachment():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    eni_id = subnet.create_network_interface(Description="A network interface").id
+    instance_id = client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)[
+        "Instances"
+    ][0]["InstanceId"]
+
+    client.attach_network_interface(
+        NetworkInterfaceId=eni_id, InstanceId=instance_id, DeviceIndex=1
+    )
+
+    my_eni_attachment = client.describe_network_interface_attribute(
+        NetworkInterfaceId=eni_id, Attribute="attachment"
+    ).get("Attachment")
+    my_eni_attachment["InstanceId"].should.equal(instance_id)
+    my_eni_attachment["DeleteOnTermination"].should.be.false
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_network_interface_attribute(
+            NetworkInterfaceId=eni_id, Attribute="attach"
+        )
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "Value (attach) for parameter attribute is invalid. Unknown attribute."
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_network_interface_attribute(
+            NetworkInterfaceId=eni_id, Attribute="attachment", DryRun=True
+        )
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
+    ex.value.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the DescribeNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    my_eni_description = client.describe_network_interface_attribute(
+        NetworkInterfaceId=eni_id, Attribute="description"
+    ).get("Description")
+    my_eni_description["Value"].should.be.equal("A network interface")
+
+    my_eni_source_dest_check = client.describe_network_interface_attribute(
+        NetworkInterfaceId=eni_id, Attribute="sourceDestCheck"
+    ).get("SourceDestCheck")
+    my_eni_source_dest_check["Value"].should.be.equal(True)
