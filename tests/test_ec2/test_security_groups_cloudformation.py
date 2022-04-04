@@ -1,10 +1,13 @@
 import boto3
+import pytest
 import sure  # noqa # pylint: disable=unused-import
 import json
 from moto import mock_cloudformation, mock_ec2
 from tests import EXAMPLE_AMI_ID
 from string import Template
 from uuid import uuid4
+
+from botocore.exceptions import ClientError
 
 
 SEC_GROUP_INGRESS = Template(
@@ -160,6 +163,39 @@ def test_security_group_ingress():
     ingress["IpRanges"].should.equal(
         [{"CidrIp": "10.0.0.0/8", "Description": "Allow SSH traffic from 10.0.0.0/8"}]
     )
+
+
+@mock_cloudformation
+@mock_ec2
+def test_delete_security_group_ingress():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    stack_name = str(uuid4())
+    group_name = str(uuid4())
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    cf_client.create_stack(
+        StackName=stack_name,
+        TemplateBody=SEC_GROUP_INGRESS.substitute(group_name=group_name),
+        Parameters=[{"ParameterKey": "VPCId", "ParameterValue": vpc.id}],
+        Capabilities=["CAPABILITY_NAMED_IAM"],
+        OnFailure="DELETE",
+    )
+
+    sg_id = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]["PhysicalResourceId"]
+
+    ec2_client.describe_security_groups(GroupIds=[sg_id])[
+        "SecurityGroups"
+    ].should.have.length_of(1)
+
+    cf_client.delete_stack(StackName=stack_name)
+
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_security_groups(GroupIds=[sg_id])
+    exc.value.response["Error"]["Code"].should.equal("InvalidGroup.NotFound")
 
 
 @mock_cloudformation
