@@ -116,6 +116,7 @@ class _Ident(_Expr):
                         f" GePartitions operation: {e}"
                     )
 
+        # also raised for unpartitioned tables
         raise InvalidInputException(
             "An error occurred (InvalidInputException) when calling the"
             f" GetPartitions operation: Unknown column '{self.ident}'"
@@ -299,6 +300,7 @@ class _PartitionFilterExpressionCache:
                 expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
                 self._cache[expression] = expr[0]
             except exceptions.ParseException:
+                # NOTE depending on the parsing exception, AWS phrases it differently
                 raise InvalidInputException(
                     "An error occurred (InvalidInputException) when calling the"
                     f" GetPartitions operation: Unsupported expression '{expression}'"
