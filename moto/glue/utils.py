@@ -63,7 +63,8 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
 
     if type_ == "timestamp":
         match = re.search(
-            r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?P<ns>\.\d{1,9})?$",
+            r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})"
+            r"(?P<nanos>\.\d{1,9})?$",
             value,
         )
         if match is None:
@@ -74,13 +75,17 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
 
         timestamp = datetime.strptime(match.group("timestamp"), "%Y-%m-%d %H:%M:%S")
 
-        nanoseconds = match.group("ns")
-        if nanoseconds is not None:
+        nanos = match.group("nanos")
+        if nanos is not None:
             # strip leading dot and left pad with zeros to nanoseconds
-            nanoseconds = nanoseconds[1:].zfill(9)
-            for i, nanosecond in enumerate(reversed(nanoseconds)):
-                # precision loss here, as nanoseconds are not supported in datetime
-                timestamp += timedelta(microseconds=(int(nanosecond) * 10**i) / 1000)
+            nanos = nanos[1:].zfill(9)
+            for i, nanoseconds in enumerate(reversed(nanos)):
+                # NOTE precision loss here, as nanoseconds are not supported in datetime
+                microseconds = (int(nanoseconds) * 10**i) / 1000
+                if round(microseconds) == 0 and microseconds > 0:
+                    warnings.warn("Nanoseconds not supported, rounding to microseconds")
+
+                timestamp += timedelta(microseconds=round(microseconds))
 
         return timestamp
 
