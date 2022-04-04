@@ -194,6 +194,8 @@ class _Like(_Expr):
         self.literal: str = tokens[2]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        warnings.warn("LIKE expression conversion to regex is experimental")
+
         type_ = self.ident.type_(part_keys)
         if type_ in ("bigint", "int", "smallint", "tinyint"):
             raise InvalidInputException(
@@ -211,14 +213,17 @@ class _Like(_Expr):
 
         ident = self.ident.eval(part_keys, part_input)
         assert isinstance(ident, str)
-        pattern = (
-            # LIKE clauses always start at the beginning
-            "^"
-            # convert wildcards to regex, no literal matches possible
-            + _cast("string", self.literal).replace("_", ".").replace("%", ".*")
-            # LIKE clauses always stop at the end
-            + "$"
-        )
+
+        pattern = _cast("string", self.literal)
+
+        # prepare SQL pattern for conversion to regex pattern
+        pattern = re.escape(pattern)
+
+        # NOTE convert SQL wildcards to regex, no literal matches possible
+        pattern = pattern.replace("_", ".").replace("%", ".*")
+
+        # LIKE clauses always start at the beginning
+        pattern = "^" + pattern + "$"
 
         return re.search(pattern, ident) is not None
 
