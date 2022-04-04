@@ -43,13 +43,13 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
     if type_ in ("bigint", "int", "smallint", "tinyint"):
         try:
             return int(value)  # no size is enforced
-        except:
+        except ValueError:
             raise ValueError(f'"{value}" is not an integer.')
 
     if type_ == "decimal":
         try:
             return float(value)
-        except:
+        except ValueError:
             raise ValueError(f"{value} is not a decimal.")
 
     if type_ in ("char", "string", "varchar"):
@@ -58,7 +58,7 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
     if type_ == "date":
         try:
             return datetime.strptime(value, "%Y-%m-%d").date()
-        except:
+        except ValueError:
             raise ValueError(f"{value} is not a date.")
 
     if type_ == "timestamp":
@@ -298,7 +298,7 @@ class _PartitionFilterExpressionCache:
             try:
                 expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
                 self._cache[expression] = expr[0]
-            except exceptions.ParseException as ex:
+            except exceptions.ParseException:
                 raise InvalidInputException(
                     "An error occurred (InvalidInputException) when calling the"
                     f" GetPartitions operation: Unsupported expression '{expression}'"
