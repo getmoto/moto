@@ -316,12 +316,11 @@ class PartitionFilter:
         self.fake_table = fake_table
 
     def __call__(self, fake_partition) -> bool:
-        warnings.warn("Expression filtering is experimental")
-
         expression = _PARTITION_FILTER_EXPRESSION_CACHE.get(self.expression)
         if expression is None:
             return True
 
+        warnings.warn("Expression filtering is experimental")
         return expression.eval(
             part_keys=self.fake_table.versions[-1].get("PartitionKeys", []),
             part_input=fake_partition.partition_input,
