@@ -6,7 +6,8 @@ import sure  # noqa # pylint: disable=unused-import
 import random
 
 from moto import mock_ec2
-from moto.ec2.models import AMIS, OWNER_ID
+from moto.ec2.models import OWNER_ID
+from moto.ec2._models.amis import AMIS
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
 from uuid import uuid4

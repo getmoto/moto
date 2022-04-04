@@ -10,7 +10,7 @@ from unittest import SkipTest
 
 
 @mock_ec2
-def test_default_network_acl_created_with_vpc_boto3():
+def test_default_network_acl_created_with_vpc():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -22,7 +22,7 @@ def test_default_network_acl_created_with_vpc_boto3():
 
 
 @mock_ec2
-def test_network_create_and_list_acls_boto3():
+def test_network_create_and_list_acls():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -39,7 +39,7 @@ def test_network_create_and_list_acls_boto3():
 
 
 @mock_ec2
-def test_new_subnet_associates_with_default_network_acl_boto3():
+def test_new_subnet_associates_with_default_network_acl():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode will have conflicting CidrBlocks")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -56,7 +56,7 @@ def test_new_subnet_associates_with_default_network_acl_boto3():
 
 
 @mock_ec2
-def test_network_acl_entries_boto3():
+def test_network_acl_entries():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -91,7 +91,7 @@ def test_network_acl_entries_boto3():
 
 
 @mock_ec2
-def test_delete_network_acl_entry_boto3():
+def test_delete_network_acl_entry():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -120,7 +120,7 @@ def test_delete_network_acl_entry_boto3():
 
 
 @mock_ec2
-def test_replace_network_acl_entry_boto3():
+def test_replace_network_acl_entry():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -160,7 +160,7 @@ def test_replace_network_acl_entry_boto3():
 
 
 @mock_ec2
-def test_delete_network_acl_boto3():
+def test_delete_network_acl():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -180,7 +180,7 @@ def test_delete_network_acl_boto3():
 
 
 @mock_ec2
-def test_network_acl_tagging_boto3():
+def test_network_acl_tagging():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")

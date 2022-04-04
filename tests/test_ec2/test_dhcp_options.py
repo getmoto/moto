@@ -15,7 +15,7 @@ SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
 
 
 @mock_ec2
-def test_dhcp_options_associate_boto3():
+def test_dhcp_options_associate():
     """associate dhcp option"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -35,7 +35,7 @@ def test_dhcp_options_associate_boto3():
 
 
 @mock_ec2
-def test_dhcp_options_associate_invalid_dhcp_id_boto3():
+def test_dhcp_options_associate_invalid_dhcp_id():
     """associate dhcp option bad dhcp options id"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -49,7 +49,7 @@ def test_dhcp_options_associate_invalid_dhcp_id_boto3():
 
 
 @mock_ec2
-def test_dhcp_options_associate_invalid_vpc_id_boto3():
+def test_dhcp_options_associate_invalid_vpc_id():
     """associate dhcp option invalid vpc id"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -68,7 +68,7 @@ def test_dhcp_options_associate_invalid_vpc_id_boto3():
 
 
 @mock_ec2
-def test_dhcp_options_delete_with_vpc_boto3():
+def test_dhcp_options_delete_with_vpc():
     """Test deletion of dhcp options with vpc"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -98,7 +98,7 @@ def test_dhcp_options_delete_with_vpc_boto3():
 
 
 @mock_ec2
-def test_create_dhcp_options_boto3():
+def test_create_dhcp_options():
     """Create most basic dhcp option"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -122,7 +122,7 @@ def test_create_dhcp_options_boto3():
 
 
 @mock_ec2
-def test_create_dhcp_options_invalid_options_boto3():
+def test_create_dhcp_options_invalid_options():
     """Create invalid dhcp options"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     servers = ["f", "f", "f", "f", "f"]
@@ -145,7 +145,7 @@ def test_create_dhcp_options_invalid_options_boto3():
 
 
 @mock_ec2
-def test_describe_dhcp_options_boto3():
+def test_describe_dhcp_options():
     """Test dhcp options lookup by id"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -181,7 +181,7 @@ def test_describe_dhcp_options_boto3():
 
 
 @mock_ec2
-def test_describe_dhcp_options_invalid_id_boto3():
+def test_describe_dhcp_options_invalid_id():
     """get error on invalid dhcp_option_id lookup"""
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -193,7 +193,7 @@ def test_describe_dhcp_options_invalid_id_boto3():
 
 
 @mock_ec2
-def test_delete_dhcp_options_boto3():
+def test_delete_dhcp_options():
     """delete dhcp option"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -215,7 +215,7 @@ def test_delete_dhcp_options_boto3():
 
 
 @mock_ec2
-def test_delete_dhcp_options_invalid_id_boto3():
+def test_delete_dhcp_options_invalid_id():
     client = boto3.client("ec2", region_name="us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -226,7 +226,7 @@ def test_delete_dhcp_options_invalid_id_boto3():
 
 
 @mock_ec2
-def test_delete_dhcp_options_malformed_id_boto3():
+def test_delete_dhcp_options_malformed_id():
     client = boto3.client("ec2", region_name="us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -237,7 +237,7 @@ def test_delete_dhcp_options_malformed_id_boto3():
 
 
 @mock_ec2
-def test_dhcp_tagging_boto3():
+def test_dhcp_tagging():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -267,7 +267,7 @@ def test_dhcp_tagging_boto3():
 
 
 @mock_ec2
-def test_dhcp_options_get_by_tag_boto3():
+def test_dhcp_options_get_by_tag():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -347,7 +347,7 @@ def test_dhcp_options_get_by_tag_boto3():
 
 
 @mock_ec2
-def test_dhcp_options_get_by_id_boto3():
+def test_dhcp_options_get_by_id():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -460,7 +460,7 @@ def test_dhcp_options_get_by_key_filter():
 
 
 @mock_ec2
-def test_dhcp_options_get_by_invalid_filter_boto3():
+def test_dhcp_options_get_by_invalid_filter():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Will throw a generic 500 in ServerMode")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
