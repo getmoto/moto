@@ -280,8 +280,7 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression):
-        partition_filter = PartitionFilter(expression, table_input=self.versions[-1])
-        return list(filter(partition_filter, self.partitions.values()))
+        return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values):
         try:

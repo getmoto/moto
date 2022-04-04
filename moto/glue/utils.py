@@ -311,9 +311,9 @@ _PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
 
 
 class PartitionFilter:
-    def __init__(self, expression: Optional[str], table_input: Dict[str, Any]):
+    def __init__(self, expression: Optional[str], fake_table):
         self.expression = expression
-        self.table_input = table_input
+        self.fake_table = fake_table
 
     def __call__(self, fake_partition) -> bool:
         warnings.warn("Expression filtering is experimental")
@@ -323,6 +323,6 @@ class PartitionFilter:
             return True
 
         return expression.eval(
-            part_keys=self.table_input.get("PartitionKeys", []),
+            part_keys=self.fake_table.versions[-1].get("PartitionKeys", []),
             part_input=fake_partition.partition_input,
         )
