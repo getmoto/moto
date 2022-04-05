@@ -1036,6 +1036,7 @@ class User(CloudFormationModel):
         self.access_keys = []
         self.ssh_public_keys = []
         self.password = None
+        self.password_last_used = None
         self.password_reset_required = False
         self.signing_certificates = {}
 
@@ -1163,6 +1164,8 @@ class User(CloudFormationModel):
         else:
             password_enabled = "true"
             password_last_used = "no_information"
+            if self.password_last_used:
+                password_last_used = self.password_last_used.strftime(date_format)
 
         if len(self.access_keys) == 0:
             access_key_1_active = "false"
