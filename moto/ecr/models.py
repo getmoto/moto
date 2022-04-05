@@ -951,4 +951,4 @@ class ECRBackend(BaseBackend):
         }
 
 
-ecr_backends = BackendDict(ECRBackend, "ec2")
+ecr_backends = BackendDict(ECRBackend, "ecr")
