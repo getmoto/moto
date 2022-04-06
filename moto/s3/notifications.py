@@ -34,16 +34,6 @@ def _get_s3_event(event_name, bucket, key, notification_id):
     }
 
 
-def _event_matches(event_name, available_events):
-    if event_name in available_events:
-        return True
-    # s3:ObjectCreated:Put --> s3:ObjectCreated:*
-    wildcard = ":".join(event_name.rsplit(":")[0:2]) + ":*"
-    if wildcard in available_events:
-        return True
-    return False
-
-
 def _get_region_from_arn(arn):
     return arn.split(":")[3]
 
@@ -53,16 +43,14 @@ def send_event(event_name, bucket, key):
         return
 
     for notification in bucket.notification_configuration.cloud_function:
-        available_events = notification.events
-        if _event_matches(event_name, available_events):
+        if notification.matches(event_name, key.name):
             event_body = _get_s3_event(event_name, bucket, key, notification.id)
             region_name = _get_region_from_arn(notification.arn)
 
             _invoke_awslambda(event_body, notification.arn, region_name)
 
     for notification in bucket.notification_configuration.queue:
-        available_events = notification.events
-        if _event_matches(event_name, available_events):
+        if notification.matches(event_name, key.name):
             event_body = _get_s3_event(event_name, bucket, key, notification.id)
             region_name = _get_region_from_arn(notification.arn)
             queue_name = notification.arn.split(":")[-1]
@@ -112,9 +100,9 @@ def _get_test_event(bucket_name):
 
 
 def send_test_event(bucket):
-    for notification in bucket.notification_configuration.queue:
-
-        region_name = _get_region_from_arn(notification.arn)
-        queue_name = notification.arn.split(":")[-1]
+    arns = [n.arn for n in bucket.notification_configuration.queue]
+    for arn in set(arns):
+        region_name = _get_region_from_arn(arn)
+        queue_name = arn.split(":")[-1]
         message_body = _get_test_event(bucket.name)
         _send_sqs_message(message_body, queue_name, region_name)

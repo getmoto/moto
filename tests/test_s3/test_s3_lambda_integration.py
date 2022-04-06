@@ -209,3 +209,83 @@ def test_object_copy__sends_to_queue():
     )
     records[0]["s3"]["object"].should.have.key("key").equals("key2")
     records[0]["s3"]["object"].should.have.key("size").equals(15)
+
+
+@mock_s3
+@mock_sqs
+def test_object_put__sends_to_queue__using_filter():
+    s3_res = boto3.resource("s3", region_name=REGION_NAME)
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+    sqs = boto3.resource("sqs", region_name=REGION_NAME)
+
+    # Create S3 bucket
+    bucket_name = str(uuid4())
+    s3_res.create_bucket(Bucket=bucket_name)
+
+    # Create SQS queue
+    queue = sqs.create_queue(QueueName=f"{str(uuid4())[0:6]}")
+    queue_arn = queue.attributes["QueueArn"]
+
+    # Put Notification
+    s3_client.put_bucket_notification_configuration(
+        Bucket=bucket_name,
+        NotificationConfiguration={
+            "QueueConfigurations": [
+                {
+                    "Id": "prefixed",
+                    "QueueArn": queue_arn,
+                    "Events": ["s3:ObjectCreated:Put"],
+                    "Filter": {
+                        "Key": {"FilterRules": [{"Name": "prefix", "Value": "aa"}]}
+                    },
+                },
+                {
+                    "Id": "images_only",
+                    "QueueArn": queue_arn,
+                    "Events": ["s3:ObjectCreated:Put"],
+                    "Filter": {
+                        "Key": {
+                            "FilterRules": [
+                                {"Name": "prefix", "Value": "image/"},
+                                {"Name": "suffix", "Value": "jpg"},
+                            ]
+                        }
+                    },
+                },
+            ]
+        },
+    )
+
+    # Read the test-event
+    resp = queue.receive_messages()
+    [m.delete() for m in resp]
+
+    # Create an Object that does not meet any filter
+    s3_client.put_object(Bucket=bucket_name, Key="bb", Body="sth")
+    messages = queue.receive_messages()
+    messages.should.have.length_of(0)
+    [m.delete() for m in messages]
+
+    # Create an Object that does meet the filter - using the prefix only
+    s3_client.put_object(Bucket=bucket_name, Key="aafilter", Body="sth")
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    [m.delete() for m in messages]
+
+    # Create an Object that does meet the filter - using the prefix + suffix
+    s3_client.put_object(Bucket=bucket_name, Key="image/yes.jpg", Body="img")
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    [m.delete() for m in messages]
+
+    # Create an Object that does not meet the filter - only the prefix
+    s3_client.put_object(Bucket=bucket_name, Key="image/no.gif", Body="img")
+    messages = queue.receive_messages()
+    messages.should.have.length_of(0)
+    [m.delete() for m in messages]
+
+    # Create an Object that does not meet the filter - only the suffix
+    s3_client.put_object(Bucket=bucket_name, Key="nonimages/yes.jpg", Body="img")
+    messages = queue.receive_messages()
+    messages.should.have.length_of(0)
+    [m.delete() for m in messages]
