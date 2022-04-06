@@ -1403,10 +1403,13 @@ class CognitoIdpBackend(BaseBackend):
         return resource_server
 
     def sign_up(self, client_id, username, password, attributes):
+        # This method may not be authenticated - which means we don't know which region the request was send to
+        # Let's cycle through all regions to find out which one contains our client_id
         user_pool = None
-        for p in self.user_pools.values():
-            if client_id in p.clients:
-                user_pool = p
+        for backend in cognitoidp_backends.values():
+            for p in backend.user_pools.values():
+                if client_id in p.clients:
+                    user_pool = p
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
         elif user_pool._get_user(username):
