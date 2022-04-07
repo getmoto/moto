@@ -50,11 +50,11 @@ class DataBrewBackend(BaseBackend):
             raise RecipeNotFoundException(recipe_name)
 
         recipe = self.recipes[recipe_name]
-        if recipe_description:
+        if recipe_description is not None:
             recipe.description = recipe_description
-        if recipe_steps:
+        if recipe_steps is not None:
             recipe.steps = recipe_steps
-        if tags:
+        if tags is not None:
             recipe.tags = tags
 
         return recipe
@@ -93,11 +93,11 @@ class DataBrewBackend(BaseBackend):
             raise RulesetNotFoundException(ruleset_name)
 
         ruleset = self.rulesets[ruleset_name]
-        if ruleset_description:
+        if ruleset_description is not None:
             ruleset.description = ruleset_description
-        if ruleset_rules:
+        if ruleset_rules is not None:
             ruleset.rules = ruleset_rules
-        if tags:
+        if tags is not None:
             ruleset.tags = tags
 
         return ruleset
@@ -109,7 +109,7 @@ class DataBrewBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_rulesets(self):
-        return [self.rulesets[key] for key in self.rulesets] if self.rulesets else []
+        return list(self.rulesets.values())
 
     def delete_ruleset(self, ruleset_name):
         if ruleset_name not in self.rulesets:

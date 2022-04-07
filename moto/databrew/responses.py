@@ -117,7 +117,7 @@ class DataBrewResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 
-        ruleset_name = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        ruleset_name = parsed_url.path.split("/")[-1]
 
         if request.method == "PUT":
             response = self.put_ruleset_response(ruleset_name)
