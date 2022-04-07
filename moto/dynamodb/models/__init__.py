@@ -1719,14 +1719,14 @@ class DynamoDBBackend(BaseBackend):
                     )
                 else:
                     raise ValueError
-                errors.append(None)
+                errors.append((None, None))
             except MultipleTransactionsException:
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
                 raise MultipleTransactionsException()
             except Exception as e:  # noqa: E722 Do not use bare except
-                errors.append(type(e).__name__)
-        if any(errors):
+                errors.append((type(e).__name__, str(e)))
+        if set(errors) != set([(None, None)]):
             # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
             raise TransactionCanceledException(errors)

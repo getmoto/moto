@@ -3870,6 +3870,12 @@ def test_transact_write_items_put_conditional_expressions():
         )
     # Assert the exception is correct
     ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    reasons = ex.value.response["CancellationReasons"]
+    reasons.should.have.length_of(5)
+    reasons.should.contain(
+        {"Code": "ConditionalCheckFailed", "Message": "The conditional request failed"}
+    )
+    reasons.should.contain({"Code": "None"})
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]

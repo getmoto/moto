@@ -1,3 +1,4 @@
+import json
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
@@ -194,8 +195,21 @@ class TransactionCanceledException(ValueError):
     cancel_reason_msg = "Transaction cancelled, please refer cancellation reasons for specific reasons [{}]"
 
     def __init__(self, errors):
-        msg = self.cancel_reason_msg.format(", ".join([str(err) for err in errors]))
-        super().__init__(msg)
+        self.msg = self.cancel_reason_msg.format(
+            ", ".join([str(code) for code, _ in errors])
+        )
+        self.reasons = [
+            {"Code": code, "Message": message} if code else {"Code": "None"}
+            for code, message in errors
+        ]
+
+    def to_json(self):
+        body = {
+            "__type": "com.amazonaws.dynamodb.v20120810#TransactionCanceledException",
+            "CancellationReasons": self.reasons,
+            "Message": self.msg,
+        }
+        return json.dumps(body)
 
 
 class MultipleTransactionsException(MockValidationException):

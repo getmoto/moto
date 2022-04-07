@@ -1148,8 +1148,7 @@ class DynamoHandler(BaseResponse):
         try:
             self.dynamodb_backend.transact_write_items(transact_items)
         except TransactionCanceledException as e:
-            er = "com.amazonaws.dynamodb.v20111205#TransactionCanceledException"
-            return self.error(er, str(e))
+            return 400, self.response_headers, e.to_json()
         except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, mve.exception_msg)
