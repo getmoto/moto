@@ -265,6 +265,19 @@ class _NotBetween(_Between):
         return not super().eval(part_keys, part_input)
 
 
+class _BoolOp(_Expr):
+    def __init__(self, tokens: ParseResults) -> None:
+        self.left: _Expr = tokens[0][0]
+        self.bool_op: str = tokens[0][1]
+        self.right: _Expr = tokens[0][2]
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        left = self.left.eval(part_keys, part_input)
+        right = self.right.eval(part_keys, part_input)
+
+        return {"and": operator.and_, "or": operator.or_}[self.bool_op](left, right)
+
+
 class _PartitionFilterExpressionCache:
     def __init__(self):
         # build grammar according to Glue.Client.get_partitions(Expression)
@@ -299,7 +312,13 @@ class _PartitionFilterExpressionCache:
         ).set_name("cond")
 
         # conditions can be joined using 2-ary AND and/or OR
-        expr = infix_notation(cond, [(and_, 2, OpAssoc.LEFT), (or_, 2, OpAssoc.LEFT)])
+        expr = infix_notation(
+            cond,
+            [
+                (and_, 2, OpAssoc.LEFT, _BoolOp),
+                (or_, 2, OpAssoc.LEFT, _BoolOp),
+            ],
+        )
         self._expr = expr.set_name("expr")
 
         self._cache: Dict[str, _Expr] = {}
