@@ -247,7 +247,7 @@ class _NotIn(_In):
 
 
 class _Between(_Expr):
-    def __ini__(self, tokens: ParseResults):
+    def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
         self.left: Any = tokens[2]
         self.right: Any = tokens[4]
