@@ -331,7 +331,7 @@ class _PartitionFilterExpressionCache:
             ParserElement.enable_packrat()
 
             try:
-                expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
+                expr: ParseResults = self._expr.parse_string(expression)
                 self._cache[expression] = expr[0]
             except exceptions.ParseException:
                 # NOTE depending on the parsing exception, AWS phrases it differently
