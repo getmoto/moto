@@ -1760,6 +1760,7 @@ def test_boto3_get_credential_report_content():
     conn = boto3.client("iam", region_name="us-east-1")
     username = "my-user"
     conn.create_user(UserName=username)
+    conn.create_login_profile(UserName=username, Password="123")
     key1 = conn.create_access_key(UserName=username)["AccessKey"]
     conn.update_access_key(
         UserName=username, AccessKeyId=key1["AccessKeyId"], Status="Inactive"
@@ -1769,6 +1770,7 @@ def test_boto3_get_credential_report_content():
     if not settings.TEST_SERVER_MODE:
         iam_backend = get_backend("iam")["global"]
         iam_backend.users[username].access_keys[1].last_used = timestamp
+        iam_backend.users[username].password_last_used = timestamp
     with pytest.raises(ClientError):
         conn.get_credential_report()
     result = conn.generate_credential_report()
@@ -1789,8 +1791,10 @@ def test_boto3_get_credential_report_content():
     user["access_key_2_active"].should.equal("true")
     if not settings.TEST_SERVER_MODE:
         user["access_key_2_last_used_date"].should.match(timestamp.strftime("%Y-%m-%d"))
+        user["password_last_used"].should.match(timestamp.strftime("%Y-%m-%d"))
     else:
         user["access_key_2_last_used_date"].should.equal("N/A")
+        user["password_last_used"].should.equal("no_information")
 
 
 @mock_iam
