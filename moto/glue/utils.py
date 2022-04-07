@@ -157,12 +157,9 @@ class _IsNull(_Expr):
         return self.ident.eval(part_keys, part_input) is None
 
 
-class _IsNotNull(_Expr):
-    def __init__(self, tokens: ParseResults):
-        self.ident: _Ident = tokens[0]
-
+class _IsNotNull(_IsNull):
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
-        return self.ident.eval(part_keys, part_input) is not None
+        return not super().eval(part_keys, part_input)
 
 
 class _BinOp(_Expr):
@@ -227,6 +224,11 @@ class _Like(_Expr):
         return re.search(pattern, ident) is not None
 
 
+class _NotLike(_Like):
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        return not super().eval(part_keys, part_input)
+
+
 class _In(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
@@ -237,6 +239,11 @@ class _In(_Expr):
         values = (self.ident.leval(part_keys, value) for value in self.values)
 
         return ident in values
+
+
+class _NotIn(_In):
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        return not super().eval(part_keys, part_input)
 
 
 class _Between(_Expr):
@@ -251,6 +258,11 @@ class _Between(_Expr):
         right = self.ident.leval(part_keys, self.right)
 
         return left <= ident <= right
+
+
+class _NotBetween(_Between):
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        return not super().eval(part_keys, part_input)
 
 
 class _PartitionFilterExpressionCache:
@@ -277,8 +289,13 @@ class _PartitionFilterExpressionCache:
             | (ident + is_ + not_ + null).set_parse_action(_IsNotNull)
             | (ident + bin_op + literal).set_parse_action(_BinOp)
             | (ident + like + string).set_parse_action(_Like)
+            | (ident + not_ + like + string).set_parse_action(_NotLike)
             | (ident + in_ + lpar + literal_list + rpar).set_parse_action(_In)
+            | (ident + not_ + in_ + lpar + literal_list + rpar).set_parse_action(_NotIn)
             | (ident + between + literal + and_ + literal).set_parse_action(_Between)
+            | (ident + not_ + between + literal + and_ + literal).set_parse_action(
+                _NotBetween
+            )
         ).set_name("cond")
 
         # conditions can be joined using 2-ary AND and/or OR
