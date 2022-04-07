@@ -23,6 +23,7 @@ from moto.cloudwatch import models  # noqa  # pylint: disable=all
 from moto.datapipeline import models  # noqa  # pylint: disable=all
 from moto.dynamodb import models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models
+from moto.ec2._models.core import TaggedEC2Resource
 from moto.ecr import models  # noqa  # pylint: disable=all
 from moto.ecs import models  # noqa  # pylint: disable=all
 from moto.efs import models  # noqa  # pylint: disable=all
@@ -643,7 +644,7 @@ class ResourceMap(collections_abc.Mapping):
         all_resources_ready = True
         for resource in self.__get_resources_in_dependency_order():
             instance = self[resource]
-            if isinstance(instance, ec2_models.TaggedEC2Resource):
+            if isinstance(instance, TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags(
                     [instance.physical_resource_id], self.tags

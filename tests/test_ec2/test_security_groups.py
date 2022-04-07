@@ -16,7 +16,7 @@ from unittest import SkipTest
 
 
 @mock_ec2
-def test_create_and_describe_security_group_boto3():
+def test_create_and_describe_security_group():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -50,7 +50,7 @@ def test_create_and_describe_security_group_boto3():
 
 
 @mock_ec2
-def test_create_security_group_without_description_raises_error_boto3():
+def test_create_security_group_without_description_raises_error():
     ec2 = boto3.resource("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -61,14 +61,14 @@ def test_create_security_group_without_description_raises_error_boto3():
 
 
 @mock_ec2
-def test_default_security_group_boto3():
+def test_default_security_group():
     client = boto3.client("ec2", "us-west-1")
     groups = retrieve_all_sgs(client)
     [g["GroupName"] for g in groups].should.contain("default")
 
 
 @mock_ec2
-def test_create_and_describe_vpc_security_group_boto3():
+def test_create_and_describe_vpc_security_group():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -110,7 +110,7 @@ def test_create_and_describe_vpc_security_group_boto3():
 
 
 @mock_ec2
-def test_create_two_security_groups_with_same_name_in_different_vpc_boto3():
+def test_create_two_security_groups_with_same_name_in_different_vpc():
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
@@ -144,7 +144,7 @@ def test_create_two_security_groups_in_vpc_with_ipv6_enabled():
 
 
 @mock_ec2
-def test_deleting_security_groups_boto3():
+def test_deleting_security_groups():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
     sg_name1 = str(uuid4())
@@ -186,7 +186,7 @@ def test_deleting_security_groups_boto3():
 
 
 @mock_ec2
-def test_delete_security_group_in_vpc_boto3():
+def test_delete_security_group_in_vpc():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -205,7 +205,7 @@ def test_delete_security_group_in_vpc_boto3():
 
 
 @mock_ec2
-def test_authorize_ip_range_and_revoke_boto3():
+def test_authorize_ip_range_and_revoke():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
     security_group = ec2.create_security_group(
@@ -326,7 +326,7 @@ def test_authorize_ip_range_and_revoke_boto3():
 
 
 @mock_ec2
-def test_authorize_other_group_and_revoke_boto3():
+def test_authorize_other_group_and_revoke():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
     sg_name = str(uuid4())
@@ -417,7 +417,7 @@ def test_authorize_other_group_egress_and_revoke():
 
 
 @mock_ec2
-def test_authorize_group_in_vpc_boto3():
+def test_authorize_group_in_vpc():
     ec2 = boto3.resource("ec2", "ap-south-1")
     client = boto3.client("ec2", region_name="ap-south-1")
     vpc_id = "vpc-12345"
@@ -506,7 +506,7 @@ def test_describe_security_groups():
 
 
 @mock_ec2
-def test_authorize_bad_cidr_throws_invalid_parameter_value_boto3():
+def test_authorize_bad_cidr_throws_invalid_parameter_value():
     ec2 = boto3.resource("ec2", "us-west-1")
     sec_group = ec2.create_security_group(GroupName=str(uuid4()), Description="test")
     with pytest.raises(ClientError) as ex:
@@ -525,7 +525,7 @@ def test_authorize_bad_cidr_throws_invalid_parameter_value_boto3():
 
 
 @mock_ec2
-def test_security_group_tag_filtering_boto3():
+def test_security_group_tag_filtering():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     sg = ec2.create_security_group(GroupName=str(uuid4()), Description="Test SG")
@@ -545,7 +545,7 @@ def test_security_group_tag_filtering_boto3():
 
 
 @mock_ec2
-def test_authorize_all_protocols_with_no_port_specification_boto3():
+def test_authorize_all_protocols_with_no_port_specification():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     sg_name = str(uuid4())
@@ -564,7 +564,7 @@ def test_authorize_all_protocols_with_no_port_specification_boto3():
 
 @mock_ec2
 @pytest.mark.parametrize("use_vpc", [True, False], ids=["Use VPC", "Without VPC"])
-def test_sec_group_rule_limit_boto3(use_vpc):
+def test_sec_group_rule_limit(use_vpc):
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -773,7 +773,7 @@ def test_description_in_ip_permissions():
 
 
 @mock_ec2
-def test_security_group_tagging_boto3():
+def test_security_group_tagging():
     conn = boto3.client("ec2", region_name="us-east-1")
 
     sg = conn.create_security_group(GroupName=str(uuid4()), Description="Test SG")
@@ -803,7 +803,7 @@ def test_security_group_tagging_boto3():
 
 
 @mock_ec2
-def test_security_group_wildcard_tag_filter_boto3():
+def test_security_group_wildcard_tag_filter():
     conn = boto3.client("ec2", region_name="us-east-1")
     sg = conn.create_security_group(GroupName=str(uuid4()), Description="Test SG")
 
@@ -1037,7 +1037,7 @@ def test_security_group_ingress_without_multirule_after_reload():
 
 
 @mock_ec2
-def test_get_all_security_groups_filter_with_same_vpc_id_boto3():
+def test_get_all_security_groups_filter_with_same_vpc_id():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc_id = "vpc-5300000c"
