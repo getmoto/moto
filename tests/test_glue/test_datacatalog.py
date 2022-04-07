@@ -397,6 +397,71 @@ def test_create_partition_already_exist():
 
 
 @mock_glue
+def test_get_partitions_expression_unknown_column():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    values = ["2018-10-01"]
+    columns = [helpers.create_column("date_col", "date")]
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    helpers.create_partition(
+        client, database_name, table_name, values=values, columns=columns
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Expression="unknown_col IS NULL",
+        )
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match("Unknown column 'unknown_col'")
+
+
+@mock_glue
+def test_get_partitions_expression_int_column():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    columns = [helpers.create_column("int_col", "int")]
+
+    helpers.create_database(client, database_name)
+
+    args = (client, database_name, table_name)
+    helpers.create_table(*args, partition_keys=columns)
+    helpers.create_partition(*args, values=["1"], columns=columns)
+    helpers.create_partition(*args, values=["2"], columns=columns)
+    helpers.create_partition(*args, values=["3"], columns=columns)
+
+    kwargs = {"DatabaseName": database_name, "TableName": table_name}
+
+    response = client.get_partitions(**kwargs)
+    partitions = response["Partitions"]
+    partitions.should.have.length_of(3)
+
+    int_col_is_two_expressions = (
+        "int_col = 2",
+        "int_col = '2'",
+        "int_col IN (2)",
+        "int_col in (6, '4', 2)",
+        "int_col between 2 AND 2",
+        "int_col > 1 AND int_col < 3",
+        "int_col >= 2 and int_col <> 3",
+    )
+
+    for expression in int_col_is_two_expressions:
+        response = client.get_partitions(**kwargs, Expression=expression)
+        partitions = response["Partitions"]
+        partitions.should.have.length_of(1)
+        partition = partitions[0]
+        partition["Values"].should.equal(["2"])
+
+
+@mock_glue
 def test_get_partition_not_found():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
