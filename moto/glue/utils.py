@@ -118,10 +118,7 @@ class _Ident(_Expr):
                     )
 
         # also raised for unpartitioned tables
-        raise InvalidInputException(
-            "An error occurred (InvalidInputException) when calling the"
-            f" GetPartitions operation: Unknown column '{self.ident}'"
-        )
+        self._raise_unknown_column()
 
     def leval(self, part_keys: List[Dict[str, str]], literal: Any) -> Any:
         # evaluate literal by simulating partition input
@@ -136,16 +133,16 @@ class _Ident(_Expr):
                         f" GePartitions operation: {e}"
                     )
 
-        raise InvalidInputException(
-            "An error occurred (InvalidInputException) when calling the"
-            f" GetPartitions operation: Unknown column '{self.ident}'"
-        )
+        self._raise_unknown_column()
 
     def type_(self, part_keys: List[Dict[str, str]]) -> str:
         for key in part_keys:
             if self.ident == key["Name"]:
                 return key["Type"]
 
+        self._raise_unknown_column()
+
+    def _raise_unknown_column(self):
         raise InvalidInputException(
             "An error occurred (InvalidInputException) when calling the"
             f" GetPartitions operation: Unknown column '{self.ident}'"
