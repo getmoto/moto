@@ -96,6 +96,7 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
 
 
 class _Expr(abc.ABC):
+    @abc.abstractmethod
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
         raise NotImplementedError()
 
