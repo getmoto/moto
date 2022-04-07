@@ -67,6 +67,15 @@ def get_table_version(client, database_name, table_name, version_id):
     )
 
 
+def create_column(name, type_, comment=None, parameters=None):
+    column = {"Name": name, "Type": type_}
+    if comment is not None:
+        column["Comment"] = comment
+    if parameters is not None:
+        column["Parameters"] = parameters
+    return column
+
+
 def create_partition_input(database_name, table_name, values=None, columns=None):
     root_path = "s3://my-bucket/{database_name}/{table_name}".format(
         database_name=database_name, table_name=table_name
