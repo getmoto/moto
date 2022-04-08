@@ -537,6 +537,68 @@ def test_get_partitions_expression_decimal_column():
 
 
 @mock_glue
+def test_get_partitions_expression_string_column():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    columns = [helpers.create_column("string_col", "string")]
+
+    helpers.create_database(client, database_name)
+
+    args = (client, database_name, table_name)
+    helpers.create_table(*args, partition_keys=columns)
+    helpers.create_partition(*args, values=["one"], columns=columns)
+    helpers.create_partition(*args, values=["two"], columns=columns)
+    helpers.create_partition(*args, values=["2"], columns=columns)
+    helpers.create_partition(*args, values=["three"], columns=columns)
+
+    kwargs = {"DatabaseName": database_name, "TableName": table_name}
+
+    response = client.get_partitions(**kwargs)
+    partitions = response["Partitions"]
+    partitions.should.have.length_of(4)
+
+    string_col_is_two_expressions = (
+        "string_col = 'two'",
+        "string_col = 2",
+        "string_col IN (1, 2, 3)",
+        "string_col IN ('1', '2', '3')",
+        "string_col IN ('test', 'two', '3')",
+        "string_col between 'twn' AND 'twp'",
+        "string_col > '1' AND string_col < '3'",
+    )
+
+    string_col_like_two_expressions = (
+        "string_col LIKE 'two'",
+        "string_col LIKE 't_o'",
+        "string_col LIKE 't__'",
+        "string_col LIKE '%wo'",
+        "string_col NOT LIKE '%e' AND string_col not like '_'",
+    )
+
+    for expression in string_col_is_two_expressions:
+        response = client.get_partitions(**kwargs, Expression=expression)
+        partitions = response["Partitions"]
+        partitions.should.have.length_of(1)
+        partition = partitions[0]
+        partition["Values"].should.be.within((["two"], ["2"]))
+
+    for expression in string_col_like_two_expressions:
+        with pytest.warns(match="conversion to regex is experimental"):
+            response = client.get_partitions(**kwargs, Expression=expression)
+            partitions = response["Partitions"]
+            partitions.should.have.length_of(1)
+            partition = partitions[0]
+            partition["Values"].should.equal(["two"])
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="unknown_col LIKE 'two'")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match("Unknown column 'unknown_col'")
+
+
+@mock_glue
 def test_get_partition_expression_warnings_and_exceptions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
