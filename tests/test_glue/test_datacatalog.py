@@ -537,6 +537,59 @@ def test_get_partitions_expression_decimal_column():
 
 
 @mock_glue
+def test_get_partition_expression_warnings_and_exceptions():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    columns = [
+        helpers.create_column("string_col", "string"),
+        helpers.create_column("int_col", "int"),
+        helpers.create_column("float_col", "float"),
+    ]
+
+    helpers.create_database(client, database_name)
+
+    args = (client, database_name, table_name)
+    helpers.create_table(*args, partition_keys=columns)
+    helpers.create_partition(*args, values=["test", "int", "3.14"], columns=columns)
+
+    kwargs = {"DatabaseName": database_name, "TableName": table_name}
+
+    with pytest.warns(match="Expression filtering is experimental"):
+        response = client.get_partitions(**kwargs, Expression="string_col = 'test'")
+        partitions = response["Partitions"]
+        partitions.should.have.length_of(1)
+        partition = partitions[0]
+        partition["Values"].should.equal(["test", "int", "3.14"])
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="float_col = 3.14")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match("Unknown type : 'float'")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="int_col = 2")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidStateException")
+    exc.value.response["Error"]["Message"].should.match('"int" is not an integer')
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="unknown_col = 'test'")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match("Unknown column 'unknown_col'")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            **kwargs, Expression="string_col IS test' AND not parsable"
+        )
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match("Unsupported expression")
+
+
+@mock_glue
 def test_get_partition_not_found():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
