@@ -48,6 +48,8 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
         try:
             return datetime.strptime(value, "%Y-%m-%d").date()
         except ValueError:
+            # NOTE AWS accepts up until 31st of every month, e.g. '2022-02-31'
+            warnings.warn("Date filtering beyond last of month not supported")
             raise ValueError(f"{value} is not a date.")
 
     if type_ == "timestamp":
@@ -62,7 +64,15 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
                 f" {value} is not a timestamp."
             )
 
-        timestamp = datetime.strptime(match.group("timestamp"), "%Y-%m-%d %H:%M:%S")
+        try:
+            timestamp = datetime.strptime(match.group("timestamp"), "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            # NOTE AWS accepts up until 31st of every month, e.g. '2022-02-31 00:00:00'
+            warnings.warn("Timestamp filtering beyond last of month not supported")
+            raise ValueError(
+                "Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]"
+                f" {value} is not a timestamp."
+            )
 
         nanos = match.group("nanos")
         if nanos is not None:
