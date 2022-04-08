@@ -264,6 +264,86 @@ def test_get_partitions_expression_date_column():
 
 
 @mock_glue
+def test_get_partitions_expression_timestamp_column():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    columns = [helpers.create_column("timestamp_col", "timestamp")]
+
+    helpers.create_database(client, database_name)
+
+    args = (client, database_name, table_name)
+    helpers.create_table(*args, partition_keys=columns)
+    helpers.create_partition(*args, values=["2022-01-01 12:34:56.789"], columns=columns)
+    helpers.create_partition(
+        *args, values=["2022-02-01 00:00:00.000000"], columns=columns
+    )
+    helpers.create_partition(
+        *args, values=["2022-03-01 21:00:12.3456789"], columns=columns
+    )
+
+    kwargs = {"DatabaseName": database_name, "TableName": table_name}
+
+    response = client.get_partitions(**kwargs)
+    partitions = response["Partitions"]
+    partitions.should.have.length_of(3)
+
+    timestamp_col_is_february_expressions = (
+        "timestamp_col = '2022-02-01 00:00:00'",
+        "timestamp_col = '2022-02-01 00:00:00.0'",
+        "timestamp_col = '2022-02-01 00:00:00.000000000'",
+        "timestamp_col IN ('2022-02-01 00:00:00.000')",
+        "timestamp_col between '2022-01-15 00:00:00' AND '2022-02-15 00:00:00'",
+        "timestamp_col > '2022-01-15 00:00:00' AND "
+        "timestamp_col < '2022-02-15 00:00:00'",
+    )
+
+    for expression in timestamp_col_is_february_expressions:
+        response = client.get_partitions(**kwargs, Expression=expression)
+        partitions = response["Partitions"]
+        partitions.should.have.length_of(1)
+        partition = partitions[0]
+        partition["Values"].should.equal(["2022-02-01 00:00:00.000000"])
+
+    # these expressions only work because of rounding to microseconds
+    timestamp_col_is_february_expressions = (
+        "timestamp_col = '2022-01-31 23:59:59.999999999'",
+        "timestamp_col = '2022-02-01 00:00:00.00000001'",
+        "timestamp_col > '2022-01-31 23:59:59.999999499' AND"
+        " timestamp_col < '2022-02-01 00:00:00.0000009'",
+    )
+    for expression in timestamp_col_is_february_expressions:
+        with pytest.warns(match="rounding to microseconds"):
+            response = client.get_partitions(**kwargs, Expression=expression)
+            partitions = response["Partitions"]
+            partitions.should.have.length_of(1)
+            partition = partitions[0]
+            partition["Values"].should.equal(["2022-02-01 00:00:00.000000"])
+
+    bad_timestamp_expressions = (
+        "timestamp_col = '2022-02-01'",
+        "timestamp_col = '2022-02-15 00:00:00.'",
+        "timestamp_col = '2022-02-32 00:00:00'",
+    )
+    for expression in bad_timestamp_expressions:
+        with pytest.raises(ClientError) as exc:
+            client.get_partitions(**kwargs, Expression=expression)
+
+        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+        exc.value.response["Error"]["Message"].should.match("is not a timestamp")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            **kwargs, Expression="timestamp_col LIKE '2022-02-01 00:00:00'"
+        )
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Timestamp data type doesn't support operation 'LIKE'"
+    )
+
+
+@mock_glue
 def test_get_partition_expression_warnings_and_exceptions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
