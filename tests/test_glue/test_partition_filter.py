@@ -211,6 +211,59 @@ def test_get_partitions_expression_string_column():
 
 
 @mock_glue
+def test_get_partitions_expression_date_column():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    columns = [helpers.create_column("date_col", "date")]
+
+    helpers.create_database(client, database_name)
+
+    args = (client, database_name, table_name)
+    helpers.create_table(*args, partition_keys=columns)
+    helpers.create_partition(*args, values=["2022-01-01"], columns=columns)
+    helpers.create_partition(*args, values=["2022-02-01"], columns=columns)
+    helpers.create_partition(*args, values=["2022-03-01"], columns=columns)
+
+    kwargs = {"DatabaseName": database_name, "TableName": table_name}
+
+    response = client.get_partitions(**kwargs)
+    partitions = response["Partitions"]
+    partitions.should.have.length_of(3)
+
+    date_col_is_february_expressions = (
+        "date_col = '2022-02-01'",
+        "date_col IN ('2022-02-01')",
+        "date_col in ('2024-02-29', '2022-02-01', '2022-02-02')",
+        "date_col between '2022-01-15' AND '2022-02-15'",
+        "date_col > '2022-01-15' AND date_col < '2022-02-15'",
+    )
+
+    for expression in date_col_is_february_expressions:
+        response = client.get_partitions(**kwargs, Expression=expression)
+        partitions = response["Partitions"]
+        partitions.should.have.length_of(1)
+        partition = partitions[0]
+        partition["Values"].should.equal(["2022-02-01"])
+
+    bad_date_expressions = ("date_col = 'test'", "date_col = '2022-02-29'")
+    for expression in bad_date_expressions:
+        with pytest.raises(ClientError) as exc:
+            client.get_partitions(**kwargs, Expression=expression)
+
+        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+        exc.value.response["Error"]["Message"].should.match("is not a date")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="date_col LIKE '2022-02-01'")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Date data type doesn't support operation 'LIKE'"
+    )
+
+
+@mock_glue
 def test_get_partition_expression_warnings_and_exceptions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
