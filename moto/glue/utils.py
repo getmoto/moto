@@ -24,21 +24,6 @@ from pyparsing import (
 
 from .exceptions import InvalidInputException, InvalidStateException
 
-# LIKE only for strings
-# LIKE supports % (zero or more matches) and _ (exactly one match) wildcards
-# unary not supported, e.g. "not column > 4" does not work
-# NOT LIKE not supported
-# references not supported "column_1 > column_2" does not work
-# no nested expressions
-# only column name to the left, literal to the right
-# is / is not only with null; null only with is / is not
-# literal value is cast to partition type before comparing
-# parentheses can be used to group, nested allowed
-# scientific notation for decimal partition columns ok
-# IN can contain both string and numeric literals
-# arbitrary whitespace (including none) between operands and operators
-# literals in parentheses are allowed, e.g. col = (5)
-
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
     # values are always cast from string to target type
