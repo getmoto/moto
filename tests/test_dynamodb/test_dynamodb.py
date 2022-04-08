@@ -6,7 +6,7 @@ import boto3
 from boto3.dynamodb.conditions import Attr, Key
 import re
 import sure  # noqa # pylint: disable=unused-import
-from moto import mock_dynamodb
+from moto import mock_dynamodb, settings
 from moto.dynamodb import dynamodb_backends
 from botocore.exceptions import ClientError
 
@@ -399,14 +399,13 @@ def test_put_item_with_streams():
             "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
         }
     )
-    table = dynamodb_backends["us-west-2"].get_table(name)
-    if not table:
-        # There is no way to access stream data over the API, so this part can't run in server-tests mode.
-        return
-    len(table.stream_shard.items).should.be.equal(1)
-    stream_record = table.stream_shard.items[0].record
-    stream_record["eventName"].should.be.equal("INSERT")
-    stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
+
+    if not settings.TEST_SERVER_MODE:
+        table = dynamodb_backends["us-west-2"].get_table(name)
+        len(table.stream_shard.items).should.be.equal(1)
+        stream_record = table.stream_shard.items[0].record
+        stream_record["eventName"].should.be.equal("INSERT")
+        stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
 
 @mock_dynamodb
@@ -1597,12 +1596,9 @@ def test_bad_scan_filter():
     table = dynamodb.Table("test1")
 
     # Bad expression
-    try:
+    with pytest.raises(ClientError) as exc:
         table.scan(FilterExpression="client test")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ValidationError")
-    else:
-        raise RuntimeError("Should have raised ResourceInUseException")
+    exc.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_dynamodb
