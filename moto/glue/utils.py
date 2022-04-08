@@ -260,7 +260,7 @@ class _Between(_Expr):
         left = self.ident.leval(part_keys, self.left)
         right = self.ident.leval(part_keys, self.right)
 
-        return left <= ident <= right
+        return left <= ident <= right or left > ident > right
 
 
 class _NotBetween(_Between):
