@@ -480,6 +480,62 @@ def test_get_partitions_expression_int_column():
         "Integral data type doesn't support operation 'LIKE'"
     )
 
+
+@mock_glue
+def test_get_partitions_expression_decimal_column():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    columns = [helpers.create_column("decimal_col", "decimal")]
+
+    helpers.create_database(client, database_name)
+
+    args = (client, database_name, table_name)
+    helpers.create_table(*args, partition_keys=columns)
+    helpers.create_partition(*args, values=["1.2"], columns=columns)
+    helpers.create_partition(*args, values=["2.6"], columns=columns)
+    helpers.create_partition(*args, values=["3e14"], columns=columns)
+
+    kwargs = {"DatabaseName": database_name, "TableName": table_name}
+
+    response = client.get_partitions(**kwargs)
+    partitions = response["Partitions"]
+    partitions.should.have.length_of(3)
+
+    decimal_col_is_two_point_six_expressions = (
+        "decimal_col = 2.6",
+        "decimal_col = '2.6'",
+        "decimal_col IN (2.6)",
+        "decimal_col in (6, '4', 2.6)",
+        "decimal_col between 2 AND 3e10",
+        "decimal_col > 1.5 AND decimal_col < 3",
+        "decimal_col >= 2 and decimal_col <> '3e14'",
+    )
+
+    for expression in decimal_col_is_two_point_six_expressions:
+        response = client.get_partitions(**kwargs, Expression=expression)
+        partitions = response["Partitions"]
+        partitions.should.have.length_of(1)
+        partition = partitions[0]
+        partition["Values"].should.equal(["2.6"])
+
+    bad_decimal_expressions = ("decimal_col = 'test'",)
+    for expression in bad_decimal_expressions:
+        with pytest.raises(ClientError) as exc:
+            client.get_partitions(**kwargs, Expression=expression)
+
+        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+        exc.value.response["Error"]["Message"].should.match("test is not a decimal")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="decimal_col LIKE '2'")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Decimal data type doesn't support operation 'LIKE'"
+    )
+
+
 @mock_glue
 def test_get_partition_not_found():
     client = boto3.client("glue", region_name="us-east-1")
