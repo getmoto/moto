@@ -226,17 +226,17 @@
 
 ## application-autoscaling
 <details>
-<summary>60% implemented</summary>
+<summary>90% implemented</summary>
 
 - [X] delete_scaling_policy
-- [ ] delete_scheduled_action
+- [X] delete_scheduled_action
 - [X] deregister_scalable_target
 - [X] describe_scalable_targets
 - [ ] describe_scaling_activities
 - [X] describe_scaling_policies
-- [ ] describe_scheduled_actions
+- [X] describe_scheduled_actions
 - [X] put_scaling_policy
-- [ ] put_scheduled_action
+- [X] put_scheduled_action
 - [X] register_scalable_target
 </details>
 

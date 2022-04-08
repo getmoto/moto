@@ -127,6 +127,63 @@ class ApplicationAutoScalingResponse(BaseResponse):
         if message:
             raise AWSValidationException(message)
 
+    def delete_scheduled_action(self):
+        params = json.loads(self.body)
+        service_namespace = params.get("ServiceNamespace")
+        scheduled_action_name = params.get("ScheduledActionName")
+        resource_id = params.get("ResourceId")
+        scalable_dimension = params.get("ScalableDimension")
+        self.applicationautoscaling_backend.delete_scheduled_action(
+            service_namespace=service_namespace,
+            scheduled_action_name=scheduled_action_name,
+            resource_id=resource_id,
+            scalable_dimension=scalable_dimension,
+        )
+        return json.dumps(dict())
+
+    def put_scheduled_action(self):
+        params = json.loads(self.body)
+        service_namespace = params.get("ServiceNamespace")
+        schedule = params.get("Schedule")
+        timezone = params.get("Timezone")
+        scheduled_action_name = params.get("ScheduledActionName")
+        resource_id = params.get("ResourceId")
+        scalable_dimension = params.get("ScalableDimension")
+        start_time = params.get("StartTime")
+        end_time = params.get("EndTime")
+        scalable_target_action = params.get("ScalableTargetAction")
+        self.applicationautoscaling_backend.put_scheduled_action(
+            service_namespace=service_namespace,
+            schedule=schedule,
+            timezone=timezone,
+            scheduled_action_name=scheduled_action_name,
+            resource_id=resource_id,
+            scalable_dimension=scalable_dimension,
+            start_time=start_time,
+            end_time=end_time,
+            scalable_target_action=scalable_target_action,
+        )
+        return json.dumps(dict())
+
+    def describe_scheduled_actions(self):
+        params = json.loads(self.body)
+        scheduled_action_names = params.get("ScheduledActionNames")
+        service_namespace = params.get("ServiceNamespace")
+        resource_id = params.get("ResourceId")
+        scalable_dimension = params.get("ScalableDimension")
+        scheduled_actions = (
+            self.applicationautoscaling_backend.describe_scheduled_actions(
+                scheduled_action_names=scheduled_action_names,
+                service_namespace=service_namespace,
+                resource_id=resource_id,
+                scalable_dimension=scalable_dimension,
+            )
+        )
+        response_obj = {
+            "ScheduledActions": [_build_scheduled_action(a) for a in scheduled_actions]
+        }
+        return json.dumps(response_obj)
+
 
 def _build_target(t):
     return {
@@ -157,4 +214,21 @@ def _build_policy(p):
         response[
             "TargetTrackingScalingPolicyConfiguration"
         ] = p.target_tracking_scaling_policy_configuration
+    return response
+
+
+def _build_scheduled_action(a):
+    response = {
+        "ScheduledActionName": a.scheduled_action_name,
+        "ScheduledActionARN": a.arn,
+        "ServiceNamespace": a.service_namespace,
+        "Schedule": a.schedule,
+        "Timezone": a.timezone,
+        "ResourceId": a.resource_id,
+        "ScalableDimension": a.scalable_dimension,
+        "StartTime": a.start_time,
+        "EndTime": a.end_time,
+        "CreationTime": a.creation_time,
+        "ScalableTargetAction": a.scalable_target_action,
+    }
     return response
