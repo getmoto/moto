@@ -288,8 +288,8 @@ class _PartitionFilterExpressionCache:
         lpar, rpar = map(Suppress, "()")
 
         # NOTE these are AWS Athena column name best practices
-        ident = Forward().set_parse_action(_Ident).set_name("ident")
-        ident <<= Word(alphanums + "._") | lpar + ident + rpar
+        ident = Forward().set_name("ident")
+        ident <<= Word(alphanums + "._").set_parse_action(_Ident) | lpar + ident + rpar
 
         number = Forward().set_name("number")
         number <<= pyparsing_common.number | lpar + number + rpar

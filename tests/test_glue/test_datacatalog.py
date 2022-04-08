@@ -451,6 +451,7 @@ def test_get_partitions_expression_int_column():
         "int_col between 2 AND 2",
         "int_col > 1 AND int_col < 3",
         "int_col >= 2 and int_col <> 3",
+        "(int_col) = ((2)) (OR) (((int_col))) = (2)",
     )
 
     for expression in int_col_is_two_expressions:
