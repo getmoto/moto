@@ -246,7 +246,7 @@ def test_get_partitions_expression_date_column():
         partition = partitions[0]
         partition["Values"].should.equal(["2022-02-01"])
 
-    bad_date_expressions = ("date_col = 'test'", "date_col = '2022-02-29'")
+    bad_date_expressions = ("date_col = 'test'", "date_col = '2022-02-32'")
     for expression in bad_date_expressions:
         with pytest.raises(ClientError) as exc:
             client.get_partitions(**kwargs, Expression=expression)
