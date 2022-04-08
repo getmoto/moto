@@ -40,6 +40,9 @@ from .exceptions import InvalidInputException, InvalidStateException
 
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
+    # values are always cast from string to target type
+    value = str(value)
+
     if type_ in ("bigint", "int", "smallint", "tinyint"):
         try:
             return int(value)  # no size is enforced
@@ -53,7 +56,7 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
             raise ValueError(f"{value} is not a decimal.")
 
     if type_ in ("char", "string", "varchar"):
-        return str(value)  # no length is enforced
+        return value  # no length is enforced
 
     if type_ == "date":
         try:
