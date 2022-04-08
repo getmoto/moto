@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pyparsing import (
     CaselessKeyword,
+    Forward,
     OpAssoc,
     ParserElement,
     ParseResults,
@@ -287,17 +288,28 @@ class _PartitionFilterExpressionCache:
         lpar, rpar = map(Suppress, "()")
 
         # NOTE these are AWS Athena column name best practices
-        ident = Word(alphanums + "._").set_parse_action(_Ident).set_name("ident")
+        ident = Forward().set_parse_action(_Ident).set_name("ident")
+        ident <<= Word(alphanums + "._") | lpar + ident + rpar
 
-        number = pyparsing_common.number.set_name("number")
-        string = QuotedString(quote_char="'", esc_quote="''").set_name("string")
+        number = Forward().set_name("number")
+        number <<= pyparsing_common.number | lpar + number + rpar
+
+        string = Forward().set_name("string")
+        string <<= QuotedString(quote_char="'", esc_quote="''") | lpar + string + rpar
+
         literal = (number | string).set_name("literal")
         literal_list = delimited_list(literal, min=1).set_name("list")
 
         bin_op = one_of("<> >= <= > < =").set_name("binary op")
 
-        and_, or_, in_, between, like, not_, is_, null = map(
-            CaselessKeyword, "and or in between like not is null".split()
+        and_ = Forward()
+        and_ <<= CaselessKeyword("and") | lpar + and_ + rpar
+
+        or_ = Forward()
+        or_ <<= CaselessKeyword("or") | lpar + or_ + rpar
+
+        in_, between, like, not_, is_, null = map(
+            CaselessKeyword, "in between like not is null".split()
         )
 
         cond = (
