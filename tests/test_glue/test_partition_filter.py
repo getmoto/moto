@@ -137,7 +137,7 @@ def test_get_partitions_expression_decimal_column():
             client.get_partitions(**kwargs, Expression=expression)
 
         exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-        exc.value.response["Error"]["Message"].should.match("test is not a decimal")
+        exc.value.response["Error"]["Message"].should.match("is not a decimal")
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="decimal_col LIKE '2'")
