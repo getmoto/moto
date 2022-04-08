@@ -296,6 +296,7 @@ class _PartitionFilterExpressionCache:
         in_, between, like, not_, is_, null = map(
             CaselessKeyword, "in between like not is null".split()
         )
+        not_ = Suppress(not_)  # only needed for matching
 
         cond = (
             (ident + is_ + null).set_parse_action(_IsNull)
