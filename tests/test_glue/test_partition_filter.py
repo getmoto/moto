@@ -67,6 +67,7 @@ def test_get_partitions_expression_int_column():
         "int_col IS NOT NULL and int_col = 2",
         "int_col not IN (1, 3)",
         "int_col NOT BETWEEN 1 AND 1 and int_col NOT BETWEEN 3 AND 3",
+        "int_col = 4 OR int_col = 5 AND int_col = '-1' OR int_col = 0 OR int_col = '2'",
     )
 
     for expression in int_col_is_two_expressions:

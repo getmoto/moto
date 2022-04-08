@@ -265,17 +265,20 @@ class _NotBetween(_Between):
         return not super().eval(part_keys, part_input)
 
 
-class _BoolOp(_Expr):
+class _BoolAnd(_Expr):
     def __init__(self, tokens: ParseResults) -> None:
-        self.left: _Expr = tokens[0][0]
-        self.bool_op: str = tokens[0][1]
-        self.right: _Expr = tokens[0][2]
+        self.operands: List[_Expr] = tokens[0][0::2]  # skip 'and' between tokens
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
-        left = self.left.eval(part_keys, part_input)
-        right = self.right.eval(part_keys, part_input)
+        return all(operand.eval(part_keys, part_input) for operand in self.operands)
 
-        return {"and": operator.and_, "or": operator.or_}[self.bool_op](left, right)
+
+class _BoolOr(_Expr):
+    def __init__(self, tokens: ParseResults) -> None:
+        self.operands: List[_Expr] = tokens[0][0::2]  # skip 'or' between tokens
+
+    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+        return any(operand.eval(part_keys, part_input) for operand in self.operands)
 
 
 class _PartitionFilterExpressionCache:
@@ -327,8 +330,8 @@ class _PartitionFilterExpressionCache:
         expr = infix_notation(
             cond,
             [
-                (and_, 2, OpAssoc.LEFT, _BoolOp),
-                (or_, 2, OpAssoc.LEFT, _BoolOp),
+                (and_, 2, OpAssoc.LEFT, _BoolAnd),
+                (or_, 2, OpAssoc.LEFT, _BoolOr),
             ],
         )
         self._expr = expr.set_name("expr")
