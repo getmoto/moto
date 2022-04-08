@@ -122,7 +122,8 @@ class _Ident(_Expr):
                         f" GePartitions operation: {e}"
                     )
 
-        self._raise_unknown_column()
+        # any unknown column is detected during eval already
+        raise NotImplementedError("leval called before eval")
 
     def type_(self, part_keys: List[Dict[str, str]]) -> str:
         for key in part_keys:
