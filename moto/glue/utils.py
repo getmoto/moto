@@ -113,7 +113,7 @@ class _Ident(_Expr):
                     # existing partition values cannot be cast to current schema
                     raise InvalidStateException(
                         "An error occurred (InvalidStateException) when calling the"
-                        f" GePartitions operation: {e}"
+                        f" GetPartitions operation: {e}"
                     )
 
         # also raised for unpartitioned tables
@@ -129,7 +129,7 @@ class _Ident(_Expr):
                     # expression literal cannot be cast to current schema
                     raise InvalidInputException(
                         "An error occurred (InvalidInputException) when calling the"
-                        f" GePartitions operation: {e}"
+                        f" GetPartitions operation: {e}"
                     )
 
         # any unknown column is detected during eval already
