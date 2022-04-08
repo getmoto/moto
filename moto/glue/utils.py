@@ -76,9 +76,9 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
 
         nanos = match.group("nanos")
         if nanos is not None:
-            # strip leading dot and left pad with zeros to nanoseconds
-            nanos = nanos[1:].zfill(9)
-            for i, nanoseconds in enumerate(reversed(nanos)):
+            # strip leading dot, reverse and left pad with zeros to nanoseconds
+            nanos = "".join(reversed(nanos[1:])).zfill(9)
+            for i, nanoseconds in enumerate(nanos):
                 # NOTE precision loss here, as nanoseconds are not supported in datetime
                 microseconds = (int(nanoseconds) * 10**i) / 1000
                 if round(microseconds) == 0 and microseconds > 0:
