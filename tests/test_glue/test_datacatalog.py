@@ -461,6 +461,21 @@ def test_get_partitions_expression_int_column():
         partition = partitions[0]
         partition["Values"].should.equal(["2"])
 
+    bad_int_expressions = ("int_col = 'test'", "int_col in (2.5)")
+    for expression in bad_int_expressions:
+        with pytest.raises(ClientError) as exc:
+            client.get_partitions(**kwargs, Expression=expression)
+
+        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+        exc.value.response["Error"]["Message"].should.match("is not an integer")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, Expression="int_col LIKE '2'")
+
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Message"].should.match(
+        "Integral data type doesn't support operation 'LIKE'"
+    )
 
 @mock_glue
 def test_get_partition_not_found():
