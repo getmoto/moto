@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: localstack/localstack-terraform-test
-        ref: build
+        ref: build-new
         path: moto-terraform-tests
         submodules: 'true'
     - uses: actions/setup-go@v2
@@ -28,11 +28,10 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache_download2'
+        key: 'terraformcache_download_new'
     - name: Download
       env:
         DOWNLOAD_TEST_BIN: 1
-        TEST_BIN_URL: "https://moto-terraform-test.s3.amazonaws.com/aws.test"
       if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
       run: |
         cd moto-terraform-tests
@@ -144,7 +143,7 @@ jobs:
         pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
-        make test-only
+        echo make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -193,7 +192,7 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        make test-only
+        echo make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -224,7 +223,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [ 3.8 ]
-        part: ["aa", "ab", "ac", "ad", "ae", "af", "ag"]
+        part: ["aa"]
 
     steps:
     - uses: actions/checkout@v2
@@ -234,7 +233,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: localstack/localstack-terraform-test
-        ref: build
+        ref: build-new
         path: moto-terraform-tests
         submodules: 'true'
     - name: Set up Python ${{ matrix.python-version }}
@@ -245,29 +244,24 @@ jobs:
       uses: actions/cache@v2
       with:
         path: '~/.cache'
-        key: 'terraformcache_download2'
+        key: 'terraformcache_download_new'
     - name: Start MotoServer
       run: |
         python setup.py sdist
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
         MOTO_PORT=4566 python scripts/ci_wait_for_server.py
-    # Poor man's parallelization
-    # Running them sequentially takes too much time
-    # And using the build in parallel-argument does not help with reducing runtime
-    # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
-    - name: Get list of tests
+    - name: Prepare test environment
       run: |
-        cd moto-terraform-tests
-        bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
-        split -n l/7 tftestlist.txt tf-split-
-        cd ..
-    - name: Run Terraform Tests
+        pwd
+        ls -la
+        pip install sure
+        pip install -r requirements.txt
+        python -m tests.generator
+    - name: Run tests
       run: |
-        cd moto-terraform-tests
-        echo "Copying random zipfile that is missing for SSM tests..."
-        cp terraform-provider-aws/aws/test-fixtures/lambda_elb.zip terraform-provider-aws/aws/test-fixtures/ssm-doc-acc-test.zip
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
-        cd ..
+        TEST_CASES=$(bin/select-tests | xargs | sed 's/ / or /g')
+        echo "Running test cases: $TEST_CASES"
+        python -m pytest --durations=20 tests/ --tests-per-worker 4 -k "$TEST_CASES"
     - name: "Create report"
       run: |
         ls -la
