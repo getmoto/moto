@@ -146,5 +146,9 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
-    project_urls={"Documentation": "http://docs.getmoto.org/en/latest/"},
+    project_urls={
+        "Documentation": "http://docs.getmoto.org/en/latest/",
+        "Issue tracker": "https://github.com/spulec/moto/issues",
+        "Changelog": "https://github.com/spulec/moto/blob/master/CHANGELOG.md"
+    },
 )
