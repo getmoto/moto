@@ -1,6 +1,22 @@
 on: [push, pull_request]
-name: Test
+name: TestTerraform
 jobs:
+  prepare_list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(python tests/terraformtests/get_tf_services.py --names)"
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+  testdist:
+    needs: prepare_list
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.prepare_list.outputs.matrix) }}
+    steps:
+      - run: echo "${{ matrix.package }}"
   test:
     strategy:
       matrix:
@@ -25,4 +41,4 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go-version }}-
-    - run: cd tests/terraformtests/terraform-provider-aws && go test ./internal/service/s3 -test.v -test.run bucket_object_data_source_test.go
+    - run: cd tests/terraformtests/terraform-provider-aws && go test ./internal/service/iam/ -test.v -test.run TestAccIAMAccessKey
