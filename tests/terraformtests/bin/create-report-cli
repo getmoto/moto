@@ -1,0 +1,55 @@
+#!/usr/bin/python3
+
+import glob
+import xml.etree.ElementTree as ET
+
+
+def get_summary(reports):
+    passed = failures = errors = skipped = total = 0
+    for f in reports:
+        try:
+            for event, elem in ET.iterparse(f, events=('start',)):
+                if elem.tag == 'testsuite':
+                    d = dict(elem.attrib)
+                    d['time'] = float(d['time'])
+                    d['tests'] = float(d['tests'])
+                    d['errors'] = float(d['errors'])
+                    d['failures'] = float(d['failures'])
+                    d['skipped'] = float(d['skipped'])
+                    d['passed'] = d['tests'] - (d['errors'] + d['failures'] + d['skipped'])
+                    print(d)
+                    #
+                    total += d["tests"]
+                    passed += d["passed"]
+                    failures += d["failures"]
+                    errors += d["errors"]
+        except Exception as e:
+            print(e)
+
+    print('===========================================')
+    print("Total cases: {}".format(total))
+    for name, nr in [("Passed", passed), ("Failures", failures), ("Errors", errors), ("Skipped", skipped)]:
+        pct = round((nr / total) * 100, 2)
+        print("{}: {} ({}%)".format(name, nr, pct))
+
+    failed_tests = failures + errors
+    if failed_tests > 0:
+        raise Exception("{} Terraform tests failed!".format(failed_tests))
+
+
+def main():
+    reports = glob.glob('build/tests/*.xml')
+    if not reports:
+        print('no reports, run bin/create-report first')
+        exit(1)
+
+    reports.sort()
+
+    print('===========================================')
+    get_summary(reports)
+    print('===========================================')
+    print()
+
+
+if __name__ == '__main__':
+    main()

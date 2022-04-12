@@ -1,0 +1,275 @@
+#!/bin/bash
+
+function usage() {
+    echo "USAGE"
+    echo "  run-tests [OPTIONS...] [TESTS...]"
+    echo ""
+    echo "DESCRIPTION"
+    echo "  runs the Terraform test suite"
+    echo ""
+    echo "OPTIONS"
+    echo "  -h, --help"
+    echo "      show this message"
+    echo ""
+    echo "  -e PATTERN|FILE, --exclude PATTERN|FILE"
+    echo "      repeatable option to exclude certain tests or test groups"
+    echo ""
+    echo "  -i PATTERN|FILE, --include PATTERN|FILE"
+    echo "      repeatable option to include certain tests or test groups"
+    echo ""
+    echo "  -t, --tests-only"
+    echo "      run the tests against an already running instance of localstack"
+}
+
+export PROJECT_ROOT=$(pwd) # FIXME
+
+export LST_DIR=${PROJECT_ROOT}/localstack
+export BUILD_DIR=${PROJECT_ROOT}/build
+
+export LST_LOG=${BUILD_DIR}/localstack.log
+export TEST_LOG=${BUILD_DIR}/test.log
+
+export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+
+export INSTALL_LOCAL_MOTO=${INSTALL_LOCAL_MOTO:-true}
+
+export TF_ACC=1
+export TEST_PARALLEL=${TEST_PARALLEL:-1}
+
+export TIMEOUT_SECS=600
+
+SUPPRESS_BIN_LOGS=${SUPPRESS_BIN_LOGS:-0}
+
+# TEST_BIN=$HOME/.cache/localstack/aws.test
+TEST_BIN=$HOME/.cache/localstack/allservices.test
+TEST_BIN_NAME=allservices.test
+
+function run_localstack() {
+    cd ${LST_DIR}
+    source .venv/bin/activate
+
+    if [ ${INSTALL_LOCAL_MOTO} == true ]; then
+        pip install -e ../moto
+    fi
+
+    exec bin/localstack start --host
+}
+
+function run_watchdog() {
+    log="${BUILD_DIR}/tests/$1.log"
+
+    i=0
+    while true; do
+        sleep 2
+        i=$((i + 1))
+        if [ $i -gt $TIMEOUT_SECS ]; then
+            # TODO remove duplicate code
+            pkill -f $TEST_BIN_NAME
+            echo "[ltt.runner] terminated (timeout) $1" | tee -a ${log}
+            break
+        fi
+        if cat ${log} | strings | grep --max-count=1 -q "attempt 1/25" &> /dev/null; then
+            pkill -f $TEST_BIN_NAME
+            echo "[ltt.runner] terminated $1" | tee -a ${log}
+            break
+        fi
+    done
+}
+
+function forward_lst_log() {
+    trap 'kill $(jobs -p) 2> /dev/null' EXIT
+    log=$1
+    tail -f -n0 ${LST_LOG} 2> /dev/null | stdbuf -oL awk '{print "[ltt.localstack] " $0}' | tee -a $log > /dev/null
+}
+
+function forward_test_log() {
+    trap 'kill $(jobs -p) 2> /dev/null' EXIT
+    log=$1
+    tail -f -n0 ${TEST_LOG} 2> /dev/null | stdbuf -oL awk '{print "[ltt.gotest] " $0}' | tee -a $log > /dev/null
+}
+
+function run_test_with_go_test() {
+  serviceName=$(get_service_for_test $@)
+
+  cd terraform-provider-aws || exit 1
+  echo "running TF_ACC=1 go test ./internal/service/${serviceName} -test.v -test.run $@"
+  if [ "$SUPPRESS_BIN_LOGS" = "1" ]; then
+    # can be useful for debugging, but seems to break certain API calls, e.g., large S3 file PUTs
+    go test ./internal/service/${serviceName} -test.v -test.run "$@" 2>&1 | tr -cd "[:print:][\011\012]"
+  else
+    go test ./internal/service/${serviceName} -test.v -test.run "$@"
+  fi
+  result=$?
+  echo
+  echo Test terminated with exit code $?
+  # clean up tmp dirs
+  rm -rf /tmp/plugintest*
+  return $result
+}
+
+function get_service_for_test() {
+  grep -R $1 terraform-provider-aws/internal/service | head -n 1 | cut -f4 -d /
+}
+
+function run_test_with_bin() {
+    [ ! -f $TEST_BIN ] && { echo "allservices.test not installed. please run bin/install-aws-test"; exit 1; }
+
+    pwd
+    #cd terraform-provider-aws/internal/service || exit 1
+    echo "running ${TEST_BIN} -test.v -test.parallel=${TEST_PARALLEL} -test.run $@"
+    if [ "$SUPPRESS_BIN_LOGS" = "1" ]; then
+      # can be useful for debugging, but seems to break certain API calls, e.g., large S3 file PUTs
+      ${TEST_BIN} -test.v -test.parallel=${TEST_PARALLEL} -test.run "$@" 2>&1 | tr -cd "[:print:][\011\012]"
+    else
+      ${TEST_BIN} -test.v -test.parallel=${TEST_PARALLEL} -test.run "$@"
+    fi
+    result=$?
+    echo
+    echo Test terminated with exit code $?
+    # clean up tmp dirs
+    rm -rf /tmp/plugintest*
+    return $result
+}
+
+function list_tests() {
+    # without this function we could not run individual tests, but it's kinda hacky
+    cmd=$PROJECT_ROOT/bin/list-tests
+    args_all=""
+    args=""
+
+    # parse options
+    while [[ "$#" -gt 0 ]]; do
+        if [[ $2 =~ "_" ]]; then
+            args_all="$args_all $1 $2"
+        else
+            args="$args $1 $2"
+        fi
+        shift
+        shift
+    done
+
+    [ -z "$args" ] || $cmd $args
+    [ -z "$args_all" ] || $cmd --all $args_all
+}
+
+function run_tests() {
+    tests=$(list_tests "$@")
+
+    if [ -z "${tests}" ]; then
+        echo "no matching tests"
+        exit 1
+    fi
+
+    # kill jobs once process exits
+    trap 'kill $(jobs -p) 2> /dev/null' EXIT
+
+    echo "" > ${TEST_LOG}
+
+    tail -F ${TEST_LOG} 2> /dev/null | stdbuf -oL strings | egrep "(=== RUN|=== CONT|=== PAUSE|FAIL|PASS|SKIP)" &
+
+    export TF_LOG=debug
+
+    for t in ${tests}; do
+        # truncate test log
+        echo "" > ${TEST_LOG}
+
+        # touch log for test run
+        log="${BUILD_DIR}/tests/${t}.log"
+        echo "" > ${log}
+
+        echo "[ltt.runner] starting $t" | tee -a ${log}
+
+        run_watchdog $t &
+        pid_watchdog=$!
+
+        forward_lst_log $log &
+        pid_forward_lst_log=$!
+
+        forward_test_log $log &
+        pid_forward_test_log=$!
+
+        sleep 1
+
+        if [[ $t =~ "_" ]]; then
+            arg=$t
+        else
+            arg=$t
+        fi
+
+        run_test_with_bin "${arg}" 2>&1
+
+        kill $pid_watchdog &> /dev/null
+        kill $pid_forward_lst_log &> /dev/null
+        kill $pid_forward_test_log &> /dev/null
+
+        wait $pid_watchdog $pid_forward_test_log $pid_forward_lst_log
+        echo "[ltt.runner] completed $t" | tee -a ${log}
+        sleep 1
+
+    done
+}
+
+function run_lst_and_tests() {
+    rm -f ${LST_LOG}
+    # start localstack in the background
+    DEBUG=1 run_localstack &> ${LST_LOG} &
+    export lst_pid=$!
+
+    # TODO: subprocesses will stay open if interrupted
+
+    # wait for localstack to be ready
+    echo "[ltt.runner] waiting on localstack to start on process ${lst_pid}"
+
+    while true; do
+        sleep 1
+
+        if `grep --max-count=1 -q "Ready\." ${LST_LOG}`; then
+            break
+        fi
+        if ! ps -p ${lst_pid} > /dev/null; then
+            echo "[ltt.runner] localstack terminated while waiting"
+            exit 1
+        fi
+    done
+
+    run_tests "$@"
+    ret=$?
+
+    # kill the running localstack instance
+    echo "[ltt.runner] killing localstack ${lst_pid}"
+    kill ${lst_pid}
+    echo "[ltt.runner] waiting on localstack to end"
+    wait ${lst_pid}
+
+    return ${ret}
+}
+
+function main() {
+    list_test_args="" # test filters (handed to list-tests)
+    start_lst=true
+
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -h|--help)        usage; exit 0 ;;
+            -i|--include)     list_test_args="$list_test_args -i $2"; shift ;;
+            -e|--exclude)     list_test_args="$list_test_args -e $2"; shift ;;
+            -t|--tests-only)  start_lst=false; ;;
+            *)                list_test_args="$list_test_args -i $1" ;;
+        esac
+        shift
+    done
+
+    mkdir -p ${BUILD_DIR}/tests
+
+    if [ $start_lst == false ]; then
+        run_tests $list_test_args
+    else
+        run_lst_and_tests $list_test_args
+    fi
+
+    exit $?
+}
+
+main "$@"

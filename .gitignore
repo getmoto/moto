@@ -27,3 +27,4 @@ htmlcov/
 .~c9_*
 .coverage*
 docs/_build
+tests/terraformtests/Test*.py
