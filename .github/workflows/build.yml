@@ -215,69 +215,10 @@ jobs:
         path: |
           serverlogs/*
 
-  terraform:
-    name: Terraform Tests
-    runs-on: ubuntu-latest
-    needs: terraformcache
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ 3.8 ]
-        part: ["aa"]
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Checkout Terraform Tests repo
-      uses: actions/checkout@v2
-      with:
-        repository: localstack/localstack-terraform-test
-        ref: build-new
-        path: moto-terraform-tests
-        submodules: 'true'
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: cache
-      uses: actions/cache@v2
-      with:
-        path: '~/.cache'
-        key: 'terraformcache_download_new'
-    - name: Start MotoServer
-      run: |
-        python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
-        MOTO_PORT=4566 python scripts/ci_wait_for_server.py
-    - name: Run TF tests
-      run: |
-        pwd
-        ls -la
-        ls -la tests/terraformtests
-        ls -la tests/terraformtests/terraform-provider-aws
-        echo "Need to 1) cache module data, 2) patch tests, 3) figure out location for provider-directory, 4) list only applicable tests
-        cd tests/terraformtests/terraform-provider-aws && go test ./internal/service/s3 -test.v -test.run bucket_object_data_source_test.go
-    - name: "Create report"
-      run: |
-        ls -la
-        cp server_output.log moto-terraform-tests/build/server_output.log
-        cd moto-terraform-tests
-        bin/create-report
-        bin/create-report-cli
-        cd ..
-    - name: Archive TF logs
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: buildfolder-${{ matrix.part }}
-        path: |
-          moto-terraform-tests/build/*
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [test, testserver, terraform ]
+    needs: [test, testserver ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'spulec/moto' }}
     strategy:
       matrix:
