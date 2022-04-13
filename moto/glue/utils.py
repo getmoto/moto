@@ -3,6 +3,7 @@ import operator
 import re
 import warnings
 from datetime import date, datetime, timedelta
+from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
 from pyparsing import (
@@ -97,41 +98,39 @@ class _Ident(_Expr):
         self.ident: str = tokens[0]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
-        for key, value in zip(part_keys, part_input["Values"]):
-            if self.ident == key["Name"]:
-                try:
-                    return _cast(key["Type"], value)
-                except ValueError as e:
-                    # existing partition values cannot be cast to current schema
-                    raise InvalidStateException(
-                        "An error occurred (InvalidStateException) when calling the"
-                        f" GetPartitions operation: {e}"
-                    )
-
-        # also raised for unpartitioned tables
-        self._raise_unknown_column()
+        try:
+            return self._eval(part_keys, part_input)
+        except ValueError as e:
+            # existing partition values cannot be cast to current schema
+            raise InvalidStateException(
+                "An error occurred (InvalidStateException) when calling the"
+                f" GetPartitions operation: {e}"
+            )
 
     def leval(self, part_keys: List[Dict[str, str]], literal: Any) -> Any:
         # evaluate literal by simulating partition input
-        for key in part_keys:
-            if self.ident == key["Name"]:
-                try:
-                    return _cast(key["Type"], literal)
-                except ValueError as e:
-                    # expression literal cannot be cast to current schema
-                    raise InvalidInputException(
-                        "An error occurred (InvalidInputException) when calling the"
-                        f" GetPartitions operation: {e}"
-                    )
-
-        # any unknown column is detected during eval already
-        raise NotImplementedError("leval called before eval")
+        try:
+            return self._eval(part_keys, part_input={"Values": repeat(literal)})
+        except ValueError as e:
+            # expression literal cannot be cast to current schema
+            raise InvalidInputException(
+                "An error occurred (InvalidInputException) when calling the"
+                f" GetPartitions operation: {e}"
+            )
 
     def type_(self, part_keys: List[Dict[str, str]]) -> str:
         for key in part_keys:
             if self.ident == key["Name"]:
                 return key["Type"]
 
+        self._raise_unknown_column()
+
+    def _eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+        for key, value in zip(part_keys, part_input["Values"]):
+            if self.ident == key["Name"]:
+                return _cast(key["Type"], value)
+
+        # also raised for unpartitioned tables
         self._raise_unknown_column()
 
     def _raise_unknown_column(self):
