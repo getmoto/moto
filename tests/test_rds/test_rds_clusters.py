@@ -222,11 +222,12 @@ def test_delete_db_cluster_do_snapshot():
     )
 
     client.delete_db_cluster(
-        DBClusterIdentifier="cluster-id", FinalDBSnapshotIdentifier="final-ss"
+        DBClusterIdentifier="cluster-id", FinalDBSnapshotIdentifier="final-snapshot"
     )
     client.describe_db_clusters()["DBClusters"].should.have.length_of(0)
     snapshots = client.describe_db_cluster_snapshots()["DBClusterSnapshots"]
-    snapshots[0]["DBClusterIdentifier"] == "cluster-id"
+    snapshots[0]["DBClusterIdentifier"].should.equal("cluster-id")
+    snapshots[0]["DBClusterSnapshotIdentifier"].should.equal("final-snapshot")
 
 
 @mock_rds
