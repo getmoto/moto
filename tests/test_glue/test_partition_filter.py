@@ -179,9 +179,6 @@ def test_get_partitions_expression_string_column():
         "string_col IN ('test', 'two', '3')",
         "string_col between 'twn' AND 'twp'",
         "string_col > '1' AND string_col < '3'",
-    )
-
-    string_col_like_two_expressions = (
         "string_col LIKE 'two'",
         "string_col LIKE 't_o'",
         "string_col LIKE 't__'",
@@ -195,14 +192,6 @@ def test_get_partitions_expression_string_column():
         partitions.should.have.length_of(1)
         partition = partitions[0]
         partition["Values"].should.be.within((["two"], ["2"]))
-
-    for expression in string_col_like_two_expressions:
-        with pytest.warns(match="conversion to regex is experimental"):
-            response = client.get_partitions(**kwargs, Expression=expression)
-            partitions = response["Partitions"]
-            partitions.should.have.length_of(1)
-            partition = partitions[0]
-            partition["Values"].should.equal(["two"])
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="unknown_col LIKE 'two'")
@@ -297,6 +286,11 @@ def test_get_partitions_expression_timestamp_column():
         "timestamp_col between '2022-01-15 00:00:00' AND '2022-02-15 00:00:00'",
         "timestamp_col > '2022-01-15 00:00:00' AND "
         "timestamp_col < '2022-02-15 00:00:00'",
+        # these expressions only work because of rounding to microseconds
+        "timestamp_col = '2022-01-31 23:59:59.999999999'",
+        "timestamp_col = '2022-02-01 00:00:00.00000001'",
+        "timestamp_col > '2022-01-31 23:59:59.999999499' AND"
+        " timestamp_col < '2022-02-01 00:00:00.0000009'",
     )
 
     for expression in timestamp_col_is_february_expressions:
@@ -305,21 +299,6 @@ def test_get_partitions_expression_timestamp_column():
         partitions.should.have.length_of(1)
         partition = partitions[0]
         partition["Values"].should.equal(["2022-02-01 00:00:00.000000"])
-
-    # these expressions only work because of rounding to microseconds
-    timestamp_col_is_february_expressions = (
-        "timestamp_col = '2022-01-31 23:59:59.999999999'",
-        "timestamp_col = '2022-02-01 00:00:00.00000001'",
-        "timestamp_col > '2022-01-31 23:59:59.999999499' AND"
-        " timestamp_col < '2022-02-01 00:00:00.0000009'",
-    )
-    for expression in timestamp_col_is_february_expressions:
-        with pytest.warns(match="rounding to microseconds"):
-            response = client.get_partitions(**kwargs, Expression=expression)
-            partitions = response["Partitions"]
-            partitions.should.have.length_of(1)
-            partition = partitions[0]
-            partition["Values"].should.equal(["2022-02-01 00:00:00.000000"])
 
     bad_timestamp_expressions = (
         "timestamp_col = '2022-02-01'",

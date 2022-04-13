@@ -48,8 +48,6 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
         try:
             return datetime.strptime(value, "%Y-%m-%d").date()
         except ValueError:
-            # NOTE AWS accepts up until 31st of every month, e.g. '2022-02-31'
-            warnings.warn("Date filtering beyond last of month not supported")
             raise ValueError(f"{value} is not a date.")
 
     if type_ == "timestamp":
@@ -67,8 +65,6 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
         try:
             timestamp = datetime.strptime(match.group("timestamp"), "%Y-%m-%d %H:%M:%S")
         except ValueError:
-            # NOTE AWS accepts up until 31st of every month, e.g. '2022-02-31 00:00:00'
-            warnings.warn("Timestamp filtering beyond last of month not supported")
             raise ValueError(
                 "Timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff]"
                 f" {value} is not a timestamp."
@@ -79,11 +75,7 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
             # strip leading dot, reverse and left pad with zeros to nanoseconds
             nanos = "".join(reversed(nanos[1:])).zfill(9)
             for i, nanoseconds in enumerate(nanos):
-                # NOTE precision loss here, as nanoseconds are not supported in datetime
                 microseconds = (int(nanoseconds) * 10**i) / 1000
-                if round(microseconds) == 0 and microseconds > 0:
-                    warnings.warn("Nanoseconds not supported, rounding to microseconds")
-
                 timestamp += timedelta(microseconds=round(microseconds))
 
         return timestamp
@@ -190,8 +182,6 @@ class _Like(_Expr):
         self.literal: str = tokens[2]
 
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
-        warnings.warn("LIKE expression conversion to regex is experimental")
-
         type_ = self.ident.type_(part_keys)
         if type_ in ("bigint", "int", "smallint", "tinyint"):
             raise InvalidInputException(

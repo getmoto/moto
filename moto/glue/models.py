@@ -280,6 +280,17 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression):
+        """See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
+        for supported expressions.
+
+        Expression caveats:
+
+        - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
+        - Nanosecond expressions on timestamp columns are rounded to microseconds.
+        - Literal dates and timestamps must be valid, i.e. no support for February 31st.
+        - LIKE expressions are converted to Python regexes, escaping special characters.
+          Only % and _ wildcards are supported, and SQL escaping using [] does not work.
+        """
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values):
