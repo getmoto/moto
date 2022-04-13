@@ -80,9 +80,8 @@ class ConcurrentRunsExceededException(GlueClientError):
         super().__init__("ConcurrentRunsExceededException", msg)
 
 
-class InvalidInputException(GlueClientError):
-    def __init__(self, op, msg):
-        error_type = "InvalidInputException"
+class _InvalidOperationException(GlueClientError):
+    def __init__(self, error_type, op, msg):
         super().__init__(
             error_type,
             "An error occurred (%s) when calling the %s operation: %s"
@@ -90,11 +89,11 @@ class InvalidInputException(GlueClientError):
         )
 
 
-class InvalidStateException(GlueClientError):
+class InvalidInputException(_InvalidOperationException):
     def __init__(self, op, msg):
-        error_type = "InvalidStateException"
-        super().__init__(
-            error_type,
-            "An error occurred (%s) when calling the %s operation: %s"
-            % (error_type, op, msg),
-        )
+        super().__init__("InvalidInputException", op, msg)
+
+
+class InvalidStateException(_InvalidOperationException):
+    def __init__(self, op, msg):
+        super().__init__("InvalidStateException", op, msg)
