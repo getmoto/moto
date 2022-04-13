@@ -81,10 +81,7 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
 
         return timestamp
 
-    raise InvalidInputException(
-        "An error occurred (InvalidInputException) when calling the"
-        f" GetPartitions operation: Unknown type : '{type_}'"
-    )
+    raise InvalidInputException("GetPartitions", f"Unknown type : '{type_}'")
 
 
 class _Expr(abc.ABC):
@@ -102,10 +99,7 @@ class _Ident(_Expr):
             return self._eval(part_keys, part_input)
         except ValueError as e:
             # existing partition values cannot be cast to current schema
-            raise InvalidStateException(
-                "An error occurred (InvalidStateException) when calling the"
-                f" GetPartitions operation: {e}"
-            )
+            raise InvalidStateException("GetPartitions", str(e))
 
     def leval(self, part_keys: List[Dict[str, str]], literal: Any) -> Any:
         # evaluate literal by simulating partition input
@@ -113,17 +107,14 @@ class _Ident(_Expr):
             return self._eval(part_keys, part_input={"Values": repeat(literal)})
         except ValueError as e:
             # expression literal cannot be cast to current schema
-            raise InvalidInputException(
-                "An error occurred (InvalidInputException) when calling the"
-                f" GetPartitions operation: {e}"
-            )
+            raise InvalidInputException("GetPartitions", str(e))
 
     def type_(self, part_keys: List[Dict[str, str]]) -> str:
         for key in part_keys:
             if self.ident == key["Name"]:
                 return key["Type"]
 
-        self._raise_unknown_column()
+        raise InvalidInputException("GetPartitions", f"Unknown column '{self.ident}'")
 
     def _eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
         for key, value in zip(part_keys, part_input["Values"]):
@@ -131,13 +122,7 @@ class _Ident(_Expr):
                 return _cast(key["Type"], value)
 
         # also raised for unpartitioned tables
-        self._raise_unknown_column()
-
-    def _raise_unknown_column(self):
-        raise InvalidInputException(
-            "An error occurred (InvalidInputException) when calling the"
-            f" GetPartitions operation: Unknown column '{self.ident}'"
-        )
+        raise InvalidInputException("GetPartitions", f"Unknown column '{self.ident}'")
 
 
 class _IsNull(_Expr):
@@ -184,16 +169,14 @@ class _Like(_Expr):
         type_ = self.ident.type_(part_keys)
         if type_ in ("bigint", "int", "smallint", "tinyint"):
             raise InvalidInputException(
-                "An error occurred (InvalidInputException) when calling the "
-                "GetPartitions operation: Integral data type"
-                " doesn't support operation 'LIKE'"
+                "GetPartitions", "Integral data type doesn't support operation 'LIKE'"
             )
 
         if type_ in ("date", "decimal", "timestamp"):
             raise InvalidInputException(
-                "An error occurred (InvalidInputException) when calling the "
-                f"GetPartitions operation: {type_[0].upper()}{type_[1:]} data type"
-                " doesn't support operation 'LIKE'"
+                "GetPartitions",
+                f"{type_[0].upper()}{type_[1:]} data type"
+                " doesn't support operation 'LIKE'",
             )
 
         ident = self.ident.eval(part_keys, part_input)
@@ -338,10 +321,8 @@ class _PartitionFilterExpressionCache:
                 expr: ParseResults = self._expr.parse_string(expression, parse_all=True)
                 self._cache[expression] = expr[0]
             except exceptions.ParseException:
-                # NOTE depending on the parsing exception, AWS phrases it differently
                 raise InvalidInputException(
-                    "An error occurred (InvalidInputException) when calling the"
-                    f" GetPartitions operation: Unsupported expression '{expression}'"
+                    "GetPartitions", f"Unsupported expression '{expression}'"
                 )
 
         return self._cache[expression]
