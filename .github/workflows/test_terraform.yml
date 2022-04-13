@@ -24,11 +24,17 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Start MotoServer
+      run: |
+        python setup.py sdist
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        python scripts/ci_wait_for_server.py
     - uses: actions/cache@v2
       with:
-        # In order:
-        # * Module download cache
-        # * Build cache (Linux)
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
@@ -36,8 +42,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go-version }}-
     - id: get-list
-      run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests ${{ matrix.service }})"
+      run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py ${{ matrix.service }})"
     - run: |
-        echo (test_list=$(python tests/terraformtests/get_tf_tests.py)) >> $env:GITHUB_ENV
         echo ${{ steps.get_list.outputs.testlist }}
-        cd tests/terraformtests/terraform-provider-aws && go test ./internal/service/${{ matrix.service }}/ -test.v -test.run ${{ steps.get_list.outputs.testlist }}
+        cd tests/terraformtests && bin/run_go_test ${{ matrix.service }} "${{ steps.get_list.outputs.testlist }}"
