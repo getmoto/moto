@@ -1,7 +1,6 @@
 #!/bin/bash
 
 pwd=$PWD
-echo $pwd
 
 (
 cd terraform-provider-aws || exit
@@ -12,6 +11,5 @@ git apply $pwd/${PATCH}
 
 (
 cd terraform-provider-aws || exit
-echo "Running test for service $1 :: $2"
-AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test TF_ACC=true go test ./internal/service/$1/ -test.v -timeout 1200s -test.run "$2"
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test TF_ACC=true go test ./internal/service/$1/ -v -timeout 1200s -run $2
 )

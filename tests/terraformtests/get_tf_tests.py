@@ -5,8 +5,11 @@ import sys
 def print_test_names(service):
     with open("tests/terraformtests/terraform-tests.success.txt") as f:
         dct = yaml.load(f, Loader=yaml.FullLoader)
-        x = dct.get(service)
-        print(" ".join(x))
+        tests = dct.get(service)
+        if len(tests) == 1:
+            print(tests[0])
+        else:
+            print("\"(" + "|".join(tests) + ")\"")
 
 
 if __name__ == "__main__":

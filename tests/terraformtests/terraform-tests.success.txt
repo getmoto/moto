@@ -42,7 +42,6 @@ efs:
   - TestAccEFSAccessPointsDataSource
   - TestAccEFSFileSystemDataSource
   - TestAccEFSMountTarget
-  - TestAccEFSMountTargetDataSource
 elasticbeanstalk:
   - TestAccElasticBeanstalkHostedZoneDataSource
   - TestAccElasticBeanstalkSolutionStackDataSource

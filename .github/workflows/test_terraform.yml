@@ -34,7 +34,8 @@ jobs:
         python setup.py sdist
         docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
         MOTO_PORT=4566 python scripts/ci_wait_for_server.py
-    - uses: actions/cache@v2
+    - name: Download Cache
+      uses: actions/cache@v2
       with:
         path: |
           ~/go/pkg/mod
@@ -42,8 +43,9 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go-version }}-2-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go-version }}-2-
-    - id: get-list
+    - name: Get list of tests for  this service
+      id: get-list
       run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py ${{ matrix.service }})"
-    - run: |
-        echo ${{ steps.get-list.outputs.testlist }}
-        cd tests/terraformtests && bin/run_go_test ${{ matrix.service }} "${{ steps.get-list.outputs.testlist }}"
+    - name: Execute tests
+      run: |
+        cd tests/terraformtests && bin/run_go_test ${{ matrix.service }} ${{ steps.get-list.outputs.testlist }}
