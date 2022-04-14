@@ -84,6 +84,12 @@ def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
     raise InvalidInputException("GetPartitions", f"Unknown type : '{type_}'")
 
 
+def _escape_regex(pattern: str) -> str:
+    """Taken from Python 3.7 to avoid escaping '%'."""
+    _special_chars_map = {i: "\\" + chr(i) for i in b"()[]{}?*+-|^$\\.&~# \t\n\r\v\f"}
+    return pattern.translate(_special_chars_map)
+
+
 class _Expr(abc.ABC):
     @abc.abstractmethod
     def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
@@ -185,7 +191,7 @@ class _Like(_Expr):
         pattern = _cast("string", self.literal)
 
         # prepare SQL pattern for conversion to regex pattern
-        pattern = re.escape(pattern)
+        pattern = _escape_regex(pattern)
 
         # NOTE convert SQL wildcards to regex, no literal matches possible
         pattern = pattern.replace("_", ".").replace("%", ".*")
