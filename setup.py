@@ -54,6 +54,7 @@ _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
+_dep_pyparsing = "pyparsing>=3.0.0"
 _setuptools = "setuptools"
 
 all_extra_deps = [
@@ -67,6 +68,7 @@ all_extra_deps = [
     _dep_idna,
     _dep_cfn_lint,
     _dep_sshpubkeys,
+    _dep_pyparsing,
     _setuptools,
 ]
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
@@ -88,6 +90,7 @@ extras_per_service.update(
         "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
         "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
         "ec2": [_dep_sshpubkeys],
+        "glue": [_dep_pyparsing],
         "iotdata": [_dep_jsondiff],
         "s3": [_dep_PyYAML],
         "ses": [],
