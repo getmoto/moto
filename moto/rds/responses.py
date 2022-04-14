@@ -507,7 +507,10 @@ class RDSResponse(BaseResponse):
 
     def delete_db_cluster(self):
         _id = self._get_param("DBClusterIdentifier")
-        cluster = self.backend.delete_db_cluster(cluster_identifier=_id)
+        snapshot_name = self._get_param("FinalDBSnapshotIdentifier")
+        cluster = self.backend.delete_db_cluster(
+            cluster_identifier=_id, snapshot_name=snapshot_name
+        )
         template = self.response_template(DELETE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 

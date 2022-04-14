@@ -1801,12 +1801,14 @@ class RDSBackend(BaseBackend):
             raise DBClusterSnapshotNotFoundError(db_snapshot_identifier)
         return list(snapshots.values())
 
-    def delete_db_cluster(self, cluster_identifier):
+    def delete_db_cluster(self, cluster_identifier, snapshot_name=None):
         if cluster_identifier in self.clusters:
             if self.clusters[cluster_identifier].deletion_protection:
                 raise InvalidParameterValue(
                     "Can't delete Cluster with protection enabled"
                 )
+            if snapshot_name:
+                self.create_db_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
         raise DBClusterNotFoundError(cluster_identifier)
 
