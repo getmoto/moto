@@ -41,7 +41,6 @@ efs:
   - TestAccEFSAccessPointDataSource
   - TestAccEFSAccessPointsDataSource
   - TestAccEFSFileSystemDataSource
-  - TestAccEFSMountTarget
 elasticbeanstalk:
   - TestAccElasticBeanstalkHostedZoneDataSource
   - TestAccElasticBeanstalkSolutionStackDataSource
@@ -64,9 +63,6 @@ iam:
   - TestAccIAMAccessKey
   - TestAccIAMAccountAlias
   - TestAccIAMGroup
-  - TestAccIAMGroupDataSource
-  - TestAccIAMGroupMembership
-  - TestAccIAMGroupPolicyAttachment
   - TestAccIAMInstanceProfileDataSource
   - TestAccIAMGroupPolicy
   - TestAccIAMOpenIDConnectProvider

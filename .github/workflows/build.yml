@@ -3,41 +3,6 @@ name: TestNDeploy
 on: [push, pull_request]
 
 jobs:
-  # Install and cache dependencies
-  terraformcache:
-    name: Caching Terraform dependencies
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ 3.8 ]
-
-    steps:
-    - name: Checkout Terraform Tests repo
-      uses: actions/checkout@v2
-      with:
-        repository: localstack/localstack-terraform-test
-        ref: build-new
-        path: moto-terraform-tests
-        submodules: 'true'
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '^1.16.0'
-    - run: go version
-    - name: cache
-      id: terraformcache
-      uses: actions/cache@v2
-      with:
-        path: '~/.cache'
-        key: 'terraformcache_download_new'
-    - name: Download
-      env:
-        DOWNLOAD_TEST_BIN: 1
-      if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
-      run: |
-        cd moto-terraform-tests
-        bin/install-aws-test
-        cd ..
-
   cache:
     name: Caching
     runs-on: ubuntu-latest
@@ -143,7 +108,7 @@ jobs:
         pip install "coverage<=4.5.4"
     - name: Test with pytest
       run: |
-        echo make test-only
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1
@@ -192,7 +157,7 @@ jobs:
       env:
         TEST_SERVER_MODE: ${{ true }}
       run: |
-        echo make test-only
+        make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'spulec/moto'}}
       uses: codecov/codecov-action@v1

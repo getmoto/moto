@@ -1,1 +1,1 @@
-name = 'terraformtests'
+name = "terraformtests"

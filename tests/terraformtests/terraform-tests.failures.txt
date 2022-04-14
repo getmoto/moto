@@ -1,3 +1,6 @@
+# The Tests in this file worked against an older version of Terraform
+# Either they do not work anymore, or have not been verified to work yet
+
 TestAccAPIGatewayStage
 TestAccAPIGatewayV2Authorizer
 TestAccAPIGatewayV2Route
@@ -39,6 +42,7 @@ TestAccEc2TransitGatewayVpcAttachment
 TestAccEcrRegistryPolicy
 TestAccEcrReplicationConfiguration
 TestAccEC2EgressOnlyInternetGateway
+TestAccEFSMountTarget
 TestAccEksClusterDataSource
 TestAccIAMRole
 TestAccIotThing
