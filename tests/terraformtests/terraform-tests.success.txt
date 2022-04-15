@@ -37,9 +37,8 @@ ecr:
   - TestAccECRRepositoryDataSource
   - TestAccECRRepositoryPolicy
 efs:
-  - TestAccEFSAccessPoint
+  - TestAccEFSAccessPoint_
   - TestAccEFSAccessPointDataSource
-  - TestAccEFSAccessPointsDataSource
   - TestAccEFSFileSystemDataSource
 elasticbeanstalk:
   - TestAccElasticBeanstalkHostedZoneDataSource
@@ -75,7 +74,6 @@ iam:
   - TestAccIAMRolePolicyAttachment_
   - TestAccIAMSessionContextDataSource_
   - TestAccIAMUserDataSource_
-  - TestAccIAMUserGroupMembership_
   - TestAccIAMUserPolicy_
   - TestAccIAMUserPolicyAttachment_
   - TestAccIAMUserSSHKey_
