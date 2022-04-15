@@ -1,0 +1,875 @@
+From 23e30bd79328ae023a0a7c68cddaa891abf4c38e Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Fri, 15 Apr 2022 19:04:54 +0000
+Subject: [PATCH] EC2 - reduce wait times
+
+---
+ internal/service/ec2/ami.go                   |  4 +--
+ internal/service/ec2/create_tags_gen.go       |  2 +-
+ internal/service/ec2/default_route_table.go   |  4 +--
+ internal/service/ec2/default_subnet.go        |  4 +--
+ internal/service/ec2/ebs_snapshot_import.go   |  4 +--
+ internal/service/ec2/ebs_volume.go            |  4 +--
+ internal/service/ec2/eip.go                   |  8 +++---
+ internal/service/ec2/eip_test.go              |  2 +-
+ internal/service/ec2/fleet.go                 |  6 ++--
+ .../service/ec2/generate/createtags/main.go   |  2 +-
+ internal/service/ec2/instance.go              |  2 +-
+ internal/service/ec2/local_gateway_route.go   |  2 +-
+ internal/service/ec2/route.go                 |  4 +--
+ internal/service/ec2/route_table.go           |  6 ++--
+ internal/service/ec2/route_table_test.go      |  2 +-
+ internal/service/ec2/security_group.go        |  4 +--
+ internal/service/ec2/security_group_rule.go   |  2 +-
+ .../ec2/snapshot_create_volume_permission.go  |  4 +--
+ internal/service/ec2/spot_fleet_request.go    |  6 ++--
+ internal/service/ec2/spot_instance_request.go |  4 +--
+ internal/service/ec2/subnet.go                |  4 +--
+ internal/service/ec2/transit_gateway.go       | 28 +++++++++----------
+ .../service/ec2/transit_gateway_connect.go    |  6 ++--
+ .../ec2/transit_gateway_connect_peer.go       |  4 +--
+ .../ec2/transit_gateway_multicast_domain.go   |  4 +--
+ ...it_gateway_multicast_domain_association.go |  4 +--
+ internal/service/ec2/volume_attachment.go     |  6 ++--
+ .../service/ec2/volume_attachment_test.go     |  2 +-
+ internal/service/ec2/vpc_endpoint.go          |  6 ++--
+ internal/service/ec2/vpc_endpoint_policy.go   |  4 +--
+ internal/service/ec2/vpc_endpoint_service.go  |  4 +--
+ internal/service/ec2/vpc_ipam.go              |  4 +--
+ internal/service/ec2/vpc_ipam_pool.go         |  6 ++--
+ internal/service/ec2/vpc_ipam_pool_cidr.go    |  4 +--
+ internal/service/ec2/vpc_ipam_scope.go        |  4 +--
+ .../ec2/vpc_ipv4_cidr_block_association.go    |  4 +--
+ .../ec2/vpc_ipv6_cidr_block_association.go    |  4 +--
+ .../service/ec2/vpc_peering_connection.go     |  6 ++--
+ .../ec2/vpc_peering_connection_accepter.go    |  4 +--
+ .../ec2/vpn_gateway_route_propagation.go      |  4 +--
+ internal/service/ec2/wait.go                  | 20 ++++++-------
+ 41 files changed, 104 insertions(+), 104 deletions(-)
+
+diff --git a/internal/service/ec2/ami.go b/internal/service/ec2/ami.go
+index 1a6fb3a67f..19d022732d 100644
+--- a/internal/service/ec2/ami.go
++++ b/internal/service/ec2/ami.go
+@@ -23,8 +23,8 @@ import (
+ )
+ 
+ const (
+-	AWSAMIRetryTimeout    = 40 * time.Minute
+-	AMIDeleteRetryTimeout = 90 * time.Minute
++	AWSAMIRetryTimeout    = 40 * time.Second
++	AMIDeleteRetryTimeout = 90 * time.Second
+ 	AWSAMIRetryDelay      = 5 * time.Second
+ 	AMIRetryMinTimeout    = 3 * time.Second
+ )
+diff --git a/internal/service/ec2/create_tags_gen.go b/internal/service/ec2/create_tags_gen.go
+index dede4649b4..c6d8d8db4e 100644
+--- a/internal/service/ec2/create_tags_gen.go
++++ b/internal/service/ec2/create_tags_gen.go
+@@ -14,7 +14,7 @@ import (
+ 	"github.com/hashicorp/terraform-provider-aws/internal/tfresource"
+ )
+ 
+-const EventualConsistencyTimeout = 5 * time.Minute
++const EventualConsistencyTimeout = 5 * time.Second
+ 
+ // CreateTags creates ec2 service tags for new resources.
+ // The identifier is typically the Amazon Resource Name (ARN), although
+diff --git a/internal/service/ec2/default_route_table.go b/internal/service/ec2/default_route_table.go
+index 8fde169f64..bdc4104d07 100644
+--- a/internal/service/ec2/default_route_table.go
++++ b/internal/service/ec2/default_route_table.go
+@@ -27,8 +27,8 @@ func ResourceDefaultRouteTable() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(2 * time.Minute),
+-			Update: schema.DefaultTimeout(2 * time.Minute),
++			Create: schema.DefaultTimeout(2 * time.Second),
++			Update: schema.DefaultTimeout(2 * time.Second),
+ 		},
+ 
+ 		//
+diff --git a/internal/service/ec2/default_subnet.go b/internal/service/ec2/default_subnet.go
+index d3026f0cb9..954e64cda3 100644
+--- a/internal/service/ec2/default_subnet.go
++++ b/internal/service/ec2/default_subnet.go
+@@ -30,8 +30,8 @@ func ResourceDefaultSubnet() *schema.Resource {
+ 		CustomizeDiff: verify.SetTagsDiff,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(20 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
+ 		},
+ 
+ 		SchemaVersion: 1,
+diff --git a/internal/service/ec2/ebs_snapshot_import.go b/internal/service/ec2/ebs_snapshot_import.go
+index cb53fe95dc..513110e656 100644
+--- a/internal/service/ec2/ebs_snapshot_import.go
++++ b/internal/service/ec2/ebs_snapshot_import.go
+@@ -27,8 +27,8 @@ func ResourceEBSSnapshotImport() *schema.Resource {
+ 		CustomizeDiff: verify.SetTagsDiff,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(60 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(60 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/ebs_volume.go b/internal/service/ec2/ebs_volume.go
+index 6c2547cf06..eb01f1cedc 100644
+--- a/internal/service/ec2/ebs_volume.go
++++ b/internal/service/ec2/ebs_volume.go
+@@ -154,7 +154,7 @@ func resourceEBSVolumeCreate(d *schema.ResourceData, meta interface{}) error {
+ 		Pending:    []string{ec2.VolumeStateCreating},
+ 		Target:     []string{ec2.VolumeStateAvailable},
+ 		Refresh:    volumeStateRefreshFunc(conn, *result.VolumeId),
+-		Timeout:    5 * time.Minute,
++		Timeout:    5 * time.Second,
+ 		Delay:      10 * time.Second,
+ 		MinTimeout: 3 * time.Second,
+ 	}
+@@ -207,7 +207,7 @@ func resourceEBSVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
+ 			Pending:    []string{ec2.VolumeStateCreating, ec2.VolumeModificationStateModifying},
+ 			Target:     []string{ec2.VolumeStateAvailable, ec2.VolumeStateInUse},
+ 			Refresh:    volumeStateRefreshFunc(conn, *result.VolumeModification.VolumeId),
+-			Timeout:    5 * time.Minute,
++			Timeout:    5 * time.Second,
+ 			Delay:      10 * time.Second,
+ 			MinTimeout: 3 * time.Second,
+ 		}
+diff --git a/internal/service/ec2/eip.go b/internal/service/ec2/eip.go
+index 31dec43d63..e9c1d8bd43 100644
+--- a/internal/service/ec2/eip.go
++++ b/internal/service/ec2/eip.go
+@@ -21,7 +21,7 @@ import (
+ 
+ const (
+ 	// Maximum amount of time to wait for EIP association with EC2-Classic instances
+-	ec2AddressAssociationClassicTimeout = 2 * time.Minute
++	ec2AddressAssociationClassicTimeout = 2 * time.Second
+ )
+ 
+ func ResourceEIP() *schema.Resource {
+@@ -37,9 +37,9 @@ func ResourceEIP() *schema.Resource {
+ 		CustomizeDiff: verify.SetTagsDiff,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Read:   schema.DefaultTimeout(15 * time.Minute),
+-			Update: schema.DefaultTimeout(5 * time.Minute),
+-			Delete: schema.DefaultTimeout(3 * time.Minute),
++			Read:   schema.DefaultTimeout(15 * time.Second),
++			Update: schema.DefaultTimeout(5 * time.Second),
++			Delete: schema.DefaultTimeout(3 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/eip_test.go b/internal/service/ec2/eip_test.go
+index f65dc47d20..2e939e2286 100644
+--- a/internal/service/ec2/eip_test.go
++++ b/internal/service/ec2/eip_test.go
+@@ -771,7 +771,7 @@ func testAccCheckEIPExists(n string, ec2classic bool, res *ec2.Address) resource
+ 
+ 		var output *ec2.DescribeAddressesOutput
+ 
+-		err := resource.Retry(15*time.Minute, func() *resource.RetryError {
++		err := resource.Retry(15*time.Second, func() *resource.RetryError {
+ 			var err error
+ 
+ 			output, err = conn.DescribeAddresses(input)
+diff --git a/internal/service/ec2/fleet.go b/internal/service/ec2/fleet.go
+index 7f9133b4ff..48789a97e8 100644
+--- a/internal/service/ec2/fleet.go
++++ b/internal/service/ec2/fleet.go
+@@ -29,9 +29,9 @@ func ResourceFleet() *schema.Resource {
+ 
+ 		CustomizeDiff: verify.SetTagsDiff,
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
+-			Update: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/generate/createtags/main.go b/internal/service/ec2/generate/createtags/main.go
+index d42232fc09..8f7f983957 100644
+--- a/internal/service/ec2/generate/createtags/main.go
++++ b/internal/service/ec2/generate/createtags/main.go
+@@ -133,7 +133,7 @@ import (
+ 	tftags "github.com/hashicorp/terraform-provider-aws/internal/tags"
+ )
+ 
+-const EventualConsistencyTimeout = 5 * time.Minute
++const EventualConsistencyTimeout = 5 * time.Second
+ 
+ // CreateTags creates {{ .ServicePackage }} service tags for new resources.
+ // The identifier is typically the Amazon Resource Name (ARN), although
+diff --git a/internal/service/ec2/instance.go b/internal/service/ec2/instance.go
+index d8fcdd5048..c22c80edc2 100644
+--- a/internal/service/ec2/instance.go
++++ b/internal/service/ec2/instance.go
+@@ -2582,7 +2582,7 @@ func getInstancePasswordData(instanceID string, conn *ec2.EC2) (string, error) {
+ 	input := &ec2.GetPasswordDataInput{
+ 		InstanceId: aws.String(instanceID),
+ 	}
+-	err := resource.Retry(15*time.Minute, func() *resource.RetryError {
++	err := resource.Retry(15*time.Second, func() *resource.RetryError {
+ 		var err error
+ 		resp, err = conn.GetPasswordData(input)
+ 
+diff --git a/internal/service/ec2/local_gateway_route.go b/internal/service/ec2/local_gateway_route.go
+index 3035d7ecde..12c71aeec7 100644
+--- a/internal/service/ec2/local_gateway_route.go
++++ b/internal/service/ec2/local_gateway_route.go
+@@ -17,7 +17,7 @@ import (
+ )
+ 
+ const (
+-	ec2LocalGatewayRouteEventualConsistencyTimeout = 1 * time.Minute
++	ec2LocalGatewayRouteEventualConsistencyTimeout = 1 * time.Second
+ )
+ 
+ func ResourceLocalGatewayRoute() *schema.Resource {
+diff --git a/internal/service/ec2/route.go b/internal/service/ec2/route.go
+index e6e7c24f45..99adeb2661 100644
+--- a/internal/service/ec2/route.go
++++ b/internal/service/ec2/route.go
+@@ -46,8 +46,8 @@ func ResourceRoute() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(5 * time.Minute),
+-			Update: schema.DefaultTimeout(2 * time.Minute),
++			Create: schema.DefaultTimeout(5 * time.Second),
++			Update: schema.DefaultTimeout(2 * time.Second),
+ 			Delete: schema.DefaultTimeout(5 * time.Minute),
+ 		},
+ 
+diff --git a/internal/service/ec2/route_table.go b/internal/service/ec2/route_table.go
+index ce0e981153..886f78063a 100644
+--- a/internal/service/ec2/route_table.go
++++ b/internal/service/ec2/route_table.go
+@@ -50,9 +50,9 @@ func ResourceRouteTable() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(5 * time.Minute),
+-			Update: schema.DefaultTimeout(2 * time.Minute),
+-			Delete: schema.DefaultTimeout(5 * time.Minute),
++			Create: schema.DefaultTimeout(5 * time.Second),
++			Update: schema.DefaultTimeout(2 * time.Second),
++			Delete: schema.DefaultTimeout(5 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/route_table_test.go b/internal/service/ec2/route_table_test.go
+index 267322dd4c..93e27437f4 100644
+--- a/internal/service/ec2/route_table_test.go
++++ b/internal/service/ec2/route_table_test.go
+@@ -1165,7 +1165,7 @@ func testAccCheckRouteTableWaitForVPCEndpointRoute(routeTable *ec2.RouteTable, v
+ 
+ 		plId := aws.StringValue(resp.PrefixLists[0].PrefixListId)
+ 
+-		err = resource.Retry(3*time.Minute, func() *resource.RetryError {
++		err = resource.Retry(3*time.Second, func() *resource.RetryError {
+ 			resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+ 				RouteTableIds: []*string{routeTable.RouteTableId},
+ 			})
+diff --git a/internal/service/ec2/security_group.go b/internal/service/ec2/security_group.go
+index 7c94bf3b2e..ba4bdf1979 100644
+--- a/internal/service/ec2/security_group.go
++++ b/internal/service/ec2/security_group.go
+@@ -36,8 +36,8 @@ func ResourceSecurityGroup() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(15 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(15 * time.Second),
+ 		},
+ 
+ 		SchemaVersion: 1,
+diff --git a/internal/service/ec2/security_group_rule.go b/internal/service/ec2/security_group_rule.go
+index ec5f80f79f..bc7eb79453 100644
+--- a/internal/service/ec2/security_group_rule.go
++++ b/internal/service/ec2/security_group_rule.go
+@@ -227,7 +227,7 @@ information and instructions for recovery. Error: %w`, sg_id, autherr)
+ 	id := IPPermissionIDHash(sg_id, ruleType, perm)
+ 	log.Printf("[DEBUG] Computed group rule ID %s", id)
+ 
+-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
++	err = resource.Retry(5*time.Second, func() *resource.RetryError {
+ 		sg, err := FindSecurityGroupByID(conn, sg_id)
+ 
+ 		if err != nil {
+diff --git a/internal/service/ec2/snapshot_create_volume_permission.go b/internal/service/ec2/snapshot_create_volume_permission.go
+index 5cfe5b8ef8..6d7c4b226a 100644
+--- a/internal/service/ec2/snapshot_create_volume_permission.go
++++ b/internal/service/ec2/snapshot_create_volume_permission.go
+@@ -60,7 +60,7 @@ func resourceSnapshotCreateVolumePermissionCreate(d *schema.ResourceData, meta i
+ 		Pending:    []string{"denied"},
+ 		Target:     []string{"granted"},
+ 		Refresh:    resourceSnapshotCreateVolumePermissionStateRefreshFunc(conn, snapshot_id, account_id),
+-		Timeout:    20 * time.Minute,
++		Timeout:    20 * time.Second,
+ 		Delay:      10 * time.Second,
+ 		MinTimeout: 10 * time.Second,
+ 	}
+@@ -120,7 +120,7 @@ func resourceSnapshotCreateVolumePermissionDelete(d *schema.ResourceData, meta i
+ 		Pending:    []string{"granted"},
+ 		Target:     []string{"denied"},
+ 		Refresh:    resourceSnapshotCreateVolumePermissionStateRefreshFunc(conn, snapshotID, accountID),
+-		Timeout:    5 * time.Minute,
++		Timeout:    5 * time.Second,
+ 		Delay:      10 * time.Second,
+ 		MinTimeout: 10 * time.Second,
+ 	}
+diff --git a/internal/service/ec2/spot_fleet_request.go b/internal/service/ec2/spot_fleet_request.go
+index 49e4909b3a..731a37f253 100644
+--- a/internal/service/ec2/spot_fleet_request.go
++++ b/internal/service/ec2/spot_fleet_request.go
+@@ -36,8 +36,8 @@ func ResourceSpotFleetRequest() *schema.Resource {
+ 			},
+ 		},
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(15 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(15 * time.Second),
+ 		},
+ 
+ 		SchemaVersion: 1,
+@@ -1089,7 +1089,7 @@ func resourceSpotFleetRequestCreate(d *schema.ResourceData, meta interface{}) er
+ 		Pending:    []string{ec2.BatchStateSubmitted},
+ 		Target:     []string{ec2.BatchStateActive},
+ 		Refresh:    resourceSpotFleetRequestStateRefreshFunc(d, meta),
+-		Timeout:    d.Timeout(schema.TimeoutCreate), //10 * time.Minute,
++		Timeout:    d.Timeout(schema.TimeoutCreate), //10 * time.Second,
+ 		MinTimeout: 10 * time.Second,
+ 		Delay:      30 * time.Second,
+ 	}
+diff --git a/internal/service/ec2/spot_instance_request.go b/internal/service/ec2/spot_instance_request.go
+index e054f82987..08aeb6cf70 100644
+--- a/internal/service/ec2/spot_instance_request.go
++++ b/internal/service/ec2/spot_instance_request.go
+@@ -32,8 +32,8 @@ func ResourceSpotInstanceRequest() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(20 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
+ 		},
+ 
+ 		Schema: func() map[string]*schema.Schema {
+diff --git a/internal/service/ec2/subnet.go b/internal/service/ec2/subnet.go
+index e551ea615a..ffd26e0c2d 100644
+--- a/internal/service/ec2/subnet.go
++++ b/internal/service/ec2/subnet.go
+@@ -30,8 +30,8 @@ func ResourceSubnet() *schema.Resource {
+ 		CustomizeDiff: verify.SetTagsDiff,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(20 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
+ 		},
+ 
+ 		SchemaVersion: 1,
+diff --git a/internal/service/ec2/transit_gateway.go b/internal/service/ec2/transit_gateway.go
+index 0c4113ac8d..0a243da1f7 100644
+--- a/internal/service/ec2/transit_gateway.go
++++ b/internal/service/ec2/transit_gateway.go
+@@ -33,9 +33,9 @@ func ResourceTransitGateway() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Update: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		CustomizeDiff: customdiff.Sequence(
+@@ -753,7 +753,7 @@ func waitForTransitGatewayPeeringAttachmentAcceptance(conn *ec2.EC2, transitGate
+ 		},
+ 		Target:  []string{ec2.TransitGatewayAttachmentStateAvailable},
+ 		Refresh: transitGatewayPeeringAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Peering Attachment (%s) availability", transitGatewayAttachmentID)
+@@ -774,7 +774,7 @@ func waitForTransitGatewayPeeringAttachmentCreation(conn *ec2.EC2, transitGatewa
+ 			ec2.TransitGatewayAttachmentStatePendingAcceptance,
+ 		},
+ 		Refresh: transitGatewayPeeringAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Peering Attachment (%s) availability", transitGatewayAttachmentID)
+@@ -793,7 +793,7 @@ func WaitForTransitGatewayPeeringAttachmentDeletion(conn *ec2.EC2, transitGatewa
+ 		},
+ 		Target:  []string{ec2.TransitGatewayAttachmentStateDeleted},
+ 		Refresh: transitGatewayPeeringAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Peering Attachment (%s) deletion", transitGatewayAttachmentID)
+@@ -811,7 +811,7 @@ func waitForTransitGatewayRouteTableAssociationCreation(conn *ec2.EC2, transitGa
+ 		Pending: []string{ec2.TransitGatewayAssociationStateAssociating},
+ 		Target:  []string{ec2.TransitGatewayAssociationStateAssociated},
+ 		Refresh: transitGatewayRouteTableAssociationRefreshFunc(conn, transitGatewayRouteTableID, transitGatewayAttachmentID),
+-		Timeout: 5 * time.Minute,
++		Timeout: 5 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Route Table (%s) association: %s", transitGatewayRouteTableID, transitGatewayAttachmentID)
+@@ -828,7 +828,7 @@ func waitForTransitGatewayRouteTableAssociationDeletion(conn *ec2.EC2, transitGa
+ 		},
+ 		Target:         []string{""},
+ 		Refresh:        transitGatewayRouteTableAssociationRefreshFunc(conn, transitGatewayRouteTableID, transitGatewayAttachmentID),
+-		Timeout:        5 * time.Minute,
++		Timeout:        5 * time.Second,
+ 		NotFoundChecks: 1,
+ 	}
+ 
+@@ -847,7 +847,7 @@ func waitForTransitGatewayRouteTableCreation(conn *ec2.EC2, transitGatewayRouteT
+ 		Pending: []string{ec2.TransitGatewayRouteTableStatePending},
+ 		Target:  []string{ec2.TransitGatewayRouteTableStateAvailable},
+ 		Refresh: transitGatewayRouteTableRefreshFunc(conn, transitGatewayRouteTableID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Route Table (%s) availability", transitGatewayRouteTableID)
+@@ -864,7 +864,7 @@ func waitForTransitGatewayRouteTableDeletion(conn *ec2.EC2, transitGatewayRouteT
+ 		},
+ 		Target:         []string{ec2.TransitGatewayRouteTableStateDeleted},
+ 		Refresh:        transitGatewayRouteTableRefreshFunc(conn, transitGatewayRouteTableID),
+-		Timeout:        10 * time.Minute,
++		Timeout:        10 * time.Second,
+ 		NotFoundChecks: 1,
+ 	}
+ 
+@@ -886,7 +886,7 @@ func waitForTransitGatewayVPCAttachmentAcceptance(conn *ec2.EC2, transitGatewayA
+ 		},
+ 		Target:  []string{ec2.TransitGatewayAttachmentStateAvailable},
+ 		Refresh: transitGatewayAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway VPC Attachment (%s) availability", transitGatewayAttachmentID)
+@@ -903,7 +903,7 @@ func waitForTransitGatewayAttachmentCreation(conn *ec2.EC2, transitGatewayAttach
+ 			ec2.TransitGatewayAttachmentStateAvailable,
+ 		},
+ 		Refresh: transitGatewayAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Attachment (%s) availability", transitGatewayAttachmentID)
+@@ -920,7 +920,7 @@ func WaitForTransitGatewayAttachmentDeletion(conn *ec2.EC2, transitGatewayAttach
+ 		},
+ 		Target:         []string{ec2.TransitGatewayAttachmentStateDeleted},
+ 		Refresh:        transitGatewayAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout:        10 * time.Minute,
++		Timeout:        10 * time.Second,
+ 		NotFoundChecks: 1,
+ 	}
+ 
+@@ -939,7 +939,7 @@ func waitForTransitGatewayAttachmentUpdate(conn *ec2.EC2, transitGatewayAttachme
+ 		Pending: []string{ec2.TransitGatewayAttachmentStateModifying},
+ 		Target:  []string{ec2.TransitGatewayAttachmentStateAvailable},
+ 		Refresh: transitGatewayAttachmentRefreshFunc(conn, transitGatewayAttachmentID),
+-		Timeout: 10 * time.Minute,
++		Timeout: 10 * time.Second,
+ 	}
+ 
+ 	log.Printf("[DEBUG] Waiting for EC2 Transit Gateway Attachment (%s) availability", transitGatewayAttachmentID)
+diff --git a/internal/service/ec2/transit_gateway_connect.go b/internal/service/ec2/transit_gateway_connect.go
+index 94fcf294fd..511809d291 100644
+--- a/internal/service/ec2/transit_gateway_connect.go
++++ b/internal/service/ec2/transit_gateway_connect.go
+@@ -29,9 +29,9 @@ func ResourceTransitGatewayConnect() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Update: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		CustomizeDiff: verify.SetTagsDiff,
+diff --git a/internal/service/ec2/transit_gateway_connect_peer.go b/internal/service/ec2/transit_gateway_connect_peer.go
+index f99d6fba34..abe9360e1a 100644
+--- a/internal/service/ec2/transit_gateway_connect_peer.go
++++ b/internal/service/ec2/transit_gateway_connect_peer.go
+@@ -34,8 +34,8 @@ func ResourceTransitGatewayConnectPeer() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		CustomizeDiff: verify.SetTagsDiff,
+diff --git a/internal/service/ec2/transit_gateway_multicast_domain.go b/internal/service/ec2/transit_gateway_multicast_domain.go
+index 268b596f7e..cb332107ec 100644
+--- a/internal/service/ec2/transit_gateway_multicast_domain.go
++++ b/internal/service/ec2/transit_gateway_multicast_domain.go
+@@ -31,8 +31,8 @@ func ResourceTransitGatewayMulticastDomain() *schema.Resource {
+ 		CustomizeDiff: verify.SetTagsDiff,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/transit_gateway_multicast_domain_association.go b/internal/service/ec2/transit_gateway_multicast_domain_association.go
+index 7dbb72c75a..0f8782b75b 100644
+--- a/internal/service/ec2/transit_gateway_multicast_domain_association.go
++++ b/internal/service/ec2/transit_gateway_multicast_domain_association.go
+@@ -23,8 +23,8 @@ func ResourceTransitGatewayMulticastDomainAssociation() *schema.Resource {
+ 		DeleteWithoutTimeout: resourceTransitGatewayMulticastDomainAssociationDelete,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/volume_attachment.go b/internal/service/ec2/volume_attachment.go
+index ba481eabc1..672b93e7ce 100644
+--- a/internal/service/ec2/volume_attachment.go
++++ b/internal/service/ec2/volume_attachment.go
+@@ -106,7 +106,7 @@ func resourceVolumeAttachmentCreate(d *schema.ResourceData, meta interface{}) er
+ 			Pending:    []string{ec2.InstanceStateNamePending, ec2.InstanceStateNameStopping},
+ 			Target:     []string{ec2.InstanceStateNameRunning, ec2.InstanceStateNameStopped},
+ 			Refresh:    InstanceStateRefreshFunc(conn, iID, []string{ec2.InstanceStateNameTerminated}),
+-			Timeout:    10 * time.Minute,
++			Timeout:    10 * time.Second,
+ 			Delay:      10 * time.Second,
+ 			MinTimeout: 3 * time.Second,
+ 		}
+@@ -139,7 +139,7 @@ func resourceVolumeAttachmentCreate(d *schema.ResourceData, meta interface{}) er
+ 		Pending:    []string{ec2.VolumeAttachmentStateAttaching},
+ 		Target:     []string{ec2.VolumeAttachmentStateAttached},
+ 		Refresh:    volumeAttachmentStateRefreshFunc(conn, name, vID, iID),
+-		Timeout:    5 * time.Minute,
++		Timeout:    5 * time.Second,
+ 		Delay:      10 * time.Second,
+ 		MinTimeout: 3 * time.Second,
+ 	}
+@@ -234,7 +234,7 @@ func resourceVolumeAttachmentDelete(d *schema.ResourceData, meta interface{}) er
+ 		Pending:    []string{ec2.VolumeAttachmentStateDetaching},
+ 		Target:     []string{ec2.VolumeAttachmentStateDetached},
+ 		Refresh:    volumeAttachmentStateRefreshFunc(conn, name, vID, iID),
+-		Timeout:    5 * time.Minute,
++		Timeout:    5 * time.Second,
+ 		Delay:      10 * time.Second,
+ 		MinTimeout: 3 * time.Second,
+ 	}
+diff --git a/internal/service/ec2/volume_attachment_test.go b/internal/service/ec2/volume_attachment_test.go
+index d680b5de40..33e4990293 100644
+--- a/internal/service/ec2/volume_attachment_test.go
++++ b/internal/service/ec2/volume_attachment_test.go
+@@ -101,7 +101,7 @@ func TestAccEC2VolumeAttachment_attachStopped(t *testing.T) {
+ 			Pending:    []string{ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning, ec2.InstanceStateNameStopping},
+ 			Target:     []string{ec2.InstanceStateNameStopped},
+ 			Refresh:    tfec2.InstanceStateRefreshFunc(conn, *i.InstanceId, []string{}),
+-			Timeout:    10 * time.Minute,
++			Timeout:    10 * time.Second,
+ 			Delay:      10 * time.Second,
+ 			MinTimeout: 3 * time.Second,
+ 		}
+diff --git a/internal/service/ec2/vpc_endpoint.go b/internal/service/ec2/vpc_endpoint.go
+index e63ff49e44..117845e8ee 100644
+--- a/internal/service/ec2/vpc_endpoint.go
++++ b/internal/service/ec2/vpc_endpoint.go
+@@ -22,7 +22,7 @@ import (
+ 
+ const (
+ 	// Maximum amount of time to wait for VPC Endpoint creation
+-	VPCEndpointCreationTimeout = 10 * time.Minute
++	VPCEndpointCreationTimeout = 10 * time.Second
+ )
+ 
+ func ResourceVPCEndpoint() *schema.Resource {
+@@ -147,8 +147,8 @@ func ResourceVPCEndpoint() *schema.Resource {
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+ 			Create: schema.DefaultTimeout(VPCEndpointCreationTimeout),
+-			Update: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Update: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 
+ 		CustomizeDiff: verify.SetTagsDiff,
+diff --git a/internal/service/ec2/vpc_endpoint_policy.go b/internal/service/ec2/vpc_endpoint_policy.go
+index 98ba994861..f653423ae1 100644
+--- a/internal/service/ec2/vpc_endpoint_policy.go
++++ b/internal/service/ec2/vpc_endpoint_policy.go
+@@ -45,8 +45,8 @@ func ResourceVPCEndpointPolicy() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 	}
+ }
+diff --git a/internal/service/ec2/vpc_endpoint_service.go b/internal/service/ec2/vpc_endpoint_service.go
+index e25ddc0f7b..2782e413f9 100644
+--- a/internal/service/ec2/vpc_endpoint_service.go
++++ b/internal/service/ec2/vpc_endpoint_service.go
+@@ -415,7 +415,7 @@ func vpcEndpointServiceWaitUntilAvailable(d *schema.ResourceData, conn *ec2.EC2)
+ 		Pending:    []string{ec2.ServiceStatePending},
+ 		Target:     []string{ec2.ServiceStateAvailable},
+ 		Refresh:    vpcEndpointServiceStateRefresh(conn, d.Id()),
+-		Timeout:    10 * time.Minute,
++		Timeout:    10 * time.Second,
+ 		Delay:      5 * time.Second,
+ 		MinTimeout: 5 * time.Second,
+ 	}
+@@ -431,7 +431,7 @@ func waitForVpcEndpointServiceDeletion(conn *ec2.EC2, serviceID string) error {
+ 		Pending:    []string{ec2.ServiceStateAvailable, ec2.ServiceStateDeleting},
+ 		Target:     []string{ec2.ServiceStateDeleted},
+ 		Refresh:    vpcEndpointServiceStateRefresh(conn, serviceID),
+-		Timeout:    10 * time.Minute,
++		Timeout:    10 * time.Second,
+ 		Delay:      5 * time.Second,
+ 		MinTimeout: 5 * time.Second,
+ 	}
+diff --git a/internal/service/ec2/vpc_ipam.go b/internal/service/ec2/vpc_ipam.go
+index e679302031..67eeccfd00 100644
+--- a/internal/service/ec2/vpc_ipam.go
++++ b/internal/service/ec2/vpc_ipam.go
+@@ -73,9 +73,9 @@ func ResourceVPCIpam() *schema.Resource {
+ const (
+ 	IpamStatusAvailable   = "Available"
+ 	InvalidIpamIdNotFound = "InvalidIpamId.NotFound"
+-	IpamCreateTimeout     = 3 * time.Minute
++	IpamCreateTimeout     = 3 * time.Second
+ 	IpamCreateDeley       = 5 * time.Second
+-	IpamDeleteTimeout     = 3 * time.Minute
++	IpamDeleteTimeout     = 3 * time.Second
+ 	IpamDeleteDelay       = 5 * time.Second
+ )
+ 
+diff --git a/internal/service/ec2/vpc_ipam_pool.go b/internal/service/ec2/vpc_ipam_pool.go
+index 096d4d2e03..e6825eaed2 100644
+--- a/internal/service/ec2/vpc_ipam_pool.go
++++ b/internal/service/ec2/vpc_ipam_pool.go
+@@ -114,10 +114,10 @@ func ResourceVPCIpamPool() *schema.Resource {
+ }
+ 
+ const (
+-	IpamPoolCreateTimeout     = 3 * time.Minute
++	IpamPoolCreateTimeout     = 3 * time.Second
+ 	InvalidIpamPoolIdNotFound = "InvalidIpamPoolId.NotFound"
+-	IpamPoolUpdateTimeout     = 3 * time.Minute
+-	IpamPoolDeleteTimeout     = 3 * time.Minute
++	IpamPoolUpdateTimeout     = 3 * time.Second
++	IpamPoolDeleteTimeout     = 3 * time.Second
+ 	IpamPoolAvailableDelay    = 5 * time.Second
+ 	IpamPoolDeleteDelay       = 5 * time.Second
+ )
+diff --git a/internal/service/ec2/vpc_ipam_pool_cidr.go b/internal/service/ec2/vpc_ipam_pool_cidr.go
+index e7be2f477c..09898c1fc7 100644
+--- a/internal/service/ec2/vpc_ipam_pool_cidr.go
++++ b/internal/service/ec2/vpc_ipam_pool_cidr.go
+@@ -65,9 +65,9 @@ func ResourceVPCIpamPoolCidr() *schema.Resource {
+ }
+ 
+ const (
+-	IpamPoolCidrCreateTimeout = 10 * time.Minute
++	IpamPoolCidrCreateTimeout = 10 * time.Second
+ 	// allocations releases are eventually consistent with a max time of 20m
+-	IpamPoolCidrDeleteTimeout  = 32 * time.Minute
++	IpamPoolCidrDeleteTimeout  = 32 * time.Second
+ 	IpamPoolCidrAvailableDelay = 5 * time.Second
+ 	IpamPoolCidrDeleteDelay    = 5 * time.Second
+ )
+diff --git a/internal/service/ec2/vpc_ipam_scope.go b/internal/service/ec2/vpc_ipam_scope.go
+index 52f02ca2b7..39c28b6a6c 100644
+--- a/internal/service/ec2/vpc_ipam_scope.go
++++ b/internal/service/ec2/vpc_ipam_scope.go
+@@ -64,9 +64,9 @@ func ResourceVPCIpamScope() *schema.Resource {
+ }
+ 
+ const (
+-	IpamScopeCreateTimeout = 3 * time.Minute
++	IpamScopeCreateTimeout = 3 * time.Second
+ 	IpamScopeCreateDeley   = 5 * time.Second
+-	IpamScopeDeleteTimeout = 3 * time.Minute
++	IpamScopeDeleteTimeout = 3 * time.Second
+ 	IpamScopeDeleteDelay   = 5 * time.Second
+ 
+ 	IpamScopeStatusAvailable   = "Available"
+diff --git a/internal/service/ec2/vpc_ipv4_cidr_block_association.go b/internal/service/ec2/vpc_ipv4_cidr_block_association.go
+index 85bf50557e..7f1960a91e 100644
+--- a/internal/service/ec2/vpc_ipv4_cidr_block_association.go
++++ b/internal/service/ec2/vpc_ipv4_cidr_block_association.go
+@@ -64,8 +64,8 @@ func ResourceVPCIPv4CIDRBlockAssociation() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 	}
+ }
+diff --git a/internal/service/ec2/vpc_ipv6_cidr_block_association.go b/internal/service/ec2/vpc_ipv6_cidr_block_association.go
+index bbbfaee555..f0627c67df 100644
+--- a/internal/service/ec2/vpc_ipv6_cidr_block_association.go
++++ b/internal/service/ec2/vpc_ipv6_cidr_block_association.go
+@@ -71,8 +71,8 @@ func ResourceVPCIPv6CIDRBlockAssociation() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(10 * time.Minute),
+-			Delete: schema.DefaultTimeout(10 * time.Minute),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
+ 		},
+ 	}
+ }
+diff --git a/internal/service/ec2/vpc_peering_connection.go b/internal/service/ec2/vpc_peering_connection.go
+index 6fae3fc9e7..6b6f1abd11 100644
+--- a/internal/service/ec2/vpc_peering_connection.go
++++ b/internal/service/ec2/vpc_peering_connection.go
+@@ -28,9 +28,9 @@ func ResourceVPCPeeringConnection() *schema.Resource {
+ 		},
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(1 * time.Minute),
+-			Update: schema.DefaultTimeout(1 * time.Minute),
+-			Delete: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(1 * time.Second),
++			Update: schema.DefaultTimeout(1 * time.Second),
++			Delete: schema.DefaultTimeout(1 * time.Second),
+ 		},
+ 
+ 		// Keep in sync with aws_vpc_peering_connection_accepter's schema.
+diff --git a/internal/service/ec2/vpc_peering_connection_accepter.go b/internal/service/ec2/vpc_peering_connection_accepter.go
+index 5fb1bcb194..2b00ab82d0 100644
+--- a/internal/service/ec2/vpc_peering_connection_accepter.go
++++ b/internal/service/ec2/vpc_peering_connection_accepter.go
+@@ -21,8 +21,8 @@ func ResourceVPCPeeringConnectionAccepter() *schema.Resource {
+ 		Delete: resourceVPCPeeringAccepterDelete,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(1 * time.Minute),
+-			Update: schema.DefaultTimeout(1 * time.Minute),
++			Create: schema.DefaultTimeout(1 * time.Second),
++			Update: schema.DefaultTimeout(1 * time.Second),
+ 		},
+ 
+ 		Importer: &schema.ResourceImporter{
+diff --git a/internal/service/ec2/vpn_gateway_route_propagation.go b/internal/service/ec2/vpn_gateway_route_propagation.go
+index d4d5df3961..9217d9d672 100644
+--- a/internal/service/ec2/vpn_gateway_route_propagation.go
++++ b/internal/service/ec2/vpn_gateway_route_propagation.go
+@@ -18,8 +18,8 @@ func ResourceVPNGatewayRoutePropagation() *schema.Resource {
+ 		Delete: resourceVPNGatewayRoutePropagationDisable,
+ 
+ 		Timeouts: &schema.ResourceTimeout{
+-			Create: schema.DefaultTimeout(2 * time.Minute),
+-			Delete: schema.DefaultTimeout(2 * time.Minute),
++			Create: schema.DefaultTimeout(2 * time.Second),
++			Delete: schema.DefaultTimeout(2 * time.Second),
+ 		},
+ 
+ 		Schema: map[string]*schema.Schema{
+diff --git a/internal/service/ec2/wait.go b/internal/service/ec2/wait.go
+index 1674393925..73fe8e1161 100644
+--- a/internal/service/ec2/wait.go
++++ b/internal/service/ec2/wait.go
+@@ -15,13 +15,13 @@ import (
+ 
+ const (
+ 	// Maximum amount of time to wait for EC2 Instance attribute modifications to propagate
+-	InstanceAttributePropagationTimeout = 2 * time.Minute
++	InstanceAttributePropagationTimeout = 2 * time.Second
+ 
+-	InstanceStartTimeout = 10 * time.Minute
+-	InstanceStopTimeout  = 10 * time.Minute
++	InstanceStartTimeout = 10 * time.Second
++	InstanceStopTimeout  = 10 * time.Second
+ 
+ 	// General timeout for EC2 resource creations to propagate
+-	PropagationTimeout = 2 * time.Minute
++	PropagationTimeout = 2 * time.Second
+ 
+ 	RouteNotFoundChecks                        = 1000 // Should exceed any reasonable custom timeout value.
+ 	RouteTableNotFoundChecks                   = 1000 // Should exceed any reasonable custom timeout value.
+@@ -31,8 +31,8 @@ const (
+ )
+ 
+ const (
+-	CapacityReservationActiveTimeout  = 2 * time.Minute
+-	CapacityReservationDeletedTimeout = 2 * time.Minute
++	CapacityReservationActiveTimeout  = 2 * time.Second
++	CapacityReservationDeletedTimeout = 2 * time.Second
+ )
+ 
+ func WaitCapacityReservationActive(conn *ec2.EC2, id string) (*ec2.CapacityReservation, error) {
+@@ -70,9 +70,9 @@ func WaitCapacityReservationDeleted(conn *ec2.EC2, id string) (*ec2.CapacityRese
+ }
+ 
+ const (
+-	CarrierGatewayAvailableTimeout = 5 * time.Minute
++	CarrierGatewayAvailableTimeout = 5 * time.Second
+ 
+-	CarrierGatewayDeletedTimeout = 5 * time.Minute
++	CarrierGatewayDeletedTimeout = 5 * time.Second
+ )
+ 
+ func WaitCarrierGatewayAvailable(conn *ec2.EC2, carrierGatewayID string) (*ec2.CarrierGateway, error) {
+@@ -111,10 +111,10 @@ func WaitCarrierGatewayDeleted(conn *ec2.EC2, carrierGatewayID string) (*ec2.Car
+ 
+ const (
+ 	// Maximum amount of time to wait for a LocalGatewayRouteTableVpcAssociation to return Associated
+-	LocalGatewayRouteTableVPCAssociationAssociatedTimeout = 5 * time.Minute
++	LocalGatewayRouteTableVPCAssociationAssociatedTimeout = 5 * time.Second
+ 
+ 	// Maximum amount of time to wait for a LocalGatewayRouteTableVpcAssociation to return Disassociated
+-	LocalGatewayRouteTableVPCAssociationDisassociatedTimeout = 5 * time.Minute
++	LocalGatewayRouteTableVPCAssociationDisassociatedTimeout = 5 * time.Second
+ )
+ 
+ // WaitLocalGatewayRouteTableVPCAssociationAssociated waits for a LocalGatewayRouteTableVpcAssociation to return Associated
+-- 
+2.25.1
+

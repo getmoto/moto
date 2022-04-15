@@ -21,16 +21,16 @@ cloudwatch:
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
-  - TestAccEC2AvailabilityZonesDataSource
-  - TestAccEC2CarrierGateway
-  - TestAccEC2InstanceTypeOfferingDataSource
-  - TestAccEC2InstanceTypeOfferingsDataSource
-  - TestAccEC2InternetGateway
-  - TestAccEC2NATGateway
-  - TestAccEC2RouteTableAssociation
-  - TestAccEC2VPCEndpointService
-  - TestAccEC2VPNGateway
-  - TestAccEC2VPNGatewayAttachment
+  - TestAccEC2AvailabilityZonesDataSource_
+  - TestAccEC2CarrierGateway_
+  - TestAccEC2InstanceTypeOfferingDataSource_
+  - TestAccEC2InstanceTypeOfferingsDataSource_
+  - TestAccEC2InternetGateway_
+  - TestAccEC2NATGateway_
+  - TestAccEC2RouteTableAssociation_
+  - TestAccEC2VPCEndpointService_
+  - TestAccEC2VPNGateway_
+  - TestAccEC2VPNGatewayAttachment_
 ecr:
   - TestAccECRLifecyclePolicy
   - TestAccECRRepository
@@ -60,26 +60,26 @@ events:
   - TestAccEventsConnectionDataSource
   - TestAccEventsPermission
 iam:
-  - TestAccIAMAccessKey
-  - TestAccIAMAccountAlias
-  - TestAccIAMGroup
-  - TestAccIAMInstanceProfileDataSource
-  - TestAccIAMGroupPolicy
-  - TestAccIAMOpenIDConnectProvider
-  - TestAccIAMOpenidConnectProviderDataSource
-  - TestAccIAMPolicy
-  - TestAccIAMPolicyDataSource
-  - TestAccIAMPolicyDocumentDataSource
-  - TestAccIAMRoleDataSource
-  - TestAccIAMRolePolicy
-  - TestAccIAMRolePolicyAttachment
-  - TestAccIAMSessionContextDataSource
-  - TestAccIAMUserDataSource
-  - TestAccIAMUserGroupMembership
-  - TestAccIAMUserPolicy
-  - TestAccIAMUserPolicyAttachment
-  - TestAccIAMUserSSHKey
-  - TestAccIAMUserSSHKeyDataSource
+  - TestAccIAMAccessKey_
+  - TestAccIAMAccountAlias_
+  - TestAccIAMGroup_
+  - TestAccIAMInstanceProfileDataSource_
+  - TestAccIAMGroupPolicy_
+  - TestAccIAMOpenIDConnectProvider_
+  - TestAccIAMOpenidConnectProviderDataSource_
+  - TestAccIAMPolicy_
+  - TestAccIAMPolicyDataSource_
+  - TestAccIAMPolicyDocumentDataSource_
+  - TestAccIAMRoleDataSource_
+  - TestAccIAMRolePolicy_
+  - TestAccIAMRolePolicyAttachment_
+  - TestAccIAMSessionContextDataSource_
+  - TestAccIAMUserDataSource_
+  - TestAccIAMUserGroupMembership_
+  - TestAccIAMUserPolicy_
+  - TestAccIAMUserPolicyAttachment_
+  - TestAccIAMUserSSHKey_
+  - TestAccIAMUserSSHKeyDataSource_
 iot:
   - TestAccIoTEndpointDataSource
 kms:
