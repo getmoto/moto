@@ -1,6 +1,33 @@
 Moto Changelog
 ==============
 
+3.1.5
+-----
+Docker Digest for 3.1.5: <autopopulateddigest>
+
+    New Services:
+
+    New Methods:
+        * ApplicationAutoscaling:
+            * delete_scheduled_action()
+            * describe_scheduled_actions()
+            * put_scheduled_action()
+
+        * Databrew:
+            * create_ruleset()
+            * delete_ruleset()
+            * list_rulesets()
+            * update_recipe()
+            * update_ruleset()
+
+        * EC2:
+            * describe_network_interface_attribute()
+
+    Miscellaneous:
+        * Glue:get_partitions() now supports the Expression-parameter
+        * RDS:delete_db_cluster() now supports the FinalDBSnapshotIdentifier-parameter
+        * S3 actions can now send notifications for (a subset of) supported events and targets
+
 3.1.4
 -----
 Docker Digest for 3.1.4: _sha256:795eb8a1d966ef30c53f504e358afb23ec262e5ad1cba18d474096c0fba794bd_
