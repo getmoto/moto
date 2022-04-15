@@ -1,5 +1,6 @@
 from base64 import b64encode
 import json
+import os
 
 import boto3
 from botocore.client import ClientError
@@ -767,3 +768,13 @@ def test_sts_regions(region):
     client = boto3.client("sts", region_name=region)
     resp = client.get_caller_identity()
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+@mock_sts
+def test_sts_account_override(monkeypatch):
+    dummy_account_id = "MEMEMEMEME"
+    monkeypatch.setenv("MOTO_ACCOUNT_ID", dummy_account_id)
+    os_account_id = os.environ.get("MOTO_ACCOUNT_ID")
+    os_account_id.should.equal(dummy_account_id)
+    client = boto3.client("sts", region_name="us-west-2")
+    resp = client.get_caller_identity()
+    resp["Account"].should.equal(dummy_account_id)
