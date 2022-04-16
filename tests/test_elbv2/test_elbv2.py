@@ -960,11 +960,11 @@ def test_handle_listener_rules():
     )
 
     # assert response of SetRulePriorities operation
-    updated_rule['Rules'].should.have.length_of(1)
-    updated_rule['Rules'][0]['RuleArn'].should.equal(first_rule['RuleArn'])
-    updated_rule['Rules'][0]['Priority'].should.equal(str(new_priority))
-    updated_rule['Rules'][0]['Conditions'].should.have.length_of(3)
-    updated_rule['Rules'][0]['Actions'].should.have.length_of(1)
+    updated_rule["Rules"].should.have.length_of(1)
+    updated_rule["Rules"][0]["RuleArn"].should.equal(first_rule["RuleArn"])
+    updated_rule["Rules"][0]["Priority"].should.equal(str(new_priority))
+    updated_rule["Rules"][0]["Conditions"].should.have.length_of(3)
+    updated_rule["Rules"][0]["Actions"].should.have.length_of(1)
 
     # modify forward_config rule partially rule
     new_host_2 = "new.examplewebsite.com"
