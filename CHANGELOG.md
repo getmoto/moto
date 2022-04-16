@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.5
 -----
-Docker Digest for 3.1.5: <autopopulateddigest>
+Docker Digest for 3.1.5: _sha256:79050ce5b729f6eff3282a79dace9cb7e5983588250452f8821aeffa87eca334_
 
     New Services:
 
