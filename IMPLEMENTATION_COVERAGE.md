@@ -1069,7 +1069,7 @@
 
 ## databrew
 <details>
-<summary>4% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] batch_delete_recipe_version
 - [ ] create_dataset
@@ -1077,13 +1077,13 @@
 - [ ] create_project
 - [X] create_recipe
 - [ ] create_recipe_job
-- [ ] create_ruleset
+- [X] create_ruleset
 - [ ] create_schedule
 - [ ] delete_dataset
 - [ ] delete_job
 - [ ] delete_project
 - [ ] delete_recipe_version
-- [ ] delete_ruleset
+- [X] delete_ruleset
 - [ ] delete_schedule
 - [ ] describe_dataset
 - [ ] describe_job
@@ -1098,7 +1098,7 @@
 - [ ] list_projects
 - [ ] list_recipe_versions
 - [X] list_recipes
-- [ ] list_rulesets
+- [X] list_rulesets
 - [ ] list_schedules
 - [ ] list_tags_for_resource
 - [ ] publish_recipe
@@ -1111,9 +1111,9 @@
 - [ ] update_dataset
 - [ ] update_profile_job
 - [ ] update_project
-- [ ] update_recipe
+- [X] update_recipe
 - [ ] update_recipe_job
-- [ ] update_ruleset
+- [X] update_ruleset
 - [ ] update_schedule
 </details>
 
@@ -1144,12 +1144,13 @@
 
 ## datasync
 <details>
-<summary>15% implemented</summary>
+<summary>14% implemented</summary>
 
 - [X] cancel_task_execution
 - [ ] create_agent
 - [ ] create_location_efs
 - [ ] create_location_fsx_lustre
+- [ ] create_location_fsx_open_zfs
 - [ ] create_location_fsx_windows
 - [ ] create_location_hdfs
 - [ ] create_location_nfs
@@ -1163,6 +1164,7 @@
 - [ ] describe_agent
 - [ ] describe_location_efs
 - [ ] describe_location_fsx_lustre
+- [ ] describe_location_fsx_open_zfs
 - [ ] describe_location_fsx_windows
 - [ ] describe_location_hdfs
 - [ ] describe_location_nfs
@@ -2478,13 +2480,14 @@
 
 ## events
 <details>
-<summary>78% implemented</summary>
+<summary>71% implemented</summary>
 
 - [ ] activate_event_source
 - [X] cancel_replay
 - [X] create_api_destination
 - [X] create_archive
 - [X] create_connection
+- [ ] create_endpoint
 - [X] create_event_bus
 - [ ] create_partner_event_source
 - [ ] deactivate_event_source
@@ -2492,12 +2495,14 @@
 - [X] delete_api_destination
 - [X] delete_archive
 - [X] delete_connection
+- [ ] delete_endpoint
 - [X] delete_event_bus
 - [ ] delete_partner_event_source
 - [X] delete_rule
 - [X] describe_api_destination
 - [X] describe_archive
 - [X] describe_connection
+- [ ] describe_endpoint
 - [X] describe_event_bus
 - [ ] describe_event_source
 - [ ] describe_partner_event_source
@@ -2508,6 +2513,7 @@
 - [X] list_api_destinations
 - [X] list_archives
 - [X] list_connections
+- [ ] list_endpoints
 - [X] list_event_buses
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
@@ -2531,6 +2537,7 @@
 - [X] update_api_destination
 - [X] update_archive
 - [X] update_connection
+- [ ] update_endpoint
 </details>
 
 ## firehose
@@ -3212,6 +3219,7 @@
 - [ ] list_job_templates
 - [X] list_jobs
 - [ ] list_managed_job_templates
+- [ ] list_metric_values
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
@@ -3435,7 +3443,7 @@
 
 ## lambda
 <details>
-<summary>53% implemented</summary>
+<summary>49% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -3443,6 +3451,7 @@
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
+- [ ] create_function_url_config
 - [X] delete_alias
 - [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
@@ -3450,6 +3459,7 @@
 - [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
+- [ ] delete_function_url_config
 - [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
@@ -3461,6 +3471,7 @@
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
+- [ ] get_function_url_config
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
 - [ ] get_layer_version_policy
@@ -3472,6 +3483,7 @@
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
+- [ ] list_function_url_configs
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
 - [ ] list_layer_versions
@@ -3495,6 +3507,7 @@
 - [X] update_function_code
 - [X] update_function_configuration
 - [ ] update_function_event_invoke_config
+- [ ] update_function_url_config
 </details>
 
 ## logs
@@ -4198,7 +4211,7 @@
 
 ## rds
 <details>
-<summary>26% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -4213,7 +4226,6 @@
 - [ ] copy_db_parameter_group
 - [ ] copy_db_snapshot
 - [ ] copy_option_group
-- [ ] create_custom_availability_zone
 - [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
@@ -4230,7 +4242,6 @@
 - [X] create_event_subscription
 - [ ] create_global_cluster
 - [X] create_option_group
-- [ ] delete_custom_availability_zone
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
@@ -4246,12 +4257,10 @@
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [ ] delete_global_cluster
-- [ ] delete_installation_media
 - [X] delete_option_group
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
 - [ ] describe_certificates
-- [ ] describe_custom_availability_zones
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
 - [ ] describe_db_cluster_parameter_groups
@@ -4280,7 +4289,6 @@
 - [ ] describe_events
 - [X] describe_export_tasks
 - [ ] describe_global_clusters
-- [ ] describe_installation_media
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [ ] describe_orderable_db_instance_options
@@ -4292,7 +4300,6 @@
 - [ ] download_db_log_file_portion
 - [ ] failover_db_cluster
 - [ ] failover_global_cluster
-- [ ] import_installation_media
 - [X] list_tags_for_resource
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity
