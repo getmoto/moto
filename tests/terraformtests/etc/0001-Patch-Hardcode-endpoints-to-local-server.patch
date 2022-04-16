@@ -1,0 +1,58 @@
+From ca8880871b241df7bdc9ea3cf0d13f816e815f16 Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Wed, 13 Apr 2022 12:33:25 +0000
+Subject: [PATCH] Patch: Hardcode endpoints to local server
+
+---
+ internal/conns/conns.go       | 14 ++++++++++++++
+ internal/provider/provider.go |  2 +-
+ 2 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/internal/conns/conns.go b/internal/conns/conns.go
+index 1feb0be2f1..9ed8a64776 100644
+--- a/internal/conns/conns.go
++++ b/internal/conns/conns.go
+@@ -628,6 +628,16 @@ func (client *AWSClient) RegionalHostname(prefix string) string {
+ 	return fmt.Sprintf("%s.%s.%s", prefix, client.Region, client.DNSSuffix)
+ }
+ 
++// XXX: added by bblommers
++func GetLocalEndpoints() map[string]string {
++	const localEndpoint = "http://localhost:4566"
++	var localEndpoints = map[string]string{}
++	for _, name := range names.HCLKeys() {
++		localEndpoints[name] = localEndpoint
++	}
++	return localEndpoints
++}
++
+ // Client configures and returns a fully initialized AWSClient
+ func (c *Config) Client(ctx context.Context) (interface{}, diag.Diagnostics) {
+ 	awsbaseConfig := awsbase.Config{
+@@ -727,6 +737,10 @@ func (c *Config) Client(ctx context.Context) (interface{}, diag.Diagnostics) {
+ 		DNSSuffix = p.DNSSuffix()
+ 	}
+ 
++    // XXX: added by bblommers
++    // insert custom endpoints
++    c.Endpoints = GetLocalEndpoints()
++
+ 	client := &AWSClient{
+ 		AccessAnalyzerConn:                accessanalyzer.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.AccessAnalyzer])})),
+ 		AccountConn:                       account.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.Endpoints[names.Account])})),
+diff --git a/internal/provider/provider.go b/internal/provider/provider.go
+index df93e4b5c5..da009a9e4c 100644
+--- a/internal/provider/provider.go
++++ b/internal/provider/provider.go
+@@ -2011,7 +2011,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
+ 		CustomCABundle:                 d.Get("custom_ca_bundle").(string),
+ 		EC2MetadataServiceEndpoint:     d.Get("ec2_metadata_service_endpoint").(string),
+ 		EC2MetadataServiceEndpointMode: d.Get("ec2_metadata_service_endpoint_mode").(string),
+-		Endpoints:                      make(map[string]string),
++		Endpoints:                      conns.GetLocalEndpoints(),  // XXX: added by bblommers
+ 		HTTPProxy:                      d.Get("http_proxy").(string),
+ 		IgnoreTagsConfig:               expandProviderIgnoreTags(d.Get("ignore_tags").([]interface{})),
+ 		Insecure:                       d.Get("insecure").(bool),
+-- 
+2.25.1
+

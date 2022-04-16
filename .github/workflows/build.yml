@@ -3,42 +3,6 @@ name: TestNDeploy
 on: [push, pull_request]
 
 jobs:
-  # Install and cache dependencies
-  terraformcache:
-    name: Caching Terraform dependencies
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ 3.8 ]
-
-    steps:
-    - name: Checkout Terraform Tests repo
-      uses: actions/checkout@v2
-      with:
-        repository: localstack/localstack-terraform-test
-        ref: build
-        path: moto-terraform-tests
-        submodules: 'true'
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '^1.16.0'
-    - run: go version
-    - name: cache
-      id: terraformcache
-      uses: actions/cache@v2
-      with:
-        path: '~/.cache'
-        key: 'terraformcache_download2'
-    - name: Download
-      env:
-        DOWNLOAD_TEST_BIN: 1
-        TEST_BIN_URL: "https://moto-terraform-test.s3.amazonaws.com/aws.test"
-      if: ${{ steps.terraformcache.outputs.cache-hit != 'true' }}
-      run: |
-        cd moto-terraform-tests
-        bin/install-aws-test
-        cd ..
-
   cache:
     name: Caching
     runs-on: ubuntu-latest
@@ -216,78 +180,10 @@ jobs:
         path: |
           serverlogs/*
 
-  terraform:
-    name: Terraform Tests
-    runs-on: ubuntu-latest
-    needs: terraformcache
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ 3.8 ]
-        part: ["aa", "ab", "ac", "ad", "ae", "af", "ag"]
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Checkout Terraform Tests repo
-      uses: actions/checkout@v2
-      with:
-        repository: localstack/localstack-terraform-test
-        ref: build
-        path: moto-terraform-tests
-        submodules: 'true'
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: cache
-      uses: actions/cache@v2
-      with:
-        path: '~/.cache'
-        key: 'terraformcache_download2'
-    - name: Start MotoServer
-      run: |
-        python setup.py sdist
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
-        MOTO_PORT=4566 python scripts/ci_wait_for_server.py
-    # Poor man's parallelization
-    # Running them sequentially takes too much time
-    # And using the build in parallel-argument does not help with reducing runtime
-    # So we simply split the list of tests, and ask our CI for separate VM's to run them in parallel
-    - name: Get list of tests
-      run: |
-        cd moto-terraform-tests
-        bin/list-tests -i ../tests/terraform-tests.success.txt -e ../tests/terraform-tests.failures.txt > tftestlist.txt
-        split -n l/7 tftestlist.txt tf-split-
-        cd ..
-    - name: Run Terraform Tests
-      run: |
-        cd moto-terraform-tests
-        echo "Copying random zipfile that is missing for SSM tests..."
-        cp terraform-provider-aws/aws/test-fixtures/lambda_elb.zip terraform-provider-aws/aws/test-fixtures/ssm-doc-acc-test.zip
-        AWS_DEFAULT_REGION=us-east-1 AWS_ALTERNATE_REGION=eu-west-1 bin/run-tests -t -i tf-split-${{ matrix.part }} -e ../tests/terraform-tests.failures.txt
-        cd ..
-    - name: "Create report"
-      run: |
-        ls -la
-        cp server_output.log moto-terraform-tests/build/server_output.log
-        cd moto-terraform-tests
-        bin/create-report
-        bin/create-report-cli
-        cd ..
-    - name: Archive TF logs
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: buildfolder-${{ matrix.part }}
-        path: |
-          moto-terraform-tests/build/*
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [test, testserver, terraform ]
+    needs: [test, testserver ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'spulec/moto' }}
     strategy:
       matrix:

@@ -1,0 +1,98 @@
+acm:
+  - TestAccACMCertificateDataSource
+apigateway:
+  - TestAccAPIGatewayGatewayResponse
+apigatewayv2:
+  - TestAccAPIGatewayV2IntegrationResponse
+  - TestAccAPIGatewayV2Model
+  - TestAccAPIGatewayV2RouteResponse
+  - TestAccAPIGatewayV2VPCLink
+autoscaling:
+  - TestAccAutoScalingGroupDataSource
+batch:
+  - TestAccBatchJobDefinition
+cloudtrail:
+  - TestAccCloudTrailServiceAccount
+cloudwatch:
+  - TestAccCloudWatchDashboard
+  - TestAccCloudWatchLogsDestination
+  - TestAccCloudWatchLogsDestinationPolicy
+  - TestAccCloudWatchLogsGroupDataSource
+dynamodb:
+  - TestAccDynamoDBTableItem
+ec2:
+  - TestAccEC2AvailabilityZonesDataSource_
+  - TestAccEC2CarrierGateway_
+  - TestAccEC2InstanceTypeOfferingDataSource_
+  - TestAccEC2InstanceTypeOfferingsDataSource_
+  - TestAccEC2InternetGateway_
+  - TestAccEC2NATGateway_
+  - TestAccEC2RouteTableAssociation_
+  - TestAccEC2VPCEndpointService_
+  - TestAccEC2VPNGateway_
+  - TestAccEC2VPNGatewayAttachment_
+ecr:
+  - TestAccECRLifecyclePolicy
+  - TestAccECRRepository
+  - TestAccECRRepositoryDataSource
+  - TestAccECRRepositoryPolicy
+efs:
+  - TestAccEFSAccessPoint_
+  - TestAccEFSAccessPointDataSource
+  - TestAccEFSFileSystemDataSource
+elasticbeanstalk:
+  - TestAccElasticBeanstalkHostedZoneDataSource
+  - TestAccElasticBeanstalkSolutionStackDataSource
+elb:
+  - TestAccELBAttachment
+  - TestAccELBBackendServerPolicy
+  - TestAccELBHostedZoneIDDataSource
+  - TestAccELBListenerPolicy
+  - TestAccELBServiceAccountDataSource
+  - TestAccELBSSLNegotiationPolicy
+events:
+  - TestAccEventsAPIDestination
+  - TestAccEventsArchive
+  - TestAccEventsBus
+  - TestAccEventsBusPolicy
+  - TestAccEventsConnection
+  - TestAccEventsConnectionDataSource
+  - TestAccEventsPermission
+iam:
+  - TestAccIAMAccessKey_
+  - TestAccIAMAccountAlias_
+  - TestAccIAMGroup_
+  - TestAccIAMInstanceProfileDataSource_
+  - TestAccIAMGroupPolicy_
+  - TestAccIAMOpenIDConnectProvider_
+  - TestAccIAMOpenidConnectProviderDataSource_
+  - TestAccIAMPolicy_
+  - TestAccIAMPolicyDataSource_
+  - TestAccIAMPolicyDocumentDataSource_
+  - TestAccIAMRoleDataSource_
+  - TestAccIAMRolePolicy_
+  - TestAccIAMRolePolicyAttachment_
+  - TestAccIAMSessionContextDataSource_
+  - TestAccIAMUserDataSource_
+  - TestAccIAMUserPolicy_
+  - TestAccIAMUserPolicyAttachment_
+  - TestAccIAMUserSSHKey_
+  - TestAccIAMUserSSHKeyDataSource_
+iot:
+  - TestAccIoTEndpointDataSource
+kms:
+  - TestAccKMSAlias
+  - TestAccKMSSecretDataSource
+  - TestAccKMSSecretsDataSource
+meta:
+  - TestAccMetaBillingServiceAccountDataSource
+redshift:
+  - TestAccRedshiftServiceAccountDataSource
+s3:
+  - TestAccS3BucketPolicy
+  - TestAccS3BucketPublicAccessBlock
+  - TestAccS3ObjectCopy
+sagemaker:
+  - TestAccSageMakerPrebuiltECRImageDataSource
+sts:
+  - TestAccSTSCallerIdentityDataSource
