@@ -86,6 +86,10 @@ kms:
   - TestAccKMSSecretsDataSource
 meta:
   - TestAccMetaBillingServiceAccountDataSource
+mq:
+  - TestAccMQBroker
+quicksight:
+  - TestAccQuickSightUser
 redshift:
   - TestAccRedshiftServiceAccountDataSource
 s3:
@@ -96,3 +100,5 @@ sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
 sts:
   - TestAccSTSCallerIdentityDataSource
+timestreamwrite:
+  - TestAccTimestreamWriteDatabase
