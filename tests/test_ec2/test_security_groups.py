@@ -599,7 +599,7 @@ def test_sec_group_rule_limit(use_vpc):
     )
 
     sg.reload()
-    sg.ip_permissions.should.be.empty
+    sg.ip_permissions.should.equal([])
     # authorize a rule targeting a different sec group (because this count too)
     other_permissions = [
         {
@@ -987,7 +987,7 @@ def test_authorize_and_revoke_in_bulk():
         sorted_sg01_ip_permissions.should.contain(ip_permission)
 
     sg01.revoke_ingress(IpPermissions=ip_permissions)
-    sg01.ip_permissions.should.be.empty
+    sg01.ip_permissions.should.equal([])
     for ip_permission in expected_ip_permissions:
         sg01.ip_permissions.shouldnt.contain(ip_permission)
 

@@ -9,8 +9,8 @@ def test_describe_instance_type_offerings():
     client = boto3.client("ec2", "us-east-1")
     offerings = client.describe_instance_type_offerings()
 
-    offerings.should.have.key("InstanceTypeOfferings")
-    offerings["InstanceTypeOfferings"].should_not.be.empty
+    offerings.should.have.key("InstanceTypeOfferings").be.a(list)
+    len(offerings["InstanceTypeOfferings"]).should.be.greater_than(0)
     offerings["InstanceTypeOfferings"][0].should.have.key("InstanceType")
     offerings["InstanceTypeOfferings"][0].should.have.key("Location")
     offerings["InstanceTypeOfferings"][0].should.have.key("LocationType")
@@ -26,7 +26,6 @@ def test_describe_instance_type_offering_filter_by_type():
     )
 
     offerings.should.have.key("InstanceTypeOfferings")
-    offerings["InstanceTypeOfferings"].should_not.be.empty
     offerings = offerings["InstanceTypeOfferings"]
     offerings.should.have.length_of(1)
     offerings[0]["InstanceType"].should.equal("t2.nano")
@@ -56,7 +55,6 @@ def test_describe_instance_type_offering_filter_by_zone():
 
     offerings.should.have.key("InstanceTypeOfferings")
     offerings = offerings["InstanceTypeOfferings"]
-    offerings.should_not.be.empty
     offerings.should.have.length_of(486)
     assert all([o["LocationType"] == "availability-zone" for o in offerings])
     assert all([o["Location"] == "us-east-1c" for o in offerings])
@@ -76,7 +74,6 @@ def test_describe_instance_type_offering_filter_by_zone_id():
 
     offerings.should.have.key("InstanceTypeOfferings")
     offerings = offerings["InstanceTypeOfferings"]
-    offerings.should_not.be.empty
     offerings.should.have.length_of(1)
     offerings[0]["LocationType"].should.equal("availability-zone-id")
     offerings[0]["InstanceType"].should.equal("c5.9xlarge")

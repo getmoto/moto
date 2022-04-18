@@ -68,7 +68,7 @@ MOCK_POLICY_3 = """
 
 
 @mock_iam
-def test_get_role__should_throw__when_role_does_not_exist_boto3():
+def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         conn.get_role(RoleName="unexisting_role")
@@ -78,7 +78,7 @@ def test_get_role__should_throw__when_role_does_not_exist_boto3():
 
 
 @mock_iam
-def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist_boto3():
+def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         conn.get_instance_profile(InstanceProfileName="unexisting_instance_profile")
@@ -88,7 +88,7 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
 
 
 @mock_iam
-def test_create_role_and_instance_profile_boto3():
+def test_create_role_and_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
     conn.create_role(
@@ -129,7 +129,7 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
 
 
 @mock_iam
-def test_remove_role_from_instance_profile_boto3():
+def test_remove_role_from_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
     conn.create_role(
@@ -263,7 +263,7 @@ def test_delete_role():
 
 
 @mock_iam
-def test_list_instance_profiles_boto3():
+def test_list_instance_profiles():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
     conn.create_role(
@@ -282,7 +282,7 @@ def test_list_instance_profiles_boto3():
 
 
 @mock_iam
-def test_list_instance_profiles_for_role_boto3():
+def test_list_instance_profiles_for_role():
     conn = boto3.client("iam", region_name="us-east-1")
 
     conn.create_role(
@@ -321,7 +321,7 @@ def test_list_instance_profiles_for_role_boto3():
 
 
 @mock_iam
-def test_list_role_policies_boto3():
+def test_list_role_policies():
     conn = boto3.client("iam", region_name="us-east-1")
 
     conn.create_role(
@@ -353,7 +353,7 @@ def test_list_role_policies_boto3():
 
 
 @mock_iam
-def test_put_role_policy_boto3():
+def test_put_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
@@ -377,7 +377,7 @@ def test_get_role_policy():
 
 
 @mock_iam
-def test_update_assume_role_policy_boto3():
+def test_update_assume_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
@@ -1269,7 +1269,7 @@ def test_create_user_boto():
 
 
 @mock_iam
-def test_get_user_boto3():
+def test_get_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         conn.get_user(UserName="my-user")
@@ -1301,7 +1301,7 @@ def test_update_user():
 
 
 @mock_iam
-def test_get_current_user_boto3():
+def test_get_current_user():
     """If no user is specific, IAM returns the current user"""
     conn = boto3.client("iam", region_name="us-east-1")
     user = conn.get_user()["User"]
@@ -1362,19 +1362,6 @@ def test_create_login_profile_with_unknown_user():
 
 
 @mock_iam
-def test_create_login_profile_boto3():
-    conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_user(UserName="my-user")
-    conn.create_login_profile(UserName="my-user", Password="my-pass")
-
-    with pytest.raises(ClientError) as ex:
-        conn.create_login_profile(UserName="my-user", Password="my-pass")
-    err = ex.value.response["Error"]
-    err["Code"].should.equal("User my-user already has password")
-    err["Message"].should.equal(None)
-
-
-@mock_iam
 def test_delete_login_profile_with_unknown_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1396,7 +1383,7 @@ def test_delete_nonexistent_login_profile():
 
 
 @mock_iam
-def test_delete_login_profile_boto3():
+def test_delete_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
     conn.create_login_profile(UserName="my-user", Password="my-pass")
@@ -1501,7 +1488,7 @@ def test_create_virtual_mfa_device():
         "arn:aws:iam::{}:mfa/test-device".format(ACCOUNT_ID)
     )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
-    device["QRCodePNG"].should_not.be.empty
+    device["QRCodePNG"].should_not.equal("")
 
     response = client.create_virtual_mfa_device(
         Path="/", VirtualMFADeviceName="test-device-2"
@@ -1512,7 +1499,7 @@ def test_create_virtual_mfa_device():
         "arn:aws:iam::{}:mfa/test-device-2".format(ACCOUNT_ID)
     )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
-    device["QRCodePNG"].should_not.be.empty
+    device["QRCodePNG"].should_not.equal("")
 
     response = client.create_virtual_mfa_device(
         Path="/test/", VirtualMFADeviceName="test-device"
@@ -1523,7 +1510,8 @@ def test_create_virtual_mfa_device():
         "arn:aws:iam::{}:mfa/test/test-device".format(ACCOUNT_ID)
     )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
-    device["QRCodePNG"].should_not.be.empty
+    device["QRCodePNG"].should_not.equal("")
+    device["QRCodePNG"].should.be.a(bytes)
 
 
 @mock_iam
@@ -1575,7 +1563,7 @@ def test_delete_virtual_mfa_device():
     response = client.list_virtual_mfa_devices()
 
     response["VirtualMFADevices"].should.have.length_of(0)
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
 
 @mock_iam
@@ -1607,24 +1595,24 @@ def test_list_virtual_mfa_devices():
     response["VirtualMFADevices"].should.equal(
         [{"SerialNumber": serial_number_1}, {"SerialNumber": serial_number_2}]
     )
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Assigned")
 
     response["VirtualMFADevices"].should.have.length_of(0)
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
     response["VirtualMFADevices"].should.equal(
         [{"SerialNumber": serial_number_1}, {"SerialNumber": serial_number_2}]
     )
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Any", MaxItems=1)
 
     response["VirtualMFADevices"].should.equal([{"SerialNumber": serial_number_1}])
-    response["IsTruncated"].should.be.ok
+    response["IsTruncated"].should.equal(True)
     response["Marker"].should.equal("1")
 
     response = client.list_virtual_mfa_devices(
@@ -1632,7 +1620,7 @@ def test_list_virtual_mfa_devices():
     )
 
     response["VirtualMFADevices"].should.equal([{"SerialNumber": serial_number_2}])
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
 
 @mock_iam
@@ -1663,7 +1651,7 @@ def test_enable_virtual_mfa_device():
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
     response["VirtualMFADevices"].should.have.length_of(0)
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Assigned")
 
@@ -1671,26 +1659,26 @@ def test_enable_virtual_mfa_device():
     device["SerialNumber"].should.equal(serial_number)
     device["User"]["Path"].should.equal("/")
     device["User"]["UserName"].should.equal("test-user")
-    device["User"]["UserId"].should_not.be.empty
+    device["User"]["UserId"].should.match("[a-z0-9]+")
     device["User"]["Arn"].should.equal(
         "arn:aws:iam::{}:user/test-user".format(ACCOUNT_ID)
     )
     device["User"]["CreateDate"].should.be.a(datetime)
     device["User"]["Tags"].should.equal(tags)
     device["EnableDate"].should.be.a(datetime)
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     client.deactivate_mfa_device(UserName="test-user", SerialNumber=serial_number)
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Assigned")
 
     response["VirtualMFADevices"].should.have.length_of(0)
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
     response["VirtualMFADevices"].should.equal([{"SerialNumber": serial_number}])
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
 
 @mock_iam()
@@ -1733,7 +1721,7 @@ def test_delete_user():
 
 
 @mock_iam
-def test_boto3_generate_credential_report():
+def test_generate_credential_report():
     conn = boto3.client("iam", region_name="us-east-1")
     result = conn.generate_credential_report()
     result["State"].should.equal("STARTED")
@@ -1742,7 +1730,7 @@ def test_boto3_generate_credential_report():
 
 
 @mock_iam
-def test_boto3_get_credential_report():
+def test_get_credential_report():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
     with pytest.raises(ClientError):
@@ -1756,7 +1744,7 @@ def test_boto3_get_credential_report():
 
 
 @mock_iam
-def test_boto3_get_credential_report_content():
+def test_get_credential_report_content():
     conn = boto3.client("iam", region_name="us-east-1")
     username = "my-user"
     conn.create_user(UserName=username)
@@ -1823,7 +1811,7 @@ def test_get_access_key_last_used_when_used():
 
 
 @mock_iam
-def test_managed_policy_boto3():
+def test_managed_policy():
     conn = boto3.client("iam", region_name="us-west-1")
 
     conn.create_policy(
@@ -1916,17 +1904,17 @@ def test_managed_policy_boto3():
 
 
 @mock_iam
-def test_boto3_create_login_profile():
+def test_create_login_profile__duplicate():
     conn = boto3.client("iam", region_name="us-east-1")
-
-    with pytest.raises(ClientError):
-        conn.create_login_profile(UserName="my-user", Password="Password")
 
     conn.create_user(UserName="my-user")
     conn.create_login_profile(UserName="my-user", Password="Password")
 
-    with pytest.raises(ClientError):
-        conn.create_login_profile(UserName="my-user", Password="Password")
+    with pytest.raises(ClientError) as exc:
+        conn.create_login_profile(UserName="my-user", Password="my-pass")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("User my-user already has password")
+    err["Message"].should.equal(None)
 
 
 @mock_iam()
@@ -3192,17 +3180,17 @@ def test_list_user_tags():
     )
     response = conn.list_user_tags(UserName="kenny-bania")
     response["Tags"].should.have.length_of(0)
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = conn.list_user_tags(UserName="jackie-chiles")
     response["Tags"].should.equal([{"Key": "Sue-Allen", "Value": "Oh-Henry"}])
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
     response = conn.list_user_tags(UserName="cosmo")
     response["Tags"].should.equal(
         [{"Key": "Stan", "Value": "The Caddy"}, {"Key": "like-a", "Value": "glove"}]
     )
-    response["IsTruncated"].should_not.be.ok
+    response["IsTruncated"].should.equal(False)
 
 
 @mock_iam()

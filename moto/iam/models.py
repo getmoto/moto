@@ -1102,10 +1102,10 @@ class User(CloudFormationModel):
         for key in self.access_keys:
             if key.access_key_id == access_key_id:
                 return key
-        else:
-            raise IAMNotFoundException(
-                "The Access Key with id {0} cannot be found".format(access_key_id)
-            )
+
+        raise IAMNotFoundException(
+            f"The Access Key with id {access_key_id} cannot be found"
+        )
 
     def has_access_key(self, access_key_id):
         return any(
@@ -1125,12 +1125,10 @@ class User(CloudFormationModel):
         for key in self.ssh_public_keys:
             if key.ssh_public_key_id == ssh_public_key_id:
                 return key
-        else:
-            raise IAMNotFoundException(
-                "The SSH Public Key with id {0} cannot be found".format(
-                    ssh_public_key_id
-                )
-            )
+
+        raise IAMNotFoundException(
+            f"The SSH Public Key with id {ssh_public_key_id} cannot be found"
+        )
 
     def get_all_ssh_public_keys(self):
         return self.ssh_public_keys
@@ -2366,10 +2364,10 @@ class IAMBackend(BaseBackend):
         for key in access_keys_list:
             if key.access_key_id == access_key_id:
                 return {"user_name": key.user_name, "last_used": key.last_used_iso_8601}
-        else:
-            raise IAMNotFoundException(
-                "The Access Key with id {0} cannot be found".format(access_key_id)
-            )
+
+        raise IAMNotFoundException(
+            f"The Access Key with id {access_key_id} cannot be found"
+        )
 
     def get_all_access_keys_for_all_users(self):
         access_keys_list = []

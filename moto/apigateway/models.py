@@ -545,10 +545,7 @@ class Stage(BaseModel, dict):
             "caching/unauthorizedCacheControlHeaderStrategy": "unauthorizedCacheControlHeaderStrategy",
         }
 
-        if key in mappings:
-            return mappings[key]
-        else:
-            None
+        return mappings.get(key)
 
     def _str2bool(self, v):
         return v.lower() == "true"

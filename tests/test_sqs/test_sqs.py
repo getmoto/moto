@@ -174,14 +174,11 @@ def test_create_queue():
 
     q_name = str(uuid4())[0:6]
     new_queue = sqs.create_queue(QueueName=q_name)
-    new_queue.should_not.be.none
     new_queue.should.have.property("url").should.contain(q_name)
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
-    queue.attributes.get("QueueArn").should_not.be.none
     queue.attributes.get("QueueArn").split(":")[-1].should.equal(q_name)
     queue.attributes.get("QueueArn").split(":")[3].should.equal("us-east-1")
-    queue.attributes.get("VisibilityTimeout").should_not.be.none
     queue.attributes.get("VisibilityTimeout").should.equal("30")
 
 
@@ -190,14 +187,13 @@ def test_create_queue_kms():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
     q_name = str(uuid4())[0:6]
-    new_queue = sqs.create_queue(
+    sqs.create_queue(
         QueueName=q_name,
         Attributes={
             "KmsMasterKeyId": "master-key-id",
             "KmsDataKeyReusePeriodSeconds": "600",
         },
     )
-    new_queue.should_not.be.none
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
 
@@ -1404,7 +1400,7 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
 
 
 @mock_sqs
-def test_send_message_with_xml_characters_boto3():
+def test_send_message_with_xml_characters():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -1419,7 +1415,7 @@ def test_send_message_with_xml_characters_boto3():
 
 
 @mock_sqs
-def test_send_message_with_delay_boto3():
+def test_send_message_with_delay():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
@@ -1439,7 +1435,7 @@ def test_send_message_with_delay_boto3():
 
 
 @mock_sqs
-def test_send_large_message_fails_boto3():
+def test_send_large_message_fails():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
@@ -1454,7 +1450,7 @@ def test_send_large_message_fails_boto3():
 
 
 @mock_sqs
-def test_message_becomes_inflight_when_received_boto3():
+def test_message_becomes_inflight_when_received():
     sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1482,7 +1478,7 @@ def test_message_becomes_inflight_when_received_boto3():
 
 
 @mock_sqs
-def test_receive_message_with_explicit_visibility_timeout_boto3():
+def test_receive_message_with_explicit_visibility_timeout():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
@@ -1504,7 +1500,7 @@ def test_receive_message_with_explicit_visibility_timeout_boto3():
 
 
 @mock_sqs
-def test_change_message_visibility_boto3():
+def test_change_message_visibility():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1561,7 +1557,7 @@ def test_change_message_visibility_on_unknown_receipt_handle():
 
 
 @mock_sqs
-def test_queue_length_boto3():
+def test_queue_length():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1575,7 +1571,7 @@ def test_queue_length_boto3():
 
 
 @mock_sqs
-def test_delete_batch_operation_boto3():
+def test_delete_batch_operation():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
@@ -1597,7 +1593,7 @@ def test_delete_batch_operation_boto3():
 
 
 @mock_sqs
-def test_change_message_visibility_on_old_message_boto3():
+def test_change_message_visibility_on_old_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
@@ -1636,7 +1632,7 @@ def test_change_message_visibility_on_old_message_boto3():
 
 
 @mock_sqs
-def test_change_message_visibility_on_visible_message_boto3():
+def test_change_message_visibility_on_visible_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
@@ -1695,7 +1691,7 @@ def test_purge_queue_before_delete_message():
 
 
 @mock_sqs
-def test_delete_message_after_visibility_timeout_boto3():
+def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(

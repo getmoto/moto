@@ -32,7 +32,6 @@ def test_create_user_pool():
     value = str(uuid.uuid4())
     result = conn.create_user_pool(PoolName=name, LambdaConfig={"PreSignUp": value})
 
-    result["UserPool"]["Id"].should_not.be.none
     result["UserPool"]["Id"].should.match(r"[\w-]+_[0-9a-zA-Z]+")
     result["UserPool"]["Arn"].should.equal(
         "arn:aws:cognito-idp:us-west-2:{}:userpool/{}".format(
@@ -75,7 +74,7 @@ def test_create_user_pool_should_have_all_default_attributes_in_schema():
             attribute.get("NumberAttributeConstraints", None).should.equal(
                 default_attr.get("NumberAttributeConstraints", None)
             )
-            attribute["DeveloperOnlyAttribute"].should.be.false
+            attribute["DeveloperOnlyAttribute"].should.equal(False)
 
 
 @mock_cognitoidp
@@ -126,18 +125,18 @@ def test_create_user_pool_custom_attribute_defaults():
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:string"
     )
-    string_attribute["DeveloperOnlyAttribute"].should.be.false
-    string_attribute["Mutable"].should.be.true
-    string_attribute.get("StringAttributeConstraints").should.be.none
+    string_attribute["DeveloperOnlyAttribute"].should.equal(False)
+    string_attribute["Mutable"].should.equal(True)
+    string_attribute.shouldnt.have.key("StringAttributeConstraints")
 
     number_attribute = next(
         attr
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:number"
     )
-    number_attribute["DeveloperOnlyAttribute"].should.be.false
-    number_attribute["Mutable"].should.be.true
-    number_attribute.get("NumberAttributeConstraints").should.be.none
+    number_attribute["DeveloperOnlyAttribute"].should.equal(False)
+    number_attribute["Mutable"].should.equal(True)
+    number_attribute.shouldnt.have.key("NumberAttributeConstraints")
 
 
 @mock_cognitoidp
@@ -159,7 +158,7 @@ def test_create_user_pool_custom_attribute_developer_only():
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "dev:custom:banana"
     )
-    attribute["DeveloperOnlyAttribute"].should.be.true
+    attribute["DeveloperOnlyAttribute"].should.equal(True)
 
 
 @mock_cognitoidp
@@ -236,7 +235,7 @@ def test_create_user_pool_attribute_with_schema():
     string_attribute["StringAttributeConstraints"].should.equal(
         {"MinLength": "10", "MaxLength": "20"}
     )
-    string_attribute.get("NumberAttributeConstraints").should.be.none
+    string_attribute.shouldnt.have.key("NumberAttributeConstraints")
 
     number_attribute = next(
         attr
@@ -246,15 +245,15 @@ def test_create_user_pool_attribute_with_schema():
     number_attribute["NumberAttributeConstraints"].should.equal(
         {"MinValue": "10", "MaxValue": "20"}
     )
-    number_attribute.get("StringAttributeConstraints").should.be.none
+    number_attribute.shouldnt.have.key("StringAttributeConstraints")
 
     boolean_attribute = next(
         attr
         for attr in res["UserPool"]["SchemaAttributes"]
         if attr["Name"] == "custom:boolean"
     )
-    boolean_attribute.get("NumberAttributeConstraints").should.be.none
-    boolean_attribute.get("StringAttributeConstraints").should.be.none
+    boolean_attribute.shouldnt.have.key("NumberAttributeConstraints")
+    boolean_attribute.shouldnt.have.key("StringAttributeConstraints")
 
 
 @mock_cognitoidp
@@ -307,13 +306,13 @@ def test_create_user_pool_attribute_partial_schema():
     )
 
     string_no_min["StringAttributeConstraints"]["MaxLength"].should.equal("10")
-    string_no_min["StringAttributeConstraints"].get("MinLength", None).should.be.none
+    string_no_min["StringAttributeConstraints"].shouldnt.have.key("MinLength")
     string_no_max["StringAttributeConstraints"]["MinLength"].should.equal("10")
-    string_no_max["StringAttributeConstraints"].get("MaxLength", None).should.be.none
+    string_no_max["StringAttributeConstraints"].shouldnt.have.key("MaxLength")
     number_no_min["NumberAttributeConstraints"]["MaxValue"].should.equal("10")
-    number_no_min["NumberAttributeConstraints"].get("MinValue", None).should.be.none
+    number_no_min["NumberAttributeConstraints"].shouldnt.have.key("MinValue")
     number_no_max["NumberAttributeConstraints"]["MinValue"].should.equal("10")
-    number_no_max["NumberAttributeConstraints"].get("MaxValue", None).should.be.none
+    number_no_max["NumberAttributeConstraints"].shouldnt.have.key("MaxValue")
 
 
 @mock_cognitoidp
@@ -460,7 +459,7 @@ def test_add_custom_attributes():
         if attr["Name"] == "custom:banana"
     )
     # Skip verification - already covered by create_user_pool with custom attributes
-    described_attribute.should_not.be.none
+    described_attribute.should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -751,7 +750,7 @@ def test_create_user_pool_domain():
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["CloudFrontDomain"].should_not.be.none
+    result["CloudFrontDomain"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -782,7 +781,7 @@ def test_describe_user_pool_domain():
     result = conn.describe_user_pool_domain(Domain=domain)
     result["DomainDescription"]["Domain"].should.equal(domain)
     result["DomainDescription"]["UserPoolId"].should.equal(user_pool_id)
-    result["DomainDescription"]["AWSAccountId"].should_not.be.none
+    result["DomainDescription"]["AWSAccountId"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -856,7 +855,7 @@ def test_create_user_pool_client_returns_secret():
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
     bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
-    result["UserPoolClient"]["ClientSecret"].should_not.be.none
+    result["UserPoolClient"]["ClientSecret"].should_not.equal(None)
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
     result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
 
@@ -1023,16 +1022,13 @@ def test_delete_user_pool_client():
         UserPoolId=user_pool_id, ClientId=client_details["UserPoolClient"]["ClientId"]
     )
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.describe_user_pool_client(
             UserPoolId=user_pool_id,
             ClientId=client_details["UserPoolClient"]["ClientId"],
         )
-    except conn.exceptions.ResourceNotFoundException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cognitoidp
@@ -1264,15 +1260,12 @@ def test_delete_identity_providers():
 
     conn.delete_identity_provider(UserPoolId=user_pool_id, ProviderName=provider_name)
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.describe_identity_provider(
             UserPoolId=user_pool_id, ProviderName=provider_name
         )
-    except conn.exceptions.ResourceNotFoundException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cognitoidp
@@ -1340,7 +1333,7 @@ def test_group_in_access_token():
 
     # A newly created user is forced to set a new password
     result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
-    result["Session"].should_not.be.none
+    result["Session"].should_not.equal(None)
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = str(uuid.uuid4())
@@ -1784,17 +1777,14 @@ def test_admin_create_existing_user():
         UserAttributes=[{"Name": "thing", "Value": value}],
     )
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.admin_create_user(
             UserPoolId=user_pool_id,
             Username=username,
             UserAttributes=[{"Name": "thing", "Value": value}],
         )
-    except conn.exceptions.UsernameExistsException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UsernameExistsException")
 
 
 @mock_cognitoidp
@@ -1863,18 +1853,13 @@ def test_admin_resend_invitation_existing_user():
         UserAttributes=[{"Name": "thing", "Value": value}],
     )
 
-    caught = False
-    try:
-        conn.admin_create_user(
-            UserPoolId=user_pool_id,
-            Username=username,
-            UserAttributes=[{"Name": "thing", "Value": value}],
-            MessageAction="RESEND",
-        )
-    except conn.exceptions.UsernameExistsException:
-        caught = True
-
-    caught.should.be.false
+    # Resending this should not throw an error
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "thing", "Value": value}],
+        MessageAction="RESEND",
+    )
 
 
 @mock_cognitoidp
@@ -2420,7 +2405,7 @@ def authentication_flow(conn, auth_flow):
 
     # A newly created user is forced to set a new password
     result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
-    result["Session"].should_not.be.none
+    result["Session"].should_not.equal(None)
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = str(uuid.uuid4())
@@ -2431,8 +2416,8 @@ def authentication_flow(conn, auth_flow):
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    result["AuthenticationResult"]["IdToken"].should_not.be.none
-    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["IdToken"].should_not.equal(None)
+    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
 
     return {
         "user_pool_id": user_pool_id,
@@ -2555,8 +2540,8 @@ def user_authentication_flow(conn):
         AuthParameters={"SECRET_HASH": secret_hash, "REFRESH_TOKEN": refresh_token},
     )
 
-    result["AuthenticationResult"]["IdToken"].should_not.be.none
-    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["IdToken"].should_not.equal(None)
+    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
     result["AuthenticationResult"]["TokenType"].should.equal("Bearer")
 
     # authenticate user once again this time with mfa token
@@ -2668,7 +2653,7 @@ def test_change_password():
             },
         )
 
-        result["AuthenticationResult"].should_not.be.none
+        result["AuthenticationResult"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -2704,7 +2689,7 @@ def test_change_password__using_custom_user_agent_header():
             },
         )
 
-        result["AuthenticationResult"].should_not.be.none
+        result["AuthenticationResult"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -2715,7 +2700,7 @@ def test_forgot_password():
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
-    result["CodeDeliveryDetails"]["Destination"].should.not_be.none
+    result["CodeDeliveryDetails"]["Destination"].should_not.equal(None)
     result["CodeDeliveryDetails"]["DeliveryMedium"].should.equal("SMS")
     result["CodeDeliveryDetails"]["AttributeName"].should.equal("phone_number")
 
@@ -3187,8 +3172,8 @@ def test_sign_up():
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
-    result["UserConfirmed"].should.be.false
-    result["UserSub"].should_not.be.none
+    result["UserConfirmed"].should.equal(False)
+    result["UserSub"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -3204,19 +3189,19 @@ def test_sign_up_with_username_attributes():
     password = str(uuid.uuid4())
     with pytest.raises(ClientError) as err:
         # Attempt to add user again
-        result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+        conn.sign_up(ClientId=client_id, Username=username, Password=password)
     err.value.response["Error"]["Code"].should.equal("InvalidParameterException")
 
     username = "test@example.com"
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
-    result["UserConfirmed"].should.be.false
-    result["UserSub"].should_not.be.none
+    result["UserConfirmed"].should.equal(False)
+    result["UserSub"].should_not.equal(None)
     username = "+123456789"
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
-    result["UserConfirmed"].should.be.false
-    result["UserSub"].should_not.be.none
+    result["UserConfirmed"].should.equal(False)
+    result["UserSub"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -3365,7 +3350,7 @@ def test_initiate_auth_REFRESH_TOKEN():
         },
     )
 
-    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
 
 
 @mock_cognitoidp
@@ -3378,9 +3363,9 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
         AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
     )
 
-    result["AuthenticationResult"]["AccessToken"].should_not.be.none
-    result["AuthenticationResult"]["IdToken"].should_not.be.none
-    result["AuthenticationResult"]["RefreshToken"].should_not.be.none
+    result["AuthenticationResult"]["AccessToken"].should_not.equal(None)
+    result["AuthenticationResult"]["IdToken"].should_not.equal(None)
+    result["AuthenticationResult"]["RefreshToken"].should_not.equal(None)
     result["AuthenticationResult"]["TokenType"].should.equal("Bearer")
 
 
@@ -3466,7 +3451,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
 
     result["ChallengeName"].should.equal("NEW_PASSWORD_REQUIRED")
     result["ChallengeParameters"]["USERNAME"].should.equal(username)
-    result["Session"].should_not.be.none
+    result["Session"].should_not.equal("")
     assert result.get("AuthenticationResult") is None
 
     new_password = str(uuid.uuid4())
@@ -3480,8 +3465,8 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
         },
     )
 
-    result["AuthenticationResult"]["IdToken"].should_not.be.none
-    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    result["AuthenticationResult"]["IdToken"].should_not.equal("")
+    result["AuthenticationResult"]["AccessToken"].should_not.equal("")
 
 
 @mock_cognitoidp
@@ -3555,8 +3540,7 @@ def test_initiate_auth_for_unconfirmed_user():
     new_digest = hmac.new(key, msg, hashlib.sha256).digest()
     secret_hash = base64.b64encode(new_digest).decode()
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.initiate_auth(
             ClientId=client_id,
             AuthFlow="USER_SRP_AUTH",
@@ -3566,10 +3550,8 @@ def test_initiate_auth_for_unconfirmed_user():
                 "SECRET_HASH": secret_hash,
             },
         )
-    except conn.exceptions.UserNotConfirmedException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("UserNotConfirmedException")
 
 
 @mock_cognitoidp
@@ -3589,8 +3571,7 @@ def test_initiate_auth_with_invalid_secret_hash():
 
     invalid_secret_hash = str(uuid.uuid4())
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.initiate_auth(
             ClientId=client_id,
             AuthFlow="USER_SRP_AUTH",
@@ -3600,10 +3581,8 @@ def test_initiate_auth_with_invalid_secret_hash():
                 "SECRET_HASH": invalid_secret_hash,
             },
         )
-    except conn.exceptions.NotAuthorizedException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
 
 
 @mock_cognitoidp
@@ -3636,16 +3615,13 @@ def test_setting_mfa_when_token_not_verified():
         result = authentication_flow(conn, auth_flow)
         conn.associate_software_token(AccessToken=result["access_token"])
 
-        caught = False
-        try:
+        with pytest.raises(ClientError) as exc:
             conn.set_user_mfa_preference(
                 AccessToken=result["access_token"],
                 SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
             )
-        except conn.exceptions.InvalidParameterException:
-            caught = True
-
-        caught.should.be.true
+        err = exc.value.response["Error"]
+        err["Code"].should.equal("InvalidParameterException")
 
 
 @mock_cognitoidp
@@ -3715,8 +3691,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
         },
     )
 
-    caught = False
-    try:
+    with pytest.raises(ClientError) as exc:
         conn.respond_to_auth_challenge(
             ClientId=result["client_id"],
             Session=challenge["Session"],
@@ -3727,10 +3702,8 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
                 "SECRET_HASH": invalid_secret_hash,
             },
         )
-    except conn.exceptions.NotAuthorizedException:
-        caught = True
-
-    caught.should.be.true
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NotAuthorizedException")
 
 
 @mock_cognitoidp

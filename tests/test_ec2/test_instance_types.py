@@ -12,8 +12,8 @@ def test_describe_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types()
 
-    instance_types.should.have.key("InstanceTypes")
-    instance_types["InstanceTypes"].should_not.be.empty
+    instance_types.should.have.key("InstanceTypes").be.a(list)
+    len(instance_types["InstanceTypes"]).should.be.greater_than(0)
     instance_types["InstanceTypes"][0].should.have.key("InstanceType")
     instance_types["InstanceTypes"][0].should.have.key("MemoryInfo")
     instance_types["InstanceTypes"][0]["MemoryInfo"].should.have.key("SizeInMiB")
@@ -27,7 +27,6 @@ def test_describe_instance_types_filter_by_type():
     )
 
     instance_types.should.have.key("InstanceTypes")
-    instance_types["InstanceTypes"].should_not.be.empty
     instance_types["InstanceTypes"].should.have.length_of(2)
     instance_types["InstanceTypes"][0]["InstanceType"].should.be.within(
         ["t1.micro", "t2.nano"]
@@ -45,10 +44,9 @@ def test_describe_instance_types_gpu_instance_types():
     )
 
     instance_types.should.have.key("InstanceTypes")
-    instance_types["InstanceTypes"].should_not.be.empty
     instance_types["InstanceTypes"].should.have.length_of(2)
-    instance_types["InstanceTypes"][0]["GpuInfo"].should_not.be.empty
-    instance_types["InstanceTypes"][1]["GpuInfo"].should_not.be.empty
+    instance_types["InstanceTypes"][0].should.have.key("GpuInfo")
+    instance_types["InstanceTypes"][1].should.have.key("GpuInfo")
 
     instance_type_to_gpu_info = {
         instance_info["InstanceType"]: instance_info["GpuInfo"]

@@ -367,5 +367,4 @@ class NodeDepthLeftTypeFetcher(object):
             candidate = self.queue.popleft()
             if isinstance(candidate, self.node_type):
                 return candidate
-        else:
-            raise StopIteration
+        raise StopIteration

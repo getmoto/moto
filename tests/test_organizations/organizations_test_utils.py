@@ -63,7 +63,7 @@ def validate_organization(response):
 
 def validate_roots(org, response):
     response.should.have.key("Roots").should.be.a(list)
-    response["Roots"].should_not.be.empty
+    response["Roots"].shouldnt.equal([])
     root = response["Roots"][0]
     root.should.have.key("Id").should.match(utils.ROOT_ID_REGEX)
     root.should.have.key("Arn").should.equal(

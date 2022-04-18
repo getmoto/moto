@@ -430,7 +430,7 @@ def test_get_paginated_list_create_account_status():
     for createAccountStatus in createAccountStatuses:
         validate_create_account_status(createAccountStatus)
     next_token = response["NextToken"]
-    next_token.should_not.be.none
+    next_token.should_not.equal(None)
     response2 = client.list_create_account_status(NextToken=next_token)
     createAccountStatuses.extend(response2["CreateAccountStatuses"])
     createAccountStatuses.should.have.length_of(6)
@@ -2003,7 +2003,7 @@ def test_aiservices_opt_out_policy():
     summary["Name"].should.equal("ai-opt-out")
     summary["Description"].should.equal("Opt out of all AI services")
     summary["Type"].should.equal("AISERVICES_OPT_OUT_POLICY")
-    summary["AwsManaged"].should_not.be.ok
+    summary["AwsManaged"].should.equal(False)
     json.loads(response["Policy"]["Content"]).should.equal(ai_policy)
 
     # when

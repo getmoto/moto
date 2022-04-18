@@ -335,7 +335,7 @@ def test_list_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify namespace has to exist
     res = cloudwatch.list_metrics(Namespace="unknown/")["Metrics"]
-    res.should.be.empty
+    res.should.equal([])
     # Create some metrics to filter on
     create_metrics(cloudwatch, namespace="list_test_1/", metrics=4, data_points=2)
     create_metrics(cloudwatch, namespace="list_test_2/", metrics=4, data_points=2)
@@ -358,7 +358,7 @@ def test_list_metrics():
     )
     # Verify unknown namespace still has no results
     res = cloudwatch.list_metrics(Namespace="unknown/")["Metrics"]
-    res.should.be.empty
+    res.should.equal([])
 
 
 @mock_cloudwatch
@@ -376,7 +376,7 @@ def test_list_metrics_paginated():
     create_metrics(cloudwatch, namespace="test", metrics=100, data_points=1)
     # Verify that a single page is returned until we've reached 500
     first_page = cloudwatch.list_metrics(Namespace="test")
-    first_page["Metrics"].shouldnt.be.empty
+    first_page["Metrics"].should.have.length_of(100)
 
     len(first_page["Metrics"]).should.equal(100)
     create_metrics(cloudwatch, namespace="test", metrics=200, data_points=2)
@@ -387,7 +387,7 @@ def test_list_metrics_paginated():
     create_metrics(cloudwatch, namespace="test", metrics=60, data_points=10)
     first_page = cloudwatch.list_metrics(Namespace="test")
     len(first_page["Metrics"]).should.equal(500)
-    first_page["NextToken"].shouldnt.be.empty
+    first_page["NextToken"].shouldnt.equal(None)
     # Retrieve second page - and verify there's more where that came from
     second_page = cloudwatch.list_metrics(
         Namespace="test", NextToken=first_page["NextToken"]
@@ -919,7 +919,7 @@ def test_put_metric_alarm():
     alarm["AlarmDescription"].should.equal("test alarm")
     alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
     alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["ActionsEnabled"].should.be.ok
+    alarm["ActionsEnabled"].should.equal(True)
     alarm["OKActions"].should.equal([sns_topic_arn])
     alarm["AlarmActions"].should.equal([sns_topic_arn])
     alarm["InsufficientDataActions"].should.equal([sns_topic_arn])
@@ -989,7 +989,7 @@ def test_put_metric_alarm_with_percentile():
     alarm["AlarmDescription"].should.equal("test alarm")
     alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
     alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["ActionsEnabled"].should.be.ok
+    alarm["ActionsEnabled"].should.equal(True)
     alarm["StateValue"].should.equal("OK")
     alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
     alarm["StateUpdatedTimestamp"].should.be.a(datetime)

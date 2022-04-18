@@ -25,7 +25,7 @@ def test_mock_works_with_client_created_inside(
     client = boto3.client("s3", region_name="us-east-1")
 
     b = client.list_buckets()
-    b["Buckets"].should.be.empty
+    b["Buckets"].should.equal([])
     m.stop()
 
 
@@ -45,7 +45,7 @@ def test_mock_works_with_client_created_outside(
     patch_client(outside_client)
 
     b = outside_client.list_buckets()
-    b["Buckets"].should.be.empty
+    b["Buckets"].should.equal([])
     m.stop()
 
 
@@ -65,7 +65,7 @@ def test_mock_works_with_resource_created_outside(
     patch_resource(outside_resource)
 
     b = list(outside_resource.buckets.all())
-    b.should.be.empty
+    b.should.equal([])
     m.stop()
 
 
