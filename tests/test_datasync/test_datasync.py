@@ -334,11 +334,12 @@ def test_start_task_execution_twice():
     task_arn = response["TaskArn"]
 
     response = client.start_task_execution(TaskArn=task_arn)
-    assert "TaskExecutionArn" in response
-    response["TaskExecutionArn"]
+    response.should.have.key("TaskExecutionArn")
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         client.start_task_execution(TaskArn=task_arn)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
 
 
 @mock_datasync

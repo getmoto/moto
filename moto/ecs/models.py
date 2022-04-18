@@ -1650,14 +1650,12 @@ class EC2ContainerServiceBackend(BaseBackend):
                 for revision in task_definition.values():
                     if revision.arn == resource_arn:
                         return revision.tags
-            else:
-                raise TaskDefinitionNotFoundException()
+            raise TaskDefinitionNotFoundException()
         elif parsed_arn["service"] == "service":
             for service in self.services.values():
                 if service.arn == resource_arn:
                     return service.tags
-            else:
-                raise ServiceNotFoundException
+            raise ServiceNotFoundException
         raise NotImplementedError()
 
     def _get_last_task_definition_revision_id(self, family):
@@ -1673,8 +1671,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 if service.arn == resource_arn:
                     service.tags = self._merge_tags(service.tags, tags)
                     return {}
-            else:
-                raise ServiceNotFoundException
+            raise ServiceNotFoundException
         raise NotImplementedError()
 
     def _merge_tags(self, existing_tags, new_tags):
@@ -1699,8 +1696,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tag for tag in service.tags if tag["key"] not in tag_keys
                     ]
                     return {}
-            else:
-                raise ServiceNotFoundException
+            raise ServiceNotFoundException
         raise NotImplementedError()
 
     def create_task_set(

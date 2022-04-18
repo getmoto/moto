@@ -188,7 +188,7 @@ def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.be.empty
+    sm_list["stateMachines"].should.equal([])
 
 
 @mock_stepfunctions
@@ -706,7 +706,7 @@ def test_state_machine_describe_execution_with_no_input():
     description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     description["executionArn"].should.equal(execution["executionArn"])
     description["input"].should.equal("{}")
-    description["name"].shouldnt.be.empty
+    description["name"].should.match("[-0-9a-z]+")
     description["startDate"].should.equal(execution["startDate"])
     description["stateMachineArn"].should.equal(sm["stateMachineArn"])
     description["status"].should.equal("RUNNING")
@@ -730,7 +730,7 @@ def test_state_machine_describe_execution_with_custom_input():
     description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     description["executionArn"].should.equal(execution["executionArn"])
     description["input"].should.equal(execution_input)
-    description["name"].shouldnt.be.empty
+    description["name"].should.match("[-a-z0-9]+")
     description["startDate"].should.equal(execution["startDate"])
     description["stateMachineArn"].should.equal(sm["stateMachineArn"])
     description["status"].should.equal("RUNNING")

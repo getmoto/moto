@@ -32,7 +32,7 @@ def test_snapshots_for_initial_amis():
 
 
 @mock_ec2
-def test_ami_create_and_delete_boto3():
+def test_ami_create_and_delete():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -118,11 +118,11 @@ def test_ami_create_and_delete_boto3():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidAMIID.NotFound")
-    ex.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    ex.value.response["ResponseMetadata"]["RequestId"].should_not.equal(None)
 
 
 @mock_ec2
-def test_ami_copy_boto3_dryrun():
+def test_ami_copy_dryrun():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -152,7 +152,7 @@ def test_ami_copy_boto3_dryrun():
 
 
 @mock_ec2
-def test_ami_copy_boto3():
+def test_ami_copy():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -270,7 +270,7 @@ def test_copy_image_changes_owner_id():
 
 
 @mock_ec2
-def test_ami_tagging_boto3():
+def test_ami_tagging():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     res = boto3.resource("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -299,7 +299,7 @@ def test_ami_tagging_boto3():
 
 
 @mock_ec2
-def test_ami_create_from_missing_instance_boto3():
+def test_ami_create_from_missing_instance():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
@@ -312,7 +312,7 @@ def test_ami_create_from_missing_instance_boto3():
 
 
 @mock_ec2
-def test_ami_pulls_attributes_from_instance_boto3():
+def test_ami_pulls_attributes_from_instance():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = reservation["Instances"][0]
@@ -328,7 +328,7 @@ def test_ami_pulls_attributes_from_instance_boto3():
 
 
 @mock_ec2
-def test_ami_uses_account_id_if_valid_access_key_is_supplied_boto3():
+def test_ami_uses_account_id_if_valid_access_key_is_supplied():
     # The boto-equivalent required an access_key to be passed in, but Moto will always mock this in boto3
     # So the only thing we're testing here, really.. is whether OwnerId is equal to ACCOUNT_ID?
     # TODO: Maybe patch account_id with multiple values, and verify it always  matches with OwnerId
@@ -346,7 +346,7 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied_boto3():
 
 
 @mock_ec2
-def test_ami_filters_boto3():
+def test_ami_filters():
     image_name_A = f"test-ami-{str(uuid4())[0:6]}"
     kernel_value_A = f"k-{str(uuid4())[0:6]}"
     kernel_value_B = f"k-{str(uuid4())[0:6]}"
@@ -432,7 +432,7 @@ def test_ami_filters_boto3():
 
 
 @mock_ec2
-def test_ami_filtering_via_tag_boto3():
+def test_ami_filtering_via_tag():
     tag_value = f"value {str(uuid4())}"
     other_value = f"value {str(uuid4())}"
     ec2 = boto3.client("ec2", region_name="us-east-1")
@@ -465,7 +465,7 @@ def test_ami_filtering_via_tag_boto3():
 
 
 @mock_ec2
-def test_getting_missing_ami_boto3():
+def test_getting_missing_ami():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
@@ -476,7 +476,7 @@ def test_getting_missing_ami_boto3():
 
 
 @mock_ec2
-def test_getting_malformed_ami_boto3():
+def test_getting_malformed_ami():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
@@ -487,7 +487,7 @@ def test_getting_malformed_ami_boto3():
 
 
 @mock_ec2
-def test_ami_attribute_group_permissions_boto3():
+def test_ami_attribute_group_permissions():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = reservation["Instances"][0]
@@ -553,7 +553,7 @@ def test_ami_attribute_group_permissions_boto3():
 
 
 @mock_ec2
-def test_ami_attribute_user_permissions_boto3():
+def test_ami_attribute_user_permissions():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = reservation["Instances"][0]
@@ -737,7 +737,7 @@ def test_ami_describe_executable_users_and_filter():
 
 
 @mock_ec2
-def test_ami_attribute_user_and_group_permissions_boto3():
+def test_ami_attribute_user_and_group_permissions():
     """
     Boto supports adding/removing both users and groups at the same time.
     Just spot-check this -- input variations, idempotency, etc are validated
@@ -827,7 +827,7 @@ def test_filter_description():
 
 
 @mock_ec2
-def test_ami_attribute_error_cases_boto3():
+def test_ami_attribute_error_cases():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = reservation["Instances"][0]

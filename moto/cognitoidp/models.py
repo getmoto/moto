@@ -1616,8 +1616,8 @@ class CognitoIdpBackend(BaseBackend):
                 self.admin_get_user(user_pool.id, username)
 
                 return {"SecretCode": str(uuid.uuid4())}
-        else:
-            raise NotAuthorizedError(access_token)
+
+        raise NotAuthorizedError(access_token)
 
     def verify_software_token(self, access_token):
         """
@@ -1631,8 +1631,8 @@ class CognitoIdpBackend(BaseBackend):
                 user.token_verified = True
 
                 return {"Status": "SUCCESS"}
-        else:
-            raise NotAuthorizedError(access_token)
+
+        raise NotAuthorizedError(access_token)
 
     def set_user_mfa_preference(
         self, access_token, software_token_mfa_settings, sms_mfa_settings
@@ -1660,8 +1660,8 @@ class CognitoIdpBackend(BaseBackend):
                     if sms_mfa_settings.get("PreferredMfa"):
                         user.preferred_mfa_setting = "SMS_MFA"
                 return None
-        else:
-            raise NotAuthorizedError(access_token)
+
+        raise NotAuthorizedError(access_token)
 
     def admin_set_user_mfa_preference(
         self, user_pool_id, username, software_token_mfa_settings, sms_mfa_settings

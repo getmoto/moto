@@ -192,7 +192,7 @@ def test_list_clusters_returns_empty_by_default():
 
     result = client.list_clusters()[ResponseAttributes.CLUSTERS]
 
-    result.should.be.empty
+    result.should.equal([])
 
 
 @mock_eks
@@ -403,7 +403,7 @@ def test_list_nodegroups_returns_empty_by_default(ClusterBuilder):
         clusterName=generated_test_data.existing_cluster_name
     )[ResponseAttributes.NODEGROUPS]
 
-    result.should.be.empty
+    result.should.equal([])
 
 
 @mock_eks
@@ -851,7 +851,7 @@ def test_list_fargate_profile_returns_empty_by_default(ClusterBuilder):
         clusterName=generated_test_data.existing_cluster_name
     )[ResponseAttributes.FARGATE_PROFILE_NAMES]
 
-    result.should.be.empty
+    result.should.equal([])
 
 
 @mock_eks
@@ -1343,7 +1343,7 @@ def all_arn_values_should_be_valid(expected_arn_values, pattern, arn_under_test)
         if expected_value:
             value.should.be.within(expected_value)
         else:
-            value.should.be.truthy
+            value.shouldnt.equal(None)
     region_matches_partition(findall[1], findall[0]).should.be.true
 
 
