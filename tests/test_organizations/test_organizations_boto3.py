@@ -27,6 +27,8 @@ from .organizations_test_utils import (
     validate_create_account_status,
     validate_service_control_policy,
     validate_policy_summary,
+    validate_account_created,
+    validate_account_closed,
 )
 
 
@@ -171,6 +173,29 @@ def test_create_account():
     ]
     validate_create_account_status(create_status)
     create_status["AccountName"].should.equal(mockname)
+
+
+@mock_organizations
+def test_close_account():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    create_status = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]
+    created_account_id = create_status["AccountId"]
+    accounts_list_before = client.list_accounts()["Accounts"]
+    validate_account_created(
+        accounts_list=accounts_list_before,
+        account_id=created_account_id,
+    )
+
+    client.close_account(AccountId=created_account_id)
+
+    accounts_list_after = client.list_accounts()["Accounts"]
+    validate_account_closed(accounts_list_after, created_account_id)
+    number_accounts_before = len(accounts_list_before)
+    number_accounts_after = len(accounts_list_after)
+    (number_accounts_before - number_accounts_after).should.equal(1)
 
 
 @mock_organizations

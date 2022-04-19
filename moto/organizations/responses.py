@@ -67,6 +67,11 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.create_account(**self.request_params)
         )
 
+    def close_account(self):
+        return json.dumps(
+            self.organizations_backend.close_account(**self.request_params)
+        )
+
     def describe_account(self):
         return json.dumps(
             self.organizations_backend.describe_account(**self.request_params)
