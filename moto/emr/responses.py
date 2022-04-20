@@ -279,6 +279,7 @@ class ElasticMapReduceResponse(BaseResponse):
             job_flow_role=self._get_param("JobFlowRole"),
             service_role=self._get_param("ServiceRole"),
             auto_scaling_role=self._get_param("AutoScalingRole"),
+            ebs_root_volume_size=self._get_param("EbsRootVolumeSize", 10),
             steps=steps_from_query_string(self._get_list_prefix("Steps.member")),
             visible_to_all_users=self._get_bool_param("VisibleToAllUsers", False),
             instance_attrs=instance_attrs,
@@ -618,7 +619,12 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
         </member>
         {% endfor %}
       </Applications>
+      {% if cluster.keep_job_flow_alive_when_no_steps is not none %}
       <AutoTerminate>{{ (not cluster.keep_job_flow_alive_when_no_steps)|lower }}</AutoTerminate>
+      {% endif %}
+      <EbsRootVolumeSize>
+      {{ cluster.ebs_root_volume_size }}
+      </EbsRootVolumeSize>
       <Configurations>
         {% for configuration in cluster.configurations %}
         <member>
@@ -674,8 +680,14 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
         <ADDomainJoinPassword>{{ cluster.kerberos_attributes['ADDomainJoinPassword'] }}</ADDomainJoinPassword>
         {% endif %}
       </KerberosAttributes>
+      {% if cluster.log_uri is not none %}
       <LogUri>{{ cluster.log_uri }}</LogUri>
+      {% endif %}
+      {% if cluster.master_public_dns_name is not none %}
+      <MasterPublicDnsName>{{ cluster.master_public_dns_name }}</MasterPublicDnsName>
+      {% else %}
       <MasterPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MasterPublicDnsName>
+      {% endif %}
       <Name>{{ cluster.name }}</Name>
       <NormalizedInstanceHours>{{ cluster.normalized_instance_hours }}</NormalizedInstanceHours>
       {% if cluster.release_label is not none %}
@@ -691,7 +703,9 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       <SecurityConfiguration>{{ cluster.security_configuration }}</SecurityConfiguration>
       {% endif %}
       <ServiceRole>{{ cluster.service_role }}</ServiceRole>
+      {% if cluster.auto_scaling_role is not none %}
       <AutoScalingRole>{{ cluster.auto_scaling_role }}</AutoScalingRole>
+      {% endif %}
       <Status>
         <State>{{ cluster.state }}</State>
         <StateChangeReason>
