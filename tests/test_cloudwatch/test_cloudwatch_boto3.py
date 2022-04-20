@@ -786,6 +786,114 @@ def test_get_metric_data_for_multiple_metrics():
 
 
 @mock_cloudwatch
+def test_get_metric_data_for_dimensions():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    # If the metric is created with multiple dimensions, then the data points for that metric can be retrieved only by specifying all the configured dimensions.
+    # https://aws.amazon.com/premiumsupport/knowledge-center/cloudwatch-getmetricstatistics-data/
+    server_prod = {"Name": "Server", "Value": "Prod"}
+    dimension_berlin = [server_prod, {"Name": "Domain", "Value": "Berlin"}]
+    dimension_frankfurt = [server_prod, {"Name": "Domain", "Value": "Frankfurt"}]
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Dimensions": dimension_berlin,
+                "Unit": "Seconds",
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 25,
+                "Unit": "Seconds",
+                "Dimensions": dimension_frankfurt,
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result1",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": dimension_frankfurt,
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+            {
+                "Id": "result2",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": dimension_berlin,
+                    },
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+            {
+                "Id": "result3",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": [server_prod],
+                    },
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+            {
+                "Id": "result4",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    len(response["MetricDataResults"]).should.equal(4)
+
+    res1 = [res for res in response["MetricDataResults"] if res["Id"] == "result1"][0]
+    # expect sample count for dimension_frankfurt
+    res1["Values"].should.equal([1.0])
+
+    res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
+    # expect sum for dimension_berlin
+    res2["Values"].should.equal([50.0])
+
+    res3 = [res for res in response["MetricDataResults"] if res["Id"] == "result3"][0]
+    # expect no result, as server_prod is only a part of other dimensions, e.g. there is no match
+    res3["Values"].should.equal([])
+
+    res4 = [res for res in response["MetricDataResults"] if res["Id"] == "result4"][0]
+    # expect sum of both metrics, as we did not filter for dimensions
+    res4["Values"].should.equal([75.0])
+
+
+@mock_cloudwatch
 @mock_s3
 def test_cloudwatch_return_s3_metrics():
     utc_now = datetime.now(tz=pytz.utc)
