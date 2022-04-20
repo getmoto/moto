@@ -102,8 +102,8 @@ class FakeAccount(BaseModel):
                 "Id": self.create_account_status_id,
                 "AccountName": self.name,
                 "State": "SUCCEEDED",
-                "RequestedTimestamp": unix_time(self.create_time),
-                "CompletedTimestamp": unix_time(self.create_time),
+                "RequestedTimestamp": unix_time(datetime.datetime.utcnow()),
+                "CompletedTimestamp": unix_time(datetime.datetime.utcnow()),
                 "AccountId": self.id,
             }
         }
