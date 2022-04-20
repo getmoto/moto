@@ -199,6 +199,23 @@ def test_close_account():
 
 
 @mock_organizations
+def test_close_account_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    uncreated_fake_account_id = "123456789101"
+
+    with pytest.raises(ClientError) as e:
+        client.close_account(AccountId=uncreated_fake_account_id)
+    ex = e.value
+    ex.operation_name.should.equal("CloseAccount")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
+
+
+@mock_organizations
 def test_describe_create_account_status():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
