@@ -177,11 +177,12 @@ class ELBV2Response(BaseResponse):
 
     @amzn_request_id
     def create_target_group(self):
-        name = self._get_param("Name")
-        vpc_id = self._get_param("VpcId")
-        protocol = self._get_param("Protocol")
-        protocol_version = self._get_param("ProtocolVersion", "HTTP1")
-        port = self._get_param("Port")
+        params = self._get_params()
+        name = params.get("Name")
+        vpc_id = params.get("VpcId")
+        protocol = params.get("Protocol")
+        protocol_version = params.get("ProtocolVersion", "HTTP1")
+        port = params.get("Port")
         healthcheck_protocol = self._get_param("HealthCheckProtocol")
         healthcheck_port = self._get_param("HealthCheckPort")
         healthcheck_path = self._get_param("HealthCheckPath")
@@ -190,8 +191,9 @@ class ELBV2Response(BaseResponse):
         healthcheck_enabled = self._get_param("HealthCheckEnabled")
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
-        matcher = self._get_params().get("Matcher")
-        target_type = self._get_param("TargetType")
+        matcher = params.get("Matcher")
+        target_type = params.get("TargetType")
+        tags = params.get("Tags")
 
         target_group = self.elbv2_backend.create_target_group(
             name,
@@ -209,6 +211,7 @@ class ELBV2Response(BaseResponse):
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
             target_type=target_type,
+            tags=tags,
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
