@@ -66,17 +66,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         launch_template_arg = kwargs.get("launch_template", {})
         if launch_template_arg and not image_id:
             # the image id from the template should be used
-            template = (
-                ec2_backend.describe_launch_templates(
-                    template_ids=[launch_template_arg["LaunchTemplateId"]]
-                )[0]
-                if "LaunchTemplateId" in launch_template_arg
-                else ec2_backend.describe_launch_templates(
-                    template_names=[launch_template_arg["LaunchTemplateName"]]
-                )[0]
-            )
-            version = launch_template_arg.get("Version", template.latest_version_number)
-            self.image_id = template.get_version(int(version)).image_id
+            template_version = ec2_backend._get_template_from_args(launch_template_arg)
+            self.image_id = template_version.image_id
         else:
             self.image_id = image_id
 
@@ -183,6 +174,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         encrypted=False,
         delete_on_termination=False,
         kms_key_id=None,
+        volume_type=None,
     ):
         volume = self.ec2_backend.create_volume(
             size=size,
@@ -190,6 +182,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             snapshot_id=snapshot_id,
             encrypted=encrypted,
             kms_key_id=kms_key_id,
+            volume_type=volume_type,
         )
         self.ec2_backend.attach_volume(
             volume.id, self.id, device_path, delete_on_termination
@@ -563,16 +556,30 @@ class InstanceBackend(object):
             )
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
+            block_device_mappings = None
             if "block_device_mappings" in kwargs:
-                for block_device in kwargs["block_device_mappings"]:
+                block_device_mappings = kwargs["block_device_mappings"]
+            elif kwargs.get("launch_template"):
+                template = self._get_template_from_args(kwargs["launch_template"])
+                block_device_mappings = template.data.get("BlockDeviceMapping")
+            elif kwargs.get("launch_config"):
+                block_device_mappings = kwargs[
+                    "launch_config"
+                ].block_device_mapping_dict
+            if block_device_mappings:
+                for block_device in block_device_mappings:
                     device_name = block_device["DeviceName"]
                     volume_size = block_device["Ebs"].get("VolumeSize")
+                    volume_type = block_device["Ebs"].get("VolumeType")
                     snapshot_id = block_device["Ebs"].get("SnapshotId")
                     encrypted = block_device["Ebs"].get("Encrypted", False)
+                    if isinstance(encrypted, str):
+                        encrypted = encrypted.lower() == "true"
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
                     )
                     kms_key_id = block_device["Ebs"].get("KmsKeyId")
+
                     if block_device.get("NoDevice") != "":
                         new_instance.add_block_device(
                             volume_size,
@@ -581,6 +588,7 @@ class InstanceBackend(object):
                             encrypted,
                             delete_on_termination,
                             kms_key_id,
+                            volume_type=volume_type,
                         )
             else:
                 new_instance.setup_defaults()
@@ -759,3 +767,17 @@ class InstanceBackend(object):
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
+
+    def _get_template_from_args(self, launch_template_arg):
+        template = (
+            self.describe_launch_templates(
+                template_ids=[launch_template_arg["LaunchTemplateId"]]
+            )[0]
+            if "LaunchTemplateId" in launch_template_arg
+            else self.describe_launch_templates(
+                template_names=[launch_template_arg["LaunchTemplateName"]]
+            )[0]
+        )
+        version = launch_template_arg.get("Version", template.latest_version_number)
+        template_version = template.get_version(int(version))
+        return template_version

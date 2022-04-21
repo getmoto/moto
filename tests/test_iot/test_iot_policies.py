@@ -72,7 +72,7 @@ def test_list_attached_policies():
     client = boto3.client("iot", region_name="ap-northeast-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
     policies = client.list_attached_policies(target=cert["certificateArn"])
-    policies["policies"].should.be.empty
+    policies["policies"].should.equal([])
 
 
 @mock_iot

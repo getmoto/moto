@@ -52,19 +52,19 @@ def test_send_to_cw_log_group():
     response = client_logs.filter_log_events(logGroupName=log_group_name)
     response["events"].should.have.length_of(1)
     event = response["events"][0]
-    event["logStreamName"].should_not.be.empty
+    event["logStreamName"].should_not.equal(None)
     event["timestamp"].should.be.a(float)
     event["ingestionTime"].should.be.a(int)
-    event["eventId"].should_not.be.empty
+    event["eventId"].should_not.equal(None)
 
     message = json.loads(event["message"])
     message["version"].should.equal("0")
-    message["id"].should_not.be.empty
+    message["id"].should_not.equal(None)
     message["detail-type"].should.equal("type")
     message["source"].should.equal("source")
     message["time"].should.equal(iso_8601_datetime_without_milliseconds(event_time))
     message["region"].should.equal("eu-central-1")
-    message["resources"].should.be.empty
+    message["resources"].should.equal([])
     message["detail"].should.equal({"key": "value"})
 
 
@@ -131,21 +131,21 @@ def test_send_to_sqs_fifo_queue():
     )
     response["Messages"].should.have.length_of(1)
     message = response["Messages"][0]
-    message["MessageId"].should_not.be.empty
-    message["ReceiptHandle"].should_not.be.empty
-    message["MD5OfBody"].should_not.be.empty
+    message["MessageId"].should_not.equal(None)
+    message["ReceiptHandle"].should_not.equal(None)
+    message["MD5OfBody"].should_not.equal(None)
 
-    message["Attributes"]["MessageDeduplicationId"].should_not.be.empty
+    message["Attributes"]["MessageDeduplicationId"].should_not.equal(None)
     message["Attributes"]["MessageGroupId"].should.equal("group-id")
 
     body = json.loads(message["Body"])
     body["version"].should.equal("0")
-    body["id"].should_not.be.empty
+    body["id"].should_not.equal(None)
     body["detail-type"].should.equal("type")
     body["source"].should.equal("source")
     body["time"].should.equal(iso_8601_datetime_without_milliseconds(event_time))
     body["region"].should.equal("eu-central-1")
-    body["resources"].should.be.empty
+    body["resources"].should.equal([])
     body["detail"].should.equal({"key": "value"})
 
     # A FIFO queue without content-based deduplication enabled
@@ -191,18 +191,18 @@ def test_send_to_sqs_queue():
     response = client_sqs.receive_message(QueueUrl=queue_url)
     response["Messages"].should.have.length_of(1)
     message = response["Messages"][0]
-    message["MessageId"].should_not.be.empty
-    message["ReceiptHandle"].should_not.be.empty
-    message["MD5OfBody"].should_not.be.empty
+    message["MessageId"].should_not.equal(None)
+    message["ReceiptHandle"].should_not.equal(None)
+    message["MD5OfBody"].should_not.equal(None)
 
     body = json.loads(message["Body"])
     body["version"].should.equal("0")
-    body["id"].should_not.be.empty
+    body["id"].should_not.equal(None)
     body["detail-type"].should.equal("type")
     body["source"].should.equal("source")
     body["time"].should.equal(iso_8601_datetime_without_milliseconds(event_time))
     body["region"].should.equal("eu-central-1")
-    body["resources"].should.be.empty
+    body["resources"].should.equal([])
     body["detail"].should.equal({"key": "value"})
 
 

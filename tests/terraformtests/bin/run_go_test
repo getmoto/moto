@@ -1,0 +1,18 @@
+#!/bin/bash
+
+pwd=$PWD
+
+(
+cd terraform-provider-aws || exit
+echo "Patching the terraform-provider-aws directory..."
+PATCH="etc/0001-Patch-Hardcode-endpoints-to-local-server.patch"
+(git apply $pwd/etc/0001-Patch-Hardcode-endpoints-to-local-server.patch > /dev/null 2>&1 && echo "Patched endpoints") || echo "Not patching endpoints - Directory was probably already patched."
+(git apply $pwd/etc/0002-EC2-reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched EC2") || echo "Not patching EC2 - Directory was probably already patched."
+(git apply $pwd/etc/0003-Patch-IAM-wait-times.patch > /dev/null 2>&1 && echo "Patched IAM") || echo "Not patching IAM - Directory was probably already patched."
+)
+
+(
+cd terraform-provider-aws || exit
+echo "Running tests $2 for service $1..."
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test TF_ACC=true go test ./internal/service/$1/ -v -timeout 60m -run $2
+)

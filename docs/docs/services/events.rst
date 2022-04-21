@@ -39,6 +39,7 @@ events
 
 - [X] create_archive
 - [X] create_connection
+- [ ] create_endpoint
 - [X] create_event_bus
 - [ ] create_partner_event_source
 - [ ] deactivate_event_source
@@ -77,6 +78,7 @@ events
             dict
         
 
+- [ ] delete_endpoint
 - [X] delete_event_bus
 - [ ] delete_partner_event_source
 - [X] delete_rule
@@ -109,6 +111,7 @@ events
             dict
         
 
+- [ ] describe_endpoint
 - [X] describe_event_bus
 - [ ] describe_event_source
 - [ ] describe_partner_event_source
@@ -119,6 +122,7 @@ events
 - [X] list_api_destinations
 - [X] list_archives
 - [X] list_connections
+- [ ] list_endpoints
 - [X] list_event_buses
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
@@ -151,4 +155,5 @@ events
 
 - [X] update_archive
 - [X] update_connection
+- [ ] update_endpoint
 

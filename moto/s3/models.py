@@ -56,6 +56,7 @@ from moto.s3.exceptions import (
     InvalidTagError,
 )
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
+from . import notifications
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
@@ -694,6 +695,33 @@ class Notification(BaseModel):
         self.events = events
         self.filters = filters if filters else {}
 
+    def _event_matches(self, event_name):
+        if event_name in self.events:
+            return True
+        # s3:ObjectCreated:Put --> s3:ObjectCreated:*
+        wildcard = ":".join(event_name.rsplit(":")[0:2]) + ":*"
+        if wildcard in self.events:
+            return True
+        return False
+
+    def _key_matches(self, key_name):
+        if "S3Key" not in self.filters:
+            return True
+        _filters = {f["Name"]: f["Value"] for f in self.filters["S3Key"]["FilterRule"]}
+        prefix_matches = "prefix" not in _filters or key_name.startswith(
+            _filters["prefix"]
+        )
+        suffix_matches = "suffix" not in _filters or key_name.endswith(
+            _filters["suffix"]
+        )
+        return prefix_matches and suffix_matches
+
+    def matches(self, event_name, key_name):
+        if self._event_matches(event_name):
+            if self._key_matches(key_name):
+                return True
+        return False
+
     def to_config_dict(self):
         data = {}
 
@@ -1100,6 +1128,9 @@ class FakeBucket(CloudFormationModel):
                 region = t.arn.split(":")[3]
                 if region != self.region_name:
                     raise InvalidNotificationDestination()
+
+        # Send test events so the user can verify these notifications were set correctly
+        notifications.send_test_event(bucket=self)
 
     def set_accelerate_configuration(self, accelerate_config):
         if self.accelerate_configuration is None and accelerate_config == "Suspended":
@@ -1635,6 +1666,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ] + [new_key]
         bucket.keys.setlist(key_name, keys)
 
+        notifications.send_event(notifications.S3_OBJECT_CREATE_PUT, bucket, new_key)
+
         return new_key
 
     def put_object_acl(self, bucket_name, key_name, acl):
@@ -1769,6 +1802,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket.public_access_block = None
 
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
+        """
+        The configuration can be persisted, but at the moment we only send notifications to the following targets:
+
+         - AWSLambda
+         - SQS
+
+        For the following events:
+
+         - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Put'
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
 
@@ -2046,6 +2090,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if src_key.storage_class in "GLACIER":
             # Object copied from Glacier object should not have expiry
             new_key.set_expiry(None)
+
+        # Send notifications that an object was copied
+        bucket = self.get_bucket(dest_bucket_name)
+        notifications.send_event(notifications.S3_OBJECT_CREATE_COPY, bucket, new_key)
 
     def put_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)

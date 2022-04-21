@@ -13,7 +13,7 @@ from uuid import uuid4
 
 
 @mock_ec2
-def test_elastic_network_interfaces_boto3():
+def test_elastic_network_interfaces():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
@@ -70,7 +70,7 @@ def test_elastic_network_interfaces_boto3():
 
 
 @mock_ec2
-def test_elastic_network_interfaces_subnet_validation_boto3():
+def test_elastic_network_interfaces_subnet_validation():
     client = boto3.client("ec2", "us-east-1")
 
     with pytest.raises(ClientError) as ex:
@@ -81,7 +81,7 @@ def test_elastic_network_interfaces_subnet_validation_boto3():
 
 
 @mock_ec2
-def test_elastic_network_interfaces_with_private_ip_boto3():
+def test_elastic_network_interfaces_with_private_ip():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
@@ -106,7 +106,7 @@ def test_elastic_network_interfaces_with_private_ip_boto3():
 
 
 @mock_ec2
-def test_elastic_network_interfaces_with_groups_boto3():
+def test_elastic_network_interfaces_with_groups():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
@@ -158,7 +158,7 @@ def test_elastic_network_interfaces_without_group():
 
 
 @mock_ec2
-def test_elastic_network_interfaces_modify_attribute_boto3():
+def test_elastic_network_interfaces_modify_attribute():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
@@ -197,7 +197,7 @@ def test_elastic_network_interfaces_modify_attribute_boto3():
 
 
 @mock_ec2
-def test_elastic_network_interfaces_filtering_boto3():
+def test_elastic_network_interfaces_filtering():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
 
@@ -1003,7 +1003,7 @@ def test_elastic_network_interfaces_describe_attachment():
         NetworkInterfaceId=eni_id, Attribute="attachment"
     ).get("Attachment")
     my_eni_attachment["InstanceId"].should.equal(instance_id)
-    my_eni_attachment["DeleteOnTermination"].should.be.false
+    my_eni_attachment["DeleteOnTermination"].should.equal(False)
 
     with pytest.raises(ClientError) as ex:
         client.describe_network_interface_attribute(

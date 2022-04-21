@@ -15,6 +15,11 @@ class RecipeAlreadyExistsException(AlreadyExistsException):
         super().__init__("Recipe")
 
 
+class RulesetAlreadyExistsException(AlreadyExistsException):
+    def __init__(self):
+        super().__init__("Ruleset")
+
+
 class EntityNotFoundException(DataBrewClientError):
     def __init__(self, msg):
         super().__init__("EntityNotFoundException", msg)
@@ -23,3 +28,8 @@ class EntityNotFoundException(DataBrewClientError):
 class RecipeNotFoundException(EntityNotFoundException):
     def __init__(self, recipe_name):
         super().__init__("Recipe %s not found." % recipe_name)
+
+
+class RulesetNotFoundException(EntityNotFoundException):
+    def __init__(self, recipe_name):
+        super().__init__("Ruleset %s not found." % recipe_name)

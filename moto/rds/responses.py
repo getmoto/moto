@@ -195,6 +195,8 @@ class RDSResponse(BaseResponse):
     def modify_db_instance(self):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_kwargs = self._get_db_kwargs()
+        # NOTE modify_db_instance does not support tags
+        del db_kwargs["tags"]
         new_db_instance_identifier = self._get_param("NewDBInstanceIdentifier")
         if new_db_instance_identifier:
             db_kwargs["new_db_instance_identifier"] = new_db_instance_identifier
@@ -507,7 +509,10 @@ class RDSResponse(BaseResponse):
 
     def delete_db_cluster(self):
         _id = self._get_param("DBClusterIdentifier")
-        cluster = self.backend.delete_db_cluster(cluster_identifier=_id)
+        snapshot_name = self._get_param("FinalDBSnapshotIdentifier")
+        cluster = self.backend.delete_db_cluster(
+            cluster_identifier=_id, snapshot_name=snapshot_name
+        )
         template = self.response_template(DELETE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 

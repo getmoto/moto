@@ -12,7 +12,7 @@ from unittest import SkipTest
 
 
 @mock_ec2
-def test_subnets_boto3():
+def test_subnets():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -36,7 +36,7 @@ def test_subnets_boto3():
 
 
 @mock_ec2
-def test_subnet_create_vpc_validation_boto3():
+def test_subnet_create_vpc_validation():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
@@ -47,7 +47,7 @@ def test_subnet_create_vpc_validation_boto3():
 
 
 @mock_ec2
-def test_subnet_tagging_boto3():
+def test_subnet_tagging():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -67,7 +67,7 @@ def test_subnet_tagging_boto3():
 
 
 @mock_ec2
-def test_subnet_should_have_proper_availability_zone_set_boto3():
+def test_subnet_should_have_proper_availability_zone_set():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpcA = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnetA = ec2.create_subnet(
@@ -97,29 +97,29 @@ def test_default_subnet():
     default_vpc = list(ec2.vpcs.all())[0]
     default_vpc.cidr_block.should.equal("172.31.0.0/16")
     default_vpc.reload()
-    default_vpc.is_default.should.be.ok
+    default_vpc.is_default.should.equal(True)
 
     subnet = ec2.create_subnet(
         VpcId=default_vpc.id, CidrBlock="172.31.48.0/20", AvailabilityZone="us-west-1a"
     )
     subnet.reload()
-    subnet.map_public_ip_on_launch.shouldnt.be.ok
+    subnet.map_public_ip_on_launch.should.equal(False)
 
 
 @mock_ec2
-def test_boto3_non_default_subnet():
+def test_non_default_subnet():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     subnet = ec2.create_subnet(
         VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-1a"
     )
     subnet.reload()
-    subnet.map_public_ip_on_launch.shouldnt.be.ok
+    subnet.map_public_ip_on_launch.should.equal(False)
 
 
 @mock_ec2
@@ -140,19 +140,19 @@ def test_modify_subnet_attribute_public_ip_on_launch():
     subnet.reload()
 
     # For non default subnet, attribute value should be 'False'
-    subnet.map_public_ip_on_launch.shouldnt.be.ok
+    subnet.map_public_ip_on_launch.should.equal(False)
 
     client.modify_subnet_attribute(
         SubnetId=subnet.id, MapPublicIpOnLaunch={"Value": False}
     )
     subnet.reload()
-    subnet.map_public_ip_on_launch.shouldnt.be.ok
+    subnet.map_public_ip_on_launch.should.equal(False)
 
     client.modify_subnet_attribute(
         SubnetId=subnet.id, MapPublicIpOnLaunch={"Value": True}
     )
     subnet.reload()
-    subnet.map_public_ip_on_launch.should.be.ok
+    subnet.map_public_ip_on_launch.should.equal(True)
 
 
 @mock_ec2
@@ -174,19 +174,19 @@ def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
     client.describe_subnets()
 
     # For non default subnet, attribute value should be 'False'
-    subnet.assign_ipv6_address_on_creation.shouldnt.be.ok
+    subnet.assign_ipv6_address_on_creation.should.equal(False)
 
     client.modify_subnet_attribute(
         SubnetId=subnet.id, AssignIpv6AddressOnCreation={"Value": False}
     )
     subnet.reload()
-    subnet.assign_ipv6_address_on_creation.shouldnt.be.ok
+    subnet.assign_ipv6_address_on_creation.should.equal(False)
 
     client.modify_subnet_attribute(
         SubnetId=subnet.id, AssignIpv6AddressOnCreation={"Value": True}
     )
     subnet.reload()
-    subnet.assign_ipv6_address_on_creation.should.be.ok
+    subnet.assign_ipv6_address_on_creation.should.equal(True)
 
 
 @mock_ec2
@@ -200,7 +200,7 @@ def test_modify_subnet_attribute_validation():
 
 
 @mock_ec2
-def test_subnet_get_by_id_boto3():
+def test_subnet_get_by_id():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     vpcA = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -231,7 +231,7 @@ def test_subnet_get_by_id_boto3():
 
 
 @mock_ec2
-def test_get_subnets_filtering_boto3():
+def test_get_subnets_filtering():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     vpcA = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -428,7 +428,7 @@ def test_create_subnet_with_invalid_cidr_range():
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     subnet_cidr_block = "10.1.0.0/20"
     with pytest.raises(ClientError) as ex:
@@ -446,7 +446,7 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     ec2.meta.client.associate_vpc_cidr_block(CidrBlock="10.1.0.0/16", VpcId=vpc.id)
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     subnet_cidr_block = "10.2.0.0/20"
     with pytest.raises(ClientError) as ex:
@@ -463,7 +463,7 @@ def test_create_subnet_with_invalid_cidr_block_parameter():
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     subnet_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
@@ -484,7 +484,7 @@ def test_create_subnets_with_multiple_vpc_cidr_blocks():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     ec2.meta.client.associate_vpc_cidr_block(CidrBlock="10.1.0.0/16", VpcId=vpc.id)
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     subnet_cidr_block_primary = "10.0.0.0/24"
     subnet_primary = ec2.create_subnet(
@@ -522,7 +522,7 @@ def test_create_subnets_with_overlapping_cidr_blocks():
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     subnet_cidr_block = "10.0.0.0/24"
     with pytest.raises(ClientError) as ex:

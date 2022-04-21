@@ -339,9 +339,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.shouldnt.be.empty
-    versions.shouldnt.be.empty
-    delete_markers.should.be.none
+    objects.should.have.length_of(1)
+    versions.should.have.length_of(1)
+    delete_markers.should.equal(None)
 
     s3.delete_object(Bucket=bucket, Key=key)
 
@@ -349,9 +349,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.shouldnt.be.empty
-    delete_markers.shouldnt.be.empty
+    objects.should.equal(None)
+    versions.should.have.length_of(1)
+    delete_markers.should.have.length_of(1)
 
     s3.delete_object(Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"))
 
@@ -359,9 +359,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.should.be.none
-    delete_markers.shouldnt.be.empty
+    objects.should.equal(None)
+    versions.should.equal(None)
+    delete_markers.should.have.length_of(1)
 
     s3.delete_object(
         Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId")
@@ -371,9 +371,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.should.be.none
-    delete_markers.should.be.none
+    objects.should.equal(None)
+    versions.should.equal(None)
+    delete_markers.should.equal(None)
 
 
 @mock_s3
@@ -512,7 +512,7 @@ def test_restore_key():
     bucket.create()
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
-    key.restore.should.be.none
+    key.restore.should.equal(None)
     key.restore_object(RestoreRequest={"Days": 1})
     if settings.TEST_SERVER_MODE:
         key.restore.should.contain('ongoing-request="false"')
@@ -556,7 +556,7 @@ def test_get_versioning_status():
     bucket.create()
 
     v = s3.BucketVersioning("foobar")
-    v.status.should.be.none
+    v.status.should.equal(None)
 
     v.enable()
     v.status.should.equal("Enabled")
@@ -1025,7 +1025,7 @@ def test_website_redirect_location():
 
     s3.put_object(Bucket="mybucket", Key="steve", Body=b"is awesome")
     resp = s3.get_object(Bucket="mybucket", Key="steve")
-    resp.get("WebsiteRedirectLocation").should.be.none
+    resp.get("WebsiteRedirectLocation").should.equal(None)
 
     url = "https://github.com/spulec/moto"
     s3.put_object(

@@ -1,5 +1,6 @@
 from botocore.exceptions import ClientError
 from datetime import datetime
+from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 from time import sleep
 import sure  # noqa # pylint: disable=unused-import
@@ -380,7 +381,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution_boto3():
 
 
 @mock_swf
-@freeze_time("2015-01-01 12:00:00")
+@freeze_time("2015-01-01 12:00:00 UTC")
 def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -433,8 +434,8 @@ def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
     )
     resp["latestActivityTaskTimestamp"].should.be.a(datetime)
     if not settings.TEST_SERVER_MODE:
-        ts = resp["latestActivityTaskTimestamp"].strftime("%Y-%m-%d %H:%M:%S")
-        ts.should.equal("2015-01-01 12:00:00")
+        ts = resp["latestActivityTaskTimestamp"]
+        ts.should.equal(dtparse("2015-01-01 12:00:00 UTC"))
 
 
 @mock_swf

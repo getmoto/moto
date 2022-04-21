@@ -54,6 +54,7 @@ class BlockDeviceType(object):
         self.volume_type = volume_type
         self.iops = iops
         self.encrypted = encrypted
+        self.kms_key_id = None
 
 
 # for backwards compatibility
@@ -81,3 +82,18 @@ class BlockDeviceMapping(dict):
         self.connection = connection
         self.current_name = None
         self.current_value = None
+
+    def to_source_dict(self):
+        return [
+            {
+                "DeviceName": device_name,
+                "Ebs": {
+                    "DeleteOnTermination": block.delete_on_termination,
+                    "Encrypted": block.encrypted,
+                    "VolumeType": block.volume_type,
+                    "VolumeSize": block.size,
+                },
+                "VirtualName": block.ephemeral_name,
+            }
+            for device_name, block in self.items()
+        ]

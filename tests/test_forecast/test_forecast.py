@@ -77,7 +77,7 @@ def test_forecast_dataset_group_list_default_empty():
     client = boto3.client("forecast", region_name=region)
 
     resp = client.list_dataset_groups()
-    resp["DatasetGroups"].should.be.empty
+    resp["DatasetGroups"].should.equal([])
 
 
 @mock_forecast

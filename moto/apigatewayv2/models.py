@@ -66,7 +66,7 @@ class Authorizer(BaseModel):
         if auth_result_ttl is not None:
             self.auth_result_ttl = auth_result_ttl
         if authorizer_type is not None:
-            self.authorizer_type is authorizer_type
+            self.authorizer_type = authorizer_type
         if authorizer_uri is not None:
             self.authorizer_uri = authorizer_uri
         if enable_simple_response is not None:

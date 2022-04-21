@@ -226,7 +226,7 @@ def test_default_network_acl_default_entries():
     if not settings.TEST_SERVER_MODE:
         # Can't know whether the first ACL is the default in ServerMode
         default_network_acl = next(iter(ec2.network_acls.all()), None)
-        default_network_acl.is_default.should.be.ok
+        default_network_acl.is_default.should.equal(True)
         default_network_acl.entries.should.have.length_of(4)
 
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")
@@ -265,7 +265,7 @@ def test_delete_default_network_acl_default_entry():
         )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
-    default_network_acl.is_default.should.be.ok
+    default_network_acl.is_default.should.equal(True)
 
     default_network_acl.entries.should.have.length_of(4)
     first_default_network_acl_entry = default_network_acl.entries[0]
@@ -282,7 +282,7 @@ def test_delete_default_network_acl_default_entry():
 def test_duplicate_network_acl_entry():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
-    default_network_acl.is_default.should.be.ok
+    default_network_acl.is_default.should.equal(True)
 
     rule_number = randint(0, 9999)
     egress = True

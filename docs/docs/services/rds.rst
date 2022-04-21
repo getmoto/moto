@@ -38,7 +38,6 @@ rds
 - [ ] copy_db_parameter_group
 - [ ] copy_db_snapshot
 - [ ] copy_option_group
-- [ ] create_custom_availability_zone
 - [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
@@ -55,7 +54,6 @@ rds
 - [X] create_event_subscription
 - [ ] create_global_cluster
 - [X] create_option_group
-- [ ] delete_custom_availability_zone
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_endpoint
@@ -71,12 +69,10 @@ rds
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [ ] delete_global_cluster
-- [ ] delete_installation_media
 - [X] delete_option_group
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
 - [ ] describe_certificates
-- [ ] describe_custom_availability_zones
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
 - [ ] describe_db_cluster_parameter_groups
@@ -105,7 +101,6 @@ rds
 - [ ] describe_events
 - [X] describe_export_tasks
 - [ ] describe_global_clusters
-- [ ] describe_installation_media
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [ ] describe_orderable_db_instance_options
@@ -117,7 +112,6 @@ rds
 - [ ] download_db_log_file_portion
 - [ ] failover_db_cluster
 - [ ] failover_global_cluster
-- [ ] import_installation_media
 - [X] list_tags_for_resource
 - [ ] modify_certificates
 - [ ] modify_current_db_cluster_capacity

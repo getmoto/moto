@@ -132,7 +132,8 @@ class SESBackend(BaseBackend):
 
     def verify_email_identity(self, address):
         _, address = parseaddr(address)
-        self.addresses.append(address)
+        if address not in self.addresses:
+            self.addresses.append(address)
 
     def verify_email_address(self, address):
         _, address = parseaddr(address)
@@ -462,8 +463,8 @@ class SESBackend(BaseBackend):
         for receipt_rule in rule_set:
             if receipt_rule["name"] == rule_name:
                 return receipt_rule
-        else:
-            raise RuleDoesNotExist("Invalid Rule Name.")
+
+        raise RuleDoesNotExist("Invalid Rule Name.")
 
     def update_receipt_rule(self, rule_set_name, rule):
         rule_set = self.receipt_rule_set.get(rule_set_name)

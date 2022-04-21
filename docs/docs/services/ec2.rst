@@ -566,6 +566,10 @@ ec2
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
 - [X] search_transit_gateway_routes
+  
+        The following filters are currently supported: type, state, route-search.exact-match
+        
+
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
 - [ ] start_network_insights_access_scope_analysis

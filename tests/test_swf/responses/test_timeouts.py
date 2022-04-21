@@ -1,4 +1,5 @@
 from datetime import datetime
+from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 import sure  # noqa # pylint: disable=unused-import
 from unittest import SkipTest
@@ -29,14 +30,14 @@ def test_activity_task_heartbeat_timeout_boto3():
             identity="surprise",
         )
 
-    with freeze_time("2015-01-01 12:04:30"):
+    with freeze_time("2015-01-01 12:04:30 UTC"):
         resp = client.get_workflow_execution_history(
             domain="test-domain",
             execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
         )
         resp["events"][-1]["eventType"].should.equal("ActivityTaskStarted")
 
-    with freeze_time("2015-01-01 12:05:30"):
+    with freeze_time("2015-01-01 12:05:30 UTC"):
         # => Activity Task Heartbeat timeout reached!!
         resp = client.get_workflow_execution_history(
             domain="test-domain",
@@ -48,8 +49,8 @@ def test_activity_task_heartbeat_timeout_boto3():
         attrs["timeoutType"].should.equal("HEARTBEAT")
         # checks that event has been emitted at 12:05:00, not 12:05:30
         resp["events"][-2]["eventTimestamp"].should.be.a(datetime)
-        ts = resp["events"][-2]["eventTimestamp"].strftime("%Y-%m-%d %H:%M:%S")
-        ts.should.equal("2015-01-01 12:05:00")
+        ts = resp["events"][-2]["eventTimestamp"]
+        ts.should.equal(dtparse("2015-01-01 12:05:00 UTC"))
 
 
 # Decision Task Start to Close timeout
@@ -59,11 +60,11 @@ def test_decision_task_start_to_close_timeout_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
 
-    with freeze_time("2015-01-01 12:00:00"):
+    with freeze_time("2015-01-01 12:00:00 UTC"):
         client = setup_workflow_boto3()
         client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
 
-    with freeze_time("2015-01-01 12:04:30"):
+    with freeze_time("2015-01-01 12:04:30 UTC"):
         resp = client.get_workflow_execution_history(
             domain="test-domain",
             execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
@@ -74,7 +75,7 @@ def test_decision_task_start_to_close_timeout_boto3():
             ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"]
         )
 
-    with freeze_time("2015-01-01 12:05:30"):
+    with freeze_time("2015-01-01 12:05:30 UTC"):
         # => Decision Task Start to Close timeout reached!!
         resp = client.get_workflow_execution_history(
             domain="test-domain",
@@ -101,8 +102,8 @@ def test_decision_task_start_to_close_timeout_boto3():
         )
         # checks that event has been emitted at 12:05:00, not 12:05:30
         resp["events"][-2]["eventTimestamp"].should.be.a(datetime)
-        ts = resp["events"][-2]["eventTimestamp"].strftime("%Y-%m-%d %H:%M:%S")
-        ts.should.equal("2015-01-01 12:05:00")
+        ts = resp["events"][-2]["eventTimestamp"]
+        ts.should.equal(dtparse("2015-01-01 12:05:00 UTC"))
 
 
 # Workflow Execution Start to Close timeout
@@ -111,10 +112,10 @@ def test_decision_task_start_to_close_timeout_boto3():
 def test_workflow_execution_start_to_close_timeout_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
-    with freeze_time("2015-01-01 12:00:00"):
+    with freeze_time("2015-01-01 12:00:00 UTC"):
         client = setup_workflow_boto3()
 
-    with freeze_time("2015-01-01 13:59:30"):
+    with freeze_time("2015-01-01 13:59:30 UTC"):
         resp = client.get_workflow_execution_history(
             domain="test-domain",
             execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
@@ -123,7 +124,7 @@ def test_workflow_execution_start_to_close_timeout_boto3():
         event_types = [evt["eventType"] for evt in resp["events"]]
         event_types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
 
-    with freeze_time("2015-01-01 14:00:30"):
+    with freeze_time("2015-01-01 14:00:30 UTC"):
         # => Workflow Execution Start to Close timeout reached!!
         resp = client.get_workflow_execution_history(
             domain="test-domain",
@@ -142,5 +143,5 @@ def test_workflow_execution_start_to_close_timeout_boto3():
         attrs.should.equal({"childPolicy": "ABANDON", "timeoutType": "START_TO_CLOSE"})
         # checks that event has been emitted at 14:00:00, not 14:00:30
         resp["events"][-1]["eventTimestamp"].should.be.a(datetime)
-        ts = resp["events"][-1]["eventTimestamp"].strftime("%Y-%m-%d %H:%M:%S")
-        ts.should.equal("2015-01-01 14:00:00")
+        ts = resp["events"][-1]["eventTimestamp"]
+        ts.should.equal(dtparse("2015-01-01 14:00:00 UTC"))

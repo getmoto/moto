@@ -27,6 +27,8 @@ from .organizations_test_utils import (
     validate_create_account_status,
     validate_service_control_policy,
     validate_policy_summary,
+    validate_account_created,
+    validate_account_closed,
 )
 
 
@@ -171,6 +173,46 @@ def test_create_account():
     ]
     validate_create_account_status(create_status)
     create_status["AccountName"].should.equal(mockname)
+
+
+@mock_organizations
+def test_close_account():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    create_status = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]
+    created_account_id = create_status["AccountId"]
+    accounts_list_before = client.list_accounts()["Accounts"]
+    validate_account_created(
+        accounts_list=accounts_list_before,
+        account_id=created_account_id,
+    )
+
+    client.close_account(AccountId=created_account_id)
+
+    accounts_list_after = client.list_accounts()["Accounts"]
+    validate_account_closed(accounts_list_after, created_account_id)
+    number_accounts_before = len(accounts_list_before)
+    number_accounts_after = len(accounts_list_after)
+    (number_accounts_before - number_accounts_after).should.equal(1)
+
+
+@mock_organizations
+def test_close_account_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    uncreated_fake_account_id = "123456789101"
+
+    with pytest.raises(ClientError) as e:
+        client.close_account(AccountId=uncreated_fake_account_id)
+    ex = e.value
+    ex.operation_name.should.equal("CloseAccount")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
 
 
 @mock_organizations
@@ -430,7 +472,7 @@ def test_get_paginated_list_create_account_status():
     for createAccountStatus in createAccountStatuses:
         validate_create_account_status(createAccountStatus)
     next_token = response["NextToken"]
-    next_token.should_not.be.none
+    next_token.should_not.equal(None)
     response2 = client.list_create_account_status(NextToken=next_token)
     createAccountStatuses.extend(response2["CreateAccountStatuses"])
     createAccountStatuses.should.have.length_of(6)
@@ -2003,7 +2045,7 @@ def test_aiservices_opt_out_policy():
     summary["Name"].should.equal("ai-opt-out")
     summary["Description"].should.equal("Opt out of all AI services")
     summary["Type"].should.equal("AISERVICES_OPT_OUT_POLICY")
-    summary["AwsManaged"].should_not.be.ok
+    summary["AwsManaged"].should.equal(False)
     json.loads(response["Policy"]["Content"]).should.equal(ai_policy)
 
     # when
