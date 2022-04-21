@@ -95,6 +95,19 @@ class FakeAccount(BaseModel):
             }
         }
 
+    @property
+    def close_account_status(self):
+        return {
+            "CloseAccountStatus": {
+                "Id": self.create_account_status_id,
+                "AccountName": self.name,
+                "State": "SUCCEEDED",
+                "RequestedTimestamp": unix_time(datetime.datetime.utcnow()),
+                "CompletedTimestamp": unix_time(datetime.datetime.utcnow()),
+                "AccountId": self.id,
+            }
+        }
+
     def describe(self):
         return {
             "Id": self.id,
@@ -444,6 +457,17 @@ class OrganizationsBackend(BaseBackend):
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
         return new_account.create_account_status
+
+    def close_account(self, **kwargs):
+        for account_index in range(len(self.accounts)):
+            if kwargs["AccountId"] == self.accounts[account_index].id:
+                closed_account_status = self.accounts[
+                    account_index
+                ].close_account_status
+                del self.accounts[account_index]
+                return closed_account_status
+
+        raise AccountNotFoundException
 
     def get_account_by_id(self, account_id):
         account = next(
