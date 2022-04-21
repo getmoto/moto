@@ -774,19 +774,19 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" and "forward_config" in action.data %}
+            {% if action["type"] == "forward" and "ForwardConfig" in action.data %}
             <ForwardConfig>
               <TargetGroups>
-                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                {% for TargetGroup in action.data["ForwardConfig"]["TargetGroups"] %}
                 <member>
-                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
-                  <Weight>{{ target_group["weight"] }}</Weight>
+                  <TargetGroupArn>{{ TargetGroup["TargetGroupArn"] }}</TargetGroupArn>
+                  <Weight>{{ TargetGroup["Weight"] }}</Weight>
                 </member>
                 {% endfor %}
               </TargetGroups>
             </ForwardConfig>
             {% endif %}
-            {% if action["type"] == "forward" and "forward_config" not in action.data %}
+            {% if action["type"] == "forward" and "ForwardConfig" not in action.data %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
             {% elif action["type"] == "redirect" %}
             <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
@@ -1450,20 +1450,20 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
           {% for action in rules.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" and "forward_config" in action.data %}
+            {% if action["type"] == "forward" and "ForwardConfig" in action.data %}
             <ForwardConfig>
               <TargetGroups>
-                {% for target_group in action.data["forward_config"]["target_groups"] %}
+                {% for target_group in action.data["ForwardConfig"]["TargetGroups"] %}
                 <member>
-                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
-                  <Weight>{{ target_group["weight"] }}</Weight>
+                  <TargetGroupArn>{{ TargetGroup["TargetGroupArn"] }}</TargetGroupArn>
+                  <Weight>{{ TargetGroup["weight"] }}</Weight>
                 </member>
                 {% endfor %}
               </TargetGroups>
             </ForwardConfig>
             {% endif %}
-            {% if action["type"] == "forward" and "forward_config" not in action.data %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% if action["type"] == "forward" and "ForwardConfig" not in action.data %}
+            <TargetGroupArn>{{ action["TargetGroupArn"] }}</TargetGroupArn>
             {% endif %}
           </member>
           {% endfor %}
