@@ -54,17 +54,21 @@ def setup_listener(conn):
     http_listener_arn = listener.get("ListenerArn")
     return http_listener_arn
 
-def setup_target_group(conn): 
+
+def setup_target_group(conn):
 
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
 
-    response = conn.create_target_group(Name="target-group-name", Protocol="HTTP", Port=80, VpcId=vpc.id)
+    response = conn.create_target_group(
+        Name="target-group-name", Protocol="HTTP", Port=80, VpcId=vpc.id
+    )
 
-    target_group = response.get('TargetGroups')[0]
-    target_group_arn = target_group.get('TargetGroupArn')
+    target_group = response.get("TargetGroups")[0]
+    target_group_arn = target_group.get("TargetGroupArn")
 
-    return target_group_arn 
+    return target_group_arn
+
 
 @mock_elbv2
 @mock_ec2
@@ -308,6 +312,7 @@ def test_create_rule_validate_condition(condition, expected_message):
     err["Code"].should.equal("ValidationError")
     err["Message"].should.equal(expected_message)
 
+
 @mock_elbv2
 @mock_ec2
 def test_create_rule_forward_action():
@@ -315,9 +320,11 @@ def test_create_rule_forward_action():
 
     http_listener_arn = setup_listener(conn)
     target_group_arn = setup_target_group(conn)
-    
-    forward_config = {"TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}]}
-    action = { "Type": "forward", "ForwardConfig": forward_config }
+
+    forward_config = {
+        "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}]
+    }
+    action = {"Type": "forward", "ForwardConfig": forward_config}
 
     # create_rule
     response = conn.create_rule(
@@ -332,7 +339,7 @@ def test_create_rule_forward_action():
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("100")
     rule["Conditions"].should.equal([])
-    
+
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
     action["ForwardConfig"].should.equal(forward_config)
@@ -340,13 +347,16 @@ def test_create_rule_forward_action():
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
     response["Rules"].should.have.length_of(2)  # including the default rule
-    
+
     rule = response.get("Rules")[0]
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
-    
-    forward_config["TargetGroupStickinessConfig"] = {"Enabled":False}  # TargetGroupStickinessConfig included in describe_rules response
+
+    forward_config["TargetGroupStickinessConfig"] = {
+        "Enabled": False
+    }  # TargetGroupStickinessConfig included in describe_rules response
     action["ForwardConfig"].should.equal(forward_config)
+
 
 @mock_elbv2
 @mock_ec2
@@ -355,9 +365,11 @@ def test_set_rule_priorities_forward_action():
 
     http_listener_arn = setup_listener(conn)
     target_group_arn = setup_target_group(conn)
-    
-    forward_config = {"TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}]}
-    action = { "Type": "forward", "ForwardConfig": forward_config }
+
+    forward_config = {
+        "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}]
+    }
+    action = {"Type": "forward", "ForwardConfig": forward_config}
 
     # create_rule
     response = conn.create_rule(
@@ -371,23 +383,19 @@ def test_set_rule_priorities_forward_action():
 
     # set_rule_priorities
     response = conn.set_rule_priorities(
-        RulePriorities=[
-            {
-                "RuleArn": rule_arn,
-                "Priority": 99
-            }
-        ]
+        RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
     )
-    
+
     # assert set_rule_priorities response
     response["Rules"].should.have.length_of(1)
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("99")
     rule["Conditions"].should.equal([])
-    
+
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
     action["ForwardConfig"].should.equal(forward_config)
+
 
 @mock_elbv2
 @mock_ec2
