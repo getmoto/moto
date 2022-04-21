@@ -163,7 +163,8 @@ class FakeLaunchConfiguration(CloudFormationModel):
             spot_price=None,
             ebs_optimized=instance.ebs_optimized,
             associate_public_ip_address=instance.associate_public_ip,
-            block_device_mappings=instance.block_device_mapping,
+            # We expect a dictionary in the same format as when the user calls it
+            block_device_mappings=instance.block_device_mapping.to_source_dict(),
         )
         return config
 
@@ -249,17 +250,16 @@ class FakeLaunchConfiguration(CloudFormationModel):
         block_device_map = BlockDeviceMapping()
         for mapping in self.block_device_mapping_dict:
             block_type = BlockDeviceType()
-            mount_point = mapping.get("device_name")
-            if "ephemeral" in mapping.get("virtual_name", ""):
-                block_type.ephemeral_name = mapping.get("virtual_name")
+            mount_point = mapping.get("DeviceName")
+            if mapping.get("VirtualName") and "ephemeral" in mapping.get("VirtualName"):
+                block_type.ephemeral_name = mapping.get("VirtualName")
             else:
-                block_type.volume_type = mapping.get("ebs._volume_type")
-                block_type.snapshot_id = mapping.get("ebs._snapshot_id")
-                block_type.delete_on_termination = mapping.get(
-                    "ebs._delete_on_termination"
-                )
-                block_type.size = mapping.get("ebs._volume_size")
-                block_type.iops = mapping.get("ebs._iops")
+                ebs = mapping.get("Ebs", {})
+                block_type.volume_type = ebs.get("VolumeType")
+                block_type.snapshot_id = ebs.get("SnapshotId")
+                block_type.delete_on_termination = ebs.get("DeleteOnTermination")
+                block_type.size = ebs.get("VolumeSize")
+                block_type.iops = ebs.get("Iops")
             block_device_map[mount_point] = block_type
         return block_device_map
 
@@ -620,6 +620,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             instance_type=self.instance_type,
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
+            launch_config=self.launch_config,
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self

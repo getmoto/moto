@@ -20,22 +20,23 @@ class AutoScalingResponse(BaseResponse):
             instance_monitoring = True
         else:
             instance_monitoring = False
+        params = self._get_params()
         self.autoscaling_backend.create_launch_configuration(
-            name=self._get_param("LaunchConfigurationName"),
-            image_id=self._get_param("ImageId"),
-            key_name=self._get_param("KeyName"),
-            ramdisk_id=self._get_param("RamdiskId"),
-            kernel_id=self._get_param("KernelId"),
+            name=params.get("LaunchConfigurationName"),
+            image_id=params.get("ImageId"),
+            key_name=params.get("KeyName"),
+            ramdisk_id=params.get("RamdiskId"),
+            kernel_id=params.get("KernelId"),
             security_groups=self._get_multi_param("SecurityGroups.member"),
-            user_data=self._get_param("UserData"),
-            instance_type=self._get_param("InstanceType"),
+            user_data=params.get("UserData"),
+            instance_type=params.get("InstanceType"),
             instance_monitoring=instance_monitoring,
-            instance_profile_name=self._get_param("IamInstanceProfile"),
-            spot_price=self._get_param("SpotPrice"),
-            ebs_optimized=self._get_param("EbsOptimized"),
-            associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
-            block_device_mappings=self._get_list_prefix("BlockDeviceMappings.member"),
-            instance_id=self._get_param("InstanceId"),
+            instance_profile_name=params.get("IamInstanceProfile"),
+            spot_price=params.get("SpotPrice"),
+            ebs_optimized=params.get("EbsOptimized"),
+            associate_public_ip_address=params.get("AssociatePublicIpAddress"),
+            block_device_mappings=params.get("BlockDeviceMappings"),
+            instance_id=params.get("InstanceId"),
         )
         template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
