@@ -1517,10 +1517,10 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
             {% if action["type"] == "forward" and "ForwardConfig" in action.data %}
             <ForwardConfig>
               <TargetGroups>
-                {% for target_group in action.data["ForwardConfig"]["TargetGroups"] %}
+                {% for TargetGroup in action.data["ForwardConfig"]["TargetGroups"] %}
                 <member>
                   <TargetGroupArn>{{ TargetGroup["TargetGroupArn"] }}</TargetGroupArn>
-                  <Weight>{{ TargetGroup["weight"] }}</Weight>
+                  <Weight>{{ TargetGroup["Weight"] }}</Weight>
                 </member>
                 {% endfor %}
               </TargetGroups>

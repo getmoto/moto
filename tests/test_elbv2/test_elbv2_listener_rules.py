@@ -378,7 +378,16 @@ def test_set_rule_priorities_forward_action():
             }
         ]
     )
-    print(response)
+    
+    # assert set_rule_priorities response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("99")
+    rule["Conditions"].should.equal([])
+    
+    action = rule["Actions"][0]
+    action["Type"].should.equal("forward")
+    action["ForwardConfig"].should.equal(forward_config)
 
 @mock_elbv2
 @mock_ec2
