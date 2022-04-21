@@ -132,7 +132,8 @@ class SESBackend(BaseBackend):
 
     def verify_email_identity(self, address):
         _, address = parseaddr(address)
-        self.addresses.append(address)
+        if address not in self.addresses:
+            self.addresses.append(address)
 
     def verify_email_address(self, address):
         _, address = parseaddr(address)
