@@ -54,6 +54,7 @@ def test_create_target_group_with_tags():
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
+        Tags=[{"Key": "key1", "Value": "val1"}],
     )
     target_group = response.get("TargetGroups")[0]
     target_group_arn = target_group["TargetGroupArn"]
@@ -61,7 +62,7 @@ def test_create_target_group_with_tags():
     # Add tags to the target group
     conn.add_tags(
         ResourceArns=[target_group_arn],
-        Tags=[{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}],
+        Tags=[{"Key": "key2", "Value": "val2"}],
     )
     conn.describe_tags(ResourceArns=[target_group_arn])["TagDescriptions"][0][
         "Tags"
@@ -384,10 +385,11 @@ def test_target_group_attributes():
 
     # The attributes should start with the two defaults
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    response["Attributes"].should.have.length_of(2)
+    response["Attributes"].should.have.length_of(5)
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     attributes["deregistration_delay.timeout_seconds"].should.equal("300")
     attributes["stickiness.enabled"].should.equal("false")
+    attributes["waf.fail_open.enabled"].should.equal("false")
 
     # Add cookie stickiness
     response = conn.modify_target_group_attributes(
@@ -406,7 +408,7 @@ def test_target_group_attributes():
 
     # These new values should be in the full attribute list
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    response["Attributes"].should.have.length_of(3)
+    response["Attributes"].should.have.length_of(6)
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     attributes["stickiness.type"].should.equal("lb_cookie")
     attributes["stickiness.enabled"].should.equal("true")

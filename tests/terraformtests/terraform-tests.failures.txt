@@ -6,7 +6,6 @@ TestAccAPIGatewayV2Authorizer
 TestAccAPIGatewayV2Route
 TestAccAppsyncApiKey
 TestAccAppsyncGraphqlApi
-TestAccAutoscalingAttachment
 TestAccAutoscalingPolicy
 TestAccBatchJobQueue
 TestAccCloudTrail
@@ -48,8 +47,6 @@ TestAccIAMRole
 TestAccIotThing
 TestAccIPRanges
 TestAccKinesisStream
-TestAccLbListenerCertificate
-TestAccLBTargetGroupAttachment
 TestAccELBPolicy
 TestAccLambdaAlias
 TestAccLambdaLayerVersion
