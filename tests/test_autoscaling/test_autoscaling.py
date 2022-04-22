@@ -2810,5 +2810,9 @@ def test_create_template_with_block_device():
     )
     ec2_client = boto3.client("ec2", region_name="ap-southeast-2")
     volumes = ec2_client.describe_volumes()["Volumes"]
-    volumes[0]["VolumeType"].should.equal("gp3")
-    volumes[0]["Size"].should.equal(20)
+    # The standard root volume
+    volumes[0]["VolumeType"].should.equal("gp2")
+    volumes[0]["Size"].should.equal(8)
+    # Our Ebs-volume
+    volumes[1]["VolumeType"].should.equal("gp3")
+    volumes[1]["Size"].should.equal(20)

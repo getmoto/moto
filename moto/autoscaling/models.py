@@ -131,6 +131,10 @@ class FakeLaunchConfiguration(CloudFormationModel):
         ebs_optimized,
         associate_public_ip_address,
         block_device_mapping_dict,
+        region_name,
+        metadata_options,
+        classic_link_vpc_id,
+        classic_link_vpc_security_groups,
     ):
         self.name = name
         self.image_id = image_id
@@ -146,6 +150,10 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self.ebs_optimized = ebs_optimized
         self.associate_public_ip_address = associate_public_ip_address
         self.block_device_mapping_dict = block_device_mapping_dict
+        self.metadata_options = metadata_options
+        self.classic_link_vpc_id = classic_link_vpc_id
+        self.classic_link_vpc_security_groups = classic_link_vpc_security_groups
+        self.arn = f"arn:aws:autoscaling:{region_name}:{ACCOUNT_ID}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
 
     @classmethod
     def create_from_instance(cls, name, instance, backend):
@@ -253,6 +261,8 @@ class FakeLaunchConfiguration(CloudFormationModel):
             mount_point = mapping.get("DeviceName")
             if mapping.get("VirtualName") and "ephemeral" in mapping.get("VirtualName"):
                 block_type.ephemeral_name = mapping.get("VirtualName")
+            elif mapping.get("NoDevice", "false") == "true":
+                block_type.no_device = "true"
             else:
                 ebs = mapping.get("Ebs", {})
                 block_type.volume_type = ebs.get("VolumeType")
@@ -260,6 +270,8 @@ class FakeLaunchConfiguration(CloudFormationModel):
                 block_type.delete_on_termination = ebs.get("DeleteOnTermination")
                 block_type.size = ebs.get("VolumeSize")
                 block_type.iops = ebs.get("Iops")
+                block_type.throughput = ebs.get("Throughput")
+                block_type.encrypted = ebs.get("Encrypted")
             block_device_map[mount_point] = block_type
         return block_device_map
 
@@ -678,6 +690,9 @@ class AutoScalingBackend(BaseBackend):
         associate_public_ip_address,
         block_device_mappings,
         instance_id=None,
+        metadata_options=None,
+        classic_link_vpc_id=None,
+        classic_link_vpc_security_groups=None,
     ):
         valid_requests = [
             instance_id is not None,
@@ -705,6 +720,10 @@ class AutoScalingBackend(BaseBackend):
             ebs_optimized=ebs_optimized,
             associate_public_ip_address=associate_public_ip_address,
             block_device_mapping_dict=block_device_mappings,
+            region_name=self.region,
+            metadata_options=metadata_options,
+            classic_link_vpc_id=classic_link_vpc_id,
+            classic_link_vpc_security_groups=classic_link_vpc_security_groups,
         )
         self.launch_configurations[name] = launch_configuration
         return launch_configuration

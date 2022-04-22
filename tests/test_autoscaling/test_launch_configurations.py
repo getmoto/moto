@@ -99,7 +99,6 @@ def test_create_launch_configuration_with_block_device_mappings():
     xvdp.should.have.key("Ebs")
     xvdp["Ebs"]["SnapshotId"].should.equal("snap-1234abcd")
     xvdp["Ebs"]["VolumeType"].should.equal("standard")
-    xvdp["Ebs"]["DeleteOnTermination"].should.equal(False)
 
     xvdb["VirtualName"].should.equal("ephemeral0")
     xvdb.shouldnt.have.key("Ebs")
@@ -109,16 +108,32 @@ def test_create_launch_configuration_with_block_device_mappings():
 def test_create_launch_configuration_additional_parameters():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
+        ClassicLinkVPCId="vpc_id",
+        ClassicLinkVPCSecurityGroups=["classic_sg1"],
         LaunchConfigurationName="tester",
         ImageId=EXAMPLE_AMI_ID,
         InstanceType="t1.micro",
         EbsOptimized=True,
         AssociatePublicIpAddress=True,
+        MetadataOptions={
+            "HttpTokens": "optional",
+            "HttpPutResponseHopLimit": 123,
+            "HttpEndpoint": "disabled",
+        },
     )
 
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+    launch_config["ClassicLinkVPCId"].should.equal("vpc_id")
+    launch_config["ClassicLinkVPCSecurityGroups"].should.equal(["classic_sg1"])
     launch_config["EbsOptimized"].should.equal(True)
     launch_config["AssociatePublicIpAddress"].should.equal(True)
+    launch_config["MetadataOptions"].should.equal(
+        {
+            "HttpTokens": "optional",
+            "HttpPutResponseHopLimit": 123,
+            "HttpEndpoint": "disabled",
+        }
+    )
 
 
 @mock_autoscaling
@@ -287,7 +302,10 @@ def test_launch_config_with_block_device_mappings__volumes_are_created():
     volumes = ec2_client.describe_volumes(
         Filters=[{"Name": "attachment.instance-id", "Values": [instance_id]}]
     )["Volumes"]
-    volumes.should.have.length_of(1)
-    volumes[0].should.have.key("Size").equals(10)
+    volumes.should.have.length_of(2)
+    volumes[0].should.have.key("Size").equals(8)
     volumes[0].should.have.key("Encrypted").equals(False)
-    volumes[0].should.have.key("VolumeType").equals("standard")
+    volumes[0].should.have.key("VolumeType").equals("gp2")
+    volumes[1].should.have.key("Size").equals(10)
+    volumes[1].should.have.key("Encrypted").equals(False)
+    volumes[1].should.have.key("VolumeType").equals("standard")

@@ -8,6 +8,7 @@ from ..exceptions import (
     InvalidAMIAttributeItemValueError,
     MalformedAMIIdError,
     InvalidTaggableResourceType,
+    UnvailableAMIIdError,
 )
 from .core import TaggedEC2Resource
 from ..utils import (
@@ -146,6 +147,7 @@ class AmiBackend(object):
 
     def __init__(self):
         self.amis = {}
+        self.deleted_amis = list()
         self._load_amis()
         super().__init__()
 
@@ -216,6 +218,7 @@ class AmiBackend(object):
         if len(ami_ids):
             # boto3 seems to default to just searching based on ami ids if that parameter is passed
             # and if no images are found, it raises an errors
+            # Note that we can search for images that have been previously deleted, without raising any errors
             malformed_ami_ids = [
                 ami_id for ami_id in ami_ids if not ami_id.startswith("ami-")
             ]
@@ -223,7 +226,10 @@ class AmiBackend(object):
                 raise MalformedAMIIdError(malformed_ami_ids)
 
             images = [ami for ami in images if ami.id in ami_ids]
-            if len(images) == 0:
+            deleted_images = [
+                ami_id for ami_id in ami_ids if ami_id in self.deleted_amis
+            ]
+            if len(images) + len(deleted_images) == 0:
                 raise InvalidAMIIdError(ami_ids)
         else:
             # Limit images by launch permissions
@@ -257,7 +263,10 @@ class AmiBackend(object):
     def deregister_image(self, ami_id):
         if ami_id in self.amis:
             self.amis.pop(ami_id)
+            self.deleted_amis.append(ami_id)
             return True
+        elif ami_id in self.deleted_amis:
+            raise UnvailableAMIIdError(ami_id)
         raise InvalidAMIIdError(ami_id)
 
     def get_launch_permission_groups(self, ami_id):

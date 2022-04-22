@@ -8,8 +8,11 @@ apigatewayv2:
   - TestAccAPIGatewayV2RouteResponse
   - TestAccAPIGatewayV2VPCLink
 autoscaling:
-  - TestAccAutoScalingGroupDataSource
   - TestAccAutoScalingAttachment
+  - TestAccAutoScalingGroupDataSource
+  - TestAccAutoScalingGroupTag
+  - TestAccAutoScalingLaunchConfigurationDataSource
+  - TestAccAutoScalingLaunchConfiguration_
 batch:
   - TestAccBatchJobDefinition
 cloudtrail:
