@@ -27,6 +27,7 @@ def get_version():
 
 
 install_requires = [
+    "wheel",
     "boto3>=1.9.201",
     "botocore>=1.12.201",
     "cryptography>=3.3.1",
