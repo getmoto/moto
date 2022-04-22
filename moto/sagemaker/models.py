@@ -2,7 +2,6 @@ import json
 import os
 from datetime import datetime
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -34,6 +33,13 @@ PAGINATION_MODEL = {
         "limit_key": "MaxResults",
         "limit_default": 100,
         "unique_attribute": "trial_component_arn",
+        "fail_on_invalid_token": True,
+    },
+    "list_tags": {
+        "input_token": "NextToken",
+        "limit_key": "MaxResults",
+        "limit_default": 50,
+        "unique_attribute": "Key",
         "fail_on_invalid_token": True,
     },
 }
@@ -76,6 +82,7 @@ class FakeProcessingJob(BaseObject):
         processing_output_config,
         region_name,
         role_arn,
+        tags,
         stopping_condition,
     ):
         self.processing_job_name = processing_job_name
@@ -87,7 +94,7 @@ class FakeProcessingJob(BaseObject):
         self.creation_time = now_string
         self.last_modified_time = now_string
         self.processing_end_time = now_string
-
+        self.tags = tags or []
         self.role_arn = role_arn
         self.app_specification = app_specification
         self.experiment_config = experiment_config
@@ -152,7 +159,7 @@ class FakeTrainingJob(BaseObject):
         self.resource_config = resource_config
         self.vpc_config = vpc_config
         self.stopping_condition = stopping_condition
-        self.tags = tags
+        self.tags = tags or []
         self.enable_network_isolation = enable_network_isolation
         self.enable_inter_container_traffic_encryption = (
             enable_inter_container_traffic_encryption
@@ -1095,51 +1102,38 @@ class SageMakerModelBackend(BaseBackend):
             "LastModifiedTime": experiment_data.last_modified_time,
         }
 
-    def add_tags_to_experiment(self, experiment_arn, tags):
-        experiment = [
-            self.experiments[i]
-            for i in self.experiments
-            if self.experiments[i].experiment_arn == experiment_arn
-        ][0]
-        experiment.tags.extend(tags)
+    def _get_resource_from_arn(self, arn):
+        resources = {
+            "model": self._models,
+            "notebook-instance": self.notebook_instances,
+            "endpoint": self.endpoints,
+            "endpoint-config": self.endpoint_configs,
+            "training-job": self.training_jobs,
+            "experiment": self.experiments,
+            "experiment-trial": self.trials,
+            "experiment-trial-component": self.trial_components,
+            "processing-job": self.processing_jobs,
+        }
+        target_resource, target_name = arn.split(":")[-1].split("/")
+        try:
+            resource = resources.get(target_resource).get(target_name)
+        except KeyError:
+            message = f"Could not find {target_resource} with name {target_name}"
+            raise ValidationError(message=message)
+        return resource
 
-    def add_tags_to_trial(self, trial_arn, tags):
-        trial = [
-            self.trials[i] for i in self.trials if self.trials[i].trial_arn == trial_arn
-        ][0]
-        trial.tags.extend(tags)
+    def add_tags(self, arn, tags):
+        resource = self._get_resource_from_arn(arn)
+        resource.tags.extend(tags)
 
-    def add_tags_to_trial_component(self, trial_component_arn, tags):
-        trial_component = [
-            self.trial_components[i]
-            for i in self.trial_components
-            if self.trial_components[i].trial_component_arn == trial_component_arn
-        ][0]
-        trial_component.tags.extend(tags)
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags(self, arn):
+        resource = self._get_resource_from_arn(arn)
+        return resource.tags
 
-    def delete_tags_from_experiment(self, experiment_arn, tag_keys):
-        experiment = [
-            self.experiments[i]
-            for i in self.experiments
-            if self.experiments[i].experiment_arn == experiment_arn
-        ][0]
-        experiment.tags = [tag for tag in experiment.tags if tag["Key"] not in tag_keys]
-
-    def delete_tags_from_trial(self, trial_arn, tag_keys):
-        trial = [
-            self.trials[i] for i in self.trials if self.trials[i].trial_arn == trial_arn
-        ][0]
-        trial.tags = [tag for tag in trial.tags if tag["Key"] not in tag_keys]
-
-    def delete_tags_from_trial_component(self, trial_component_arn, tag_keys):
-        trial_component = [
-            self.trial_components[i]
-            for i in self.trial_components
-            if self.trial_components[i].trial_component_arn == trial_component_arn
-        ][0]
-        trial_component.tags = [
-            tag for tag in trial_component.tags if tag["Key"] not in tag_keys
-        ]
+    def delete_tags(self, arn, tag_keys):
+        resource = self._get_resource_from_arn(arn)
+        resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self):
@@ -1281,24 +1275,6 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
 
-    def get_experiment_by_arn(self, arn):
-        experiments = [
-            experiment
-            for experiment in self.experiments.values()
-            if experiment.experiment_arn == arn
-        ]
-        if len(experiments) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return experiments[0]
-
-    def get_experiment_tags(self, arn):
-        try:
-            experiment = self.get_experiment_by_arn(arn)
-            return experiment.tags or []
-        except RESTError:
-            return []
-
     def create_trial(self, trial_name, experiment_name):
         trial = FakeTrial(
             region_name=self.region_name,
@@ -1327,20 +1303,6 @@ class SageMakerModelBackend(BaseBackend):
                 FakeTrial.arn_formatter(trial_name, self.region_name)
             )
             raise ValidationError(message=message)
-
-    def get_trial_by_arn(self, arn):
-        trials = [trial for trial in self.trials.values() if trial.trial_arn == arn]
-        if len(trials) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return trials[0]
-
-    def get_trial_tags(self, arn):
-        try:
-            trial = self.get_trial_by_arn(arn)
-            return trial.tags or []
-        except RESTError:
-            return []
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(self, experiment_name=None, trial_component_name=None):
@@ -1381,24 +1343,6 @@ class SageMakerModelBackend(BaseBackend):
                 FakeTrial.arn_formatter(trial_component_name, self.region_name)
             )
             raise ValidationError(message=message)
-
-    def get_trial_component_by_arn(self, arn):
-        trial_components = [
-            trial_component
-            for trial_component in self.trial_components.values()
-            if trial_component.trial_component_arn == arn
-        ]
-        if len(trial_components) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return trial_components[0]
-
-    def get_trial_component_tags(self, arn):
-        try:
-            trial_component = self.get_trial_component_by_arn(arn)
-            return trial_component.tags or []
-        except RESTError:
-            return []
 
     def describe_trial_component(self, trial_component_name):
         try:
@@ -1518,16 +1462,6 @@ class SageMakerModelBackend(BaseBackend):
         except KeyError:
             raise ValidationError(message="RecordNotFound")
 
-    def get_notebook_instance_by_arn(self, arn):
-        instances = [
-            notebook_instance
-            for notebook_instance in self.notebook_instances.values()
-            if notebook_instance.arn == arn
-        ]
-        if len(instances) == 0:
-            raise ValidationError(message="RecordNotFound")
-        return instances[0]
-
     def start_notebook_instance(self, notebook_instance_name):
         notebook_instance = self.get_notebook_instance(notebook_instance_name)
         notebook_instance.start()
@@ -1544,13 +1478,6 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
-
-    def get_notebook_instance_tags(self, arn):
-        try:
-            notebook_instance = self.get_notebook_instance_by_arn(arn)
-            return notebook_instance.tags or []
-        except RESTError:
-            return []
 
     def create_notebook_instance_lifecycle_config(
         self, notebook_instance_lifecycle_config_name, on_create, on_start
@@ -1694,24 +1621,6 @@ class SageMakerModelBackend(BaseBackend):
             )
             raise ValidationError(message=message)
 
-    def get_endpoint_by_arn(self, arn):
-        endpoints = [
-            endpoint
-            for endpoint in self.endpoints.values()
-            if endpoint.endpoint_arn == arn
-        ]
-        if len(endpoints) == 0:
-            message = "RecordNotFound"
-            raise ValidationError(message=message)
-        return endpoints[0]
-
-    def get_endpoint_tags(self, arn):
-        try:
-            endpoint = self.get_endpoint_by_arn(arn)
-            return endpoint.tags or []
-        except RESTError:
-            return []
-
     def create_processing_job(
         self,
         app_specification,
@@ -1721,6 +1630,7 @@ class SageMakerModelBackend(BaseBackend):
         processing_job_name,
         processing_output_config,
         role_arn,
+        tags,
         stopping_condition,
     ):
         processing_job = FakeProcessingJob(
@@ -1733,6 +1643,7 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             role_arn=role_arn,
             stopping_condition=stopping_condition,
+            tags=tags,
         )
         self.processing_jobs[processing_job_name] = processing_job
         return processing_job
@@ -1893,23 +1804,6 @@ class SageMakerModelBackend(BaseBackend):
                 FakeTrainingJob.arn_formatter(training_job_name, self.region_name)
             )
             raise ValidationError(message=message)
-
-    def get_training_job_by_arn(self, arn):
-        training_jobs = [
-            training_job
-            for training_job in self.training_jobs.values()
-            if training_job.training_job_arn == arn
-        ]
-        if len(training_jobs) == 0:
-            raise ValidationError(message="RecordNotFound")
-        return training_jobs[0]
-
-    def get_training_job_tags(self, arn):
-        try:
-            training_job = self.get_training_job_by_arn(arn)
-            return training_job.tags or []
-        except RESTError:
-            return []
 
     def _update_training_job_details(self, training_job_name, details_json):
         self.training_jobs[training_job_name].update(details_json)

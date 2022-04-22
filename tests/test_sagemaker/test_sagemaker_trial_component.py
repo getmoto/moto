@@ -1,3 +1,5 @@
+import uuid
+
 import boto3
 import pytest
 
@@ -121,6 +123,33 @@ def test_delete_tags_to_trial_component():
     resp = client.list_tags(ResourceArn=arn)
 
     assert resp["Tags"] == []
+
+
+@mock_sagemaker
+def test_list_trial_component_tags():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+
+    trial_component_name = "some-trial-component-name"
+    client.create_trial_component(TrialComponentName=trial_component_name)
+    resp = client.describe_trial_component(TrialComponentName=trial_component_name)
+    resource_arn = resp["TrialComponentArn"]
+
+    tags = []
+    for _ in range(80):
+        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
+
+    response = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.list_tags(ResourceArn=resource_arn)
+    assert len(response["Tags"]) == 50
+    assert response["Tags"] == tags[:50]
+
+    response = client.list_tags(
+        ResourceArn=resource_arn, NextToken=response["NextToken"]
+    )
+    assert len(response["Tags"]) == 30
+    assert response["Tags"] == tags[50:]
 
 
 @mock_sagemaker

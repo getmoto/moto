@@ -1,7 +1,6 @@
 import json
 from moto.sagemaker.exceptions import AWSValidationException
 
-from moto.core.exceptions import AWSError
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from .models import sagemaker_backends
@@ -117,48 +116,29 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def list_tags(self):
         arn = self._get_param("ResourceArn")
-        try:
-            if ":notebook-instance/" in arn:
-                tags = self.sagemaker_backend.get_notebook_instance_tags(arn)
-            elif ":endpoint/" in arn:
-                tags = self.sagemaker_backend.get_endpoint_tags(arn)
-            elif ":training-job/" in arn:
-                tags = self.sagemaker_backend.get_training_job_tags(arn)
-            elif ":experiment/" in arn:
-                tags = self.sagemaker_backend.get_experiment_tags(arn)
-            elif ":experiment-trial/" in arn:
-                tags = self.sagemaker_backend.get_trial_tags(arn)
-            elif ":experiment-trial-component/" in arn:
-                tags = self.sagemaker_backend.get_trial_component_tags(arn)
-            else:
-                tags = []
-        except AWSError:
-            tags = []
-        response = {"Tags": tags}
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        paged_results, next_token = self.sagemaker_backend.list_tags(
+            arn=arn, MaxResults=max_results, NextToken=next_token
+        )
+        response = {"Tags": paged_results}
+        if next_token:
+            response["NextToken"] = next_token
         return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def add_tags(self):
         arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags")
-        if ":experiment/" in arn:
-            self.sagemaker_backend.add_tags_to_experiment(arn, tags)
-        elif ":experiment-trial/" in arn:
-            self.sagemaker_backend.add_tags_to_trial(arn, tags)
-        elif ":experiment-trial-component/" in arn:
-            self.sagemaker_backend.add_tags_to_trial_component(arn, tags)
-        return 200, {}, json.dumps({})
+        tags = self.sagemaker_backend.add_tags(arn, tags)
+        response = {"Tags": tags}
+        return 200, {}, json.dumps(response)
 
     @amzn_request_id
     def delete_tags(self):
         arn = self._get_param("ResourceArn")
         tag_keys = self._get_param("TagKeys")
-        if ":experiment/" in arn:
-            self.sagemaker_backend.delete_tags_from_experiment(arn, tag_keys)
-        elif ":experiment-trial/" in arn:
-            self.sagemaker_backend.delete_tags_from_trial(arn, tag_keys)
-        elif ":experiment-trial-component/" in arn:
-            self.sagemaker_backend.delete_tags_from_trial_component(arn, tag_keys)
+        self.sagemaker_backend.delete_tags(arn, tag_keys)
         return 200, {}, json.dumps({})
 
     @amzn_request_id
@@ -222,6 +202,7 @@ class SageMakerResponse(BaseResponse):
             processing_output_config=self._get_param("ProcessingOutputConfig"),
             role_arn=self._get_param("RoleArn"),
             stopping_condition=self._get_param("StoppingCondition"),
+            tags=self._get_param("Tags"),
         )
         response = {
             "ProcessingJobArn": processing_job.processing_job_arn,
