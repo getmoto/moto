@@ -55,8 +55,6 @@ TestAccPinpointApp
 TestAccPinpointEventStream
 TestAccProvider
 TestAccQuickSightGroup
-TestAccSNSSMSPreferences
-TestAccSNSTopicPolicy
 TestAccSQSQueuePolicy
 TestAccSSMDocument
 TestAccSsmDocumentDataSource

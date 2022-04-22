@@ -106,7 +106,15 @@ s3:
   - TestAccS3ObjectCopy
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
+sns:
+  - TestAccSNSTopicPolicy
+  - TestAccSNSTopicDataSource
+  - TestAccSNSSMSPreferences
 sts:
   - TestAccSTSCallerIdentityDataSource
+sqs:
+  - TestAccSQSQueueDataSource
+  - TestAccSQSQueuePolicy
+  - TestAccSQSQueue_FIFOQueue_
 timestreamwrite:
   - TestAccTimestreamWriteDatabase
