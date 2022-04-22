@@ -230,6 +230,14 @@ class NetworkAcl(TaggedEC2Resource):
             return self.id
         elif filter_name == "association.subnet-id":
             return [assoc.subnet_id for assoc in self.associations.values()]
+        elif filter_name == "entry.cidr":
+            return [entry.cidr_block for entry in self.network_acl_entries]
+        elif filter_name == "entry.protocol":
+            return [entry.protocol for entry in self.network_acl_entries]
+        elif filter_name == "entry.rule-number":
+            return [entry.rule_number for entry in self.network_acl_entries]
+        elif filter_name == "entry.rule-action":
+            return [entry.rule_action for entry in self.network_acl_entries]
         elif filter_name == "owner-id":
             return self.owner_id
         else:
