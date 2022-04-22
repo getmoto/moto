@@ -37,7 +37,7 @@ def test_create_and_delete_vpc():
 
 
 @mock_ec2
-def test_vpc_defaults_boto3():
+def test_vpc_defaults():
     ec2 = boto3.resource("ec2", region_name="eu-north-1")
     client = boto3.client("ec2", region_name="eu-north-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -62,7 +62,7 @@ def test_vpc_defaults_boto3():
 
 
 @mock_ec2
-def test_vpc_isdefault_filter_boto3():
+def test_vpc_isdefault_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -78,7 +78,7 @@ def test_vpc_isdefault_filter_boto3():
 
 
 @mock_ec2
-def test_multiple_vpcs_default_filter_boto3():
+def test_multiple_vpcs_default_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     ec2.create_vpc(CidrBlock="10.8.0.0/16")
@@ -91,7 +91,7 @@ def test_multiple_vpcs_default_filter_boto3():
 
 
 @mock_ec2
-def test_vpc_state_available_filter_boto3():
+def test_vpc_state_available_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -120,7 +120,7 @@ def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
 
 
 @mock_ec2
-def test_vpc_tagging_boto3():
+def test_vpc_tagging():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -138,7 +138,7 @@ def test_vpc_tagging_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_id_boto3():
+def test_vpc_get_by_id():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -159,7 +159,7 @@ def test_vpc_get_by_id_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_cidr_block_boto3():
+def test_vpc_get_by_cidr_block():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
     random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
@@ -175,7 +175,7 @@ def test_vpc_get_by_cidr_block_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_dhcp_options_id_boto3():
+def test_vpc_get_by_dhcp_options_id():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     dhcp_options = ec2.create_dhcp_options(
@@ -201,7 +201,7 @@ def test_vpc_get_by_dhcp_options_id_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_boto3():
+def test_vpc_get_by_tag():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -221,7 +221,7 @@ def test_vpc_get_by_tag_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_key_superset_boto3():
+def test_vpc_get_by_tag_key_superset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -243,7 +243,7 @@ def test_vpc_get_by_tag_key_superset_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_key_subset_boto3():
+def test_vpc_get_by_tag_key_subset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -266,7 +266,7 @@ def test_vpc_get_by_tag_key_subset_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_value_superset_boto3():
+def test_vpc_get_by_tag_value_superset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -288,7 +288,7 @@ def test_vpc_get_by_tag_value_superset_boto3():
 
 
 @mock_ec2
-def test_vpc_get_by_tag_value_subset_boto3():
+def test_vpc_get_by_tag_value_subset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -320,16 +320,16 @@ def test_default_vpc():
     default_vpc.cidr_block.should.equal("172.31.0.0/16")
     default_vpc.instance_tenancy.should.equal("default")
     default_vpc.reload()
-    default_vpc.is_default.should.be.ok
+    default_vpc.is_default.should.equal(True)
 
     # Test default values for VPC attributes
     response = default_vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.be.ok
+    attr.get("Value").should.equal(True)
 
     response = default_vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").should.be.ok
+    attr.get("Value").should.equal(True)
 
 
 @mock_ec2
@@ -342,7 +342,7 @@ def test_non_default_vpc():
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     # Test default instance_tenancy
     vpc.instance_tenancy.should.equal("default")
@@ -350,11 +350,11 @@ def test_non_default_vpc():
     # Test default values for VPC attributes
     response = vpc.describe_attribute(Attribute="enableDnsSupport")
     attr = response.get("EnableDnsSupport")
-    attr.get("Value").should.be.ok
+    attr.get("Value").should.equal(True)
 
     response = vpc.describe_attribute(Attribute="enableDnsHostnames")
     attr = response.get("EnableDnsHostnames")
-    attr.get("Value").shouldnt.be.ok
+    attr.get("Value").should.equal(False)
 
     # Check Primary CIDR Block Associations
     cidr_block_association_set = next(iter(vpc.cidr_block_association_set), None)
@@ -373,7 +373,7 @@ def test_vpc_dedicated_tenancy():
     # Create the non default VPC
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", InstanceTenancy="dedicated")
     vpc.reload()
-    vpc.is_default.shouldnt.be.ok
+    vpc.is_default.should.equal(False)
 
     vpc.instance_tenancy.should.equal("dedicated")
 
@@ -445,7 +445,7 @@ def test_vpc_modify_enable_dns_hostnames():
 
 
 @mock_ec2
-def test_vpc_associate_dhcp_options_boto3():
+def test_vpc_associate_dhcp_options():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     dhcp_options = ec2.create_dhcp_options(
@@ -798,7 +798,7 @@ def test_enable_vpc_classic_link():
     vpc = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
-    assert response.get("Return").should.be.true
+    assert response.get("Return").should.equal(True)
 
 
 @mock_ec2
@@ -833,7 +833,7 @@ def test_describe_classic_link_enabled():
 
     ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
     response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.be.true
+    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.equal(True)
 
 
 @mock_ec2
@@ -876,7 +876,7 @@ def test_enable_vpc_classic_link_dns_support():
     vpc = ec2.create_vpc(CidrBlock="10.1.0.0/16")
 
     response = ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
-    assert response.get("Return").should.be.true
+    assert response.get("Return").should.equal(True)
 
 
 @mock_ec2
@@ -900,7 +900,7 @@ def test_describe_classic_link_dns_support_enabled():
 
     ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc.id)
     response = ec2.meta.client.describe_vpc_classic_link_dns_support(VpcIds=[vpc.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.be.true
+    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.equal(True)
 
 
 @mock_ec2
@@ -954,8 +954,8 @@ def test_describe_vpc_gateway_end_points():
     all_endpoints = retrieve_all_endpoints(ec2)
     [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
-    vpc_end_point["PrivateDnsEnabled"].should.be.true
-    our_endpoint["PrivateDnsEnabled"].should.be.true
+    vpc_end_point["PrivateDnsEnabled"].should.equal(True)
+    our_endpoint["PrivateDnsEnabled"].should.equal(True)
 
     our_endpoint["VpcId"].should.equal(vpc["VpcId"])
     our_endpoint["RouteTableIds"].should.equal([route_table["RouteTableId"]])
@@ -1004,8 +1004,8 @@ def test_describe_vpc_interface_end_points():
     all_endpoints = retrieve_all_endpoints(ec2)
     [e["VpcEndpointId"] for e in all_endpoints].should.contain(our_id)
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
-    vpc_end_point["PrivateDnsEnabled"].should.be.true
-    our_endpoint["PrivateDnsEnabled"].should.be.true
+    vpc_end_point["PrivateDnsEnabled"].should.equal(True)
+    our_endpoint["PrivateDnsEnabled"].should.equal(True)
 
     our_endpoint["VpcId"].should.equal(vpc["VpcId"])
     our_endpoint.should_not.have.key("RouteTableIds")

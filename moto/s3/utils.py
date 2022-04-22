@@ -60,12 +60,12 @@ REGION_URL_REGEX = re.compile(
 )
 
 
-def parse_region_from_url(url):
+def parse_region_from_url(url, use_default_region=True):
     match = REGION_URL_REGEX.search(url)
     if match:
         region = match.group("region1") or match.group("region2")
     else:
-        region = "us-east-1"
+        region = "us-east-1" if use_default_region else None
     return region
 
 

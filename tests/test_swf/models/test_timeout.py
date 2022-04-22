@@ -13,7 +13,7 @@ def test_timeout_creation():
     timeout = Timeout(wfe, 1420117200, "START_TO_CLOSE")
 
     with freeze_time("2015-01-01 12:00:00"):
-        timeout.reached.should.be.falsy
+        timeout.reached.should.equal(False)
 
     with freeze_time("2015-01-01 13:00:00"):
-        timeout.reached.should.be.truthy
+        timeout.reached.should.equal(True)

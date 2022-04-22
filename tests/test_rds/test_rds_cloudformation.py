@@ -68,6 +68,10 @@ def test_create_dbinstance_via_cf():
                 },
             }
         },
+        "Outputs": {
+            "db_address": {"Value": {"Fn::GetAtt": ["db", "Endpoint.Address"]}},
+            "db_port": {"Value": {"Fn::GetAtt": ["db", "Endpoint.Port"]}},
+        },
     }
     template_json = json.dumps(template)
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
@@ -84,6 +88,13 @@ def test_create_dbinstance_via_cf():
     created["DBInstanceIdentifier"].should.equal(db_instance_identifier)
     created["Engine"].should.equal("mysql")
     created["DBInstanceStatus"].should.equal("available")
+
+    # Verify the stack outputs are correct
+    o = _get_stack_outputs(cf, stack_name="test_stack")
+    o.should.have.key("db_address").equals(
+        f"{db_instance_identifier}.aaaaaaaaaa.us-west-2.rds.amazonaws.com"
+    )
+    o.should.have.key("db_port").equals("3307")
 
 
 @mock_ec2
@@ -248,3 +259,49 @@ def test_rds_mysql_with_read_replica_in_vpc():
         "DBSubnetGroups"
     ][0]
     subnet_group.should.have.key("DBSubnetGroupDescription").equal("my db subnet group")
+
+
+@mock_ec2
+@mock_rds
+@mock_cloudformation
+def test_delete_dbinstance_via_cf():
+    vpc_conn = boto3.client("ec2", "us-west-2")
+    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")
+
+    rds = boto3.client("rds", region_name="us-west-2")
+    cf = boto3.client("cloudformation", region_name="us-west-2")
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "db": {
+                "Type": "AWS::RDS::DBInstance",
+                "Properties": {
+                    "Port": 3307,
+                    "Engine": "mysql",
+                    # Required - throws exception when describing an instance without tags
+                    "Tags": [],
+                },
+            }
+        },
+    }
+    template_json = json.dumps(template)
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+
+    resp = rds.describe_db_instances()["DBInstances"]
+    resp.should.have.length_of(1)
+
+    cf.delete_stack(StackName="test_stack")
+
+    resp = rds.describe_db_instances()["DBInstances"]
+    resp.should.have.length_of(0)
+
+
+def _get_stack_outputs(cf_client, stack_name):
+    """Returns the outputs for the first entry in describe_stacks."""
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
+    return {
+        output["OutputKey"]: output["OutputValue"]
+        for output in stack_description["Outputs"]
+    }

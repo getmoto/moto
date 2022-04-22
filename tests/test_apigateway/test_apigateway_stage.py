@@ -372,7 +372,7 @@ def test_update_stage_configuration():
     stage["cacheClusterSize"].should.equal("1.6")
     stage["variables"]["environment"].should.match("dev")
     stage["variables"].should_not.have.key("region")
-    stage["cacheClusterEnabled"].should.be.true
+    stage["cacheClusterEnabled"].should.equal(True)
     stage["deploymentId"].should.match(deployment_id)
     stage["methodSettings"].should.have.key("*/*")
     stage["methodSettings"]["*/*"].should.have.key(

@@ -40,6 +40,7 @@ glue
 - [ ] batch_stop_job_run
 - [ ] batch_update_partition
 - [ ] cancel_ml_task_run
+- [ ] cancel_statement
 - [ ] check_schema_version_validity
 - [ ] create_blueprint
 - [ ] create_classifier
@@ -55,6 +56,7 @@ glue
 - [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
+- [ ] create_session
 - [X] create_table
 - [ ] create_trigger
 - [ ] create_user_defined_function
@@ -76,6 +78,7 @@ glue
 - [ ] delete_schema
 - [ ] delete_schema_versions
 - [ ] delete_security_configuration
+- [ ] delete_session
 - [X] delete_table
 - [ ] delete_table_version
 - [ ] delete_trigger
@@ -123,6 +126,8 @@ glue
 - [ ] get_schema_versions_diff
 - [ ] get_security_configuration
 - [ ] get_security_configurations
+- [ ] get_session
+- [ ] get_statement
 - [X] get_table
 - [ ] get_table_version
 - [ ] get_table_versions
@@ -148,6 +153,8 @@ glue
 - [ ] list_registries
 - [ ] list_schema_versions
 - [ ] list_schemas
+- [ ] list_sessions
+- [ ] list_statements
 - [ ] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
@@ -159,6 +166,7 @@ glue
 - [ ] remove_schema_version_metadata
 - [ ] reset_job_bookmark
 - [ ] resume_workflow_run
+- [ ] run_statement
 - [ ] search_tables
 - [ ] start_blueprint_run
 - [X] start_crawler
@@ -172,6 +180,7 @@ glue
 - [ ] start_workflow_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
+- [ ] stop_session
 - [ ] stop_trigger
 - [ ] stop_workflow_run
 - [ ] tag_resource

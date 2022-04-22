@@ -134,6 +134,16 @@ def util_function():
     return zip_output.read()
 
 
+def get_test_zip_file_print_event():
+    pfunc = """
+def lambda_handler(event, context):
+    print(event)
+    print("FINISHED_PRINTING_EVENT")
+    return event
+"""
+    return _process_lambda(pfunc)
+
+
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -166,11 +176,11 @@ def get_role_name():
             )["Role"]["Arn"]
 
 
-def wait_for_log_msg(expected_msg, log_group):
+def wait_for_log_msg(expected_msg, log_group, wait_time=30):
     logs_conn = boto3.client("logs", region_name="us-east-1")
     received_messages = []
     start = time.time()
-    while (time.time() - start) < 30:
+    while (time.time() - start) < wait_time:
         try:
             result = logs_conn.describe_log_streams(logGroupName=log_group)
             log_streams = result.get("logStreams")

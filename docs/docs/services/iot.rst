@@ -208,6 +208,7 @@ iot
         
 
 - [ ] list_managed_job_templates
+- [ ] list_metric_values
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates

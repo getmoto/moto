@@ -175,8 +175,25 @@ class LaunchTemplates(EC2BaseResponse):
             )
             return pretty_xml(tree)
 
-    # def delete_launch_template(self):
-    #     pass
+    def delete_launch_template(self):
+        name = self._get_param("LaunchTemplateName")
+        tid = self._get_param("LaunchTemplateId")
+
+        if self.is_not_dryrun("DeleteLaunchTemplate"):
+            template = self.ec2_backend.delete_launch_template(name, tid)
+
+            tree = xml_root("DeleteLaunchTemplatesResponse")
+            xml_serialize(
+                tree,
+                "launchTemplate",
+                {
+                    "defaultVersionNumber": template.default_version_number,
+                    "launchTemplateId": template.id,
+                    "launchTemplateName": template.name,
+                },
+            )
+
+            return pretty_xml(tree)
 
     # def delete_launch_template_versions(self):
     #     pass

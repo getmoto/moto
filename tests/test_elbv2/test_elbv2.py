@@ -30,10 +30,12 @@ def test_create_load_balancer():
     )
     lb.get("CreatedTime").tzinfo.should_not.be.none
     lb.get("State").get("Code").should.equal("provisioning")
+    lb_arn = lb.get("LoadBalancerArn")
 
     # Ensure the tags persisted
-    response = conn.describe_tags(ResourceArns=[lb.get("LoadBalancerArn")])
-    tags = {d["Key"]: d["Value"] for d in response["TagDescriptions"][0]["Tags"]}
+    tag_desc = conn.describe_tags(ResourceArns=[lb_arn])["TagDescriptions"][0]
+    tag_desc.should.have.key("ResourceArn").equals(lb_arn)
+    tags = {d["Key"]: d["Value"] for d in tag_desc["Tags"]}
     tags.should.equal({"key_name": "a_value"})
 
 
@@ -947,14 +949,22 @@ def test_handle_listener_rules():
     )
 
     # modify priority
-    conn.set_rule_priorities(
+    new_priority = int(first_rule["Priority"]) - 1
+    updated_rule = conn.set_rule_priorities(
         RulePriorities=[
             {
                 "RuleArn": first_rule["RuleArn"],
-                "Priority": int(first_rule["Priority"]) - 1,
+                "Priority": new_priority,
             }
         ]
     )
+
+    # assert response of SetRulePriorities operation
+    updated_rule["Rules"].should.have.length_of(1)
+    updated_rule["Rules"][0]["RuleArn"].should.equal(first_rule["RuleArn"])
+    updated_rule["Rules"][0]["Priority"].should.equal(str(new_priority))
+    updated_rule["Rules"][0]["Conditions"].should.have.length_of(3)
+    updated_rule["Rules"][0]["Actions"].should.have.length_of(1)
 
     # modify forward_config rule partially rule
     new_host_2 = "new.examplewebsite.com"

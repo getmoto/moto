@@ -41,6 +41,9 @@ class Dimension(object):
     def __ne__(self, item):  # Only needed on Py2; Py3 defines it implicitly
         return self != item
 
+    def __lt__(self, other):
+        return self.name < other.name and self.value < other.name
+
 
 class Metric(object):
     def __init__(self, metric_name, namespace, dimensions):
@@ -478,6 +481,7 @@ class CloudWatchBackend(BaseBackend):
             query_ns = query["metric_stat._metric._namespace"]
             query_name = query["metric_stat._metric._metric_name"]
             delta = timedelta(seconds=int(query["metric_stat._period"]))
+            dimensions = self._extract_dimensions_from_get_metric_data_query(query)
             result_vals = []
             timestamps = []
             stat = query["metric_stat._stat"]
@@ -494,11 +498,19 @@ class CloudWatchBackend(BaseBackend):
                     for md in period_md
                     if md.namespace == query_ns and md.name == query_name
                 ]
+                if dimensions:
+                    query_period_data = [
+                        md
+                        for md in period_md
+                        if sorted(md.dimensions) == sorted(dimensions)
+                    ]
 
                 metric_values = [m.value for m in query_period_data]
 
                 if len(metric_values) > 0:
-                    if stat == "Average":
+                    if stat == "SampleCount":
+                        result_vals.append(len(metric_values))
+                    elif stat == "Average":
                         result_vals.append(sum(metric_values) / len(metric_values))
                     elif stat == "Minimum":
                         result_vals.append(min(metric_values))
@@ -678,6 +690,21 @@ class CloudWatchBackend(BaseBackend):
             return next_token, metrics[0:500]
         else:
             return None, metrics
+
+    def _extract_dimensions_from_get_metric_data_query(self, query):
+        dimensions = []
+        prefix = "metric_stat._metric._dimensions.member."
+        suffix_name = "._name"
+        suffix_value = "._value"
+        counter = 1
+
+        while query.get(f"{prefix}{counter}{suffix_name}") and counter <= 10:
+            name = query.get(f"{prefix}{counter}{suffix_name}")
+            value = query.get(f"{prefix}{counter}{suffix_value}")
+            dimensions.append(Dimension(name=name, value=value))
+            counter = counter + 1
+
+        return dimensions
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

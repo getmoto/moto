@@ -838,7 +838,7 @@ def test_delete_partition():
 
     response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
     partitions = response["Partitions"]
-    partitions.should.be.empty
+    partitions.should.equal([])
 
 
 @mock_glue

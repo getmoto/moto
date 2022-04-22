@@ -176,6 +176,7 @@ class ClusterAttributes:
     ISSUER = "issuer"
     NAME = "name"
     OIDC = "oidc"
+    ENCRYPTION_CONFIG = "encryptionConfig"
 
 
 class FargateProfileAttributes:

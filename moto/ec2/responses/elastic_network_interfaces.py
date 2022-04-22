@@ -1,3 +1,4 @@
+from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
 from moto.ec2.utils import get_attribute_value, add_tag_specification
 from ._base_response import EC2BaseResponse
 
@@ -39,16 +40,38 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
             return template.render()
 
     def describe_network_interface_attribute(self):
-        raise NotImplementedError(
-            "ElasticNetworkInterfaces(AmazonVPC).describe_network_interface_attribute is not yet implemented"
-        )
+        eni_id = self._get_param("NetworkInterfaceId")
+        attribute = self._get_param("Attribute")
+        if self.is_not_dryrun("DescribeNetworkInterfaceAttribute"):
+            eni = self.ec2_backend.get_all_network_interfaces([eni_id])[0]
+
+            if attribute == "description":
+                template = self.response_template(
+                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_DESCRIPTION
+                )
+            elif attribute == "groupSet":
+                template = self.response_template(
+                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_GROUPSET
+                )
+            elif attribute == "sourceDestCheck":
+                template = self.response_template(
+                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_SOURCEDESTCHECK
+                )
+            elif attribute == "attachment":
+                template = self.response_template(
+                    DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT
+                )
+            else:
+                raise InvalidParameterValueErrorUnknownAttribute(attribute)
+        return template.render(eni=eni)
 
     def describe_network_interfaces(self):
         eni_ids = self._get_multi_param("NetworkInterfaceId")
         filters = self._filters_from_querystring()
-        enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
-        template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
-        return template.render(enis=enis)
+        if self.is_not_dryrun("DescribeNetworkInterfaces"):
+            enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
+            template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
+            return template.render(enis=enis)
 
     def attach_network_interface(self):
         eni_id = self._get_param("NetworkInterfaceId")
@@ -277,6 +300,18 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
                 <natEnabled>true</natEnabled>
             </association>
             {% endif %}
+            {% if eni.attachment_id %}
+            <attachment>
+                <attachTime>{{ eni.attach_time }}</attachTime>
+                <attachmentId>{{ eni.attachment_id }}</attachmentId>
+                <deleteOnTermination>{{ eni.delete_on_termination }}</deleteOnTermination>
+                <deviceIndex>{{ eni.device_index }}</deviceIndex>
+                <networkCardIndex>0</networkCardIndex>
+                <instanceId>{{ eni.instance.id }}</instanceId>
+                <instanceOwnerId>{{ eni.instance.owner_id }}</instanceOwnerId>
+                <status>attached</status>
+            </attachment>
+            {% endif %}
             <tagSet>
             {% for tag in eni.get_tags() %}
                 <item>
@@ -329,3 +364,49 @@ DELETE_NETWORK_INTERFACE_RESPONSE = """
     <requestId>34b5b3b4-d0c5-49b9-b5e2-a468ef6adcd8</requestId>
     <return>true</return>
 </DeleteNetworkInterfaceResponse>"""
+
+DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_DESCRIPTION = """
+<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
+    <description>
+        <value>{{ eni.description }}</value>
+    </description>
+</DescribeNetworkInterfaceAttributeResponse>"""
+
+DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_GROUPSET = """
+<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
+    <groupSet>
+        {% for group in eni.group_set %}
+        <item>
+            <groupId>{{ group.id }}</groupId>
+            <groupName>{{ group.name }}</groupName>
+        </item>
+        {% endfor %}
+    </groupSet>
+</DescribeNetworkInterfaceAttributeResponse>"""
+
+DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_SOURCEDESTCHECK = """
+<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
+    <sourceDestCheck>
+        <value>{{ "true" if eni.source_dest_check == True else "false" }}</value>
+    </sourceDestCheck>
+</DescribeNetworkInterfaceAttributeResponse>"""
+
+DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT = """
+<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
+    {% if eni.attachment_id %}
+    <attachment>
+        <attachTime>{{ eni.attach_time }}</attachTime>
+        <attachmentId>{{ eni.attachment_id }}</attachmentId>
+        <deleteOnTermination>{{ eni.delete_on_termination }}</deleteOnTermination>
+        <deviceIndex>{{ eni.device_index }}</deviceIndex>
+        <networkCardIndex>0</networkCardIndex>
+        <instanceId>{{ eni.instance.id }}</instanceId>
+        <instanceOwnerId>{{ eni.instance.owner_id }}</instanceOwnerId>
+        <status>attached</status>
+    </attachment>
+    {% endif %}
+</DescribeNetworkInterfaceAttributeResponse>"""

@@ -1,13 +1,22 @@
+import json
+from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
-class InvalidIndexNameError(ValueError):
+class DynamodbException(JsonRESTError):
     pass
 
 
-class MockValidationException(ValueError):
+class MockValidationException(DynamodbException):
+    error_type = "com.amazonaws.dynamodb.v20111205#ValidationException"
+
     def __init__(self, message):
+        super().__init__(MockValidationException.error_type, message=message)
         self.exception_msg = message
+
+
+class InvalidIndexNameError(MockValidationException):
+    pass
 
 
 class InvalidUpdateExpressionInvalidDocumentPath(MockValidationException):
@@ -183,19 +192,37 @@ class IncorrectDataType(MockValidationException):
         super().__init__(self.inc_data_type_msg)
 
 
-class ConditionalCheckFailed(ValueError):
-    msg = "The conditional request failed"
+class ConditionalCheckFailed(DynamodbException):
+    error_type = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
 
-    def __init__(self):
-        super().__init__(self.msg)
+    def __init__(self, msg=None):
+        super().__init__(
+            ConditionalCheckFailed.error_type, msg or "The conditional request failed"
+        )
 
 
-class TransactionCanceledException(ValueError):
+class TransactionCanceledException(DynamodbException):
     cancel_reason_msg = "Transaction cancelled, please refer cancellation reasons for specific reasons [{}]"
+    error_type = "com.amazonaws.dynamodb.v20120810#TransactionCanceledException"
 
     def __init__(self, errors):
-        msg = self.cancel_reason_msg.format(", ".join([str(err) for err in errors]))
-        super().__init__(msg)
+        msg = self.cancel_reason_msg.format(
+            ", ".join([str(code) for code, _ in errors])
+        )
+        super().__init__(
+            error_type=TransactionCanceledException.error_type, message=msg
+        )
+        reasons = [
+            {"Code": code, "Message": message} if code else {"Code": "None"}
+            for code, message in errors
+        ]
+        self.description = json.dumps(
+            {
+                "__type": TransactionCanceledException.error_type,
+                "CancellationReasons": reasons,
+                "Message": msg,
+            }
+        )
 
 
 class MultipleTransactionsException(MockValidationException):
@@ -240,3 +267,46 @@ class TooManyAddClauses(InvalidUpdateExpression):
 
     def __init__(self):
         super().__init__(self.msg)
+
+
+class ResourceNotFoundException(JsonRESTError):
+    def __init__(self, msg=None):
+        err = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+        super().__init__(err, msg or "Requested resource not found")
+
+
+class TableNotFoundException(JsonRESTError):
+    def __init__(self, name):
+        err = "com.amazonaws.dynamodb.v20111205#TableNotFoundException"
+        msg = "Table not found: {}".format(name)
+        super().__init__(err, msg)
+
+
+class SourceTableNotFoundException(JsonRESTError):
+    def __init__(self, source_table_name):
+        er = "com.amazonaws.dynamodb.v20111205#SourceTableNotFoundException"
+        super().__init__(er, "Source table not found: %s" % source_table_name)
+
+
+class BackupNotFoundException(JsonRESTError):
+    def __init__(self, backup_arn):
+        er = "com.amazonaws.dynamodb.v20111205#BackupNotFoundException"
+        super().__init__(er, "Backup not found: %s" % backup_arn)
+
+
+class TableAlreadyExistsException(JsonRESTError):
+    def __init__(self, target_table_name):
+        er = "com.amazonaws.dynamodb.v20111205#TableAlreadyExistsException"
+        super().__init__(er, "Table already exists: %s" % target_table_name)
+
+
+class ResourceInUseException(JsonRESTError):
+    def __init__(self):
+        er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
+        super().__init__(er, "Resource in use")
+
+
+class StreamAlreadyEnabledException(JsonRESTError):
+    def __init__(self):
+        er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
+        super().__init__(er, "Cannot enable stream")

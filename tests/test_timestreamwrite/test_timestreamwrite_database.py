@@ -1,5 +1,8 @@
 import boto3
+import pytest
 import sure  # noqa # pylint: disable=unused-import
+
+from botocore.exceptions import ClientError
 from moto import mock_timestreamwrite
 from moto.core import ACCOUNT_ID
 
@@ -15,7 +18,9 @@ def test_create_database_simple():
     )
     database.should.have.key("DatabaseName").equals("mydatabase")
     database.should.have.key("TableCount").equals(0)
-    database.shouldnt.have.key("KmsKeyId")
+    database.should.have.key("KmsKeyId").equals(
+        f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:key/default_key"
+    )
 
 
 @mock_timestreamwrite
@@ -52,6 +57,16 @@ def test_describe_database():
 
 
 @mock_timestreamwrite
+def test_describe_unknown_database():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        ts.describe_database(DatabaseName="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("The database unknown does not exist.")
+
+
+@mock_timestreamwrite
 def test_list_databases():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="db_with", KmsKeyId="mykey")
@@ -73,6 +88,7 @@ def test_list_databases():
             "Arn": f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/db_without",
             "DatabaseName": "db_without",
             "TableCount": 0,
+            "KmsKeyId": f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:key/default_key",
         }
     )
 

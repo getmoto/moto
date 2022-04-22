@@ -18,6 +18,7 @@ from .exceptions import (
     JobNotFoundException,
     ConcurrentRunsExceededException,
 )
+from .utils import PartitionFilter
 from ..utilities.paginator import paginate
 
 
@@ -278,8 +279,19 @@ class FakeTable(BaseModel):
             raise PartitionAlreadyExistsException()
         self.partitions[str(partition.values)] = partition
 
-    def get_partitions(self):
-        return [p for str_part_values, p in self.partitions.items()]
+    def get_partitions(self, expression):
+        """See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
+        for supported expressions.
+
+        Expression caveats:
+
+        - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
+        - Nanosecond expressions on timestamp columns are rounded to microseconds.
+        - Literal dates and timestamps must be valid, i.e. no support for February 31st.
+        - LIKE expressions are converted to Python regexes, escaping special characters.
+          Only % and _ wildcards are supported, and SQL escaping using [] does not work.
+        """
+        return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values):
         try:

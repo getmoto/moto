@@ -26,7 +26,7 @@ application-autoscaling
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] delete_scaling_policy
-- [ ] delete_scheduled_action
+- [X] delete_scheduled_action
 - [X] deregister_scalable_target
   Registers or updates a scalable target.
 
@@ -35,9 +35,13 @@ application-autoscaling
 
 - [ ] describe_scaling_activities
 - [X] describe_scaling_policies
-- [ ] describe_scheduled_actions
+- [X] describe_scheduled_actions
+  
+        Pagination is not yet implemented
+        
+
 - [X] put_scaling_policy
-- [ ] put_scheduled_action
+- [X] put_scheduled_action
 - [X] register_scalable_target
   Registers or updates a scalable target.
 

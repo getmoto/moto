@@ -1,0 +1,51 @@
+on: [push, pull_request]
+name: TestTerraform
+jobs:
+  prepare_list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(python tests/terraformtests/get_tf_services.py --names)"
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+  test_service:
+    needs: prepare_list
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare_list.outputs.matrix) }}
+        go-version: [1.18.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Start MotoServer
+      run: |
+        python setup.py sdist
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_PORT=4566 -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 4566:4566 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        MOTO_PORT=4566 python scripts/ci_wait_for_server.py
+    - name: Download Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-2-${{ hashFiles('**/tests/terraformtests/terraform-provider-aws/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go-version }}-2-
+    - name: Get list of tests for  this service
+      id: get-list
+      run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py ${{ matrix.service }})"
+    - name: Execute tests
+      run: |
+        make terraformtests SERVICE_NAME=${{ matrix.service }} TEST_NAMES=${{ steps.get-list.outputs.testlist }}

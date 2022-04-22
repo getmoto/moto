@@ -124,7 +124,6 @@ def test_get_job_output_boto3():
         except Exception:
             time.sleep(1)
 
-    output.shouldnt.be.none
     output.should.have.key("status").equal(200)
     output.should.have.key("contentType").equal("application/octet-stream")
     output.should.have.key("body")

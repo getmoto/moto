@@ -25,12 +25,20 @@ class EC2ContainerServiceResponse(BaseResponse):
     def _get_param(self, param_name, if_none=None):
         return self.request_params.get(param_name, if_none)
 
+    def create_capacity_provider(self):
+        name = self._get_param("name")
+        asg_provider = self._get_param("autoScalingGroupProvider")
+        tags = self._get_param("tags")
+        provider = self.ecs_backend.create_capacity_provider(name, asg_provider, tags)
+        return json.dumps({"capacityProvider": provider.response_object})
+
     def create_cluster(self):
         cluster_name = self._get_param("clusterName")
         tags = self._get_param("tags")
+        settings = self._get_param("settings")
         if cluster_name is None:
             cluster_name = "default"
-        cluster = self.ecs_backend.create_cluster(cluster_name, tags)
+        cluster = self.ecs_backend.create_cluster(cluster_name, tags, settings)
         return json.dumps({"cluster": cluster.response_object})
 
     def list_clusters(self):
@@ -39,6 +47,21 @@ class EC2ContainerServiceResponse(BaseResponse):
             {
                 "clusterArns": cluster_arns
                 #  'nextToken': str(uuid.uuid4())
+            }
+        )
+
+    def delete_capacity_provider(self):
+        name = self._get_param("capacityProvider")
+        provider = self.ecs_backend.delete_capacity_provider(name)
+        return json.dumps({"capacityProvider": provider.response_object})
+
+    def describe_capacity_providers(self):
+        names = self._get_param("capacityProviders")
+        providers, failures = self.ecs_backend.describe_capacity_providers(names)
+        return json.dumps(
+            {
+                "capacityProviders": [p.response_object for p in providers],
+                "failures": [p.response_object for p in failures],
             }
         )
 

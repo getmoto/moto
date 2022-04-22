@@ -10,7 +10,7 @@ from moto import mock_ec2, mock_route53
 
 
 @mock_route53
-def test_create_hosted_zone_boto3():
+def test_create_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
     response = conn.create_hosted_zone(
         Name="testdns.aws.com.", CallerReference=str(hash("foo"))
@@ -156,7 +156,7 @@ def test_list_resource_record_set_unknown_type():
 
 
 @mock_route53
-def test_create_health_check_boto3():
+def test_create_health_check():
     conn = boto3.client("route53", region_name="us-east-1")
 
     check = conn.create_health_check(
@@ -189,7 +189,7 @@ def test_create_health_check_boto3():
 
 
 @mock_route53
-def test_list_health_checks_boto3():
+def test_list_health_checks():
     conn = boto3.client("route53", region_name="us-east-1")
 
     conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
@@ -214,7 +214,7 @@ def test_list_health_checks_boto3():
 
 
 @mock_route53
-def test_delete_health_checks_boto3():
+def test_delete_health_checks():
     conn = boto3.client("route53", region_name="us-east-1")
 
     conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
@@ -240,7 +240,7 @@ def test_delete_health_checks_boto3():
 
 
 @mock_route53
-def test_use_health_check_in_resource_record_set_boto3():
+def test_use_health_check_in_resource_record_set():
     conn = boto3.client("route53", region_name="us-east-1")
 
     check = conn.create_health_check(
@@ -286,7 +286,7 @@ def test_use_health_check_in_resource_record_set_boto3():
 
 
 @mock_route53
-def test_hosted_zone_comment_preserved_boto3():
+def test_hosted_zone_comment_preserved():
     conn = boto3.client("route53", region_name="us-east-1")
 
     firstzone = conn.create_hosted_zone(
@@ -304,7 +304,7 @@ def test_hosted_zone_comment_preserved_boto3():
 
 
 @mock_route53
-def test_deleting_weighted_route_boto3():
+def test_deleting_weighted_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
     zone = conn.create_hosted_zone(
@@ -360,7 +360,7 @@ def test_deleting_weighted_route_boto3():
 
 
 @mock_route53
-def test_deleting_latency_route_boto3():
+def test_deleting_latency_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
     zone = conn.create_hosted_zone(
@@ -424,7 +424,7 @@ def test_deleting_latency_route_boto3():
 
 @mock_ec2
 @mock_route53
-def test_hosted_zone_private_zone_preserved_boto3():
+def test_hosted_zone_private_zone_preserved():
     # Create mock VPC so we can get a VPC ID
     region = "us-east-1"
     ec2c = boto3.client("ec2", region_name=region)
@@ -446,8 +446,8 @@ def test_hosted_zone_private_zone_preserved_boto3():
     hosted_zone["VPCs"].should.have.length_of(1)
     hosted_zone["VPCs"][0].should.have.key("VPCId")
     hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should_not.be.empty
-    hosted_zone["VPCs"][0]["VPCRegion"].should_not.be.empty
+    hosted_zone["VPCs"][0]["VPCId"].should_not.equal(None)
+    hosted_zone["VPCs"][0]["VPCRegion"].should_not.equal(None)
     hosted_zone["VPCs"][0]["VPCId"].should.be.equal(vpc_id)
     hosted_zone["VPCs"][0]["VPCRegion"].should.be.equal(region)
 
@@ -474,8 +474,8 @@ def test_hosted_zone_private_zone_preserved_boto3():
     hosted_zone["VPCs"].should.have.length_of(1)
     hosted_zone["VPCs"][0].should.have.key("VPCId")
     hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should.be.empty
-    hosted_zone["VPCs"][0]["VPCRegion"].should.be.empty
+    hosted_zone["VPCs"][0]["VPCId"].should.equal("")
+    hosted_zone["VPCs"][0]["VPCRegion"].should.equal("")
 
     hosted_zones = conn.list_hosted_zones()
     hosted_zones["HostedZones"].should.have.length_of(2)
@@ -511,7 +511,7 @@ def test_list_or_change_tags_for_resource_request():
     response = conn.list_tags_for_resource(
         ResourceType="healthcheck", ResourceId=healthcheck_id
     )
-    response["ResourceTagSet"]["Tags"].should.be.empty
+    response["ResourceTagSet"]["Tags"].should.equal([])
 
     tag1 = {"Key": "Deploy", "Value": "True"}
     tag2 = {"Key": "Name", "Value": "UnitTest"}
@@ -575,7 +575,7 @@ def test_list_or_change_tags_for_resource_request():
     response = conn.list_tags_for_resource(
         ResourceType="healthcheck", ResourceId=healthcheck_id
     )
-    response["ResourceTagSet"]["Tags"].should.be.empty
+    response["ResourceTagSet"]["Tags"].should.equal([])
 
 
 @mock_ec2
@@ -620,8 +620,8 @@ def test_list_hosted_zones_by_name():
     b_hz_vpcs = b_hosted_zone["VPCs"][0]
     b_hz_vpcs.should.have.key("VPCId")
     b_hz_vpcs.should.have.key("VPCRegion")
-    b_hz_vpcs["VPCId"].should_not.be.empty
-    b_hz_vpcs["VPCRegion"].should_not.be.empty
+    b_hz_vpcs["VPCId"].should_not.equal("")
+    b_hz_vpcs["VPCRegion"].should_not.equal("")
     b_hz_vpcs["VPCId"].should.be.equal(vpc_id)
     b_hz_vpcs["VPCRegion"].should.be.equal(region)
 

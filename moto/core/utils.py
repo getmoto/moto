@@ -400,6 +400,14 @@ def aws_api_matches(pattern, string):
         return False
 
 
+def extract_region_from_aws_authorization(string):
+    auth = string or ""
+    region = re.sub(r".*Credential=[^/]+/[^/]+/([^/]+)/.*", r"\1", auth)
+    if region == auth:
+        return None
+    return region
+
+
 class BackendDict(dict):
     def __init__(self, fn, service_name):
         self.fn = fn

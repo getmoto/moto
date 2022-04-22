@@ -4,7 +4,7 @@
     :format: html
 
 ***********************
-Intercepting URL's
+Intercepting URLs
 ***********************
 
 

@@ -339,9 +339,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.shouldnt.be.empty
-    versions.shouldnt.be.empty
-    delete_markers.should.be.none
+    objects.should.have.length_of(1)
+    versions.should.have.length_of(1)
+    delete_markers.should.equal(None)
 
     s3.delete_object(Bucket=bucket, Key=key)
 
@@ -349,9 +349,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.shouldnt.be.empty
-    delete_markers.shouldnt.be.empty
+    objects.should.equal(None)
+    versions.should.have.length_of(1)
+    delete_markers.should.have.length_of(1)
 
     s3.delete_object(Bucket=bucket, Key=key, VersionId=versions[0].get("VersionId"))
 
@@ -359,9 +359,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.should.be.none
-    delete_markers.shouldnt.be.empty
+    objects.should.equal(None)
+    versions.should.equal(None)
+    delete_markers.should.have.length_of(1)
 
     s3.delete_object(
         Bucket=bucket, Key=key, VersionId=delete_markers[0].get("VersionId")
@@ -371,9 +371,9 @@ def test_delete_versioned_objects():
     versions = s3.list_object_versions(Bucket=bucket).get("Versions")
     delete_markers = s3.list_object_versions(Bucket=bucket).get("DeleteMarkers")
 
-    objects.should.be.none
-    versions.should.be.none
-    delete_markers.should.be.none
+    objects.should.equal(None)
+    versions.should.equal(None)
+    delete_markers.should.equal(None)
 
 
 @mock_s3
@@ -512,7 +512,7 @@ def test_restore_key():
     bucket.create()
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
-    key.restore.should.be.none
+    key.restore.should.equal(None)
     key.restore_object(RestoreRequest={"Days": 1})
     if settings.TEST_SERVER_MODE:
         key.restore.should.contain('ongoing-request="false"')
@@ -556,7 +556,7 @@ def test_get_versioning_status():
     bucket.create()
 
     v = s3.BucketVersioning("foobar")
-    v.status.should.be.none
+    v.status.should.equal(None)
 
     v.enable()
     v.status.should.equal("Enabled")
@@ -874,22 +874,17 @@ def test_bucket_location_nondefault():
     )
 
 
-# Test uses current Region to determine whether to throw an error
-# Region is retrieved based on current URL
-# URL will always be localhost in Server Mode, so can't run it there
-if not settings.TEST_SERVER_MODE:
+@mock_s3
+def test_s3_location_should_error_outside_useast1():
+    s3 = boto3.client("s3", region_name="eu-west-1")
 
-    @mock_s3
-    def test_s3_location_should_error_outside_useast1():
-        s3 = boto3.client("s3", region_name="eu-west-1")
+    bucket_name = "asdfasdfsdfdsfasda"
 
-        bucket_name = "asdfasdfsdfdsfasda"
-
-        with pytest.raises(ClientError) as e:
-            s3.create_bucket(Bucket=bucket_name)
-        e.value.response["Error"]["Message"].should.equal(
-            "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
-        )
+    with pytest.raises(ClientError) as e:
+        s3.create_bucket(Bucket=bucket_name)
+    e.value.response["Error"]["Message"].should.equal(
+        "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
+    )
 
 
 @mock_s3
@@ -1030,7 +1025,7 @@ def test_website_redirect_location():
 
     s3.put_object(Bucket="mybucket", Key="steve", Body=b"is awesome")
     resp = s3.get_object(Bucket="mybucket", Key="steve")
-    resp.get("WebsiteRedirectLocation").should.be.none
+    resp.get("WebsiteRedirectLocation").should.equal(None)
 
     url = "https://github.com/spulec/moto"
     s3.put_object(
