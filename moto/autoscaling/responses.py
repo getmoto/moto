@@ -37,6 +37,9 @@ class AutoScalingResponse(BaseResponse):
             associate_public_ip_address=params.get("AssociatePublicIpAddress"),
             block_device_mappings=params.get("BlockDeviceMappings"),
             instance_id=params.get("InstanceId"),
+            metadata_options=params.get("MetadataOptions"),
+            classic_link_vpc_id=params.get("ClassicLinkVPCId"),
+            classic_link_vpc_security_groups=params.get("ClassicLinkVPCSecurityGroups"),
         )
         template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
@@ -449,13 +452,27 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
       {% for launch_configuration in launch_configurations %}
         <member>
           <AssociatePublicIpAddress>{{ 'true' if launch_configuration.associate_public_ip_address else 'false' }}</AssociatePublicIpAddress>
+          {% if launch_configuration.classic_link_vpc_id %}
+          <ClassicLinkVPCId>{{ launch_configuration.classic_link_vpc_id }}</ClassicLinkVPCId>
+          {% endif %}
+          {% if launch_configuration.classic_link_vpc_security_groups %}
+          <ClassicLinkVPCSecurityGroups>
+            {% for sg in launch_configuration.classic_link_vpc_security_groups %}
+            <member>{{ sg }}</member>
+            {% endfor %}
+          </ClassicLinkVPCSecurityGroups>
+          {% endif %}
           <SecurityGroups>
             {% for security_group in launch_configuration.security_groups %}
               <member>{{ security_group }}</member>
             {% endfor %}
           </SecurityGroups>
           <CreatedTime>2013-01-21T23:04:42.200Z</CreatedTime>
+          {% if launch_configuration.kernel_id %}
           <KernelId>{{ launch_configuration.kernel_id }}</KernelId>
+          {% else %}
+          <KernelId/>
+          {% endif %}
           {% if launch_configuration.instance_profile_name %}
             <IamInstanceProfile>{{ launch_configuration.instance_profile_name }}</IamInstanceProfile>
           {% endif %}
@@ -466,7 +483,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
             <UserData/>
           {% endif %}
           <InstanceType>{{ launch_configuration.instance_type }}</InstanceType>
-          <LaunchConfigurationARN>arn:aws:autoscaling:us-east-1:803981987763:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{{ launch_configuration.name }}</LaunchConfigurationARN>
+          <LaunchConfigurationARN>{{ launch_configuration.arn }}</LaunchConfigurationARN>
           {% if launch_configuration.block_device_mappings %}
             <BlockDeviceMappings>
             {% for mount_point, mapping in launch_configuration.block_device_mappings.items() %}
@@ -474,6 +491,8 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
                 <DeviceName>{{ mount_point }}</DeviceName>
                 {% if mapping.ephemeral_name %}
                 <VirtualName>{{ mapping.ephemeral_name }}</VirtualName>
+                {% elif mapping.no_device %}
+                <NoDevice>true</NoDevice>
                 {% else %}
                 <Ebs>
                 {% if mapping.snapshot_id %}
@@ -485,8 +504,18 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
                 {% if mapping.iops %}
                   <Iops>{{ mapping.iops }}</Iops>
                 {% endif %}
+                {% if mapping.throughput %}
+                  <Throughput>{{ mapping.throughput }}</Throughput>
+                {% endif %}
+                {% if mapping.delete_on_termination is not none %}
                   <DeleteOnTermination>{{ mapping.delete_on_termination }}</DeleteOnTermination>
+                {% endif %}
+                {% if mapping.volume_type %}
                   <VolumeType>{{ mapping.volume_type }}</VolumeType>
+                {% endif %}
+                  {% if mapping.encrypted %}
+                  <Encrypted>{{ mapping.encrypted }}</Encrypted>
+                  {% endif %}
                 </Ebs>
                 {% endif %}
               </member>
@@ -501,13 +530,24 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
           {% else %}
             <KeyName/>
           {% endif %}
+          {% if launch_configuration.ramdisk_id %}
           <RamdiskId>{{ launch_configuration.ramdisk_id }}</RamdiskId>
+          {% else %}
+          <RamdiskId/>
+          {% endif %}
           <EbsOptimized>{{ launch_configuration.ebs_optimized }}</EbsOptimized>
           <InstanceMonitoring>
             <Enabled>{{ launch_configuration.instance_monitoring_enabled }}</Enabled>
           </InstanceMonitoring>
           {% if launch_configuration.spot_price %}
             <SpotPrice>{{ launch_configuration.spot_price }}</SpotPrice>
+          {% endif %}
+          {% if launch_configuration.metadata_options %}
+          <MetadataOptions>
+            <HttpTokens>{{ launch_configuration.metadata_options.get("HttpTokens") }}</HttpTokens>
+            <HttpPutResponseHopLimit>{{ launch_configuration.metadata_options.get("HttpPutResponseHopLimit") }}</HttpPutResponseHopLimit>
+            <HttpEndpoint>{{ launch_configuration.metadata_options.get("HttpEndpoint") }}</HttpEndpoint>
+          </MetadataOptions>
           {% endif %}
         </member>
       {% endfor %}

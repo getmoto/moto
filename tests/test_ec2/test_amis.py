@@ -117,8 +117,39 @@ def test_ami_create_and_delete():
         ec2.deregister_image(ImageId=image_id)
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidAMIID.Unavailable")
+    ex.value.response["ResponseMetadata"]["RequestId"].should_not.equal(None)
+
+
+@mock_ec2
+def test_deregister_image__unknown():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.deregister_image(ImageId="ami-unknown-ami")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = ex.value.response["Error"]
     err["Code"].should.equal("InvalidAMIID.NotFound")
     ex.value.response["ResponseMetadata"]["RequestId"].should_not.equal(None)
+
+
+@mock_ec2
+def test_deregister_image__and_describe():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance = reservation["Instances"][0]
+    instance_id = instance["InstanceId"]
+
+    image_id = ec2.create_image(
+        InstanceId=instance_id, Name="test-ami", Description="this is a test ami"
+    )["ImageId"]
+
+    ec2.deregister_image(ImageId=image_id)
+
+    # Searching for a deleted image ID should not throw an error
+    # It should simply not return this image
+    ec2.describe_images(ImageIds=[image_id])["Images"].should.have.length_of(0)
 
 
 @mock_ec2

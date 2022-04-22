@@ -557,6 +557,8 @@ class InstanceBackend(object):
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
             block_device_mappings = None
+            if "block_device_mappings" not in kwargs:
+                new_instance.setup_defaults()
             if "block_device_mappings" in kwargs:
                 block_device_mappings = kwargs["block_device_mappings"]
             elif kwargs.get("launch_template"):
@@ -590,8 +592,6 @@ class InstanceBackend(object):
                             kms_key_id,
                             volume_type=volume_type,
                         )
-            else:
-                new_instance.setup_defaults()
             if kwargs.get("instance_market_options"):
                 new_instance.lifecycle = "spot"
             # Tag all created volumes.
