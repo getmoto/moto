@@ -211,6 +211,26 @@ def test_delete_db_cluster():
 
 
 @mock_rds
+def test_delete_db_cluster_do_snapshot():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+    )
+
+    client.delete_db_cluster(
+        DBClusterIdentifier="cluster-id", FinalDBSnapshotIdentifier="final-snapshot"
+    )
+    client.describe_db_clusters()["DBClusters"].should.have.length_of(0)
+    snapshots = client.describe_db_cluster_snapshots()["DBClusterSnapshots"]
+    snapshots[0]["DBClusterIdentifier"].should.equal("cluster-id")
+    snapshots[0]["DBClusterSnapshotIdentifier"].should.equal("final-snapshot")
+
+
+@mock_rds
 def test_delete_db_cluster_that_is_protected():
     client = boto3.client("rds", region_name="eu-north-1")
 
@@ -620,3 +640,64 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
     new_cluster["DBClusterParameterGroup"].should.equal("default.aurora8.0")
     new_cluster["DBClusterInstanceClass"].should.equal("db.r6g.xlarge")
     new_cluster["Port"].should.equal(10000)
+
+
+@mock_rds
+def test_add_tags_to_cluster():
+    conn = boto3.client("rds", region_name="us-west-2")
+    resp = conn.create_db_cluster(
+        DBClusterIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DatabaseName="staging-postgres",
+        DBClusterInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2000",
+        Port=1234,
+        Tags=[{"Key": "k1", "Value": "v1"}],
+    )
+    cluster_arn = resp["DBCluster"]["DBClusterArn"]
+
+    conn.add_tags_to_resource(
+        ResourceName=cluster_arn, Tags=[{"Key": "k2", "Value": "v2"}]
+    )
+
+    tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
+    tags.should.equal([{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}])
+
+    conn.remove_tags_from_resource(ResourceName=cluster_arn, TagKeys=["k1"])
+
+    tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
+    tags.should.equal([{"Key": "k2", "Value": "v2"}])
+
+
+@mock_rds
+def test_add_tags_to_cluster_snapshot():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_cluster(
+        DBClusterIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DatabaseName="staging-postgres",
+        DBClusterInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2000",
+        Port=1234,
+        Tags=[{"Key": "k1", "Value": "v1"}],
+    )
+    resp = conn.create_db_cluster_snapshot(
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
+    )
+    snapshot_arn = resp["DBClusterSnapshot"]["DBClusterSnapshotArn"]
+
+    conn.add_tags_to_resource(
+        ResourceName=snapshot_arn, Tags=[{"Key": "k2", "Value": "v2"}]
+    )
+
+    tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
+    tags.should.equal([{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}])
+
+    conn.remove_tags_from_resource(ResourceName=snapshot_arn, TagKeys=["k1"])
+
+    tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
+    tags.should.equal([{"Key": "k2", "Value": "v2"}])

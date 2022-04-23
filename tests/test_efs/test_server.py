@@ -1,6 +1,4 @@
 import re
-from os import environ
-
 import pytest
 
 from moto import mock_efs, mock_ec2
@@ -12,12 +10,12 @@ MOUNT_TARGETS = "/2015-02-01/mount-targets"
 
 
 @pytest.fixture(scope="function")
-def aws_credentials():
+def aws_credentials(monkeypatch):
     """Mocked AWS Credentials for moto."""
-    environ["AWS_ACCESS_KEY_ID"] = "testing"
-    environ["AWS_SESSION_TOKEN"] = "testing"
-    environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    environ["AWS_SECURITY_TOKEN"] = "testing"
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
 
 
 @pytest.fixture(scope="function")

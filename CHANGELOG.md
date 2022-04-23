@@ -1,9 +1,101 @@
 Moto Changelog
 ==============
 
+3.1.5
+-----
+Docker Digest for 3.1.5: _sha256:79050ce5b729f6eff3282a79dace9cb7e5983588250452f8821aeffa87eca334_
+
+    New Services:
+
+    New Methods:
+        * ApplicationAutoscaling:
+            * delete_scheduled_action()
+            * describe_scheduled_actions()
+            * put_scheduled_action()
+
+        * Databrew:
+            * create_ruleset()
+            * delete_ruleset()
+            * list_rulesets()
+            * update_recipe()
+            * update_ruleset()
+
+        * EC2:
+            * describe_network_interface_attribute()
+
+    Miscellaneous:
+        * Glue:get_partitions() now supports the Expression-parameter
+        * RDS:delete_db_cluster() now supports the FinalDBSnapshotIdentifier-parameter
+        * S3 actions can now send notifications for (a subset of) supported events and targets
+
+3.1.4
+-----
+Docker Digest for 3.1.4: _sha256:795eb8a1d966ef30c53f504e358afb23ec262e5ad1cba18d474096c0fba794bd_
+
+    General:
+        * Compatible with botocore 1.24.30.
+          The IOTData service in older versions of Moto is incompatible with botocore >= 1.24.30, due to the fact that AWS changed their URL endpoints. 
+
+    New Services:
+        * QuickSight:
+            * create_data_set()
+            * create_group()
+            * create_group_membership()
+            * create_ingestion()
+            * delete_group()
+            * delete_user()
+            * describe_group()
+            * describe_group_membership()
+            * describe_user()
+            * list_groups()
+            * list_group_memberships()
+            * list_users()
+            * register_user()
+            * update_group()
+            * describe_group()
+            * describe_group()
+            * describe_group()
+
+        * Rekognition:
+            * get_text_detection()
+            * start_text_detection()
+
+    New Methods:
+        * EC2:
+            * delete_launch_template()
+
+        * ECS:
+            * create_capacity_provider()
+            * delete_capacity_provider()
+            * describe_capacity_providers()
+
+    Miscellaneous:
+        * Autoscaling:put_scaling_policy() now supports the parameters MetricAggregationType, MinAdjustmentMagnitude, EstimatedInstanceWarmup, PredictiveScalingConfiguration
+        * Autoscaling:create_auto_scaling_group() now supports launch template versions '$Latest' and '$Default'
+        * RDS: Improved tagging support for Clusters and ClusterSnapshots
+
+
+3.1.3
+-----
+Docker Digest for 3.1.3: _sha256:d0716d84d376e7aafeb4a40a29d298725aa39e6553b64f55a6be1287e4bee80c_
+
+    New Methods:
+        * TimestreamWrite:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * EC2:run_instances(): Fixed a bug when supplying the NetworkInterfaces.Groups-parameter
+        * Logs:delete_metric_filter(): Fixed a bug where the logGroupName-validator was too strict
+
+
 3.1.2
 -----
-Docker Digest for 3.1.2: <autopopulateddigest>
+Docker Digest for 3.1.2: _sha256:884923ae6449b2db64e6805ef82209fcc5aab4991024c495aea07a191257aa4d_
+
+    Known Bugs:
+        * EC2:run_instances(): This call will fail when supplying the NetworkInterfaces.Groups-parameter 
 
     New Methods:
         * ELB

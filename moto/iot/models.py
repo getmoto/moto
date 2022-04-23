@@ -211,7 +211,7 @@ class FakePolicy(BaseModel):
     def __init__(self, name, document, region_name, default_version_id="1"):
         self.name = name
         self.document = document
-        self.arn = "arn:aws:iot:%s:1:policy/%s" % (region_name, name)
+        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
 
@@ -238,7 +238,7 @@ class FakePolicy(BaseModel):
 class FakePolicyVersion(object):
     def __init__(self, policy_name, document, is_default, region_name):
         self.name = policy_name
-        self.arn = "arn:aws:iot:%s:1:policy/%s" % (region_name, policy_name)
+        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
         self.version_id = "1"

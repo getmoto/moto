@@ -63,7 +63,7 @@ def validate_organization(response):
 
 def validate_roots(org, response):
     response.should.have.key("Roots").should.be.a(list)
-    response["Roots"].should_not.be.empty
+    response["Roots"].shouldnt.equal([])
     root = response["Roots"][0]
     root.should.have.key("Id").should.match(utils.ROOT_ID_REGEX)
     root.should.have.key("Arn").should.equal(
@@ -135,3 +135,17 @@ def validate_service_control_policy(org, response):
     response.should.have.key("PolicySummary").should.be.a(dict)
     response.should.have.key("Content").should.be.a(str)
     validate_policy_summary(org, response["PolicySummary"])
+
+
+def validate_account_created(accounts_list, account_id):
+    account_created = False
+    for account in accounts_list:
+        if account_id == account["Id"]:
+            account_created = True
+    assert account_created
+
+
+def validate_account_closed(accounts_list, account_id):
+    for account in accounts_list:
+        if account_id == account["Id"]:
+            assert False

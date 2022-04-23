@@ -97,6 +97,46 @@ def test_describe_recipe():
 
 
 @mock_databrew
+def test_update_recipe():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+
+    recipe = client.update_recipe(
+        Name=response["Name"],
+        Steps=[
+            {
+                "Action": {
+                    "Operation": "REMOVE_COMBINED",
+                    "Parameters": {
+                        "collapseConsecutiveWhitespace": "false",
+                        "removeAllPunctuation": "false",
+                        "removeAllQuotes": "false",
+                        "removeAllWhitespace": "false",
+                        "removeCustomCharacters": "true",
+                        "removeCustomValue": "true",
+                        "removeLeadingAndTrailingPunctuation": "false",
+                        "removeLeadingAndTrailingQuotes": "false",
+                        "removeLeadingAndTrailingWhitespace": "false",
+                        "removeLetters": "false",
+                        "removeNumbers": "false",
+                        "removeSpecialCharacters": "true",
+                        "sourceColumn": "FakeColumn",
+                    },
+                }
+            }
+        ],
+    )
+
+    recipe["Name"].should.equal(response["Name"])
+
+    # Describe the recipe and change the changes
+    recipe = client.describe_recipe(Name=response["Name"])
+    recipe["Name"].should.equal(response["Name"])
+    recipe["Steps"].should.have.length_of(1)
+    recipe["Steps"][0]["Action"]["Parameters"]["removeCustomValue"].should.equal("true")
+
+
+@mock_databrew
 def test_describe_recipe_that_does_not_exist():
     client = _create_databrew_client()
 

@@ -31,13 +31,13 @@ databrew
 - [ ] create_project
 - [X] create_recipe
 - [ ] create_recipe_job
-- [ ] create_ruleset
+- [X] create_ruleset
 - [ ] create_schedule
 - [ ] delete_dataset
 - [ ] delete_job
 - [ ] delete_project
 - [ ] delete_recipe_version
-- [ ] delete_ruleset
+- [X] delete_ruleset
 - [ ] delete_schedule
 - [ ] describe_dataset
 - [ ] describe_job
@@ -52,7 +52,7 @@ databrew
 - [ ] list_projects
 - [ ] list_recipe_versions
 - [X] list_recipes
-- [ ] list_rulesets
+- [X] list_rulesets
 - [ ] list_schedules
 - [ ] list_tags_for_resource
 - [ ] publish_recipe
@@ -65,8 +65,8 @@ databrew
 - [ ] update_dataset
 - [ ] update_profile_job
 - [ ] update_project
-- [ ] update_recipe
+- [X] update_recipe
 - [ ] update_recipe_job
-- [ ] update_ruleset
+- [X] update_ruleset
 - [ ] update_schedule
 

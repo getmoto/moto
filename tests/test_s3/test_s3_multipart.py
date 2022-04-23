@@ -655,7 +655,7 @@ def test_multipart_version():
         },
     )
 
-    response["VersionId"].should.should_not.be.none
+    response["VersionId"].should.match("[-a-z0-9]+")
 
 
 @mock_s3

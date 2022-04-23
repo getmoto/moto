@@ -113,7 +113,7 @@ class Cluster:
         encryption_config=None,
     ):
         if encryption_config is None:
-            encryption_config = dict()
+            encryption_config = []
         if tags is None:
             tags = dict()
 

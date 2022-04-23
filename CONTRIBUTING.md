@@ -23,7 +23,7 @@ You should be able to run `make init` to install the dependencies and then `make
 
 ## Linting
 
-Ensure that the correct version of black is installed - `black==19.10b0`. (Different versions of black will return different results.)  
+Ensure that the correct version of black is installed (see `requirements-dev.txt`). Different versions of black will return different results.  
 Run `make lint` to verify whether your code confirms to the guidelines.  
 Use `make format` to automatically format your code, if it does not conform to `black`'s rules.
 

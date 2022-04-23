@@ -27,13 +27,17 @@ ecs
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_capacity_provider
+- [X] create_capacity_provider
 - [X] create_cluster
+  
+        The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
+        
+
 - [X] create_service
 - [X] create_task_set
 - [X] delete_account_setting
 - [X] delete_attributes
-- [ ] delete_capacity_provider
+- [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
 - [X] delete_task_set
@@ -43,7 +47,7 @@ ecs
 
 - [X] deregister_container_instance
 - [X] deregister_task_definition
-- [ ] describe_capacity_providers
+- [X] describe_capacity_providers
 - [X] describe_clusters
   
         Only include=TAGS is currently supported.

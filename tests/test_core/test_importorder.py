@@ -3,19 +3,18 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_s3
 from moto import settings
-from os import environ
 from unittest import SkipTest
 
 
 @pytest.fixture(scope="function")
-def aws_credentials():
+def aws_credentials(monkeypatch):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this in ServerMode.")
     """Mocked AWS Credentials for moto."""
-    environ["AWS_ACCESS_KEY_ID"] = "testing"
-    environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    environ["AWS_SECURITY_TOKEN"] = "testing"
-    environ["AWS_SESSION_TOKEN"] = "testing"
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
 
 
 def test_mock_works_with_client_created_inside(
@@ -26,7 +25,7 @@ def test_mock_works_with_client_created_inside(
     client = boto3.client("s3", region_name="us-east-1")
 
     b = client.list_buckets()
-    b["Buckets"].should.be.empty
+    b["Buckets"].should.equal([])
     m.stop()
 
 
@@ -46,7 +45,7 @@ def test_mock_works_with_client_created_outside(
     patch_client(outside_client)
 
     b = outside_client.list_buckets()
-    b["Buckets"].should.be.empty
+    b["Buckets"].should.equal([])
     m.stop()
 
 
@@ -66,7 +65,7 @@ def test_mock_works_with_resource_created_outside(
     patch_resource(outside_resource)
 
     b = list(outside_resource.buckets.all())
-    b.should.be.empty
+    b.should.equal([])
     m.stop()
 
 

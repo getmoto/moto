@@ -203,4 +203,4 @@ class IoTDataPlaneBackend(BaseBackend):
         self.published_payloads.append((topic, payload))
 
 
-iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")
+iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot")

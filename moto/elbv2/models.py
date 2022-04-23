@@ -115,6 +115,9 @@ class FakeTargetGroup(CloudFormationModel):
         self.attributes = {
             "deregistration_delay.timeout_seconds": 300,
             "stickiness.enabled": "false",
+            "load_balancing.algorithm.type": "round_robin",
+            "slow_start.duration_seconds": 0,
+            "waf.fail_open.enabled": "false",
         }
 
         self.targets = OrderedDict()
@@ -496,9 +499,14 @@ class FakeLoadBalancer(CloudFormationModel):
         "access_logs.s3.prefix",
         "deletion_protection.enabled",
         "idle_timeout.timeout_seconds",
+        "ipv6.deny_all_igw_traffic",
         "load_balancing.cross_zone.enabled",
-        "routing.http2.enabled",
+        "routing.http.desync_mitigation_mode",
         "routing.http.drop_invalid_header_fields.enabled",
+        "routing.http.x_amzn_tls_version_and_cipher_suite.enabled",
+        "routing.http.xff_client_port.enabled",
+        "routing.http2.enabled",
+        "waf.fail_open.enabled",
     }
 
     def __init__(
@@ -1004,8 +1012,11 @@ Member must satisfy regular expression pattern: {}".format(
         arn = make_arn_for_target_group(
             account_id=ACCOUNT_ID, name=name, region_name=self.region_name
         )
+        tags = kwargs.pop("tags", None)
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
+        if tags:
+            self.add_tags(resource_arns=[target_group.arn], tags=tags)
         return target_group
 
     def modify_target_group_attributes(self, target_group_arn, attributes):

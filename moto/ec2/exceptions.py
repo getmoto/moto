@@ -258,6 +258,14 @@ class InvalidAMIIdError(EC2ClientError):
         )
 
 
+class UnvailableAMIIdError(EC2ClientError):
+    def __init__(self, ami_id):
+        super().__init__(
+            "InvalidAMIID.Unavailable",
+            "The image id '[{0}]' is no longer available".format(ami_id),
+        )
+
+
 class InvalidAMIAttributeItemValueError(EC2ClientError):
     def __init__(self, attribute, value):
         super().__init__(

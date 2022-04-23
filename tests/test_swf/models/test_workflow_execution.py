@@ -123,7 +123,7 @@ def test_workflow_execution_medium_dict_representation():
     md["workflowType"].should.equal(wf_type.to_short_dict())
     md["startTimestamp"].should.be.a("float")
     md["executionStatus"].should.equal("OPEN")
-    md["cancelRequested"].should.be.falsy
+    md["cancelRequested"].should.equal(False)
     md.should_not.contain("tagList")
 
     wfe.tag_list = ["foo", "bar", "baz"]
@@ -209,7 +209,7 @@ def test_workflow_execution_list_dict_representation():
     ld["executionStatus"].should.equal("OPEN")
     ld["execution"]["workflowId"].should.equal("ab1234")
     ld["execution"].should.contain("runId")
-    ld["cancelRequested"].should.be.false
+    ld["cancelRequested"].should.equal(False)
     ld.should.contain("startTimestamp")
 
 
@@ -282,7 +282,7 @@ def test_workflow_execution_fail():
 @freeze_time("2015-01-01 12:00:00")
 def test_workflow_execution_schedule_activity_task():
     wfe = make_workflow_execution()
-    wfe.latest_activity_task_timestamp.should.be.none
+    wfe.latest_activity_task_timestamp.should.equal(None)
 
     wfe.schedule_activity_task(123, VALID_ACTIVITY_TASK_ATTRIBUTES)
 

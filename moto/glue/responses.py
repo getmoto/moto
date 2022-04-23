@@ -129,13 +129,12 @@ class GlueResponse(BaseResponse):
     def get_partitions(self):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
-        if "Expression" in self.parameters:
-            raise NotImplementedError(
-                "Expression filtering in get_partitions is not implemented in moto"
-            )
+        expression = self.parameters.get("Expression")
         table = self.glue_backend.get_table(database_name, table_name)
 
-        return json.dumps({"Partitions": [p.as_dict() for p in table.get_partitions()]})
+        return json.dumps(
+            {"Partitions": [p.as_dict() for p in table.get_partitions(expression)]}
+        )
 
     def get_partition(self):
         database_name = self.parameters.get("DatabaseName")

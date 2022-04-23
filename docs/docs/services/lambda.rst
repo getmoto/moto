@@ -33,6 +33,7 @@ lambda
 - [ ] create_code_signing_config
 - [X] create_event_source_mapping
 - [X] create_function
+- [ ] create_function_url_config
 - [X] delete_alias
 - [ ] delete_code_signing_config
 - [X] delete_event_source_mapping
@@ -40,6 +41,7 @@ lambda
 - [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
+- [ ] delete_function_url_config
 - [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
@@ -51,6 +53,7 @@ lambda
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
+- [ ] get_function_url_config
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
 - [ ] get_layer_version_policy
@@ -62,6 +65,7 @@ lambda
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
+- [ ] list_function_url_configs
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
 - [ ] list_layer_versions
@@ -89,4 +93,5 @@ lambda
 - [X] update_function_code
 - [X] update_function_configuration
 - [ ] update_function_event_invoke_config
+- [ ] update_function_url_config
 

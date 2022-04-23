@@ -335,7 +335,7 @@ def test_list_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify namespace has to exist
     res = cloudwatch.list_metrics(Namespace="unknown/")["Metrics"]
-    res.should.be.empty
+    res.should.equal([])
     # Create some metrics to filter on
     create_metrics(cloudwatch, namespace="list_test_1/", metrics=4, data_points=2)
     create_metrics(cloudwatch, namespace="list_test_2/", metrics=4, data_points=2)
@@ -358,7 +358,7 @@ def test_list_metrics():
     )
     # Verify unknown namespace still has no results
     res = cloudwatch.list_metrics(Namespace="unknown/")["Metrics"]
-    res.should.be.empty
+    res.should.equal([])
 
 
 @mock_cloudwatch
@@ -376,7 +376,7 @@ def test_list_metrics_paginated():
     create_metrics(cloudwatch, namespace="test", metrics=100, data_points=1)
     # Verify that a single page is returned until we've reached 500
     first_page = cloudwatch.list_metrics(Namespace="test")
-    first_page["Metrics"].shouldnt.be.empty
+    first_page["Metrics"].should.have.length_of(100)
 
     len(first_page["Metrics"]).should.equal(100)
     create_metrics(cloudwatch, namespace="test", metrics=200, data_points=2)
@@ -387,7 +387,7 @@ def test_list_metrics_paginated():
     create_metrics(cloudwatch, namespace="test", metrics=60, data_points=10)
     first_page = cloudwatch.list_metrics(Namespace="test")
     len(first_page["Metrics"]).should.equal(500)
-    first_page["NextToken"].shouldnt.be.empty
+    first_page["NextToken"].shouldnt.equal(None)
     # Retrieve second page - and verify there's more where that came from
     second_page = cloudwatch.list_metrics(
         Namespace="test", NextToken=first_page["NextToken"]
@@ -786,6 +786,114 @@ def test_get_metric_data_for_multiple_metrics():
 
 
 @mock_cloudwatch
+def test_get_metric_data_for_dimensions():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+
+    # If the metric is created with multiple dimensions, then the data points for that metric can be retrieved only by specifying all the configured dimensions.
+    # https://aws.amazon.com/premiumsupport/knowledge-center/cloudwatch-getmetricstatistics-data/
+    server_prod = {"Name": "Server", "Value": "Prod"}
+    dimension_berlin = [server_prod, {"Name": "Domain", "Value": "Berlin"}]
+    dimension_frankfurt = [server_prod, {"Name": "Domain", "Value": "Frankfurt"}]
+
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Dimensions": dimension_berlin,
+                "Unit": "Seconds",
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 25,
+                "Unit": "Seconds",
+                "Dimensions": dimension_frankfurt,
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result1",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": dimension_frankfurt,
+                    },
+                    "Period": 60,
+                    "Stat": "SampleCount",
+                },
+            },
+            {
+                "Id": "result2",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": dimension_berlin,
+                    },
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+            {
+                "Id": "result3",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": [server_prod],
+                    },
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+            {
+                "Id": "result4",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    len(response["MetricDataResults"]).should.equal(4)
+
+    res1 = [res for res in response["MetricDataResults"] if res["Id"] == "result1"][0]
+    # expect sample count for dimension_frankfurt
+    res1["Values"].should.equal([1.0])
+
+    res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
+    # expect sum for dimension_berlin
+    res2["Values"].should.equal([50.0])
+
+    res3 = [res for res in response["MetricDataResults"] if res["Id"] == "result3"][0]
+    # expect no result, as server_prod is only a part of other dimensions, e.g. there is no match
+    res3["Values"].should.equal([])
+
+    res4 = [res for res in response["MetricDataResults"] if res["Id"] == "result4"][0]
+    # expect sum of both metrics, as we did not filter for dimensions
+    res4["Values"].should.equal([75.0])
+
+
+@mock_cloudwatch
 @mock_s3
 def test_cloudwatch_return_s3_metrics():
     utc_now = datetime.now(tz=pytz.utc)
@@ -919,7 +1027,7 @@ def test_put_metric_alarm():
     alarm["AlarmDescription"].should.equal("test alarm")
     alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
     alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["ActionsEnabled"].should.be.ok
+    alarm["ActionsEnabled"].should.equal(True)
     alarm["OKActions"].should.equal([sns_topic_arn])
     alarm["AlarmActions"].should.equal([sns_topic_arn])
     alarm["InsufficientDataActions"].should.equal([sns_topic_arn])
@@ -989,7 +1097,7 @@ def test_put_metric_alarm_with_percentile():
     alarm["AlarmDescription"].should.equal("test alarm")
     alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
     alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["ActionsEnabled"].should.be.ok
+    alarm["ActionsEnabled"].should.equal(True)
     alarm["StateValue"].should.equal("OK")
     alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
     alarm["StateUpdatedTimestamp"].should.be.a(datetime)

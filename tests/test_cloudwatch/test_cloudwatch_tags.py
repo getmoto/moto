@@ -57,7 +57,7 @@ def test_list_tags_for_resource_with_unknown_resource():
     )
 
     # then
-    response["Tags"].should.be.empty
+    response["Tags"].should.equal([])
 
 
 @mock_cloudwatch

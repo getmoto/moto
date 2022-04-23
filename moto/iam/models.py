@@ -1036,6 +1036,7 @@ class User(CloudFormationModel):
         self.access_keys = []
         self.ssh_public_keys = []
         self.password = None
+        self.password_last_used = None
         self.password_reset_required = False
         self.signing_certificates = {}
 
@@ -1101,10 +1102,10 @@ class User(CloudFormationModel):
         for key in self.access_keys:
             if key.access_key_id == access_key_id:
                 return key
-        else:
-            raise IAMNotFoundException(
-                "The Access Key with id {0} cannot be found".format(access_key_id)
-            )
+
+        raise IAMNotFoundException(
+            f"The Access Key with id {access_key_id} cannot be found"
+        )
 
     def has_access_key(self, access_key_id):
         return any(
@@ -1124,12 +1125,10 @@ class User(CloudFormationModel):
         for key in self.ssh_public_keys:
             if key.ssh_public_key_id == ssh_public_key_id:
                 return key
-        else:
-            raise IAMNotFoundException(
-                "The SSH Public Key with id {0} cannot be found".format(
-                    ssh_public_key_id
-                )
-            )
+
+        raise IAMNotFoundException(
+            f"The SSH Public Key with id {ssh_public_key_id} cannot be found"
+        )
 
     def get_all_ssh_public_keys(self):
         return self.ssh_public_keys
@@ -1163,6 +1162,8 @@ class User(CloudFormationModel):
         else:
             password_enabled = "true"
             password_last_used = "no_information"
+            if self.password_last_used:
+                password_last_used = self.password_last_used.strftime(date_format)
 
         if len(self.access_keys) == 0:
             access_key_1_active = "false"
@@ -1210,13 +1211,14 @@ class User(CloudFormationModel):
                 else self.access_keys[1].last_used.strftime(date_format)
             )
 
-        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},not_supported,not_supported,{9},{10},{11},not_supported,not_supported,false,N/A,false,N/A\n".format(
+        return "{0},{1},{2},{3},{4},{5},not_supported,{6},{7},{8},{9},not_supported,not_supported,{10},{11},{12},not_supported,not_supported,false,N/A,false,N/A\n".format(
             self.name,
             self.arn,
             date_created.strftime(date_format),
             password_enabled,
             password_last_used,
             date_created.strftime(date_format),
+            "true" if len(self.mfa_devices) else "false",
             access_key_1_active,
             access_key_1_last_rotated,
             access_key_1_last_used,
@@ -2362,10 +2364,10 @@ class IAMBackend(BaseBackend):
         for key in access_keys_list:
             if key.access_key_id == access_key_id:
                 return {"user_name": key.user_name, "last_used": key.last_used_iso_8601}
-        else:
-            raise IAMNotFoundException(
-                "The Access Key with id {0} cannot be found".format(access_key_id)
-            )
+
+        raise IAMNotFoundException(
+            f"The Access Key with id {access_key_id} cannot be found"
+        )
 
     def get_all_access_keys_for_all_users(self):
         access_keys_list = []

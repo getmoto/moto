@@ -69,9 +69,9 @@ def test_create_flow_succeeds():
     response["Flow"]["Outputs"][0].should.equal({"Name": "Output 1"})
     response["Flow"]["Outputs"][1]["ListenerAddress"].should.equal("1.0.0.0")
     response["Flow"]["Outputs"][2]["ListenerAddress"].should.equal("2.0.0.0")
-    response["Flow"]["Sources"][0][
-        "SourceArn"
-    ] == "arn:aws:mediaconnect:source:Source A"
+    response["Flow"]["Sources"][0]["SourceArn"].should.equal(
+        "arn:aws:mediaconnect:source:Source A"
+    )
 
 
 @mock_mediaconnect

@@ -29,7 +29,7 @@ def test_poll_for_activity_task_when_one_boto3():
         identity="surprise",
     )
     resp["activityId"].should.equal("my-activity-001")
-    resp["taskToken"].should_not.be.none
+    resp["taskToken"].should.match("[-a-z0-9]+")
 
     resp = client.get_workflow_execution_history(
         domain="test-domain",

@@ -124,12 +124,16 @@ mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
 mock_pinpoint = lazy_load(".pinpoint", "mock_pinpoint")
 mock_polly = lazy_load(".polly", "mock_polly")
+mock_quicksight = lazy_load(".quicksight", "mock_quicksight")
 mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds")
 mock_rds2 = lazy_load(".rds", "mock_rds", use_instead=("mock_rds2", "mock_rds"))
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
+)
+mock_rekognition = lazy_load(
+    ".rekognition", "mock_rekognition", boto3_name="rekognition"
 )
 mock_resourcegroups = lazy_load(
     ".resourcegroups", "mock_resourcegroups", boto3_name="resource-groups"
@@ -195,7 +199,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "3.1.2.dev"
+__version__ = "3.1.6.dev"
 
 
 try:
