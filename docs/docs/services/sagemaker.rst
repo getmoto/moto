@@ -26,7 +26,7 @@ sagemaker
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_association
-- [ ] add_tags
+- [X] add_tags
 - [X] associate_trial_component
 - [ ] batch_describe_model_package
 - [ ] create_action
@@ -107,7 +107,7 @@ sagemaker
 - [ ] delete_pipeline
 - [ ] delete_project
 - [ ] delete_studio_lifecycle_config
-- [ ] delete_tags
+- [X] delete_tags
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -219,7 +219,7 @@ sagemaker
 - [ ] list_projects
 - [ ] list_studio_lifecycle_configs
 - [ ] list_subscribed_workteams
-- [ ] list_tags
+- [X] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
 - [ ] list_transform_jobs
