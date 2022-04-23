@@ -1119,10 +1119,12 @@ GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.ama
   <GetSMSAttributesResult>
     <attributes>
       {% for name, value in attributes.items() %}
+      {% if value %}
       <entry>
         <key>{{ name }}</key>
         <value>{{ value }}</value>
       </entry>
+      {% endif %}
       {% endfor %}
     </attributes>
   </GetSMSAttributesResult>
