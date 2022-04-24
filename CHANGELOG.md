@@ -1,11 +1,25 @@
 Moto Changelog
 ==============
 
+3.1.6
+-----
+Docker Digest for 3.1.6: <autopopulateddigest>
+
+    New Methods:
+        * Organizations:
+            * close_account()
+
+    Miscellaneous:
+        * Autoscaling: the BlockDeviceMappings in LaunchConfigurations and LaunchTemplates are now respected when launching EC2 instances
+        * CloudWatch: get_metric_data() now supports the Dimensions-parameter
+        * ELB: set_rule_priorities() now correctly returns the Rules-attribute
+        * ELBv2: create_target_group() now supports the Tags-parameter
+        * Events: delete_rule() now verifies whether any targets are still attached before deletion
+
+
 3.1.5
 -----
 Docker Digest for 3.1.5: _sha256:79050ce5b729f6eff3282a79dace9cb7e5983588250452f8821aeffa87eca334_
-
-    New Services:
 
     New Methods:
         * ApplicationAutoscaling:

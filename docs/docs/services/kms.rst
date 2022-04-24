@@ -49,6 +49,7 @@ kms
 - [ ] generate_data_key_pair
 - [ ] generate_data_key_pair_without_plaintext
 - [ ] generate_data_key_without_plaintext
+- [ ] generate_mac
 - [ ] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
@@ -75,4 +76,5 @@ kms
 - [X] update_key_description
 - [ ] update_primary_region
 - [ ] verify
+- [ ] verify_mac
 
