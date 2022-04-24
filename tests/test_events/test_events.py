@@ -299,13 +299,11 @@ def test_list_rule_names_by_target_using_limit():
 
 @mock_events
 def test_delete_rule():
-    client = boto3.client("events", "us-west-2")
-    client.put_rule(Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="")
+    client = generate_environment(add_targets=False)
 
-    client.delete_rule(Name="test1")
+    client.delete_rule(Name=RULES[0]["Name"])
     rules = client.list_rules()
-    assert len(rules["Rules"]) == 0
-
+    assert len(rules["Rules"]) == len(RULES) - 1
 
 @mock_events
 def test_delete_rule_with_targets():
