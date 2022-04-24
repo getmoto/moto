@@ -32,6 +32,7 @@ glue
 - [ ] batch_delete_table_version
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
+- [ ] batch_get_custom_entity_types
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
 - [ ] batch_get_partition
@@ -46,6 +47,7 @@ glue
 - [ ] create_classifier
 - [ ] create_connection
 - [X] create_crawler
+- [ ] create_custom_entity_type
 - [X] create_database
 - [ ] create_dev_endpoint
 - [X] create_job
@@ -67,6 +69,7 @@ glue
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
 - [X] delete_crawler
+- [ ] delete_custom_entity_type
 - [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
@@ -97,6 +100,7 @@ glue
 - [X] get_crawler
 - [ ] get_crawler_metrics
 - [X] get_crawlers
+- [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
 - [X] get_database
 - [X] get_databases
@@ -147,6 +151,7 @@ glue
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [ ] list_crawlers
+- [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms

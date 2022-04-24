@@ -28,7 +28,7 @@ organizations
 - [ ] accept_handshake
 - [X] attach_policy
 - [ ] cancel_handshake
-- [ ] close_account
+- [X] close_account
 - [X] create_account
 - [ ] create_gov_cloud_account
 - [X] create_organization

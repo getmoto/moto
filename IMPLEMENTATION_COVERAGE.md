@@ -2659,6 +2659,7 @@
 - [ ] batch_delete_table_version
 - [ ] batch_get_blueprints
 - [ ] batch_get_crawlers
+- [ ] batch_get_custom_entity_types
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_jobs
 - [ ] batch_get_partition
@@ -2673,6 +2674,7 @@
 - [ ] create_classifier
 - [ ] create_connection
 - [X] create_crawler
+- [ ] create_custom_entity_type
 - [X] create_database
 - [ ] create_dev_endpoint
 - [X] create_job
@@ -2694,6 +2696,7 @@
 - [ ] delete_column_statistics_for_table
 - [ ] delete_connection
 - [X] delete_crawler
+- [ ] delete_custom_entity_type
 - [X] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
@@ -2724,6 +2727,7 @@
 - [X] get_crawler
 - [ ] get_crawler_metrics
 - [X] get_crawlers
+- [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
 - [X] get_database
 - [X] get_databases
@@ -2774,6 +2778,7 @@
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [ ] list_crawlers
+- [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
@@ -3389,7 +3394,7 @@
 
 ## kms
 <details>
-<summary>43% implemented</summary>
+<summary>42% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -3413,6 +3418,7 @@
 - [ ] generate_data_key_pair
 - [ ] generate_data_key_pair_without_plaintext
 - [ ] generate_data_key_without_plaintext
+- [ ] generate_mac
 - [ ] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
@@ -3439,6 +3445,7 @@
 - [X] update_key_description
 - [ ] update_primary_region
 - [ ] verify
+- [ ] verify_mac
 </details>
 
 ## lambda
@@ -3859,12 +3866,12 @@
 
 ## organizations
 <details>
-<summary>75% implemented</summary>
+<summary>76% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
 - [ ] cancel_handshake
-- [ ] close_account
+- [X] close_account
 - [X] create_account
 - [ ] create_gov_cloud_account
 - [X] create_organization
