@@ -7,7 +7,9 @@ include moto/ec2/resources/instance_type_offerings/*/*.json
 include moto/ec2/resources/amis.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
+include moto/moto_api/_internal/*
 include moto/ssm/resources/*.json
 include moto/support/resources/*.json
 recursive-include moto/moto_server *
 recursive-include tests *
+recursive-exclude tests/terraformtests *

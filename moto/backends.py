@@ -11,7 +11,7 @@ decorators = [
 decorator_functions = [getattr(moto, f) for f in decorators]
 BACKENDS = {f.boto3_name: (f.name, f.backend) for f in decorator_functions}
 BACKENDS["dynamodb_v20111205"] = ("dynamodb_v20111205", "dynamodb_backends")
-BACKENDS["moto_api"] = ("core", "moto_api_backends")
+BACKENDS["moto_api"] = ("moto_api._internal", "moto_api_backends")
 BACKENDS["instance_metadata"] = ("instance_metadata", "instance_metadata_backends")
 BACKENDS["s3bucket_path"] = ("s3", "s3_backends")
 

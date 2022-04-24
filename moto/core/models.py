@@ -39,7 +39,7 @@ class BaseMockAWS:
 
     def __init__(self, backends):
         from moto.instance_metadata import instance_metadata_backend
-        from moto.core import moto_api_backend
+        from moto.moto_api._internal.models import moto_api_backend
 
         self.backends = backends
 
@@ -822,23 +822,8 @@ class base_decorator:
             return mocked_backend
 
 
-class MotoAPIBackend(BaseBackend):
-    def reset(self):
-        import moto.backends as backends
-
-        for name, backends_ in backends.loaded_backends():
-            if name == "moto_api":
-                continue
-            for backend in backends_.values():
-                backend.reset()
-        self.__init__()
-
-
 class CloudWatchMetricProvider(object):
     @staticmethod
     @abstractmethod
     def get_cloudwatch_metrics():
         pass
-
-
-moto_api_backend = MotoAPIBackend()
