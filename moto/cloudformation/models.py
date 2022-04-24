@@ -251,6 +251,17 @@ class FakeStack(BaseModel):
         self.creation_time = datetime.utcnow()
         self.status = "CREATE_PENDING"
 
+    def has_template(self, other_template):
+        our_template = (
+            self.template
+            if isinstance(self.template, dict)
+            else json.loads(self.template)
+        )
+        return our_template == json.loads(other_template)
+
+    def has_parameters(self, other_parameters):
+        return self.parameters == other_parameters
+
     def _create_resource_map(self):
         resource_map = ResourceMap(
             self.stack_id,
@@ -732,8 +743,18 @@ class CloudFormationBackend(BaseBackend):
             tags=tags,
             role_arn=role_arn,
         )
-        new_change_set.status = "CREATE_COMPLETE"
-        new_change_set.execution_status = "AVAILABLE"
+        if (
+            change_set_type == "UPDATE"
+            and stack.has_template(template)
+            and stack.has_parameters(parameters)
+        ):
+            # Nothing has changed - mark it as such
+            new_change_set.status = "FAILED"
+            new_change_set.execution_status = "UNAVAILABLE"
+            new_change_set.status_reason = "The submitted information didn't contain changes. Submit different information to create a change set."
+        else:
+            new_change_set.status = "CREATE_COMPLETE"
+            new_change_set.execution_status = "AVAILABLE"
         self.change_sets[change_set_id] = new_change_set
         return change_set_id, stack.stack_id
 
