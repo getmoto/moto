@@ -62,7 +62,7 @@ def get_random_rule():
     return RULES[random.randint(0, len(RULES) - 1)]
 
 
-def generate_environment():
+def generate_environment(add_targets=True):
     client = boto3.client("events", "us-west-2")
 
     for rule in RULES:
@@ -73,12 +73,13 @@ def generate_environment():
             Tags=rule.get("Tags", []),
         )
 
-        targets = []
-        for target in TARGETS:
-            if rule["Name"] in TARGETS[target].get("Rules"):
-                targets.append({"Id": target, "Arn": TARGETS[target]["Arn"]})
+        if add_targets:
+            targets = []
+            for target in TARGETS:
+                if rule["Name"] in TARGETS[target].get("Rules"):
+                    targets.append({"Id": target, "Arn": TARGETS[target]["Arn"]})
 
-        client.put_targets(Rule=rule["Name"], Targets=targets)
+            client.put_targets(Rule=rule["Name"], Targets=targets)
 
     return client
 
@@ -298,11 +299,30 @@ def test_list_rule_names_by_target_using_limit():
 
 @mock_events
 def test_delete_rule():
-    client = generate_environment()
+    client = generate_environment(add_targets=False)
 
     client.delete_rule(Name=RULES[0]["Name"])
     rules = client.list_rules()
     assert len(rules["Rules"]) == len(RULES) - 1
+
+
+@mock_events
+def test_delete_rule_with_targets():
+    # given
+    client = generate_environment()
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.delete_rule(Name=RULES[0]["Name"])
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("DeleteRule")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "Rule can't be deleted since it has targets."
+    )
 
 
 @mock_events
@@ -940,7 +960,7 @@ def test_create_rule_with_tags():
 
 @mock_events
 def test_delete_rule_with_tags():
-    client = generate_environment()
+    client = generate_environment(add_targets=False)
     rule_name = "test2"
     rule_arn = client.describe_rule(Name=rule_name).get("Arn")
     client.delete_rule(Name=rule_name)
