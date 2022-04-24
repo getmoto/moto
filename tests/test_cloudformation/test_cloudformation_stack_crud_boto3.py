@@ -1643,6 +1643,83 @@ def test_delete_change_set():
 
 @mock_cloudformation
 @mock_ec2
+def test_create_change_set_twice__no_changes():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    # Execute once
+    change_set_id = cf_client.create_change_set(
+        StackName="NewStack",
+        TemplateBody=dummy_template_json,
+        ChangeSetName="NewChangeSet",
+        ChangeSetType="CREATE",
+    )["Id"]
+    cf_client.execute_change_set(ChangeSetName=change_set_id, DisableRollback=False)
+
+    # Execute twice
+    change_set_id = cf_client.create_change_set(
+        StackName="NewStack",
+        TemplateBody=dummy_template_json,
+        ChangeSetName="NewChangeSet",
+        ChangeSetType="UPDATE",
+    )["Id"]
+    execution = cf_client.describe_change_set(ChangeSetName=change_set_id)
+
+    # Assert
+    execution["ExecutionStatus"].should.equal("UNAVAILABLE")
+    execution["Status"].should.equal("FAILED")
+    execution["StatusReason"].should.equal(
+        "The submitted information didn't contain changes. Submit different information to create a change set."
+    )
+
+
+@mock_cloudformation
+@mock_ec2
+@mock_s3
+def test_create_change_set_twice__using_s3__no_changes():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3_conn = boto3.resource("s3", region_name="us-east-1")
+    s3_conn.create_bucket(Bucket="foobar")
+
+    s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
+    key_url_1 = s3.generate_presigned_url(
+        ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
+    )
+
+    s3_conn.Object("foobar", "template-key-unchanged").put(Body=dummy_template_json)
+    key_url_2 = s3.generate_presigned_url(
+        ClientMethod="get_object",
+        Params={"Bucket": "foobar", "Key": "template-key-unchanged"},
+    )
+
+    # Execute once
+    change_set_id = cf_client.create_change_set(
+        StackName="NewStack",
+        TemplateURL=key_url_1,
+        ChangeSetName="NewChangeSet",
+        ChangeSetType="CREATE",
+    )["Id"]
+    cf_client.execute_change_set(ChangeSetName=change_set_id, DisableRollback=False)
+
+    # Execute twice
+    change_set_id = cf_client.create_change_set(
+        StackName="NewStack",
+        TemplateURL=key_url_2,
+        ChangeSetName="NewChangeSet",
+        ChangeSetType="UPDATE",
+    )["Id"]
+    execution = cf_client.describe_change_set(ChangeSetName=change_set_id)
+
+    # Assert
+    execution["ExecutionStatus"].should.equal("UNAVAILABLE")
+    execution["Status"].should.equal("FAILED")
+    execution["StatusReason"].should.equal(
+        "The submitted information didn't contain changes. Submit different information to create a change set."
+    )
+
+
+@mock_cloudformation
+@mock_ec2
 def test_delete_stack_by_name():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
