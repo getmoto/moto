@@ -305,6 +305,7 @@ def test_delete_rule():
     rules = client.list_rules()
     assert len(rules["Rules"]) == len(RULES) - 1
 
+
 @mock_events
 def test_delete_rule_with_targets():
     # given
