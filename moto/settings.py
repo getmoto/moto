@@ -1,5 +1,6 @@
 import json
 import os
+import pathlib
 
 from functools import lru_cache
 
@@ -85,11 +86,11 @@ def test_server_mode_endpoint():
 
 
 def is_docker():
-    path = "/proc/self/cgroup"
+    path = pathlib.Path("/proc/self/cgroup")
     return (
         os.path.exists("/.dockerenv")
-        or os.path.isfile(path)
-        and any("docker" in line for line in open(path))
+        or path.is_file()
+        and any("docker" in line for line in path.read_text())
     )
 
 
