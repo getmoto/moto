@@ -335,6 +335,69 @@ def test_describe_network_acls():
     )["NetworkAcls"]
     [na["NetworkAclId"] for na in resp3].should.contain(network_acl_id)
 
+    # Assertions for filters
+    network_acl_id = conn.create_network_acl(VpcId=vpc_id)["NetworkAcl"]["NetworkAclId"]
+    cidr_block = "0.0.0.0/24"
+    protocol = "17"  # UDP
+    rule_number = 420
+    rule_action = "allow"
+    conn.create_network_acl_entry(
+        NetworkAclId=network_acl_id,
+        CidrBlock=cidr_block,
+        Protocol=protocol,
+        RuleNumber=rule_number,
+        RuleAction=rule_action,
+        Egress=False,
+    )
+
+    # Ensure filtering by entry CIDR block
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.cidr", "Values": [cidr_block]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [entry["CidrBlock"] for entry in resp4["NetworkAcls"][0]["Entries"]].should.contain(
+        cidr_block
+    )
+
+    # Ensure filtering by entry protocol
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.protocol", "Values": [protocol]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [entry["Protocol"] for entry in resp4["NetworkAcls"][0]["Entries"]].should.contain(
+        protocol
+    )
+
+    # Ensure filtering by entry rule number
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.rule-number", "Values": [str(rule_number)]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [
+        entry["RuleNumber"] for entry in resp4["NetworkAcls"][0]["Entries"]
+    ].should.contain(rule_number)
+
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.rule-number", "Values": [str(rule_number + 1)]}]
+    )
+    resp4["NetworkAcls"].should.have.length_of(0)
+
+    # Ensure filtering by rule action
+    resp4 = conn.describe_network_acls(
+        Filters=[
+            {"Name": "entry.rule-action", "Values": [rule_action]},
+            {"Name": "id", "Values": [network_acl_id]},
+        ]
+    )
+    resp4["NetworkAcls"].should.have.length_of(1)
+    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
+    [
+        entry["RuleAction"] for entry in resp4["NetworkAcls"][0]["Entries"]
+    ].should.contain(rule_action)
+
     with pytest.raises(ClientError) as ex:
         conn.describe_network_acls(NetworkAclIds=["1"])
 
