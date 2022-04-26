@@ -296,31 +296,3 @@ def test_delete_tags_from_notebook(sagemaker_client):
 
     response = sagemaker_client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == []
-
-
-@mock_sagemaker
-def test_list_notebook_tags(sagemaker_client):
-    args = {
-        "NotebookInstanceName": FAKE_NAME_PARAM,
-        "InstanceType": FAKE_INSTANCE_TYPE_PARAM,
-        "RoleArn": FAKE_ROLE_ARN,
-    }
-    resp = sagemaker_client.create_notebook_instance(**args)
-    resource_arn = resp["NotebookInstanceArn"]
-
-    tags = []
-    for _ in range(80):
-        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
-
-    response = sagemaker_client.add_tags(ResourceArn=resource_arn, Tags=tags)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = sagemaker_client.list_tags(ResourceArn=resource_arn)
-    assert len(response["Tags"]) == 50
-    assert response["Tags"] == tags[:50]
-
-    response = sagemaker_client.list_tags(
-        ResourceArn=resource_arn, NextToken=response["NextToken"]
-    )
-    assert len(response["Tags"]) == 30
-    assert response["Tags"] == tags[50:]

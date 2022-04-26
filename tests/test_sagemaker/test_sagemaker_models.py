@@ -148,26 +148,3 @@ def test_delete_tags_from_model(sagemaker_client):
 
     response = sagemaker_client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == []
-
-
-@mock_sagemaker
-def test_list_model_tags(sagemaker_client):
-    model = MySageMakerModel().save(sagemaker_client)
-    resource_arn = model["ModelArn"]
-
-    tags = []
-    for _ in range(80):
-        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
-
-    response = sagemaker_client.add_tags(ResourceArn=resource_arn, Tags=tags)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = sagemaker_client.list_tags(ResourceArn=resource_arn)
-    assert len(response["Tags"]) == 50
-    assert response["Tags"] == tags[:50]
-
-    response = sagemaker_client.list_tags(
-        ResourceArn=resource_arn, NextToken=response["NextToken"]
-    )
-    assert len(response["Tags"]) == 30
-    assert response["Tags"] == tags[50:]

@@ -360,7 +360,7 @@ def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client
 
 
 @mock_sagemaker
-def test_add_tags_to_training_job(sagemaker_client):
+def test_add_and_delete_tags_in_training_job(sagemaker_client):
     processing_job_name = "MyProcessingJob"
     role_arn = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
     container = "382416733822.dkr.ecr.us-east-1.amazonaws.com/linear-learner:1"
@@ -401,100 +401,9 @@ def test_add_tags_to_training_job(sagemaker_client):
     response = sagemaker_client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == tags
 
-
-@mock_sagemaker
-def test_delete_tags_from_training_job(sagemaker_client):
-    processing_job_name = "MyProcessingJob"
-    role_arn = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
-    container = "382416733822.dkr.ecr.us-east-1.amazonaws.com/linear-learner:1"
-    bucket = "my-bucket"
-    prefix = "my-prefix"
-    app_specification = {
-        "ImageUri": container,
-        "ContainerEntrypoint": ["python3", "app.py"],
-    }
-    processing_resources = {
-        "ClusterConfig": {
-            "InstanceCount": 2,
-            "InstanceType": "ml.m5.xlarge",
-            "VolumeSizeInGB": 20,
-        },
-    }
-    stopping_condition = {"MaxRuntimeInSeconds": 60 * 60}
-
-    job = MyProcessingJobModel(
-        processing_job_name,
-        role_arn,
-        container=container,
-        bucket=bucket,
-        prefix=prefix,
-        app_specification=app_specification,
-        processing_resources=processing_resources,
-        stopping_condition=stopping_condition,
-    )
-    resp = job.save(sagemaker_client)
-    resource_arn = resp["ProcessingJobArn"]
-
-    tags = [
-        {"Key": "myKey", "Value": "myValue"},
-    ]
-    response = sagemaker_client.add_tags(ResourceArn=resource_arn, Tags=tags)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
     tag_keys = [tag["Key"] for tag in tags]
     response = sagemaker_client.delete_tags(ResourceArn=resource_arn, TagKeys=tag_keys)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     response = sagemaker_client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == []
-
-
-@mock_sagemaker
-def test_list_training_job_tags(sagemaker_client):
-    processing_job_name = "MyProcessingJob"
-    role_arn = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
-    container = "382416733822.dkr.ecr.us-east-1.amazonaws.com/linear-learner:1"
-    bucket = "my-bucket"
-    prefix = "my-prefix"
-    app_specification = {
-        "ImageUri": container,
-        "ContainerEntrypoint": ["python3", "app.py"],
-    }
-    processing_resources = {
-        "ClusterConfig": {
-            "InstanceCount": 2,
-            "InstanceType": "ml.m5.xlarge",
-            "VolumeSizeInGB": 20,
-        },
-    }
-    stopping_condition = {"MaxRuntimeInSeconds": 60 * 60}
-
-    job = MyProcessingJobModel(
-        processing_job_name,
-        role_arn,
-        container=container,
-        bucket=bucket,
-        prefix=prefix,
-        app_specification=app_specification,
-        processing_resources=processing_resources,
-        stopping_condition=stopping_condition,
-    )
-    resp = job.save(sagemaker_client)
-    resource_arn = resp["ProcessingJobArn"]
-
-    tags = []
-    for _ in range(80):
-        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
-
-    response = sagemaker_client.add_tags(ResourceArn=resource_arn, Tags=tags)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = sagemaker_client.list_tags(ResourceArn=resource_arn)
-    assert len(response["Tags"]) == 50
-    assert response["Tags"] == tags[:50]
-
-    response = sagemaker_client.list_tags(
-        ResourceArn=resource_arn, NextToken=response["NextToken"]
-    )
-    assert len(response["Tags"]) == 30
-    assert response["Tags"] == tags[50:]

@@ -443,31 +443,3 @@ def test_delete_tags_from_training_job():
 
     response = client.list_tags(ResourceArn=resource_arn)
     assert response["Tags"] == []
-
-
-@mock_sagemaker
-def test_list_training_job_tags():
-    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
-    name = "blah"
-    resource_arn = f"arn:aws:sagemaker:us-east-1:000000000000:training-job/{name}"
-    test_training_job = MyTrainingJobModel(
-        training_job_name=name, role_arn=resource_arn
-    )
-    test_training_job.save()
-
-    tags = []
-    for _ in range(80):
-        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
-
-    response = client.add_tags(ResourceArn=resource_arn, Tags=tags)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = client.list_tags(ResourceArn=resource_arn)
-    assert len(response["Tags"]) == 50
-    assert response["Tags"] == tags[:50]
-
-    response = client.list_tags(
-        ResourceArn=resource_arn, NextToken=response["NextToken"]
-    )
-    assert len(response["Tags"]) == 30
-    assert response["Tags"] == tags[50:]

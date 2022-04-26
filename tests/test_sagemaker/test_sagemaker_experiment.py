@@ -110,28 +110,3 @@ def test_delete_tags_to_experiment(sagemaker_client):
     resp = sagemaker_client.list_tags(ResourceArn=arn)
 
     assert resp["Tags"] == []
-
-
-@mock_sagemaker
-def test_list_tags_experiment(sagemaker_client):
-    sagemaker_client.create_experiment(ExperimentName=TEST_EXPERIMENT_NAME)
-
-    resp = sagemaker_client.describe_experiment(ExperimentName=TEST_EXPERIMENT_NAME)
-    arn = resp["ExperimentArn"]
-
-    tags = []
-    for _ in range(80):
-        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
-
-    response = sagemaker_client.add_tags(ResourceArn=arn, Tags=tags)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = sagemaker_client.list_tags(ResourceArn=arn)
-    assert len(response["Tags"]) == 50
-    assert response["Tags"] == tags[:50]
-
-    response = sagemaker_client.list_tags(
-        ResourceArn=arn, NextToken=response["NextToken"]
-    )
-    assert len(response["Tags"]) == 30
-    assert response["Tags"] == tags[50:]
