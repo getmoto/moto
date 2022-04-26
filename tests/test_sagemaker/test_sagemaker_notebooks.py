@@ -1,6 +1,4 @@
 import datetime
-import uuid
-
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
