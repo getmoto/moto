@@ -9,5 +9,5 @@ class InvalidParameterValueException(JsonRESTError):
 class ClusterNotFoundFault(JsonRESTError):
     def __init__(self, name=None):
         # DescribeClusters and DeleteCluster use a different message for the same error
-        msg = f"Cluster {name} not found." if name else f"Cluster not found."
+        msg = f"Cluster {name} not found." if name else "Cluster not found."
         super().__init__("ClusterNotFoundFault", msg)

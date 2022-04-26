@@ -378,9 +378,7 @@ def test_run_transcription_job_s3output_params():
     transcription_job.should.contain("Transcript")
     # Check aws hosted bucket
     transcription_job["Transcript"]["TranscriptFileUri"].should.contain(
-        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key/MyJob.json".format(
-            region_name
-        )
+        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key/MyJob.json"
     )
     # A new job without an "OutputKey"
     job_name = "MyJob2"

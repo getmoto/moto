@@ -149,16 +149,16 @@ def test_set_policies_of_listener():
     ][0]
 
     http_l = [
-        l
-        for l in balancer["ListenerDescriptions"]
-        if l["Listener"]["Protocol"] == "HTTP"
+        listener
+        for listener in balancer["ListenerDescriptions"]
+        if listener["Listener"]["Protocol"] == "HTTP"
     ][0]
     http_l.should.have.key("PolicyNames").should.equal([])
 
     https_l = [
-        l
-        for l in balancer["ListenerDescriptions"]
-        if l["Listener"]["Protocol"] == "HTTPS"
+        listener
+        for listener in balancer["ListenerDescriptions"]
+        if listener["Listener"]["Protocol"] == "HTTPS"
     ][0]
     https_l.should.have.key("PolicyNames").should.equal(["pname"])
 

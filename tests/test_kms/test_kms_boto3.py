@@ -1041,8 +1041,8 @@ def test__delete_alias__raises_if_alias_is_not_found():
     )
 
 
-def sort(l):
-    return sorted(l, key=lambda d: d.keys())
+def sort(lst):
+    return sorted(lst, key=lambda d: d.keys())
 
 
 def _check_tags(key_id, created_tags, client):

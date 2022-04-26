@@ -84,7 +84,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
         + str(all_logs)
     )
 
-    records = [l for l in all_logs if l.startswith("{'Records'")][0]
+    records = [line for line in all_logs if line.startswith("{'Records'")][0]
     records = json.loads(records.replace("'", '"'))["Records"]
 
     records.should.have.length_of(1)

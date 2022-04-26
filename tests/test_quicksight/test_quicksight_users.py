@@ -144,7 +144,7 @@ def test_create_group_membership():
     client.register_user(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        Email=f"fakeemail@example.com",
+        Email="fakeemail@example.com",
         IdentityType="QUICKSIGHT",
         UserName="user1",
         UserRole="READER",
@@ -175,7 +175,7 @@ def test_describe_group_membership():
     client.register_user(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        Email=f"fakeemail@example.com",
+        Email="fakeemail@example.com",
         IdentityType="QUICKSIGHT",
         UserName="user1",
         UserRole="READER",
@@ -214,7 +214,7 @@ def test_list_group_memberships():
         client.register_user(
             AwsAccountId=ACCOUNT_ID,
             Namespace="default",
-            Email=f"fakeemail@example.com",
+            Email="fakeemail@example.com",
             IdentityType="QUICKSIGHT",
             UserName=f"user{i}",
             UserRole="READER",
@@ -276,7 +276,7 @@ def test_list_group_memberships__after_deleting_user():
         client.register_user(
             AwsAccountId=ACCOUNT_ID,
             Namespace="default",
-            Email=f"fakeemail@example.com",
+            Email="fakeemail@example.com",
             IdentityType="QUICKSIGHT",
             UserName=f"user{i}",
             UserRole="READER",

@@ -49,7 +49,7 @@ def test_publish_batch_non_unique_ids():
         client.publish_batch(
             TopicArn=topic["TopicArn"],
             PublishBatchRequestEntries=[
-                {"Id": f"id", "Message": f"{idx}"} for idx in range(5)
+                {"Id": "id", "Message": f"{idx}"} for idx in range(5)
             ],
         )
     err = exc.value.response["Error"]
@@ -70,7 +70,7 @@ def test_publish_batch_fifo_without_message_group_id():
     with pytest.raises(ClientError) as exc:
         client.publish_batch(
             TopicArn=topic["TopicArn"],
-            PublishBatchRequestEntries=[{"Id": f"id_2", "Message": f"2"}],
+            PublishBatchRequestEntries=[{"Id": "id_2", "Message": "2"}],
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidParameter")
@@ -84,9 +84,9 @@ def test_publish_batch_standard_with_message_group_id():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="standard_topic")["TopicArn"]
     entries = [
-        {"Id": f"id_1", "Message": f"1"},
-        {"Id": f"id_2", "Message": f"2", "MessageGroupId": "mgid"},
-        {"Id": f"id_3", "Message": f"3"},
+        {"Id": "id_1", "Message": "1"},
+        {"Id": "id_2", "Message": "2", "MessageGroupId": "mgid"},
+        {"Id": "id_3", "Message": "3"},
     ]
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
@@ -112,11 +112,11 @@ def test_publish_batch_to_sqs():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="standard_topic")["TopicArn"]
     entries = [
-        {"Id": f"id_1", "Message": f"1"},
-        {"Id": f"id_2", "Message": f"2", "Subject": "subj2"},
+        {"Id": "id_1", "Message": "1"},
+        {"Id": "id_2", "Message": "2", "Subject": "subj2"},
         {
-            "Id": f"id_3",
-            "Message": f"3",
+            "Id": "id_3",
+            "Message": "3",
             "MessageAttributes": {"a": {"DataType": "String", "StringValue": "v"}},
         },
     ]

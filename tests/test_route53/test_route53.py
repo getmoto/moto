@@ -1441,7 +1441,7 @@ def test_list_resource_recordset_pagination():
 
     # Create A Record.
     a_record_endpoint_payload = {
-        "Comment": f"Create 500 A records",
+        "Comment": "Create 500 A records",
         "Changes": [
             {
                 "Action": "CREATE",

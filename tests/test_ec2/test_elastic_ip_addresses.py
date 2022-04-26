@@ -9,8 +9,6 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2
 from tests import EXAMPLE_AMI_ID
 
-import logging
-
 
 @mock_ec2
 def test_eip_allocate_classic():
@@ -104,7 +102,6 @@ def test_specific_eip_allocate_vpc():
     vpc = client.allocate_address(Domain="vpc", Address="127.38.43.222")
     vpc["Domain"].should.be.equal("vpc")
     vpc["PublicIp"].should.be.equal("127.38.43.222")
-    logging.debug("vpc alloc_id:".format(vpc["AllocationId"]))
 
 
 @mock_ec2

@@ -738,7 +738,7 @@ class ApiGatewayV2Response(BaseResponse):
 
     def get_vpc_links(self):
         vpc_links = self.apigatewayv2_backend.get_vpc_links()
-        return 200, {}, json.dumps({"items": [l.to_json() for l in vpc_links]})
+        return 200, {}, json.dumps({"items": [link.to_json() for link in vpc_links]})
 
     def update_vpc_link(self):
         vpc_link_id = self.path.split("/")[-1]

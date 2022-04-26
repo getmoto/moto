@@ -522,7 +522,7 @@ def test_transact_write_items__too_many_transactions():
             }
         }
 
-    update_email_transact(f"test1@moto.com")
+    update_email_transact("test1@moto.com")
     with pytest.raises(ClientError) as exc:
         dynamodb.transact_write_items(
             TransactItems=[

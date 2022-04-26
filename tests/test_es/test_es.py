@@ -176,7 +176,7 @@ def test_describe_invalid_domain():
     meta["HTTPStatusCode"].should.equal(400)
     err = exc.value.response["Error"]
     err["Message"].should.equal(
-        f"1 validation error detected: Value 'moto.org' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
+        "1 validation error detected: Value 'moto.org' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
     )
     err["Code"].should.equal("ValidationException")
 

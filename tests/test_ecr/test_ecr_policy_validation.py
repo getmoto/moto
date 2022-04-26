@@ -333,7 +333,7 @@ def test_validate_error_action_properties(action, error_msg):
             },
             (
                 "numeric instance is lower than the required minimum "
-                f"(minimum: 1, found: 0)"
+                "(minimum: 1, found: 0)"
             ),
         ],
         [
@@ -344,7 +344,7 @@ def test_validate_error_action_properties(action, error_msg):
             },
             (
                 "numeric instance is lower than the required minimum "
-                f"(minimum: 1, found: -1)"
+                "(minimum: 1, found: -1)"
             ),
         ],
     ],

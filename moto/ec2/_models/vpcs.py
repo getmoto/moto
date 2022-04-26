@@ -482,7 +482,7 @@ class VPCBackend(object):
         association_set = vpc.associate_vpc_cidr_block(
             cidr_block, amazon_provided_ipv6_cidr_block
         )
-        for route_table in self.route_tables.values():
+        for route_table in self.route_tables.copy().values():
             if route_table.vpc_id == vpc_id:
                 if amazon_provided_ipv6_cidr_block:
                     self.create_route(
