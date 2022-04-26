@@ -27,4 +27,5 @@ class MotoAPIBackend(BaseBackend):
 
         state_manager.unset_transition(model_name)
 
+
 moto_api_backend = MotoAPIBackend()

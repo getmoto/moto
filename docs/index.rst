@@ -37,7 +37,7 @@ Additional Resources
    docs/aws_config
 
 .. toctree::
-  :maxdepth: 1
+  :hidden:
   :caption: Configuration
 
   docs/configuration/index

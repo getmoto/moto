@@ -17,7 +17,7 @@ class StateManager:
         """
         Set a transition for a specific model. Any transition added here will take precedence over the default transition that was registered.
 
-        See https://moto--4734.org.readthedocs.build/en/4734/docs/configuration/state_transition.html for the possible transition-configurations.
+        See https://docs.getmoto.org/en/latest/docs/configuration/state_transition/index.html for the possible transition-configurations.
         """
         self._transitions[model_name] = transition
 
