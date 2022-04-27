@@ -128,13 +128,3 @@ class OverLimit(RESTError):
         super().__init__(
             "OverLimit", "{} Actions were found, maximum allowed is 7.".format(count)
         )
-
-
-class InvalidAddress(RESTError):
-    code = 400
-
-    def __init__(self, address):
-        super().__init__(
-            "InvalidAddress",
-            "The address {} is not valid for this endpoint.".format(address),
-        )
