@@ -3018,7 +3018,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
 
 @mock_sqs
-def test_receive_message_should_not_accept_invalid_urls():
+def test_receive_message_using_name__should_return_name_as_url():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
     name = str(uuid4())[0:6]
@@ -3029,17 +3029,10 @@ def test_receive_message_should_not_accept_invalid_urls():
     working_url.should.match(f"/{ACCOUNT_ID}/{name}")
 
     queue = sqs.Queue(name)
-    with pytest.raises(ClientError) as e:
-        queue.send_message(MessageBody="this is a test message")
-    err = e.value.response["Error"]
-    err["Code"].should.equal("InvalidAddress")
-    err["Message"].should.equal(f"The address {name} is not valid for this endpoint.")
+    queue.send_message(MessageBody="this is a test message")
 
-    with pytest.raises(ClientError) as e:
-        conn.receive_message(QueueUrl=name)
-    err = e.value.response["Error"]
-    err["Code"].should.equal("InvalidAddress")
-    err["Message"].should.equal(f"The address {name} is not valid for this endpoint.")
+    resp = queue.receive_messages()
+    resp[0].queue_url.should.equal(name)
 
 
 @mock_sqs
