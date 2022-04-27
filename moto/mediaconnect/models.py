@@ -78,6 +78,15 @@ class MediaConnectBackend(BaseBackend):
         self._flows = OrderedDict()
         self._resources = OrderedDict()
 
+    def _add_source_details(self, source, flow_id):
+        source_name = source.get("name")
+        if isinstance(source, dict) and source_name:
+            source[
+                "sourceArn"
+            ] = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:source:{flow_id}:{source_name}"
+            if not source.get("EntitlementArn"):
+                source["IngestIp"] = "127.0.0.1"
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
@@ -95,11 +104,9 @@ class MediaConnectBackend(BaseBackend):
         vpc_interfaces,
     ):
         flow_id = uuid4().hex
-        source_name = source.get("name")
-        if isinstance(source, dict) and source_name:
-            source[
-                "sourceArn"
-            ] = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:source:{flow_id}:{source_name}"
+        self._add_source_details(source, flow_id)
+        for _source in sources:
+            self._add_source_details(_source, flow_id)
         flow = Flow(
             availability_zone=availability_zone,
             entitlements=entitlements,
