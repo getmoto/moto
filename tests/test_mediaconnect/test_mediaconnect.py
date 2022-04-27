@@ -223,7 +223,9 @@ def test_add_flow_vpc_interfaces_fails():
         client.add_flow_vpc_interfaces(FlowArn=flow_arn, VpcInterfaces=[])
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    err["Message"].should.equal(
+        "flow with arn=unknown-flow not found".format(str(flow_arn))
+    )
 
 
 @mock_mediaconnect
@@ -268,7 +270,9 @@ def test_remove_flow_vpc_interface_fails():
         )
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    err["Message"].should.equal(
+        "flow with arn=unknown-flow not found".format(str(flow_arn))
+    )
 
 
 @mock_mediaconnect
@@ -303,7 +307,9 @@ def test_add_flow_outputs_fails():
         client.add_flow_outputs(FlowArn=flow_arn, Outputs=[])
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    err["Message"].should.equal(
+        "flow with arn=unknown-flow not found".format(str(flow_arn))
+    )
 
 
 @mock_mediaconnect
@@ -315,7 +321,9 @@ def test_remove_flow_output_fails():
         client.remove_flow_output(FlowArn=flow_arn, OutputArn=output_arn)
     err = err.value.response["Error"]
     err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    err["Message"].should.equal(
+        "flow with arn=unknown-flow not found".format(str(flow_arn))
+    )
 
 
 @mock_mediaconnect
