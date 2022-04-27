@@ -499,6 +499,78 @@ def create_metrics_with_dimensions(cloudwatch, namespace, data_points=5):
 
 
 @mock_cloudwatch
+def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+                "Value": 50,
+            },
+            {
+                "MetricName": "metric2",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+                "Value": 25,
+                "Unit": "Microseconds",
+            },
+        ],
+    )
+    # get_metric_data 1
+    response1 = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result1",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric1",
+                        "Dimensions": [{"Name": "Name", "Value": "B"}],
+                    },
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    len(response1["MetricDataResults"]).should.equal(1)
+
+    res1 = response1["MetricDataResults"][0]
+    res1["Values"].should.equal([50.0])
+
+    # get_metric_data 2
+    response2 = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result2",
+                "MetricStat": {
+                    "Metric": {
+                        "Namespace": namespace,
+                        "MetricName": "metric2",
+                        "Dimensions": [{"Name": "Name", "Value": "B"}],
+                    },
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    len(response2["MetricDataResults"]).should.equal(1)
+
+    res2 = response2["MetricDataResults"][0]
+    res2["Values"].should.equal([25.0])
+
+
+@mock_cloudwatch
 def test_get_metric_data_within_timeframe():
     utc_now = datetime.now(tz=pytz.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
