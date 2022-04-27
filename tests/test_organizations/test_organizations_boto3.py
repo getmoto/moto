@@ -27,8 +27,6 @@ from .organizations_test_utils import (
     validate_create_account_status,
     validate_service_control_policy,
     validate_policy_summary,
-    validate_account_created,
-    validate_account_closed,
 )
 
 
@@ -176,30 +174,38 @@ def test_create_account():
 
 
 @mock_organizations
-def test_close_account():
+def test_close_account_returns_nothing():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
     create_status = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]
     created_account_id = create_status["AccountId"]
-    accounts_list_before = client.list_accounts()["Accounts"]
-    validate_account_created(
-        accounts_list=accounts_list_before,
-        account_id=created_account_id,
-    )
 
-    client.close_account(AccountId=created_account_id)
+    resp = client.close_account(AccountId=created_account_id)
 
-    accounts_list_after = client.list_accounts()["Accounts"]
-    validate_account_closed(accounts_list_after, created_account_id)
-    number_accounts_before = len(accounts_list_before)
-    number_accounts_after = len(accounts_list_after)
-    (number_accounts_before - number_accounts_after).should.equal(1)
+    del resp["ResponseMetadata"]
+
+    assert resp == {}
 
 
 @mock_organizations
-def test_close_account_exception():
+def test_close_account_puts_account_in_suspended_status():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    create_status = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]
+    created_account_id = create_status["AccountId"]
+
+    client.close_account(AccountId=created_account_id)
+
+    account = client.describe_account(AccountId=created_account_id)["Account"]
+    account["Status"].should.equal("SUSPENDED")
+
+
+@mock_organizations
+def test_close_account_id_not_in_org_raises_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
     uncreated_fake_account_id = "123456789101"
