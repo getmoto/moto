@@ -397,3 +397,47 @@ def test_list_training_jobs_paginated_with_fragmented_targets():
     )
     assert len(training_jobs_with_2_next_next["TrainingJobSummaries"]).should.equal(0)
     assert training_jobs_with_2_next_next.get("NextToken").should.be.none
+
+
+@mock_sagemaker
+def test_add_tags_to_training_job():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    name = "blah"
+    resource_arn = f"arn:aws:sagemaker:us-east-1:000000000000:training-job/{name}"
+    test_training_job = MyTrainingJobModel(
+        training_job_name=name, role_arn=resource_arn
+    )
+    test_training_job.save()
+
+    tags = [
+        {"Key": "myKey", "Value": "myValue"},
+    ]
+    response = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.list_tags(ResourceArn=resource_arn)
+    assert response["Tags"] == tags
+
+
+@mock_sagemaker
+def test_delete_tags_from_training_job():
+    client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    name = "blah"
+    resource_arn = f"arn:aws:sagemaker:us-east-1:000000000000:training-job/{name}"
+    test_training_job = MyTrainingJobModel(
+        training_job_name=name, role_arn=resource_arn
+    )
+    test_training_job.save()
+
+    tags = [
+        {"Key": "myKey", "Value": "myValue"},
+    ]
+    response = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    tag_keys = [tag["Key"] for tag in tags]
+    response = client.delete_tags(ResourceArn=resource_arn, TagKeys=tag_keys)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.list_tags(ResourceArn=resource_arn)
+    assert response["Tags"] == []
