@@ -118,7 +118,7 @@ def test_query_filter_boto3():
     )
 
     for i in range(0, 3):
-        table.put_item(Item={"pk": "pk".format(i), "sk": "sk-{}".format(i)})
+        table.put_item(Item={"pk": "pk", "sk": "sk-{}".format(i)})
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk"))
     res["Items"].should.have.length_of(3)

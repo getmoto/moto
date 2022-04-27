@@ -55,14 +55,14 @@ def test_create_load_balancer(zones, region_name):
     describe["ListenerDescriptions"].should.have.length_of(2)
 
     tcp = [
-        l["Listener"]
-        for l in describe["ListenerDescriptions"]
-        if l["Listener"]["Protocol"] == "TCP"
+        desc["Listener"]
+        for desc in describe["ListenerDescriptions"]
+        if desc["Listener"]["Protocol"] == "TCP"
     ][0]
     http = [
-        l["Listener"]
-        for l in describe["ListenerDescriptions"]
-        if l["Listener"]["Protocol"] == "HTTP"
+        desc["Listener"]
+        for desc in describe["ListenerDescriptions"]
+        if desc["Listener"]["Protocol"] == "HTTP"
     ][0]
     tcp.should.equal(
         {
@@ -566,16 +566,14 @@ def test_get_load_balancers_by_name():
         client.describe_load_balancers(LoadBalancerNames=["unknownlb"])
     err = ex.value.response["Error"]
     err["Code"].should.equal("LoadBalancerNotFound")
-    err["Message"].should.equal(
-        f"The specified load balancer does not exist: unknownlb"
-    )
+    err["Message"].should.equal("The specified load balancer does not exist: unknownlb")
 
     with pytest.raises(ClientError) as ex:
         client.describe_load_balancers(LoadBalancerNames=[lb_name1, "unknownlb"])
     err = ex.value.response["Error"]
     err["Code"].should.equal("LoadBalancerNotFound")
     # Bug - message sometimes shows the lb that does exist
-    err["Message"].should.match(f"The specified load balancer does not exist:")
+    err["Message"].should.match("The specified load balancer does not exist:")
 
 
 @mock_elb
@@ -1003,8 +1001,8 @@ def test_add_remove_tags():
 
     lb_tags = dict(
         [
-            (l["LoadBalancerName"], dict([(d["Key"], d["Value"]) for d in l["Tags"]]))
-            for l in client.describe_tags(LoadBalancerNames=["my-lb", "other-lb"])[
+            (lb["LoadBalancerName"], dict([(d["Key"], d["Value"]) for d in lb["Tags"]]))
+            for lb in client.describe_tags(LoadBalancerNames=["my-lb", "other-lb"])[
                 "TagDescriptions"
             ]
         ]

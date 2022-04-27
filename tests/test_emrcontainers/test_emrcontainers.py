@@ -407,7 +407,7 @@ class TestCancelJobRun:
         err = exc.value.response["Error"]
 
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == f"Job run 123456789abcdefghij doesn't exist."
+        assert err["Message"] == "Job run 123456789abcdefghij doesn't exist."
 
     def test_wrong_job_state(self):
         with pytest.raises(ClientError) as exc:
@@ -581,4 +581,4 @@ class TestDescribeJobRun:
         err = exc.value.response["Error"]
 
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == f"Job run 123456789abcdefghij doesn't exist."
+        assert err["Message"] == "Job run 123456789abcdefghij doesn't exist."

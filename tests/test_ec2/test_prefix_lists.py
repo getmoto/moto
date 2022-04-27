@@ -54,7 +54,7 @@ def test_describe_managed_prefix_lists():
 
     all_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
     [pl["PrefixListId"] for pl in all_lists].should.contain(pl_id)
-    set([l["OwnerId"] for l in all_lists]).should.equal({"aws", ACCOUNT_ID})
+    set([pl["OwnerId"] for pl in all_lists]).should.equal({"aws", ACCOUNT_ID})
 
 
 @mock_ec2
@@ -64,7 +64,7 @@ def test_describe_managed_prefix_lists_with_prefix():
     default_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
     if not settings.TEST_SERVER_MODE:
         # ServerMode is not guaranteed to only have AWS prefix lists
-        set([l["OwnerId"] for l in default_lists]).should.equal({"aws"})
+        set([pl["OwnerId"] for pl in default_lists]).should.equal({"aws"})
 
     random_list_id = default_lists[0]["PrefixListId"]
 
@@ -168,7 +168,7 @@ def test_delete_managed_prefix_list():
     ]
     lists_by_id.should.have.length_of(2)
 
-    set([l["State"] for l in lists_by_id]).should.equal(
+    set([pl["State"] for pl in lists_by_id]).should.equal(
         {"create-complete", "delete-complete"}
     )
 
@@ -186,8 +186,8 @@ def test_describe_prefix_lists():
 
     all_lists = ec2.describe_prefix_lists()["PrefixLists"]
     all_lists.should.have.length_of(2)
-    for l in all_lists:
-        l["PrefixListName"].should.contain("com.amazonaws")
+    for pl in all_lists:
+        pl["PrefixListName"].should.contain("com.amazonaws")
 
 
 @mock_ec2

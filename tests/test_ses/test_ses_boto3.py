@@ -132,7 +132,7 @@ def test_send_unverified_email_with_chevrons():
     # Sending an email to an unverified source should fail
     with pytest.raises(ClientError) as ex:
         conn.send_email(
-            Source=f"John Smith <foobar@example.com>",  # << Unverified source address
+            Source="John Smith <foobar@example.com>",  # << Unverified source address
             Destination={
                 "ToAddresses": ["blah@example.com"],
                 "CcAddresses": [],

@@ -414,7 +414,7 @@ def test_create_user_pool_string_schema_min_bigger_than_max():
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
     ex.value.response["Error"]["Message"].should.equal(
-        f"user.email: Max length cannot be less than min length."
+        "user.email: Max length cannot be less than min length."
     )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
@@ -435,7 +435,7 @@ def test_create_user_pool_number_schema_min_bigger_than_max():
         )
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
     ex.value.response["Error"]["Message"].should.equal(
-        f"user.updated_at: Max value cannot be less than min value."
+        "user.updated_at: Max value cannot be less than min value."
     )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
@@ -482,7 +482,7 @@ def test_add_custom_attributes_existing_attribute():
 
     ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
     ex.value.response["Error"]["Message"].should.equal(
-        f"custom:banana: Existing attribute already has name dev:custom:banana."
+        "custom:banana: Existing attribute already has name dev:custom:banana."
     )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
@@ -1824,7 +1824,7 @@ def test_admin_confirm_sign_up_non_existing_user():
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal(f"User does not exist.")
+    err["Message"].should.equal("User does not exist.")
 
 
 @mock_cognitoidp
@@ -1879,7 +1879,7 @@ def test_admin_resend_invitation_missing_user():
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal(f"User does not exist.")
+    err["Message"].should.equal("User does not exist.")
 
 
 @mock_cognitoidp
@@ -1965,7 +1965,7 @@ def test_admin_get_missing_user():
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal(f"User does not exist.")
+    err["Message"].should.equal("User does not exist.")
 
 
 @mock_cognitoidp
@@ -1982,7 +1982,7 @@ def test_admin_get_missing_user_with_username_attributes():
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("UserNotFoundException")
-    err["Message"].should.equal(f"User does not exist.")
+    err["Message"].should.equal("User does not exist.")
 
 
 @mock_cognitoidp

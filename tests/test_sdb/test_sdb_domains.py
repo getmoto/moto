@@ -64,5 +64,5 @@ def test_delete_domain_invalid():
         sdb.delete_domain(DomainName="a")
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(f"Value (a) for parameter DomainName is invalid. ")
+    err["Message"].should.equal("Value (a) for parameter DomainName is invalid. ")
     err.should.have.key("BoxUsage")

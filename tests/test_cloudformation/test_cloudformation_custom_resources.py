@@ -105,7 +105,9 @@ def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     )
     execution_failed.should.equal(True)
 
-    printed_events = [l for l in logs if l.startswith("{'RequestType': 'Create'")]
+    printed_events = [
+        line for line in logs if line.startswith("{'RequestType': 'Create'")
+    ]
     printed_events.should.have.length_of(1)
     original_event = json.loads(printed_events[0].replace("'", '"'))
     original_event.should.have.key("RequestType").equals("Create")

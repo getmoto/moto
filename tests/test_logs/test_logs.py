@@ -1185,7 +1185,7 @@ def test_describe_log_streams_simple_paging():
     # Get stream 1-4
     resp = client.describe_log_streams(logGroupName=group_name, limit=4)
     resp["logStreams"].should.have.length_of(4)
-    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
         ["stream0", "stream1", "stream2", "stream3"]
     )
     resp.should.have.key("nextToken")
@@ -1195,7 +1195,7 @@ def test_describe_log_streams_simple_paging():
         logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
     )
     resp["logStreams"].should.have.length_of(4)
-    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
         ["stream4", "stream5", "stream6", "stream7"]
     )
     resp.should.have.key("nextToken")
@@ -1205,7 +1205,7 @@ def test_describe_log_streams_simple_paging():
         logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
     )
     resp["logStreams"].should.have.length_of(2)
-    [l["logStreamName"] for l in resp["logStreams"]].should.equal(
+    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
         ["stream8", "stream9"]
     )
     resp.should_not.have.key("nextToken")
