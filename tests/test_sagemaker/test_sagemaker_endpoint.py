@@ -1,9 +1,11 @@
 import datetime
 import uuid
+from pprint import pprint
 
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
+from dateutil.tz import tzlocal
 
 from moto import mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
@@ -18,9 +20,10 @@ GENERIC_TAGS_PARAM = [
 TEST_MODEL_NAME = "MyModel"
 TEST_ENDPOINT_NAME = "MyEndpoint"
 TEST_ENDPOINT_CONFIG_NAME = "MyEndpointConfig"
+TEST_VARIANT_NAME = "MyProductionVariant"
 TEST_PRODUCTION_VARIANTS = [
     {
-        "VariantName": "MyProductionVariant",
+        "VariantName": TEST_VARIANT_NAME,
         "ModelName": TEST_MODEL_NAME,
         "InitialInstanceCount": 1,
         "InstanceType": "ml.t2.medium",
@@ -162,7 +165,7 @@ def test_create_endpoint(sagemaker_client):
     resp["EndpointStatus"].should.equal("InService")
     assert isinstance(resp["CreationTime"], datetime.datetime)
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
-    resp["ProductionVariants"][0]["VariantName"].should.equal("MyProductionVariant")
+    resp["ProductionVariants"][0]["VariantName"].should.equal(TEST_VARIANT_NAME)
 
     resp = sagemaker_client.list_tags(ResourceArn=resp["EndpointArn"])
     assert resp["Tags"] == GENERIC_TAGS_PARAM
@@ -244,6 +247,46 @@ def test_list_tags_endpoint(sagemaker_client):
     assert len(response["Tags"]) == 30
     assert response["Tags"] == tags[50:]
 
+@mock_sagemaker
+def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+
+    variant_name = 'MyProductionVariant'
+    new_desired_weight = 1.5
+    new_desired_instance_count = 123
+
+    response = sagemaker_client.update_endpoint_weights_and_capacities(
+        EndpointName=TEST_ENDPOINT_NAME,
+        DesiredWeightsAndCapacities=[
+            {
+                'VariantName': variant_name,
+                'DesiredWeight': new_desired_weight,
+                'DesiredInstanceCount': new_desired_instance_count
+            },
+        ]
+    )
+    response["EndpointArn"].should.match(
+        r"^arn:aws:sagemaker:.*:.*:endpoint/{}$".format(TEST_ENDPOINT_NAME)
+    )
+
+    resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    resp["EndpointArn"].should.match(
+        r"^arn:aws:sagemaker:.*:.*:endpoint/{}$".format(TEST_ENDPOINT_NAME)
+    )
+    resp["EndpointName"].should.equal(TEST_ENDPOINT_NAME)
+    resp["EndpointConfigName"].should.equal(TEST_ENDPOINT_CONFIG_NAME)
+    resp["EndpointStatus"].should.equal("InService")
+    assert isinstance(resp["CreationTime"], datetime.datetime)
+    assert isinstance(resp["LastModifiedTime"], datetime.datetime)
+
+    print(resp["ProductionVariants"][0])
+    resp["ProductionVariants"][0]["VariantName"].should.equal(variant_name)
+    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(new_desired_instance_count)
+    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(new_desired_instance_count)
+    resp["ProductionVariants"][0]["DesiredWeight"].should.equal(new_desired_weight)
+    resp["ProductionVariants"][0]["CurrentWeight"].should.equal(new_desired_weight)
 
 def _set_up_sagemaker_resources(
     boto_client, endpoint_name, endpoint_config_name, model_name
