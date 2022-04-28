@@ -43,6 +43,26 @@ def test_create_user_pool():
 
 
 @mock_cognitoidp
+def test_create_user_pool__overwrite_template_messages():
+    client = boto3.client("cognito-idp", "us-east-2")
+    resp = client.create_user_pool(
+        PoolName="test",
+        VerificationMessageTemplate={
+            "DefaultEmailOption": "CONFIRM_WITH_LINK",
+            "EmailMessage": "foo {####} bar",
+            "EmailMessageByLink": "{##foobar##}",
+            "EmailSubject": "foobar {####}",
+            "EmailSubjectByLink": "foobar",
+            "SmsMessage": "{####} baz",
+        },
+    )
+    pool = resp["UserPool"]
+    pool.should.have.key("SmsVerificationMessage").equals("{####} baz")
+    pool.should.have.key("EmailVerificationSubject").equals("foobar {####}")
+    pool.should.have.key("EmailVerificationMessage").equals("foo {####} bar")
+
+
+@mock_cognitoidp
 def test_create_user_pool_should_have_all_default_attributes_in_schema():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -127,7 +147,6 @@ def test_create_user_pool_custom_attribute_defaults():
     )
     string_attribute["DeveloperOnlyAttribute"].should.equal(False)
     string_attribute["Mutable"].should.equal(True)
-    string_attribute.shouldnt.have.key("StringAttributeConstraints")
 
     number_attribute = next(
         attr
@@ -1200,12 +1219,14 @@ def test_update_identity_provider():
         UserPoolId=user_pool_id,
         ProviderName=provider_name,
         ProviderDetails={"thing": new_value},
-    )
+        AttributeMapping={"email": "email", "username": "sub"},
+    )["IdentityProvider"]
 
-    result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
-    result["IdentityProvider"]["ProviderName"].should.equal(provider_name)
-    result["IdentityProvider"]["ProviderType"].should.equal(provider_type)
-    result["IdentityProvider"]["ProviderDetails"]["thing"].should.equal(new_value)
+    result["UserPoolId"].should.equal(user_pool_id)
+    result["ProviderName"].should.equal(provider_name)
+    result["ProviderType"].should.equal(provider_type)
+    result["ProviderDetails"]["thing"].should.equal(new_value)
+    result["AttributeMapping"].should.equal({"email": "email", "username": "sub"})
 
 
 @mock_cognitoidp
