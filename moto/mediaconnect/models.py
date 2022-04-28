@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from uuid import uuid4
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
 
@@ -94,10 +94,12 @@ class MediaConnectBackend(BaseBackend):
         sources,
         vpc_interfaces,
     ):
-        if isinstance(source, dict) and source.get("name"):
-            source["sourceArn"] = "arn:aws:mediaconnect:source:{}".format(
-                source["name"]
-            )
+        flow_id = uuid4().hex
+        source_name = source.get("name")
+        if isinstance(source, dict) and source_name:
+            source[
+                "sourceArn"
+            ] = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:source:{flow_id}:{source_name}"
         flow = Flow(
             availability_zone=availability_zone,
             entitlements=entitlements,
@@ -110,8 +112,7 @@ class MediaConnectBackend(BaseBackend):
         )
         flow.description = "A Moto test flow"
         flow.egress_ip = "127.0.0.1"
-        flow_id = uuid4().hex
-        flow.flow_arn = "arn:aws:mediaconnect:flow:{}".format(flow_id)
+        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:flow:{flow_id}:{name}"
         self._flows[flow.flow_arn] = flow
         return flow
 
