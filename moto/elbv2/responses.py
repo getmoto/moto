@@ -1497,7 +1497,7 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
         <Actions>
           {% for action in rule.actions %}
           <member>
-            {{   }}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>

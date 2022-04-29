@@ -10,24 +10,6 @@ default_action = {
     "Type": "fixed-response",
 }
 
-@pytest.fixture
-def conn():
-    return boto3.client("elbv2", region_name="us-east-1")
-
-@pytest.fixture
-def target_group_arn(conn):
-
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
-
-    response = conn.create_target_group(
-        Name="target-group-name", Protocol="HTTP", Port=80, VpcId=vpc.id
-    )
-
-    target_group = response.get("TargetGroups")[0]
-    target_group_arn = target_group.get("TargetGroupArn")
-
-    return target_group_arn
 
 def setup_listener(conn):
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -71,6 +53,7 @@ def setup_listener(conn):
     listener = response.get("Listeners")[0]
     http_listener_arn = listener.get("ListenerArn")
     return http_listener_arn
+
 
 def setup_target_group(boto_client):
 
@@ -345,71 +328,71 @@ def test_describe_unknown_rule():
 @mock_elbv2
 @mock_ec2
 @pytest.mark.parametrize(
-    "action_type,action_config,action_config_data",
+    "action",
     [
         (
-            "authenticate-oidc",
-            "AuthenticateOidcConfig",
             {
-                "Issuer": "https://example.com/path",
-                "AuthorizationEndpoint": "https://example.com/path",
-                "TokenEndpoint": "https://example.com/path",
-                "UserInfoEndpoint": "https://example.com/path",
-                "ClientId": "id",
-                "ClientSecret": "secret",
-                "SessionCookieName": "cookie",
-                "Scope": "openid",
-                "SessionTimeout": 60,
-                "AuthenticationRequestExtraParams": {"extra": "param"},
-                "OnUnauthenticatedRequest": "deny",
-                "UseExistingClientSecret": False,
-            },
+                "Type": "authenticate-oidc",
+                "AuthenticateOidcConfig": {
+                    "Issuer": "https://example.com/path",
+                    "AuthorizationEndpoint": "https://example.com/path",
+                    "TokenEndpoint": "https://example.com/path",
+                    "UserInfoEndpoint": "https://example.com/path",
+                    "ClientId": "id",
+                    "ClientSecret": "secret",
+                    "SessionCookieName": "cookie",
+                    "Scope": "openid",
+                    "SessionTimeout": 60,
+                    "AuthenticationRequestExtraParams": {"extra": "param"},
+                    "OnUnauthenticatedRequest": "deny",
+                    "UseExistingClientSecret": False,
+                },
+            }
         ),
         (
-            "authenticate-cognito",
-            "AuthenticateCognitoConfig",
             {
-                "UserPoolArn": "arn:user-pool",
-                "UserPoolClientId": "id",
-                "UserPoolDomain": "domain",
-                "SessionCookieName": "cookie",
-                "Scope": "openid",
-                "SessionTimeout": 60,
-                "AuthenticationRequestExtraParams": {"extra": "param"},
-                "OnUnauthenticatedRequest": "deny",
-            },
+                "Type": "authenticate-cognito",
+                "AuthenticateCognitoConfig": {
+                    "UserPoolArn": "arn:user-pool",
+                    "UserPoolClientId": "id",
+                    "UserPoolDomain": "domain",
+                    "SessionCookieName": "cookie",
+                    "Scope": "openid",
+                    "SessionTimeout": 60,
+                    "AuthenticationRequestExtraParams": {"extra": "param"},
+                    "OnUnauthenticatedRequest": "deny",
+                },
+            }
         ),
         (
-            "redirect",
-            "RedirectConfig",
             {
-                "Protocol": "HTTPS",
-                "Port": "1",
-                "Host": "host",
-                "Path": "/path",
-                "Query": "query",
-                "StatusCode": "HHTP 301",
-            },
+                "Type": "redirect",
+                "RedirectConfig": {
+                    "Protocol": "HTTPS",
+                    "Port": "1",
+                    "Host": "host",
+                    "Path": "/path",
+                    "Query": "query",
+                    "StatusCode": "HHTP 301",
+                },
+            }
         ),
         (
-            "fixed-response",
-            "FixedResponseConfig",
             {
-                "MessageBody": "message body",
-                "ContentType": "text/plain",
-                "StatusCode": "503",
-            },
+                "Type": "fixed-response",
+                "FixedResponseConfig": {
+                    "MessageBody": "message body",
+                    "ContentType": "text/plain",
+                    "StatusCode": "503",
+                },
+            }
         ),
     ],
 )
-def test_create_rule_action(conn, action_type, action_config, action_config_data):
-    #conn = boto3.client("elbv2", region_name="us-east-1")
-
-    print(target_group_arn)
+def test_create_rule_action(action):
+    conn = boto3.client("elbv2", region_name="us-east-1")
 
     http_listener_arn = setup_listener(conn)
-
-    action = {"Order": 1, "Type": action_type, action_config : action_config_data}
 
     # create_rule
     response = conn.create_rule(
@@ -424,21 +407,13 @@ def test_create_rule_action(conn, action_type, action_config, action_config_data
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("100")
     rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal(action_type)
-    action["Order"].should.equal(1)
-    action[action_config].should.equal(action_config_data)
+    rule["Actions"].should.equal([action])
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
     response["Rules"].should.have.length_of(2)  # including the default rule
-
     rule = response.get("Rules")[0]
-    action = rule["Actions"][0]
-    action["Type"].should.equal(action_type)
-    action["Order"].should.equal(1)
-    action[action_config].should.equal(action_config_data)
+    rule["Actions"][0].should.equal(action)
 
     # assert set_rule_priorities response
     rule_arn = response.get("Rules")[0]["RuleArn"]
@@ -450,16 +425,12 @@ def test_create_rule_action(conn, action_type, action_config, action_config_data
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("99")
     rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal(action_type)
-    action["Order"].should.equal(1)
-    action[action_config].should.equal(action_config_data)
+    rule["Actions"][0].should.equal(action)
 
 
 @mock_elbv2
 @mock_ec2
-def test_create_rule_forward_action():
+def test_create_rule_action_forward_config():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
     http_listener_arn = setup_listener(conn)
@@ -467,9 +438,7 @@ def test_create_rule_forward_action():
 
     forward_config = {
         "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}],
-        "TargetGroupStickinessConfig": {
-            "Enabled": False
-        }
+        "TargetGroupStickinessConfig": {"Enabled": False},
     }
     action = {"Order": 1, "Type": "forward", "ForwardConfig": forward_config}
 
@@ -486,21 +455,13 @@ def test_create_rule_forward_action():
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("100")
     rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
-    action["Order"].should.equal(1)
-    action["ForwardConfig"].should.equal(forward_config)
+    rule["Actions"][0].should.equal(action)
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
     response["Rules"].should.have.length_of(2)  # including the default rule
-
     rule = response.get("Rules")[0]
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
-    action["Order"].should.equal(1)
-    action["ForwardConfig"].should.equal(forward_config)
+    rule["Actions"][0].should.equal(action)
 
     # assert set_rule_priorities response
     rule_arn = response.get("Rules")[0]["RuleArn"]
@@ -512,22 +473,18 @@ def test_create_rule_forward_action():
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("99")
     rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
-    action["Order"].should.equal(1)
-    action["ForwardConfig"].should.equal(forward_config)
+    rule["Actions"][0].should.equal(action)
 
 
 @mock_elbv2
 @mock_ec2
-def test_create_rule_forward_action_target_group():
+def test_create_rule_action_forward_target_group():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
     http_listener_arn = setup_listener(conn)
     target_group_arn = setup_target_group(conn)
 
-    action = { "Order": 1, "Type": "forward", "TargetGroupArn": target_group_arn }
+    action = {"Order": 1, "Type": "forward", "TargetGroupArn": target_group_arn}
 
     # create_rule
     response = conn.create_rule(
@@ -542,21 +499,13 @@ def test_create_rule_forward_action_target_group():
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("100")
     rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
-    action["Order"].should.equal(1)
-    action["TargetGroupArn"].should.equal(target_group_arn)
+    rule["Actions"][0].should.equal(action)
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
     response["Rules"].should.have.length_of(2)  # including the default rule
-
     rule = response.get("Rules")[0]
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
-    action["Order"].should.equal(1)
-    action["TargetGroupArn"].should.equal(target_group_arn)
+    rule["Actions"][0].should.equal(action)
 
     # assert set_rule_priorities
     rule_arn = response.get("Rules")[0]["RuleArn"]
@@ -569,8 +518,4 @@ def test_create_rule_forward_action_target_group():
     rule = response.get("Rules")[0]
     rule["Priority"].should.equal("99")
     rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
-    action["Order"].should.equal(1)
-    action["TargetGroupArn"].should.equal(target_group_arn)
+    rule["Actions"][0].should.equal(action)
