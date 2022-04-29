@@ -298,6 +298,16 @@ class EmailResponse(BaseResponse):
 
         return template.render(identities=identities)
 
+    def get_identity_verification_attributes(self):
+        params = self._get_params()
+        identities = params.get("Identities")
+        verification_attributes = ses_backend.get_identity_verification_attributes(
+            identities=identities,
+        )
+
+        template = self.response_template(GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE)
+        return template.render(verification_attributes=verification_attributes)
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -685,3 +695,22 @@ GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttribut
     <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </GetIdentityMailFromDomainAttributesResponse>"""
+
+GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE = """<GetIdentityVerificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <GetIdentityVerificationAttributesResult>
+    <VerificationAttributes>
+      {% for name, value in verification_attributes.items() %}
+      <entry>
+        <key>{{ name }}</key>
+        <value>
+          <VerificationStatus>{{ value }}</VerificationStatus>
+          <VerificationToken>ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=</VerificationToken>
+        </value>
+      </entry>
+      {% endfor %}
+    </VerificationAttributes>
+  </GetIdentityVerificationAttributesResult>
+  <ResponseMetadata>
+    <RequestId>d435c1b8-a225-4b89-acff-81fcf7ef9236</RequestId>
+  </ResponseMetadata>
+</GetIdentityVerificationAttributesResponse>"""
