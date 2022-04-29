@@ -254,7 +254,7 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
-    variant_name = 'MyProductionVariant'
+    variant_name = "MyProductionVariant"
     new_desired_weight = 1.5
     new_desired_instance_count = 123
 
@@ -262,11 +262,11 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
         EndpointName=TEST_ENDPOINT_NAME,
         DesiredWeightsAndCapacities=[
             {
-                'VariantName': variant_name,
-                'DesiredWeight': new_desired_weight,
-                'DesiredInstanceCount': new_desired_instance_count
+                "VariantName": variant_name,
+                "DesiredWeight": new_desired_weight,
+                "DesiredInstanceCount": new_desired_instance_count,
             },
-        ]
+        ],
     )
     response["EndpointArn"].should.match(
         r"^arn:aws:sagemaker:.*:.*:endpoint/{}$".format(TEST_ENDPOINT_NAME)
@@ -283,8 +283,12 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
 
     resp["ProductionVariants"][0]["VariantName"].should.equal(variant_name)
-    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(new_desired_instance_count)
-    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(new_desired_instance_count)
+    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(
+        new_desired_instance_count
+    )
+    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(
+        new_desired_instance_count
+    )
     resp["ProductionVariants"][0]["DesiredWeight"].should.equal(new_desired_weight)
     resp["ProductionVariants"][0]["CurrentWeight"].should.equal(new_desired_weight)
 
@@ -307,19 +311,23 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
     ]
 
     _set_up_sagemaker_resources(
-        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME, production_variants
+        sagemaker_client,
+        TEST_ENDPOINT_NAME,
+        TEST_ENDPOINT_CONFIG_NAME,
+        TEST_MODEL_NAME,
+        production_variants,
     )
 
     desired_weights_and_capacities = [
         {
-            'VariantName': 'MyProductionVariant1',
-            'DesiredWeight': 1.5,
-            'DesiredInstanceCount': 123
+            "VariantName": "MyProductionVariant1",
+            "DesiredWeight": 1.5,
+            "DesiredInstanceCount": 123,
         },
         {
-            'VariantName': 'MyProductionVariant2',
-            'DesiredWeight': 1.5,
-            'DesiredInstanceCount': 123
+            "VariantName": "MyProductionVariant2",
+            "DesiredWeight": 1.5,
+            "DesiredInstanceCount": 123,
         },
     ]
 
@@ -328,7 +336,7 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
 
     response = sagemaker_client.update_endpoint_weights_and_capacities(
         EndpointName=TEST_ENDPOINT_NAME,
-        DesiredWeightsAndCapacities=desired_weights_and_capacities
+        DesiredWeightsAndCapacities=desired_weights_and_capacities,
     )
     response["EndpointArn"].should.match(
         r"^arn:aws:sagemaker:.*:.*:endpoint/{}$".format(TEST_ENDPOINT_NAME)
@@ -345,24 +353,35 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
 
     resp["ProductionVariants"][0]["VariantName"].should.equal("MyProductionVariant1")
-    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(new_desired_instance_count)
-    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(new_desired_instance_count)
+    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(
+        new_desired_instance_count
+    )
+    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(
+        new_desired_instance_count
+    )
     resp["ProductionVariants"][0]["DesiredWeight"].should.equal(new_desired_weight)
     resp["ProductionVariants"][0]["CurrentWeight"].should.equal(new_desired_weight)
 
     resp["ProductionVariants"][1]["VariantName"].should.equal("MyProductionVariant2")
-    resp["ProductionVariants"][1]["DesiredInstanceCount"].should.equal(new_desired_instance_count)
-    resp["ProductionVariants"][1]["CurrentInstanceCount"].should.equal(new_desired_instance_count)
+    resp["ProductionVariants"][1]["DesiredInstanceCount"].should.equal(
+        new_desired_instance_count
+    )
+    resp["ProductionVariants"][1]["CurrentInstanceCount"].should.equal(
+        new_desired_instance_count
+    )
     resp["ProductionVariants"][1]["DesiredWeight"].should.equal(new_desired_weight)
     resp["ProductionVariants"][1]["CurrentWeight"].should.equal(new_desired_weight)
 
+
 @mock_sagemaker
-def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_variant(sagemaker_client):
+def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_variant(
+    sagemaker_client,
+):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
-    variant_name = 'SillyNotCorrectName'
+    variant_name = "SillyNotCorrectName"
     new_desired_weight = 1.5
     new_desired_instance_count = 123
 
@@ -371,24 +390,29 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_vari
             EndpointName=TEST_ENDPOINT_NAME,
             DesiredWeightsAndCapacities=[
                 {
-                    'VariantName': variant_name,
-                    'DesiredWeight': new_desired_weight,
-                    'DesiredInstanceCount': new_desired_instance_count
+                    "VariantName": variant_name,
+                    "DesiredWeight": new_desired_weight,
+                    "DesiredInstanceCount": new_desired_instance_count,
                 },
-            ]
+            ],
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal(f'The variant name(s) "{variant_name}" is/are not present within endpoint configuration "{TEST_ENDPOINT_CONFIG_NAME}".')
+    err["Message"].should.equal(
+        f'The variant name(s) "{variant_name}" is/are not present within endpoint configuration "{TEST_ENDPOINT_CONFIG_NAME}".'
+    )
+
 
 @mock_sagemaker
-def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endpoint(sagemaker_client):
+def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endpoint(
+    sagemaker_client,
+):
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
     endpoint_name = "SillyEndpointName"
-    variant_name = 'SillyNotCorrectName'
+    variant_name = "SillyNotCorrectName"
     new_desired_weight = 1.5
     new_desired_instance_count = 123
 
@@ -397,21 +421,30 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endp
             EndpointName=endpoint_name,
             DesiredWeightsAndCapacities=[
                 {
-                    'VariantName': variant_name,
-                    'DesiredWeight': new_desired_weight,
-                    'DesiredInstanceCount': new_desired_instance_count
+                    "VariantName": variant_name,
+                    "DesiredWeight": new_desired_weight,
+                    "DesiredInstanceCount": new_desired_instance_count,
                 },
-            ]
+            ],
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal(f'Could not find endpoint "arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:endpoint/{endpoint_name}".')
+    err["Message"].should.equal(
+        f'Could not find endpoint "arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:endpoint/{endpoint_name}".'
+    )
+
 
 def _set_up_sagemaker_resources(
-        boto_client, endpoint_name, endpoint_config_name, model_name, production_variants=None
+    boto_client,
+    endpoint_name,
+    endpoint_config_name,
+    model_name,
+    production_variants=None,
 ):
     _create_model(boto_client, model_name)
-    _create_endpoint_config(boto_client, endpoint_config_name, model_name, production_variants)
+    _create_endpoint_config(
+        boto_client, endpoint_config_name, model_name, production_variants
+    )
     _create_endpoint(boto_client, endpoint_name, endpoint_config_name)
 
 
@@ -427,7 +460,9 @@ def _create_model(boto_client, model_name):
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-def _create_endpoint_config(boto_client, endpoint_config_name, model_name, production_variants=None):
+def _create_endpoint_config(
+    boto_client, endpoint_config_name, model_name, production_variants=None
+):
     if not production_variants:
         production_variants = [
             {

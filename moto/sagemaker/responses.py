@@ -587,7 +587,5 @@ class SageMakerResponse(BaseResponse):
             endpoint_name=endpoint_name,
             desired_weights_and_capacities=desired_weights_and_capacities,
         )
-        response = {
-            "EndpointArn": endpoint_arn
-        }
+        response = {"EndpointArn": endpoint_arn}
         return 200, {}, json.dumps(response)

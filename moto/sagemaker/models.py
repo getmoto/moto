@@ -249,7 +249,9 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.endpoint_name = endpoint_name
         self.endpoint_arn = FakeEndpoint.arn_formatter(endpoint_name, region_name)
         self.endpoint_config_name = endpoint_config_name
-        self.production_variants = self._process_production_variants(production_variants)
+        self.production_variants = self._process_production_variants(
+            production_variants
+        )
         self.data_capture_config = data_capture_config
         self.tags = tags or []
         self.endpoint_status = "InService"
@@ -264,19 +266,31 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
             temp_variant = {}
 
             # VariantName is the only required param
-            temp_variant['VariantName'] = production_variant['VariantName']
+            temp_variant["VariantName"] = production_variant["VariantName"]
 
-            if production_variant.get('InitialInstanceCount', None):
-                temp_variant['CurrentInstanceCount'] = production_variant['InitialInstanceCount']
-                temp_variant['DesiredInstanceCount'] = production_variant['InitialInstanceCount']
+            if production_variant.get("InitialInstanceCount", None):
+                temp_variant["CurrentInstanceCount"] = production_variant[
+                    "InitialInstanceCount"
+                ]
+                temp_variant["DesiredInstanceCount"] = production_variant[
+                    "InitialInstanceCount"
+                ]
 
-            if production_variant.get('InitialVariantWeight', None):
-                temp_variant['CurrentWeight'] = production_variant['InitialVariantWeight']
-                temp_variant['DesiredWeight'] = production_variant['InitialVariantWeight']
+            if production_variant.get("InitialVariantWeight", None):
+                temp_variant["CurrentWeight"] = production_variant[
+                    "InitialVariantWeight"
+                ]
+                temp_variant["DesiredWeight"] = production_variant[
+                    "InitialVariantWeight"
+                ]
 
-            if production_variant.get('ServerlessConfig', None):
-                temp_variant['CurrentServerlessConfig'] = production_variant['ServerlessConfig']
-                temp_variant['DesiredServerlessConfig'] = production_variant['ServerlessConfig']
+            if production_variant.get("ServerlessConfig", None):
+                temp_variant["CurrentServerlessConfig"] = production_variant[
+                    "ServerlessConfig"
+                ]
+                temp_variant["DesiredServerlessConfig"] = production_variant[
+                    "ServerlessConfig"
+                ]
 
             endpoinnt_variants.append(temp_variant)
 
@@ -1914,11 +1928,15 @@ class SageMakerModelBackend(BaseBackend):
             "NextToken": str(next_index) if next_index is not None else None,
         }
 
-    def update_endpoint_weights_and_capacities(self, endpoint_name, desired_weights_and_capacities):
+    def update_endpoint_weights_and_capacities(
+        self, endpoint_name, desired_weights_and_capacities
+    ):
 
         endpoint = self.endpoints.get(endpoint_name, None)
         if not endpoint:
-            raise AWSValidationException(f'Could not find endpoint "{FakeEndpoint.arn_formatter(endpoint_name, self.region_name)}".')
+            raise AWSValidationException(
+                f'Could not find endpoint "{FakeEndpoint.arn_formatter(endpoint_name, self.region_name)}".'
+            )
 
         endpoint.endpoint_status = "Updating"
 
@@ -1934,11 +1952,14 @@ class SageMakerModelBackend(BaseBackend):
                     variant["DesiredInstanceCount"] = desired_instance_count
                     variant["CurrentInstanceCount"] = desired_instance_count
                     break
-                elif index == len(endpoint.production_variants)-1:
-                    raise AWSValidationException(f'The variant name(s) "{name}" is/are not present within endpoint configuration "{endpoint.endpoint_config_name}".')
+                elif index == len(endpoint.production_variants) - 1:
+                    raise AWSValidationException(
+                        f'The variant name(s) "{name}" is/are not present within endpoint configuration "{endpoint.endpoint_config_name}".'
+                    )
 
         endpoint.endpoint_status = "InService"
         return endpoint.endpoint_arn
+
 
 class FakeExperiment(BaseObject):
     def __init__(self, region_name, experiment_name, tags):
