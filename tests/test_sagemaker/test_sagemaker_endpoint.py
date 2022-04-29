@@ -356,6 +356,56 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
     resp["ProductionVariants"][1]["DesiredWeight"].should.equal(new_desired_weight)
     resp["ProductionVariants"][1]["CurrentWeight"].should.equal(new_desired_weight)
 
+@mock_sagemaker
+def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_variant(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+
+    variant_name = 'SillyNotCorrectName'
+    new_desired_weight = 1.5
+    new_desired_instance_count = 123
+
+    with pytest.raises(ClientError) as exc:
+        sagemaker_client.update_endpoint_weights_and_capacities(
+            EndpointName=TEST_ENDPOINT_NAME,
+            DesiredWeightsAndCapacities=[
+                {
+                    'VariantName': variant_name,
+                    'DesiredWeight': new_desired_weight,
+                    'DesiredInstanceCount': new_desired_instance_count
+                },
+            ]
+        )
+
+    err = exc.value.response["Error"]
+    err["Message"].should.equal(f'The variant name(s) "{variant_name}" is/are not present within endpoint configuration "{TEST_ENDPOINT_CONFIG_NAME}".')
+
+@mock_sagemaker
+def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endpoint(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+
+    endpoint_name = "SillyEndpointName"
+    variant_name = 'SillyNotCorrectName'
+    new_desired_weight = 1.5
+    new_desired_instance_count = 123
+
+    with pytest.raises(ClientError) as exc:
+        sagemaker_client.update_endpoint_weights_and_capacities(
+            EndpointName=endpoint_name,
+            DesiredWeightsAndCapacities=[
+                {
+                    'VariantName': variant_name,
+                    'DesiredWeight': new_desired_weight,
+                    'DesiredInstanceCount': new_desired_instance_count
+                },
+            ]
+        )
+
+    err = exc.value.response["Error"]
+    err["Message"].should.equal(f'Could not find endpoint "arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:endpoint/{endpoint_name}".')
 
 def _set_up_sagemaker_resources(
         boto_client, endpoint_name, endpoint_config_name, model_name, production_variants=None
@@ -377,7 +427,7 @@ def _create_model(boto_client, model_name):
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-def _create_endpoint_config(boto_client, endpoint_config_name, model_name, production_variants):
+def _create_endpoint_config(boto_client, endpoint_config_name, model_name, production_variants=None):
     if not production_variants:
         production_variants = [
             {
