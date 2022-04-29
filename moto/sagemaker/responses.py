@@ -1,6 +1,4 @@
 import json
-from datetime import datetime
-from pprint import pprint
 
 from moto.sagemaker.exceptions import AWSValidationException
 

@@ -1,11 +1,9 @@
 import datetime
 import uuid
-from pprint import pprint
 
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
-from dateutil.tz import tzlocal
 
 from moto import mock_sagemaker
 from moto.sts.models import ACCOUNT_ID
