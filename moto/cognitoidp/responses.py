@@ -516,7 +516,7 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
-        user = cognitoidp_backends[self.region].sign_up(
+        user = cognitoidp_backends["global"].sign_up(
             client_id=client_id,
             username=username,
             password=password,
@@ -532,7 +532,7 @@ class CognitoIdpResponse(BaseResponse):
     def confirm_sign_up(self):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
-        cognitoidp_backends[self.region].confirm_sign_up(
+        cognitoidp_backends["global"].confirm_sign_up(
             client_id=client_id, username=username
         )
         return ""
@@ -542,7 +542,7 @@ class CognitoIdpResponse(BaseResponse):
         auth_flow = self._get_param("AuthFlow")
         auth_parameters = self._get_param("AuthParameters")
 
-        auth_result = cognitoidp_backends[self.region].initiate_auth(
+        auth_result = cognitoidp_backends["global"].initiate_auth(
             client_id, auth_flow, auth_parameters
         )
 

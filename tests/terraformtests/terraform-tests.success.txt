@@ -22,6 +22,13 @@ cloudwatch:
   - TestAccCloudWatchLogsDestination
   - TestAccCloudWatchLogsDestinationPolicy
   - TestAccCloudWatchLogsGroupDataSource
+cognitoidp:
+  - TestAccCognitoIDPIdentityProvider
+  - TestAccCognitoIDPUserPool_
+  - TestAccCognitoUser_
+  - TestAccCognitoUserInGroup_
+  - TestAccCognitoIDPUserPoolClients
+  - TestAccCognitoIDPUserPoolClientDataSource
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
