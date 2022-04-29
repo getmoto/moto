@@ -369,6 +369,42 @@ def test_create_rule_forward_action():
     }  # TargetGroupStickinessConfig included in describe_rules response
     action["ForwardConfig"].should.equal(forward_config)
 
+@mock_elbv2
+@mock_ec2
+def test_create_rule_forward_action_missing_forward_config():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+    target_group_arn = setup_target_group(conn)
+
+    action = {"Type": "forward", "TargetGroupArn": target_group_arn}
+
+    # create_rule
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[],
+        Actions=[action],
+    )
+
+    # assert create_rule response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("100")
+    rule["Conditions"].should.equal([])
+
+    action = rule["Actions"][0]
+    action["Type"].should.equal("forward")
+    action["TargetGroupArn"].should.equal(target_group_arn)
+
+    # assert describe_rules response
+    response = conn.describe_rules(ListenerArn=http_listener_arn)
+    response["Rules"].should.have.length_of(2)  # including the default rule
+
+    rule = response.get("Rules")[0]
+    action = rule["Actions"][0]
+    action["Type"].should.equal("forward")
+    action["TargetGroupArn"].should.equal(target_group_arn)
 
 @mock_elbv2
 @mock_ec2
@@ -407,3 +443,38 @@ def test_set_rule_priorities_forward_action():
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
     action["ForwardConfig"].should.equal(forward_config)
+
+@mock_elbv2
+@mock_ec2
+def test_set_rule_priorities_forward_action_missing_forward_config():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+
+    http_listener_arn = setup_listener(conn)
+    target_group_arn = setup_target_group(conn)
+
+    action = {"Type": "forward", "TargetGroupArn": target_group_arn}
+
+    # create_rule
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[],
+        Actions=[action],
+    )
+
+    rule_arn = response.get("Rules")[0]["RuleArn"]
+
+    # set_rule_priorities
+    response = conn.set_rule_priorities(
+        RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
+    )
+
+    # assert set_rule_priorities response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("99")
+    rule["Conditions"].should.equal([])
+
+    action = rule["Actions"][0]
+    action["Type"].should.equal("forward")
+    action["TargetGroupArn"].should.equal(target_group_arn)

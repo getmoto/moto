@@ -791,7 +791,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
             </ForwardConfig>
             {% endif %}
             {% if action["type"] == "forward" and "ForwardConfig" not in action.data %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            <TargetGroupArn>{{ action.data["TargetGroupArn"] }}</TargetGroupArn>
             {% elif action["type"] == "redirect" %}
             <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
             {% endif %}
@@ -1528,7 +1528,7 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
             </ForwardConfig>
             {% endif %}
             {% if action["type"] == "forward" and "ForwardConfig" not in action.data %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            <TargetGroupArn>{{ action.data["TargetGroupArn"] }}</TargetGroupArn>
             {% endif %}
           </member>
           {% endfor %}
