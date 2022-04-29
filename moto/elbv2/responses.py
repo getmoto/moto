@@ -777,24 +777,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
         <Actions>
           {% for action in rules.actions %}
           <member>
-            <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" and "ForwardConfig" in action.data %}
-            <ForwardConfig>
-              <TargetGroups>
-                {% for TargetGroup in action.data["ForwardConfig"]["TargetGroups"] %}
-                <member>
-                  <TargetGroupArn>{{ TargetGroup["TargetGroupArn"] }}</TargetGroupArn>
-                  <Weight>{{ TargetGroup["Weight"] }}</Weight>
-                </member>
-                {% endfor %}
-              </TargetGroups>
-            </ForwardConfig>
-            {% endif %}
-            {% if action["type"] == "forward" and "ForwardConfig" not in action.data %}
-            <TargetGroupArn>{{ action.data["TargetGroupArn"] }}</TargetGroupArn>
-            {% elif action["type"] == "redirect" %}
-            <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>
@@ -1514,22 +1497,7 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
         <Actions>
           {% for action in rule.actions %}
           <member>
-            <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" and "ForwardConfig" in action.data %}
-            <ForwardConfig>
-              <TargetGroups>
-                {% for TargetGroup in action.data["ForwardConfig"]["TargetGroups"] %}
-                <member>
-                  <TargetGroupArn>{{ TargetGroup["TargetGroupArn"] }}</TargetGroupArn>
-                  <Weight>{{ TargetGroup["Weight"] }}</Weight>
-                </member>
-                {% endfor %}
-              </TargetGroups>
-            </ForwardConfig>
-            {% endif %}
-            {% if action["type"] == "forward" and "ForwardConfig" not in action.data %}
-            <TargetGroupArn>{{ action.data["TargetGroupArn"] }}</TargetGroupArn>
-            {% endif %}
+            {{   }}
           </member>
           {% endfor %}
         </Actions>

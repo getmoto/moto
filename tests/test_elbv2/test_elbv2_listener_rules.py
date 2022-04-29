@@ -10,6 +10,24 @@ default_action = {
     "Type": "fixed-response",
 }
 
+@pytest.fixture
+def conn():
+    return boto3.client("elbv2", region_name="us-east-1")
+
+@pytest.fixture
+def target_group_arn(conn):
+
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+
+    response = conn.create_target_group(
+        Name="target-group-name", Protocol="HTTP", Port=80, VpcId=vpc.id
+    )
+
+    target_group = response.get("TargetGroups")[0]
+    target_group_arn = target_group.get("TargetGroupArn")
+
+    return target_group_arn
 
 def setup_listener(conn):
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -54,13 +72,12 @@ def setup_listener(conn):
     http_listener_arn = listener.get("ListenerArn")
     return http_listener_arn
 
-
-def setup_target_group(conn):
+def setup_target_group(boto_client):
 
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
 
-    response = conn.create_target_group(
+    response = boto_client.create_target_group(
         Name="target-group-name", Protocol="HTTP", Port=80, VpcId=vpc.id
     )
 
@@ -327,6 +344,121 @@ def test_describe_unknown_rule():
 
 @mock_elbv2
 @mock_ec2
+@pytest.mark.parametrize(
+    "action_type,action_config,action_config_data",
+    [
+        (
+            "authenticate-oidc",
+            "AuthenticateOidcConfig",
+            {
+                "Issuer": "https://example.com/path",
+                "AuthorizationEndpoint": "https://example.com/path",
+                "TokenEndpoint": "https://example.com/path",
+                "UserInfoEndpoint": "https://example.com/path",
+                "ClientId": "id",
+                "ClientSecret": "secret",
+                "SessionCookieName": "cookie",
+                "Scope": "openid",
+                "SessionTimeout": 60,
+                "AuthenticationRequestExtraParams": {"extra": "param"},
+                "OnUnauthenticatedRequest": "deny",
+                "UseExistingClientSecret": False,
+            },
+        ),
+        (
+            "authenticate-cognito",
+            "AuthenticateCognitoConfig",
+            {
+                "UserPoolArn": "arn:user-pool",
+                "UserPoolClientId": "id",
+                "UserPoolDomain": "domain",
+                "SessionCookieName": "cookie",
+                "Scope": "openid",
+                "SessionTimeout": 60,
+                "AuthenticationRequestExtraParams": {"extra": "param"},
+                "OnUnauthenticatedRequest": "deny",
+            },
+        ),
+        (
+            "redirect",
+            "RedirectConfig",
+            {
+                "Protocol": "HTTPS",
+                "Port": "1",
+                "Host": "host",
+                "Path": "/path",
+                "Query": "query",
+                "StatusCode": "HHTP 301",
+            },
+        ),
+        (
+            "fixed-response",
+            "FixedResponseConfig",
+            {
+                "MessageBody": "message body",
+                "ContentType": "text/plain",
+                "StatusCode": "503",
+            },
+        ),
+    ],
+)
+def test_create_rule_action(conn, action_type, action_config, action_config_data):
+    #conn = boto3.client("elbv2", region_name="us-east-1")
+
+    print(target_group_arn)
+
+    http_listener_arn = setup_listener(conn)
+
+    action = {"Order": 1, "Type": action_type, action_config : action_config_data}
+
+    # create_rule
+    response = conn.create_rule(
+        ListenerArn=http_listener_arn,
+        Priority=100,
+        Conditions=[],
+        Actions=[action],
+    )
+
+    # assert create_rule response
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("100")
+    rule["Conditions"].should.equal([])
+
+    action = rule["Actions"][0]
+    action["Type"].should.equal(action_type)
+    action["Order"].should.equal(1)
+    action[action_config].should.equal(action_config_data)
+
+    # assert describe_rules response
+    response = conn.describe_rules(ListenerArn=http_listener_arn)
+    response["Rules"].should.have.length_of(2)  # including the default rule
+
+    rule = response.get("Rules")[0]
+    action = rule["Actions"][0]
+    action["Type"].should.equal(action_type)
+    action["Order"].should.equal(1)
+    action[action_config].should.equal(action_config_data)
+
+    # assert set_rule_priorities response
+    rule_arn = response.get("Rules")[0]["RuleArn"]
+    response = conn.set_rule_priorities(
+        RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
+    )
+
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("99")
+    rule["Conditions"].should.equal([])
+
+    action = rule["Actions"][0]
+    action["Type"].should.equal(action_type)
+    action["Order"].should.equal(1)
+    action[action_config].should.equal(action_config_data)
+
+
+@mock_elbv2
+@mock_ec2
 def test_create_rule_forward_action():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -334,9 +466,12 @@ def test_create_rule_forward_action():
     target_group_arn = setup_target_group(conn)
 
     forward_config = {
-        "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}]
+        "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}],
+        "TargetGroupStickinessConfig": {
+            "Enabled": False
+        }
     }
-    action = {"Type": "forward", "ForwardConfig": forward_config}
+    action = {"Order": 1, "Type": "forward", "ForwardConfig": forward_config}
 
     # create_rule
     response = conn.create_rule(
@@ -354,6 +489,7 @@ def test_create_rule_forward_action():
 
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
+    action["Order"].should.equal(1)
     action["ForwardConfig"].should.equal(forward_config)
 
     # assert describe_rules response
@@ -363,21 +499,35 @@ def test_create_rule_forward_action():
     rule = response.get("Rules")[0]
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
-
-    forward_config["TargetGroupStickinessConfig"] = {
-        "Enabled": False
-    }  # TargetGroupStickinessConfig included in describe_rules response
+    action["Order"].should.equal(1)
     action["ForwardConfig"].should.equal(forward_config)
+
+    # assert set_rule_priorities response
+    rule_arn = response.get("Rules")[0]["RuleArn"]
+    response = conn.set_rule_priorities(
+        RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
+    )
+
+    response["Rules"].should.have.length_of(1)
+    rule = response.get("Rules")[0]
+    rule["Priority"].should.equal("99")
+    rule["Conditions"].should.equal([])
+
+    action = rule["Actions"][0]
+    action["Type"].should.equal("forward")
+    action["Order"].should.equal(1)
+    action["ForwardConfig"].should.equal(forward_config)
+
 
 @mock_elbv2
 @mock_ec2
-def test_create_rule_forward_action_missing_forward_config():
+def test_create_rule_forward_action_target_group():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
     http_listener_arn = setup_listener(conn)
     target_group_arn = setup_target_group(conn)
 
-    action = {"Type": "forward", "TargetGroupArn": target_group_arn}
+    action = { "Order": 1, "Type": "forward", "TargetGroupArn": target_group_arn }
 
     # create_rule
     response = conn.create_rule(
@@ -395,6 +545,7 @@ def test_create_rule_forward_action_missing_forward_config():
 
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
+    action["Order"].should.equal(1)
     action["TargetGroupArn"].should.equal(target_group_arn)
 
     # assert describe_rules response
@@ -404,32 +555,11 @@ def test_create_rule_forward_action_missing_forward_config():
     rule = response.get("Rules")[0]
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
+    action["Order"].should.equal(1)
     action["TargetGroupArn"].should.equal(target_group_arn)
 
-@mock_elbv2
-@mock_ec2
-def test_set_rule_priorities_forward_action():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-
-    http_listener_arn = setup_listener(conn)
-    target_group_arn = setup_target_group(conn)
-
-    forward_config = {
-        "TargetGroups": [{"TargetGroupArn": target_group_arn, "Weight": 100}]
-    }
-    action = {"Type": "forward", "ForwardConfig": forward_config}
-
-    # create_rule
-    response = conn.create_rule(
-        ListenerArn=http_listener_arn,
-        Priority=100,
-        Conditions=[],
-        Actions=[action],
-    )
-
+    # assert set_rule_priorities
     rule_arn = response.get("Rules")[0]["RuleArn"]
-
-    # set_rule_priorities
     response = conn.set_rule_priorities(
         RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
     )
@@ -442,39 +572,5 @@ def test_set_rule_priorities_forward_action():
 
     action = rule["Actions"][0]
     action["Type"].should.equal("forward")
-    action["ForwardConfig"].should.equal(forward_config)
-
-@mock_elbv2
-@mock_ec2
-def test_set_rule_priorities_forward_action_missing_forward_config():
-    conn = boto3.client("elbv2", region_name="us-east-1")
-
-    http_listener_arn = setup_listener(conn)
-    target_group_arn = setup_target_group(conn)
-
-    action = {"Type": "forward", "TargetGroupArn": target_group_arn}
-
-    # create_rule
-    response = conn.create_rule(
-        ListenerArn=http_listener_arn,
-        Priority=100,
-        Conditions=[],
-        Actions=[action],
-    )
-
-    rule_arn = response.get("Rules")[0]["RuleArn"]
-
-    # set_rule_priorities
-    response = conn.set_rule_priorities(
-        RulePriorities=[{"RuleArn": rule_arn, "Priority": 99}]
-    )
-
-    # assert set_rule_priorities response
-    response["Rules"].should.have.length_of(1)
-    rule = response.get("Rules")[0]
-    rule["Priority"].should.equal("99")
-    rule["Conditions"].should.equal([])
-
-    action = rule["Actions"][0]
-    action["Type"].should.equal("forward")
+    action["Order"].should.equal(1)
     action["TargetGroupArn"].should.equal(target_group_arn)
