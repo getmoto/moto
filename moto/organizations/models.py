@@ -95,19 +95,6 @@ class FakeAccount(BaseModel):
             }
         }
 
-    @property
-    def close_account_status(self):
-        return {
-            "CloseAccountStatus": {
-                "Id": self.create_account_status_id,
-                "AccountName": self.name,
-                "State": "SUCCEEDED",
-                "RequestedTimestamp": unix_time(datetime.datetime.utcnow()),
-                "CompletedTimestamp": unix_time(datetime.datetime.utcnow()),
-                "AccountId": self.id,
-            }
-        }
-
     def describe(self):
         return {
             "Id": self.id,
@@ -118,6 +105,11 @@ class FakeAccount(BaseModel):
             "JoinedMethod": self.joined_method,
             "JoinedTimestamp": unix_time(self.create_time),
         }
+
+    def close(self):
+        # TODO: The CloseAccount spec allows the account to pass through a
+        # "PENDING_CLOSURE" state before reaching the SUSPNEDED state.
+        self.status = "SUSPENDED"
 
 
 class FakeOrganizationalUnit(BaseModel):
@@ -459,14 +451,10 @@ class OrganizationsBackend(BaseBackend):
         return new_account.create_account_status
 
     def close_account(self, **kwargs):
-        for account_index in range(len(self.accounts)):
-            if kwargs["AccountId"] == self.accounts[account_index].id:
-                closed_account_status = self.accounts[
-                    account_index
-                ].close_account_status
-                del self.accounts[account_index]
-                return closed_account_status
-
+        for account in self.accounts:
+            if account.id == kwargs["AccountId"]:
+                account.close()
+                return
         raise AccountNotFoundException
 
     def get_account_by_id(self, account_id):
