@@ -55,7 +55,7 @@ ses
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
-- [ ] get_identity_verification_attributes
+- [X] get_identity_verification_attributes
 - [X] get_send_quota
 - [X] get_send_statistics
 - [X] get_template

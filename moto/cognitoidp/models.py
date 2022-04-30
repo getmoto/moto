@@ -1754,11 +1754,9 @@ class CognitoIdpBackend(BaseBackend):
 
 
 class GlobalCognitoIdpBackend(CognitoIdpBackend):
-    """
-    Some operations are unauthenticated
-    Without authentication-header, we lose the context of which region the request was send to
-    This backend will cycle through all backends as a workaround
-    """
+    # Some operations are unauthenticated
+    # Without authentication-header, we lose the context of which region the request was send to
+    # This backend will cycle through all backends as a workaround
 
     def _find_backend_for_clientid(self, client_id):
         for region, backend in cognitoidp_backends.items():

@@ -89,4 +89,5 @@ rekognition
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_dataset_entries
+- [ ] update_stream_processor
 

@@ -1,6 +1,22 @@
 Moto Changelog
 ==============
 
+3.1.7
+-----
+Docker Digest for 3.1.7: <autopopulateddigest>
+
+    New Methods:
+        * SES:
+            * get_identity_verification_attributes()
+
+    Miscellaneous:
+        * CognitoIDP: UserPools now come with default values for the following attributes: Policies, AdminCreateUserConfig, EmailConfiguration, VerificationMessageTemplate
+        * ELBv2: Improved the response-format of the `create_rule()` and `set_rule_priorities()`-methods
+        * MediaConnect: Now has the correct format for flow/source ARN's
+        * Organizations: Fixes the behaviour for close_account()
+        * Sagemaker: Now supports tagging of Models, EndpointConfigs, ProcessingJobs
+
+
 3.1.6
 -----
 Docker Digest for 3.1.6: _sha256:722b9c05ad3454047688db4ba95991f6af4166c63d871149b1b1eef9d70be70f_
