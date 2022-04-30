@@ -1,9 +1,11 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_ec2
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from uuid import uuid4
 
 
 def get_subnet_id(conn):
@@ -136,6 +138,154 @@ def test_create_diversified_spot_fleet():
     instance_types = set([instance["InstanceType"] for instance in instances])
     instance_types.should.equal(set(["t2.small", "t2.large"]))
     instances[0]["InstanceId"].should.contain("i-")
+
+
+@mock_ec2
+@pytest.mark.parametrize("allocation_strategy", ["diversified", "lowestCost"])
+def test_request_spot_fleet_using_launch_template_config__name(allocation_strategy):
+
+    conn = boto3.client("ec2", region_name="us-east-2")
+
+    template_data = {
+        "ImageId": "ami-04d4e25790238c5f4",
+        "InstanceType": "t2.medium",
+        "DisableApiTermination": False,
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "test", "Value": "value"}]}
+        ],
+        "SecurityGroupIds": ["sg-abcd1234"],
+    }
+
+    template_name = str(uuid4())
+    conn.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData=template_data
+    )
+
+    template_config = {
+        "ClientToken": "string",
+        "SpotPrice": "0.01",
+        "TargetCapacity": 1,
+        "IamFleetRole": "arn:aws:iam::486285699788:role/aws-ec2-spot-fleet-tagging-role",
+        "LaunchTemplateConfigs": [
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": template_name,
+                    "Version": "$Latest",
+                }
+            }
+        ],
+        "AllocationStrategy": allocation_strategy,
+    }
+
+    spot_fleet_res = conn.request_spot_fleet(SpotFleetRequestConfig=template_config)
+    spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
+
+    instance_res = conn.describe_spot_fleet_instances(SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res["ActiveInstances"]
+    len(instances).should.equal(1)
+    instance_types = set([instance["InstanceType"] for instance in instances])
+    instance_types.should.equal(set(["t2.medium"]))
+    instances[0]["InstanceId"].should.contain("i-")
+
+
+@mock_ec2
+def test_request_spot_fleet_using_launch_template_config__id():
+
+    conn = boto3.client("ec2", region_name="us-east-2")
+
+    template_data = {
+        "ImageId": "ami-04d4e25790238c5f4",
+        "InstanceType": "t2.medium",
+        "DisableApiTermination": False,
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "test", "Value": "value"}]}
+        ],
+        "SecurityGroupIds": ["sg-abcd1234"],
+    }
+
+    template_name = str(uuid4())
+    template = conn.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData=template_data
+    )["LaunchTemplate"]
+    template_id = template["LaunchTemplateId"]
+
+    template_config = {
+        "ClientToken": "string",
+        "SpotPrice": "0.01",
+        "TargetCapacity": 1,
+        "IamFleetRole": "arn:aws:iam::486285699788:role/aws-ec2-spot-fleet-tagging-role",
+        "LaunchTemplateConfigs": [
+            {"LaunchTemplateSpecification": {"LaunchTemplateId": template_id}}
+        ],
+        "AllocationStrategy": "lowestCost",
+    }
+
+    spot_fleet_res = conn.request_spot_fleet(SpotFleetRequestConfig=template_config)
+    spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
+
+    instance_res = conn.describe_spot_fleet_instances(SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res["ActiveInstances"]
+    len(instances).should.equal(1)
+    instance_types = set([instance["InstanceType"] for instance in instances])
+    instance_types.should.equal(set(["t2.medium"]))
+    instances[0]["InstanceId"].should.contain("i-")
+
+
+@mock_ec2
+def test_request_spot_fleet_using_launch_template_config__overrides():
+
+    conn = boto3.client("ec2", region_name="us-east-2")
+    subnet_id = get_subnet_id(conn)
+
+    template_data = {
+        "ImageId": "ami-04d4e25790238c5f4",
+        "InstanceType": "t2.medium",
+        "DisableApiTermination": False,
+        "TagSpecifications": [
+            {"ResourceType": "instance", "Tags": [{"Key": "test", "Value": "value"}]}
+        ],
+        "SecurityGroupIds": ["sg-abcd1234"],
+    }
+
+    template_name = str(uuid4())
+    template = conn.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData=template_data
+    )["LaunchTemplate"]
+    template_id = template["LaunchTemplateId"]
+
+    template_config = {
+        "ClientToken": "string",
+        "SpotPrice": "0.01",
+        "TargetCapacity": 1,
+        "IamFleetRole": "arn:aws:iam::486285699788:role/aws-ec2-spot-fleet-tagging-role",
+        "LaunchTemplateConfigs": [
+            {
+                "LaunchTemplateSpecification": {"LaunchTemplateId": template_id},
+                "Overrides": [
+                    {
+                        "InstanceType": "t2.nano",
+                        "SubnetId": subnet_id,
+                        "AvailabilityZone": "us-west-1",
+                        "WeightedCapacity": 2,
+                    }
+                ],
+            }
+        ],
+        "AllocationStrategy": "lowestCost",
+    }
+
+    spot_fleet_res = conn.request_spot_fleet(SpotFleetRequestConfig=template_config)
+    spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
+
+    instance_res = conn.describe_spot_fleet_instances(SpotFleetRequestId=spot_fleet_id)
+    instances = instance_res["ActiveInstances"]
+    instances.should.have.length_of(1)
+    instances[0].should.have.key("InstanceType").equals("t2.nano")
+
+    instance = conn.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in instances]
+    )["Reservations"][0]["Instances"][0]
+    instance.should.have.key("SubnetId").equals(subnet_id)
 
 
 @mock_ec2

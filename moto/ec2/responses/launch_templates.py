@@ -94,7 +94,7 @@ class LaunchTemplates(EC2BaseResponse):
     def create_launch_template(self):
         name = self._get_param("LaunchTemplateName")
         version_description = self._get_param("VersionDescription")
-        tag_spec = self._parse_tag_specification("TagSpecification")
+        tag_spec = self._parse_tag_specification()
 
         raw_template_data = self._get_dict_param("LaunchTemplateData.")
         parsed_template_data = parse_object(raw_template_data)

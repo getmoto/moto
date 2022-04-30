@@ -15,7 +15,7 @@ class FlowLogs(EC2BaseResponse):
         max_aggregation_interval = self._get_param("MaxAggregationInterval")
         validate_resource_ids(resource_ids)
 
-        tags = self._parse_tag_specification("TagSpecification")
+        tags = self._parse_tag_specification()
         tags = tags.get("vpc-flow-log", {})
         if self.is_not_dryrun("CreateFlowLogs"):
             flow_logs, errors = self.ec2_backend.create_flow_logs(

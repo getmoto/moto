@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from moto.core.models import Model, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 from moto.packages.boto.ec2.spotinstancerequest import (
     SpotInstanceRequest as BotoSpotRequest,
@@ -215,6 +214,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         iam_fleet_role,
         allocation_strategy,
         launch_specs,
+        launch_template_config,
     ):
 
         self.ec2_backend = ec2_backend
@@ -227,28 +227,61 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         self.fulfilled_capacity = 0.0
 
         self.launch_specs = []
-        for spec in launch_specs:
+
+        launch_specs_from_config = []
+        for config in launch_template_config or []:
+            spec = config["LaunchTemplateSpecification"]
+            if "LaunchTemplateId" in spec:
+                launch_template = self.ec2_backend.get_launch_template(
+                    template_id=spec["LaunchTemplateId"]
+                )
+            elif "LaunchTemplateName" in spec:
+                launch_template = self.ec2_backend.get_launch_template_by_name(
+                    name=spec["LaunchTemplateName"]
+                )
+            else:
+                continue
+            launch_template_data = launch_template.latest_version().data
+            new_launch_template = launch_template_data.copy()
+            if config.get("Overrides"):
+                overrides = list(config["Overrides"].values())[0]
+                new_launch_template.update(overrides)
+            launch_specs_from_config.append(new_launch_template)
+
+        for spec in (launch_specs or []) + launch_specs_from_config:
+            tags = self._extract_tags(spec)
             self.launch_specs.append(
                 SpotFleetLaunchSpec(
-                    ebs_optimized=spec["ebs_optimized"],
-                    group_set=[
-                        val for key, val in spec.items() if key.startswith("group_set")
-                    ],
-                    iam_instance_profile=spec.get("iam_instance_profile._arn"),
-                    image_id=spec["image_id"],
-                    instance_type=spec["instance_type"],
-                    key_name=spec.get("key_name"),
-                    monitoring=spec.get("monitoring._enabled"),
-                    spot_price=spec.get("spot_price", self.spot_price),
-                    subnet_id=spec["subnet_id"],
-                    tag_specifications=self._parse_tag_specifications(spec),
-                    user_data=spec.get("user_data"),
-                    weighted_capacity=spec["weighted_capacity"],
+                    ebs_optimized=spec.get("EbsOptimized"),
+                    group_set=spec.get("GroupSet", []),
+                    iam_instance_profile=spec.get("IamInstanceProfile"),
+                    image_id=spec["ImageId"],
+                    instance_type=spec["InstanceType"],
+                    key_name=spec.get("KeyName"),
+                    monitoring=spec.get("Monitoring"),
+                    spot_price=spec.get("SpotPrice", self.spot_price),
+                    subnet_id=spec.get("SubnetId"),
+                    tag_specifications=tags,
+                    user_data=spec.get("UserData"),
+                    weighted_capacity=spec.get("WeightedCapacity", 1),
                 )
             )
 
         self.spot_requests = []
         self.create_spot_requests(self.target_capacity)
+
+    def _extract_tags(self, spec):
+        # IN:  [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
+        # OUT: {_type: {k: v, ..}}
+        tag_spec_set = spec.get("TagSpecificationSet", [])
+        tags = {}
+        for tag_spec in tag_spec_set:
+            if tag_spec["ResourceType"] not in tags:
+                tags[tag_spec["ResourceType"]] = {}
+            tags[tag_spec["ResourceType"]].update(
+                {tag["Key"]: tag["Value"] for tag in tag_spec["Tag"]}
+            )
+        return tags
 
     @property
     def physical_resource_id(self):
@@ -277,15 +310,6 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         iam_fleet_role = properties["IamFleetRole"]
         allocation_strategy = properties["AllocationStrategy"]
         launch_specs = properties["LaunchSpecifications"]
-        launch_specs = [
-            dict(
-                [
-                    (camelcase_to_underscores(key), val)
-                    for key, val in launch_spec.items()
-                ]
-            )
-            for launch_spec in launch_specs
-        ]
 
         spot_fleet_request = ec2_backend.request_spot_fleet(
             spot_price,
@@ -377,46 +401,6 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         ]
         self.ec2_backend.terminate_instances(instance_ids)
 
-    def _parse_tag_specifications(self, spec):
-        try:
-            tag_spec_num = max(
-                [
-                    int(key.split(".")[1])
-                    for key in spec
-                    if key.startswith("tag_specification_set")
-                ]
-            )
-        except ValueError:  # no tag specifications
-            return {}
-
-        tag_specifications = {}
-        for si in range(1, tag_spec_num + 1):
-            resource_type = spec[
-                "tag_specification_set.{si}._resource_type".format(si=si)
-            ]
-
-            tags = [
-                key
-                for key in spec
-                if key.startswith("tag_specification_set.{si}._tag".format(si=si))
-            ]
-            tag_num = max([int(key.split(".")[3]) for key in tags])
-            tag_specifications[resource_type] = dict(
-                (
-                    spec[
-                        "tag_specification_set.{si}._tag.{ti}._key".format(si=si, ti=ti)
-                    ],
-                    spec[
-                        "tag_specification_set.{si}._tag.{ti}._value".format(
-                            si=si, ti=ti
-                        )
-                    ],
-                )
-                for ti in range(1, tag_num + 1)
-            )
-
-        return tag_specifications
-
 
 class SpotFleetBackend(object):
     def __init__(self):
@@ -430,6 +414,7 @@ class SpotFleetBackend(object):
         iam_fleet_role,
         allocation_strategy,
         launch_specs,
+        launch_template_config=None,
     ):
 
         spot_fleet_request_id = random_spot_fleet_request_id()
@@ -441,6 +426,7 @@ class SpotFleetBackend(object):
             iam_fleet_role,
             allocation_strategy,
             launch_specs,
+            launch_template_config,
         )
         self.spot_fleet_requests[spot_fleet_request_id] = request
         return request

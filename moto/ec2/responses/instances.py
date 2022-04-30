@@ -58,7 +58,7 @@ class InstanceResponse(EC2BaseResponse):
             "nics": self._get_multi_param("NetworkInterface."),
             "private_ip": self._get_param("PrivateIpAddress"),
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
-            "tags": self._parse_tag_specification("TagSpecification"),
+            "tags": self._parse_tag_specification(),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
             "instance_market_options": self._get_param(
                 "InstanceMarketOptions.MarketType"
