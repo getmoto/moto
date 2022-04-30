@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.7
 -----
-Docker Digest for 3.1.7: <autopopulateddigest>
+Docker Digest for 3.1.7: _sha256:d9661c13c2f790cbe9ed6531cefec132494fc0e8c37fcceca1f709292ef0880f_
 
     New Methods:
         * SES:
