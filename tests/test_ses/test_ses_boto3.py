@@ -1343,3 +1343,23 @@ def test_get_identity_mail_from_domain_attributes():
     attributes["MailFromDomainAttributes"].should.have.length_of(2)
     attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.length_of(1)
     attributes["MailFromDomainAttributes"]["lorem.com"].should.have.length_of(1)
+
+
+@mock_ses
+def test_get_identity_verification_attributes():
+    conn = boto3.client("ses", region_name="eu-central-1")
+
+    conn.verify_email_identity(EmailAddress="foo@bar.com")
+    conn.verify_domain_identity(Domain="foo.com")
+
+    attributes = conn.get_identity_verification_attributes(
+        Identities=["foo.com", "foo@bar.com", "bar@bar.com"]
+    )
+
+    attributes["VerificationAttributes"].should.have.length_of(2)
+    attributes["VerificationAttributes"]["foo.com"]["VerificationStatus"].should.equal(
+        "Success"
+    )
+    attributes["VerificationAttributes"]["foo@bar.com"][
+        "VerificationStatus"
+    ].should.equal("Success")
