@@ -424,6 +424,15 @@ class FakeAction(BaseModel):
                 <UserPoolArn>{{ action.data["AuthenticateCognitoConfig"]["UserPoolArn"] }}</UserPoolArn>
                 <UserPoolClientId>{{ action.data["AuthenticateCognitoConfig"]["UserPoolClientId"] }}</UserPoolClientId>
                 <UserPoolDomain>{{ action.data["AuthenticateCognitoConfig"]["UserPoolDomain"] }}</UserPoolDomain>
+                {% if "SessionCookieName" in action.data["AuthenticateCognitoConfig"] %}
+                <SessionCookieName>{{ action.data["AuthenticateCognitoConfig"]["SessionCookieName"] }}</SessionCookieName>
+                {% endif %}
+                {% if "Scope" in action.data["AuthenticateCognitoConfig"] %}
+                <Scope>{{ action.data["AuthenticateCognitoConfig"]["Scope"] }}</Scope>
+                {% endif %}
+                {% if "SessionTimeout" in action.data["AuthenticateCognitoConfig"] %}
+                <SessionTimeout>{{ action.data["AuthenticateCognitoConfig"]["SessionTimeout"] }}</SessionTimeout>
+                {% endif %}
                 {% if action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams") %}
                 <AuthenticationRequestExtraParams>
                     {% for entry in action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
@@ -433,6 +442,9 @@ class FakeAction(BaseModel):
                     </member>
                     {% endfor %}
                 </AuthenticationRequestExtraParams>
+                {% endif %}
+                {% if "OnUnauthenticatedRequest" in action.data["AuthenticateCognitoConfig"] %}
+                <OnUnauthenticatedRequest>{{ action.data["AuthenticateCognitoConfig"]["OnUnauthenticatedRequest"] }}</OnUnauthenticatedRequest>
                 {% endif %}
             </AuthenticateCognitoConfig>
             {% elif action.type == "authenticate-oidc" %}
