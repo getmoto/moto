@@ -1,10 +1,9 @@
 -e .[all,server]
 -r requirements-tests.txt
 
-black==22.1.0
+black==22.3.0
 flake8==4.0.1
-# https://github.com/pallets/click/issues/2232
-click<8.1.0
+click
 inflection
 lxml
 packaging
