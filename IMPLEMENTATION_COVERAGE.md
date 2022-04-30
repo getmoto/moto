@@ -4559,6 +4559,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_dataset_entries
+- [ ] update_stream_processor
 </details>
 
 ## resource-groups
@@ -5237,7 +5238,7 @@
 
 ## ses
 <details>
-<summary>35% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -5269,7 +5270,7 @@
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
-- [ ] get_identity_verification_attributes
+- [X] get_identity_verification_attributes
 - [X] get_send_quota
 - [X] get_send_statistics
 - [X] get_template
@@ -5834,6 +5835,7 @@
 - ce
 - chime
 - chime-sdk-identity
+- chime-sdk-media-pipelines
 - chime-sdk-meetings
 - chime-sdk-messaging
 - cloud9
@@ -5909,6 +5911,7 @@
 - iottwinmaker
 - iotwireless
 - ivs
+- ivschat
 - kafka
 - kafkaconnect
 - kendra
