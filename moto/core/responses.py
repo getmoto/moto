@@ -725,25 +725,19 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return results
 
-    def _parse_tag_specification(self, param_prefix):
-        tags = self._get_list_prefix(param_prefix)
+    def _parse_tag_specification(self):
+        # [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
+        tag_spec = self._get_multi_param("TagSpecification")
+        # {_type: {k: v, ..}}
+        tags = {}
+        for spec in tag_spec:
+            if spec["ResourceType"] not in tags:
+                tags[spec["ResourceType"]] = {}
+            tags[spec["ResourceType"]].update(
+                {tag["Key"]: tag["Value"] for tag in spec["Tag"]}
+            )
 
-        results = defaultdict(dict)
-        for tag in tags:
-            resource_type = tag.pop("resource_type")
-
-            param_index = 1
-            while True:
-                key_name = "tag.{0}._key".format(param_index)
-                value_name = "tag.{0}._value".format(param_index)
-
-                try:
-                    results[resource_type][tag[key_name]] = tag[value_name]
-                except KeyError:
-                    break
-                param_index += 1
-
-        return results
+        return tags
 
     def _get_object_map(self, prefix, name="Name", value="Value"):
         """

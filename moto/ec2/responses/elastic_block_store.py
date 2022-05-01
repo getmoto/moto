@@ -17,7 +17,7 @@ class ElasticBlockStore(EC2BaseResponse):
         source_snapshot_id = self._get_param("SourceSnapshotId")
         source_region = self._get_param("SourceRegion")
         description = self._get_param("Description")
-        tags = self._parse_tag_specification("TagSpecification")
+        tags = self._parse_tag_specification()
         snapshot_tags = tags.get("snapshot", {})
         if self.is_not_dryrun("CopySnapshot"):
             snapshot = self.ec2_backend.copy_snapshot(
@@ -30,7 +30,7 @@ class ElasticBlockStore(EC2BaseResponse):
     def create_snapshot(self):
         volume_id = self._get_param("VolumeId")
         description = self._get_param("Description")
-        tags = self._parse_tag_specification("TagSpecification")
+        tags = self._parse_tag_specification()
         snapshot_tags = tags.get("snapshot", {})
         if self.is_not_dryrun("CreateSnapshot"):
             snapshot = self.ec2_backend.create_snapshot(volume_id, description)
@@ -42,7 +42,7 @@ class ElasticBlockStore(EC2BaseResponse):
         params = self._get_params()
         instance_spec = params.get("InstanceSpecification")
         description = params.get("Description", "")
-        tags = self._parse_tag_specification("TagSpecification")
+        tags = self._parse_tag_specification()
         snapshot_tags = tags.get("snapshot", {})
 
         if self.is_not_dryrun("CreateSnapshots"):
@@ -57,7 +57,7 @@ class ElasticBlockStore(EC2BaseResponse):
         zone = self._get_param("AvailabilityZone")
         snapshot_id = self._get_param("SnapshotId")
         volume_type = self._get_param("VolumeType")
-        tags = self._parse_tag_specification("TagSpecification")
+        tags = self._parse_tag_specification()
         volume_tags = tags.get("volume", {})
         encrypted = self._get_bool_param("Encrypted", if_none=False)
         kms_key_id = self._get_param("KmsKeyId")
