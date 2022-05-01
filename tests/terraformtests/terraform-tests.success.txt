@@ -24,6 +24,7 @@ cloudwatch:
   - TestAccCloudWatchLogsGroupDataSource
 cognitoidp:
   - TestAccCognitoIDPIdentityProvider
+  - TestAccCognitoIDPUserGroup_
   - TestAccCognitoIDPUserPool_
   - TestAccCognitoUser_
   - TestAccCognitoUserInGroup_

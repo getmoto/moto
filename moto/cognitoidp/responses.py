@@ -256,6 +256,19 @@ class CognitoIdpResponse(BaseResponse):
         cognitoidp_backends[self.region].delete_group(user_pool_id, group_name)
         return ""
 
+    def update_group(self):
+        group_name = self._get_param("GroupName")
+        user_pool_id = self._get_param("UserPoolId")
+        description = self._get_param("Description")
+        role_arn = self._get_param("RoleArn")
+        precedence = self._get_param("Precedence")
+
+        group = cognitoidp_backends[self.region].update_group(
+            user_pool_id, group_name, description, role_arn, precedence
+        )
+
+        return json.dumps({"Group": group.to_json()})
+
     def admin_add_user_to_group(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
@@ -501,6 +514,11 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    def global_sign_out(self):
+        access_token = self._get_param("AccessToken")
+        cognitoidp_backends[self.region].global_sign_out(access_token)
+        return ""
+
     # Resource Server
     def create_resource_server(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -594,6 +612,14 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, custom_attributes
         )
         return ""
+
+    def update_user_attributes(self):
+        access_token = self._get_param("AccessToken")
+        attributes = self._get_param("UserAttributes")
+        cognitoidp_backends[self.region].update_user_attributes(
+            access_token, attributes
+        )
+        return json.dumps({})
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
