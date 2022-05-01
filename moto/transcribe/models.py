@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime, timedelta
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.sts.models import ACCOUNT_ID
 from .exceptions import ConflictException, BadRequestException
 
@@ -27,7 +29,7 @@ class BaseObject(BaseModel):
         return self.gen_response_object()
 
 
-class FakeTranscriptionJob(BaseObject):
+class FakeTranscriptionJob(BaseObject, ManagedState):
     def __init__(
         self,
         region_name,
@@ -46,9 +48,17 @@ class FakeTranscriptionJob(BaseObject):
         identify_language,
         language_options,
     ):
+        ManagedState.__init__(
+            self,
+            "transcribe::transcriptionjob",
+            transitions=[
+                (None, "QUEUED"),
+                ("QUEUED", "IN_PROGRESS"),
+                ("IN_PROGRESS", "COMPLETED"),
+            ],
+        )
         self._region_name = region_name
         self.transcription_job_name = transcription_job_name
-        self.transcription_job_status = None
         self.language_code = language_code
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
@@ -127,6 +137,7 @@ class FakeTranscriptionJob(BaseObject):
         }
         response_fields = response_field_dict[response_type]
         response_object = self.gen_response_object()
+        response_object["TranscriptionJobStatus"] = self.status
         if response_type != "LIST":
             return {
                 "TranscriptionJob": {
@@ -142,13 +153,15 @@ class FakeTranscriptionJob(BaseObject):
                 if k in response_fields and v is not None and v != [None]
             }
 
-    def advance_job_status(self):
-        # On each call advances the fake job status
+    def advance(self):
+        old_status = self.status
+        super().advance()
+        new_status = self.status
 
-        if not self.transcription_job_status:
-            self.transcription_job_status = "QUEUED"
-        elif self.transcription_job_status == "QUEUED":
-            self.transcription_job_status = "IN_PROGRESS"
+        if old_status == new_status:
+            return
+
+        if new_status == "IN_PROGRESS":
             self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             if not self.media_sample_rate_hertz:
                 self.media_sample_rate_hertz = 44100
@@ -165,8 +178,7 @@ class FakeTranscriptionJob(BaseObject):
                     self.language_code = self.language_options[0]
                 else:
                     self.language_code = "en-US"
-        elif self.transcription_job_status == "IN_PROGRESS":
-            self.transcription_job_status = "COMPLETED"
+        elif new_status == "COMPLETED":
             self.completion_time = (datetime.now() + timedelta(seconds=10)).strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
@@ -197,16 +209,21 @@ class FakeTranscriptionJob(BaseObject):
             self.transcript = {"TranscriptFileUri": transcript_file_uri}
 
 
-class FakeVocabulary(BaseObject):
+class FakeVocabulary(BaseObject, ManagedState):
     def __init__(
         self, region_name, vocabulary_name, language_code, phrases, vocabulary_file_uri
     ):
+        # Configured ManagedState
+        super().__init__(
+            "transcribe::vocabulary",
+            transitions=[(None, "PENDING"), ("PENDING", "READY")],
+        )
+        # Configure internal properties
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name
         self.language_code = language_code
         self.phrases = phrases
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.vocabulary_state = None
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod/{1}/{2}/{3}/input.txt".format(  # noqa: E501
@@ -239,24 +256,23 @@ class FakeVocabulary(BaseObject):
         }
         response_fields = response_field_dict[response_type]
         response_object = self.gen_response_object()
+        response_object["VocabularyState"] = self.status
         return {
             k: v
             for k, v in response_object.items()
             if k in response_fields and v is not None and v != [None]
         }
 
-    def advance_job_status(self):
-        # On each call advances the fake job status
+    def advance(self):
+        old_status = self.status
+        super().advance()
+        new_status = self.status
 
-        if not self.vocabulary_state:
-            self.vocabulary_state = "PENDING"
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        elif self.vocabulary_state == "PENDING":
-            self.vocabulary_state = "READY"
+        if old_status != new_status:
             self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-class FakeMedicalTranscriptionJob(BaseObject):
+class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
     def __init__(
         self,
         region_name,
@@ -271,9 +287,17 @@ class FakeMedicalTranscriptionJob(BaseObject):
         specialty,
         job_type,
     ):
+        ManagedState.__init__(
+            self,
+            "transcribe::medicaltranscriptionjob",
+            transitions=[
+                (None, "QUEUED"),
+                ("QUEUED", "IN_PROGRESS"),
+                ("IN_PROGRESS", "COMPLETED"),
+            ],
+        )
         self._region_name = region_name
         self.medical_transcription_job_name = medical_transcription_job_name
-        self.transcription_job_status = None
         self.language_code = language_code
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
@@ -335,6 +359,7 @@ class FakeMedicalTranscriptionJob(BaseObject):
         }
         response_fields = response_field_dict[response_type]
         response_object = self.gen_response_object()
+        response_object["TranscriptionJobStatus"] = self.status
         if response_type != "LIST":
             return {
                 "MedicalTranscriptionJob": {
@@ -350,13 +375,15 @@ class FakeMedicalTranscriptionJob(BaseObject):
                 if k in response_fields and v is not None and v != [None]
             }
 
-    def advance_job_status(self):
-        # On each call advances the fake job status
+    def advance(self):
+        old_status = self.status
+        super().advance()
+        new_status = self.status
 
-        if not self.transcription_job_status:
-            self.transcription_job_status = "QUEUED"
-        elif self.transcription_job_status == "QUEUED":
-            self.transcription_job_status = "IN_PROGRESS"
+        if old_status == new_status:
+            return
+
+        if new_status == "IN_PROGRESS":
             self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             if not self.media_sample_rate_hertz:
                 self.media_sample_rate_hertz = 44100
@@ -365,8 +392,7 @@ class FakeMedicalTranscriptionJob(BaseObject):
                 self.media_format = (
                     file_ext if file_ext in ["mp3", "mp4", "wav", "flac"] else "mp3"
                 )
-        elif self.transcription_job_status == "IN_PROGRESS":
-            self.transcription_job_status = "COMPLETED"
+        elif new_status == "COMPLETED":
             self.completion_time = (datetime.now() + timedelta(seconds=10)).strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
@@ -379,62 +405,27 @@ class FakeMedicalTranscriptionJob(BaseObject):
             }
 
 
-class FakeMedicalVocabulary(BaseObject):
+class FakeMedicalVocabulary(FakeVocabulary):
     def __init__(
         self, region_name, vocabulary_name, language_code, vocabulary_file_uri
     ):
+        super().__init__(
+            region_name,
+            vocabulary_name,
+            language_code=language_code,
+            phrases=None,
+            vocabulary_file_uri=vocabulary_file_uri,
+        )
+        self.model_name = "transcribe::medicalvocabulary"
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name
         self.language_code = language_code
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.vocabulary_state = None
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{}-prod/{}/medical/{}/{}/input.txt".format(  # noqa: E501
             region_name, ACCOUNT_ID, self.vocabulary_name, uuid.uuid4()
         )
-
-    def response_object(self, response_type):
-        response_field_dict = {
-            "CREATE": [
-                "VocabularyName",
-                "LanguageCode",
-                "VocabularyState",
-                "LastModifiedTime",
-                "FailureReason",
-            ],
-            "GET": [
-                "VocabularyName",
-                "LanguageCode",
-                "VocabularyState",
-                "LastModifiedTime",
-                "FailureReason",
-                "DownloadUri",
-            ],
-            "LIST": [
-                "VocabularyName",
-                "LanguageCode",
-                "LastModifiedTime",
-                "VocabularyState",
-            ],
-        }
-        response_fields = response_field_dict[response_type]
-        response_object = self.gen_response_object()
-        return {
-            k: v
-            for k, v in response_object.items()
-            if k in response_fields and v is not None and v != [None]
-        }
-
-    def advance_job_status(self):
-        # On each call advances the fake job status
-
-        if not self.vocabulary_state:
-            self.vocabulary_state = "PENDING"
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        elif self.vocabulary_state == "PENDING":
-            self.vocabulary_state = "READY"
-            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TranscribeBackend(BaseBackend):
@@ -444,6 +435,22 @@ class TranscribeBackend(BaseBackend):
         self.medical_vocabularies = {}
         self.vocabularies = {}
         self.region_name = region_name
+
+        state_manager.register_default_transition(
+            "transcribe::vocabulary", transition={"progression": "manual", "times": 1}
+        )
+        state_manager.register_default_transition(
+            "transcribe::medicalvocabulary",
+            transition={"progression": "manual", "times": 1},
+        )
+        state_manager.register_default_transition(
+            "transcribe::transcriptionjob",
+            transition={"progression": "manual", "times": 1},
+        )
+        state_manager.register_default_transition(
+            "transcribe::medicaltranscriptionjob",
+            transition={"progression": "manual", "times": 1},
+        )
 
     def reset(self):
         region_name = self.region_name
@@ -534,7 +541,7 @@ class TranscribeBackend(BaseBackend):
     def get_transcription_job(self, transcription_job_name):
         try:
             job = self.transcriptions[transcription_job_name]
-            job.advance_job_status()  # Fakes advancement through statuses.
+            job.advance()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
@@ -545,7 +552,7 @@ class TranscribeBackend(BaseBackend):
     def get_medical_transcription_job(self, medical_transcription_job_name):
         try:
             job = self.medical_transcriptions[medical_transcription_job_name]
-            job.advance_job_status()  # Fakes advancement through statuses.
+            job.advance()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
@@ -577,7 +584,7 @@ class TranscribeBackend(BaseBackend):
         jobs = list(self.transcriptions.values())
 
         if state_equals:
-            jobs = [job for job in jobs if job.transcription_job_status == state_equals]
+            jobs = [job for job in jobs if job.status == state_equals]
 
         if job_name_contains:
             jobs = [
@@ -607,7 +614,7 @@ class TranscribeBackend(BaseBackend):
         jobs = list(self.medical_transcriptions.values())
 
         if status:
-            jobs = [job for job in jobs if job.transcription_job_status == status]
+            jobs = [job for job in jobs if job.status == status]
 
         if job_name_contains:
             jobs = [
@@ -698,7 +705,7 @@ class TranscribeBackend(BaseBackend):
     def get_vocabulary(self, vocabulary_name):
         try:
             job = self.vocabularies[vocabulary_name]
-            job.advance_job_status()  # Fakes advancement through statuses.
+            job.advance()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
@@ -709,7 +716,7 @@ class TranscribeBackend(BaseBackend):
     def get_medical_vocabulary(self, vocabulary_name):
         try:
             job = self.medical_vocabularies[vocabulary_name]
-            job.advance_job_status()  # Fakes advancement through statuses.
+            job.advance()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
             raise BadRequestException(
@@ -740,7 +747,7 @@ class TranscribeBackend(BaseBackend):
             vocabularies = [
                 vocabulary
                 for vocabulary in vocabularies
-                if vocabulary.vocabulary_state == state_equals
+                if vocabulary.status == state_equals
             ]
 
         if name_contains:
@@ -777,7 +784,7 @@ class TranscribeBackend(BaseBackend):
             vocabularies = [
                 vocabulary
                 for vocabulary in vocabularies
-                if vocabulary.vocabulary_state == state_equals
+                if vocabulary.status == state_equals
             ]
 
         if name_contains:

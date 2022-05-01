@@ -2,6 +2,8 @@ import random
 import string
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from uuid import uuid4
 
 from .exceptions import (
@@ -129,7 +131,7 @@ class DistributionConfig:
         self.is_ipv6_enabled = True
 
 
-class Distribution(BaseModel):
+class Distribution(BaseModel, ManagedState):
     @staticmethod
     def random_id(uppercase=True):
         ascii_set = string.ascii_uppercase if uppercase else string.ascii_lowercase
@@ -140,6 +142,11 @@ class Distribution(BaseModel):
         return resource_id
 
     def __init__(self, config):
+        # Configured ManagedState
+        super().__init__(
+            "cloudfront::distribution", transitions=[("InProgress", "Deployed")]
+        )
+        # Configure internal properties
         self.distribution_id = Distribution.random_id()
         self.arn = (
             f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{self.distribution_id}"
@@ -152,15 +159,7 @@ class Distribution(BaseModel):
         self.last_modified_time = "2021-11-27T10:34:26.802Z"
         self.in_progress_invalidation_batches = 0
         self.has_active_trusted_key_groups = False
-        self.status = "InProgress"
         self.domain_name = f"{Distribution.random_id(uppercase=False)}.cloudfront.net"
-
-    def advance(self):
-        """
-        Advance the status of this Distribution, to mimick AWS' behaviour
-        """
-        if self.status == "InProgress":
-            self.status = "Deployed"
 
     @property
     def location(self):
@@ -174,6 +173,10 @@ class Distribution(BaseModel):
 class CloudFrontBackend(BaseBackend):
     def __init__(self):
         self.distributions = dict()
+
+        state_manager.register_default_transition(
+            "cloudfront::distribution", transition={"progression": "manual", "times": 1}
+        )
 
     def create_distribution(self, distribution_config):
         """

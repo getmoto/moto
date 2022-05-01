@@ -65,3 +65,44 @@ class MotoAPIResponse(BaseResponse):
         from flask import render_template
 
         return render_template("dashboard.html")
+
+    def get_transition(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
+        from .models import moto_api_backend
+
+        qs_dict = dict(
+            x.split("=") for x in request.query_string.decode("utf-8").split("&")
+        )
+        model_name = qs_dict["model_name"]
+
+        resp = moto_api_backend.get_transition(model_name=model_name)
+
+        return 200, {}, json.dumps(resp)
+
+    def set_transition(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
+        from .models import moto_api_backend
+
+        request_body_size = int(headers["Content-Length"])
+        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+        body = json.loads(body)
+        model_name = body["model_name"]
+        transition = body["transition"]
+
+        moto_api_backend.set_transition(model_name, transition)
+        return 201, {}, ""
+
+    def unset_transition(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
+        from .models import moto_api_backend
+
+        request_body_size = int(headers["Content-Length"])
+        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+        body = json.loads(body)
+        model_name = body["model_name"]
+
+        moto_api_backend.unset_transition(model_name)
+        return 201, {}, ""
