@@ -2171,6 +2171,29 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
 
 
 @mock_ec2
+def test_create_instance_from_launch_template__process_tags():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    template = client.create_launch_template(
+        LaunchTemplateName=str(uuid4()),
+        LaunchTemplateData={
+            "ImageId": EXAMPLE_AMI_ID,
+            "TagSpecifications": [
+                {"ResourceType": "instance", "Tags": [{"Key": "k", "Value": "v"}]}
+            ],
+        },
+    )["LaunchTemplate"]
+
+    instance = client.run_instances(
+        MinCount=1,
+        MaxCount=1,
+        LaunchTemplate={"LaunchTemplateId": template["LaunchTemplateId"]},
+    )["Instances"][0]
+
+    instance.should.have.key("Tags").equals([{"Key": "k", "Value": "v"}])
+
+
+@mock_ec2
 def test_run_instance_and_associate_public_ip():
     ec2 = boto3.resource("ec2", "us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
