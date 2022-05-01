@@ -578,6 +578,14 @@ class CognitoIdpUserPool(BaseModel):
                     extra_data.update({attribute[0]["Name"]: attribute[0]["Value"]})
         return extra_data
 
+    def sign_out(self, username):
+        for token, token_tuple in list(self.refresh_tokens.items()):
+            if token_tuple is None:
+                continue
+            _, logged_in_user = token_tuple
+            if username == logged_in_user:
+                self.refresh_tokens[token] = None
+
 
 class CognitoIdpUserPoolDomain(BaseModel):
     def __init__(self, user_pool_id, domain, custom_domain_config=None):
@@ -678,6 +686,15 @@ class CognitoIdpGroup(BaseModel):
         # Users who are members of this group.
         # Note that these links are bidirectional.
         self.users = set()
+
+    def update(self, description, role_arn, precedence):
+        if description is not None:
+            self.description = description
+        if role_arn is not None:
+            self.role_arn = role_arn
+        if precedence is not None:
+            self.precedence = precedence
+        self.last_modified_date = datetime.datetime.now()
 
     def to_json(self):
         return {
@@ -1013,6 +1030,13 @@ class CognitoIdpBackend(BaseBackend):
             user.groups.remove(group)
 
         del user_pool.groups[group_name]
+
+    def update_group(self, user_pool_id, group_name, description, role_arn, precedence):
+        group = self.get_group(user_pool_id, group_name)
+
+        group.update(description, role_arn, precedence)
+
+        return group
 
     def admin_add_user_to_group(self, user_pool_id, group_name, username):
         group = self.get_group(user_pool_id, group_name)
@@ -1441,12 +1465,16 @@ class CognitoIdpBackend(BaseBackend):
         user_pool = self.describe_user_pool(user_pool_id)
         self.admin_get_user(user_pool_id, username)
 
-        for token, token_tuple in list(user_pool.refresh_tokens.items()):
-            if token_tuple is None:
-                continue
-            _, username = token_tuple
-            if username == username:
-                user_pool.refresh_tokens[token] = None
+        user_pool.sign_out(username)
+
+    def global_sign_out(self, access_token):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user_pool.sign_out(username)
+                return
+
+        raise NotAuthorizedError(access_token)
 
     def create_resource_server(self, user_pool_id, identifier, name, scopes):
         user_pool = self.describe_user_pool(user_pool_id)
@@ -1751,6 +1779,20 @@ class CognitoIdpBackend(BaseBackend):
     def add_custom_attributes(self, user_pool_id, custom_attributes):
         user_pool = self.describe_user_pool(user_pool_id)
         user_pool.add_custom_attributes(custom_attributes)
+
+    def update_user_attributes(self, access_token, attributes):
+        """
+        The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetails are returned.
+        """
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = self.admin_get_user(user_pool.id, username)
+
+                user.update_attributes(attributes)
+                return
+
+        raise NotAuthorizedError(access_token)
 
 
 class GlobalCognitoIdpBackend(CognitoIdpBackend):
