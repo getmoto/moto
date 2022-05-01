@@ -22,6 +22,7 @@ from ..utils import (
     random_reservation_id,
     filter_reservations,
     utc_date_and_time,
+    convert_tag_spec,
 )
 
 
@@ -70,6 +71,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             self.image_id = template_version.image_id
         else:
             self.image_id = image_id
+        # Check if we have tags to process
+        if launch_template_arg:
+            template_version = ec2_backend._get_template_from_args(launch_template_arg)
+            tag_spec_set = template_version.data.get("TagSpecification", {})
+            tags = convert_tag_spec(tag_spec_set)
+            instance_tags = tags.get("instance", {})
+            self.add_tags(instance_tags)
 
         self._state = InstanceState("running", 16)
         self._reason = ""

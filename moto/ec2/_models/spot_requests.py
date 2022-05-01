@@ -11,6 +11,7 @@ from ..utils import (
     random_spot_fleet_request_id,
     random_spot_request_id,
     generic_filter,
+    convert_tag_spec,
 )
 
 
@@ -249,7 +250,8 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
             launch_specs_from_config.append(new_launch_template)
 
         for spec in (launch_specs or []) + launch_specs_from_config:
-            tags = self._extract_tags(spec)
+            tag_spec_set = spec.get("TagSpecificationSet", [])
+            tags = convert_tag_spec(tag_spec_set)
             self.launch_specs.append(
                 SpotFleetLaunchSpec(
                     ebs_optimized=spec.get("EbsOptimized"),
@@ -269,19 +271,6 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
         self.spot_requests = []
         self.create_spot_requests(self.target_capacity)
-
-    def _extract_tags(self, spec):
-        # IN:  [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
-        # OUT: {_type: {k: v, ..}}
-        tag_spec_set = spec.get("TagSpecificationSet", [])
-        tags = {}
-        for tag_spec in tag_spec_set:
-            if tag_spec["ResourceType"] not in tags:
-                tags[tag_spec["ResourceType"]] = {}
-            tags[tag_spec["ResourceType"]].update(
-                {tag["Key"]: tag["Value"] for tag in tag_spec["Tag"]}
-            )
-        return tags
 
     @property
     def physical_resource_id(self):

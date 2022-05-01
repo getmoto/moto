@@ -725,20 +725,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return results
 
-    def _parse_tag_specification(self):
-        # [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
-        tag_spec = self._get_multi_param("TagSpecification")
-        # {_type: {k: v, ..}}
-        tags = {}
-        for spec in tag_spec:
-            if spec["ResourceType"] not in tags:
-                tags[spec["ResourceType"]] = {}
-            tags[spec["ResourceType"]].update(
-                {tag["Key"]: tag["Value"] for tag in spec["Tag"]}
-            )
-
-        return tags
-
     def _get_object_map(self, prefix, name="Name", value="Value"):
         """
         Given a query dict like
