@@ -128,3 +128,4 @@ sqs:
   - TestAccSQSQueue_FIFOQueue_
 timestreamwrite:
   - TestAccTimestreamWriteDatabase
+  - TestAccTimestreamWriteTable

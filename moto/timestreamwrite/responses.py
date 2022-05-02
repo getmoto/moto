@@ -51,8 +51,15 @@ class TimestreamWriteResponse(BaseResponse):
         table_name = self._get_param("TableName")
         retention_properties = self._get_param("RetentionProperties")
         tags = self._get_param("Tags")
+        magnetic_store_write_properties = self._get_param(
+            "MagneticStoreWriteProperties"
+        )
         table = self.timestreamwrite_backend.create_table(
-            database_name, table_name, retention_properties, tags
+            database_name,
+            table_name,
+            retention_properties,
+            tags,
+            magnetic_store_write_properties,
         )
         return json.dumps(dict(Table=table.description()))
 
@@ -77,8 +84,14 @@ class TimestreamWriteResponse(BaseResponse):
         database_name = self._get_param("DatabaseName")
         table_name = self._get_param("TableName")
         retention_properties = self._get_param("RetentionProperties")
+        magnetic_store_write_properties = self._get_param(
+            "MagneticStoreWriteProperties"
+        )
         table = self.timestreamwrite_backend.update_table(
-            database_name, table_name, retention_properties
+            database_name,
+            table_name,
+            retention_properties,
+            magnetic_store_write_properties,
         )
         return json.dumps(dict(Table=table.description()))
 

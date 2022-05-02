@@ -59,7 +59,6 @@ TestAccSQSQueuePolicy
 TestAccSSMDocument
 TestAccSsmDocumentDataSource
 TestAccSsmParameterDataSource
-TestAccTimestreamWriteTable
 TestAccDataSourceLambdaLayerVersion
 TestAccDataSourceLambdaInvocation
 TestAccDataSourceNetworkInterface_
