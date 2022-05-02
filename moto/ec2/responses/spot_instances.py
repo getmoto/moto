@@ -62,6 +62,10 @@ class SpotInstances(EC2BaseResponse):
         ramdisk_id = self._get_param("LaunchSpecification.RamdiskId")
         monitoring_enabled = self._get_param("LaunchSpecification.Monitoring.Enabled")
         subnet_id = self._get_param("LaunchSpecification.SubnetId")
+        instance_interruption_behaviour = self._get_param(
+            "InstanceInterruptionBehavior"
+        )
+        tags = self._parse_tag_specification()
 
         if self.is_not_dryrun("RequestSpotInstance"):
             requests = self.ec2_backend.request_spot_instances(
@@ -82,6 +86,8 @@ class SpotInstances(EC2BaseResponse):
                 ramdisk_id=ramdisk_id,
                 monitoring_enabled=monitoring_enabled,
                 subnet_id=subnet_id,
+                instance_interruption_behaviour=instance_interruption_behaviour,
+                tags=tags,
             )
 
             template = self.response_template(REQUEST_SPOT_INSTANCES_TEMPLATE)
@@ -98,9 +104,9 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
       <type>{{ request.type }}</type>
       <state>{{ request.state }}</state>
       <status>
-        <code>pending-evaluation</code>
+        <code>{{ request.status }}</code>
         <updateTime>2015-01-01T00:00:00.000Z</updateTime>
-        <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
+        <message>{{ request.status_message }}</message>
       </status>
       <instanceId>{{ request.instance_id }}</instanceId>
       <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
@@ -153,11 +159,11 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
       <type>{{ request.type }}</type>
       <state>{{ request.state }}</state>
       <status>
-        <code>pending-evaluation</code>
+        <code>{{ request.status }}</code>
         <updateTime>2015-01-01T00:00:00.000Z</updateTime>
-        <message>Your Spot request has been submitted for review, and is pending evaluation.</message>
+        <message>{{ request.status_message }}</message>
       </status>
-      <instanceId>{{ request.instance_id }}</instanceId>
+      <instanceId>{{ request.instance.id }}</instanceId>
       {% if request.availability_zone_group %}
         <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
       {% endif %}
@@ -217,6 +223,7 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
         <validUntil>{{ request.valid_until }}</validUntil>
       {% endif %}
       <productDescription>Linux/UNIX</productDescription>
+      <instanceInterruptionBehavior>{{ request.instance_interruption_behaviour }}</instanceInterruptionBehavior>
     </item>
     {% endfor %}
   </spotInstanceRequestSet>

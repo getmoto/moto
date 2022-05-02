@@ -7,7 +7,6 @@ import pytz
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
-from moto.ec2.models import ec2_backends
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
@@ -90,8 +89,8 @@ def test_request_spot_instances():
     requests.should.have.length_of(1)
     request = requests[0]
 
-    request["State"].should.equal("open")
-    request["SpotPrice"].should.equal("0.5")
+    request["State"].should.equal("active")
+    request["SpotPrice"].should.equal("0.500000")
     request["Type"].should.equal("one-time")
     request["ValidFrom"].should.equal(start_dt)
     request["ValidUntil"].should.equal(end_dt)
@@ -129,13 +128,14 @@ def test_request_spot_instances_default_arguments():
     requests.should.have.length_of(1)
     request = requests[0]
 
-    request["State"].should.equal("open")
-    request["SpotPrice"].should.equal("0.5")
+    request["State"].should.equal("active")
+    request["SpotPrice"].should.equal("0.500000")
     request["Type"].should.equal("one-time")
     request.shouldnt.contain("ValidFrom")
     request.shouldnt.contain("ValidUntil")
     request.shouldnt.contain("LaunchGroup")
     request.shouldnt.contain("AvailabilityZoneGroup")
+    request.should.have.key("InstanceInterruptionBehavior").equals("terminate")
 
     launch_spec = request["LaunchSpecification"]
 
@@ -153,7 +153,7 @@ def test_request_spot_instances_default_arguments():
 
 
 @mock_ec2
-def test_cancel_spot_instance_request_boto3():
+def test_cancel_spot_instance_request():
     client = boto3.client("ec2", region_name="us-west-1")
 
     rsi = client.request_spot_instances(
@@ -169,7 +169,7 @@ def test_cancel_spot_instance_request_boto3():
     request.should.have.key("CreateTime")
     request.should.have.key("Type").equal("one-time")
     request.should.have.key("SpotInstanceRequestId")
-    request.should.have.key("SpotPrice").equal("0.5")
+    request.should.have.key("SpotPrice").equal("0.500000")
     request["LaunchSpecification"]["ImageId"].should.equal(EXAMPLE_AMI_ID)
 
     with pytest.raises(ClientError) as ex:
@@ -193,7 +193,7 @@ def test_cancel_spot_instance_request_boto3():
 
 
 @mock_ec2
-def test_request_spot_instances_fulfilled_boto3():
+def test_request_spot_instances_fulfilled():
     """
     Test that moto correctly fullfills a spot instance request
     """
@@ -210,22 +210,11 @@ def test_request_spot_instances_fulfilled_boto3():
     requests.should.have.length_of(1)
     request = requests[0]
 
-    request["State"].should.equal("open")
-
-    if not settings.TEST_SERVER_MODE:
-        ec2_backends["us-east-1"].spot_instance_requests[request_id].state = "active"
-
-        requests = client.describe_spot_instance_requests(
-            SpotInstanceRequestIds=[request_id]
-        )["SpotInstanceRequests"]
-        requests.should.have.length_of(1)
-        request = requests[0]
-
-        request["State"].should.equal("active")
+    request["State"].should.equal("active")
 
 
 @mock_ec2
-def test_tag_spot_instance_request_boto3():
+def test_tag_spot_instance_request():
     """
     Test that moto correctly tags a spot instance request
     """
@@ -252,7 +241,7 @@ def test_tag_spot_instance_request_boto3():
 
 
 @mock_ec2
-def test_get_all_spot_instance_requests_filtering_boto3():
+def test_get_all_spot_instance_requests_filtering():
     """
     Test that moto correctly filters spot instance requests
     """
@@ -280,14 +269,14 @@ def test_get_all_spot_instance_requests_filtering_boto3():
     )
 
     requests = client.describe_spot_instance_requests(
-        Filters=[{"Name": "state", "Values": ["active"]}]
+        Filters=[{"Name": "state", "Values": ["failed"]}]
     )["SpotInstanceRequests"]
     r_ids = [r["SpotInstanceRequestId"] for r in requests]
     r_ids.shouldnt.contain(request1_id)
     r_ids.shouldnt.contain(request2_id)
 
     requests = client.describe_spot_instance_requests(
-        Filters=[{"Name": "state", "Values": ["open"]}]
+        Filters=[{"Name": "state", "Values": ["active"]}]
     )["SpotInstanceRequests"]
     r_ids = [r["SpotInstanceRequestId"] for r in requests]
     r_ids.should.contain(request1_id)
@@ -320,6 +309,27 @@ def test_request_spot_instances_instance_lifecycle():
 
     instance = response["Reservations"][0]["Instances"][0]
     instance["InstanceLifecycle"].should.equal("spot")
+
+
+@mock_ec2
+def test_request_spot_instances_with_tags():
+    client = boto3.client("ec2", region_name="us-east-1")
+    request = client.request_spot_instances(
+        SpotPrice="0.5",
+        TagSpecifications=[
+            {
+                "ResourceType": "spot-instances-request",
+                "Tags": [{"Key": "k", "Value": "v"}],
+            }
+        ],
+    )
+
+    request_id = request["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
+
+    request = client.describe_spot_instance_requests(
+        SpotInstanceRequestIds=[request_id]
+    )["SpotInstanceRequests"][0]
+    request.should.have.key("Tags").equals([{"Key": "k", "Value": "v"}])
 
 
 @mock_ec2
@@ -391,18 +401,20 @@ def test_spot_price_history():
 
 
 @mock_ec2
-def test_request_spot_instances_setting_instance_id_boto3():
+def test_request_spot_instances__instance_should_exist():
     client = boto3.client("ec2", region_name="us-east-1")
     request = client.request_spot_instances(
         SpotPrice="0.5", LaunchSpecification={"ImageId": EXAMPLE_AMI_ID}
     )
     request_id = request["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
 
-    if not settings.TEST_SERVER_MODE:
-        req = ec2_backends["us-east-1"].spot_instance_requests[request_id]
-        req.state = "active"
-        req.instance_id = "i-12345678"
+    request = client.describe_spot_instance_requests(
+        SpotInstanceRequestIds=[request_id]
+    )["SpotInstanceRequests"][0]
+    request.should.have.key("InstanceId")
+    instance_id = request["InstanceId"]
 
-        request = client.describe_spot_instance_requests()["SpotInstanceRequests"][0]
-        assert request["State"] == "active"
-        assert request["InstanceId"] == "i-12345678"
+    response = client.describe_instances(InstanceIds=[instance_id])
+    instance = response["Reservations"][0]["Instances"][0]
+    instance.should.have.key("InstanceId").equals(instance_id)
+    instance.should.have.key("ImageId").equals(EXAMPLE_AMI_ID)

@@ -38,6 +38,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         subnet_id,
         tags,
         spot_fleet_id,
+        instance_interruption_behaviour,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -46,12 +47,20 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         self.launch_specification = ls
         self.id = spot_request_id
         self.state = "open"
+        self.status = "pending-evaluation"
+        self.status_message = "Your Spot request has been submitted for review, and is pending evaluation."
+        if price:
+            price = float(price)
+            price = "{0:.6f}".format(price)  # round up/down to 6 decimals
         self.price = price
         self.type = spot_instance_type
         self.valid_from = valid_from
         self.valid_until = valid_until
         self.launch_group = launch_group
         self.availability_zone_group = availability_zone_group
+        self.instance_interruption_behaviour = (
+            instance_interruption_behaviour or "terminate"
+        )
         self.user_data = user_data  # NOT
         ls.kernel = kernel_id
         ls.ramdisk = ramdisk_id
@@ -62,7 +71,9 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         ls.monitored = monitoring_enabled
         ls.subnet_id = subnet_id
         self.spot_fleet_id = spot_fleet_id
-        self.tags = tags
+        tag_map = tags.get("spot-instances-request", {})
+        self.add_tags(tag_map)
+        self.all_tags = tags
 
         if security_groups:
             for group_name in security_groups:
@@ -75,6 +86,9 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             ls.groups.append(default_group)
 
         self.instance = self.launch_instance()
+        self.state = "active"
+        self.status = "fulfilled"
+        self.status_message = ""
 
     def get_filter_value(self, filter_name):
         if filter_name == "state":
@@ -95,7 +109,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             security_group_names=[],
             security_group_ids=self.launch_specification.groups,
             spot_fleet_id=self.spot_fleet_id,
-            tags=self.tags,
+            tags=self.all_tags,
             lifecycle="spot",
         )
         instance = reservation.instances[0]
@@ -128,6 +142,7 @@ class SpotRequestBackend(object, metaclass=Model):
         subnet_id,
         tags=None,
         spot_fleet_id=None,
+        instance_interruption_behaviour=None,
     ):
         requests = []
         tags = tags or {}
@@ -154,6 +169,7 @@ class SpotRequestBackend(object, metaclass=Model):
                 subnet_id,
                 tags,
                 spot_fleet_id,
+                instance_interruption_behaviour,
             )
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
@@ -216,6 +232,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         allocation_strategy,
         launch_specs,
         launch_template_config,
+        instance_interruption_behaviour,
     ):
 
         self.ec2_backend = ec2_backend
@@ -224,6 +241,9 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         self.target_capacity = int(target_capacity)
         self.iam_fleet_role = iam_fleet_role
         self.allocation_strategy = allocation_strategy
+        self.instance_interruption_behaviour = (
+            instance_interruption_behaviour or "terminate"
+        )
         self.state = "active"
         self.fulfilled_capacity = 0.0
 
@@ -404,6 +424,7 @@ class SpotFleetBackend(object):
         allocation_strategy,
         launch_specs,
         launch_template_config=None,
+        instance_interruption_behaviour=None,
     ):
 
         spot_fleet_request_id = random_spot_fleet_request_id()
@@ -416,6 +437,7 @@ class SpotFleetBackend(object):
             allocation_strategy,
             launch_specs,
             launch_template_config,
+            instance_interruption_behaviour,
         )
         self.spot_fleet_requests[spot_fleet_request_id] = request
         return request

@@ -47,6 +47,9 @@ class SpotFleets(BaseResponse):
         target_capacity = spot_config["TargetCapacity"]
         iam_fleet_role = spot_config["IamFleetRole"]
         allocation_strategy = spot_config["AllocationStrategy"]
+        instance_interruption_behaviour = spot_config.get(
+            "InstanceInterruptionBehavior"
+        )
 
         launch_specs = spot_config.get("LaunchSpecifications")
         launch_template_config = list(
@@ -63,6 +66,7 @@ class SpotFleets(BaseResponse):
             allocation_strategy=allocation_strategy,
             launch_specs=launch_specs,
             launch_template_config=launch_template_config,
+            instance_interruption_behaviour=instance_interruption_behaviour,
         )
 
         template = self.response_template(REQUEST_SPOT_FLEET_TEMPLATE)
