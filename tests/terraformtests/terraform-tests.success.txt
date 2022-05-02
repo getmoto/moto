@@ -40,6 +40,8 @@ ec2:
   - TestAccEC2InternetGateway_
   - TestAccEC2NATGateway_
   - TestAccEC2RouteTableAssociation_
+  - TestAccEC2SpotInstanceRequest_disappears
+  - TestAccEC2SpotInstanceRequest_interruptUpdate
   - TestAccEC2VPCEndpointService_
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_

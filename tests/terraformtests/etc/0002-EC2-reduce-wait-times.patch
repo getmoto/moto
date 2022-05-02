@@ -342,7 +342,7 @@ index 49e4909b3a..731a37f253 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(15 * time.Minute),
-+			Create: schema.DefaultTimeout(10 * time.Second),
++			Create: schema.DefaultTimeout(20 * time.Second),
 +			Delete: schema.DefaultTimeout(15 * time.Second),
  		},
  
@@ -366,7 +366,7 @@ index e054f82987..08aeb6cf70 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(20 * time.Minute),
-+			Create: schema.DefaultTimeout(10 * time.Second),
++			Create: schema.DefaultTimeout(20 * time.Second),
 +			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
  

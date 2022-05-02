@@ -99,8 +99,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.launch_time = utc_date_and_time()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
-        self.instance_initiated_shutdown_behavior = kwargs.get(
-            "instance_initiated_shutdown_behavior", "stop"
+        self.instance_initiated_shutdown_behavior = (
+            kwargs.get("instance_initiated_shutdown_behavior") or "stop"
         )
         self.sriov_net_support = "simple"
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
