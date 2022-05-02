@@ -91,6 +91,7 @@ iam:
   - TestAccIAMRolePolicy_
   - TestAccIAMRolePolicyAttachment_
   - TestAccIAMSessionContextDataSource_
+  - TestAccIAMServiceLinkedRole
   - TestAccIAMUserDataSource_
   - TestAccIAMUserPolicy_
   - TestAccIAMUserPolicyAttachment_
@@ -100,6 +101,10 @@ iot:
   - TestAccIoTEndpointDataSource
 kms:
   - TestAccKMSAlias
+  - TestAccKMSKey_Policy_basic
+  - TestAccKMSKey_Policy_iamRole
+  - TestAccKMSKey_Policy_iamRoleOrder
+  - TestAccKMSKey_Policy_iamServiceLinkedRole
   - TestAccKMSSecretDataSource
   - TestAccKMSSecretsDataSource
 meta:

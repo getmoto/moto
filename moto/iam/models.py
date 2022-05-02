@@ -4,6 +4,7 @@ import os
 import random
 import string
 import sys
+import uuid
 from datetime import datetime
 import json
 import re
@@ -12,6 +13,7 @@ import time
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
+from jinja2 import Template
 from urllib import parse
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
@@ -45,6 +47,15 @@ from .utils import (
     random_policy_id,
 )
 from ..utilities.tagging_service import TaggingService
+
+
+# Map to convert service names used in ServiceLinkedRoles
+# The PascalCase should be used as part of the RoleName
+SERVICE_NAME_CONVERSION = {
+    "autoscaling": "AutoScaling",
+    "application-autoscaling": "ApplicationAutoScaling",
+    "elasticbeanstalk": "ElasticBeanstalk",
+}
 
 
 class MFADevice(object):
@@ -556,6 +567,7 @@ class Role(CloudFormationModel):
         description,
         tags,
         max_session_duration,
+        linked_service=None,
     ):
         self.id = role_id
         self.name = name
@@ -568,6 +580,7 @@ class Role(CloudFormationModel):
         self.description = description
         self.permissions_boundary = permissions_boundary
         self.max_session_duration = max_session_duration
+        self._linked_service = linked_service
 
     @property
     def created_iso_8601(self):
@@ -622,6 +635,8 @@ class Role(CloudFormationModel):
 
     @property
     def arn(self):
+        if self._linked_service:
+            return f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/{self._linked_service}/{self.name}"
         return "arn:aws:iam::{0}:role{1}{2}".format(ACCOUNT_ID, self.path, self.name)
 
     def to_config_dict(self):
@@ -721,6 +736,41 @@ class Role(CloudFormationModel):
         import html
 
         return html.escape(self.description or "")
+
+    def to_xml(self):
+        template = Template(
+            """<Role>
+      <Path>{{ role.path }}</Path>
+      <Arn>{{ role.arn }}</Arn>
+      <RoleName>{{ role.name }}</RoleName>
+      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description is not none %}
+      <Description>{{ role.description_escaped }}</Description>
+      {% endif %}
+      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
+      <RoleId>{{ role.id }}</RoleId>
+      {% if role.max_session_duration %}
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
+      {% endif %}
+      {% if role.permissions_boundary %}
+      <PermissionsBoundary>
+          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+      </PermissionsBoundary>
+      {% endif %}
+      {% if role.tags %}
+      <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
+      {% endif %}
+    </Role>"""
+        )
+        return template.render(role=self)
 
 
 class InstanceProfile(CloudFormationModel):
@@ -1707,6 +1757,7 @@ class IAMBackend(BaseBackend):
         description,
         tags,
         max_session_duration,
+        linked_service=None,
     ):
         role_id = random_resource_id()
         if permissions_boundary and not self.policy_arn_regex.match(
@@ -1733,6 +1784,7 @@ class IAMBackend(BaseBackend):
             description,
             clean_tags,
             max_session_duration,
+            linked_service=linked_service,
         )
         self.roles[role_id] = role
         return role
@@ -2812,6 +2864,52 @@ class IAMBackend(BaseBackend):
         user = self.get_user(name)
 
         self.tagger.untag_resource_using_names(user.arn, tag_keys)
+
+    def create_service_linked_role(self, service_name, description, suffix):
+        # service.amazonaws.com -> Service
+        # some-thing.service.amazonaws.com -> Service_SomeThing
+        service = service_name.split(".")[-3]
+        prefix = service_name.split(".")[0]
+        if service != prefix:
+            prefix = "".join([x.capitalize() for x in prefix.split("-")])
+            service = SERVICE_NAME_CONVERSION.get(service, service) + "_" + prefix
+        else:
+            service = SERVICE_NAME_CONVERSION.get(service, service)
+        role_name = f"AWSServiceRoleFor{service}"
+        if suffix:
+            role_name = role_name + f"_{suffix}"
+        assume_role_policy_document = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": ["sts:AssumeRole"],
+                    "Effect": "Allow",
+                    "Principal": {"Service": [service_name]},
+                }
+            ],
+        }
+        path = f"/aws-service-role/{service_name}/"
+        return self.create_role(
+            role_name,
+            json.dumps(assume_role_policy_document),
+            path,
+            permissions_boundary=None,
+            description=description,
+            tags=[],
+            max_session_duration=None,
+            linked_service=service_name,
+        )
+
+    def delete_service_linked_role(self, role_name):
+        self.delete_role(role_name)
+        deletion_task_id = str(uuid.uuid4())
+        return deletion_task_id
+
+    def get_service_linked_role_deletion_status(self):
+        """
+        This method always succeeds for now - we do not yet keep track of deletions
+        """
+        return True
 
 
 iam_backend = IAMBackend()
