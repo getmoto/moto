@@ -4407,3 +4407,82 @@ def test_untag_user_error_unknown_user_name():
     ex.response["Error"]["Message"].should.equal(
         "The user with name {} cannot be found.".format(name)
     )
+
+
+@mock_iam
+@pytest.mark.parametrize(
+    "service,cased",
+    [
+        ("autoscaling", "AutoScaling"),
+        ("elasticbeanstalk", "ElasticBeanstalk"),
+        (
+            "custom-resource.application-autoscaling",
+            "ApplicationAutoScaling_CustomResource",
+        ),
+        ("other", "other"),
+    ],
+)
+def test_create_service_linked_role(service, cased):
+    client = boto3.client("iam", region_name="eu-central-1")
+
+    resp = client.create_service_linked_role(
+        AWSServiceName=f"{service}.amazonaws.com", Description="desc"
+    )["Role"]
+
+    resp.should.have.key("RoleName").equals(f"AWSServiceRoleFor{cased}")
+
+
+@mock_iam
+def test_create_service_linked_role__with_suffix():
+    client = boto3.client("iam", region_name="eu-central-1")
+
+    resp = client.create_service_linked_role(
+        AWSServiceName="autoscaling.amazonaws.com",
+        CustomSuffix="suf",
+        Description="desc",
+    )["Role"]
+
+    resp.should.have.key("RoleName").match("_suf$")
+    resp.should.have.key("Description").equals("desc")
+    resp.should.have.key("AssumeRolePolicyDocument")
+    policy_doc = resp["AssumeRolePolicyDocument"]
+    policy_doc.should.have.key("Statement").equals(
+        [
+            {
+                "Action": ["sts:AssumeRole"],
+                "Effect": "Allow",
+                "Principal": {"Service": ["autoscaling.amazonaws.com"]},
+            }
+        ]
+    )
+
+
+@mock_iam
+def test_delete_service_linked_role():
+    client = boto3.client("iam", region_name="eu-central-1")
+
+    role_name = client.create_service_linked_role(
+        AWSServiceName="autoscaling.amazonaws.com",
+        CustomSuffix="suf",
+        Description="desc",
+    )["Role"]["RoleName"]
+
+    # Role exists
+    client.get_role(RoleName=role_name)
+
+    # Delete role
+    resp = client.delete_service_linked_role(RoleName=role_name)
+    resp.should.have.key("DeletionTaskId")
+
+    # Role deletion should be successful
+    resp = client.get_service_linked_role_deletion_status(
+        DeletionTaskId=resp["DeletionTaskId"]
+    )
+    resp.should.have.key("Status").equals("SUCCEEDED")
+
+    # Role no longer exists
+    with pytest.raises(ClientError) as ex:
+        client.get_role(RoleName=role_name)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NoSuchEntity")
+    err["Message"].should.contain("not found")

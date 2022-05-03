@@ -2903,7 +2903,7 @@
 
 ## iam
 <details>
-<summary>71% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -2922,7 +2922,7 @@
 - [X] create_policy_version
 - [X] create_role
 - [X] create_saml_provider
-- [ ] create_service_linked_role
+- [X] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
 - [X] create_virtual_mfa_device
@@ -2942,7 +2942,7 @@
 - [X] delete_role_policy
 - [X] delete_saml_provider
 - [X] delete_server_certificate
-- [ ] delete_service_linked_role
+- [X] delete_service_linked_role
 - [ ] delete_service_specific_credential
 - [X] delete_signing_certificate
 - [X] delete_ssh_public_key
@@ -2978,7 +2978,7 @@
 - [X] get_server_certificate
 - [ ] get_service_last_accessed_details
 - [ ] get_service_last_accessed_details_with_entities
-- [ ] get_service_linked_role_deletion_status
+- [X] get_service_linked_role_deletion_status
 - [X] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
