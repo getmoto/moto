@@ -472,8 +472,7 @@ class VPCBackend(object):
                         self.delete_route(route_table.id, response.get("cidr_block"))
             if response:
                 return response
-        else:
-            raise InvalidVpcCidrBlockAssociationIdError(association_id)
+        raise InvalidVpcCidrBlockAssociationIdError(association_id)
 
     def associate_vpc_cidr_block(
         self, vpc_id, cidr_block, amazon_provided_ipv6_cidr_block

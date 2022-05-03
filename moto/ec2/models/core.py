@@ -4,7 +4,7 @@ from ..exceptions import FilterNotImplementedError
 
 
 class TaggedEC2Resource(BaseModel):
-    def get_tags(self, *args, **kwargs):
+    def get_tags(self):
         tags = []
         if self.id:
             tags = self.ec2_backend.describe_tags(filters={"resource-id": [self.id]})
