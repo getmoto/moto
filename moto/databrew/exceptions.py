@@ -22,6 +22,7 @@ class ValidationException(DataBrewClientError):
     def __init__(self, message, **kwargs):
         super().__init__("ValidationException", message, **kwargs)
 
+
 class RulesetAlreadyExistsException(AlreadyExistsException):
     def __init__(self):
         super().__init__("Ruleset")
@@ -35,7 +36,7 @@ class EntityNotFoundException(DataBrewClientError):
 class ResourceNotFoundException(DataBrewClientError):
     code = 404
 
-    def __init__(self, message):
+    def __init__(self, message, **kwargs):
         super().__init__("ResourceNotFoundException", message, **kwargs)
 
 

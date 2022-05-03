@@ -3,6 +3,7 @@ import uuid
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from datetime import datetime
 
 from moto import mock_databrew
 
@@ -86,7 +87,7 @@ def test_list_recipes_with_max_results_greater_than_actual_results():
 
 
 @mock_databrew
-def test_describe_recipe():
+def test_describe_recipe_latest_working():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
 
@@ -94,6 +95,82 @@ def test_describe_recipe():
 
     recipe["Name"].should.equal(response["Name"])
     recipe["Steps"].should.have.length_of(1)
+    recipe["RecipeVersion"].should.equal("0.1")
+
+
+@mock_databrew
+def test_describe_recipe_with_version():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+
+    recipe = client.describe_recipe(Name=response["Name"], RecipeVersion='0.1')
+
+    recipe["Name"].should.equal(response["Name"])
+    recipe["Steps"].should.have.length_of(1)
+    recipe["RecipeVersion"].should.equal("0.1")
+
+
+@mock_databrew
+def test_describe_recipe_latest_published():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+
+    client.publish_recipe(Name=response["Name"])
+    recipe = client.describe_recipe(Name=response["Name"], RecipeVersion='LATEST_PUBLISHED')
+
+    recipe["Name"].should.equal(response["Name"])
+    recipe["Steps"].should.have.length_of(1)
+    recipe["RecipeVersion"].should.equal("1.0")
+
+
+@mock_databrew
+def test_describe_recipe_implicit_latest_published():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+
+    client.publish_recipe(Name=response["Name"])
+    recipe = client.describe_recipe(Name=response["Name"])
+
+    recipe["Name"].should.equal(response["Name"])
+    recipe["Steps"].should.have.length_of(1)
+    recipe["RecipeVersion"].should.equal("1.0")
+
+@mock_databrew
+def test_describe_recipe_that_does_not_exist():
+    client = _create_databrew_client()
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_recipe(Name="DoseNotExist")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("The recipe DoseNotExist for version LATEST_PUBLISHED wasn't found.")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_databrew
+def test_describe_recipe_with_long_name():
+    client = _create_databrew_client()
+    name = "a"*256
+    with pytest.raises(ClientError) as exc:
+        client.describe_recipe(Name=name)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(f"1 validation error detected: Value '{name}' at 'name' failed to satisfy constraint: "
+                                f"Member must have length less than or equal to 255")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_databrew
+def test_describe_recipe_with_long_version():
+    client = _create_databrew_client()
+    version = "1"*17
+    with pytest.raises(ClientError) as exc:
+        client.describe_recipe(Name="AnyName", RecipeVersion=version)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(f"1 validation error detected: Value '{version}' at 'recipeVersion' failed to satisfy constraint: "
+                                f"Member must have length less than or equal to 16")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_databrew
@@ -136,16 +213,6 @@ def test_update_recipe():
     recipe["Steps"][0]["Action"]["Parameters"]["removeCustomValue"].should.equal("true")
 
 
-@mock_databrew
-def test_describe_recipe_that_does_not_exist():
-    client = _create_databrew_client()
-
-    with pytest.raises(ClientError) as exc:
-        client.describe_recipe(Name="DoseNotExist")
-    err = exc.value.response["Error"]
-    err["Code"].should.equal("EntityNotFoundException")
-    err["Message"].should.equal("Recipe DoseNotExist not found.")
-
 
 @mock_databrew
 def test_create_recipe_that_already_exists():
@@ -167,16 +234,109 @@ def test_publish_recipe():
     response = _create_test_recipe(client)
     recipe_name = response['Name']
 
-    publish_response = client.publish_recipe(Name=recipe_name, Description="test desc")
+    # Before a recipe is published, we should not be able to retrieve a published version
+    with pytest.raises(ClientError) as exc:
+        recipe = client.describe_recipe(Name=recipe_name)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+
+    dt_before_publish = datetime.now().astimezone()
+
+    # Publish the recipe
+    publish_response = client.publish_recipe(Name=recipe_name, Description="1st desc")
     publish_response["Name"].should.equal(recipe_name)
 
+    # Recipe is now published, so check we can retrieve the published version
     recipe = client.describe_recipe(Name=recipe_name)
-    recipe['Description'].should.equal("test desc")
+    recipe['Description'].should.equal("1st desc")
     recipe['RecipeVersion'].should.equal("1.0")
+    recipe['PublishedDate'].should.be.greater_than(dt_before_publish)
+    first_published_date = recipe['PublishedDate']
 
-    publish_response = client.publish_recipe(Name=recipe_name, Description="test desc")
+    # Publish the recipe a 2nd time
+    publish_response = client.publish_recipe(Name=recipe_name, Description="2nd desc")
     publish_response["Name"].should.equal(recipe_name)
 
     recipe = client.describe_recipe(Name=recipe_name)
-    recipe['Description'].should.equal("test desc")
+    recipe['Description'].should.equal("2nd desc")
     recipe['RecipeVersion'].should.equal("2.0")
+    recipe['PublishedDate'].should.be.greater_than(first_published_date)
+
+
+@mock_databrew
+def test_publish_recipe_that_does_not_exist():
+    client = _create_databrew_client()
+    with pytest.raises(ClientError) as exc:
+        client.publish_recipe(Name="DoesNotExist")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_databrew
+def test_publish_long_recipe_name():
+    client = _create_databrew_client()
+    name = "a"*256
+    with pytest.raises(ClientError) as exc:
+        client.publish_recipe(Name=name)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(f"1 validation error detected: Value '{name}' at 'name' failed to satisfy constraint: "
+                                f"Member must have length less than or equal to 255")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+
+
+@mock_databrew
+def test_delete_recipe_version():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+    recipe_name = response['Name']
+    client.delete_recipe_version(Name=recipe_name, RecipeVersion='LATEST_WORKING')
+    with pytest.raises(ClientError) as exc:
+        client.describe_recipe(Name=recipe_name)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+
+
+@mock_databrew
+def test_delete_recipe_version_latest_working_after_publish():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+    recipe_name = response['Name']
+    client.publish_recipe(Name=recipe_name)
+    with pytest.raises(ClientError) as exc:
+        client.delete_recipe_version(Name=recipe_name, RecipeVersion='LATEST_WORKING')
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Recipe version LATEST_WORKING is not allowed to be deleted")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_databrew
+def test_delete_recipe_version_latest_working_numeric_after_publish():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+    recipe_name = response['Name']
+    client.publish_recipe(Name=recipe_name)
+    with pytest.raises(ClientError) as exc:
+        client.delete_recipe_version(Name=recipe_name, RecipeVersion='1.1')
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal("Recipe version 1.1 is not allowed to be deleted")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+@mock_databrew
+def test_delete_recipe_version_invalid_version():
+    client = _create_databrew_client()
+    response = _create_test_recipe(client)
+    recipe_name = response['Name']
+    recipe_version = 'NotValid'
+    client.publish_recipe(Name=recipe_name)
+    with pytest.raises(ClientError) as exc:
+        client.delete_recipe_version(Name=recipe_name, RecipeVersion=recipe_version)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(f"Recipe {recipe_name} version {recipe_version} is invalid.")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)

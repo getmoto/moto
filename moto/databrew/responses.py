@@ -104,6 +104,7 @@ class DataBrewResponse(BaseResponse):
         return 200, {}, json.dumps({"Name": recipe_name})
 
     def get_recipe_response(self, recipe_name):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
         recipe_version = self._get_param("RecipeVersion", self._get_param("recipeVersion"))
         recipe = self.databrew_backend.get_recipe(recipe_name, recipe_version=recipe_version)
         return 200, {}, json.dumps(recipe.as_dict())
