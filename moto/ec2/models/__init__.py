@@ -1,54 +1,54 @@
 from moto.core import ACCOUNT_ID
 from moto.core import BaseBackend
 from moto.core.utils import BackendDict
-from .exceptions import (
+from ..exceptions import (
     EC2ClientError,
     InvalidID,
     MissingParameterError,
     MotoNotImplementedError,
 )
-from ._models.amis import AmiBackend
-from ._models.carrier_gateways import CarrierGatewayBackend
-from ._models.customer_gateways import CustomerGatewayBackend
-from ._models.dhcp_options import DHCPOptionsSetBackend
-from ._models.elastic_block_store import EBSBackend
-from ._models.elastic_ip_addresses import ElasticAddressBackend
-from ._models.elastic_network_interfaces import NetworkInterfaceBackend
-from ._models.flow_logs import FlowLogsBackend
-from ._models.key_pairs import KeyPairBackend
-from ._models.launch_templates import LaunchTemplateBackend
-from ._models.managed_prefixes import ManagedPrefixListBackend
-from ._models.iam_instance_profile import IamInstanceProfileAssociationBackend
-from ._models.internet_gateways import (
+from .amis import AmiBackend
+from .carrier_gateways import CarrierGatewayBackend
+from .customer_gateways import CustomerGatewayBackend
+from .dhcp_options import DHCPOptionsSetBackend
+from .elastic_block_store import EBSBackend
+from .elastic_ip_addresses import ElasticAddressBackend
+from .elastic_network_interfaces import NetworkInterfaceBackend
+from .flow_logs import FlowLogsBackend
+from .key_pairs import KeyPairBackend
+from .launch_templates import LaunchTemplateBackend
+from .managed_prefixes import ManagedPrefixListBackend
+from .iam_instance_profile import IamInstanceProfileAssociationBackend
+from .internet_gateways import (
     InternetGatewayBackend,
     EgressOnlyInternetGatewayBackend,
 )
-from ._models.instances import InstanceBackend
-from ._models.instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
-from ._models.nat_gateways import NatGatewayBackend
-from ._models.network_acls import NetworkAclBackend
-from ._models.availability_zones_and_regions import RegionsAndZonesBackend
-from ._models.route_tables import RouteBackend, RouteTableBackend
-from ._models.security_groups import SecurityGroupBackend
-from ._models.spot_requests import (
+from .instances import InstanceBackend
+from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
+from .nat_gateways import NatGatewayBackend
+from .network_acls import NetworkAclBackend
+from .availability_zones_and_regions import RegionsAndZonesBackend
+from .route_tables import RouteBackend, RouteTableBackend
+from .security_groups import SecurityGroupBackend
+from .spot_requests import (
     SpotRequestBackend,
     SpotPriceBackend,
     SpotFleetBackend,
 )
-from ._models.subnets import SubnetBackend, SubnetRouteTableAssociationBackend
-from ._models.tags import TagBackend
-from ._models.transit_gateway import TransitGatewayBackend
-from ._models.transit_gateway_route_tables import (
+from .subnets import SubnetBackend, SubnetRouteTableAssociationBackend
+from .tags import TagBackend
+from .transit_gateway import TransitGatewayBackend
+from .transit_gateway_route_tables import (
     TransitGatewayRelationsBackend,
     TransitGatewayRouteTableBackend,
 )
-from ._models.transit_gateway_attachments import TransitGatewayAttachmentBackend
-from ._models.vpn_gateway import VpnGatewayBackend
-from ._models.vpn_connections import VPNConnectionBackend
-from ._models.vpcs import VPCBackend
-from ._models.vpc_peering_connections import VPCPeeringConnectionBackend
-from ._models.vpc_service_configuration import VPCServiceConfigurationBackend
-from .utils import (
+from .transit_gateway_attachments import TransitGatewayAttachmentBackend
+from .vpn_gateway import VpnGatewayBackend
+from .vpn_connections import VPNConnectionBackend
+from .vpcs import VPCBackend
+from .vpc_peering_connections import VPCPeeringConnectionBackend
+from .vpc_service_configuration import VPCServiceConfigurationBackend
+from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
     is_valid_resource_id,
     get_prefix,

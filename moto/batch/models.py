@@ -25,8 +25,8 @@ from .utils import (
     lowercase_first_key,
 )
 from moto.ec2.exceptions import InvalidSubnetIdError
-from moto.ec2._models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
-from moto.ec2._models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
+from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
+from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, BackendDict

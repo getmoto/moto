@@ -23,7 +23,7 @@ from moto.cloudwatch import models  # noqa  # pylint: disable=all
 from moto.datapipeline import models  # noqa  # pylint: disable=all
 from moto.dynamodb import models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models
-from moto.ec2._models.core import TaggedEC2Resource
+from moto.ec2.models.core import TaggedEC2Resource
 from moto.ecr import models  # noqa  # pylint: disable=all
 from moto.ecs import models  # noqa  # pylint: disable=all
 from moto.efs import models  # noqa  # pylint: disable=all
