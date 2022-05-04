@@ -55,7 +55,6 @@ def test_s3_server_bucket_create():
         res = test_client.get(
             "/", "http://foobaz.localhost:5000/", query_string={"prefix": key_name}
         )
-        print(res.data)
         res.status_code.should.equal(200)
         res.data.should.contain(b"Contents")
 

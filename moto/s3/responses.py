@@ -332,7 +332,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @staticmethod
     def _get_querystring(full_url):
         parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
+        # full_url can be one of two formats, depending on the version of werkzeug used:
+        # http://foobaz.localhost:5000/?prefix=bar%2Bbaz
+        # http://foobaz.localhost:5000/?prefix=bar+baz
+        # Werkzeug helpfully encodes the plus-sign for us, from >= 2.1.0
+        # However, the `parse_qs` method will (correctly) replace '+' with a space
+        #
+        # Workaround - manually reverse the encoding.
+        # Keep the + encoded, ensuring that parse_qsl doesn't replace it, and parse_qsl will unquote it afterwards
+        qs = (parsed_url.query or "").replace("+", "%2B")
+        querystring = parse_qs(qs, keep_blank_values=True)
         return querystring
 
     def _bucket_response_head(self, bucket_name, querystring):
