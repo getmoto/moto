@@ -260,7 +260,7 @@ sagemaker
 - [ ] update_devices
 - [ ] update_domain
 - [ ] update_endpoint
-- [ ] update_endpoint_weights_and_capacities
+- [X] update_endpoint_weights_and_capacities
 - [ ] update_experiment
 - [ ] update_image
 - [ ] update_model_package

@@ -1,4 +1,5 @@
 import json
+
 from moto.sagemaker.exceptions import AWSValidationException
 
 from moto.core.responses import BaseResponse
@@ -575,4 +576,14 @@ class SageMakerResponse(BaseResponse):
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
+        return 200, {}, json.dumps(response)
+
+    def update_endpoint_weights_and_capacities(self):
+        endpoint_name = self._get_param("EndpointName")
+        desired_weights_and_capacities = self._get_param("DesiredWeightsAndCapacities")
+        endpoint_arn = self.sagemaker_backend.update_endpoint_weights_and_capacities(
+            endpoint_name=endpoint_name,
+            desired_weights_and_capacities=desired_weights_and_capacities,
+        )
+        response = {"EndpointArn": endpoint_arn}
         return 200, {}, json.dumps(response)
