@@ -41,7 +41,11 @@ class DataBrewResponse(BaseResponse):
             recipe_name = split_path[1]
             recipe_version = split_path[3]
             self.databrew_backend.delete_recipe_version(recipe_name, recipe_version)
-            return 200, {}, json.dumps({"Name": recipe_name, "RecipeVersion": recipe_version})
+            return (
+                200,
+                {},
+                json.dumps({"Name": recipe_name, "RecipeVersion": recipe_version}),
+            )
 
     @amzn_request_id
     def list_recipes(self):
@@ -50,11 +54,15 @@ class DataBrewResponse(BaseResponse):
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
-        recipe_version = self._get_param("RecipeVersion", self._get_param("recipeVersion"))
+        recipe_version = self._get_param(
+            "RecipeVersion", self._get_param("recipeVersion")
+        )
 
         # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         recipe_list, next_token = self.databrew_backend.list_recipes(
-            next_token=next_token, max_results=max_results, recipe_version=recipe_version
+            next_token=next_token,
+            max_results=max_results,
+            recipe_version=recipe_version,
         )
         return json.dumps(
             {
@@ -105,8 +113,12 @@ class DataBrewResponse(BaseResponse):
 
     def get_recipe_response(self, recipe_name):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
-        recipe_version = self._get_param("RecipeVersion", self._get_param("recipeVersion"))
-        recipe = self.databrew_backend.get_recipe(recipe_name, recipe_version=recipe_version)
+        recipe_version = self._get_param(
+            "RecipeVersion", self._get_param("recipeVersion")
+        )
+        recipe = self.databrew_backend.get_recipe(
+            recipe_name, recipe_version=recipe_version
+        )
         return 200, {}, json.dumps(recipe.as_dict())
 
     @amzn_request_id

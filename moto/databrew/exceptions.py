@@ -18,7 +18,6 @@ class ConflictException(DataBrewClientError):
 
 
 class ValidationException(DataBrewClientError):
-
     def __init__(self, message, **kwargs):
         super().__init__("ValidationException", message, **kwargs)
 

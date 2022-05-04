@@ -6,7 +6,11 @@ from datetime import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
-from .exceptions import ConflictException, ResourceNotFoundException, ValidationException
+from .exceptions import (
+    ConflictException,
+    ResourceNotFoundException,
+    ValidationException,
+)
 from .exceptions import RulesetAlreadyExistsException, RulesetNotFoundException
 
 
@@ -45,8 +49,10 @@ class DataBrewBackend(BaseBackend):
     @staticmethod
     def validate_length(param, param_name, max_length):
         if len(param) > max_length:
-            raise ValidationException(f"1 validation error detected: Value '{param}' at '{param_name}' failed to "
-                                      f"satisfy constraint: Member must have length less than or equal to {max_length}")
+            raise ValidationException(
+                f"1 validation error detected: Value '{param}' at '{param_name}' failed to "
+                f"satisfy constraint: Member must have length less than or equal to {max_length}"
+            )
 
     def create_recipe(self, recipe_name, recipe_description, recipe_steps, tags):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipe.html
@@ -61,20 +67,32 @@ class DataBrewBackend(BaseBackend):
 
     def delete_recipe_version(self, recipe_name, recipe_version):
         if not FakeRecipe.valid_version(recipe_version, latest_published=False):
-            raise ValidationException(f"Recipe {recipe_name} version {recipe_version} is invalid.")
+            raise ValidationException(
+                f"Recipe {recipe_name} version {recipe_version} is invalid."
+            )
 
         try:
             recipe = self.recipes[recipe_name]
         except KeyError:
             raise ResourceNotFoundException(f"The recipe {recipe_name} wasn't found")
 
-        if recipe_version != FakeRecipe.LATEST_WORKING and float(recipe_version) not in recipe.versions:
-            raise ResourceNotFoundException(f"The recipe {recipe_name} version {recipe_version } wasn't found.")
+        if (
+            recipe_version != FakeRecipe.LATEST_WORKING
+            and float(recipe_version) not in recipe.versions
+        ):
+            raise ResourceNotFoundException(
+                f"The recipe {recipe_name} version {recipe_version } wasn't found."
+            )
 
-        if recipe_version in (FakeRecipe.LATEST_WORKING, str(recipe.latest_working.version)):
+        if recipe_version in (
+            FakeRecipe.LATEST_WORKING,
+            str(recipe.latest_working.version),
+        ):
             if recipe.latest_published is not None:
                 # Can only delete latest working version when there are no others
-                raise ValidationException(f"Recipe version {recipe_version} is not allowed to be deleted")
+                raise ValidationException(
+                    f"Recipe version {recipe_version} is not allowed to be deleted"
+                )
             else:
                 del self.recipes[recipe_name]
         else:
@@ -93,19 +111,25 @@ class DataBrewBackend(BaseBackend):
     def list_recipes(self, recipe_version=None):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         if recipe_version == FakeRecipe.LATEST_WORKING:
-            version = 'latest_working'
+            version = "latest_working"
         elif recipe_version in (None, FakeRecipe.LATEST_PUBLISHED):
-            version = 'latest_published'
+            version = "latest_published"
         else:
-            raise ValidationException(f"Invalid version {recipe_version}. "
-                                      "Valid versions are LATEST_PUBLISHED and LATEST_WORKING.")
-        recipes = [getattr(self.recipes[key], version) for key in self.recipes] if self.recipes else []
+            raise ValidationException(
+                f"Invalid version {recipe_version}. "
+                "Valid versions are LATEST_PUBLISHED and LATEST_WORKING."
+            )
+        recipes = (
+            [getattr(self.recipes[key], version) for key in self.recipes]
+            if self.recipes
+            else []
+        )
         return [r for r in recipes if r is not None]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_recipe_versions(self, recipe_name):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
-        self.validate_length(recipe_name, 'name', 255)
+        self.validate_length(recipe_name, "name", 255)
 
         recipe = self.recipes.get(recipe_name)
         if recipe is None:
@@ -113,18 +137,24 @@ class DataBrewBackend(BaseBackend):
 
         latest_working = recipe.latest_working
 
-        recipe_versions = [recipe_version if recipe_version is not latest_working else None
-                           for recipe_version in recipe.versions.values()] if recipe else []
+        recipe_versions = (
+            [
+                recipe_version if recipe_version is not latest_working else None
+                for recipe_version in recipe.versions.values()
+            ]
+            if recipe
+            else []
+        )
         return [r for r in recipe_versions if r is not None]
 
     def get_recipe(self, recipe_name, recipe_version=None):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
-        self.validate_length(recipe_name, 'name', 255)
+        self.validate_length(recipe_name, "name", 255)
 
         if recipe_version is None:
             recipe_version = FakeRecipe.LATEST_PUBLISHED
         else:
-            self.validate_length(recipe_version, 'recipeVersion', 16)
+            self.validate_length(recipe_version, "recipeVersion", 16)
             FakeRecipe.valid_version(recipe_version)
 
         recipe = None
@@ -136,12 +166,14 @@ class DataBrewBackend(BaseBackend):
             else:
                 recipe = self.recipes[recipe_name].versions.get(float(recipe_version))
         if recipe is None:
-            raise ResourceNotFoundException(f"The recipe {recipe_name} for version {recipe_version} wasn't found.")
+            raise ResourceNotFoundException(
+                f"The recipe {recipe_name} for version {recipe_version} wasn't found."
+            )
         return recipe
 
     def publish_recipe(self, recipe_name, description=None):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_PublishRecipe.html
-        self.validate_length(recipe_name, 'name', 255)
+        self.validate_length(recipe_name, "name", 255)
         try:
             self.recipes[recipe_name].publish(description)
         except KeyError:
@@ -196,8 +228,8 @@ class DataBrewBackend(BaseBackend):
 
 class FakeRecipe(BaseModel):
     INITIAL_VERSION = 0.1
-    LATEST_WORKING = 'LATEST_WORKING'
-    LATEST_PUBLISHED = 'LATEST_PUBLISHED'
+    LATEST_WORKING = "LATEST_WORKING"
+    LATEST_PUBLISHED = "LATEST_PUBLISHED"
 
     @classmethod
     def valid_version(cls, version, latest_working=True, latest_published=True):
@@ -209,15 +241,25 @@ class FakeRecipe(BaseModel):
             try:
                 version = float(version)
             except ValueError:
-                if not ((version == cls.LATEST_WORKING and latest_working) or
-                        (version == cls.LATEST_PUBLISHED and latest_published)):
+                if not (
+                    (version == cls.LATEST_WORKING and latest_working)
+                    or (version == cls.LATEST_PUBLISHED and latest_published)
+                ):
                     validity = False
         return validity
 
-    def __init__(self, region_name, recipe_name, recipe_description, recipe_steps, tags):
+    def __init__(
+        self, region_name, recipe_name, recipe_description, recipe_steps, tags
+    ):
         self.versions = OrderedDict()
-        self.versions[self.INITIAL_VERSION] = FakeRecipeVersion(region_name, recipe_name, recipe_description,
-                                                                recipe_steps, tags, version=self.INITIAL_VERSION)
+        self.versions[self.INITIAL_VERSION] = FakeRecipeVersion(
+            region_name,
+            recipe_name,
+            recipe_description,
+            recipe_steps,
+            tags,
+            version=self.INITIAL_VERSION,
+        )
         self.latest_working = self.versions[self.INITIAL_VERSION]
         self.latest_published = None
 
@@ -273,7 +315,7 @@ class FakeRecipeVersion(BaseModel):
             "Description": self.description,
             "CreateDate": "%.3f" % self.created_time.timestamp(),
             "Tags": self.tags or dict(),
-            "RecipeVersion": str(self.version)
+            "RecipeVersion": str(self.version),
         }
         if self.published_date is not None:
             dict_recipe["PublishedDate"] = "%.3f" % self.published_date.timestamp()
