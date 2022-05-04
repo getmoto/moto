@@ -78,6 +78,29 @@ class MediaConnectBackend(BaseBackend):
         self._flows = OrderedDict()
         self._resources = OrderedDict()
 
+    def _add_source_details(self, source, flow_id, ingest_ip="127.0.0.1"):
+        if source:
+            source["sourceArn"] = (
+                f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:source"
+                f":{flow_id}:{source['name']}"
+            )
+            if not source.get("entitlementArn"):
+                source["ingestIp"] = ingest_ip
+
+    def _create_flow_add_details(self, flow):
+        flow_id = uuid4().hex
+
+        flow.description = "A Moto test flow"
+        flow.egress_ip = "127.0.0.1"
+        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:flow:{flow_id}:{flow.name}"
+
+        for index, _source in enumerate(flow.sources):
+            self._add_source_details(_source, flow_id, f"127.0.0.{index}")
+
+        for index, output in enumerate(flow.outputs):
+            if output.get("protocol") in ["srt-listener", "zixi-pull"]:
+                output["listenerAddress"] = f"{index}.0.0.0"
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
@@ -94,12 +117,6 @@ class MediaConnectBackend(BaseBackend):
         sources,
         vpc_interfaces,
     ):
-        flow_id = uuid4().hex
-        source_name = source.get("name")
-        if isinstance(source, dict) and source_name:
-            source[
-                "sourceArn"
-            ] = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:source:{flow_id}:{source_name}"
         flow = Flow(
             availability_zone=availability_zone,
             entitlements=entitlements,
@@ -110,9 +127,7 @@ class MediaConnectBackend(BaseBackend):
             sources=sources,
             vpc_interfaces=vpc_interfaces,
         )
-        flow.description = "A Moto test flow"
-        flow.egress_ip = "127.0.0.1"
-        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:flow:{flow_id}:{name}"
+        self._create_flow_add_details(flow)
         self._flows[flow.flow_arn] = flow
         return flow
 

@@ -11,6 +11,14 @@ from moto.core import ACCOUNT_ID
 region = "eu-west-1"
 
 
+def _source(name="Source-A"):
+    return {
+        "Decryption": {"Algorithm": "aes256", "RoleArn": "some:role"},
+        "Description": "A source",
+        "Name": name,
+    }
+
+
 def _create_flow_config(name, **kwargs):
     availability_zone = kwargs.get("availability_zone", "AZ1")
     entitlements = kwargs.get(
@@ -36,25 +44,24 @@ def _create_flow_config(name, **kwargs):
     )
     source = kwargs.get(
         "source",
-        {
-            "Decryption": {"Algorithm": "aes256", "RoleArn": "some:role"},
-            "Description": "A source",
-            "Name": "Source-A",
-        },
+        _source(),
     )
     source_failover_config = kwargs.get("source_failover_config", {})
     sources = kwargs.get("sources", [])
     vpc_interfaces = kwargs.get("vpc_interfaces", [])
-    flow_config = dict(
+    flow_config = dict(Name=name)
+    optional_flow_config = dict(
         AvailabilityZone=availability_zone,
         Entitlements=entitlements,
-        Name=name,
         Outputs=outputs,
         Source=source,
         SourceFailoverConfig=source_failover_config,
         Sources=sources,
         VpcInterfaces=vpc_interfaces,
     )
+    for key, value in optional_flow_config.items():
+        if value:
+            flow_config[key] = value
     return flow_config
 
 
@@ -83,6 +90,36 @@ def test_create_flow_succeeds():
     response["Flow"]["Outputs"][0].should.equal({"Name": "Output-1"})
     response["Flow"]["Outputs"][1]["ListenerAddress"].should.equal("1.0.0.0")
     response["Flow"]["Outputs"][2]["ListenerAddress"].should.equal("2.0.0.0")
+    response["Flow"]["Source"]["IngestIp"].should.equal("127.0.0.0")
+    _check_mediaconnect_arn(
+        type_="source", arn=response["Flow"]["Sources"][0]["SourceArn"], name="Source-A"
+    )
+
+
+@mock_mediaconnect
+def test_create_flow_alternative_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config(
+        "test-Flow-1",
+        source=None,
+        sources=[_source(), _source("Source-B")],
+        source_failover_config={
+            "FailoverMode": "FAILOVER",
+            "SourcePriority": {"PrimarySource": "Source-B"},
+            "State": "ENABLED",
+        },
+    )
+
+    response = client.create_flow(**channel_config)
+
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    _check_mediaconnect_arn(
+        type_="flow", arn=response["Flow"]["FlowArn"], name="test-Flow-1"
+    )
+    response["Flow"]["Name"].should.equal("test-Flow-1")
+    response["Flow"]["Status"].should.equal("STANDBY")
+    response["Flow"]["Sources"][0]["IngestIp"].should.equal("127.0.0.0")
+    response["Flow"]["Sources"][1]["IngestIp"].should.equal("127.0.0.1")
     _check_mediaconnect_arn(
         type_="source", arn=response["Flow"]["Sources"][0]["SourceArn"], name="Source-A"
     )
