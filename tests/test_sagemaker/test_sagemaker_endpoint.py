@@ -252,7 +252,6 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
-    variant_name = "MyProductionVariant"
     new_desired_weight = 1.5
     new_desired_instance_count = 123
 
@@ -260,7 +259,7 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
         EndpointName=TEST_ENDPOINT_NAME,
         DesiredWeightsAndCapacities=[
             {
-                "VariantName": variant_name,
+                "VariantName": TEST_VARIANT_NAME,
                 "DesiredWeight": new_desired_weight,
                 "DesiredInstanceCount": new_desired_instance_count,
             },
@@ -280,7 +279,7 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
     assert isinstance(resp["CreationTime"], datetime.datetime)
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
 
-    resp["ProductionVariants"][0]["VariantName"].should.equal(variant_name)
+    resp["ProductionVariants"][0]["VariantName"].should.equal(TEST_VARIANT_NAME)
     resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(
         new_desired_instance_count
     )
@@ -457,16 +456,14 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonuniq
     old_resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
     del old_resp["ResponseMetadata"]
 
-    variant_name = "MyProductionVariant"
-
     desired_weights_and_capacities = [
         {
-            "VariantName": variant_name,
+            "VariantName": TEST_VARIANT_NAME,
             "DesiredWeight": 1.5,
             "DesiredInstanceCount": 123,
         },
         {
-            "VariantName": variant_name,
+            "VariantName": TEST_VARIANT_NAME,
             "DesiredWeight": 1.5,
             "DesiredInstanceCount": 123,
         },
@@ -480,7 +477,7 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonuniq
 
     err = exc.value.response["Error"]
     err["Message"].should.equal(
-        f'The variant name "{variant_name}" was non-unique within the request.'
+        f'The variant name "{TEST_VARIANT_NAME}" was non-unique within the request.'
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
@@ -520,7 +517,7 @@ def _create_endpoint_config(
     if not production_variants:
         production_variants = [
             {
-                "VariantName": "MyProductionVariant",
+                "VariantName": TEST_VARIANT_NAME,
                 "ModelName": model_name,
                 "InitialInstanceCount": 1,
                 "InstanceType": "ml.t2.medium",
