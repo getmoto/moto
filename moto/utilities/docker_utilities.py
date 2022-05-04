@@ -1,4 +1,3 @@
-import docker
 import functools
 import requests.adapters
 
@@ -17,6 +16,8 @@ class DockerModel:
         if self.__docker_client is None:
             # We should only initiate the Docker Client at runtime.
             # The docker.from_env() call will fall if Docker is not running
+            import docker
+
             self.__docker_client = docker.from_env()
 
             # Unfortunately mocking replaces this method w/o fallback enabled, so we
