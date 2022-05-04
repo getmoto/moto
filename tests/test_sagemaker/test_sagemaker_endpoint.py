@@ -19,12 +19,13 @@ TEST_MODEL_NAME = "MyModel"
 TEST_ENDPOINT_NAME = "MyEndpoint"
 TEST_ENDPOINT_CONFIG_NAME = "MyEndpointConfig"
 TEST_VARIANT_NAME = "MyProductionVariant"
+TEST_INSTANCE_TYPE = "ml.t2.medium"
 TEST_PRODUCTION_VARIANTS = [
     {
         "VariantName": TEST_VARIANT_NAME,
         "ModelName": TEST_MODEL_NAME,
         "InitialInstanceCount": 1,
-        "InstanceType": "ml.t2.medium",
+        "InstanceType": TEST_INSTANCE_TYPE,
     },
 ]
 
@@ -297,13 +298,13 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
             "VariantName": "MyProductionVariant1",
             "ModelName": TEST_MODEL_NAME,
             "InitialInstanceCount": 1,
-            "InstanceType": "ml.t2.medium",
+            "InstanceType": TEST_INSTANCE_TYPE,
         },
         {
             "VariantName": "MyProductionVariant2",
             "ModelName": TEST_MODEL_NAME,
             "InitialInstanceCount": 1,
-            "InstanceType": "ml.t2.medium",
+            "InstanceType": TEST_INSTANCE_TYPE,
         },
     ]
 
@@ -520,7 +521,7 @@ def _create_endpoint_config(
                 "VariantName": TEST_VARIANT_NAME,
                 "ModelName": model_name,
                 "InitialInstanceCount": 1,
-                "InstanceType": "ml.t2.medium",
+                "InstanceType": TEST_INSTANCE_TYPE,
             },
         ]
     resp = boto_client.create_endpoint_config(
