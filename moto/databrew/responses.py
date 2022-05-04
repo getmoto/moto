@@ -64,9 +64,10 @@ class DataBrewResponse(BaseResponse):
         )
 
     @amzn_request_id
-    def list_recipe_versions(self):
+    def list_recipe_versions(self, request, full_url, headers):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
-        recipe_name = self._get_param("Name")
+        self.setup_class(request, full_url, headers)
+        recipe_name = self._get_param("Name", self._get_param("name"))
         next_token = self._get_param("NextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
@@ -96,10 +97,9 @@ class DataBrewResponse(BaseResponse):
     def put_recipe_response(self, recipe_name):
         recipe_description = self.parameters.get("Description")
         recipe_steps = self.parameters.get("Steps")
-        tags = self.parameters.get("Tags")
 
         self.databrew_backend.update_recipe(
-            recipe_name, recipe_description, recipe_steps, tags
+            recipe_name, recipe_description, recipe_steps
         )
         return 200, {}, json.dumps({"Name": recipe_name})
 
