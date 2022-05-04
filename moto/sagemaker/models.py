@@ -261,7 +261,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         )
 
     def _process_production_variants(self, production_variants):
-        endpoinnt_variants = []
+        endpoint_variants = []
         for production_variant in production_variants:
             temp_variant = {}
 
@@ -292,9 +292,9 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
                     "ServerlessConfig"
                 ]
 
-            endpoinnt_variants.append(temp_variant)
+            endpoint_variants.append(temp_variant)
 
-        return endpoinnt_variants
+        return endpoint_variants
 
     @property
     def response_object(self):
@@ -1931,13 +1931,33 @@ class SageMakerModelBackend(BaseBackend):
     def update_endpoint_weights_and_capacities(
         self, endpoint_name, desired_weights_and_capacities
     ):
-
+        # Validate inputs
         endpoint = self.endpoints.get(endpoint_name, None)
         if not endpoint:
             raise AWSValidationException(
                 f'Could not find endpoint "{FakeEndpoint.arn_formatter(endpoint_name, self.region_name)}".'
             )
 
+        names_checked = []
+        for variant_config in desired_weights_and_capacities:
+            name = variant_config.get("VariantName")
+
+            if name in names_checked:
+                raise AWSValidationException(
+                    f'The variant name "{name}" was non-unique within the request.'
+                )
+
+            if not any(
+                variant["VariantName"] == name
+                for variant in endpoint.production_variants
+            ):
+                raise AWSValidationException(
+                    f'The variant name(s) "{name}" is/are not present within endpoint configuration "{endpoint.endpoint_config_name}".'
+                )
+
+            names_checked.append(name)
+
+        # Update endpoint variants
         endpoint.endpoint_status = "Updating"
 
         for variant_config in desired_weights_and_capacities:
@@ -1945,17 +1965,13 @@ class SageMakerModelBackend(BaseBackend):
             desired_weight = variant_config.get("DesiredWeight")
             desired_instance_count = variant_config.get("DesiredInstanceCount")
 
-            for index, variant in enumerate(endpoint.production_variants):
+            for variant in endpoint.production_variants:
                 if variant.get("VariantName") == name:
                     variant["DesiredWeight"] = desired_weight
                     variant["CurrentWeight"] = desired_weight
                     variant["DesiredInstanceCount"] = desired_instance_count
                     variant["CurrentInstanceCount"] = desired_instance_count
                     break
-                elif index == len(endpoint.production_variants) - 1:
-                    raise AWSValidationException(
-                        f'The variant name(s) "{name}" is/are not present within endpoint configuration "{endpoint.endpoint_config_name}".'
-                    )
 
         endpoint.endpoint_status = "InService"
         return endpoint.endpoint_arn

@@ -379,6 +379,9 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_vari
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
+    old_resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    del old_resp["ResponseMetadata"]
+
     variant_name = "SillyNotCorrectName"
     new_desired_weight = 1.5
     new_desired_instance_count = 123
@@ -400,6 +403,10 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_vari
         f'The variant name(s) "{variant_name}" is/are not present within endpoint configuration "{TEST_ENDPOINT_CONFIG_NAME}".'
     )
 
+    resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    del resp["ResponseMetadata"]
+    resp.should.equal(old_resp)
+
 
 @mock_sagemaker
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endpoint(
@@ -408,6 +415,9 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endp
     _set_up_sagemaker_resources(
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
+
+    old_resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    del old_resp["ResponseMetadata"]
 
     endpoint_name = "SillyEndpointName"
     variant_name = "SillyNotCorrectName"
@@ -430,6 +440,52 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endp
     err["Message"].should.equal(
         f'Could not find endpoint "arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:endpoint/{endpoint_name}".'
     )
+
+    resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    del resp["ResponseMetadata"]
+    resp.should.equal(old_resp)
+
+
+@mock_sagemaker
+def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonunique_variant(
+    sagemaker_client,
+):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+
+    old_resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    del old_resp["ResponseMetadata"]
+
+    variant_name = "MyProductionVariant"
+
+    desired_weights_and_capacities = [
+        {
+            "VariantName": variant_name,
+            "DesiredWeight": 1.5,
+            "DesiredInstanceCount": 123,
+        },
+        {
+            "VariantName": variant_name,
+            "DesiredWeight": 1.5,
+            "DesiredInstanceCount": 123,
+        },
+    ]
+
+    with pytest.raises(ClientError) as exc:
+        sagemaker_client.update_endpoint_weights_and_capacities(
+            EndpointName=TEST_ENDPOINT_NAME,
+            DesiredWeightsAndCapacities=desired_weights_and_capacities,
+        )
+
+    err = exc.value.response["Error"]
+    err["Message"].should.equal(
+        f'The variant name "{variant_name}" was non-unique within the request.'
+    )
+
+    resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
+    del resp["ResponseMetadata"]
+    resp.should.equal(old_resp)
 
 
 def _set_up_sagemaker_resources(
