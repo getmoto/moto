@@ -108,6 +108,7 @@ def test_create_flow_alternative_succeeds():
             "SourcePriority": {"PrimarySource": "Source-B"},
             "State": "ENABLED",
         },
+        outputs=None,
     )
 
     response = client.create_flow(**channel_config)
