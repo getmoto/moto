@@ -97,7 +97,7 @@ class MediaConnectBackend(BaseBackend):
         for index, _source in enumerate(flow.sources):
             self._add_source_details(_source, flow_id, f"127.0.0.{index}")
 
-        for index, output in enumerate(flow.outputs):
+        for index, output in enumerate(flow.outputs or []):
             if output.get("protocol") in ["srt-listener", "zixi-pull"]:
                 output["listenerAddress"] = f"{index}.0.0.0"
 
