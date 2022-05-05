@@ -36,26 +36,26 @@ databrew
 - [ ] delete_dataset
 - [ ] delete_job
 - [ ] delete_project
-- [ ] delete_recipe_version
+- [X] delete_recipe_version
 - [X] delete_ruleset
 - [ ] delete_schedule
 - [ ] describe_dataset
 - [ ] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
-- [ ] describe_recipe
+- [X] describe_recipe
 - [ ] describe_ruleset
 - [ ] describe_schedule
 - [ ] list_datasets
 - [ ] list_job_runs
 - [ ] list_jobs
 - [ ] list_projects
-- [ ] list_recipe_versions
+- [X] list_recipe_versions
 - [X] list_recipes
 - [X] list_rulesets
 - [ ] list_schedules
 - [ ] list_tags_for_resource
-- [ ] publish_recipe
+- [X] publish_recipe
 - [ ] send_project_session_action
 - [ ] start_job_run
 - [ ] start_project_session

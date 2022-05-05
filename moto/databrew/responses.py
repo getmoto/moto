@@ -32,16 +32,37 @@ class DataBrewResponse(BaseResponse):
         )
 
     @amzn_request_id
+    def delete_recipe_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_DeleteRecipeVersion.html
+        if request.method == "DELETE":
+            parsed_url = urlparse(full_url)
+            split_path = parsed_url.path.strip("/").split("/")
+            recipe_name = split_path[1]
+            recipe_version = split_path[3]
+            self.databrew_backend.delete_recipe_version(recipe_name, recipe_version)
+            return (
+                200,
+                {},
+                json.dumps({"Name": recipe_name, "RecipeVersion": recipe_version}),
+            )
+
+    @amzn_request_id
     def list_recipes(self):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         next_token = self._get_param("NextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
+        recipe_version = self._get_param(
+            "RecipeVersion", self._get_param("recipeVersion")
+        )
 
         # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         recipe_list, next_token = self.databrew_backend.list_recipes(
-            next_token=next_token, max_results=max_results
+            next_token=next_token,
+            max_results=max_results,
+            recipe_version=recipe_version,
         )
         return json.dumps(
             {
@@ -50,19 +71,55 @@ class DataBrewResponse(BaseResponse):
             }
         )
 
+    @amzn_request_id
+    def list_recipe_versions(self, request, full_url, headers):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
+        self.setup_class(request, full_url, headers)
+        recipe_name = self._get_param("Name", self._get_param("name"))
+        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        max_results = self._get_int_param(
+            "MaxResults", self._get_int_param("maxResults")
+        )
+
+        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
+        recipe_list, next_token = self.databrew_backend.list_recipe_versions(
+            recipe_name=recipe_name, next_token=next_token, max_results=max_results
+        )
+        return json.dumps(
+            {
+                "Recipes": [recipe.as_dict() for recipe in recipe_list],
+                "NextToken": next_token,
+            }
+        )
+
+    @amzn_request_id
+    def publish_recipe(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            parsed_url = urlparse(full_url)
+            recipe_name = parsed_url.path.strip("/").split("/", 2)[1]
+            recipe_description = self.parameters.get("Description")
+            self.databrew_backend.publish_recipe(recipe_name, recipe_description)
+            return 200, {}, json.dumps({"Name": recipe_name})
+
     def put_recipe_response(self, recipe_name):
         recipe_description = self.parameters.get("Description")
         recipe_steps = self.parameters.get("Steps")
-        tags = self.parameters.get("Tags")
 
-        recipe = self.databrew_backend.update_recipe(
-            recipe_name, recipe_description, recipe_steps, tags
+        self.databrew_backend.update_recipe(
+            recipe_name, recipe_description, recipe_steps
         )
-        return 200, {}, json.dumps(recipe.as_dict())
+        return 200, {}, json.dumps({"Name": recipe_name})
 
     def get_recipe_response(self, recipe_name):
-        recipe = self.databrew_backend.get_recipe(recipe_name)
-        return 201, {}, json.dumps(recipe.as_dict())
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
+        recipe_version = self._get_param(
+            "RecipeVersion", self._get_param("recipeVersion")
+        )
+        recipe = self.databrew_backend.get_recipe(
+            recipe_name, recipe_version=recipe_version
+        )
+        return 200, {}, json.dumps(recipe.as_dict())
 
     @amzn_request_id
     def recipe_response(self, request, full_url, headers):
