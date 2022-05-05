@@ -70,4 +70,3 @@ class ServiceQuotaExceededException(JsonRESTError):
 
     def __init__(self):
         super().__init__("ServiceQuotaExceededException", "A service quota is exceeded.")
-

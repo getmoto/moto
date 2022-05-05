@@ -17,20 +17,20 @@ def _create_test_dataset(client, tags=None, dataset_name=None, dataset_format='J
         dataset_name = str(uuid.uuid4())
 
     if not dataset_format_options:
-        if dataset_format is 'JSON':
+        if dataset_format == 'JSON':
             dataset_format_options = {
                 'Json': {
                     'MultiLine': True
                 }
             }
-        elif dataset_format is 'CSV':
+        elif dataset_format == 'CSV':
             dataset_format_options = {
                 'Csv': {
                     'Delimiter': ',',
                     'HeaderRow': False
                 }
             }
-        elif dataset_format is 'EXCEL':
+        elif dataset_format == 'EXCEL':
             dataset_format_options = {
                 'Excel': {
                     'SheetNames': [
@@ -151,7 +151,6 @@ def test_describe_dataset():
     dataset = client.describe_dataset(Name=response["Name"])
     dataset["Format"].should.equal('CSV')
     # endregion
-
 
 
 @mock_databrew

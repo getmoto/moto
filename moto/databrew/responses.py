@@ -298,4 +298,3 @@ class DataBrewResponse(BaseResponse):
             return self.update_dataset(dataset_name)
 
     # endregion
-
