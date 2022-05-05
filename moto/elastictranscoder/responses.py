@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from .models import elastictranscoder_backends
 import json
@@ -84,7 +84,7 @@ class ElasticTranscoderResponse(BaseResponse):
             return None
         except KeyError:
             msg = "The specified pipeline was not found: account={}, pipelineId={}.".format(
-                ACCOUNT_ID, pipeline_id
+                get_account_id(), pipeline_id
             )
             return (
                 404,

@@ -4,7 +4,7 @@ from typing import Dict
 
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
@@ -395,7 +395,7 @@ class Document(BaseModel):
 
         self.status = "Active"
         self.document_version = document_version
-        self.owner = ACCOUNT_ID
+        self.owner = get_account_id()
         self.created_date = datetime.datetime.utcnow()
 
         if document_format == "JSON":
@@ -695,7 +695,7 @@ def _document_filter_match(filters, ssm_doc):
                 raise ValidationException("Owner filter can only have one value.")
             if _filter["Values"][0] == "Self":
                 # Update to running account ID
-                _filter["Values"][0] = ACCOUNT_ID
+                _filter["Values"][0] = get_account_id()
             if not _document_filter_equal_comparator(ssm_doc.owner, _filter):
                 return False
 

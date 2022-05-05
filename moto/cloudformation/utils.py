@@ -4,10 +4,10 @@ import yaml
 import os
 import string
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 
-def generate_stack_id(stack_name, region="us-east-1", account=ACCOUNT_ID):
+def generate_stack_id(stack_name, region="us-east-1", account=get_account_id()):
     random_id = uuid.uuid4()
     return "arn:aws:cloudformation:{}:{}:stack/{}/{}".format(
         region, account, stack_name, random_id
@@ -17,7 +17,7 @@ def generate_stack_id(stack_name, region="us-east-1", account=ACCOUNT_ID):
 def generate_changeset_id(changeset_name, region_name):
     random_id = uuid.uuid4()
     return "arn:aws:cloudformation:{0}:{1}:changeSet/{2}/{3}".format(
-        region_name, ACCOUNT_ID, changeset_name, random_id
+        region_name, get_account_id(), changeset_name, random_id
     )
 
 
@@ -28,7 +28,7 @@ def generate_stackset_id(stackset_name):
 
 def generate_stackset_arn(stackset_id, region_name):
     return "arn:aws:cloudformation:{}:{}:stackset/{}".format(
-        region_name, ACCOUNT_ID, stackset_id
+        region_name, get_account_id(), stackset_id
     )
 
 

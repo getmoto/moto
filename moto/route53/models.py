@@ -16,7 +16,7 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -532,7 +532,7 @@ class Route53Backend(BaseBackend):
                         {
                             "HostedZoneId": this_id,
                             "Name": zone.name,
-                            "Owner": {"OwningAccount": ACCOUNT_ID},
+                            "Owner": {"OwningAccount": get_account_id()},
                         }
                     )
 

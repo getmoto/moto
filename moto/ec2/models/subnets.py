@@ -2,7 +2,7 @@ import ipaddress
 import itertools
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.models import CloudFormationModel
 from ..exceptions import (
     GenericInvalidParameterValueError,
@@ -61,7 +61,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():

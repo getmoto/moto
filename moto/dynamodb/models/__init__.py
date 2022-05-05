@@ -7,7 +7,7 @@ import re
 import uuid
 
 from collections import OrderedDict
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, BackendDict
 from moto.core.exceptions import JsonRESTError
@@ -562,7 +562,7 @@ class Table(CloudFormationModel):
         return table
 
     def _generate_arn(self, name):
-        return f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/{name}"
+        return f"arn:aws:dynamodb:us-east-1:{get_account_id()}:table/{name}"
 
     def set_stream_specification(self, streams):
         self.stream_specification = streams
@@ -1119,7 +1119,7 @@ class Backup(object):
     def arn(self):
         return "arn:aws:dynamodb:{region}:{account}:table/{table_name}/backup/{identifier}".format(
             region=self.backend.region_name,
-            account=ACCOUNT_ID,
+            account=get_account_id(),
             table_name=self.table.name,
             identifier=self.identifier,
         )

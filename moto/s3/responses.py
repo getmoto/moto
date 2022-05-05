@@ -15,7 +15,7 @@ import xmltodict
 
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -2446,7 +2446,7 @@ S3_ALL_MULTIPARTS = (
     <UploadId>{{ upload.id }}</UploadId>
     <Initiator>
       <ID>arn:aws:iam::"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
       <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
     </Initiator>

@@ -5,7 +5,7 @@ import json
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from .comparisons import get_comparison_func
 
 
@@ -307,7 +307,7 @@ class Table(CloudFormationModel):
             region = "us-east-1"
             time = "2000-01-01T00:00:00.000"
             return "arn:aws:dynamodb:{0}:{1}:table/{2}/stream/{3}".format(
-                region, ACCOUNT_ID, self.name, time
+                region, get_account_id(), self.name, time
             )
         raise UnformattedGetAttTemplateException()
 

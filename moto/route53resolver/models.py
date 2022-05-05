@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from ipaddress import ip_address, ip_network, IPv4Address
 import re
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex, BackendDict
 from moto.ec2 import ec2_backends
@@ -123,7 +123,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
     @property
     def arn(self):
         """Return ARN for this resolver rule."""
-        return f"arn:aws:route53resolver:{self.region}:{ACCOUNT_ID}:resolver-rule/{self.id}"
+        return f"arn:aws:route53resolver:{self.region}:{get_account_id()}:resolver-rule/{self.id}"
 
     def description(self):
         """Return a dictionary of relevant info for this resolver rule."""
@@ -138,7 +138,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
             "Name": self.name,
             "TargetIps": self.target_ips,
             "ResolverEndpointId": self.resolver_endpoint_id,
-            "OwnerId": ACCOUNT_ID,
+            "OwnerId": get_account_id(),
             "ShareStatus": self.share_status,
             "CreationTime": self.creation_time,
             "ModificationTime": self.modification_time,
@@ -204,7 +204,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
     @property
     def arn(self):
         """Return ARN for this resolver endpoint."""
-        return f"arn:aws:route53resolver:{self.region}:{ACCOUNT_ID}:resolver-endpoint/{self.id}"
+        return f"arn:aws:route53resolver:{self.region}:{get_account_id()}:resolver-endpoint/{self.id}"
 
     def _vpc_id_from_subnet(self):
         """Return VPC Id associated with the subnet.
@@ -328,7 +328,7 @@ class Route53ResolverBackend(BaseBackend):
         if len(associations) > ResolverRuleAssociation.MAX_RULE_ASSOCIATIONS_PER_REGION:
             # This error message was not verified to be the same for AWS.
             raise LimitExceededException(
-                f"Account '{ACCOUNT_ID}' has exceeded 'max-rule-association'"
+                f"Account '{get_account_id()}' has exceeded 'max-rule-association'"
             )
 
         if resolver_rule_id not in self.resolver_rules:
@@ -448,7 +448,7 @@ class Route53ResolverBackend(BaseBackend):
         endpoints = [x for x in self.resolver_endpoints.values() if x.region == region]
         if len(endpoints) > ResolverEndpoint.MAX_ENDPOINTS_PER_REGION:
             raise LimitExceededException(
-                f"Account '{ACCOUNT_ID}' has exceeded 'max-endpoints'"
+                f"Account '{get_account_id()}' has exceeded 'max-endpoints'"
             )
 
         self._verify_subnet_ips(region, ip_addresses)
@@ -510,7 +510,7 @@ class Route53ResolverBackend(BaseBackend):
         if len(rules) > ResolverRule.MAX_RULES_PER_REGION:
             # Did not verify that this is the actual error message.
             raise LimitExceededException(
-                f"Account '{ACCOUNT_ID}' has exceeded 'max-rules'"
+                f"Account '{get_account_id()}' has exceeded 'max-rules'"
             )
 
         # Per the AWS documentation and as seen with the AWS console, target

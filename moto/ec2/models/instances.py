@@ -3,7 +3,7 @@ import warnings
 from collections import OrderedDict
 from datetime import datetime
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.models import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
@@ -59,7 +59,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         super().__init__()
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
-        self.owner_id = ACCOUNT_ID
+        self.owner_id = get_account_id()
         self.lifecycle = kwargs.get("lifecycle")
 
         nics = kwargs.get("nics", {})

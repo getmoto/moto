@@ -1,6 +1,6 @@
 import json
 from werkzeug.exceptions import BadRequest
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 
 class ResourceNotFoundError(BadRequest):
@@ -22,20 +22,22 @@ class ResourceInUseError(BadRequest):
 class StreamNotFoundError(ResourceNotFoundError):
     def __init__(self, stream_name):
         super().__init__(
-            "Stream {0} under account {1} not found.".format(stream_name, ACCOUNT_ID)
+            "Stream {0} under account {1} not found.".format(
+                stream_name, get_account_id()
+            )
         )
 
 
 class ShardNotFoundError(ResourceNotFoundError):
     def __init__(self, shard_id, stream):
         super().__init__(
-            f"Could not find shard {shard_id} in stream {stream} under account {ACCOUNT_ID}."
+            f"Could not find shard {shard_id} in stream {stream} under account {get_account_id()}."
         )
 
 
 class ConsumerNotFound(ResourceNotFoundError):
     def __init__(self, consumer):
-        super().__init__(f"Consumer {consumer}, account {ACCOUNT_ID} not found.")
+        super().__init__(f"Consumer {consumer}, account {get_account_id()} not found.")
 
 
 class InvalidArgumentError(BadRequest):

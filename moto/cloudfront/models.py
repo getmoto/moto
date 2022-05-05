@@ -1,7 +1,7 @@
 import random
 import string
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from uuid import uuid4
@@ -149,7 +149,7 @@ class Distribution(BaseModel, ManagedState):
         # Configure internal properties
         self.distribution_id = Distribution.random_id()
         self.arn = (
-            f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{self.distribution_id}"
+            f"arn:aws:cloudfront:{get_account_id()}:distribution/{self.distribution_id}"
         )
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()

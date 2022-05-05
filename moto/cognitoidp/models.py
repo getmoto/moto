@@ -10,7 +10,7 @@ import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
@@ -370,7 +370,7 @@ class CognitoIdpUserPool(BaseModel):
         self.region = region
         self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
         self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
-            self.region, DEFAULT_ACCOUNT_ID, self.id
+            self.region, get_account_id(), self.id
         )
         self.name = name
         self.status = None

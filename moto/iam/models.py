@@ -16,7 +16,7 @@ from cryptography.hazmat.backends import default_backend
 from jinja2 import Template
 from urllib import parse
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, get_account_id, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
@@ -74,7 +74,9 @@ class MFADevice(object):
 
 class VirtualMfaDevice(object):
     def __init__(self, device_name):
-        self.serial_number = "arn:aws:iam::{0}:mfa{1}".format(ACCOUNT_ID, device_name)
+        self.serial_number = "arn:aws:iam::{0}:mfa{1}".format(
+            get_account_id(), device_name
+        )
 
         random_base32_string = "".join(
             random.choice(string.ascii_uppercase + "234567") for _ in range(64)
@@ -163,7 +165,7 @@ class SAMLProvider(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:saml-provider/{1}".format(ACCOUNT_ID, self.name)
+        return "arn:aws:iam::{0}:saml-provider/{1}".format(get_account_id(), self.name)
 
 
 class OpenIDConnectProvider(BaseModel):
@@ -180,7 +182,7 @@ class OpenIDConnectProvider(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:oidc-provider/{1}".format(ACCOUNT_ID, self.url)
+        return "arn:aws:iam::{0}:oidc-provider/{1}".format(get_account_id(), self.url)
 
     @property
     def created_iso_8601(self):
@@ -285,7 +287,9 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:policy{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+        return "arn:aws:iam::{0}:policy{1}{2}".format(
+            get_account_id(), self.path, self.name
+        )
 
     def to_config_dict(self):
         return {
@@ -295,7 +299,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "configurationStateId": str(
                 int(time.mktime(self.create_date.timetuple()))
             ),  # PY2 and 3 compatible
-            "arn": "arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, self.name),
+            "arn": "arn:aws:iam::{}:policy/{}".format(get_account_id(), self.name),
             "resourceType": "AWS::IAM::Policy",
             "resourceId": self.id,
             "resourceName": self.name,
@@ -306,7 +310,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "configuration": {
                 "policyName": self.name,
                 "policyId": self.id,
-                "arn": "arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, self.name),
+                "arn": "arn:aws:iam::{}:policy/{}".format(get_account_id(), self.name),
                 "path": self.path,
                 "defaultVersionId": self.default_version_id,
                 "attachmentCount": self.attachment_count,
@@ -636,8 +640,10 @@ class Role(CloudFormationModel):
     @property
     def arn(self):
         if self._linked_service:
-            return f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/{self._linked_service}/{self.name}"
-        return "arn:aws:iam::{0}:role{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+            return f"arn:aws:iam::{get_account_id()}:role/aws-service-role/{self._linked_service}/{self.name}"
+        return "arn:aws:iam::{0}:role{1}{2}".format(
+            get_account_id(), self.path, self.name
+        )
 
     def to_config_dict(self):
         _managed_policies = []
@@ -665,7 +671,7 @@ class Role(CloudFormationModel):
             "configurationStateId": str(
                 int(time.mktime(self.create_date.timetuple()))
             ),  # PY2 and 3 compatible
-            "arn": "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, self.name),
+            "arn": "arn:aws:iam::{}:role/{}".format(get_account_id(), self.name),
             "resourceType": "AWS::IAM::Role",
             "resourceId": self.name,
             "resourceName": self.name,
@@ -679,7 +685,7 @@ class Role(CloudFormationModel):
                 "path": self.path,
                 "roleName": self.name,
                 "roleId": self.id,
-                "arn": "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, self.name),
+                "arn": "arn:aws:iam::{}:role/{}".format(get_account_id(), self.name),
                 "assumeRolePolicyDocument": parse.quote(
                     self.assume_role_policy_document
                 )
@@ -820,7 +826,7 @@ class InstanceProfile(CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:iam::{0}:instance-profile{1}{2}".format(
-            ACCOUNT_ID, self.path, self.name
+            get_account_id(), self.path, self.name
         )
 
     @property
@@ -848,7 +854,9 @@ class InstanceProfile(CloudFormationModel):
                     "path": role.path,
                     "roleName": role.name,
                     "roleId": role.id,
-                    "arn": "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, role.name),
+                    "arn": "arn:aws:iam::{}:role/{}".format(
+                        get_account_id(), role.name
+                    ),
                     "createDate": str(role.create_date),
                     "assumeRolePolicyDocument": parse.quote(
                         role.assume_role_policy_document
@@ -870,7 +878,9 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": "arn:aws:iam::{}:instance-profile/{}".format(ACCOUNT_ID, self.name),
+            "arn": "arn:aws:iam::{}:instance-profile/{}".format(
+                get_account_id(), self.name
+            ),
             "createDate": str(self.create_date),
             "roles": roles,
         }
@@ -893,7 +903,7 @@ class Certificate(BaseModel):
     @property
     def arn(self):
         return "arn:aws:iam::{0}:server-certificate{1}{2}".format(
-            ACCOUNT_ID, self.path, self.cert_name
+            get_account_id(), self.path, self.cert_name
         )
 
 
@@ -1042,11 +1052,11 @@ class Group(BaseModel):
     @property
     def arn(self):
         if self.path == "/":
-            return "arn:aws:iam::{0}:group/{1}".format(ACCOUNT_ID, self.name)
+            return "arn:aws:iam::{0}:group/{1}".format(get_account_id(), self.name)
 
         else:
             return "arn:aws:iam::{0}:group/{1}/{2}".format(
-                ACCOUNT_ID, self.path, self.name
+                get_account_id(), self.path, self.name
             )
 
     def get_policy(self, policy_name):
@@ -1092,7 +1102,9 @@ class User(CloudFormationModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:user{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+        return "arn:aws:iam::{0}:user{1}{2}".format(
+            get_account_id(), self.path, self.name
+        )
 
     @property
     def created_iso_8601(self):
@@ -2781,7 +2793,7 @@ class IAMBackend(BaseBackend):
         if not self.account_password_policy:
             raise NoSuchEntity(
                 "The Password Policy with domain name {} cannot be found.".format(
-                    ACCOUNT_ID
+                    get_account_id()
                 )
             )
 

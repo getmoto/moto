@@ -20,7 +20,7 @@ from .exceptions import (
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 from ..utilities.tagging_service import TaggingService
 
 _EMPTY_LIST = tuple()
@@ -129,7 +129,7 @@ class FakeAlarm(BaseModel):
     ):
         self.region_name = region_name
         self.name = name
-        self.alarm_arn = make_arn_for_alarm(region_name, DEFAULT_ACCOUNT_ID, name)
+        self.alarm_arn = make_arn_for_alarm(region_name, get_account_id(), name)
         self.namespace = namespace
         self.metric_name = metric_name
         self.metric_data_queries = metric_data_queries
@@ -240,7 +240,7 @@ class MetricDatum(BaseModel):
 class Dashboard(BaseModel):
     def __init__(self, name, body):
         # Guaranteed to be unique for now as the name is also the key of a dictionary where they are stored
-        self.arn = make_arn_for_dashboard(DEFAULT_ACCOUNT_ID, name)
+        self.arn = make_arn_for_dashboard(get_account_id(), name)
         self.name = name
         self.body = body
         self.last_modified = datetime.now()
