@@ -1614,8 +1614,6 @@ def test_batch_get_aggregate_resource_config():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "get_config_resource" function.
     """
-    from moto.config.models import ACCOUNT_ID
-
     client = boto3.client("config", region_name="us-west-2")
 
     # Without an aggregator:
