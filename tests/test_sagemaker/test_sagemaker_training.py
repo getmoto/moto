@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_sagemaker
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
 TEST_REGION_NAME = "us-east-1"

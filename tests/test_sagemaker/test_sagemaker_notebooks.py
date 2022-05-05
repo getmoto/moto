@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sagemaker
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 import pytest
 
 TEST_REGION_NAME = "us-east-1"
