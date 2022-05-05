@@ -55,3 +55,42 @@ def test_sign_up_method_without_authentication():
     )
     res.status_code.should.equal(200)
     json.loads(res.data).should.have.key("UserConfirmed").equals(False)
+
+    # Confirm Sign Up User
+    data = {
+        "ClientId": client_id,
+        "Username": "test@gmail.com",
+        "ConfirmationCode": "sth",
+    }
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.ConfirmSignUp"},
+    )
+
+    # Initiate Auth
+    data = {
+        "ClientId": client_id,
+        "AuthFlow": "USER_PASSWORD_AUTH",
+        "AuthParameters": {"USERNAME": "test@gmail.com", "PASSWORD": "12345678"},
+    }
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth"},
+    )
+    res.status_code.should.equal(200)
+    access_token = json.loads(res.data)["AuthenticationResult"]["AccessToken"]
+
+    # Get User
+    data = {"AccessToken": access_token}
+    res = test_client.post(
+        "/",
+        data=json.dumps(data),
+        headers={"X-Amz-Target": "AWSCognitoIdentityProviderService.GetUser"},
+    )
+    res.status_code.should.equal(200)
+    data = json.loads(res.data)
+    data.should.have.key("UserPoolId").equals(user_pool_id)
+    data.should.have.key("Username").equals("test@gmail.com")
+    data.should.have.key("UserStatus").equals("CONFIRMED")

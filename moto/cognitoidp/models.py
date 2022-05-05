@@ -1800,6 +1800,15 @@ class GlobalCognitoIdpBackend(CognitoIdpBackend):
     # Without authentication-header, we lose the context of which region the request was send to
     # This backend will cycle through all backends as a workaround
 
+    def _find_backend_by_access_token(self, access_token):
+        for region, backend in cognitoidp_backends.items():
+            if region == "global":
+                continue
+            for p in backend.user_pools.values():
+                if access_token in p.access_tokens:
+                    return backend
+        return cognitoidp_backends["us-east-1"]
+
     def _find_backend_for_clientid(self, client_id):
         for region, backend in cognitoidp_backends.items():
             if region == "global":
@@ -1820,6 +1829,10 @@ class GlobalCognitoIdpBackend(CognitoIdpBackend):
     def confirm_sign_up(self, client_id, username):
         backend = self._find_backend_for_clientid(client_id)
         return backend.confirm_sign_up(client_id, username)
+
+    def get_user(self, access_token):
+        backend = self._find_backend_by_access_token(access_token)
+        return backend.get_user(access_token)
 
 
 cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
