@@ -40,4 +40,4 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py
+        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py ./tests/test_s3/test_server.py
