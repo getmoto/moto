@@ -19,6 +19,7 @@ class RDSResponse(BaseResponse):
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
+            "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
             "db_name": self._get_param("DBName"),
             "db_parameter_group_name": self._get_param("DBParameterGroupName"),
