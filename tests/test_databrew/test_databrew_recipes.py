@@ -246,6 +246,19 @@ def test_describe_recipe_with_long_version():
 
 
 @mock_databrew
+def test_describe_recipe_with_invalid_version():
+    client = _create_databrew_client()
+    name = "AnyName"
+    version = "invalid"
+    with pytest.raises(ClientError) as exc:
+        client.describe_recipe(Name=name, RecipeVersion=version)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(f"Recipe {name} version {version} isn't valid.")
+    exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_databrew
 def test_update_recipe():
     client = _create_databrew_client()
     response = _create_test_recipe(client)

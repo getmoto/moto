@@ -66,7 +66,7 @@ class DataBrewBackend(BaseBackend):
         return recipe.latest_working
 
     def delete_recipe_version(self, recipe_name, recipe_version):
-        if not FakeRecipe.valid_version(recipe_version, latest_published=False):
+        if not FakeRecipe.version_is_valid(recipe_version, latest_published=False):
             raise ValidationException(
                 f"Recipe {recipe_name} version {recipe_version} is invalid."
             )
@@ -119,11 +119,7 @@ class DataBrewBackend(BaseBackend):
                 f"Invalid version {recipe_version}. "
                 "Valid versions are LATEST_PUBLISHED and LATEST_WORKING."
             )
-        recipes = (
-            [getattr(self.recipes[key], version) for key in self.recipes]
-            if self.recipes
-            else []
-        )
+        recipes = [getattr(self.recipes[key], version) for key in self.recipes]
         return [r for r in recipes if r is not None]
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -155,7 +151,10 @@ class DataBrewBackend(BaseBackend):
             recipe_version = FakeRecipe.LATEST_PUBLISHED
         else:
             self.validate_length(recipe_version, "recipeVersion", 16)
-            FakeRecipe.valid_version(recipe_version)
+            if not FakeRecipe.version_is_valid(recipe_version):
+                raise ValidationException(
+                    f"Recipe {recipe_name} version {recipe_version} isn't valid."
+                )
 
         recipe = None
         if recipe_name in self.recipes:
@@ -232,7 +231,7 @@ class FakeRecipe(BaseModel):
     LATEST_PUBLISHED = "LATEST_PUBLISHED"
 
     @classmethod
-    def valid_version(cls, version, latest_working=True, latest_published=True):
+    def version_is_valid(cls, version, latest_working=True, latest_published=True):
         validity = True
 
         if len(version) < 1 or len(version) > 16:
