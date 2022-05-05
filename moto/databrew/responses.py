@@ -228,7 +228,7 @@ class DataBrewResponse(BaseResponse):
                 dataset_format_options,
                 dataset_input,
                 dataset_path_otions,
-                dataset_tags
+                dataset_tags,
             ).as_dict()
         )
 
@@ -265,7 +265,7 @@ class DataBrewResponse(BaseResponse):
             dataset_format_options,
             dataset_input,
             dataset_path_otions,
-            dataset_tags
+            dataset_tags,
         )
         return 200, {}, json.dumps(dataset.as_dict())
 
@@ -294,7 +294,7 @@ class DataBrewResponse(BaseResponse):
             return self.list_datasets()
         elif request.method == "DELETE":
             return self.delete_dataset(dataset_name)
-        elif request.method == 'PUT':
+        elif request.method == "PUT":
             return self.update_dataset(dataset_name)
 
     # endregion

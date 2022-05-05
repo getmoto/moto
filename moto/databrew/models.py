@@ -6,6 +6,11 @@ from datetime import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
+from .exceptions import (
+    RecipeAlreadyExistsException,
+    RecipeNotFoundException,
+    AlreadyExistsException,
+)
 from .exceptions import RecipeAlreadyExistsException, RecipeNotFoundException, AlreadyExistsException
 from .exceptions import (
     ConflictException,
@@ -231,13 +236,14 @@ class DataBrewBackend(BaseBackend):
         del self.rulesets[ruleset_name]
 
     def create_dataset(
-            self,
-            dataset_name,
-            dataset_format,
-            dataset_format_options,
-            dataset_input,
-            dataset_path_options,
-            tags):
+        self,
+        dataset_name,
+        dataset_format,
+        dataset_format_options,
+        dataset_input,
+        dataset_path_options,
+        tags,
+    ):
         if dataset_name in self.datasets:
             raise AlreadyExistsException(dataset_name)
 
@@ -248,7 +254,7 @@ class DataBrewBackend(BaseBackend):
             dataset_format_options,
             dataset_input,
             dataset_path_options,
-            tags
+            tags,
         )
         self.datasets[dataset_name] = dataset
         return dataset
@@ -258,13 +264,13 @@ class DataBrewBackend(BaseBackend):
         return list(self.datasets.values())
 
     def update_dataset(
-            self,
-            dataset_name,
-            dataset_format,
-            dataset_format_options,
-            dataset_input,
-            dataset_path_options,
-            tags
+        self,
+        dataset_name,
+        dataset_format,
+        dataset_format_options,
+        dataset_input,
+        dataset_path_options,
+        tags,
     ):
 
         if dataset_name not in self.datasets:
@@ -434,13 +440,13 @@ class FakeRuleset(BaseModel):
 class FakeDataset(BaseModel):
     def __init__(
         self,
-            region_name,
-            dataset_name,
-            dataset_format,
-            dataset_format_options,
-            dataset_input,
-            dataset_path_options,
-            tags
+        region_name,
+        dataset_name,
+        dataset_format,
+        dataset_format_options,
+        dataset_input,
+        dataset_path_options,
+        tags,
     ):
         self.region_name = region_name
         self.name = dataset_name

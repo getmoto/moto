@@ -12,34 +12,31 @@ def _create_databrew_client():
     return client
 
 
-def _create_test_dataset(client, tags=None, dataset_name=None, dataset_format='JSON', dataset_format_options=None):
+def _create_test_dataset(
+    client,
+    tags=None,
+    dataset_name=None,
+    dataset_format="JSON",
+    dataset_format_options=None,
+):
     if dataset_name is None:
         dataset_name = str(uuid.uuid4())
 
     if not dataset_format_options:
-        if dataset_format == 'JSON':
+        if dataset_format == "JSON":
+            dataset_format_options = {"Json": {"MultiLine": True}}
+        elif dataset_format == "CSV":
+            dataset_format_options = {"Csv": {"Delimiter": ",", "HeaderRow": False}}
+        elif dataset_format == "EXCEL":
             dataset_format_options = {
-                'Json': {
-                    'MultiLine': True
-                }
-            }
-        elif dataset_format == 'CSV':
-            dataset_format_options = {
-                'Csv': {
-                    'Delimiter': ',',
-                    'HeaderRow': False
-                }
-            }
-        elif dataset_format == 'EXCEL':
-            dataset_format_options = {
-                'Excel': {
-                    'SheetNames': [
-                        'blaa',
+                "Excel": {
+                    "SheetNames": [
+                        "blaa",
                     ],
-                    'SheetIndexes': [
+                    "SheetIndexes": [
                         123,
                     ],
-                    'HeaderRow': True
+                    "HeaderRow": True,
                 }
             }
 
@@ -48,50 +45,46 @@ def _create_test_dataset(client, tags=None, dataset_name=None, dataset_format='J
         Format=dataset_format,
         FormatOptions=dataset_format_options,
         Input={
-            'S3InputDefinition': {
-                'Bucket': 'somerandombucketname',
+            "S3InputDefinition": {
+                "Bucket": "somerandombucketname",
             },
-            'DataCatalogInputDefinition': {
-                'DatabaseName': 'somedbname',
-                'TableName': 'sometablename',
-                'TempDirectory': {
-                    'Bucket': 'sometempbucketname',
-                }
-            },
-            'DatabaseInputDefinition': {
-                'GlueConnectionName': 'someglueconnectionname',
-                'TempDirectory': {
-                    'Bucket': 'sometempbucketname',
+            "DataCatalogInputDefinition": {
+                "DatabaseName": "somedbname",
+                "TableName": "sometablename",
+                "TempDirectory": {
+                    "Bucket": "sometempbucketname",
                 },
-            }
+            },
+            "DatabaseInputDefinition": {
+                "GlueConnectionName": "someglueconnectionname",
+                "TempDirectory": {
+                    "Bucket": "sometempbucketname",
+                },
+            },
         },
         PathOptions={
-            'LastModifiedDateCondition': {
-                'Expression': 'string',
-                'ValuesMap': {
-                    'string': 'string'
+            "LastModifiedDateCondition": {
+                "Expression": "string",
+                "ValuesMap": {"string": "string"},
+            },
+            "FilesLimit": {
+                "MaxFiles": 123,
+                "OrderedBy": "LAST_MODIFIED_DATE",
+                "Order": "ASCENDING",
+            },
+            "Parameters": {
+                "string": {
+                    "Name": "string",
+                    "Type": "string",
+                    "CreateColumn": False,
+                    "Filter": {
+                        "Expression": "string",
+                        "ValuesMap": {"string": "string"},
+                    },
                 }
             },
-            'FilesLimit': {
-                'MaxFiles': 123,
-                'OrderedBy': 'LAST_MODIFIED_DATE',
-                'Order': 'ASCENDING'
-            },
-            'Parameters': {
-                'string': {
-                    'Name': 'string',
-                    'Type': 'string',
-                    'CreateColumn': False,
-                    'Filter': {
-                        'Expression': 'string',
-                        'ValuesMap': {
-                            'string': 'string'
-                        }
-                    }
-                }
-            }
         },
-        Tags=tags or {}
+        Tags=tags or {},
     )
 
 
@@ -147,9 +140,9 @@ def test_describe_dataset():
     # endregion
 
     # region JSON test
-    response = _create_test_dataset(client, dataset_format='CSV')
+    response = _create_test_dataset(client, dataset_format="CSV")
     dataset = client.describe_dataset(Name=response["Name"])
-    dataset["Format"].should.equal('CSV')
+    dataset["Format"].should.equal("CSV")
     # endregion
 
 
@@ -215,24 +208,23 @@ def test_update_dataset():
         Name=response["Name"],
         Format="TEST",
         Input={
-            'S3InputDefinition': {
-                'Bucket': 'somerandombucketname',
+            "S3InputDefinition": {
+                "Bucket": "somerandombucketname",
             },
-            'DataCatalogInputDefinition': {
-                'DatabaseName': 'somedbname',
-                'TableName': 'sometablename',
-                'TempDirectory': {
-                    'Bucket': 'sometempbucketname',
-                }
+            "DataCatalogInputDefinition": {
+                "DatabaseName": "somedbname",
+                "TableName": "sometablename",
+                "TempDirectory": {
+                    "Bucket": "sometempbucketname",
+                },
             },
-            'DatabaseInputDefinition': {
-                'GlueConnectionName': 'someglueconnectionname',
-                'TempDirectory': {
-                    'Bucket': 'sometempbucketname',
+            "DatabaseInputDefinition": {
+                "GlueConnectionName": "someglueconnectionname",
+                "TempDirectory": {
+                    "Bucket": "sometempbucketname",
                 },
             },
         },
-
     )
     dataset["Name"].should.equal(response["Name"])
 
