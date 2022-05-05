@@ -133,14 +133,11 @@ class DataBrewBackend(BaseBackend):
 
         latest_working = recipe.latest_working
 
-        recipe_versions = (
-            [
-                recipe_version if recipe_version is not latest_working else None
-                for recipe_version in recipe.versions.values()
-            ]
-            if recipe
-            else []
-        )
+        recipe_versions = [
+            recipe_version
+            for recipe_version in recipe.versions.values()
+            if recipe_version is not latest_working
+        ]
         return [r for r in recipe_versions if r is not None]
 
     def get_recipe(self, recipe_name, recipe_version=None):
