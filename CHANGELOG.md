@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.8
 -----
-Docker Digest for 3.1.8: <autopopulateddigest>
+Docker Digest for 3.1.8: _sha256:a7d8c55eec8d75d75dd2532a6a0a9647935238236a54e4de7bb3f72bc28b7bf8_
 
     General:
         * Moto now supports a way to delay state transitions. 
