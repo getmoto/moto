@@ -5,7 +5,6 @@ import datetime
 import time
 import uuid
 import logging
-import docker
 import threading
 import dateutil.parser
 from sys import platform
@@ -568,6 +567,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         :return:
         """
         try:
+            import docker
+
             self.advance()
             while self.status == "SUBMITTED":
                 # Wait until we've moved onto state 'PENDING'
@@ -817,6 +818,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
 
 class BatchBackend(BaseBackend):
+    """
+    Batch-jobs are executed inside a Docker-container. Everytime the `submit_job`-method is called, a new Docker container is started.
+    A job is marked as 'Success' when the Docker-container exits without throwing an error.
+
+    Use `@mock_batch_simple` instead if you do not want to use a Docker-container.
+    With this decorator, jobs are simply marked as 'Success' without trying to execute any commands/scripts.
+    """
+
     def __init__(self, region_name=None):
         super().__init__()
         self.region_name = region_name
@@ -1296,20 +1305,6 @@ class BatchBackend(BaseBackend):
     def create_job_queue(
         self, queue_name, priority, state, compute_env_order, tags=None
     ):
-        """
-        Create a job queue
-
-        :param queue_name: Queue name
-        :type queue_name: str
-        :param priority: Queue priority
-        :type priority: int
-        :param state: Queue state
-        :type state: string
-        :param compute_env_order: Compute environment list
-        :type compute_env_order: list of dict
-        :return: Tuple of Name, ARN
-        :rtype: tuple of str
-        """
         for variable, var_name in (
             (queue_name, "jobQueueName"),
             (priority, "priority"),
@@ -1380,20 +1375,6 @@ class BatchBackend(BaseBackend):
         return result
 
     def update_job_queue(self, queue_name, priority, state, compute_env_order):
-        """
-        Update a job queue
-
-        :param queue_name: Queue name
-        :type queue_name: str
-        :param priority: Queue priority
-        :type priority: int
-        :param state: Queue state
-        :type state: string
-        :param compute_env_order: Compute environment list
-        :type compute_env_order: list of dict
-        :return: Tuple of Name, ARN
-        :rtype: tuple of str
-        """
         if queue_name is None:
             raise ClientException("jobQueueName must be provided")
 
