@@ -9,7 +9,7 @@ from moto import mock_s3control
 
 @mock_s3control
 def test_get_public_access_block_for_account():
-    from moto.s3.models import ACCOUNT_ID
+    from moto.core import ACCOUNT_ID
 
     client = boto3.client("s3control", region_name="us-west-2")
 

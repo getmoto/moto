@@ -78,7 +78,7 @@ OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
 def get_moto_s3_account_id():
     """This makes it easy for mocking AWS Account IDs when using AWS Config
-    -- Simply mock.patch the get_account_id() here, and Config gets it for free.
+    -- Simply mock.patch get_account_id() here, and Config gets it for free.
     """
     return get_account_id()
 
