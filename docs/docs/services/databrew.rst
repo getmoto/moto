@@ -43,7 +43,7 @@ databrew
 - [ ] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
-- [X] describe_recipe
+- [ ] describe_recipe
 - [ ] describe_ruleset
 - [ ] describe_schedule
 - [ ] list_datasets

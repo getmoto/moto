@@ -868,7 +868,7 @@
 
 ## cognito-idp
 <details>
-<summary>55% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -935,7 +935,7 @@
 - [X] get_user
 - [ ] get_user_attribute_verification_code
 - [X] get_user_pool_mfa_config
-- [ ] global_sign_out
+- [X] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
 - [X] list_groups
@@ -962,10 +962,10 @@
 - [ ] untag_resource
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
-- [ ] update_group
+- [X] update_group
 - [X] update_identity_provider
 - [ ] update_resource_server
-- [ ] update_user_attributes
+- [X] update_user_attributes
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
@@ -1089,7 +1089,7 @@
 - [ ] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
-- [X] describe_recipe
+- [ ] describe_recipe
 - [ ] describe_ruleset
 - [ ] describe_schedule
 - [ ] list_datasets
@@ -3358,23 +3358,26 @@
 
 ## kinesis-video-archived-media
 <details>
-<summary>60% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] get_clip
 - [X] get_dash_streaming_session_url
 - [X] get_hls_streaming_session_url
+- [ ] get_images
 - [ ] get_media_for_fragment_list
 - [ ] list_fragments
 </details>
 
 ## kinesisvideo
 <details>
-<summary>26% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] create_signaling_channel
 - [X] create_stream
 - [ ] delete_signaling_channel
 - [X] delete_stream
+- [ ] describe_image_generation_configuration
+- [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
 - [X] get_data_endpoint
@@ -3388,6 +3391,8 @@
 - [ ] untag_resource
 - [ ] untag_stream
 - [ ] update_data_retention
+- [ ] update_image_generation_configuration
+- [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream
 </details>
