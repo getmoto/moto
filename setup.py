@@ -108,6 +108,8 @@ extras_per_service.update(
 extras_per_service["dynamodb"] = extras_per_service["awslambda"]
 extras_per_service["dynamodb2"] = extras_per_service["dynamodb"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
+# EBS depends on EC2 to create snapshots
+extras_per_service["ebs"] = extras_per_service["ec2"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
 # DirectoryService needs EC2 to verify VPCs and subnets.

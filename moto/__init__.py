@@ -82,6 +82,7 @@ mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(
     ".elasticbeanstalk", "mock_elasticbeanstalk", backend="eb_backends"
 )
+mock_ebs = lazy_load(".ebs", "mock_ebs")
 mock_ec2 = lazy_load(".ec2", "mock_ec2")
 mock_ec2instanceconnect = lazy_load(".ec2instanceconnect", "mock_ec2instanceconnect")
 mock_ecr = lazy_load(".ecr", "mock_ecr")

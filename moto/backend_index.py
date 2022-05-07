@@ -36,6 +36,7 @@ backend_url_patterns = [
         "dynamodbstreams",
         re.compile("https?://streams\\.dynamodb\\.(.+)\\.amazonaws.com"),
     ),
+    ("ebs", re.compile("https?://ebs\\.(.+)\\.amazonaws\\.com")),
     ("ec2", re.compile("https?://ec2\\.(.+)\\.amazonaws\\.com(|\\.cn)")),
     (
         "ec2instanceconnect",

@@ -1413,6 +1413,18 @@
 - [X] list_streams
 </details>
 
+## ebs
+<details>
+<summary>100% implemented</summary>
+
+- [X] complete_snapshot
+- [X] get_snapshot_block
+- [X] list_changed_blocks
+- [X] list_snapshot_blocks
+- [X] put_snapshot_block
+- [X] start_snapshot
+</details>
+
 ## ec2
 <details>
 <summary>35% implemented</summary>
@@ -5876,7 +5888,6 @@
 - dlm
 - docdb
 - drs
-- ebs
 - ecr-public
 - elastic-inference
 - evidently
