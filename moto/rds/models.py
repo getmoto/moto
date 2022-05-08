@@ -110,6 +110,9 @@ class Cluster:
             random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
         )
         self.tags = kwargs.get("tags", [])
+        self.enabled_cloudwatch_logs_exports = (
+            kwargs.get("enable_cloudwatch_logs_exports") or []
+        )
 
     @property
     def db_cluster_arn(self):
@@ -172,6 +175,11 @@ class Cluster:
               <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>
+              <EnabledCloudwatchLogsExports>
+              {% for export in cluster.enabled_cloudwatch_logs_exports %}
+              <member>{{ export }}</member>
+              {% endfor %}
+              </EnabledCloudwatchLogsExports>
               <TagList>
               {%- for tag in cluster.tags -%}
                 <Tag>
@@ -426,6 +434,9 @@ class Database(CloudFormationModel):
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get("tags", [])
         self.deletion_protection = kwargs.get("deletion_protection", False)
+        self.enabled_cloudwatch_logs_exports = (
+            kwargs.get("enable_cloudwatch_logs_exports") or []
+        )
 
     @property
     def db_instance_arn(self):
@@ -516,6 +527,11 @@ class Database(CloudFormationModel):
                 </DBInstanceStatusInfo>
                 {% endif %}
               </StatusInfos>
+              <EnabledCloudwatchLogsExports>
+              {% for export in database.enabled_cloudwatch_logs_exports %}
+              <member>{{ export }}</member>
+              {% endfor %}
+              </EnabledCloudwatchLogsExports>
               {% if database.is_replica %}
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
@@ -1331,7 +1347,7 @@ class RDSBackend(BaseBackend):
         primary.add_replica(replica)
         return replica
 
-    def describe_databases(self, db_instance_identifier=None, filters=None):
+    def describe_db_instances(self, db_instance_identifier=None, filters=None):
         databases = self.databases
         if db_instance_identifier:
             filters = merge_filters(
@@ -1362,7 +1378,7 @@ class RDSBackend(BaseBackend):
         return list(snapshots.values())
 
     def modify_db_instance(self, db_instance_identifier, db_kwargs):
-        database = self.describe_databases(db_instance_identifier)[0]
+        database = self.describe_db_instances(db_instance_identifier)[0]
         if "new_db_instance_identifier" in db_kwargs:
             del self.databases[db_instance_identifier]
             db_instance_identifier = db_kwargs[
@@ -1373,7 +1389,7 @@ class RDSBackend(BaseBackend):
         return database
 
     def reboot_db_instance(self, db_instance_identifier):
-        database = self.describe_databases(db_instance_identifier)[0]
+        database = self.describe_db_instances(db_instance_identifier)[0]
         return database
 
     def restore_db_instance_from_db_snapshot(self, from_snapshot_id, overrides):
@@ -1394,7 +1410,7 @@ class RDSBackend(BaseBackend):
         return self.create_db_instance(new_instance_props)
 
     def stop_db_instance(self, db_instance_identifier, db_snapshot_identifier=None):
-        database = self.describe_databases(db_instance_identifier)[0]
+        database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html#USER_StopInstance.Limitations
         if database.is_replica or (
@@ -1410,7 +1426,7 @@ class RDSBackend(BaseBackend):
         return database
 
     def start_db_instance(self, db_instance_identifier):
-        database = self.describe_databases(db_instance_identifier)[0]
+        database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: bunch of different error messages to be generated from this api call
         if database.status != "stopped":
             raise InvalidDBInstanceStateError(db_instance_identifier, "start")
@@ -1427,7 +1443,7 @@ class RDSBackend(BaseBackend):
             backend = self
             db_name = db_id
 
-        return backend.describe_databases(db_name)[0]
+        return backend.describe_db_instances(db_name)[0]
 
     def delete_db_instance(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
