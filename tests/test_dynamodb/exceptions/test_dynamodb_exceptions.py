@@ -1,4 +1,5 @@
 import boto3
+import botocore
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from boto3.dynamodb.conditions import Key
@@ -547,3 +548,31 @@ def test_update_item_non_existent_table():
     err = exc.value.response["Error"]
     assert err["Code"].should.equal("ResourceNotFoundException")
     assert err["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb
+def test_put_item_wrong_datatype():
+    session = botocore.session.Session()
+    config = botocore.client.Config(parameter_validation=False)
+    client = session.create_client("dynamodb", region_name="us-east-1", config=config)
+    client.create_table(
+        TableName="test2",
+        KeySchema=[{"AttributeName": "mykey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "mykey", "AttributeType": "N"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.put_item(TableName="test2", Item={"mykey": {"N": 123}})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("SerializationException")
+    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+
+    # Same thing - but with a non-key, and nested
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName="test2",
+            Item={"mykey": {"N": "123"}, "nested": {"M": {"sth": {"N": 5}}}},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("SerializationException")
+    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")

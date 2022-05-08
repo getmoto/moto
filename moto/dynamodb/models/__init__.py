@@ -33,6 +33,7 @@ from moto.dynamodb.exceptions import (
     ResourceInUseException,
     StreamAlreadyEnabledException,
     MockValidationException,
+    InvalidConversion,
 )
 from moto.dynamodb.models.utilities import bytesize
 from moto.dynamodb.models.dynamo_type import DynamoType
@@ -646,6 +647,13 @@ class Table(CloudFormationModel):
                 if DynamoType(range_value).size() > RANGE_KEY_MAX_LENGTH:
                     raise RangeKeyTooLong
 
+    def _validate_item_types(self, item_attrs):
+        for key, value in item_attrs.items():
+            if type(value) == dict:
+                self._validate_item_types(value)
+            elif type(value) == int and key == "N":
+                raise InvalidConversion
+
     def put_item(
         self,
         item_attrs,
@@ -687,6 +695,8 @@ class Table(CloudFormationModel):
             )
 
         self._validate_key_sizes(item_attrs)
+
+        self._validate_item_types(item_attrs)
 
         if expected is None:
             expected = {}
