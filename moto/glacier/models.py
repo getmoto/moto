@@ -2,7 +2,7 @@ import hashlib
 
 import datetime
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .utils import get_job_id
@@ -99,7 +99,7 @@ class Vault(BaseModel):
     @property
     def arn(self):
         return "arn:aws:glacier:{0}:{1}:vaults/{2}".format(
-            self.region, ACCOUNT_ID, self.vault_name
+            self.region, get_account_id(), self.vault_name
         )
 
     def to_dict(self):

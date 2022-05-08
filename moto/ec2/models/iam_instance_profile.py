@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.models import CloudFormationModel
 from ..exceptions import (
     IncorrectStateIamProfileAssociationError,
@@ -10,7 +10,7 @@ from ..utils import (
     filter_iam_instance_profiles,
 )
 
-OWNER_ID = ACCOUNT_ID
+OWNER_ID = get_account_id()
 
 
 class IamInstanceProfileAssociation(CloudFormationModel):

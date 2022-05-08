@@ -2,7 +2,7 @@ import datetime
 import re
 import json
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
@@ -774,7 +774,7 @@ class OrganizationsBackend(BaseBackend):
     def register_delegated_administrator(self, **kwargs):
         account_id = kwargs["AccountId"]
 
-        if account_id == ACCOUNT_ID:
+        if account_id == get_account_id():
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
@@ -833,7 +833,7 @@ class OrganizationsBackend(BaseBackend):
         account_id = kwargs["AccountId"]
         service = kwargs["ServicePrincipal"]
 
-        if account_id == ACCOUNT_ID:
+        if account_id == get_account_id():
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )

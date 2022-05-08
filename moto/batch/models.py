@@ -9,7 +9,7 @@ import threading
 import dateutil.parser
 from sys import platform
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
@@ -27,7 +27,6 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -69,7 +68,7 @@ class ComputeEnvironment(CloudFormationModel):
         self.compute_resources = compute_resources
         self.service_role = service_role
         self.arn = make_arn_for_compute_env(
-            DEFAULT_ACCOUNT_ID, compute_environment_name, region_name
+            get_account_id(), compute_environment_name, region_name
         )
 
         self.instances = []
@@ -146,7 +145,7 @@ class JobQueue(CloudFormationModel):
         self.state = state
         self.environments = environments
         self.env_order_json = env_order_json
-        self.arn = make_arn_for_job_queue(DEFAULT_ACCOUNT_ID, name, region_name)
+        self.arn = make_arn_for_job_queue(get_account_id(), name, region_name)
         self.status = "VALID"
         self.backend = backend
 
@@ -258,7 +257,7 @@ class JobDefinition(CloudFormationModel):
     def _update_arn(self):
         self.revision += 1
         self.arn = make_arn_for_task_def(
-            DEFAULT_ACCOUNT_ID, self.name, self.revision, self._region
+            get_account_id(), self.name, self.revision, self._region
         )
 
     def _get_resource_requirement(self, req_type, default=None):

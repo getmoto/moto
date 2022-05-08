@@ -8,7 +8,7 @@ from collections import defaultdict
 from jinja2 import Template
 from re import compile as re_compile
 from collections import OrderedDict
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.ec2.models import ec2_backends
@@ -114,7 +114,7 @@ class Cluster:
     @property
     def db_cluster_arn(self):
         return "arn:aws:rds:{0}:{1}:cluster:{2}".format(
-            self.region, ACCOUNT_ID, self.db_cluster_identifier
+            self.region, get_account_id(), self.db_cluster_identifier
         )
 
     def to_xml(self):
@@ -258,7 +258,7 @@ class ClusterSnapshot(BaseModel):
     @property
     def snapshot_arn(self):
         return "arn:aws:rds:{0}:{1}:cluster-snapshot:{2}".format(
-            self.cluster.region, ACCOUNT_ID, self.snapshot_id
+            self.cluster.region, get_account_id(), self.snapshot_id
         )
 
     def to_xml(self):
@@ -430,7 +430,7 @@ class Database(CloudFormationModel):
     @property
     def db_instance_arn(self):
         return "arn:aws:rds:{0}:{1}:db:{2}".format(
-            self.region, ACCOUNT_ID, self.db_instance_identifier
+            self.region, get_account_id(), self.db_instance_identifier
         )
 
     @property
@@ -849,7 +849,7 @@ class DatabaseSnapshot(BaseModel):
     @property
     def snapshot_arn(self):
         return "arn:aws:rds:{0}:{1}:snapshot:{2}".format(
-            self.database.region, ACCOUNT_ID, self.snapshot_id
+            self.database.region, get_account_id(), self.snapshot_id
         )
 
     def to_xml(self):
@@ -958,14 +958,14 @@ class EventSubscription(BaseModel):
         self.tags = kwargs.get("tags", True)
 
         self.region = ""
-        self.customer_aws_id = copy.copy(ACCOUNT_ID)
+        self.customer_aws_id = copy.copy(get_account_id())
         self.status = "active"
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
     def es_arn(self):
         return "arn:aws:rds:{0}:{1}:es:{2}".format(
-            self.region, ACCOUNT_ID, self.subscription_name
+            self.region, get_account_id(), self.subscription_name
         )
 
     def to_xml(self):
@@ -1021,7 +1021,7 @@ class SecurityGroup(CloudFormationModel):
         self.ip_ranges = []
         self.ec2_security_groups = []
         self.tags = tags
-        self.owner_id = ACCOUNT_ID
+        self.owner_id = get_account_id()
         self.vpc_id = None
 
     def to_xml(self):
@@ -2123,7 +2123,7 @@ class OptionGroup(object):
 
 
 def make_rds_arn(region, name):
-    return "arn:aws:rds:{0}:{1}:pg:{2}".format(region, ACCOUNT_ID, name)
+    return "arn:aws:rds:{0}:{1}:pg:{2}".format(region, get_account_id(), name)
 
 
 class DBParameterGroup(CloudFormationModel):

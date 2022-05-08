@@ -5,7 +5,7 @@ import warnings
 
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.emr.exceptions import (
     InvalidRequestException,
@@ -280,7 +280,7 @@ class FakeCluster(BaseModel):
     @property
     def arn(self):
         return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            self.emr_backend.region_name, ACCOUNT_ID, self.id
+            self.emr_backend.region_name, get_account_id(), self.id
         )
 
     @property

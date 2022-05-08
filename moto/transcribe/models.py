@@ -1,10 +1,9 @@
 import uuid
 from datetime import datetime, timedelta
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.sts.models import ACCOUNT_ID
 from .exceptions import ConflictException, BadRequestException
 
 
@@ -201,7 +200,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
             else:
                 transcript_file_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-{0}-prod/{1}/{2}/{3}/asrOutput.json".format(  # noqa: E501
                     self._region_name,
-                    ACCOUNT_ID,
+                    get_account_id(),
                     self.transcription_job_name,
                     uuid.uuid4(),
                 )
@@ -227,7 +226,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.{0}.amazonaws.com/aws-transcribe-dictionary-model-{0}-prod/{1}/{2}/{3}/input.txt".format(  # noqa: E501
-            region_name, ACCOUNT_ID, vocabulary_name, uuid
+            region_name, get_account_id(), vocabulary_name, uuid
         )
 
     def response_object(self, response_type):
@@ -424,7 +423,7 @@ class FakeMedicalVocabulary(FakeVocabulary):
         self.last_modified_time = None
         self.failure_reason = None
         self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{}-prod/{}/medical/{}/{}/input.txt".format(  # noqa: E501
-            region_name, ACCOUNT_ID, self.vocabulary_name, uuid.uuid4()
+            region_name, get_account_id(), self.vocabulary_name, uuid.uuid4()
         )
 
 

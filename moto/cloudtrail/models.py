@@ -2,7 +2,7 @@ import re
 import time
 
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -109,12 +109,12 @@ class Trail(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:cloudtrail:{self.region_name}:{ACCOUNT_ID}:trail/{self.trail_name}"
+        return f"arn:aws:cloudtrail:{self.region_name}:{get_account_id()}:trail/{self.trail_name}"
 
     @property
     def topic_arn(self):
         if self.sns_topic_name:
-            return f"arn:aws:sns:{self.region_name}:{ACCOUNT_ID}:{self.sns_topic_name}"
+            return f"arn:aws:sns:{self.region_name}:{get_account_id()}:{self.sns_topic_name}"
         return None
 
     def check_name(self):
@@ -303,7 +303,9 @@ class CloudTrailBackend(BaseBackend):
         )
         if not trail_name:
             # This particular method returns the ARN as part of the error message
-            arn = f"arn:aws:cloudtrail:{self.region_name}:{ACCOUNT_ID}:trail/{name}"
+            arn = (
+                f"arn:aws:cloudtrail:{self.region_name}:{get_account_id()}:trail/{name}"
+            )
             raise TrailNotFoundException(name=arn)
         trail = self.trails[trail_name]
         return trail.status

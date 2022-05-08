@@ -1,5 +1,3 @@
-import botocore
-import boto3
 import functools
 import inspect
 import itertools
@@ -7,20 +5,22 @@ import os
 import random
 import re
 import string
+import unittest
 from abc import abstractmethod
-from io import BytesIO
 from collections import defaultdict
+from io import BytesIO
+from types import FunctionType
+from unittest.mock import patch
 
+import boto3
+import botocore
+import responses
+from botocore.awsrequest import AWSResponse
 from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
-from botocore.awsrequest import AWSResponse
-from types import FunctionType
 
 from moto import settings
 from moto.core.exceptions import HTTPException
-import responses
-import unittest
-from unittest.mock import patch
 from .custom_responses_mock import (
     get_response_mock,
     CallbackResponse,
@@ -29,8 +29,18 @@ from .custom_responses_mock import (
 )
 from .utils import convert_regex_to_flask_path, convert_flask_to_responses_response
 
-
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
+
+
+def _get_default_account_id():
+    return ACCOUNT_ID
+
+
+account_id_resolver = _get_default_account_id
+
+
+def get_account_id():
+    return account_id_resolver()
 
 
 class BaseMockAWS:
@@ -225,14 +235,12 @@ RESPONSES_METHODS = [
     responses.PUT,
 ]
 
-
 botocore_mock = responses.RequestsMock(
     assert_all_requests_are_fired=False,
     target="botocore.vendored.requests.adapters.HTTPAdapter.send",
 )
 
 responses_mock = get_response_mock()
-
 
 BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
 

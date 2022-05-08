@@ -46,7 +46,7 @@ from moto.ssm import models  # noqa  # pylint: disable=all
 
 # End ugly list of imports
 
-from moto.core import ACCOUNT_ID, CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from moto.s3 import s3_backend
 from moto.s3.utils import bucket_and_name_from_url
 from moto.ssm import ssm_backends
@@ -453,7 +453,7 @@ class ResourceMap(collections_abc.Mapping):
 
         # Create the default resources
         self._parsed_resources = {
-            "AWS::AccountId": ACCOUNT_ID,
+            "AWS::AccountId": get_account_id(),
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,

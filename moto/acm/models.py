@@ -13,7 +13,7 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 
 
 AWS_ROOT_CA = b"""-----BEGIN CERTIFICATE-----
@@ -161,7 +161,7 @@ class CertBundle(BaseModel):
 
         # Used for when one wants to overwrite an arn
         if arn is None:
-            self.arn = make_arn_for_certificate(DEFAULT_ACCOUNT_ID, region)
+            self.arn = make_arn_for_certificate(get_account_id(), region)
         else:
             self.arn = arn
 
@@ -444,7 +444,7 @@ class AWSCertificateManagerBackend(BaseBackend):
     @staticmethod
     def _arn_not_found(arn):
         msg = "Certificate with arn {0} not found in account {1}".format(
-            arn, DEFAULT_ACCOUNT_ID
+            arn, get_account_id()
         )
         return AWSResourceNotFoundException(msg)
 

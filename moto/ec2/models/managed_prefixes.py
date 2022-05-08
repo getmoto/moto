@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.utilities.utils import filter_resources
 from .core import TaggedEC2Resource
 from ..utils import random_managed_prefix_list_id, describe_tag_filter
@@ -37,7 +37,9 @@ class ManagedPrefixList(TaggedEC2Resource):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID if not self.resource_owner_id else self.resource_owner_id
+        return (
+            get_account_id() if not self.resource_owner_id else self.resource_owner_id
+        )
 
 
 class ManagedPrefixListBackend(object):

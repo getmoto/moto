@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core import BaseBackend
 from moto.core.utils import BackendDict
 from ..exceptions import (
@@ -54,7 +54,7 @@ from ..utils import (
     get_prefix,
 )
 
-OWNER_ID = ACCOUNT_ID
+OWNER_ID = get_account_id()
 
 
 def validate_resource_ids(resource_ids):

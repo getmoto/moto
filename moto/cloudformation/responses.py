@@ -8,7 +8,7 @@ from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
 from moto.s3.exceptions import S3ClientError
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from .models import cloudformation_backends
 from .exceptions import ValidationError, MissingParameterError
 from .utils import yaml_tag_constructor
@@ -516,7 +516,7 @@ class CloudFormationResponse(BaseResponse):
 
         if not stackset.admin_role:
             stackset.admin_role = "arn:aws:iam::{AccountId}:role/AWSCloudFormationStackSetAdministrationRole".format(
-                AccountId=ACCOUNT_ID
+                AccountId=get_account_id()
             )
         if not stackset.execution_role:
             stackset.execution_role = "AWSCloudFormationStackSetExecutionRole"
@@ -1175,7 +1175,7 @@ DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = (
     <StackSetOperation>
       <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
       <AdministrationRoleARN>arn:aws:iam::"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """:role/{{ stackset.admin_role }}</AdministrationRoleARN>
       <StackSetId>{{ stackset.id }}</StackSetId>
       <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
@@ -1204,7 +1204,7 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
       <member>
         <AccountGateResult>
           <StatusReason>Function not found: arn:aws:lambda:us-west-2:"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """:function:AWSCloudFormationStackSetAccountGate</StatusReason>
           <Status>SKIPPED</Status>
         </AccountGateResult>

@@ -1,6 +1,6 @@
 import uuid
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
@@ -421,7 +421,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {
                     "ResourceARN": "arn:aws:ec2:{0}:{1}:vpc/{2}".format(
-                        self.region_name, ACCOUNT_ID, vpc.id
+                        self.region_name, get_account_id(), vpc.id
                     ),
                     "Tags": tags,
                 }

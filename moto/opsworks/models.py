@@ -1,6 +1,6 @@
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import BackendDict
 import uuid
 import datetime
@@ -371,7 +371,7 @@ class Stack(BaseModel):
         self.id = "{0}".format(uuid.uuid4())
         self.layers = []
         self.apps = []
-        self.account_number = ACCOUNT_ID
+        self.account_number = get_account_id()
         self.created_at = datetime.datetime.utcnow()
 
     def __eq__(self, other):

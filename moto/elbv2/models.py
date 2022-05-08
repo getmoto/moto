@@ -4,7 +4,7 @@ from jinja2 import Template
 from botocore.exceptions import ParamValidationError
 from collections import OrderedDict
 from moto.core.exceptions import RESTError
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     get_random_hex,
@@ -694,7 +694,7 @@ class ELBv2Backend(BaseBackend):
 
         vpc_id = subnets[0].vpc_id
         arn = make_arn_for_load_balancer(
-            account_id=ACCOUNT_ID, name=name, region_name=self.region_name
+            account_id=get_account_id(), name=name, region_name=self.region_name
         )
         dns_name = "%s-1.%s.elb.amazonaws.com" % (name, self.region_name)
 
@@ -1022,7 +1022,7 @@ Member must satisfy regular expression pattern: {}".format(
             )
 
         arn = make_arn_for_target_group(
-            account_id=ACCOUNT_ID, name=name, region_name=self.region_name
+            account_id=get_account_id(), name=name, region_name=self.region_name
         )
         tags = kwargs.pop("tags", None)
         target_group = FakeTargetGroup(name, arn, **kwargs)

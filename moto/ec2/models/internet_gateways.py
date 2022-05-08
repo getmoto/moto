@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID, CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from .core import TaggedEC2Resource
 
 from ..exceptions import (
@@ -81,7 +81,7 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():

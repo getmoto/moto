@@ -1,5 +1,5 @@
 """Exceptions raised by the cloudtrail service."""
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.exceptions import JsonRESTError
 
 
@@ -30,7 +30,7 @@ class TrailNotFoundException(JsonRESTError):
     def __init__(self, name):
         super().__init__(
             "TrailNotFoundException",
-            f"Unknown trail: {name} for the user: {ACCOUNT_ID}",
+            f"Unknown trail: {name} for the user: {get_account_id()}",
         )
 
 
