@@ -1018,7 +1018,7 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                         od[k] = [transform(v["member"], spec[k]["member"])]
                 elif isinstance(v["member"], list):
                     od[k] = [transform(o, spec[k]["member"]) for o in v["member"]]
-                elif isinstance(v["member"], OrderedDict):
+                elif isinstance(v["member"], (OrderedDict, dict)):
                     od[k] = [transform(v["member"], spec[k]["member"])]
                 else:
                     raise ValueError("Malformatted input")
