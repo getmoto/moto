@@ -1069,11 +1069,7 @@
 
 ## databrew
 <details>
-<<<<<<< HEAD
-<summary>22% implemented</summary>
-=======
 <summary>27% implemented</summary>
->>>>>>> e39da2be (Running pre-release scripts)
 
 - [ ] batch_delete_recipe_version
 - [X] create_dataset
