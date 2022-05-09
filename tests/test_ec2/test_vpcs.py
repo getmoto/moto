@@ -947,7 +947,7 @@ def test_describe_vpc_gateway_end_points():
         VpcId=vpc["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
         RouteTableIds=[route_table["RouteTableId"]],
-        VpcEndpointType="gateway",
+        VpcEndpointType="Gateway",
     )["VpcEndpoint"]
     our_id = vpc_end_point["VpcEndpointId"]
 
@@ -960,7 +960,7 @@ def test_describe_vpc_gateway_end_points():
     our_endpoint["VpcId"].should.equal(vpc["VpcId"])
     our_endpoint["RouteTableIds"].should.equal([route_table["RouteTableId"]])
 
-    our_endpoint.should.have.key("VpcEndpointType").equal("gateway")
+    our_endpoint.should.have.key("VpcEndpointType").equal("Gateway")
     our_endpoint.should.have.key("ServiceName").equal("com.amazonaws.us-east-1.s3")
     our_endpoint.should.have.key("State").equal("available")
 
@@ -970,9 +970,14 @@ def test_describe_vpc_gateway_end_points():
     endpoint_by_id["VpcEndpointId"].should.equal(our_id)
     endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
     endpoint_by_id["RouteTableIds"].should.equal([route_table["RouteTableId"]])
-    endpoint_by_id["VpcEndpointType"].should.equal("gateway")
+    endpoint_by_id["VpcEndpointType"].should.equal("Gateway")
     endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
     endpoint_by_id["State"].should.equal("available")
+
+    gateway_endpoints = ec2.describe_vpc_endpoints(
+        Filters=[{"Name": "vpc-endpoint-type", "Values": ["Gateway"]}]
+    )["VpcEndpoints"]
+    [e["VpcEndpointId"] for e in gateway_endpoints].should.contain(our_id)
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])

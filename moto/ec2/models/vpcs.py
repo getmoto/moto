@@ -76,6 +76,12 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
         self.created_at = utc_date_and_time()
 
+    def get_filter_value(self, filter_name):
+        if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
+            return self.endpoint_type
+        else:
+            return super().get_filter_value(filter_name, "DescribeVpcs")
+
     @property
     def owner_id(self):
         return get_account_id()
