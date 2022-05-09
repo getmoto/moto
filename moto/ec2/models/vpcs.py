@@ -61,7 +61,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.id = endpoint_id
         self.vpc_id = vpc_id
         self.service_name = service_name
-        self.vpc_endpoint_type = endpoint_type
+        self.endpoint_type = endpoint_type
         self.state = "available"
         self.policy_document = policy_document
         self.route_table_ids = route_table_ids
@@ -75,6 +75,12 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.destination_prefix_list_id = destination_prefix_list_id
 
         self.created_at = utc_date_and_time()
+
+    def get_filter_value(self, filter_name):
+        if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
+            return self.endpoint_type
+        else:
+            return super().get_filter_value(filter_name, "DescribeVpcs")
 
     @property
     def owner_id(self):
@@ -572,7 +578,7 @@ class VPCBackend(object):
         for vpce_id in vpce_ids or []:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
-                if vpc_endpoint.vpc_endpoint_type.lower() == "interface":
+                if vpc_endpoint.endpoint_type.lower() == "interface":
                     for eni_id in vpc_endpoint.network_interface_ids:
                         self.enis.pop(eni_id, None)
                 else:
