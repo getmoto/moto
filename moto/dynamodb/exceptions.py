@@ -310,3 +310,9 @@ class StreamAlreadyEnabledException(JsonRESTError):
     def __init__(self):
         er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
         super().__init__(er, "Cannot enable stream")
+
+
+class InvalidConversion(JsonRESTError):
+    def __init__(self):
+        er = "SerializationException"
+        super().__init__(er, "NUMBER_VALUE cannot be converted to String")
