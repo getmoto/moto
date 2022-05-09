@@ -157,6 +157,7 @@ def test_create_db_cluster_additional_parameters():
         MasterUserPassword="hunter2_",
         Port=1234,
         DeletionProtection=True,
+        EnableCloudwatchLogsExports=["audit"],
     )
 
     cluster = resp["DBCluster"]
@@ -167,6 +168,7 @@ def test_create_db_cluster_additional_parameters():
     cluster.should.have.key("EngineMode").equal("serverless")
     cluster.should.have.key("Port").equal(1234)
     cluster.should.have.key("DeletionProtection").equal(True)
+    cluster.should.have.key("EnabledCloudwatchLogsExports").equals(["audit"])
 
 
 @mock_rds
