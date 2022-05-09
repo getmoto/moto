@@ -4,7 +4,8 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-from moto import mock_dynamodb
+from unittest import SkipTest
+from moto import mock_dynamodb, settings
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -552,6 +553,8 @@ def test_update_item_non_existent_table():
 
 @mock_dynamodb
 def test_put_item_wrong_datatype():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to mock a session with Config in ServerMode")
     session = botocore.session.Session()
     config = botocore.client.Config(parameter_validation=False)
     client = session.create_client("dynamodb", region_name="us-east-1", config=config)
