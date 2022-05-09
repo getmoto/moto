@@ -232,3 +232,37 @@ def test_update_dataset():
     dataset = client.describe_dataset(Name=response["Name"])
     dataset["Name"].should.equal(response["Name"])
     dataset["Format"].should.equal("TEST")
+
+@mock_databrew
+def test_update_dataset_that_does_not_exist():
+    client = _create_databrew_client()
+
+    # Update the dataset and check response
+    with pytest.raises(ClientError) as exc:
+        dataset = client.update_dataset(
+            Name="RANDOMNAME",
+            Format="TEST",
+            Input={
+                "S3InputDefinition": {
+                    "Bucket": "somerandombucketname",
+                },
+                "DataCatalogInputDefinition": {
+                    "DatabaseName": "somedbname",
+                    "TableName": "sometablename",
+                    "TempDirectory": {
+                        "Bucket": "sometempbucketname",
+                    },
+                },
+                "DatabaseInputDefinition": {
+                    "GlueConnectionName": "someglueconnectionname",
+                    "TempDirectory": {
+                        "Bucket": "sometempbucketname",
+                    },
+                },
+            },
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal(f"One or more resources can't be found.")
+
