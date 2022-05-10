@@ -281,9 +281,7 @@ class SecretsManagerBackend(BaseBackend):
         ):
             raise SecretHasNoValueException(version_stage or "AWSCURRENT")
 
-        response = json.dumps(response_data)
-
-        return response
+        return response_data
 
     def update_secret(
         self,
@@ -442,7 +440,7 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
-        return json.dumps(secret.to_dict())
+        return secret.to_dict()
 
     def rotate_secret(
         self,
