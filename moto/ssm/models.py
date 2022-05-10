@@ -8,6 +8,8 @@ from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
 from moto.ec2 import ec2_backends
+from moto.secretsmanager import secretsmanager_backends
+from moto.secretsmanager.exceptions import SecretsManagerClientError
 from moto.utilities.utils import load_resource
 
 import datetime
@@ -44,9 +46,12 @@ from .exceptions import (
 
 
 class ParameterDict(defaultdict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, region_name):
+        # each value is a list of all of the versions for a parameter
+        # to get the current value, grab the last item of the list
+        super().__init__(list)
         self.parameters_loaded = False
+        self.region_name = region_name
 
     def _check_loading_status(self, key):
         if not self.parameters_loaded and key and str(key).startswith("/aws"):
@@ -81,11 +86,53 @@ class ParameterDict(defaultdict):
             )
         self.parameters_loaded = True
 
+    def _get_secretsmanager_parameter(self, secret_name):
+        secret = secretsmanager_backends[self.region_name].describe_secret(secret_name)
+        version_id_to_stage = secret["VersionIdsToStages"]
+        # Sort version ID's so that AWSCURRENT is last
+        sorted_version_ids = [
+            k for k in version_id_to_stage if "AWSCURRENT" not in version_id_to_stage[k]
+        ] + [k for k in version_id_to_stage if "AWSCURRENT" in version_id_to_stage[k]]
+        values = [
+            secretsmanager_backends[self.region_name].get_secret_value(
+                secret_name,
+                version_id=version_id,
+                version_stage=None,
+            )
+            for version_id in sorted_version_ids
+        ]
+        return [
+            Parameter(
+                name=secret["Name"],
+                value=val.get("SecretString"),
+                parameter_type="SecureString",
+                description=secret.get("Description"),
+                allowed_pattern=None,
+                keyid=None,
+                last_modified_date=secret["LastChangedDate"],
+                version=0,
+                data_type="text",
+                labels=[val.get("VersionId")] + val.get("VersionStages", []),
+                source_result=json.dumps(secret),
+            )
+            for val in values
+        ]
+
     def __getitem__(self, item):
+        if item.startswith("/aws/reference/secretsmanager/"):
+            return self._get_secretsmanager_parameter("/".join(item.split("/")[4:]))
         self._check_loading_status(item)
         return super().__getitem__(item)
 
     def __contains__(self, k):
+        if k and k.startswith("/aws/reference/secretsmanager/"):
+            try:
+                param = self._get_secretsmanager_parameter("/".join(k.split("/")[4:]))
+                return param is not None
+            except SecretsManagerClientError:
+                raise ParameterNotFound(
+                    f"An error occurred (ParameterNotFound) when referencing Secrets Manager: Secret {k} not found."
+                )
         self._check_loading_status(k)
         return super().__contains__(k)
 
@@ -116,6 +163,8 @@ class Parameter(BaseModel):
         version,
         data_type,
         tags=None,
+        labels=None,
+        source_result=None,
     ):
         self.name = name
         self.type = parameter_type
@@ -126,7 +175,8 @@ class Parameter(BaseModel):
         self.version = version
         self.data_type = data_type
         self.tags = tags or []
-        self.labels = []
+        self.labels = labels or []
+        self.source_result = source_result
 
         if self.type == "SecureString":
             if not self.keyid:
@@ -156,6 +206,8 @@ class Parameter(BaseModel):
             "LastModifiedDate": round(self.last_modified_date, 3),
             "DataType": self.data_type,
         }
+        if self.source_result:
+            r["SourceResult"] = self.source_result
 
         if region:
             r["ARN"] = parameter_arn(region, self.name)
@@ -786,9 +838,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def __init__(self, region):
         super().__init__()
-        # each value is a list of all of the versions for a parameter
-        # to get the current value, grab the last item of the list
-        self._parameters = ParameterDict(list)
+        self._parameters = ParameterDict(region)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
