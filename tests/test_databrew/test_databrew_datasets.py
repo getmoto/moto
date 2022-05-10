@@ -233,13 +233,14 @@ def test_update_dataset():
     dataset["Name"].should.equal(response["Name"])
     dataset["Format"].should.equal("TEST")
 
+
 @mock_databrew
 def test_update_dataset_that_does_not_exist():
     client = _create_databrew_client()
 
     # Update the dataset and check response
     with pytest.raises(ClientError) as exc:
-        dataset = client.update_dataset(
+        client.update_dataset(
             Name="RANDOMNAME",
             Format="TEST",
             Input={
@@ -265,4 +266,3 @@ def test_update_dataset_that_does_not_exist():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
     err["Message"].should.equal(f"One or more resources can't be found.")
-
