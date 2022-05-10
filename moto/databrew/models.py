@@ -13,7 +13,7 @@ from .exceptions import (
     ValidationException,
     RulesetAlreadyExistsException,
     RulesetNotFoundException,
-    ResourceNotFoundException
+    ResourceNotFoundException,
 )
 
 
