@@ -12,6 +12,24 @@ from moto import mock_rekognition
 
 
 @mock_rekognition
+def test_start_face_search():
+    client = boto3.client("rekognition", region_name="ap-southeast-1")
+    collection_id = "collection_id"
+    video = {
+        "S3Object": {
+            "Bucket": "bucket",
+            "Name": "key",
+        }
+    }
+
+    resp = client.start_face_search(CollectionId=collection_id, Video=video)
+
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    resp.should.have.key("JobId")
+
+
+@mock_rekognition
 def test_start_text_detection():
     client = boto3.client("rekognition", region_name="ap-southeast-1")
     video = {
@@ -26,6 +44,23 @@ def test_start_text_detection():
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     resp.should.have.key("JobId")
+
+
+@mock_rekognition
+def test_get_face_search():
+    client = boto3.client("rekognition", region_name="us-east-2")
+    job_id = "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(64)
+    )
+
+    resp = client.get_face_search(JobId=job_id)
+
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    resp["JobStatus"].should.equal("SUCCEEDED")
+    resp["Persons"][0]["FaceMatches"][0]["Face"]["ExternalImageId"].should.equal(
+        "Dave_Bloggs"
+    )
 
 
 @mock_rekognition
