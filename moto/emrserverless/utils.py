@@ -1,6 +1,6 @@
 # import json
-import string
 import random
+import string
 
 
 def get_partition(region):
@@ -13,6 +13,10 @@ def random_id(size=13):
 
 
 def random_appplication_id():
+    return random_id(size=16)
+
+
+def random_job_id():
     return random_id(size=16)
 
 

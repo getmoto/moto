@@ -2,6 +2,7 @@
 import json
 
 from moto.core.responses import BaseResponse
+
 from .models import emrserverless_backends
 
 
@@ -42,7 +43,6 @@ class EMRServerlessResponse(BaseResponse):
             json.dumps(dict(applicationId=application_id, name=name, arn=arn)),
         )
 
-    
     def list_applications(self):
         params = self._get_params()
         next_token = params.get("nextToken")
@@ -53,7 +53,53 @@ class EMRServerlessResponse(BaseResponse):
             max_results=max_results,
             states=states,
         )
-        # TODO: adjust response
-        return 200, {}, json.dumps(dict(applications=applications, nextToken=next_token))
+        return (
+            200,
+            {},
+            json.dumps(dict(applications=applications, nextToken=next_token)),
+        )
 
-# add templates from here
+    def get_application(self):
+        app_id = self._get_param("applicationId")
+        application = self.emrserverless_backend.get_application(application_id=app_id)
+        return 200, {}, json.dumps(dict(application=application))
+
+    def start_job_run(self):
+        application_id = self._get_param("applicationId")
+        job_driver = self._get_param("jobDriver")
+        client_token = self._get_param("clientToken")
+        configuration_overrides = self._get_param("configurationOverrides")
+        execution_role_arn = self._get_param("executionRoleArn")
+        tags = self._get_param("tags")
+
+        app_id, job_id, arn = self.emrserverless_backend.start_job_run(
+            application_id=application_id,
+            client_token=client_token,
+            configuration_overrides=configuration_overrides,
+            execution_role_arn=execution_role_arn,
+            job_driver=job_driver,
+            tags=tags,
+        )
+        return 200, {}, json.dumps(dict(applicationId=app_id, arn=arn, jobRunId=job_id))
+
+    def list_job_runs(self):
+        params = self._get_params()
+        next_token = params.get("nextToken")
+        max_results = params.get("maxResults")
+        states = params.get("states")
+        application_id = self._get_param("applicationId")
+        jobs, next_token = self.emrserverless_backend.list_job_runs(
+            application_id=application_id,
+            next_token=next_token,
+            max_results=max_results,
+            states=states,
+        )
+        return 200, {}, json.dumps(dict(jobRuns=jobs, nextToken=next_token))
+
+    def get_job_run(self):
+        app_id = self._get_param("applicationId")
+        job_id = self._get_param("jobRunId")
+        job = self.emrserverless_backend.get_job_run(
+            application_id=app_id, job_run_id=job_id
+        )
+        return 200, {}, json.dumps(dict(job=job))
