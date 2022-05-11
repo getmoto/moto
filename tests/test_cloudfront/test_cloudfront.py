@@ -15,11 +15,11 @@ def test_update_distribution():
 
     # Create standard distribution
     config = scaffold.example_distribution_config(ref="ref")
-    dist1 = client.create_distribution(DistributionConfig=config)
-    dist_id = dist1["Distribution"]["Id"]
-    dist_etag = dist1["ETag"]
+    dist = client.create_distribution(DistributionConfig=config)
+    dist_id = dist["Distribution"]["Id"]
+    dist_etag = dist["ETag"]
 
-    dist_config = dist1["Distribution"]["DistributionConfig"]
+    dist_config = dist["Distribution"]["DistributionConfig"]
     aliases = ["alias1", "alias2"]
     dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
 
