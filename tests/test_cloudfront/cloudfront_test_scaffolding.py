@@ -1,4 +1,9 @@
+# Example distribution config used in tests in both test_cloudfront.py
+# as well as test_cloudfront_distributions.py.
+
+
 def example_distribution_config(ref):
+    """Return a basic example distribution config for use in tests."""
     return {
         "CallerReference": ref,
         "Origins": {
