@@ -3,8 +3,7 @@ import itertools
 import json
 from collections import defaultdict
 
-from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from moto.core.utils import aws_api_matches
 from ..exceptions import (
     DependencyViolationError,

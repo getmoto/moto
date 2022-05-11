@@ -1,5 +1,5 @@
 from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from ..exceptions import (
     IncorrectStateIamProfileAssociationError,
     InvalidAssociationIDIamProfileAssociationError,

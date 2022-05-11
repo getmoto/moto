@@ -1,6 +1,7 @@
 from collections import defaultdict
 
-from moto.core.models import Model, CloudFormationModel
+from moto.core.common_models import CloudFormationModel
+from moto.core.models import Model
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 from moto.packages.boto.ec2.spotinstancerequest import (
     SpotInstanceRequest as BotoSpotRequest,
