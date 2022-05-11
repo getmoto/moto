@@ -39,7 +39,7 @@ class MotoAPIResponse(BaseResponse):
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto Auth"})
 
     def model_data(self, request, full_url, headers):  # pylint: disable=unused-argument
-        from moto.core.models import model_data
+        from moto.core.base_backend import model_data
 
         results = {}
         for service in sorted(model_data):
