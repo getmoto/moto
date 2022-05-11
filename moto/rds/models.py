@@ -506,7 +506,7 @@ class Database(CloudFormationModel):
                 </VpcSecurityGroupMembership>
                 {% endfor %}
               </VpcSecurityGroups>
-              <DBClusterIdentifier>{{ database.db_cluster_identifier }}</DBClusterIdentifier>
+              {% if database.db_cluster_identifier %}<DBClusterIdentifier>{{ database.db_cluster_identifier }}</DBClusterIdentifier>{% endif %}
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
               <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
@@ -758,7 +758,7 @@ class Database(CloudFormationModel):
         "BackupRetentionPeriod": "{{ database.backup_retention_period }}",
         "CharacterSetName": {%- if database.character_set_name -%}{{ database.character_set_name }}{%- else %} null{%- endif -%},
         "DBInstanceClass": "{{ database.db_instance_class }}",
-        "DBClusterIdentifier": "{{ database.db_cluster_identifier }}",
+        {%- if database.db_cluster_identifier -%}"DBClusterIdentifier": "{{ database.db_cluster_identifier }}",{%- endif -%}
         "DBInstanceIdentifier": "{{ database.db_instance_identifier }}",
         "DBInstanceStatus": "{{ database.status }}",
         "DBName": {%- if database.db_name -%}"{{ database.db_name }}"{%- else %} null{%- endif -%},
