@@ -277,7 +277,6 @@ class BotocoreStubber:
         response_callback = None
         found_index = None
         matchers = self.methods.get(request.method)
-
         base_url = request.url.split("?", 1)[0]
         for i, (pattern, callback) in enumerate(matchers):
             if pattern.match(base_url):
