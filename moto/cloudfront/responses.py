@@ -52,12 +52,12 @@ class CloudFrontResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         params = self._get_xml_body()
         distribution_config = params.get("DistributionConfig")
-        id = full_url.split("/")[-2]
+        dist_id = full_url.split("/")[-2]
         if_match = headers["If-Match"]
 
         dist, location, e_tag = cloudfront_backend.update_distribution(
             DistributionConfig=distribution_config,
-            Id=id,
+            Id=dist_id,
             IfMatch=if_match,
         )
         template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
