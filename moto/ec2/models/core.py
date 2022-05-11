@@ -1,4 +1,4 @@
-from moto.core.models import BaseModel
+from moto.core import BaseModel
 
 from ..exceptions import FilterNotImplementedError
 

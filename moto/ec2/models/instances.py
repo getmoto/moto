@@ -4,7 +4,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
 from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation

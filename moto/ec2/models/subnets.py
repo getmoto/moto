@@ -3,7 +3,7 @@ import itertools
 from collections import defaultdict
 
 from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from ..exceptions import (
     GenericInvalidParameterValueError,
     InvalidAvailabilityZoneError,

@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 
 from moto.core import get_account_id, BaseBackend, BaseModel
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters

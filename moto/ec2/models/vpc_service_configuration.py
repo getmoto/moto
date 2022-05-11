@@ -1,4 +1,4 @@
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import get_random_hex
 from .core import TaggedEC2Resource
 from ..exceptions import UnknownVpcEndpointService

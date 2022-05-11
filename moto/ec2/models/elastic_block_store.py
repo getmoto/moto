@@ -1,5 +1,4 @@
-from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from moto.kms import kms_backends
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (

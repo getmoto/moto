@@ -1,5 +1,6 @@
-from .models import BaseModel, BaseBackend, get_account_id, ACCOUNT_ID  # noqa
-from .models import CloudFormationModel, CloudWatchMetricProvider  # noqa
+from .models import BaseBackend, get_account_id, ACCOUNT_ID  # noqa
+from .common_models import BaseModel  # noqa
+from .common_models import CloudFormationModel, CloudWatchMetricProvider  # noqa
 from .models import patch_client, patch_resource  # noqa
 from .responses import ActionAuthenticatorMixin
 

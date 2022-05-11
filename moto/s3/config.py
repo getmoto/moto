@@ -1,7 +1,7 @@
 import json
 
 from moto.core.exceptions import InvalidNextTokenException
-from moto.core.models import ConfigQueryModel
+from moto.core.common_models import ConfigQueryModel
 from moto.s3 import s3_backends
 
 
