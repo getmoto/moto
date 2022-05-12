@@ -25,6 +25,7 @@ from moto.s3bucket_path.utils import (
 
 from .exceptions import (
     BucketAlreadyExists,
+    BucketAccessDeniedError,
     BucketMustHaveLockeEnabled,
     DuplicateTagKeys,
     InvalidContentMD5,
@@ -954,9 +955,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if self.is_delete_keys(request, path, bucket_name):
             self.data["Action"] = "DeleteObject"
-            self._authenticate_and_authorize_s3_action()
-
-            return self._bucket_response_delete_keys(body, bucket_name)
+            try:
+                self._authenticate_and_authorize_s3_action()
+                return self._bucket_response_delete_keys(body, bucket_name)
+            except BucketAccessDeniedError:
+                return self._bucket_response_delete_keys(
+                    body, bucket_name, authenticated=False
+                )
 
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action()
@@ -1018,7 +1023,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else path_url(request.url)
         )
 
-    def _bucket_response_delete_keys(self, body, bucket_name):
+    def _bucket_response_delete_keys(self, body, bucket_name, authenticated=True):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(body, strip_whitespace=False)
 
@@ -1030,13 +1035,18 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if len(objects) == 0:
             raise MalformedXML()
 
-        deleted_objects = self.backend.delete_objects(bucket_name, objects)
-        error_names = []
+        if authenticated:
+            deleted_objects = self.backend.delete_objects(bucket_name, objects)
+            errors = []
+        else:
+            deleted_objects = []
+            # [(key_name, errorcode, 'error message'), ..]
+            errors = [(o["Key"], "AccessDenied", "Access Denied") for o in objects]
 
         return (
             200,
             {},
-            template.render(deleted=deleted_objects, delete_errors=error_names),
+            template.render(deleted=deleted_objects, delete_errors=errors),
         )
 
     def _handle_range_header(self, request, response_headers, response_content):
@@ -2285,9 +2295,11 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 {% if v %}<VersionId>{{v}}</VersionId>{% endif %}
 </Deleted>
 {% endfor %}
-{% for k in delete_errors %}
+{% for k,c,m in delete_errors %}
 <Error>
 <Key>{{k}}</Key>
+<Code>{{c}}</Code>
+<Message>{{m}}</Message>
 </Error>
 {% endfor %}
 </DeleteResult>"""
