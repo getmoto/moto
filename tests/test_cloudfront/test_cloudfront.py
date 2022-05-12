@@ -162,7 +162,6 @@ def test_update_distribution_no_such_distId():
             DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
         )
 
-    pytest.set_trace()
     metadata = error.value.response["ResponseMetadata"]
     metadata["HTTPStatusCode"].should.equal(404)
     err = error.value.response["Error"]
