@@ -1,7 +1,9 @@
 """Unit tests for cloudfront-supported APIs."""
+import pytest
 import boto3
-import sure  # noqa # pylint: disable=unused-import
+from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_cloudfront
+import sure  # noqa # pylint: disable=unused-import
 from moto.core import ACCOUNT_ID
 from . import cloudfront_test_scaffolding as scaffold
 
@@ -137,3 +139,108 @@ def test_update_distribution():
     restriction = config["Restrictions"]["GeoRestriction"]
     restriction.should.have.key("RestrictionType").equals("none")
     restriction.should.have.key("Quantity").equals(0)
+
+
+@mock_cloudfront
+def test_update_distribution_no_such_distId():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+    dist = client.create_distribution(DistributionConfig=config)
+
+    # Make up a fake dist ID by reversing the actual ID
+    dist_id = dist["Distribution"]["Id"][::-1]
+    dist_etag = dist["ETag"]
+
+    dist_config = dist["Distribution"]["DistributionConfig"]
+    aliases = ["alias1", "alias2"]
+    dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
+
+    with pytest.raises(ClientError) as error:
+        client.update_distribution(
+            DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
+        )
+
+    pytest.set_trace()
+    metadata = error.value.response["ResponseMetadata"]
+    metadata["HTTPStatusCode"].should.equal(404)
+    err = error.value.response["Error"]
+    err["Code"].should.equal("NoSuchDistribution")
+    err["Message"].should.equal("The specified distribution does not exist.")
+
+
+@mock_cloudfront
+def test_update_distribution_distId_is_None():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+    dist = client.create_distribution(DistributionConfig=config)
+
+    # Make up a fake dist ID by reversing the actual ID
+    dist_id = None
+    dist_etag = dist["ETag"]
+
+    dist_config = dist["Distribution"]["DistributionConfig"]
+    aliases = ["alias1", "alias2"]
+    dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
+
+    with pytest.raises(ParamValidationError) as error:
+        client.update_distribution(
+            DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
+        )
+
+    typename = error.typename
+    typename.should.equal("ParamValidationError")
+    error_str = "botocore.exceptions.ParamValidationError: Parameter validation failed:\nInvalid type for parameter Id, value: None, type: <class 'NoneType'>, valid types: <class 'str'>"
+    error.exconly().should.equal(error_str)
+
+
+@mock_cloudfront
+def test_update_distribution_IfMatch_not_set():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+    dist = client.create_distribution(DistributionConfig=config)
+
+    # Make up a fake dist ID by reversing the actual ID
+    dist_id = dist["Distribution"]["Id"]
+
+    dist_config = dist["Distribution"]["DistributionConfig"]
+    aliases = ["alias1", "alias2"]
+    dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
+
+    with pytest.raises(ClientError) as error:
+        client.update_distribution(
+            DistributionConfig=dist_config, Id=dist_id, IfMatch=""
+        )
+
+    metadata = error.value.response["ResponseMetadata"]
+    metadata["HTTPStatusCode"].should.equal(400)
+    err = error.value.response["Error"]
+    err["Code"].should.equal("InvalidIfMatchVersion")
+    msg = "The If-Match version is missing or not valid for the resource."
+    err["Message"].should.equal(msg)
+
+
+@mock_cloudfront
+def test_update_distribution_dist_config_not_set():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+    dist = client.create_distribution(DistributionConfig=config)
+
+    # Make up a fake dist ID by reversing the actual ID
+    dist_id = dist["Distribution"]["Id"]
+    dist_etag = dist["ETag"]
+
+    with pytest.raises(ParamValidationError) as error:
+        client.update_distribution(Id=dist_id, IfMatch=dist_etag)
+
+    typename = error.typename
+    typename.should.equal("ParamValidationError")
+    error_str = 'botocore.exceptions.ParamValidationError: Parameter validation failed:\nMissing required parameter in input: "DistributionConfig"'
+    error.exconly().should.equal(error_str)
