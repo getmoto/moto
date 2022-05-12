@@ -24,6 +24,12 @@ from ..utilities.paginator import paginate
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "list_crawlers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "list_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -142,6 +148,10 @@ class GlueBackend(BaseBackend):
 
     def get_crawlers(self):
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawlers(self):
+        return [crawler for _, crawler in self.crawlers.items()]
 
     def start_crawler(self, name):
         crawler = self.get_crawler(name)
@@ -379,6 +389,9 @@ class FakeCrawler(BaseModel):
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
+
+    def get_name(self):
+        return self.name
 
     def as_dict(self):
         last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None
