@@ -1,4 +1,4 @@
-from moto.core.models import BaseBackend
+from moto.core import BaseBackend
 
 
 class InstanceMetadataBackend(BaseBackend):

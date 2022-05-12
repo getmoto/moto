@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from .models import InstanceTrackerMeta
+from .base_backend import InstanceTrackerMeta
 
 
 class BaseModel(metaclass=InstanceTrackerMeta):

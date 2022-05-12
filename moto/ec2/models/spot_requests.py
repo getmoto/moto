@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from moto.core.common_models import CloudFormationModel
-from moto.core.models import Model
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 from moto.packages.boto.ec2.spotinstancerequest import (
     SpotInstanceRequest as BotoSpotRequest,
@@ -117,7 +116,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         return instance
 
 
-class SpotRequestBackend(object, metaclass=Model):
+class SpotRequestBackend(object):
     def __init__(self):
         self.spot_instance_requests = {}
         super().__init__()
@@ -176,7 +175,6 @@ class SpotRequestBackend(object, metaclass=Model):
             requests.append(request)
         return requests
 
-    @Model.prop("SpotInstanceRequest")
     def describe_spot_instance_requests(self, filters=None, spot_instance_ids=None):
         requests = self.spot_instance_requests.copy().values()
 
