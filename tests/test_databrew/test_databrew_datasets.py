@@ -265,4 +265,4 @@ def test_update_dataset_that_does_not_exist():
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"One or more resources can't be found.")
+    err["Message"].should.equal("One or more resources can't be found.")
