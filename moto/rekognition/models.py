@@ -19,8 +19,24 @@ class RekognitionBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    def start_face_search(self):
+        return self._job_id()
+
     def start_text_detection(self):
         return self._job_id()
+
+    def get_face_search(self):
+        """
+        This returns hardcoded values and none of the parameters are taken into account.
+        """
+        return (
+            self._job_status(),
+            self._status_message(),
+            self._video_metadata(),
+            self._persons(),
+            self._next_token(),
+            self._text_model_version(),
+        )
 
     def get_text_detection(self):
         """
@@ -64,6 +80,123 @@ class RekognitionBackend(BaseBackend):
             "FrameWidth": 1280,
             "ColorRange": "LIMITED",
         }
+
+    def _persons(self):
+        return [
+            {
+                "Timestamp": 0,
+                "Person": {
+                    "Index": 0,
+                    "Face": {
+                        "BoundingBox": {
+                            "Width": 0.42217350006103516,
+                            "Height": 0.9352386593818665,
+                            "Left": 0.31870967149734497,
+                            "Top": -0.0049947104416787624,
+                        },
+                        "Landmarks": [
+                            {
+                                "Type": "eyeLeft",
+                                "X": 0.4800040125846863,
+                                "Y": 0.23425640165805817,
+                            },
+                            {
+                                "Type": "eyeRight",
+                                "X": 0.63795405626297,
+                                "Y": 0.19219470024108887,
+                            },
+                            {
+                                "Type": "mouthLeft",
+                                "X": 0.5283276438713074,
+                                "Y": 0.6190487146377563,
+                            },
+                            {
+                                "Type": "mouthRight",
+                                "X": 0.660395085811615,
+                                "Y": 0.5830448269844055,
+                            },
+                            {
+                                "Type": "nose",
+                                "X": 0.619724690914154,
+                                "Y": 0.3800361752510071,
+                            },
+                        ],
+                        "Pose": {
+                            "Roll": -5.063229084014893,
+                            "Yaw": 18.038856506347656,
+                            "Pitch": 12.567241668701172,
+                        },
+                        "Quality": {
+                            "Brightness": 83.42264556884766,
+                            "Sharpness": 67.22731018066406,
+                        },
+                        "Confidence": 99.99860382080078,
+                    },
+                },
+                "FaceMatches": [
+                    {
+                        "Similarity": 99.99994659423828,
+                        "Face": {
+                            "FaceId": "f2489050-020e-4c14-8693-63339847a59d",
+                            "BoundingBox": {
+                                "Width": 0.7136539816856384,
+                                "Height": 0.9471719861030579,
+                                "Left": 0.19036999344825745,
+                                "Top": -0.012074699625372887,
+                            },
+                            "ImageId": "f3b180d3-f5ad-39c1-b825-ba30b170a90d",
+                            "ExternalImageId": "Dave_Bloggs",
+                            "Confidence": 99.99970245361328,
+                        },
+                    },
+                    {
+                        "Similarity": 99.9986572265625,
+                        "Face": {
+                            "FaceId": "f0d22a6a-3436-4d23-ae5b-c5cb2e795581",
+                            "BoundingBox": {
+                                "Width": 0.7198730111122131,
+                                "Height": 1.003640055656433,
+                                "Left": 0.1844159960746765,
+                                "Top": -0.00142729002982378,
+                            },
+                            "ImageId": "738d14f3-26be-3066-b1a9-7f4f6bb3ffc6",
+                            "ExternalImageId": "Dave_Bloggs",
+                            "Confidence": 99.99939727783203,
+                        },
+                    },
+                    {
+                        "Similarity": 99.99791717529297,
+                        "Face": {
+                            "FaceId": "c48162bd-a16a-4e04-ad3c-967761895295",
+                            "BoundingBox": {
+                                "Width": 0.7364680171012878,
+                                "Height": 1.0104399919509888,
+                                "Left": 0.1361449956893921,
+                                "Top": -0.009593159891664982,
+                            },
+                            "ImageId": "eae3565c-741b-342c-8e73-379a09ae5346",
+                            "ExternalImageId": "Dave_Bloggs",
+                            "Confidence": 99.99949645996094,
+                        },
+                    },
+                    {
+                        "Similarity": 99.37212371826172,
+                        "Face": {
+                            "FaceId": "651314bb-28d4-405d-9b13-c32e9ff28299",
+                            "BoundingBox": {
+                                "Width": 0.3711090087890625,
+                                "Height": 0.3609749972820282,
+                                "Left": 0.2571589946746826,
+                                "Top": 0.21493400633335114,
+                            },
+                            "ImageId": "068700f5-0b2e-39c0-874b-2c58fa10d833",
+                            "ExternalImageId": "Dave_Bloggs",
+                            "Confidence": 99.99300384521484,
+                        },
+                    },
+                ],
+            }
+        ]
 
     def _text_detections(self):
         return [

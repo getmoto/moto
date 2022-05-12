@@ -579,3 +579,23 @@ def test_put_item_wrong_datatype():
     err = exc.value.response["Error"]
     err["Code"].should.equal("SerializationException")
     err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+
+
+@mock_dynamodb
+def test_put_item_empty_set():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "Key", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "Key", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = dynamodb.Table("test-table")
+    with pytest.raises(ClientError) as exc:
+        table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: An number set  may not be empty"
+    )

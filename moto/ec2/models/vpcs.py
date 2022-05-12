@@ -5,7 +5,7 @@ from collections import defaultdict
 from operator import itemgetter
 
 from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
     CidrLimitExceeded,

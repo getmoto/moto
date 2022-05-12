@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from .core import TaggedEC2Resource
 from ..utils import random_nat_gateway_id, random_private_ip

@@ -1,5 +1,4 @@
-from moto.core import get_account_id
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
