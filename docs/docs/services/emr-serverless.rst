@@ -27,17 +27,17 @@ emr-serverless
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] cancel_job_run
+- [X] cancel_job_run
 - [X] create_application
-- [ ] delete_application
-- [ ] get_application
-- [ ] get_job_run
+- [X] delete_application
+- [X] get_application
+- [X] get_job_run
 - [X] list_applications
-- [ ] list_job_runs
+- [X] list_job_runs
 - [ ] list_tags_for_resource
-- [ ] start_application
-- [ ] start_job_run
-- [ ] stop_application
+- [X] start_application
+- [X] start_job_run
+- [X] stop_application
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_application

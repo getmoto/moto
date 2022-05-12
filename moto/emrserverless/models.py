@@ -1,7 +1,6 @@
 """EMRServerlessBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from xml.etree.ElementInclude import include
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
@@ -9,11 +8,12 @@ from moto.emrserverless.utils import (
     default_capacity_for_type,
     default_max_capacity,
     get_partition,
+    paginated_list,
     random_appplication_id,
     random_job_id,
 )
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import ResourceNotFoundException, ValidationException
 
 APPLICATION_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
@@ -206,11 +206,38 @@ class EMRServerlessBackend(BaseBackend):
         self.applications[application.id] = application
         return application.id, application.name, application.arn
 
+    def start_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(
+                f"Application {application_id} does not exist"
+            )
+        self.applications[application_id].state = "STARTED"
+
     def list_applications(self, next_token, max_results, states):
         return [app.to_dict() for app in self.applications.values()], next_token
 
     def get_application(self, application_id):
         return self.applications[application_id].to_dict(include_details=True)
+
+    def stop_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(
+                f"Application {application_id} does not exist"
+            )
+        self.applications[application_id].state = "STOPPED"
+
+    def delete_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(
+                f"Application {application_id} does not exist"
+            )
+
+        app_state = self.applications[application_id].state
+        if app_state not in ["CREATED", "STOPPED"]:
+            raise ValidationException(
+                f"Application {application_id} must be in one of the following statuses [CREATED, STOPPED]. Current status: {app_state}"
+            )
+        self.applications[application_id].state = "TERMINATED"
 
     def start_job_run(
         self,
@@ -238,14 +265,45 @@ class EMRServerlessBackend(BaseBackend):
         self.jobs[job.id] = job
         return job.application_id, job.id, job.arn
 
-    def list_job_runs(self, application_id, next_token, max_results, states):
+    def list_job_runs(
+        self,
+        application_id,
+        created_after,
+        created_before,
+        states,
+        max_results,
+        next_token,
+    ):
         application_jobs = [
             job for job in self.jobs.values() if job.application_id == application_id
         ]
-        return [job.to_dict() for job in application_jobs], next_token
+
+        if created_after:
+            application_jobs = [
+                job for job in application_jobs if job.createdAt >= created_after
+            ]
+
+        if created_before:
+            application_jobs = [
+                job for job in application_jobs if job.createdAt >= created_before
+            ]
+
+        if states:
+            application_jobs = [job for job in application_jobs if job.state in states]
+
+        sort_key = "createdAt"
+        jobs_list = [job.to_dict() for job in application_jobs]
+        return paginated_list(jobs_list, sort_key, max_results, next_token)
 
     def get_job_run(self, application_id, job_run_id):
         job = self.jobs[job_run_id]
+        return job.to_dict(include_details=True)
+
+    def cancel_job_run(self, application_id, job_run_id):
+        job = self.jobs[job_run_id]
+        job.state = "CANCELLED"
+        job.updated_at = iso_8601_datetime_without_milliseconds(datetime.today())
+        job.state_details = "Cancelled"
         return job.to_dict(include_details=True)
 
 

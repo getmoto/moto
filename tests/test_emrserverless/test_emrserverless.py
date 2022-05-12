@@ -2,8 +2,7 @@
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
-from botocore.exceptions import ClientError, ParamValidationError
-
+from botocore.exceptions import ClientError
 from moto import mock_emrserverless
 from moto.emrserverless import REGION as DEFAULT_REGION
 from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
@@ -54,6 +53,39 @@ class TestEmrServerlessApplication:
         resp = client.get_application(applicationId=app_info["applicationId"])
         assert "initialCapacity" in resp["application"]
         assert "maximumCapacity" in resp["application"]
+
+    @staticmethod
+    @mock_emrserverless
+    def test_delete_application(client):
+        app_info = client.create_application(
+            name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
+        )
+        app_id = app_info["applicationId"]
+        client.stop_application(applicationId=app_id)
+
+        # App should now be in "stopped" state
+        resp = client.get_application(applicationId=app_id)
+        assert resp is not None
+        assert resp["application"]["state"] == "STOPPED"
+
+        resp = client.delete_application(applicationId=app_id)
+        assert resp is not None
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    @staticmethod
+    @mock_emrserverless
+    def test_delete_unstopped_application(client):
+        app_info = client.create_application(
+            name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
+        )
+        app_id = app_info["applicationId"]
+        with pytest.raises(ClientError) as exc:
+            resp = client.delete_application(applicationId=app_id)
+            assert resp is not None
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert "must be in one of the following statuses" in err["Message"]
 
 
 class TestEmrServerlessJob:

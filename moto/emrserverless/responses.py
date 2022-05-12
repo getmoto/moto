@@ -5,6 +5,9 @@ from moto.core.responses import BaseResponse
 
 from .models import emrserverless_backends
 
+DEFAULT_MAX_RESULTS = 100
+DEFAULT_NEXT_TOKEN = ""
+
 
 class EMRServerlessResponse(BaseResponse):
     """Handler for EMRServerless requests and responses."""
@@ -43,6 +46,11 @@ class EMRServerlessResponse(BaseResponse):
             json.dumps(dict(applicationId=application_id, name=name, arn=arn)),
         )
 
+    def start_application(self):
+        application_id = self._get_param("applicationId")
+        self.emrserverless_backend.start_application(application_id=application_id)
+        return (200, {}, None)
+
     def list_applications(self):
         params = self._get_params()
         next_token = params.get("nextToken")
@@ -64,6 +72,16 @@ class EMRServerlessResponse(BaseResponse):
         application = self.emrserverless_backend.get_application(application_id=app_id)
         return 200, {}, json.dumps(dict(application=application))
 
+    def stop_application(self):
+        application_id = self._get_param("applicationId")
+        self.emrserverless_backend.stop_application(application_id=application_id)
+        return (200, {}, None)
+
+    def delete_application(self):
+        application_id = self._get_param("applicationId")
+        self.emrserverless_backend.delete_application(application_id=application_id)
+        return (200, {}, None)
+
     def start_job_run(self):
         application_id = self._get_param("applicationId")
         job_driver = self._get_param("jobDriver")
@@ -84,12 +102,16 @@ class EMRServerlessResponse(BaseResponse):
 
     def list_job_runs(self):
         params = self._get_params()
-        next_token = params.get("nextToken")
-        max_results = params.get("maxResults")
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
         states = params.get("states")
+        created_after = self._get_param("createdAfter")
+        created_before = self._get_param("createdBefore")
         application_id = self._get_param("applicationId")
         jobs, next_token = self.emrserverless_backend.list_job_runs(
             application_id=application_id,
+            created_after=created_after,
+            created_before=created_before,
             next_token=next_token,
             max_results=max_results,
             states=states,
