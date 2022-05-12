@@ -180,8 +180,10 @@ class CloudFrontBackend(BaseBackend):
 
     def create_distribution(self, distribution_config):
         """
-        This has been tested against an S3-distribution with the simplest possible configuration.
-        Please raise an issue if we're not persisting/returning the correct attributes for your use-case.
+        This has been tested against an S3-distribution with the
+        simplest possible configuration.  Please raise an issue if
+        we're not persisting/returning the correct attributes for your
+        use-case.
         """
         dist = Distribution(distribution_config)
         caller_reference = dist.distribution_config.caller_reference
@@ -223,6 +225,26 @@ class CloudFrontBackend(BaseBackend):
             if config.caller_reference == reference:
                 return dist
         return False
+
+    def update_distribution(self, DistributionConfig, Id, IfMatch):
+        """
+        The IfMatch-value is ignored - any value is considered valid.
+        Calling this function without a value is invalid, per AWS' behaviour
+        """
+        if Id not in self.distributions or Id is None:
+            raise NoSuchDistribution
+        if not IfMatch:
+            raise InvalidIfMatchVersion
+        if not DistributionConfig:
+            raise NoSuchDistribution
+        dist = self.distributions[Id]
+
+        aliases = DistributionConfig["Aliases"]["Items"]["CNAME"]
+        dist.distribution_config.config = DistributionConfig
+        dist.distribution_config.aliases = aliases
+        self.distributions[Id] = dist
+        dist.advance()
+        return dist, dist.location, dist.etag
 
 
 cloudfront_backend = CloudFrontBackend()

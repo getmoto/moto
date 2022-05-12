@@ -48,6 +48,23 @@ class CloudFrontResponse(BaseResponse):
             response = template.render(distribution=dist, xmlns=XMLNS)
             return 200, {"ETag": etag}, response
 
+    def update_distribution(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        params = self._get_xml_body()
+        distribution_config = params.get("DistributionConfig")
+        dist_id = full_url.split("/")[-2]
+        if_match = headers["If-Match"]
+
+        dist, location, e_tag = cloudfront_backend.update_distribution(
+            DistributionConfig=distribution_config,
+            Id=dist_id,
+            IfMatch=if_match,
+        )
+        template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
+        response = template.render(distribution=dist, xmlns=XMLNS)
+        headers = {"ETag": e_tag, "Location": location}
+        return 200, headers, response
+
 
 DIST_META_TEMPLATE = """
     <Id>{{ distribution.distribution_id }}</Id>
@@ -496,4 +513,14 @@ LIST_TEMPLATE = (
   </Items>
   {% endif %}
 </DistributionList>"""
+)
+
+UPDATE_DISTRIBUTION_TEMPLATE = (
+    """<?xml version="1.0"?>
+  <Distribution xmlns="{{ xmlns }}">
+"""
+    + DISTRIBUTION_TEMPLATE
+    + """
+  </Distribution>
+"""
 )
