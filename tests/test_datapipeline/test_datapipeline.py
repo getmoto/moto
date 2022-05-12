@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
+import boto3
+import sure  # noqa # pylint: disable=unused-import
 
-import boto.datapipeline
-import sure  # noqa
-
-from moto import mock_datapipeline_deprecated
+from moto import mock_datapipeline
 from moto.datapipeline.utils import remove_capitalization_of_dict_keys
 
 
@@ -13,14 +11,14 @@ def get_value_from_fields(key, fields):
             return field["stringValue"]
 
 
-@mock_datapipeline_deprecated
-def test_create_pipeline():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
+@mock_datapipeline
+def test_create_pipeline_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
 
-    res = conn.create_pipeline("mypipeline", "some-unique-id")
+    res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
 
     pipeline_id = res["pipelineId"]
-    pipeline_descriptions = conn.describe_pipelines([pipeline_id])[
+    pipeline_descriptions = conn.describe_pipelines(pipelineIds=[pipeline_id])[
         "pipelineDescriptionList"
     ]
     pipeline_descriptions.should.have.length_of(1)
@@ -63,15 +61,17 @@ PIPELINE_OBJECTS = [
 ]
 
 
-@mock_datapipeline_deprecated
-def test_creating_pipeline_definition():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
-    res = conn.create_pipeline("mypipeline", "some-unique-id")
+@mock_datapipeline
+def test_creating_pipeline_definition_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
+    res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
     pipeline_id = res["pipelineId"]
 
-    conn.put_pipeline_definition(PIPELINE_OBJECTS, pipeline_id)
+    conn.put_pipeline_definition(
+        pipelineId=pipeline_id, pipelineObjects=PIPELINE_OBJECTS
+    )
 
-    pipeline_definition = conn.get_pipeline_definition(pipeline_id)
+    pipeline_definition = conn.get_pipeline_definition(pipelineId=pipeline_id)
     pipeline_definition["pipelineObjects"].should.have.length_of(3)
     default_object = pipeline_definition["pipelineObjects"][0]
     default_object["name"].should.equal("Default")
@@ -81,17 +81,19 @@ def test_creating_pipeline_definition():
     )
 
 
-@mock_datapipeline_deprecated
-def test_describing_pipeline_objects():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
-    res = conn.create_pipeline("mypipeline", "some-unique-id")
+@mock_datapipeline
+def test_describing_pipeline_objects_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
+    res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
     pipeline_id = res["pipelineId"]
 
-    conn.put_pipeline_definition(PIPELINE_OBJECTS, pipeline_id)
+    conn.put_pipeline_definition(
+        pipelineId=pipeline_id, pipelineObjects=PIPELINE_OBJECTS
+    )
 
-    objects = conn.describe_objects(["Schedule", "Default"], pipeline_id)[
-        "pipelineObjects"
-    ]
+    objects = conn.describe_objects(
+        pipelineId=pipeline_id, objectIds=["Schedule", "Default"]
+    )["pipelineObjects"]
 
     objects.should.have.length_of(2)
     default_object = [x for x in objects if x["id"] == "Default"][0]
@@ -101,16 +103,15 @@ def test_describing_pipeline_objects():
     )
 
 
-@mock_datapipeline_deprecated
-def test_activate_pipeline():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
-
-    res = conn.create_pipeline("mypipeline", "some-unique-id")
+@mock_datapipeline
+def test_activate_pipeline_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
+    res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
 
     pipeline_id = res["pipelineId"]
-    conn.activate_pipeline(pipeline_id)
+    conn.activate_pipeline(pipelineId=pipeline_id)
 
-    pipeline_descriptions = conn.describe_pipelines([pipeline_id])[
+    pipeline_descriptions = conn.describe_pipelines(pipelineIds=[pipeline_id])[
         "pipelineDescriptionList"
     ]
     pipeline_descriptions.should.have.length_of(1)
@@ -120,29 +121,29 @@ def test_activate_pipeline():
     get_value_from_fields("@pipelineState", fields).should.equal("SCHEDULED")
 
 
-@mock_datapipeline_deprecated
-def test_delete_pipeline():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
-    res = conn.create_pipeline("mypipeline", "some-unique-id")
+@mock_datapipeline
+def test_delete_pipeline_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
+    res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
     pipeline_id = res["pipelineId"]
 
-    conn.delete_pipeline(pipeline_id)
+    conn.delete_pipeline(pipelineId=pipeline_id)
 
     response = conn.list_pipelines()
 
     response["pipelineIdList"].should.have.length_of(0)
 
 
-@mock_datapipeline_deprecated
-def test_listing_pipelines():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
-    res1 = conn.create_pipeline("mypipeline1", "some-unique-id1")
-    res2 = conn.create_pipeline("mypipeline2", "some-unique-id2")
+@mock_datapipeline
+def test_listing_pipelines_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
+    res1 = conn.create_pipeline(name="mypipeline1", uniqueId="some-unique-id1")
+    res2 = conn.create_pipeline(name="mypipeline2", uniqueId="some-unique-id2")
 
     response = conn.list_pipelines()
 
     response["hasMoreResults"].should.be(False)
-    response["marker"].should.be.none
+    response.shouldnt.have.key("marker")
     response["pipelineIdList"].should.have.length_of(2)
     response["pipelineIdList"].should.contain(
         {"id": res1["pipelineId"], "name": "mypipeline1"}
@@ -152,11 +153,11 @@ def test_listing_pipelines():
     )
 
 
-@mock_datapipeline_deprecated
-def test_listing_paginated_pipelines():
-    conn = boto.datapipeline.connect_to_region("us-west-2")
+@mock_datapipeline
+def test_listing_paginated_pipelines_boto3():
+    conn = boto3.client("datapipeline", region_name="us-west-2")
     for i in range(100):
-        conn.create_pipeline("mypipeline%d" % i, "some-unique-id%d" % i)
+        conn.create_pipeline(name="mypipeline%d" % i, uniqueId="some-unique-id%d" % i)
 
     response = conn.list_pipelines()
 

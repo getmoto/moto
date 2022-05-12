@@ -1,0 +1,136 @@
+acm:
+  - TestAccACMCertificateDataSource
+apigateway:
+  - TestAccAPIGatewayGatewayResponse
+apigatewayv2:
+  - TestAccAPIGatewayV2IntegrationResponse
+  - TestAccAPIGatewayV2Model
+  - TestAccAPIGatewayV2RouteResponse
+  - TestAccAPIGatewayV2VPCLink
+autoscaling:
+  - TestAccAutoScalingAttachment
+  - TestAccAutoScalingGroupDataSource
+  - TestAccAutoScalingGroupTag
+  - TestAccAutoScalingLaunchConfigurationDataSource
+  - TestAccAutoScalingLaunchConfiguration_
+batch:
+  - TestAccBatchJobDefinition
+cloudtrail:
+  - TestAccCloudTrailServiceAccount
+cloudwatch:
+  - TestAccCloudWatchDashboard
+  - TestAccCloudWatchLogsDestination
+  - TestAccCloudWatchLogsDestinationPolicy
+  - TestAccCloudWatchLogsGroupDataSource
+cognitoidp:
+  - TestAccCognitoIDPIdentityProvider
+  - TestAccCognitoIDPUserGroup_
+  - TestAccCognitoIDPUserPool_
+  - TestAccCognitoUser_
+  - TestAccCognitoUserInGroup_
+  - TestAccCognitoIDPUserPoolClients
+  - TestAccCognitoIDPUserPoolClientDataSource
+dynamodb:
+  - TestAccDynamoDBTableItem
+ec2:
+  - TestAccEC2AvailabilityZonesDataSource_
+  - TestAccEC2CarrierGateway_
+  - TestAccEC2InstanceTypeOfferingDataSource_
+  - TestAccEC2InstanceTypeOfferingsDataSource_
+  - TestAccEC2InternetGateway_
+  - TestAccEC2NATGateway_
+  - TestAccEC2RouteTableAssociation_
+  - TestAccEC2SpotInstanceRequest_disappears
+  - TestAccEC2SpotInstanceRequest_interruptUpdate
+  - TestAccEC2VPCEndpointService_
+  - TestAccEC2VPNGateway_
+  - TestAccEC2VPNGatewayAttachment_
+ecr:
+  - TestAccECRLifecyclePolicy
+  - TestAccECRRepository
+  - TestAccECRRepositoryDataSource
+  - TestAccECRRepositoryPolicy
+efs:
+  - TestAccEFSAccessPoint_
+  - TestAccEFSAccessPointDataSource
+  - TestAccEFSFileSystemDataSource
+elasticbeanstalk:
+  - TestAccElasticBeanstalkHostedZoneDataSource
+  - TestAccElasticBeanstalkSolutionStackDataSource
+elb:
+  - TestAccELBAttachment
+  - TestAccELBBackendServerPolicy
+  - TestAccELBHostedZoneIDDataSource
+  - TestAccELBListenerPolicy
+  - TestAccELBServiceAccountDataSource
+  - TestAccELBSSLNegotiationPolicy
+elbv2:
+  - TestAccELBV2ListenerCertificate
+  - TestAccELBV2TargetGroupAttachment
+  - TestAccELBV2TargetGroupDataSource
+events:
+  - TestAccEventsAPIDestination
+  - TestAccEventsArchive
+  - TestAccEventsBus
+  - TestAccEventsBusPolicy
+  - TestAccEventsConnection
+  - TestAccEventsConnectionDataSource
+  - TestAccEventsPermission
+iam:
+  - TestAccIAMAccessKey_
+  - TestAccIAMAccountAlias_
+  - TestAccIAMGroup_
+  - TestAccIAMInstanceProfileDataSource_
+  - TestAccIAMGroupPolicy_
+  - TestAccIAMOpenIDConnectProvider_
+  - TestAccIAMOpenidConnectProviderDataSource_
+  - TestAccIAMPolicy_
+  - TestAccIAMPolicyDataSource_
+  - TestAccIAMPolicyDocumentDataSource_
+  - TestAccIAMRoleDataSource_
+  - TestAccIAMRolePolicy_
+  - TestAccIAMRolePolicyAttachment_
+  - TestAccIAMSessionContextDataSource_
+  - TestAccIAMServiceLinkedRole
+  - TestAccIAMUserDataSource_
+  - TestAccIAMUserPolicy_
+  - TestAccIAMUserPolicyAttachment_
+  - TestAccIAMUserSSHKey_
+  - TestAccIAMUserSSHKeyDataSource_
+iot:
+  - TestAccIoTEndpointDataSource
+kms:
+  - TestAccKMSAlias
+  - TestAccKMSKey_Policy_basic
+  - TestAccKMSKey_Policy_iamRole
+  - TestAccKMSKey_Policy_iamRoleOrder
+  - TestAccKMSKey_Policy_iamServiceLinkedRole
+  - TestAccKMSSecretDataSource
+  - TestAccKMSSecretsDataSource
+meta:
+  - TestAccMetaBillingServiceAccountDataSource
+mq:
+  - TestAccMQBroker
+quicksight:
+  - TestAccQuickSightUser
+redshift:
+  - TestAccRedshiftServiceAccountDataSource
+s3:
+  - TestAccS3BucketPolicy
+  - TestAccS3BucketPublicAccessBlock
+  - TestAccS3ObjectCopy
+sagemaker:
+  - TestAccSageMakerPrebuiltECRImageDataSource
+sns:
+  - TestAccSNSTopicPolicy
+  - TestAccSNSTopicDataSource
+  - TestAccSNSSMSPreferences
+sts:
+  - TestAccSTSCallerIdentityDataSource
+sqs:
+  - TestAccSQSQueueDataSource
+  - TestAccSQSQueuePolicy
+  - TestAccSQSQueue_FIFOQueue_
+timestreamwrite:
+  - TestAccTimestreamWriteDatabase
+  - TestAccTimestreamWriteTable

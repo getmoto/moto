@@ -1,19 +1,21 @@
-from __future__ import unicode_literals
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from moto.ec2.utils import add_tag_specification
+from ._base_response import EC2BaseResponse
 
 
-class ElasticIPAddresses(BaseResponse):
+class ElasticIPAddresses(EC2BaseResponse):
     def allocate_address(self):
         domain = self._get_param("Domain", if_none="standard")
         reallocate_address = self._get_param("Address", if_none=None)
+        tags = self._get_multi_param("TagSpecification")
+        tags = add_tag_specification(tags)
+
         if self.is_not_dryrun("AllocateAddress"):
             if reallocate_address:
                 address = self.ec2_backend.allocate_address(
-                    domain, address=reallocate_address
+                    domain, address=reallocate_address, tags=tags
                 )
             else:
-                address = self.ec2_backend.allocate_address(domain)
+                address = self.ec2_backend.allocate_address(domain, tags=tags)
             template = self.response_template(ALLOCATE_ADDRESS_RESPONSE)
             return template.render(address=address)
 
@@ -67,9 +69,10 @@ class ElasticIPAddresses(BaseResponse):
             return template.render(address=eip)
 
     def describe_addresses(self):
+        self.error_on_dryrun()
         allocation_ids = self._get_multi_param("AllocationId")
         public_ips = self._get_multi_param("PublicIp")
-        filters = filters_from_querystring(self.querystring)
+        filters = self._filters_from_querystring()
         addresses = self.ec2_backend.describe_addresses(
             allocation_ids, public_ips, filters
         )
@@ -151,6 +154,14 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
           {% if address.association_id %}
             <associationId>{{ address.association_id }}</associationId>
           {% endif %}
+          <tagSet>
+          {% for tag in address.get_tags() %}
+              <item>
+                  <key>{{ tag.key }}</key>
+                  <value>{{ tag.value }}</value>
+              </item>
+          {% endfor %}
+          </tagSet>
         </item>
     {% endfor %}
   </addressesSet>

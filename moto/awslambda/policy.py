@@ -1,11 +1,10 @@
-from __future__ import unicode_literals
-
 import json
 import uuid
 
-from six import string_types
-
-from moto.awslambda.exceptions import PreconditionFailedException
+from moto.awslambda.exceptions import (
+    PreconditionFailedException,
+    UnknownPolicyException,
+)
 
 
 class Policy:
@@ -30,13 +29,20 @@ class Policy:
         }
 
     # adds the raw JSON statement to the policy
-    def add_statement(self, raw):
+    def add_statement(self, raw, qualifier=None):
         policy = json.loads(raw, object_hook=self.decode_policy)
         if len(policy.revision) > 0 and self.revision != policy.revision:
             raise PreconditionFailedException(
                 "The RevisionId provided does not match the latest RevisionId"
                 " for the Lambda function or alias. Call the GetFunction or the GetAlias API to retrieve"
                 " the latest RevisionId for your resource."
+            )
+        # Remove #LATEST from the Resource (Lambda ARN)
+        if policy.statements[0].get("Resource", "").endswith("$LATEST"):
+            policy.statements[0]["Resource"] = policy.statements[0]["Resource"][0:-8]
+        if qualifier:
+            policy.statements[0]["Resource"] = (
+                policy.statements[0]["Resource"] + ":" + qualifier
             )
         self.statements.append(policy.statements[0])
         self.revision = str(uuid.uuid4())
@@ -52,6 +58,9 @@ class Policy:
         for statement in self.statements:
             if "Sid" in statement and statement["Sid"] == sid:
                 self.statements.remove(statement)
+                break
+        else:
+            raise UnknownPolicyException()
 
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
@@ -96,7 +105,7 @@ class Policy:
             obj[key] = value
 
     def principal_formatter(self, obj):
-        if isinstance(obj, string_types):
+        if isinstance(obj, str):
             if obj.endswith(".amazonaws.com"):
                 return {"Service": obj}
             if obj.endswith(":root"):

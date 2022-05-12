@@ -1,12 +1,4 @@
-from __future__ import unicode_literals
-from boto.ec2.elb.attributes import (
-    ConnectionSettingAttribute,
-    ConnectionDrainingAttribute,
-    AccessLogAttribute,
-    CrossZoneLoadBalancingAttribute,
-)
-from boto.ec2.elb.policies import AppCookieStickinessPolicy, OtherPolicy
-
+from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from .models import elb_backends
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
@@ -66,7 +58,11 @@ class ELBResponse(BaseResponse):
             next_marker = load_balancers_resp[-1].name
 
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
-        return template.render(load_balancers=load_balancers_resp, marker=next_marker)
+        return template.render(
+            ACCOUNT_ID=get_account_id(),
+            load_balancers=load_balancers_resp,
+            marker=next_marker,
+        )
 
     def delete_load_balancer_listeners(self):
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -81,6 +77,16 @@ class ELBResponse(BaseResponse):
         load_balancer_name = self._get_param("LoadBalancerName")
         self.elb_backend.delete_load_balancer(load_balancer_name)
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
+        return template.render()
+
+    def delete_load_balancer_policy(self):
+        load_balancer_name = self.querystring.get("LoadBalancerName")[0]
+        names = self._get_param("PolicyName")
+        self.elb_backend.delete_load_balancer_policy(
+            lb_name=load_balancer_name, policy_name=names
+        )
+
+        template = self.response_template(DELETE_LOAD_BALANCER_POLICY)
         return template.render()
 
     def apply_security_groups_to_load_balancer(self):
@@ -121,7 +127,7 @@ class ELBResponse(BaseResponse):
         ssl_certificate_id = self.querystring["SSLCertificateId"][0]
         lb_port = self.querystring["LoadBalancerPort"][0]
 
-        self.elb_backend.set_load_balancer_listener_sslcertificate(
+        self.elb_backend.set_load_balancer_listener_ssl_certificate(
             load_balancer_name, lb_port, ssl_certificate_id
         )
 
@@ -154,40 +160,30 @@ class ELBResponse(BaseResponse):
             "LoadBalancerAttributes.CrossZoneLoadBalancing."
         )
         if cross_zone:
-            attribute = CrossZoneLoadBalancingAttribute()
-            attribute.enabled = cross_zone["enabled"] == "true"
-            self.elb_backend.set_cross_zone_load_balancing_attribute(
-                load_balancer_name, attribute
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, cross_zone=cross_zone
             )
 
         access_log = self._get_dict_param("LoadBalancerAttributes.AccessLog.")
         if access_log:
-            attribute = AccessLogAttribute()
-            attribute.enabled = access_log["enabled"] == "true"
-            attribute.s3_bucket_name = access_log["s3_bucket_name"]
-            attribute.s3_bucket_prefix = access_log["s3_bucket_prefix"]
-            attribute.emit_interval = access_log["emit_interval"]
-            self.elb_backend.set_access_log_attribute(load_balancer_name, attribute)
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, access_log=access_log
+            )
 
         connection_draining = self._get_dict_param(
             "LoadBalancerAttributes.ConnectionDraining."
         )
         if connection_draining:
-            attribute = ConnectionDrainingAttribute()
-            attribute.enabled = connection_draining["enabled"] == "true"
-            attribute.timeout = connection_draining.get("timeout", 300)
-            self.elb_backend.set_connection_draining_attribute(
-                load_balancer_name, attribute
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, connection_draining=connection_draining
             )
 
         connection_settings = self._get_dict_param(
             "LoadBalancerAttributes.ConnectionSettings."
         )
         if connection_settings:
-            attribute = ConnectionSettingAttribute()
-            attribute.idle_timeout = connection_settings["idle_timeout"]
-            self.elb_backend.set_connection_settings_attribute(
-                load_balancer_name, attribute
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, connection_settings=connection_settings
             )
 
         template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
@@ -198,11 +194,13 @@ class ELBResponse(BaseResponse):
     def create_load_balancer_policy(self):
         load_balancer_name = self._get_param("LoadBalancerName")
 
-        other_policy = OtherPolicy()
         policy_name = self._get_param("PolicyName")
-        other_policy.policy_name = policy_name
+        policy_type_name = self._get_param("PolicyTypeName")
+        policy_attrs = self._get_multi_param("PolicyAttributes.member.")
 
-        self.elb_backend.create_lb_other_policy(load_balancer_name, other_policy)
+        self.elb_backend.create_lb_other_policy(
+            load_balancer_name, policy_name, policy_type_name, policy_attrs
+        )
 
         template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
         return template.render()
@@ -210,29 +208,31 @@ class ELBResponse(BaseResponse):
     def create_app_cookie_stickiness_policy(self):
         load_balancer_name = self._get_param("LoadBalancerName")
 
-        policy = AppCookieStickinessPolicy()
-        policy.policy_name = self._get_param("PolicyName")
-        policy.cookie_name = self._get_param("CookieName")
+        policy_name = self._get_param("PolicyName")
+        cookie_name = self._get_param("CookieName")
 
-        self.elb_backend.create_app_cookie_stickiness_policy(load_balancer_name, policy)
+        self.elb_backend.create_app_cookie_stickiness_policy(
+            load_balancer_name, policy_name, cookie_name
+        )
 
-        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        template = self.response_template(CREATE_APP_COOKIE_STICKINESS_POLICY_TEMPLATE)
         return template.render()
 
     def create_lb_cookie_stickiness_policy(self):
         load_balancer_name = self._get_param("LoadBalancerName")
 
-        policy = AppCookieStickinessPolicy()
-        policy.policy_name = self._get_param("PolicyName")
+        policy_name = self._get_param("PolicyName")
         cookie_expirations = self._get_param("CookieExpirationPeriod")
         if cookie_expirations:
-            policy.cookie_expiration_period = int(cookie_expirations)
+            cookie_expiration_period = int(cookie_expirations)
         else:
-            policy.cookie_expiration_period = None
+            cookie_expiration_period = None
 
-        self.elb_backend.create_lb_cookie_stickiness_policy(load_balancer_name, policy)
+        self.elb_backend.create_lb_cookie_stickiness_policy(
+            load_balancer_name, policy_name, cookie_expiration_period
+        )
 
-        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
+        template = self.response_template(CREATE_LB_COOKIE_STICKINESS_POLICY_TEMPLATE)
         return template.render()
 
     def set_load_balancer_policies_of_listener(self):
@@ -241,9 +241,9 @@ class ELBResponse(BaseResponse):
         load_balancer_port = int(self._get_param("LoadBalancerPort"))
 
         mb_listener = [
-            l
-            for l in load_balancer.listeners
-            if int(l.load_balancer_port) == load_balancer_port
+            listner
+            for listner in load_balancer.listeners
+            if int(listner.load_balancer_port) == load_balancer_port
         ]
         if mb_listener:
             policies = self._get_multi_param("PolicyNames.member")
@@ -276,6 +276,16 @@ class ELBResponse(BaseResponse):
             SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE
         )
         return template.render()
+
+    def describe_load_balancer_policies(self):
+        load_balancer_name = self.querystring.get("LoadBalancerName")[0]
+        names = self._get_multi_param("PolicyNames.member.")
+        policies = self.elb_backend.describe_load_balancer_policies(
+            lb_name=load_balancer_name, policy_names=names
+        )
+
+        template = self.response_template(DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE)
+        return template.render(policies=policies)
 
     def describe_instance_health(self):
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -310,7 +320,7 @@ class ELBResponse(BaseResponse):
         return template.render()
 
     def remove_tags(self):
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
                 load_balancer_name = self._get_param(
@@ -320,7 +330,6 @@ class ELBResponse(BaseResponse):
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
 
-                key = "Tag.member.{0}.Key".format(number)
                 for t_key, t_val in self.querystring.items():
                     if t_key.startswith("Tags.member."):
                         if t_key.split(".")[3] == "Key":
@@ -331,7 +340,7 @@ class ELBResponse(BaseResponse):
 
     def describe_tags(self):
         elbs = []
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
                 load_balancer_name = self._get_param(
@@ -368,6 +377,58 @@ class ELBResponse(BaseResponse):
 
         for tag_key, tag_value in zip(tag_keys, tag_values):
             elb.add_tag(tag_key, tag_value)
+
+    def enable_availability_zones_for_load_balancer(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        availability_zones = params.get("AvailabilityZones")
+        availability_zones = (
+            self.elb_backend.enable_availability_zones_for_load_balancer(
+                load_balancer_name=load_balancer_name,
+                availability_zones=availability_zones,
+            )
+        )
+        template = self.response_template(
+            ENABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE
+        )
+        return template.render(availability_zones=availability_zones)
+
+    def disable_availability_zones_for_load_balancer(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        availability_zones = params.get("AvailabilityZones")
+        availability_zones = (
+            self.elb_backend.disable_availability_zones_for_load_balancer(
+                load_balancer_name=load_balancer_name,
+                availability_zones=availability_zones,
+            )
+        )
+        template = self.response_template(
+            DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE
+        )
+        return template.render(availability_zones=availability_zones)
+
+    def attach_load_balancer_to_subnets(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        subnets = params.get("Subnets")
+
+        all_subnets = self.elb_backend.attach_load_balancer_to_subnets(
+            load_balancer_name, subnets
+        )
+        template = self.response_template(ATTACH_LB_TO_SUBNETS_TEMPLATE)
+        return template.render(subnets=all_subnets)
+
+    def detach_load_balancer_from_subnets(self):
+        params = self._get_params()
+        load_balancer_name = params.get("LoadBalancerName")
+        subnets = params.get("Subnets")
+
+        all_subnets = self.elb_backend.detach_load_balancer_from_subnets(
+            load_balancer_name, subnets
+        )
+        template = self.response_template(DETACH_LB_FROM_SUBNETS_TEMPLATE)
+        return template.render(subnets=all_subnets)
 
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
@@ -408,6 +469,31 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalan
 </DescribeTagsResponse>"""
 
 
+DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE = """<DescribeLoadBalancerPoliciesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DescribeLoadBalancerPoliciesResult>
+    <PolicyDescriptions>
+      {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.policy_name }}</PolicyName>
+        <PolicyTypeName>{{ policy.policy_type_name }}</PolicyTypeName>
+        <PolicyAttributeDescriptions>
+          {% for attr in policy.attributes %}
+              <member>
+                <AttributeName>{{ attr["AttributeName"] }}</AttributeName>
+                <AttributeValue>{{ attr["AttributeValue"] }}</AttributeValue>
+              </member>
+          {% endfor %}
+        </PolicyAttributeDescriptions>
+      </member>
+      {% endfor %}
+    </PolicyDescriptions>
+  </DescribeLoadBalancerPoliciesResult>
+  <ResponseMetadata>
+    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
+  </ResponseMetadata>
+</DescribeLoadBalancerPoliciesResponse>"""
+
+
 CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <CreateLoadBalancerResult>
     <DNSName>{{ load_balancer.dns_name }}</DNSName>
@@ -441,6 +527,12 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
             <member>{{ security_group_id }}</member>
             {% endfor %}
           </SecurityGroups>
+          {% if load_balancer.vpc_id %}
+          <SourceSecurityGroup>
+              <OwnerAlias>{{ ACCOUNT_ID }}</OwnerAlias>
+              <GroupName>default</GroupName>
+          </SourceSecurityGroup>
+          {% endif %}
           <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
           <CreatedTime>{{ load_balancer.created_time.isoformat() }}</CreatedTime>
           <HealthCheck>
@@ -450,6 +542,8 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
               <HealthyThreshold>{{ load_balancer.health_check.healthy_threshold }}</HealthyThreshold>
               <Timeout>{{ load_balancer.health_check.timeout }}</Timeout>
               <UnhealthyThreshold>{{ load_balancer.health_check.unhealthy_threshold }}</UnhealthyThreshold>
+            {% else %}
+              <Target></Target>
             {% endif %}
           </HealthCheck>
           {% if load_balancer.vpc_id %}
@@ -484,33 +578,33 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
           </Instances>
           <Policies>
             <AppCookieStickinessPolicies>
-            {% if load_balancer.policies.app_cookie_stickiness_policies %}
-                {% for policy in load_balancer.policies.app_cookie_stickiness_policies %}
+            {% for policy in load_balancer.policies %}
+                {% if policy.policy_type_name == "AppCookieStickinessPolicy" %}
                     <member>
                         <CookieName>{{ policy.cookie_name }}</CookieName>
                         <PolicyName>{{ policy.policy_name }}</PolicyName>
                     </member>
-                {% endfor %}
-            {% endif %}
+                {% endif %}
+            {% endfor %}
             </AppCookieStickinessPolicies>
             <LBCookieStickinessPolicies>
-            {% if load_balancer.policies.lb_cookie_stickiness_policies %}
-                {% for policy in load_balancer.policies.lb_cookie_stickiness_policies %}
+            {% for policy in load_balancer.policies %}
+                {% if policy.policy_type_name == "LbCookieStickinessPolicy" %}
                     <member>
                         {% if policy.cookie_expiration_period %}
                         <CookieExpirationPeriod>{{ policy.cookie_expiration_period }}</CookieExpirationPeriod>
                         {% endif %}
                         <PolicyName>{{ policy.policy_name }}</PolicyName>
                     </member>
-                {% endfor %}
-            {% endif %}
+                {% endif %}
+            {% endfor %}
             </LBCookieStickinessPolicies>
             <OtherPolicies>
-            {% if load_balancer.policies.other_policies %}
-                {% for policy in load_balancer.policies.other_policies %}
+            {% for policy in load_balancer.policies %}
+                {% if policy.policy_type_name not in ["AppCookieStickinessPolicy", "LbCookieStickinessPolicy"] %}
                     <member>{{ policy.policy_name }}</member>
-                {% endfor %}
-            {% endif %}
+                {% endif %}
+            {% endfor %}
             </OtherPolicies>
           </Policies>
           <AvailabilityZones>
@@ -611,7 +705,7 @@ DEREGISTER_INSTANCES_TEMPLATE = """<DeregisterInstancesFromLoadBalancerResponse 
   </ResponseMetadata>
 </DeregisterInstancesFromLoadBalancerResponse>"""
 
-SET_LOAD_BALANCER_SSL_CERTIFICATE = """<SetLoadBalancerListenerSSLCertificateResponse xmlns="http://elasticloadbalan cing.amazonaws.com/doc/2012-06-01/">
+SET_LOAD_BALANCER_SSL_CERTIFICATE = """<SetLoadBalancerListenerSSLCertificateResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
  <SetLoadBalancerListenerSSLCertificateResult/>
 <ResponseMetadata>
     <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
@@ -619,36 +713,42 @@ SET_LOAD_BALANCER_SSL_CERTIFICATE = """<SetLoadBalancerListenerSSLCertificateRes
 </SetLoadBalancerListenerSSLCertificateResponse>"""
 
 
-DELETE_LOAD_BALANCER_LISTENERS = """<DeleteLoadBalancerListenersResponse xmlns="http://elasticloadbalan cing.amazonaws.com/doc/2012-06-01/">
+DELETE_LOAD_BALANCER_LISTENERS = """<DeleteLoadBalancerListenersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
  <DeleteLoadBalancerListenersResult/>
 <ResponseMetadata>
     <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
 </ResponseMetadata>
 </DeleteLoadBalancerListenersResponse>"""
 
+
+DELETE_LOAD_BALANCER_POLICY = """<DeleteLoadBalancerPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+ <DeleteLoadBalancerPolicyResult/>
+<ResponseMetadata>
+    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+</ResponseMetadata>
+</DeleteLoadBalancerPolicyResponse>"""
+
 DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeLoadBalancerAttributesResult>
     <LoadBalancerAttributes>
       <AccessLog>
-        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
-        {% if attributes.access_log.enabled %}
-        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
+        <Enabled>{{ attributes["access_log"]["enabled"] }}</Enabled>
+        {% if attributes["access_log"]["enabled"] == 'true' %}
+        <S3BucketName>{{ attributes["access_log"]["s3_bucket_name"] }}</S3BucketName>
+        <S3BucketPrefix>{{ attributes["access_log"]["s3_bucket_prefix"] }}</S3BucketPrefix>
+        <EmitInterval>{{ attributes["access_log"]["emit_interval"] }}</EmitInterval>
         {% endif %}
       </AccessLog>
       <ConnectionSettings>
-        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
+        <IdleTimeout>{{ attributes["connection_settings"]["idle_timeout"] }}</IdleTimeout>
       </ConnectionSettings>
       <CrossZoneLoadBalancing>
         <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
       </CrossZoneLoadBalancing>
       <ConnectionDraining>
-        {% if attributes.connection_draining.enabled %}
-        <Enabled>true</Enabled>
-        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
-        {% else %}
-        <Enabled>false</Enabled>
+        <Enabled>{{ attributes["connection_draining"]["enabled"] }}</Enabled>
+        {% if attributes["connection_draining"]["timeout"] %}
+        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
         {% endif %}
       </ConnectionDraining>
     </LoadBalancerAttributes>
@@ -664,23 +764,23 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
   <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
     <LoadBalancerAttributes>
       <AccessLog>
-        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
-        {% if attributes.access_log.enabled %}
-        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
+        <Enabled>{{ attributes["access_log"]["enabled"] == 'true' }}</Enabled>
+        {% if attributes["access_log"]["enabled"] == 'true' %}
+        <S3BucketName>{{ attributes["access_log"]["s3_bucket_name"] }}</S3BucketName>
+        <S3BucketPrefix>{{ attributes["access_log"]["s3_bucket_prefix"] }}</S3BucketPrefix>
+        <EmitInterval>{{ attributes["access_log"]["emit_interval"] }}</EmitInterval>
         {% endif %}
       </AccessLog>
       <ConnectionSettings>
-        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
+        <IdleTimeout>{{ attributes["connection_settings"]["idle_timeout"] }}</IdleTimeout>
       </ConnectionSettings>
       <CrossZoneLoadBalancing>
         <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
       </CrossZoneLoadBalancing>
       <ConnectionDraining>
-        {% if attributes.connection_draining.enabled %}
+        {% if attributes["connection_draining"]["enabled"] == 'true' %}
         <Enabled>true</Enabled>
-        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
+        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
         {% else %}
         <Enabled>false</Enabled>
         {% endif %}
@@ -699,6 +799,22 @@ CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmln
       <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
   </ResponseMetadata>
 </CreateLoadBalancerPolicyResponse>
+"""
+
+CREATE_LB_COOKIE_STICKINESS_POLICY_TEMPLATE = """<CreateLBCookieStickinessPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <CreateLBCookieStickinessPolicyResult/>
+  <ResponseMetadata>
+      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateLBCookieStickinessPolicyResponse>
+"""
+
+CREATE_APP_COOKIE_STICKINESS_POLICY_TEMPLATE = """<CreateAppCookieStickinessPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <CreateAppCookieStickinessPolicyResult/>
+  <ResponseMetadata>
+      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateAppCookieStickinessPolicyResponse>
 """
 
 SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE = """<SetLoadBalancerPoliciesOfListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
@@ -734,3 +850,55 @@ DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="ht
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeInstanceHealthResponse>"""
+
+ENABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<EnableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <EnableAvailabilityZonesForLoadBalancerResult>
+    <AvailabilityZones>
+{% for az in availability_zones %}
+      <AvailabilityZone>{{ az }}</AvailabilityZone>
+{% endfor %}
+    </AvailabilityZones>
+  </EnableAvailabilityZonesForLoadBalancerResult>
+</EnableAvailabilityZonesForLoadBalancerResponse>"""
+
+DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<DisableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DisableAvailabilityZonesForLoadBalancerResult>
+    <AvailabilityZones>
+{% for az in availability_zones %}
+      <AvailabilityZone>{{ az }}</AvailabilityZone>
+{% endfor %}
+    </AvailabilityZones>
+  </DisableAvailabilityZonesForLoadBalancerResult>
+</DisableAvailabilityZonesForLoadBalancerResponse>"""
+
+ATTACH_LB_TO_SUBNETS_TEMPLATE = """<AttachLoadBalancerToSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <AttachLoadBalancerToSubnetsResult>
+    <Subnets>
+      {% for subnet in subnets %}
+      <member>{{ subnet }}</member>
+      {% endfor %}
+    </Subnets>
+  </AttachLoadBalancerToSubnetsResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</AttachLoadBalancerToSubnetsResponse>"""
+
+DETACH_LB_FROM_SUBNETS_TEMPLATE = """<DetachLoadBalancerFromSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
+  <DetachLoadBalancerFromSubnetsResult>
+    <Subnets>
+      {% for subnet in subnets %}
+      <member>{{ subnet }}</member>
+      {% endfor %}
+    </Subnets>
+  </DetachLoadBalancerFromSubnetsResult>
+  <ResponseMetadata>
+    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
+  </ResponseMetadata>
+</DetachLoadBalancerFromSubnetsResponse>"""

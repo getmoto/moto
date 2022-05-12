@@ -1,17 +1,16 @@
-from __future__ import unicode_literals
 import boto3
 import json
 
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
-from moto import mock_sns
+from moto import mock_sns, mock_sqs
+from moto.core import ACCOUNT_ID
 from moto.sns.models import (
     DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
-    DEFAULT_ACCOUNT_ID,
 )
 
 
@@ -36,11 +35,12 @@ def test_double_subscription():
     resp = client.create_topic(Name="some-topic")
     arn = resp["TopicArn"]
 
-    do_subscribe_sqs = lambda sqs_arn: client.subscribe(
-        TopicArn=arn, Protocol="sqs", Endpoint=sqs_arn
+    resp1 = client.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
     )
-    resp1 = do_subscribe_sqs("arn:aws:sqs:elasticmq:000000000000:foo")
-    resp2 = do_subscribe_sqs("arn:aws:sqs:elasticmq:000000000000:foo")
+    resp2 = client.subscribe(
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
+    )
 
     resp1["SubscriptionArn"].should.equal(resp2["SubscriptionArn"])
 
@@ -124,11 +124,9 @@ def test_unsubscribe_from_deleted_topic():
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
-    # And the subscription should still be left
+    # as per the documentation deleting a topic deletes all the subscriptions
     subscriptions = client.list_subscriptions()["Subscriptions"]
-    subscriptions.should.have.length_of(1)
-    subscription = subscriptions[0]
-    subscription["SubscriptionArn"].should.equal(subscription_arn)
+    subscriptions.should.have.length_of(0)
 
     # Now delete hanging subscription
     client.unsubscribe(SubscriptionArn=subscription_arn)
@@ -225,7 +223,7 @@ def test_subscribe_attributes():
     attributes["TopicArn"].should.equal(arn)
     attributes["Protocol"].should.equal("http")
     attributes["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
-    attributes["Owner"].should.equal(str(DEFAULT_ACCOUNT_ID))
+    attributes["Owner"].should.equal(str(ACCOUNT_ID))
     attributes["RawMessageDelivery"].should.equal("false")
     json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
         DEFAULT_EFFECTIVE_DELIVERY_POLICY
@@ -295,13 +293,35 @@ def test_creating_subscription_with_attributes():
     subscriptions.should.have.length_of(0)
 
     # invalid attr name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.subscribe(
             TopicArn=topic_arn,
             Protocol="http",
             Endpoint="http://example.com/",
             Attributes={"InvalidName": "true"},
         )
+
+
+@mock_sns
+@mock_sqs
+def test_delete_subscriptions_on_delete_topic():
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    queue = sqs.create_queue(QueueName="test-queue")
+    topic = conn.create_topic(Name="some-topic")
+
+    conn.subscribe(
+        TopicArn=topic.get("TopicArn"), Protocol="sqs", Endpoint=queue.get("QueueUrl")
+    )
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+
+    subscriptions.should.have.length_of(1)
+
+    conn.delete_topic(TopicArn=topic.get("TopicArn"))
+
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(0)
 
 
 @mock_sns
@@ -367,17 +387,17 @@ def test_set_subscription_attributes():
     attrs["Attributes"]["FilterPolicy"].should.equal(filter_policy)
 
     # not existing subscription
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.set_subscription_attributes(
             SubscriptionArn="invalid",
             AttributeName="RawMessageDelivery",
             AttributeValue="true",
         )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         attrs = conn.get_subscription_attributes(SubscriptionArn="invalid")
 
     # invalid attr name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.set_subscription_attributes(
             SubscriptionArn=subscription_arn,
             AttributeName="InvalidName",
@@ -482,7 +502,7 @@ def test_check_opted_out_invalid():
     conn = boto3.client("sns", region_name="us-east-1")
 
     # Invalid phone number
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.check_if_phone_number_is_opted_out(phoneNumber="+44742LALALA")
 
 
@@ -519,3 +539,21 @@ def test_confirm_subscription():
         Token="2336412f37fb687f5d51e6e241d59b68c4e583a5cee0be6f95bbf97ab8d2441cf47b99e848408adaadf4c197e65f03473d53c4ba398f6abbf38ce2e8ebf7b4ceceb2cd817959bcde1357e58a2861b05288c535822eb88cac3db04f592285249971efc6484194fc4a4586147f16916692",
         AuthenticateOnUnsubscribe="true",
     )
+
+
+@mock_sns
+def test_get_subscription_attributes_error_not_exists():
+    # given
+    client = boto3.client("sns", region_name="us-east-1")
+    sub_arn = f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue:66d97e76-31e5-444f-8fa7-b60b680d0d39"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.get_subscription_attributes(SubscriptionArn=sub_arn)
+
+    # then
+    ex = e.value
+    ex.operation_name.should.equal("GetSubscriptionAttributes")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(404)
+    ex.response["Error"]["Code"].should.contain("NotFound")
+    ex.response["Error"]["Message"].should.equal("Subscription does not exist")

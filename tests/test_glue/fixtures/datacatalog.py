@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 TABLE_INPUT = {
     "Owner": "a_fake_owner",
     "Parameters": {"EXTERNAL": "TRUE"},
@@ -52,4 +50,17 @@ PARTITION_INPUT = {
     },
     # 'TableName': 'source_table',
     # 'Values': ['2018-06-26'],
+}
+
+DATABASE_INPUT = {
+    "Name": "testdatabase",
+    "Description": "a testdatabase",
+    "LocationUri": "",
+    "Parameters": {},
+    "CreateTableDefaultPermissions": [
+        {
+            "Principal": {"DataLakePrincipalIdentifier": "a_fake_owner"},
+            "Permissions": ["ALL"],
+        },
+    ],
 }

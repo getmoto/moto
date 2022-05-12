@@ -1,8 +1,7 @@
 import json
 from datetime import datetime
 
-from boto3 import Session
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 
 from moto.iam.exceptions import IAMNotFoundException
 
@@ -15,9 +14,7 @@ from moto.codepipeline.exceptions import (
     InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import BaseBackend, BaseModel
-
-from moto.iam.models import ACCOUNT_ID
+from moto.core import get_account_id, BaseBackend, BaseModel
 
 
 class CodePipeline(BaseModel):
@@ -29,7 +26,7 @@ class CodePipeline(BaseModel):
         self.tags = {}
 
         self._arn = "arn:aws:codepipeline:{0}:{1}:{2}".format(
-            region, ACCOUNT_ID, pipeline["name"]
+            region, get_account_id(), pipeline["name"]
         )
         self._created = datetime.utcnow()
         self._updated = datetime.utcnow()
@@ -70,18 +67,31 @@ class CodePipeline(BaseModel):
 
 
 class CodePipelineBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region=None):
         self.pipelines = {}
+        self.region = region
+
+    def reset(self):
+        region_name = self.region
+        self.__dict__ = {}
+        self.__init__(region_name)
+
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "codepipeline", policy_supported=False
+        )
 
     @property
     def iam_backend(self):
         return iam_backends["global"]
 
-    def create_pipeline(self, region, pipeline, tags):
+    def create_pipeline(self, pipeline, tags):
         if pipeline["name"] in self.pipelines:
             raise InvalidStructureException(
                 "A pipeline with the name '{0}' already exists in account '{1}'".format(
-                    pipeline["name"], ACCOUNT_ID
+                    pipeline["name"], get_account_id()
                 )
             )
 
@@ -104,7 +114,7 @@ class CodePipelineBackend(BaseBackend):
                 "Pipeline has only 1 stage(s). There should be a minimum of 2 stages in a pipeline"
             )
 
-        self.pipelines[pipeline["name"]] = CodePipeline(region, pipeline)
+        self.pipelines[pipeline["name"]] = CodePipeline(self.region, pipeline)
 
         if tags:
             self.pipelines[pipeline["name"]].validate_tags(tags)
@@ -120,7 +130,7 @@ class CodePipelineBackend(BaseBackend):
         if not codepipeline:
             raise PipelineNotFoundException(
                 "Account '{0}' does not have a pipeline with name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -132,7 +142,7 @@ class CodePipelineBackend(BaseBackend):
         if not codepipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, pipeline["name"]
+                    get_account_id(), pipeline["name"]
                 )
             )
 
@@ -168,7 +178,7 @@ class CodePipelineBackend(BaseBackend):
         if not pipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -183,7 +193,7 @@ class CodePipelineBackend(BaseBackend):
         if not pipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -199,7 +209,7 @@ class CodePipelineBackend(BaseBackend):
         if not pipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -207,12 +217,4 @@ class CodePipelineBackend(BaseBackend):
             pipeline.tags.pop(key, None)
 
 
-codepipeline_backends = {}
-for region in Session().get_available_regions("codepipeline"):
-    codepipeline_backends[region] = CodePipelineBackend()
-for region in Session().get_available_regions(
-    "codepipeline", partition_name="aws-us-gov"
-):
-    codepipeline_backends[region] = CodePipelineBackend()
-for region in Session().get_available_regions("codepipeline", partition_name="aws-cn"):
-    codepipeline_backends[region] = CodePipelineBackend()
+codepipeline_backends = BackendDict(CodePipelineBackend, "codepipeline")

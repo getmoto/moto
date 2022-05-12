@@ -1,8 +1,8 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -27,9 +27,7 @@ def test_create_proposal():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
     proposal_id.should.match("p-[A-Z0-9]{26}")
@@ -82,11 +80,15 @@ def test_create_proposal_withopts():
 def test_create_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.create_proposal.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        Actions=helpers.default_policy_actions,
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.create_proposal(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            Actions=helpers.default_policy_actions,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -104,11 +106,15 @@ def test_create_proposal_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.create_proposal.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        Actions=helpers.default_policy_actions,
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.create_proposal(
+            NetworkId=network_id,
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            Actions=helpers.default_policy_actions,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -130,9 +136,13 @@ def test_create_proposal_badinvitationacctid():
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
-    response = conn.create_proposal.when.called_with(
-        NetworkId=network_id, MemberId=member_id, Actions=actions,
-    ).should.throw(Exception, "Account ID format specified in proposal is not valid")
+    with pytest.raises(ClientError) as ex:
+        conn.create_proposal(NetworkId=network_id, MemberId=member_id, Actions=actions)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain(
+        "Account ID format specified in proposal is not valid"
+    )
 
 
 @mock_managedblockchain
@@ -154,28 +164,36 @@ def test_create_proposal_badremovalmemid():
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
-    response = conn.create_proposal.when.called_with(
-        NetworkId=network_id, MemberId=member_id, Actions=actions,
-    ).should.throw(Exception, "Member ID format specified in proposal is not valid")
+    with pytest.raises(ClientError) as ex:
+        conn.create_proposal(NetworkId=network_id, MemberId=member_id, Actions=actions)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Member ID format specified in proposal is not valid")
 
 
 @mock_managedblockchain
 def test_list_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.list_proposals.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.list_proposals(NetworkId="n-ABCDEFGHIJKLMNOP0123456789")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_get_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.get_proposal.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_proposal(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -193,6 +211,10 @@ def test_get_proposal_badproposal():
     )
     network_id = response["NetworkId"]
 
-    response = conn.get_proposal.when.called_with(
-        NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Proposal p-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_proposal(
+            NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789"
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Proposal p-ABCDEFGHIJKLMNOP0123456789 not found")

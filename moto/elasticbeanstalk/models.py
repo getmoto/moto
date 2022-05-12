@@ -1,15 +1,13 @@
 import weakref
 
-from boto3 import Session
-
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, get_account_id
+from moto.core.utils import BackendDict
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
+from .utils import make_arn
 
 
 class FakeEnvironment(BaseModel):
-    def __init__(
-        self, application, environment_name, solution_stack_name, tags,
-    ):
+    def __init__(self, application, environment_name, solution_stack_name, tags):
         self.application = weakref.proxy(
             application
         )  # weakref to break circular dependencies
@@ -23,15 +21,8 @@ class FakeEnvironment(BaseModel):
 
     @property
     def environment_arn(self):
-        return (
-            "arn:aws:elasticbeanstalk:{region}:{account_id}:"
-            "environment/{application_name}/{environment_name}".format(
-                region=self.region,
-                account_id="123456789012",
-                application_name=self.application_name,
-                environment_name=self.environment_name,
-            )
-        )
+        resource_path = "%s/%s" % (self.application_name, self.environment_name)
+        return make_arn(self.region, get_account_id(), "environment", resource_path)
 
     @property
     def platform_arn(self):
@@ -48,9 +39,7 @@ class FakeApplication(BaseModel):
         self.application_name = application_name
         self.environments = dict()
 
-    def create_environment(
-        self, environment_name, solution_stack_name, tags,
-    ):
+    def create_environment(self, environment_name, solution_stack_name, tags):
         if environment_name in self.environments:
             raise InvalidParameterValueError
 
@@ -68,6 +57,12 @@ class FakeApplication(BaseModel):
     def region(self):
         return self.backend.region
 
+    @property
+    def arn(self):
+        return make_arn(
+            self.region, get_account_id(), "application", self.application_name
+        )
+
 
 class EBBackend(BaseBackend):
     def __init__(self, region):
@@ -81,20 +76,27 @@ class EBBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region)
 
+    @staticmethod
+    def default_vpc_endpoint_service(service_region, zones):
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk"
+        ) + BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "elasticbeanstalk-health"
+        )
+
     def create_application(self, application_name):
         if application_name in self.applications:
             raise InvalidParameterValueError(
                 "Application {} already exists.".format(application_name)
             )
-        new_app = FakeApplication(backend=self, application_name=application_name,)
+        new_app = FakeApplication(backend=self, application_name=application_name)
         self.applications[application_name] = new_app
         return new_app
 
     def create_environment(self, app, environment_name, stack_name, tags):
         return app.create_environment(
-            environment_name=environment_name,
-            solution_stack_name=stack_name,
-            tags=tags,
+            environment_name=environment_name, solution_stack_name=stack_name, tags=tags
         )
 
     def describe_environments(self):
@@ -139,14 +141,4 @@ class EBBackend(BaseBackend):
         raise KeyError()
 
 
-eb_backends = {}
-for region in Session().get_available_regions("elasticbeanstalk"):
-    eb_backends[region] = EBBackend(region)
-for region in Session().get_available_regions(
-    "elasticbeanstalk", partition_name="aws-us-gov"
-):
-    eb_backends[region] = EBBackend(region)
-for region in Session().get_available_regions(
-    "elasticbeanstalk", partition_name="aws-cn"
-):
-    eb_backends[region] = EBBackend(region)
+eb_backends = BackendDict(EBBackend, "elasticbeanstalk")

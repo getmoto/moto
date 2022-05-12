@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-import six
 import random
 import string
 import json
@@ -9,7 +7,7 @@ import yaml
 def create_id():
     size = 10
     chars = list(range(10)) + list(string.ascii_lowercase)
-    return "".join(six.text_type(random.choice(chars)) for x in range(size))
+    return "".join(str(random.choice(chars)) for x in range(size))
 
 
 def deserialize_body(body, content_type=None):
@@ -29,3 +27,7 @@ def deserialize_body(body, content_type=None):
         return api_doc
 
     return None
+
+
+def to_path(prop):
+    return "/" + prop

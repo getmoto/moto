@@ -1,9 +1,6 @@
-from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from .models import batch_backends
-from six.moves.urllib.parse import urlsplit
-
-from .exceptions import AWSError
+from urllib.parse import urlsplit, unquote
 
 import json
 
@@ -49,16 +46,13 @@ class BatchResponse(BaseResponse):
         state = self._get_param("state")
         _type = self._get_param("type")
 
-        try:
-            name, arn = self.batch_backend.create_compute_environment(
-                compute_environment_name=compute_env_name,
-                _type=_type,
-                state=state,
-                compute_resources=compute_resource,
-                service_role=service_role,
-            )
-        except AWSError as err:
-            return err.response()
+        name, arn = self.batch_backend.create_compute_environment(
+            compute_environment_name=compute_env_name,
+            _type=_type,
+            state=state,
+            compute_resources=compute_resource,
+            service_role=service_role,
+        )
 
         result = {"computeEnvironmentArn": arn, "computeEnvironmentName": name}
 
@@ -67,12 +61,8 @@ class BatchResponse(BaseResponse):
     # DescribeComputeEnvironments
     def describecomputeenvironments(self):
         compute_environments = self._get_param("computeEnvironments")
-        max_results = self._get_param("maxResults")  # Ignored, should be int
-        next_token = self._get_param("nextToken")  # Ignored
 
-        envs = self.batch_backend.describe_compute_environments(
-            compute_environments, max_results=max_results, next_token=next_token
-        )
+        envs = self.batch_backend.describe_compute_environments(compute_environments)
 
         result = {"computeEnvironments": envs}
         return json.dumps(result)
@@ -81,10 +71,7 @@ class BatchResponse(BaseResponse):
     def deletecomputeenvironment(self):
         compute_environment = self._get_param("computeEnvironment")
 
-        try:
-            self.batch_backend.delete_compute_environment(compute_environment)
-        except AWSError as err:
-            return err.response()
+        self.batch_backend.delete_compute_environment(compute_environment)
 
         return ""
 
@@ -95,15 +82,12 @@ class BatchResponse(BaseResponse):
         service_role = self._get_param("serviceRole")
         state = self._get_param("state")
 
-        try:
-            name, arn = self.batch_backend.update_compute_environment(
-                compute_environment_name=compute_env_name,
-                compute_resources=compute_resource,
-                service_role=service_role,
-                state=state,
-            )
-        except AWSError as err:
-            return err.response()
+        name, arn = self.batch_backend.update_compute_environment(
+            compute_environment_name=compute_env_name,
+            compute_resources=compute_resource,
+            service_role=service_role,
+            state=state,
+        )
 
         result = {"computeEnvironmentArn": arn, "computeEnvironmentName": name}
 
@@ -115,16 +99,15 @@ class BatchResponse(BaseResponse):
         queue_name = self._get_param("jobQueueName")
         priority = self._get_param("priority")
         state = self._get_param("state")
+        tags = self._get_param("tags")
 
-        try:
-            name, arn = self.batch_backend.create_job_queue(
-                queue_name=queue_name,
-                priority=priority,
-                state=state,
-                compute_env_order=compute_env_order,
-            )
-        except AWSError as err:
-            return err.response()
+        name, arn = self.batch_backend.create_job_queue(
+            queue_name=queue_name,
+            priority=priority,
+            state=state,
+            compute_env_order=compute_env_order,
+            tags=tags,
+        )
 
         result = {"jobQueueArn": arn, "jobQueueName": name}
 
@@ -133,12 +116,8 @@ class BatchResponse(BaseResponse):
     # DescribeJobQueues
     def describejobqueues(self):
         job_queues = self._get_param("jobQueues")
-        max_results = self._get_param("maxResults")  # Ignored, should be int
-        next_token = self._get_param("nextToken")  # Ignored
 
-        queues = self.batch_backend.describe_job_queues(
-            job_queues, max_results=max_results, next_token=next_token
-        )
+        queues = self.batch_backend.describe_job_queues(job_queues)
 
         result = {"jobQueues": queues}
         return json.dumps(result)
@@ -150,15 +129,12 @@ class BatchResponse(BaseResponse):
         priority = self._get_param("priority")
         state = self._get_param("state")
 
-        try:
-            name, arn = self.batch_backend.update_job_queue(
-                queue_name=queue_name,
-                priority=priority,
-                state=state,
-                compute_env_order=compute_env_order,
-            )
-        except AWSError as err:
-            return err.response()
+        name, arn = self.batch_backend.update_job_queue(
+            queue_name=queue_name,
+            priority=priority,
+            state=state,
+            compute_env_order=compute_env_order,
+        )
 
         result = {"jobQueueArn": arn, "jobQueueName": name}
 
@@ -177,19 +153,23 @@ class BatchResponse(BaseResponse):
         container_properties = self._get_param("containerProperties")
         def_name = self._get_param("jobDefinitionName")
         parameters = self._get_param("parameters")
+        tags = self._get_param("tags")
         retry_strategy = self._get_param("retryStrategy")
         _type = self._get_param("type")
-
-        try:
-            name, arn, revision = self.batch_backend.register_job_definition(
-                def_name=def_name,
-                parameters=parameters,
-                _type=_type,
-                retry_strategy=retry_strategy,
-                container_properties=container_properties,
-            )
-        except AWSError as err:
-            return err.response()
+        timeout = self._get_param("timeout")
+        platform_capabilities = self._get_param("platformCapabilities")
+        propagate_tags = self._get_param("propagateTags")
+        name, arn, revision = self.batch_backend.register_job_definition(
+            def_name=def_name,
+            parameters=parameters,
+            _type=_type,
+            tags=tags,
+            retry_strategy=retry_strategy,
+            container_properties=container_properties,
+            timeout=timeout,
+            platform_capabilities=platform_capabilities,
+            propagate_tags=propagate_tags,
+        )
 
         result = {
             "jobDefinitionArn": arn,
@@ -211,12 +191,10 @@ class BatchResponse(BaseResponse):
     def describejobdefinitions(self):
         job_def_name = self._get_param("jobDefinitionName")
         job_def_list = self._get_param("jobDefinitions")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
         status = self._get_param("status")
 
         job_defs = self.batch_backend.describe_job_definitions(
-            job_def_name, job_def_list, status, max_results, next_token
+            job_def_name, job_def_list, status
         )
 
         result = {"jobDefinitions": [job.describe() for job in job_defs]}
@@ -229,21 +207,16 @@ class BatchResponse(BaseResponse):
         job_def = self._get_param("jobDefinition")
         job_name = self._get_param("jobName")
         job_queue = self._get_param("jobQueue")
-        parameters = self._get_param("parameters")
-        retries = self._get_param("retryStrategy")
+        timeout = self._get_param("timeout")
 
-        try:
-            name, job_id = self.batch_backend.submit_job(
-                job_name,
-                job_def,
-                job_queue,
-                parameters=parameters,
-                retries=retries,
-                depends_on=depends_on,
-                container_overrides=container_overrides,
-            )
-        except AWSError as err:
-            return err.response()
+        name, job_id = self.batch_backend.submit_job(
+            job_name,
+            job_def,
+            job_queue,
+            depends_on=depends_on,
+            container_overrides=container_overrides,
+            timeout=timeout,
+        )
 
         result = {"jobId": job_id, "jobName": name}
 
@@ -253,30 +226,16 @@ class BatchResponse(BaseResponse):
     def describejobs(self):
         jobs = self._get_param("jobs")
 
-        try:
-            return json.dumps({"jobs": self.batch_backend.describe_jobs(jobs)})
-        except AWSError as err:
-            return err.response()
+        return json.dumps({"jobs": self.batch_backend.describe_jobs(jobs)})
 
     # ListJobs
     def listjobs(self):
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
 
-        try:
-            jobs = self.batch_backend.list_jobs(
-                job_queue, job_status, max_results, next_token
-            )
-        except AWSError as err:
-            return err.response()
+        jobs = self.batch_backend.list_jobs(job_queue, job_status)
 
-        result = {
-            "jobSummaryList": [
-                {"jobId": job.job_id, "jobName": job.job_name} for job in jobs
-            ]
-        }
+        result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)
 
     # TerminateJob
@@ -284,15 +243,27 @@ class BatchResponse(BaseResponse):
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
 
-        try:
-            self.batch_backend.terminate_job(job_id, reason)
-        except AWSError as err:
-            return err.response()
+        self.batch_backend.terminate_job(job_id, reason)
 
         return ""
 
     # CancelJob
-    def canceljob(
-        self,
-    ):  # Theres some AWS semantics on the differences but for us they're identical ;-)
-        return self.terminatejob()
+    def canceljob(self):
+        job_id = self._get_param("jobId")
+        reason = self._get_param("reason")
+        self.batch_backend.cancel_job(job_id, reason)
+
+        return ""
+
+    def tags(self):
+        resource_arn = unquote(self.path).split("/v1/tags/")[-1]
+        tags = self._get_param("tags")
+        if self.method == "POST":
+            self.batch_backend.tag_resource(resource_arn, tags)
+            return ""
+        if self.method == "GET":
+            tags = self.batch_backend.list_tags_for_resource(resource_arn)
+            return json.dumps({"tags": tags})
+        if self.method == "DELETE":
+            tag_keys = self.querystring.get("tagKeys")
+            self.batch_backend.untag_resource(resource_arn, tag_keys)

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from moto.core.responses import BaseResponse
@@ -15,26 +13,20 @@ class KinesisResponse(BaseResponse):
     def kinesis_backend(self):
         return kinesis_backends[self.region]
 
-    @property
-    def is_firehose(self):
-        host = self.headers.get("host") or self.headers["Host"]
-        return host.startswith("firehose") or "firehose" in self.headers.get(
-            "Authorization", ""
-        )
-
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")
         shard_count = self.parameters.get("ShardCount")
         retention_period_hours = self.parameters.get("RetentionPeriodHours")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, retention_period_hours, self.region
+            stream_name, shard_count, retention_period_hours
         )
         return ""
 
     def describe_stream(self):
         stream_name = self.parameters.get("StreamName")
+        limit = self.parameters.get("Limit")
         stream = self.kinesis_backend.describe_stream(stream_name)
-        return json.dumps(stream.to_json())
+        return json.dumps(stream.to_json(shard_limit=limit))
 
     def describe_stream_summary(self):
         stream_name = self.parameters.get("StreamName")
@@ -103,27 +95,21 @@ class KinesisResponse(BaseResponse):
         )
 
     def put_record(self):
-        if self.is_firehose:
-            return self.firehose_put_record()
         stream_name = self.parameters.get("StreamName")
         partition_key = self.parameters.get("PartitionKey")
         explicit_hash_key = self.parameters.get("ExplicitHashKey")
-        sequence_number_for_ordering = self.parameters.get("SequenceNumberForOrdering")
         data = self.parameters.get("Data")
 
         sequence_number, shard_id = self.kinesis_backend.put_record(
             stream_name,
             partition_key,
             explicit_hash_key,
-            sequence_number_for_ordering,
             data,
         )
 
         return json.dumps({"SequenceNumber": sequence_number, "ShardId": shard_id})
 
     def put_records(self):
-        if self.is_firehose:
-            return self.put_record_batch()
         stream_name = self.parameters.get("StreamName")
         records = self.parameters.get("Records")
 
@@ -149,77 +135,47 @@ class KinesisResponse(BaseResponse):
         )
         return ""
 
-    """ Firehose """
-
-    def create_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        redshift_config = self.parameters.get("RedshiftDestinationConfiguration")
-        s3_config = self.parameters.get("S3DestinationConfiguration")
-        extended_s3_config = self.parameters.get("ExtendedS3DestinationConfiguration")
-
-        if redshift_config:
-            redshift_s3_config = redshift_config["S3Configuration"]
-            stream_kwargs = {
-                "redshift_username": redshift_config["Username"],
-                "redshift_password": redshift_config["Password"],
-                "redshift_jdbc_url": redshift_config["ClusterJDBCURL"],
-                "redshift_role_arn": redshift_config["RoleARN"],
-                "redshift_copy_command": redshift_config["CopyCommand"],
-                "redshift_s3_role_arn": redshift_s3_config["RoleARN"],
-                "redshift_s3_bucket_arn": redshift_s3_config["BucketARN"],
-                "redshift_s3_prefix": redshift_s3_config["Prefix"],
-                "redshift_s3_compression_format": redshift_s3_config.get(
-                    "CompressionFormat"
-                ),
-                "redshift_s3_buffering_hints": redshift_s3_config["BufferingHints"],
-            }
-        elif s3_config:
-            stream_kwargs = {"s3_config": s3_config}
-        elif extended_s3_config:
-            stream_kwargs = {"extended_s3_config": extended_s3_config}
-
-        stream = self.kinesis_backend.create_delivery_stream(
-            stream_name, **stream_kwargs
+    def list_shards(self):
+        stream_name = self.parameters.get("StreamName")
+        next_token = self.parameters.get("NextToken")
+        max_results = self.parameters.get("MaxResults", 10000)
+        shards, token = self.kinesis_backend.list_shards(
+            stream_name=stream_name, limit=max_results, next_token=next_token
         )
-        return json.dumps({"DeliveryStreamARN": stream.arn})
+        res = {"Shards": shards}
+        if token:
+            res["NextToken"] = token
+        return json.dumps(res)
 
-    def describe_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        stream = self.kinesis_backend.get_delivery_stream(stream_name)
-        return json.dumps(stream.to_dict())
-
-    def list_delivery_streams(self):
-        streams = self.kinesis_backend.list_delivery_streams()
+    def update_shard_count(self):
+        stream_name = self.parameters.get("StreamName")
+        target_shard_count = self.parameters.get("TargetShardCount")
+        current_shard_count = self.kinesis_backend.update_shard_count(
+            stream_name=stream_name, target_shard_count=target_shard_count
+        )
         return json.dumps(
-            {
-                "DeliveryStreamNames": [stream.name for stream in streams],
-                "HasMoreDeliveryStreams": False,
-            }
+            dict(
+                StreamName=stream_name,
+                CurrentShardCount=current_shard_count,
+                TargetShardCount=target_shard_count,
+            )
         )
 
-    def delete_delivery_stream(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        self.kinesis_backend.delete_delivery_stream(stream_name)
-        return json.dumps({})
+    def increase_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.increase_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
 
-    def firehose_put_record(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        record_data = self.parameters["Record"]["Data"]
-
-        record = self.kinesis_backend.put_firehose_record(stream_name, record_data)
-        return json.dumps({"RecordId": record.record_id})
-
-    def put_record_batch(self):
-        stream_name = self.parameters["DeliveryStreamName"]
-        records = self.parameters["Records"]
-
-        request_responses = []
-        for record in records:
-            record_response = self.kinesis_backend.put_firehose_record(
-                stream_name, record["Data"]
-            )
-            request_responses.append({"RecordId": record_response.record_id})
-        return json.dumps({"FailedPutCount": 0, "RequestResponses": request_responses})
+    def decrease_stream_retention_period(self):
+        stream_name = self.parameters.get("StreamName")
+        retention_period_hours = self.parameters.get("RetentionPeriodHours")
+        self.kinesis_backend.decrease_stream_retention_period(
+            stream_name, retention_period_hours
+        )
+        return ""
 
     def add_tags_to_stream(self):
         stream_name = self.parameters.get("StreamName")
@@ -241,3 +197,82 @@ class KinesisResponse(BaseResponse):
         tag_keys = self.parameters.get("TagKeys")
         self.kinesis_backend.remove_tags_from_stream(stream_name, tag_keys)
         return json.dumps({})
+
+    def enable_enhanced_monitoring(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_level_metrics = self.parameters.get("ShardLevelMetrics")
+        current, desired = self.kinesis_backend.enable_enhanced_monitoring(
+            stream_name=stream_name, shard_level_metrics=shard_level_metrics
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardLevelMetrics=current,
+                DesiredShardLevelMetrics=desired,
+            )
+        )
+
+    def disable_enhanced_monitoring(self):
+        stream_name = self.parameters.get("StreamName")
+        shard_level_metrics = self.parameters.get("ShardLevelMetrics")
+        current, desired = self.kinesis_backend.disable_enhanced_monitoring(
+            stream_name=stream_name, to_be_disabled=shard_level_metrics
+        )
+        return json.dumps(
+            dict(
+                StreamName=stream_name,
+                CurrentShardLevelMetrics=current,
+                DesiredShardLevelMetrics=desired,
+            )
+        )
+
+    def list_stream_consumers(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
+        return json.dumps(dict(Consumers=[c.to_json() for c in consumers]))
+
+    def register_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer = self.kinesis_backend.register_stream_consumer(
+            stream_arn=stream_arn, consumer_name=consumer_name
+        )
+        return json.dumps(dict(Consumer=consumer.to_json()))
+
+    def describe_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer_arn = self.parameters.get("ConsumerARN")
+        consumer = self.kinesis_backend.describe_stream_consumer(
+            stream_arn=stream_arn,
+            consumer_name=consumer_name,
+            consumer_arn=consumer_arn,
+        )
+        return json.dumps(
+            dict(ConsumerDescription=consumer.to_json(include_stream_arn=True))
+        )
+
+    def deregister_stream_consumer(self):
+        stream_arn = self.parameters.get("StreamARN")
+        consumer_name = self.parameters.get("ConsumerName")
+        consumer_arn = self.parameters.get("ConsumerARN")
+        self.kinesis_backend.deregister_stream_consumer(
+            stream_arn=stream_arn,
+            consumer_name=consumer_name,
+            consumer_arn=consumer_arn,
+        )
+        return json.dumps(dict())
+
+    def start_stream_encryption(self):
+        stream_name = self.parameters.get("StreamName")
+        encryption_type = self.parameters.get("EncryptionType")
+        key_id = self.parameters.get("KeyId")
+        self.kinesis_backend.start_stream_encryption(
+            stream_name=stream_name, encryption_type=encryption_type, key_id=key_id
+        )
+        return json.dumps(dict())
+
+    def stop_stream_encryption(self):
+        stream_name = self.parameters.get("StreamName")
+        self.kinesis_backend.stop_stream_encryption(stream_name=stream_name)
+        return json.dumps(dict())

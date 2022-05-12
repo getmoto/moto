@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-from moto.core.responses import BaseResponse
-from moto.ec2.utils import filters_from_querystring
+from ._base_response import EC2BaseResponse
 
 
-class InternetGateways(BaseResponse):
+class InternetGateways(EC2BaseResponse):
     def attach_internet_gateway(self):
         igw_id = self._get_param("InternetGatewayId")
         vpc_id = self._get_param("VpcId")
@@ -14,7 +12,12 @@ class InternetGateways(BaseResponse):
 
     def create_internet_gateway(self):
         if self.is_not_dryrun("CreateInternetGateway"):
-            igw = self.ec2_backend.create_internet_gateway()
+            tags = self._get_multi_param(
+                "TagSpecification", skip_result_conversion=True
+            )
+            if tags:
+                tags = tags[0].get("Tag") or []
+            igw = self.ec2_backend.create_internet_gateway(tags=tags)
             template = self.response_template(CREATE_INTERNET_GATEWAY_RESPONSE)
             return template.render(internet_gateway=igw)
 
@@ -26,7 +29,7 @@ class InternetGateways(BaseResponse):
             return template.render()
 
     def describe_internet_gateways(self):
-        filter_dict = filters_from_querystring(self.querystring)
+        filter_dict = self._filters_from_querystring()
         if "InternetGatewayId.1" in self.querystring:
             igw_ids = self._get_multi_param("InternetGatewayId")
             igws = self.ec2_backend.describe_internet_gateways(
@@ -59,11 +62,10 @@ CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http
   <internetGateway>
     <internetGatewayId>{{ internet_gateway.id }}</internetGatewayId>
     <attachmentSet/>
+    <ownerId>{{ internet_gateway.owner_id }}</ownerId>
     <tagSet>
       {% for tag in internet_gateway.get_tags() %}
         <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
           <key>{{ tag.key }}</key>
           <value>{{ tag.value }}</value>
         </item>
@@ -84,6 +86,7 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
     {% for igw in internet_gateways %}
     <item>
       <internetGatewayId>{{ igw.id }}</internetGatewayId>
+      <ownerId>{{ igw.owner_id or none }}</ownerId>
       {% if igw.vpc  %}
         <attachmentSet>
           <item>
@@ -97,8 +100,6 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
       <tagSet>
         {% for tag in igw.get_tags() %}
           <item>
-            <resourceId>{{ tag.resource_id }}</resourceId>
-            <resourceType>{{ tag.resource_type }}</resourceType>
             <key>{{ tag.key }}</key>
             <value>{{ tag.value }}</value>
           </item>

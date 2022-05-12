@@ -1,13 +1,14 @@
-from __future__ import unicode_literals
 import datetime
 import json
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 
 
 class InstanceMetadataResponse(BaseResponse):
-    def metadata_response(self, request, full_url, headers):
+    def metadata_response(
+        self, request, full_url, headers
+    ):  # pylint: disable=unused-argument
         """
         Mock response for localhost metadata
 

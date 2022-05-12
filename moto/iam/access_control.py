@@ -18,13 +18,11 @@ import re
 from abc import abstractmethod, ABCMeta
 from enum import Enum
 
-import six
 from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
-from six import string_types
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.exceptions import (
     SignatureDoesNotMatchError,
     AccessDeniedError,
@@ -71,7 +69,7 @@ class IAMUserAccessKey(object):
     @property
     def arn(self):
         return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
-            account_id=ACCOUNT_ID, iam_user_name=self._owner_user_name
+            account_id=get_account_id(), iam_user_name=self._owner_user_name
         )
 
     def create_credentials(self):
@@ -125,10 +123,12 @@ class AssumedRoleAccessKey(object):
 
     @property
     def arn(self):
-        return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-            account_id=ACCOUNT_ID,
-            role_name=self._owner_role_name,
-            session_name=self._session_name,
+        return (
+            "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
+                account_id=get_account_id(),
+                role_name=self._owner_role_name,
+                session_name=self._session_name,
+            )
         )
 
     def create_credentials(self):
@@ -156,12 +156,11 @@ class AssumedRoleAccessKey(object):
 
 class CreateAccessKeyFailure(Exception):
     def __init__(self, reason, *args):
-        super(CreateAccessKeyFailure, self).__init__(*args)
+        super().__init__(*args)
         self.reason = reason
 
 
-@six.add_metaclass(ABCMeta)
-class IAMRequestBase(object):
+class IAMRequestBase(object, metaclass=ABCMeta):
     def __init__(self, method, path, data, headers):
         log.debug(
             "Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
@@ -332,7 +331,7 @@ class IAMPolicy(object):
                 if policy_version.is_default
             )
             policy_document = default_version.document
-        elif isinstance(policy, string_types):
+        elif isinstance(policy, str):
             policy_document = policy
         else:
             policy_document = policy["policy_document"]

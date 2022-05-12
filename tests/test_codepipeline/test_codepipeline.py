@@ -2,9 +2,9 @@ import json
 from datetime import datetime
 
 import boto3
-import sure  # noqa
+import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_codepipeline, mock_iam
 
@@ -77,9 +77,9 @@ def test_create_pipeline_errors():
     client_iam = boto3.client("iam", region_name="us-east-1")
     create_basic_codepipeline(client, "test-pipeline")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         create_basic_codepipeline(client, "test-pipeline")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -87,7 +87,7 @@ def test_create_pipeline_errors():
         "A pipeline with the name 'test-pipeline' already exists in account '123456789012'"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_pipeline(
             pipeline={
                 "name": "invalid-pipeline",
@@ -115,7 +115,7 @@ def test_create_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -139,7 +139,7 @@ def test_create_pipeline_errors():
         ),
     )["Role"]["Arn"]
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_pipeline(
             pipeline={
                 "name": "invalid-pipeline",
@@ -167,7 +167,7 @@ def test_create_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -175,7 +175,7 @@ def test_create_pipeline_errors():
         "CodePipeline is not authorized to perform AssumeRole on role arn:aws:iam::123456789012:role/wrong-role"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_pipeline(
             pipeline={
                 "name": "invalid-pipeline",
@@ -203,7 +203,7 @@ def test_create_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -282,9 +282,9 @@ def test_get_pipeline():
 def test_get_pipeline_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_pipeline(name="not-existing")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetPipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("PipelineNotFoundException")
@@ -326,7 +326,7 @@ def test_update_pipeline():
                                 "S3Bucket": "different-bucket",
                                 "S3ObjectKey": "test-object",
                             },
-                            "outputArtifacts": [{"name": "artifact"},],
+                            "outputArtifacts": [{"name": "artifact"}],
                         },
                     ],
                 },
@@ -410,7 +410,7 @@ def test_update_pipeline():
 def test_update_pipeline_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.update_pipeline(
             pipeline={
                 "name": "not-existing",
@@ -435,7 +435,7 @@ def test_update_pipeline_errors():
                                     "S3Bucket": "test-bucket",
                                     "S3ObjectKey": "test-object",
                                 },
-                                "outputArtifacts": [{"name": "artifact"},],
+                                "outputArtifacts": [{"name": "artifact"}],
                             },
                         ],
                     },
@@ -456,7 +456,7 @@ def test_update_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UpdatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -517,11 +517,11 @@ def test_list_tags_for_resource():
 def test_list_tags_for_resource_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_tags_for_resource(
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListTagsForResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -555,12 +555,12 @@ def test_tag_resource_errors():
     name = "test-pipeline"
     create_basic_codepipeline(client, name)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.tag_resource(
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing",
             tags=[{"key": "key-2", "value": "value-2"}],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -568,12 +568,12 @@ def test_tag_resource_errors():
         "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.tag_resource(
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
             tags=[{"key": "aws:key", "value": "value"}],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidTagsException")
@@ -583,7 +583,7 @@ def test_tag_resource_errors():
         "msg=[Caller is an end user and not allowed to mutate system tags]"
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.tag_resource(
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
             tags=[
@@ -591,7 +591,7 @@ def test_tag_resource_errors():
                 for i in range(50)
             ],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TooManyTagsException")
@@ -634,12 +634,12 @@ def test_untag_resource():
 def test_untag_resource_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.untag_resource(
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing",
             tagKeys=["key"],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UntagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -696,7 +696,7 @@ def create_basic_codepipeline(client, name):
                                 "S3Bucket": "test-bucket",
                                 "S3ObjectKey": "test-object",
                             },
-                            "outputArtifacts": [{"name": "artifact"},],
+                            "outputArtifacts": [{"name": "artifact"}],
                         },
                     ],
                 },

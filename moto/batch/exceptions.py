@@ -1,40 +1,23 @@
-from __future__ import unicode_literals
-import json
-
-
-class AWSError(Exception):
-    CODE = None
-    STATUS = 400
-
-    def __init__(self, message, code=None, status=None):
-        self.message = message
-        self.code = code if code is not None else self.CODE
-        self.status = status if status is not None else self.STATUS
-
-    def response(self):
-        return (
-            json.dumps({"__type": self.code, "message": self.message}),
-            dict(status=self.status),
-        )
+from moto.core.exceptions import AWSError
 
 
 class InvalidRequestException(AWSError):
-    CODE = "InvalidRequestException"
+    TYPE = "InvalidRequestException"
 
 
 class InvalidParameterValueException(AWSError):
-    CODE = "InvalidParameterValue"
+    TYPE = "InvalidParameterValue"
 
 
 class ValidationError(AWSError):
-    CODE = "ValidationError"
+    TYPE = "ValidationError"
 
 
 class InternalFailure(AWSError):
-    CODE = "InternalFailure"
+    TYPE = "InternalFailure"
     STATUS = 500
 
 
 class ClientException(AWSError):
-    CODE = "ClientException"
+    TYPE = "ClientException"
     STATUS = 400

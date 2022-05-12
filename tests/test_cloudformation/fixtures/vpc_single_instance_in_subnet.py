@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from tests import EXAMPLE_AMI_ID
 
 template = {
     "Description": "AWS CloudFormation Sample Template vpc_single_instance_in_subnet.template: Sample template showing how to create a VPC and add an EC2 instance with an Elastic IP address and a security group. **WARNING** This template creates an Amazon EC2 instance. You will be billed for the AWS resources used if you create a stack from this template.",
@@ -263,14 +263,15 @@ template = {
     },
     "Mappings": {
         "RegionMap": {
-            "ap-southeast-1": {"AMI": "ami-74dda626"},
-            "ap-southeast-2": {"AMI": "ami-b3990e89"},
-            "us-west-2": {"AMI": "ami-16fd7026"},
-            "us-east-1": {"AMI": "ami-7f418316"},
-            "ap-northeast-1": {"AMI": "ami-dcfa4edd"},
-            "us-west-1": {"AMI": "ami-951945d0"},
-            "eu-west-1": {"AMI": "ami-24506250"},
-            "sa-east-1": {"AMI": "ami-3e3be423"},
+            "ap-southeast-1": {"AMI": EXAMPLE_AMI_ID},
+            "ap-southeast-2": {"AMI": EXAMPLE_AMI_ID},
+            "ap-southeast-3": {"AMI": EXAMPLE_AMI_ID},
+            "us-west-2": {"AMI": EXAMPLE_AMI_ID},
+            "us-east-1": {"AMI": EXAMPLE_AMI_ID},
+            "ap-northeast-1": {"AMI": EXAMPLE_AMI_ID},
+            "us-west-1": {"AMI": EXAMPLE_AMI_ID},
+            "eu-west-1": {"AMI": EXAMPLE_AMI_ID},
+            "sa-east-1": {"AMI": EXAMPLE_AMI_ID},
         }
     },
 }

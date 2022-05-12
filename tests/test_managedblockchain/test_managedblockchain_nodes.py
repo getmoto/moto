@@ -1,8 +1,8 @@
-from __future__ import unicode_literals
-
 import boto3
-import sure  # noqa
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -57,9 +57,7 @@ def test_create_node():
     )
 
     # Delete node
-    conn.delete_node(
-        NetworkId=network_id, MemberId=member_id, NodeId=node_id,
-    )
+    conn.delete_node(NetworkId=network_id, MemberId=member_id, NodeId=node_id)
 
     # Find node in full list
     response = conn.list_nodes(NetworkId=network_id, MemberId=member_id)
@@ -76,9 +74,11 @@ def test_create_node():
     helpers.node_id_exist_in_list(nodes, node_id).should.equal(True)
 
     # But cannot get
-    response = conn.get_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeId=node_id,
-    ).should.throw(Exception, "Node {0} not found".format(node_id))
+    with pytest.raises(ClientError) as ex:
+        conn.get_node(NetworkId=network_id, MemberId=member_id, NodeId=node_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Node {0} not found".format(node_id))
 
 
 @mock_managedblockchain
@@ -103,7 +103,7 @@ def test_create_node_standard_edition():
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "bc.t3.large"
     response = conn.create_node(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
+        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
     )
     node_id = response["NodeId"]
 
@@ -114,9 +114,7 @@ def test_create_node_standard_edition():
     # Need another member so the network does not get deleted
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=helpers.default_policy_actions,
+        NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
     )
     proposal_id = response["ProposalId"]
 
@@ -145,9 +143,11 @@ def test_create_node_standard_edition():
     conn.delete_member(NetworkId=network_id, MemberId=member_id)
 
     # Should now be an exception
-    response = conn.list_nodes.when.called_with(
-        NetworkId=network_id, MemberId=member_id,
-    ).should.throw(Exception, "Member {0} not found".format(member_id))
+    with pytest.raises(ClientError) as ex:
+        conn.list_nodes(NetworkId=network_id, MemberId=member_id)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member {0} not found".format(member_id))
 
 
 @mock_managedblockchain
@@ -187,12 +187,16 @@ def test_create_too_many_nodes():
     nodes.should.have.length_of(2)
 
     # Try to create one too many nodes
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeConfiguration=helpers.default_nodeconfiguration,
-    ).should.throw(
-        Exception, "Maximum number of nodes exceeded in member {0}".format(member_id),
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id,
+            MemberId=member_id,
+            NodeConfiguration=helpers.default_nodeconfiguration,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceLimitExceededException")
+    err["Message"].should.contain(
+        "Maximum number of nodes exceeded in member {0}".format(member_id)
     )
 
 
@@ -200,11 +204,15 @@ def test_create_too_many_nodes():
 def test_create_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.create_node.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeConfiguration=helpers.default_nodeconfiguration,
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeConfiguration=helpers.default_nodeconfiguration,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -222,11 +230,15 @@ def test_create_node_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeConfiguration=helpers.default_nodeconfiguration,
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id,
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeConfiguration=helpers.default_nodeconfiguration,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -248,36 +260,51 @@ def test_create_node_badnodeconfig():
     # Incorrect instance type
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "foo"
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
-    ).should.throw(Exception, "Requested instance foo isn't supported.")
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Requested instance foo isn't supported.")
 
     # Incorrect instance type for edition
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["InstanceType"] = "bc.t3.large"
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
-    ).should.throw(
-        Exception,
-        "Instance type bc.t3.large is not supported with STARTER Edition networks",
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain(
+        "Instance type bc.t3.large is not supported with STARTER Edition networks."
     )
 
     # Incorrect availability zone
     logconfigbad = dict(helpers.default_nodeconfiguration)
     logconfigbad["AvailabilityZone"] = "us-east-11"
-    response = conn.create_node.when.called_with(
-        NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad,
-    ).should.throw(Exception, "Availability Zone is not valid")
+    with pytest.raises(ClientError) as ex:
+        conn.create_node(
+            NetworkId=network_id, MemberId=member_id, NodeConfiguration=logconfigbad
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.contain("Availability Zone is not valid")
 
 
 @mock_managedblockchain
 def test_list_nodes_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.list_nodes.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.list_nodes(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -295,20 +322,26 @@ def test_list_nodes_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.list_nodes.when.called_with(
-        NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.list_nodes(NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_get_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.get_node.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_node(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -326,11 +359,15 @@ def test_get_node_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.get_node.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_node(
+            NetworkId=network_id,
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -349,22 +386,30 @@ def test_get_node_badnode():
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
-    response = conn.get_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Node nd-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.get_node(
+            NetworkId=network_id,
+            MemberId=member_id,
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Node nd-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_delete_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.delete_node.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_node(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -382,11 +427,15 @@ def test_delete_node_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.delete_node.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_node(
+            NetworkId=network_id,
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -405,25 +454,33 @@ def test_delete_node_badnode():
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
-    response = conn.delete_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-    ).should.throw(Exception, "Node nd-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.delete_node(
+            NetworkId=network_id,
+            MemberId=member_id,
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Node nd-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
 def test_update_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
-    response = conn.update_node.when.called_with(
-        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-        LogPublishingConfiguration=helpers.default_nodeconfiguration[
-            "LogPublishingConfiguration"
-        ],
-    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.update_node(
+            NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+            LogPublishingConfiguration=helpers.default_nodeconfiguration[
+                "LogPublishingConfiguration"
+            ],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -441,14 +498,18 @@ def test_update_node_badmember():
     )
     network_id = response["NetworkId"]
 
-    response = conn.update_node.when.called_with(
-        NetworkId=network_id,
-        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-        LogPublishingConfiguration=helpers.default_nodeconfiguration[
-            "LogPublishingConfiguration"
-        ],
-    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.update_node(
+            NetworkId=network_id,
+            MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+            LogPublishingConfiguration=helpers.default_nodeconfiguration[
+                "LogPublishingConfiguration"
+            ],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -467,11 +528,15 @@ def test_update_node_badnode():
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
-    response = conn.update_node.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
-        LogPublishingConfiguration=helpers.default_nodeconfiguration[
-            "LogPublishingConfiguration"
-        ],
-    ).should.throw(Exception, "Node nd-ABCDEFGHIJKLMNOP0123456789 not found")
+    with pytest.raises(ClientError) as ex:
+        conn.update_node(
+            NetworkId=network_id,
+            MemberId=member_id,
+            NodeId="nd-ABCDEFGHIJKLMNOP0123456789",
+            LogPublishingConfiguration=helpers.default_nodeconfiguration[
+                "LogPublishingConfiguration"
+            ],
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.contain("Node nd-ABCDEFGHIJKLMNOP0123456789 not found")
