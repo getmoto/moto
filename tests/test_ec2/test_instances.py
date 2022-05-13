@@ -1168,7 +1168,7 @@ def test_run_instance_with_availability_zone_not_from_region():
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID,
-            InstanceType="invalid_type",
+            InstanceType="t2.nano",
             MinCount=1,
             MaxCount=1,
             Placement={"AvailabilityZone": "us-west-1b"},
