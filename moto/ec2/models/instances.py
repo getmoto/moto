@@ -9,6 +9,7 @@ from moto.core.utils import camelcase_to_underscores
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
 from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
 from ..exceptions import (
+    AvailabilityZoneNotFromRegionError,
     EC2ClientError,
     InvalidInstanceIdError,
     InvalidParameterValueErrorUnknownAttribute,
@@ -548,6 +549,9 @@ class InstanceBackend(object):
         default_region = "us-east-1"
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
         valid_instance_types = valid_instance_types.get(kwargs["region_name"] if "region_name" in kwargs else default_region, [])
+        if "placement" in kwargs and "region_name" in kwargs and kwargs["placement"]:
+            if kwargs["region_name"] not in kwargs["placement"]:
+                raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         match_filters = InstanceTypeOfferingBackend().matches_filters
         if not any({match_filters(valid_instance, {'instance-type': kwargs["instance_type"]}, location_type) for valid_instance in valid_instance_types}):
             raise InvalidInstanceTypeError(kwargs["instance_type"])
