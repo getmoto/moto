@@ -304,6 +304,18 @@ def test_get_tags_job():
     resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
 
 
+
+@mock_glue
+def test_get_tags_jobs_no_tags():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({})
+
+
 @mock_glue
 def test_tag_glue_job():
     client = create_glue_client()
@@ -346,6 +358,16 @@ def test_get_tags_crawler():
     resp = client.get_tags(ResourceArn=resource_arn)
 
     resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+
+@mock_glue
+def test_get_tags_crawler_no_tags():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({})
 
 
 @mock_glue
