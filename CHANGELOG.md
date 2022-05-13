@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.9
 -----
-Docker Digest for 3.1.9: <autopopulateddigest>
+Docker Digest for 3.1.9: _sha256:eea31d2f99b2fef16cffb3ea86d21dd911647835a3182bedd8918074292ce552_
 
     New Services:
         * EBS:
