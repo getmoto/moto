@@ -304,7 +304,6 @@ def test_get_tags_job():
     resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
 
 
-
 @mock_glue
 def test_get_tags_jobs_no_tags():
     client = create_glue_client()
@@ -358,6 +357,7 @@ def test_get_tags_crawler():
     resp = client.get_tags(ResourceArn=resource_arn)
 
     resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+
 
 @mock_glue
 def test_get_tags_crawler_no_tags():
