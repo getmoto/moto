@@ -113,9 +113,7 @@ class APIGatewayResponse(BaseResponse):
             rest_api = self.backend.delete_rest_api(function_id)
         elif self.method == "PUT":
             mode = self._get_param("mode", "merge")
-            fail_on_warnings = self._get_bool_param(
-                "fail_on_warnings", False
-            )
+            fail_on_warnings = self._get_bool_param("fail_on_warnings", False)
 
             content_type = self.headers.get("Content-Type", None)
             api_doc = deserialize_body(self.body, content_type)

@@ -1296,8 +1296,8 @@ class APIGatewayBackend(BaseBackend):
 
         if mode == "overwrite":
             api = self.get_rest_api(function_id)
-            self.resources = {}
-            api.add_child("/")  # Add default child
+            api.resources = {}
+            api.default = api.add_child("/")  # Add default child
 
         try:
             if fail_on_warnings:
@@ -1322,26 +1322,36 @@ class APIGatewayBackend(BaseBackend):
                             "responses", {}
                         ).items():
                             self.put_method_response(
-                                function_id, resource.id, method_type, response_code, response_models=None, response_parameters=None
+                                function_id,
+                                resource.id,
+                                method_type,
+                                response_code,
+                                response_models=None,
+                                response_parameters=None,
                             )
                     else:
+                        integration_type = method_doc[
+                            "x-amazon-apigateway-integration"
+                        ]["type"]
+                        uri = method_doc["x-amazon-apigateway-integration"]["uri"]
+                        integration_method = method_doc[
+                            "x-amazon-apigateway-integration"
+                        ].get("httpMethod", None)
+                        credentials = method_doc["x-amazon-apigateway-integration"].get(
+                            "credentials", None
+                        )
+                        request_templates = method_doc[
+                            "x-amazon-apigateway-integration"
+                        ].get("requestTemplates", None)
                         self.create_integration(
                             function_id=function_id,
                             resource_id=resource.id,
                             method_type=method_type,
-                            integration_type=method_doc[
-                                "x-amazon-apigateway-integration"
-                            ]["type"],
-                            uri=method_doc["x-amazon-apigateway-integration"]["uri"],
-                            integration_method=method_doc[
-                                "x-amazon-apigateway-integration"
-                            ].get("httpMethod", None),
-                            credentials=method_doc[
-                                "x-amazon-apigateway-integration"
-                            ].get("credentials", None),
-                            request_templates=method_doc[
-                                "x-amazon-apigateway-integration"
-                            ].get("requestTemplates", None),
+                            integration_type=integration_type,
+                            uri=uri,
+                            integration_method=integration_method,
+                            credentials=credentials,
+                            request_templates=request_templates,
                         )
                         for (response_code, response_doc) in method_doc[
                             "responses"
@@ -1361,7 +1371,7 @@ class APIGatewayBackend(BaseBackend):
             OpenAPIValidationError,
         ) as e:
             raise InvalidOpenAPIDocumentException(e)
-        except KeyError:
+        except KeyError as e:
             raise InvalidOpenAPIDocumentException()
 
         return self.get_rest_api(function_id)

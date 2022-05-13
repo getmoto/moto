@@ -121,6 +121,18 @@ def test_put_json_rest_api():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="POST", authorizationType="none"
+    )
+
+    response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="POST")
+    response.should.have.key("httpMethod").equals("POST")
+
     path = os.path.dirname(os.path.abspath(__file__))
     with open(path + "/resources/test_api.json", "rb") as api_json:
         response = client.put_rest_api(
@@ -133,6 +145,23 @@ def test_put_json_rest_api():
     response.should.have.key("id").which.should.equal(api_id)
     response.should.have.key("name").which.should.equal("my_api")
     response.should.have.key("description").which.should.equal("this is my api")
+
+    # Since we chose mode=overwrite, the root_id is different
+    resources = client.get_resources(restApiId=api_id)
+    new_root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    new_root_id.shouldnt.equal(root_id)
+
+    # Our GET-method should also be gone
+    with pytest.raises(ClientError) as exc:
+        client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="POST")
+    err = exc.value.response["Error"]
+    print(err)
+
+    # We just have a GET-method, as defined in the JSON
+    client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
 
 
 @mock_apigateway
