@@ -834,6 +834,8 @@ class SimpleSystemManagerBackend(BaseBackend):
      - /aws/service/global-infrastructure/services
 
     Note that these are hardcoded, so they may be out of date for new services/regions.
+
+    Integration with SecretsManager is also supported.
     """
 
     def __init__(self, region):

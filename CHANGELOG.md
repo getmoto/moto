@@ -1,6 +1,40 @@
 Moto Changelog
 ==============
 
+3.1.9
+-----
+Docker Digest for 3.1.9: <autopopulateddigest>
+
+    New Services:
+        * EBS:
+            * complete_snapshot()
+            * get_snapshot_block()
+            * list_changed_blocks()
+            * list_snapshot_blocks()
+            * put_snapshot_block()
+            * start_snapshot()
+
+    New Methods:
+        * CloudFront:
+            * update_distribution()
+        * Datasets:
+            * create_dataset()
+            * delete_dataset()
+            * describe_dataset()
+            * list_datasets()
+            * update_dataset()
+        * Glue:
+            * list_crawlers()
+        * Rekognition:
+            * get_face_search()
+            * start_face_seach()
+
+    Miscellaneous:
+        * EC2:describe_vpc_endpoints() now supports the `vpc-endpoint-type`-filter
+        * RDS:create_db_cluster() now supports the EnableCloudwatchLogsExports-parameter
+        * RDS:create_db_instance() now supports the EnableCloudwatchLogsExports-parameter
+        * SSM now integrates with SecretsManager
+
 3.1.8
 -----
 Docker Digest for 3.1.8: _sha256:a7d8c55eec8d75d75dd2532a6a0a9647935238236a54e4de7bb3f72bc28b7bf8_
