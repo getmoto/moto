@@ -270,7 +270,7 @@ class DataBrewBackend(BaseBackend):
     ):
 
         if dataset_name not in self.datasets:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("One or more resources can't be found.")
 
         dataset = self.datasets[dataset_name]
 
@@ -289,13 +289,13 @@ class DataBrewBackend(BaseBackend):
 
     def delete_dataset(self, dataset_name):
         if dataset_name not in self.datasets:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("One or more resources can't be found.")
 
         del self.datasets[dataset_name]
 
     def describe_dataset(self, dataset_name):
         if dataset_name not in self.datasets:
-            raise ResourceNotFoundException()
+            raise ResourceNotFoundException("One or more resources can't be found.")
 
         return self.datasets[dataset_name]
 
