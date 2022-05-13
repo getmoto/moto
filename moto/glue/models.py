@@ -245,6 +245,7 @@ class GlueBackend(BaseBackend):
     def untag_resource(self, resource_arn, tag_keys):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
+
 class FakeDatabase(BaseModel):
     def __init__(self, database_name, database_input):
         self.name = database_name

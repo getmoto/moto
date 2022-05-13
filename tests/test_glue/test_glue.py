@@ -292,6 +292,7 @@ def test_list_crawlers_next_token_logic_does_not_create_infinite_loop():
         next_token = response.get("NextToken")
     assert not next_token
 
+
 @mock_glue
 def test_get_tags_job():
     client = create_glue_client()
@@ -325,7 +326,8 @@ def test_untag_glue_job():
     resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
 
     client.tag_resource(
-        ResourceArn=resource_arn, TagsToAdd={"key1": "value1", "key2": "value2", "key3": "value3"}
+        ResourceArn=resource_arn,
+        TagsToAdd={"key1": "value1", "key2": "value2", "key3": "value3"},
     )
 
     client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key2"])
@@ -333,6 +335,7 @@ def test_untag_glue_job():
     resp = client.get_tags(ResourceArn=resource_arn)
 
     resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+
 
 @mock_glue
 def test_get_tags_crawler():
@@ -367,7 +370,8 @@ def test_untag_glue_crawler():
     resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
 
     client.tag_resource(
-        ResourceArn=resource_arn, TagsToAdd={"key1": "value1", "key2": "value2", "key3": "value3"}
+        ResourceArn=resource_arn,
+        TagsToAdd={"key1": "value1", "key2": "value2", "key3": "value3"},
     )
 
     client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key2"])
