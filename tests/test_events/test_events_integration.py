@@ -262,11 +262,11 @@ def test_moto_matches_none_value_with_exists_filter():
             "bar": [{"exists": True}],
         },
     }
-    logs_client = boto3.client("logs")
+    logs_client = boto3.client("logs", region_name="eu-west-1")
     log_group_name = "test-log-group"
     logs_client.create_log_group(logGroupName=log_group_name)
 
-    events_client = boto3.client("events")
+    events_client = boto3.client("events", region_name="eu-west-1")
     event_bus_name = "test-event-bus"
     events_client.create_event_bus(Name=event_bus_name)
 
