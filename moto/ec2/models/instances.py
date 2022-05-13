@@ -26,24 +26,9 @@ from ..utils import (
 )
 from moto.ec2.models.instance_types import InstanceTypeOfferingBackend
 
-import pathlib
-
-from os import listdir
-
-from moto.utilities.utils import load_resource
 from ..exceptions import InvalidInstanceTypeError
 
-root = pathlib.Path(__file__).parent
-offerings_path = "../resources/instance_type_offerings"
-INSTANCE_TYPE_OFFERINGS = {}
-for location_type in listdir(root / offerings_path):
-    INSTANCE_TYPE_OFFERINGS[location_type] = {}
-    for _region in listdir(root / offerings_path / location_type):
-        full_path = offerings_path + "/" + location_type + "/" + _region
-        res = load_resource(__name__, full_path)
-        for instance in res:
-            instance["LocationType"] = location_type
-        INSTANCE_TYPE_OFFERINGS[location_type][_region.replace(".json", "")] = res
+from .instance_types import INSTANCE_TYPE_OFFERINGS
 
 
 class InstanceState(object):
@@ -558,11 +543,13 @@ class InstanceBackend(object):
         raise InvalidInstanceIdError(instance_id)
 
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
-        ### check instance type here ###
+        ### check if instance types are valid ###
+        location_type = "availability-zone" if "placement" in kwargs and kwargs["placement"] else "region"
+        default_region = "us-east-1"
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
-        valid_instance_types = valid_instance_types.get(kwargs["region_name"], [])
+        valid_instance_types = valid_instance_types.get(kwargs["region_name"] if "region_name" in kwargs else default_region, [])
         match_filters = InstanceTypeOfferingBackend().matches_filters
-        if not any({match_filters(valid_instance, {'instance-type': kwargs["instance_type"]}) for valid_instance in valid_instance_types}):
+        if not any({match_filters(valid_instance, {'instance-type': kwargs["instance_type"]}, location_type) for valid_instance in valid_instance_types}):
             raise InvalidInstanceTypeError(kwargs["instance_type"])
 
         new_reservation = Reservation()

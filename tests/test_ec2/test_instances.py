@@ -1163,6 +1163,23 @@ def test_run_instance_with_placement():
 
 
 @mock_ec2
+def test_run_instance_with_invalid_instance_type():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="invalid_type",
+            MinCount=1,
+            MaxCount=1,
+            Placement={"AvailabilityZone": "us-east-1b"},
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "The instance type 'invalid_type' does not exist"
+    )
+
+
+@mock_ec2
 def test_run_instance_with_subnet():
     client = boto3.client("ec2", region_name="eu-central-1")
 
