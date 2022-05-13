@@ -1069,30 +1069,30 @@
 
 ## databrew
 <details>
-<summary>22% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] batch_delete_recipe_version
-- [ ] create_dataset
+- [X] create_dataset
 - [ ] create_profile_job
 - [ ] create_project
 - [X] create_recipe
 - [ ] create_recipe_job
 - [X] create_ruleset
 - [ ] create_schedule
-- [ ] delete_dataset
+- [X] delete_dataset
 - [ ] delete_job
 - [ ] delete_project
 - [X] delete_recipe_version
 - [X] delete_ruleset
 - [ ] delete_schedule
-- [ ] describe_dataset
+- [X] describe_dataset
 - [ ] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
 - [ ] describe_recipe
 - [ ] describe_ruleset
 - [ ] describe_schedule
-- [ ] list_datasets
+- [X] list_datasets
 - [ ] list_job_runs
 - [ ] list_jobs
 - [ ] list_projects
@@ -1108,7 +1108,7 @@
 - [ ] stop_job_run
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_dataset
+- [X] update_dataset
 - [ ] update_profile_job
 - [ ] update_project
 - [X] update_recipe

@@ -42,3 +42,12 @@ class ResourceNotFoundException(DataBrewClientError):
 class RulesetNotFoundException(EntityNotFoundException):
     def __init__(self, recipe_name):
         super().__init__("Ruleset %s not found." % recipe_name)
+
+
+class ServiceQuotaExceededException(JsonRESTError):
+    code = 402
+
+    def __init__(self):
+        super().__init__(
+            "ServiceQuotaExceededException", "A service quota is exceeded."
+        )
