@@ -444,7 +444,7 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
-        auth_result = cognitoidp_backends[self.region].respond_to_auth_challenge(
+        auth_result = cognitoidp_backends["global"].respond_to_auth_challenge(
             session, client_id, challenge_name, challenge_responses
         )
 
