@@ -328,7 +328,7 @@ class GlueResponse(BaseResponse):
         return [
             crawler.get_name()
             for crawler in crawlers
-            if self.is_tags_match(crawler.tags, tags)
+            if self.is_tags_match(self.glue_backend.get_tags(crawler.arn), tags)
         ]
 
     def start_crawler(self):
@@ -440,7 +440,7 @@ class GlueResponse(BaseResponse):
     def filter_jobs_by_tags(self, jobs, tags):
         if not tags:
             return [job.get_name() for job in jobs]
-        return [job.get_name() for job in jobs if self.is_tags_match(job.tags, tags)]
+        return [job.get_name() for job in jobs if self.is_tags_match(self.glue_backend.get_tags(job.arn), tags)]
 
     @staticmethod
     def is_tags_match(glue_resource_tags, tags):
