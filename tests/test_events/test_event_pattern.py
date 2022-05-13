@@ -23,6 +23,7 @@ def test_event_pattern_with_nested_event_filter():
 def test_event_pattern_with_exists_event_filter():
     foo_exists = EventPattern.load(json.dumps({"detail": {"foo": [{"exists": True}]}}))
     assert foo_exists.matches_event({"detail": {"foo": "bar"}})
+    assert foo_exists.matches_event({"detail": {"foo": None}})
     assert not foo_exists.matches_event({"detail": {}})
     # exists filters only match leaf nodes of an event
     assert not foo_exists.matches_event({"detail": {"foo": {"bar": "baz"}}})
@@ -31,6 +32,7 @@ def test_event_pattern_with_exists_event_filter():
         json.dumps({"detail": {"foo": [{"exists": False}]}})
     )
     assert not foo_not_exists.matches_event({"detail": {"foo": "bar"}})
+    assert not foo_not_exists.matches_event({"detail": {"foo": None}})
     assert foo_not_exists.matches_event({"detail": {}})
     assert foo_not_exists.matches_event({"detail": {"foo": {"bar": "baz"}}})
 
