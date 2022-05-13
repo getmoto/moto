@@ -12,7 +12,7 @@ from operator import lt, le, eq, ge, gt
 
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
+from moto.core import get_account_id, BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import (
     unix_time,
     unix_time_millis,
@@ -59,7 +59,7 @@ class Rule(CloudFormationModel):
         self.event_bus_name = event_bus_name
         self.state = state or "ENABLED"
         self.managed_by = managed_by  # can only be set by AWS services
-        self.created_by = ACCOUNT_ID
+        self.created_by = get_account_id()
         self.targets = targets or []
 
     @property
@@ -73,7 +73,7 @@ class Rule(CloudFormationModel):
         return (
             "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
                 region=self.region_name,
-                account_id=ACCOUNT_ID,
+                account_id=get_account_id(),
                 event_bus_name=event_bus_name,
                 name=self.name,
             )
@@ -321,7 +321,7 @@ class EventBus(CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:event-bus/{name}".format(
-            region=self.region, account_id=ACCOUNT_ID, name=self.name
+            region=self.region, account_id=get_account_id(), name=self.name
         )
 
     @property
@@ -507,7 +507,7 @@ class Archive(CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:archive/{name}".format(
-            region=self.region, account_id=ACCOUNT_ID, name=self.name
+            region=self.region, account_id=get_account_id(), name=self.name
         )
 
     def describe_short(self):
@@ -640,7 +640,7 @@ class Replay(BaseModel):
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:replay/{name}".format(
-            region=self.region, account_id=ACCOUNT_ID, name=self.name
+            region=self.region, account_id=get_account_id(), name=self.name
         )
 
     def describe_short(self):
@@ -695,7 +695,7 @@ class Connection(BaseModel):
     @property
     def arn(self):
         return "arn:aws:events:{0}:{1}:connection/{2}/{3}".format(
-            self.region, ACCOUNT_ID, self.name, self.uuid
+            self.region, get_account_id(), self.name, self.uuid
         )
 
     def describe_short(self):
@@ -776,7 +776,7 @@ class Destination(BaseModel):
     @property
     def arn(self):
         return "arn:aws:events:{0}:{1}:api-destination/{2}/{3}".format(
-            self.region, ACCOUNT_ID, self.name, self.uuid
+            self.region, get_account_id(), self.name, self.uuid
         )
 
     def describe(self):
@@ -1221,7 +1221,7 @@ class EventsBackend(BaseBackend):
                             "id": event_id,
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
-                            "account": ACCOUNT_ID,
+                            "account": get_account_id(),
                             "time": event.get("Time", unix_time(datetime.utcnow())),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),

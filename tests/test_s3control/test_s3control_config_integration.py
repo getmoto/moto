@@ -18,7 +18,7 @@ if not settings.TEST_SERVER_MODE:
     @mock_s3control
     @mock_config
     def test_config_list_account_pab():
-        from moto.s3.models import ACCOUNT_ID
+        from moto.core import ACCOUNT_ID
 
         client = boto3.client("s3control", region_name="us-west-2")
         config_client = boto3.client("config", region_name="us-west-2")
@@ -191,7 +191,7 @@ if not settings.TEST_SERVER_MODE:
     @mock_s3control
     @mock_config
     def test_config_get_account_pab():
-        from moto.s3.models import ACCOUNT_ID
+        from moto.core import ACCOUNT_ID
 
         client = boto3.client("s3control", region_name="us-west-2")
         config_client = boto3.client("config", region_name="us-west-2")

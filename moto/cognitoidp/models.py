@@ -10,7 +10,7 @@ import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
@@ -215,7 +215,7 @@ class CognitoIdpUserPoolAttribute(BaseModel):
                 "Required custom attributes are not supported currently."
             )
         self.required = False
-        self._init_constraints(schema, None)
+        self._init_constraints(schema, None, show_empty_constraints=True)
 
     def _init_standard(self, schema):
         attribute_data_type = schema.get("AttributeDataType", None)
@@ -252,7 +252,9 @@ class CognitoIdpUserPoolAttribute(BaseModel):
         )
         self._init_constraints(schema, default_constraints)
 
-    def _init_constraints(self, schema, default_constraints):
+    def _init_constraints(
+        self, schema, default_constraints, show_empty_constraints=False
+    ):
         def numeric_limit(num, constraint_type):
             if not num:
                 return
@@ -267,7 +269,7 @@ class CognitoIdpUserPoolAttribute(BaseModel):
                 )
             return parsed
 
-        self.string_constraints = None
+        self.string_constraints = {} if show_empty_constraints else None
         self.number_constraints = None
 
         if "AttributeDataType" in schema:
@@ -295,6 +297,7 @@ class CognitoIdpUserPoolAttribute(BaseModel):
                         f"user.{self.name}: Max length cannot be less than min length."
                     )
                 self.string_constraints = string_constraints
+                self.number_constraints = None
             elif self.data_type == "Number":
                 number_constraints = schema.get(
                     "NumberAttributeConstraints", default_constraints
@@ -315,6 +318,10 @@ class CognitoIdpUserPoolAttribute(BaseModel):
                         f"user.{self.name}: Max value cannot be less than min value."
                     )
                 self.number_constraints = number_constraints
+                self.string_constraints = None
+            else:
+                self.number_constraints = None
+                self.string_constraints = None
 
     def to_json(self):
         return {
@@ -328,16 +335,63 @@ class CognitoIdpUserPoolAttribute(BaseModel):
         }
 
 
+DEFAULT_USER_POOL_CONFIG = {
+    "Policies": {
+        "PasswordPolicy": {
+            "MinimumLength": 8,
+            "RequireUppercase": True,
+            "RequireLowercase": True,
+            "RequireNumbers": True,
+            "RequireSymbols": True,
+            "TemporaryPasswordValidityDays": 7,
+        }
+    },
+    "AdminCreateUserConfig": {
+        "AllowAdminCreateUserOnly": False,
+        "UnusedAccountValidityDays": 7,
+        "InviteMessageTemplate": {
+            "SMSMessage": "Your username is {username} and temporary password is {####}. ",
+            "EmailMessage": "Your username is {username} and temporary password is {####}. ",
+            "EmailSubject": "Your temporary password",
+        },
+    },
+    "EmailConfiguration": {"EmailSendingAccount": "COGNITO_DEFAULT"},
+    "VerificationMessageTemplate": {
+        "SmsMessage": "Your verification code is {####}. ",
+        "EmailMessage": "Your verification code is {####}. ",
+        "EmailSubject": "Your verification code",
+        "DefaultEmailOption": "CONFIRM_WITH_CODE",
+    },
+}
+
+
 class CognitoIdpUserPool(BaseModel):
     def __init__(self, region, name, extended_config):
         self.region = region
         self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
         self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
-            self.region, DEFAULT_ACCOUNT_ID, self.id
+            self.region, get_account_id(), self.id
         )
         self.name = name
         self.status = None
-        self.extended_config = extended_config or {}
+
+        self.extended_config = DEFAULT_USER_POOL_CONFIG.copy()
+        self.extended_config.update(extended_config or {})
+
+        message_template = self.extended_config.get("VerificationMessageTemplate")
+        if message_template and "SmsVerificationMessage" not in extended_config:
+            self.extended_config["SmsVerificationMessage"] = message_template.get(
+                "SmsMessage"
+            )
+        if message_template and "EmailVerificationSubject" not in extended_config:
+            self.extended_config["EmailVerificationSubject"] = message_template.get(
+                "EmailSubject"
+            )
+        if message_template and "EmailVerificationMessage" not in extended_config:
+            self.extended_config["EmailVerificationMessage"] = message_template.get(
+                "EmailMessage"
+            )
+
         self.creation_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
 
@@ -346,18 +400,19 @@ class CognitoIdpUserPool(BaseModel):
         self.token_mfa_config = None
 
         self.schema_attributes = {}
-        for schema in extended_config.pop("Schema", {}):
+        for schema in self.extended_config.pop("Schema", {}):
             attribute = CognitoIdpUserPoolAttribute(
                 schema["Name"],
                 schema["Name"] not in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA,
                 schema,
             )
             self.schema_attributes[attribute.name] = attribute
-        for (
-            standard_attribute_name,
-            standard_attribute_schema,
-        ) in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA.items():
-            if standard_attribute_name not in self.schema_attributes:
+        # If we do not have custom attributes, use the standard schema
+        if not self.schema_attributes:
+            for (
+                standard_attribute_name,
+                standard_attribute_schema,
+            ) in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA.items():
                 self.schema_attributes[
                     standard_attribute_name
                 ] = CognitoIdpUserPoolAttribute(
@@ -523,6 +578,14 @@ class CognitoIdpUserPool(BaseModel):
                     extra_data.update({attribute[0]["Name"]: attribute[0]["Value"]})
         return extra_data
 
+    def sign_out(self, username):
+        for token, token_tuple in list(self.refresh_tokens.items()):
+            if token_tuple is None:
+                continue
+            _, logged_in_user = token_tuple
+            if username == logged_in_user:
+                self.refresh_tokens[token] = None
+
 
 class CognitoIdpUserPoolDomain(BaseModel):
     def __init__(self, user_pool_id, domain, custom_domain_config=None):
@@ -591,6 +654,9 @@ class CognitoIdpIdentityProvider(BaseModel):
         self.creation_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
 
+        if "AttributeMapping" not in self.extended_config:
+            self.extended_config["AttributeMapping"] = {"username": "sub"}
+
     def _base_json(self):
         return {
             "ProviderName": self.name,
@@ -620,6 +686,15 @@ class CognitoIdpGroup(BaseModel):
         # Users who are members of this group.
         # Note that these links are bidirectional.
         self.users = set()
+
+    def update(self, description, role_arn, precedence):
+        if description is not None:
+            self.description = description
+        if role_arn is not None:
+            self.role_arn = role_arn
+        if precedence is not None:
+            self.precedence = precedence
+        self.last_modified_date = datetime.datetime.now()
 
     def to_json(self):
         return {
@@ -956,6 +1031,13 @@ class CognitoIdpBackend(BaseBackend):
 
         del user_pool.groups[group_name]
 
+    def update_group(self, user_pool_id, group_name, description, role_arn, precedence):
+        group = self.get_group(user_pool_id, group_name)
+
+        group.update(description, role_arn, precedence)
+
+        return group
+
     def admin_add_user_to_group(self, user_pool_id, group_name, username):
         group = self.get_group(user_pool_id, group_name)
         user = self.admin_get_user(user_pool_id, username)
@@ -1188,8 +1270,8 @@ class CognitoIdpBackend(BaseBackend):
         elif auth_flow is AuthFlow.REFRESH_TOKEN:
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             (
-                id_token,
                 access_token,
+                id_token,
                 expires_in,
             ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
@@ -1383,12 +1465,16 @@ class CognitoIdpBackend(BaseBackend):
         user_pool = self.describe_user_pool(user_pool_id)
         self.admin_get_user(user_pool_id, username)
 
-        for token, token_tuple in list(user_pool.refresh_tokens.items()):
-            if token_tuple is None:
-                continue
-            _, username = token_tuple
-            if username == username:
-                user_pool.refresh_tokens[token] = None
+        user_pool.sign_out(username)
+
+    def global_sign_out(self, access_token):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user_pool.sign_out(username)
+                return
+
+        raise NotAuthorizedError(access_token)
 
     def create_resource_server(self, user_pool_id, identifier, name, scopes):
         user_pool = self.describe_user_pool(user_pool_id)
@@ -1403,13 +1489,10 @@ class CognitoIdpBackend(BaseBackend):
         return resource_server
 
     def sign_up(self, client_id, username, password, attributes):
-        # This method may not be authenticated - which means we don't know which region the request was send to
-        # Let's cycle through all regions to find out which one contains our client_id
         user_pool = None
-        for backend in cognitoidp_backends.values():
-            for p in backend.user_pools.values():
-                if client_id in p.clients:
-                    user_pool = p
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
         if user_pool is None:
             raise ResourceNotFoundError(client_id)
         elif user_pool._get_user(username):
@@ -1697,8 +1780,71 @@ class CognitoIdpBackend(BaseBackend):
         user_pool = self.describe_user_pool(user_pool_id)
         user_pool.add_custom_attributes(custom_attributes)
 
+    def update_user_attributes(self, access_token, attributes):
+        """
+        The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetails are returned.
+        """
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = self.admin_get_user(user_pool.id, username)
+
+                user.update_attributes(attributes)
+                return
+
+        raise NotAuthorizedError(access_token)
+
+
+class GlobalCognitoIdpBackend(CognitoIdpBackend):
+    # Some operations are unauthenticated
+    # Without authentication-header, we lose the context of which region the request was send to
+    # This backend will cycle through all backends as a workaround
+
+    def _find_backend_by_access_token(self, access_token):
+        for region, backend in cognitoidp_backends.items():
+            if region == "global":
+                continue
+            for p in backend.user_pools.values():
+                if access_token in p.access_tokens:
+                    return backend
+        return cognitoidp_backends["us-east-1"]
+
+    def _find_backend_for_clientid(self, client_id):
+        for region, backend in cognitoidp_backends.items():
+            if region == "global":
+                continue
+            for p in backend.user_pools.values():
+                if client_id in p.clients:
+                    return backend
+        return cognitoidp_backends["us-east-1"]
+
+    def sign_up(self, client_id, username, password, attributes):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.sign_up(client_id, username, password, attributes)
+
+    def initiate_auth(self, client_id, auth_flow, auth_parameters):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.initiate_auth(client_id, auth_flow, auth_parameters)
+
+    def confirm_sign_up(self, client_id, username):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.confirm_sign_up(client_id, username)
+
+    def get_user(self, access_token):
+        backend = self._find_backend_by_access_token(access_token)
+        return backend.get_user(access_token)
+
+    def respond_to_auth_challenge(
+        self, session, client_id, challenge_name, challenge_responses
+    ):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.respond_to_auth_challenge(
+            session, client_id, challenge_name, challenge_responses
+        )
+
 
 cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
+cognitoidp_backends["global"] = GlobalCognitoIdpBackend("global")
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't

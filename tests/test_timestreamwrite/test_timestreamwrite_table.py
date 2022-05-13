@@ -37,6 +37,38 @@ def test_create_table():
 
 
 @mock_timestreamwrite
+def test_create_table__with_magnetic_store_write_properties():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    resp = ts.create_table(
+        DatabaseName="mydatabase",
+        TableName="mytable",
+        MagneticStoreWriteProperties={
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        },
+    )
+    table = resp["Table"]
+    table.should.have.key("Arn").equal(
+        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
+    )
+    table.should.have.key("TableName").equal("mytable")
+    table.should.have.key("DatabaseName").equal("mydatabase")
+    table.should.have.key("TableStatus").equal("ACTIVE")
+    table.should.have.key("MagneticStoreWriteProperties").should.equal(
+        {
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        }
+    )
+
+
+@mock_timestreamwrite
 def test_create_table_without_retention_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -184,6 +216,40 @@ def test_update_table():
         {
             "MagneticStoreRetentionPeriodInDays": 2,
             "MemoryStoreRetentionPeriodInHours": 1,
+        }
+    )
+
+
+@mock_timestreamwrite
+def test_update_table__with_magnetic_store_write_properties():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    ts.create_table(DatabaseName="mydatabase", TableName="mytable")
+
+    resp = ts.update_table(
+        DatabaseName="mydatabase",
+        TableName="mytable",
+        MagneticStoreWriteProperties={
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
+        },
+    )
+    table = resp["Table"]
+    table.should.have.key("Arn").equal(
+        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
+    )
+    table.should.have.key("TableName").equal("mytable")
+    table.should.have.key("DatabaseName").equal("mydatabase")
+    table.should.have.key("TableStatus").equal("ACTIVE")
+    table.should.have.key("MagneticStoreWriteProperties").should.equal(
+        {
+            "EnableMagneticStoreWrites": True,
+            "MagneticStoreRejectedDataLocation": {
+                "S3Configuration": {"BucketName": "hithere"}
+            },
         }
     )
 

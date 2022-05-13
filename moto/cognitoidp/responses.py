@@ -256,6 +256,19 @@ class CognitoIdpResponse(BaseResponse):
         cognitoidp_backends[self.region].delete_group(user_pool_id, group_name)
         return ""
 
+    def update_group(self):
+        group_name = self._get_param("GroupName")
+        user_pool_id = self._get_param("UserPoolId")
+        description = self._get_param("Description")
+        role_arn = self._get_param("RoleArn")
+        precedence = self._get_param("Precedence")
+
+        group = cognitoidp_backends[self.region].update_group(
+            user_pool_id, group_name, description, role_arn, precedence
+        )
+
+        return json.dumps({"Group": group.to_json()})
+
     def admin_add_user_to_group(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
@@ -333,7 +346,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def get_user(self):
         access_token = self._get_param("AccessToken")
-        user = cognitoidp_backends[self.region].get_user(access_token=access_token)
+        user = cognitoidp_backends["global"].get_user(access_token=access_token)
         return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
 
     def list_users(self):
@@ -431,7 +444,7 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
-        auth_result = cognitoidp_backends[self.region].respond_to_auth_challenge(
+        auth_result = cognitoidp_backends["global"].respond_to_auth_challenge(
             session, client_id, challenge_name, challenge_responses
         )
 
@@ -501,6 +514,11 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    def global_sign_out(self):
+        access_token = self._get_param("AccessToken")
+        cognitoidp_backends[self.region].global_sign_out(access_token)
+        return ""
+
     # Resource Server
     def create_resource_server(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -516,7 +534,7 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
-        user = cognitoidp_backends[self.region].sign_up(
+        user = cognitoidp_backends["global"].sign_up(
             client_id=client_id,
             username=username,
             password=password,
@@ -532,7 +550,7 @@ class CognitoIdpResponse(BaseResponse):
     def confirm_sign_up(self):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
-        cognitoidp_backends[self.region].confirm_sign_up(
+        cognitoidp_backends["global"].confirm_sign_up(
             client_id=client_id, username=username
         )
         return ""
@@ -542,7 +560,7 @@ class CognitoIdpResponse(BaseResponse):
         auth_flow = self._get_param("AuthFlow")
         auth_parameters = self._get_param("AuthParameters")
 
-        auth_result = cognitoidp_backends[self.region].initiate_auth(
+        auth_result = cognitoidp_backends["global"].initiate_auth(
             client_id, auth_flow, auth_parameters
         )
 
@@ -594,6 +612,14 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, custom_attributes
         )
         return ""
+
+    def update_user_attributes(self):
+        access_token = self._get_param("AccessToken")
+        attributes = self._get_param("UserAttributes")
+        cognitoidp_backends[self.region].update_user_attributes(
+            access_token, attributes
+        )
+        return json.dumps({})
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):

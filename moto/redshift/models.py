@@ -29,7 +29,7 @@ from .exceptions import (
 )
 
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 
 class TaggableResourceMixin(object):
@@ -48,7 +48,7 @@ class TaggableResourceMixin(object):
     def arn(self):
         return "arn:aws:redshift:{region}:{account_id}:{resource_type}:{resource_id}".format(
             region=self.region,
-            account_id=ACCOUNT_ID,
+            account_id=get_account_id(),
             resource_type=self.resource_type,
             resource_id=self.resource_id,
         )

@@ -2,8 +2,8 @@ import uuid
 
 from datetime import datetime, timedelta
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import CloudFormationModel
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.utilities.paginator import paginate
 from moto.logs.metric_filters import MetricFilters
@@ -60,7 +60,7 @@ class LogStream(BaseModel):
 
     def __init__(self, region, log_group, name):
         self.region = region
-        self.arn = f"arn:aws:logs:{region}:{ACCOUNT_ID}:log-group:{log_group}:log-stream:{name}"
+        self.arn = f"arn:aws:logs:{region}:{get_account_id()}:log-group:{log_group}:log-stream:{name}"
         self.creation_time = int(unix_time_millis())
         self.first_event_timestamp = None
         self.last_event_timestamp = None
@@ -261,7 +261,7 @@ class LogGroup(CloudFormationModel):
     def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
-        self.arn = f"arn:aws:logs:{region}:{ACCOUNT_ID}:log-group:{name}"
+        self.arn = f"arn:aws:logs:{region}:{get_account_id()}:log-group:{name}"
         self.creation_time = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}

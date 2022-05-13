@@ -22,6 +22,14 @@ cloudwatch:
   - TestAccCloudWatchLogsDestination
   - TestAccCloudWatchLogsDestinationPolicy
   - TestAccCloudWatchLogsGroupDataSource
+cognitoidp:
+  - TestAccCognitoIDPIdentityProvider
+  - TestAccCognitoIDPUserGroup_
+  - TestAccCognitoIDPUserPool_
+  - TestAccCognitoUser_
+  - TestAccCognitoUserInGroup_
+  - TestAccCognitoIDPUserPoolClients
+  - TestAccCognitoIDPUserPoolClientDataSource
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
@@ -32,6 +40,8 @@ ec2:
   - TestAccEC2InternetGateway_
   - TestAccEC2NATGateway_
   - TestAccEC2RouteTableAssociation_
+  - TestAccEC2SpotInstanceRequest_disappears
+  - TestAccEC2SpotInstanceRequest_interruptUpdate
   - TestAccEC2VPCEndpointService_
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_
@@ -81,6 +91,7 @@ iam:
   - TestAccIAMRolePolicy_
   - TestAccIAMRolePolicyAttachment_
   - TestAccIAMSessionContextDataSource_
+  - TestAccIAMServiceLinkedRole
   - TestAccIAMUserDataSource_
   - TestAccIAMUserPolicy_
   - TestAccIAMUserPolicyAttachment_
@@ -90,6 +101,10 @@ iot:
   - TestAccIoTEndpointDataSource
 kms:
   - TestAccKMSAlias
+  - TestAccKMSKey_Policy_basic
+  - TestAccKMSKey_Policy_iamRole
+  - TestAccKMSKey_Policy_iamRoleOrder
+  - TestAccKMSKey_Policy_iamServiceLinkedRole
   - TestAccKMSSecretDataSource
   - TestAccKMSSecretsDataSource
 meta:
@@ -118,3 +133,4 @@ sqs:
   - TestAccSQSQueue_FIFOQueue_
 timestreamwrite:
   - TestAccTimestreamWriteDatabase
+  - TestAccTimestreamWriteTable

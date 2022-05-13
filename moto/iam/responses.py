@@ -1088,6 +1088,32 @@ class IamResponse(BaseResponse):
         template = self.response_template(UNTAG_USER_TEMPLATE)
         return template.render()
 
+    def create_service_linked_role(self):
+        service_name = self._get_param("AWSServiceName")
+        description = self._get_param("Description")
+        suffix = self._get_param("CustomSuffix")
+
+        role = iam_backend.create_service_linked_role(service_name, description, suffix)
+
+        template = self.response_template(CREATE_SERVICE_LINKED_ROLE_TEMPLATE)
+        return template.render(role=role)
+
+    def delete_service_linked_role(self):
+        role_name = self._get_param("RoleName")
+
+        deletion_task_id = iam_backend.delete_service_linked_role(role_name)
+
+        template = self.response_template(DELETE_SERVICE_LINKED_ROLE_TEMPLATE)
+        return template.render(deletion_task_id=deletion_task_id)
+
+    def get_service_linked_role_deletion_status(self):
+        iam_backend.get_service_linked_role_deletion_status()
+
+        template = self.response_template(
+            GET_SERVICE_LINKED_ROLE_DELETION_STATUS_TEMPLATE
+        )
+        return template.render()
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -1399,34 +1425,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
 
 CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <CreateRoleResult>
-    <Role>
-      <Path>{{ role.path }}</Path>
-      <Arn>{{ role.arn }}</Arn>
-      <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description is not none %}
-      <Description>{{ role.description_escaped }}</Description>
-      {% endif %}
-      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
-      <RoleId>{{ role.id }}</RoleId>
-      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
-      {% if role.permissions_boundary %}
-      <PermissionsBoundary>
-          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
-          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
-      </PermissionsBoundary>
-      {% endif %}
-      {% if role.tags %}
-      <Tags>
-        {% for tag in role.get_tags() %}
-        <member>
-            <Key>{{ tag['Key'] }}</Key>
-            <Value>{{ tag['Value'] }}</Value>
-        </member>
-        {% endfor %}
-      </Tags>
-      {% endif %}
-    </Role>
+    {{ role.to_xml() }}
   </CreateRoleResult>
   <ResponseMetadata>
     <RequestId>4a93ceee-9966-11e1-b624-b1aEXAMPLE7c</RequestId>
@@ -1444,6 +1443,33 @@ GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaw
 </ResponseMetadata>
 </GetRolePolicyResponse>"""
 
+CREATE_SERVICE_LINKED_ROLE_TEMPLATE = """<CreateServiceLinkedRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateServiceLinkedRoleResult>
+    {{ role.to_xml() }}
+  </CreateServiceLinkedRoleResult>
+  <ResponseMetadata>
+    <RequestId>4a93ceee-9966-11e1-b624-b1aEXAMPLE7c</RequestId>
+  </ResponseMetadata>
+</CreateServiceLinkedRoleResponse>"""
+
+DELETE_SERVICE_LINKED_ROLE_TEMPLATE = """<DeleteServiceLinkedRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <DeleteServiceLinkedRoleResult>
+    <DeletionTaskId>{{ deletion_task_id }}</DeletionTaskId>
+  </DeleteServiceLinkedRoleResult>
+  <ResponseMetadata>
+    <RequestId>4a93ceee-9966-11e1-b624-b1aEXAMPLE7c</RequestId>
+  </ResponseMetadata>
+</DeleteServiceLinkedRoleResponse>"""
+
+GET_SERVICE_LINKED_ROLE_DELETION_STATUS_TEMPLATE = """<GetServiceLinkedRoleDeletionStatusResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetServiceLinkedRoleDeletionStatusResult>
+    <Status>SUCCEEDED</Status>
+  </GetServiceLinkedRoleDeletionStatusResult>
+  <ResponseMetadata>
+    <RequestId>4a93ceee-9966-11e1-b624-b1aEXAMPLE7c</RequestId>
+  </ResponseMetadata>
+</GetServiceLinkedRoleDeletionStatusResponse>"""
+
 UPDATE_ROLE_TEMPLATE = """<UpdateRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <UpdateRoleResult>
   </UpdateRoleResult>
@@ -1454,28 +1480,7 @@ UPDATE_ROLE_TEMPLATE = """<UpdateRoleResponse xmlns="https://iam.amazonaws.com/d
 
 UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <UpdateRoleDescriptionResult>
-    <Role>
-      <Path>{{ role.path }}</Path>
-      <Arn>{{ role.arn }}</Arn>
-      <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description is not none %}
-      <Description>{{ role.description_escaped }}</Description>
-      {% endif %}
-      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
-      <RoleId>{{ role.id }}</RoleId>
-      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
-      {% if role.tags %}
-      <Tags>
-        {% for tag in role.get_tags() %}
-        <member>
-            <Key>{{ tag['Key'] }}</Key>
-            <Value>{{ tag['Value'] }}</Value>
-        </member>
-        {% endfor %}
-      </Tags>
-      {% endif %}
-    </Role>
+    {{ role.to_xml() }}
   </UpdateRoleDescriptionResult>
   <ResponseMetadata>
     <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
@@ -1484,34 +1489,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
 
 GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <GetRoleResult>
-    <Role>
-      <Path>{{ role.path }}</Path>
-      <Arn>{{ role.arn }}</Arn>
-      <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      {% if role.description is not none %}
-      <Description>{{ role.description_escaped }}</Description>
-      {% endif %}
-      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
-      <RoleId>{{ role.id }}</RoleId>
-      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
-      {% if role.permissions_boundary %}
-      <PermissionsBoundary>
-          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
-          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
-      </PermissionsBoundary>
-      {% endif %}
-      {% if role.tags %}
-      <Tags>
-        {% for tag in role.get_tags() %}
-        <member>
-            <Key>{{ tag['Key'] }}</Key>
-            <Value>{{ tag['Value'] }}</Value>
-        </member>
-        {% endfor %}
-      </Tags>
-      {% endif %}
-    </Role>
+    {{ role.to_xml() }}
   </GetRoleResult>
   <ResponseMetadata>
     <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>

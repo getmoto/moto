@@ -25,7 +25,7 @@ index 51e5d1c9c7..057446ae1d 100644
  		Target:  []string{iam.DeletionTaskStatusTypeSucceeded},
  		Refresh: statusDeleteServiceLinkedRole(conn, deletionTaskID),
 -		Timeout: 5 * time.Minute,
-+		Timeout: 5 * time.Second,
++		Timeout: 15 * time.Second,
  		Delay:   10 * time.Second,
  	}
  

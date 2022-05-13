@@ -1,7 +1,9 @@
 import random
 import string
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from uuid import uuid4
 
 from .exceptions import (
@@ -129,7 +131,7 @@ class DistributionConfig:
         self.is_ipv6_enabled = True
 
 
-class Distribution(BaseModel):
+class Distribution(BaseModel, ManagedState):
     @staticmethod
     def random_id(uppercase=True):
         ascii_set = string.ascii_uppercase if uppercase else string.ascii_lowercase
@@ -140,9 +142,14 @@ class Distribution(BaseModel):
         return resource_id
 
     def __init__(self, config):
+        # Configured ManagedState
+        super().__init__(
+            "cloudfront::distribution", transitions=[("InProgress", "Deployed")]
+        )
+        # Configure internal properties
         self.distribution_id = Distribution.random_id()
         self.arn = (
-            f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{self.distribution_id}"
+            f"arn:aws:cloudfront:{get_account_id()}:distribution/{self.distribution_id}"
         )
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
@@ -152,15 +159,7 @@ class Distribution(BaseModel):
         self.last_modified_time = "2021-11-27T10:34:26.802Z"
         self.in_progress_invalidation_batches = 0
         self.has_active_trusted_key_groups = False
-        self.status = "InProgress"
         self.domain_name = f"{Distribution.random_id(uppercase=False)}.cloudfront.net"
-
-    def advance(self):
-        """
-        Advance the status of this Distribution, to mimick AWS' behaviour
-        """
-        if self.status == "InProgress":
-            self.status = "Deployed"
 
     @property
     def location(self):
@@ -175,10 +174,16 @@ class CloudFrontBackend(BaseBackend):
     def __init__(self):
         self.distributions = dict()
 
+        state_manager.register_default_transition(
+            "cloudfront::distribution", transition={"progression": "manual", "times": 1}
+        )
+
     def create_distribution(self, distribution_config):
         """
-        This has been tested against an S3-distribution with the simplest possible configuration.
-        Please raise an issue if we're not persisting/returning the correct attributes for your use-case.
+        This has been tested against an S3-distribution with the
+        simplest possible configuration.  Please raise an issue if
+        we're not persisting/returning the correct attributes for your
+        use-case.
         """
         dist = Distribution(distribution_config)
         caller_reference = dist.distribution_config.caller_reference
@@ -220,6 +225,26 @@ class CloudFrontBackend(BaseBackend):
             if config.caller_reference == reference:
                 return dist
         return False
+
+    def update_distribution(self, DistributionConfig, Id, IfMatch):
+        """
+        The IfMatch-value is ignored - any value is considered valid.
+        Calling this function without a value is invalid, per AWS' behaviour
+        """
+        if Id not in self.distributions or Id is None:
+            raise NoSuchDistribution
+        if not IfMatch:
+            raise InvalidIfMatchVersion
+        if not DistributionConfig:
+            raise NoSuchDistribution
+        dist = self.distributions[Id]
+
+        aliases = DistributionConfig["Aliases"]["Items"]["CNAME"]
+        dist.distribution_config.config = DistributionConfig
+        dist.distribution_config.aliases = aliases
+        self.distributions[Id] = dist
+        dist.advance()
+        return dist, dist.location, dist.etag
 
 
 cloudfront_backend = CloudFrontBackend()

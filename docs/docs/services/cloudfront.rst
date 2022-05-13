@@ -121,7 +121,15 @@ cloudfront
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
-- [ ] update_distribution
+- [X] update_distribution
+
+        The IfMatch-value is ignored - any value is considered valid.
+        Calling this function without a value is invalid, per AWS' behaviour
+
+	This implementation is immature, and tests the basic
+	functionality of updating an exisint distribution with very
+	simple changes.
+
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function

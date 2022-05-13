@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from moto.core import ACCOUNT_ID, BaseBackend
+from moto.core import get_account_id, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from ..utilities.utils import random_string
@@ -15,16 +15,16 @@ from .utils import get_partition, validate_role_arn
 
 # String Templates
 CLUSTER_ARN_TEMPLATE = (
-    "arn:{partition}:eks:{region}:" + str(ACCOUNT_ID) + ":cluster/{name}"
+    "arn:{partition}:eks:{region}:" + str(get_account_id()) + ":cluster/{name}"
 )
 FARGATE_PROFILE_ARN_TEMPLATE = (
     "arn:{partition}:eks:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
 )
 NODEGROUP_ARN_TEMPLATE = (
     "arn:{partition}:eks:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
 )
 ISSUER_TEMPLATE = "https://oidc.eks.{region}.amazonaws.com/id/" + random_string(10)

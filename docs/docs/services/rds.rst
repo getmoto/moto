@@ -82,7 +82,7 @@ rds
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
-- [ ] describe_db_instances
+- [X] describe_db_instances
 - [ ] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters

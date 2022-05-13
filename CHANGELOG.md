@@ -1,6 +1,57 @@
 Moto Changelog
 ==============
 
+3.1.8
+-----
+Docker Digest for 3.1.8: _sha256:a7d8c55eec8d75d75dd2532a6a0a9647935238236a54e4de7bb3f72bc28b7bf8_
+
+    General:
+        * Moto now supports a way to delay state transitions. 
+          See http://docs.getmoto.org/en/latest/docs/configuration/state_transition/index.html
+        * Moto now supports `@mock_batch_simple`, a way to mock the Batch-service without invoking Docker.
+
+    New Methods:
+        * CognitoIDP:
+            * global_sign_out()
+            * update_group()
+            * update_user_attributes()
+        * DataBrew:
+            * delete_recipe_version()
+            * list_recipe_versions()
+            * publish_recipe()
+        * IAM:
+            * create_service_linked_role()
+            * delete_service_linked_role()
+            * get_service_linked_role_deletion_status()
+        * Sagemaker:
+            * update_endpoint_weights_and_capacities()
+
+    Miscellaneous:
+        * EC2: request_spot_fleet() now supports the parameters LaunchTemplateConfigs, InstanceInterruptionBehavior
+        * EC2: request_spot_instances() now supports the InstanceInterruptionBehavior-parameter
+        * EC2: The status of a SpotInstances request now automatically transitions to 'Active/Fulfilled'
+        * EC2: Tags specified into create_launch_template() are now passed through when calling `run_instances()` with this template
+        * RDS: describe_db_instances() now supports the filter `db-cluster-id`
+        * TimestreamWrite: create_table() now supports the MagneticStoreWriteProps-parameter
+        * TimestreamWrite: update_table() now supports the MagneticStoreWriteProps-parameter 
+
+
+3.1.7
+-----
+Docker Digest for 3.1.7: _sha256:d9661c13c2f790cbe9ed6531cefec132494fc0e8c37fcceca1f709292ef0880f_
+
+    New Methods:
+        * SES:
+            * get_identity_verification_attributes()
+
+    Miscellaneous:
+        * CognitoIDP: UserPools now come with default values for the following attributes: Policies, AdminCreateUserConfig, EmailConfiguration, VerificationMessageTemplate
+        * ELBv2: Improved the response-format of the `create_rule()` and `set_rule_priorities()`-methods
+        * MediaConnect: Now has the correct format for flow/source ARN's
+        * Organizations: Fixes the behaviour for close_account()
+        * Sagemaker: Now supports tagging of Models, EndpointConfigs, ProcessingJobs
+
+
 3.1.6
 -----
 Docker Digest for 3.1.6: _sha256:722b9c05ad3454047688db4ba95991f6af4166c63d871149b1b1eef9d70be70f_

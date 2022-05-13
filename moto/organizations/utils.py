@@ -1,10 +1,10 @@
 import random
 import re
 import string
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 
-MASTER_ACCOUNT_ID = ACCOUNT_ID
+MASTER_ACCOUNT_ID = get_account_id()
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
 ORGANIZATION_ARN_FORMAT = "arn:aws:organizations::{0}:organization/{1}"

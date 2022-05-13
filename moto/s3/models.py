@@ -18,7 +18,7 @@ import uuid
 from bisect import insort
 from importlib import reload
 from moto.core import (
-    ACCOUNT_ID,
+    get_account_id,
     BaseBackend,
     BaseModel,
     CloudFormationModel,
@@ -78,9 +78,9 @@ OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
 def get_moto_s3_account_id():
     """This makes it easy for mocking AWS Account IDs when using AWS Config
-    -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
+    -- Simply mock.patch get_account_id() here, and Config gets it for free.
     """
-    return ACCOUNT_ID
+    return get_account_id()
 
 
 class FakeDeleteMarker(BaseModel):

@@ -172,6 +172,7 @@ class ELBV2Response(BaseResponse):
             actions=params["Actions"],
             tags=params.get("Tags"),
         )
+
         template = self.response_template(CREATE_RULE_TEMPLATE)
         return template.render(rules=rules)
 
@@ -776,24 +777,7 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
         <Actions>
           {% for action in rules.actions %}
           <member>
-            <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" and "forward_config" in action.data %}
-            <ForwardConfig>
-              <TargetGroups>
-                {% for target_group in action.data["forward_config"]["target_groups"] %}
-                <member>
-                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
-                  <Weight>{{ target_group["weight"] }}</Weight>
-                </member>
-                {% endfor %}
-              </TargetGroups>
-            </ForwardConfig>
-            {% endif %}
-            {% if action["type"] == "forward" and "forward_config" not in action.data %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
-            {% elif action["type"] == "redirect" %}
-            <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>
@@ -1513,22 +1497,7 @@ SET_RULE_PRIORITIES_TEMPLATE = """<SetRulePrioritiesResponse xmlns="http://elast
         <Actions>
           {% for action in rule.actions %}
           <member>
-            <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" and "forward_config" in action.data %}
-            <ForwardConfig>
-              <TargetGroups>
-                {% for target_group in action.data["forward_config"]["target_groups"] %}
-                <member>
-                  <TargetGroupArn>{{ target_group["target_group_arn"] }}</TargetGroupArn>
-                  <Weight>{{ target_group["weight"] }}</Weight>
-                </member>
-                {% endfor %}
-              </TargetGroups>
-            </ForwardConfig>
-            {% endif %}
-            {% if action["type"] == "forward" and "forward_config" not in action.data %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>

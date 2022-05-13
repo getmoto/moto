@@ -1,11 +1,18 @@
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import ResourceNotFound
 
 
 class TimestreamTable(BaseModel):
-    def __init__(self, region_name, table_name, db_name, retention_properties):
+    def __init__(
+        self,
+        region_name,
+        table_name,
+        db_name,
+        retention_properties,
+        magnetic_store_write_properties,
+    ):
         self.region_name = region_name
         self.name = table_name
         self.db_name = db_name
@@ -13,17 +20,20 @@ class TimestreamTable(BaseModel):
             "MemoryStoreRetentionPeriodInHours": 123,
             "MagneticStoreRetentionPeriodInDays": 123,
         }
+        self.magnetic_store_write_properties = magnetic_store_write_properties or {}
         self.records = []
 
-    def update(self, retention_properties):
+    def update(self, retention_properties, magnetic_store_write_properties):
         self.retention_properties = retention_properties
+        if magnetic_store_write_properties is not None:
+            self.magnetic_store_write_properties = magnetic_store_write_properties
 
     def write_records(self, records):
         self.records.extend(records)
 
     @property
     def arn(self):
-        return f"arn:aws:timestream:{self.region_name}:{ACCOUNT_ID}:database/{self.db_name}/table/{self.name}"
+        return f"arn:aws:timestream:{self.region_name}:{get_account_id()}:database/{self.db_name}/table/{self.name}"
 
     def description(self):
         return {
@@ -32,6 +42,7 @@ class TimestreamTable(BaseModel):
             "DatabaseName": self.db_name,
             "TableStatus": "ACTIVE",
             "RetentionProperties": self.retention_properties,
+            "MagneticStoreWriteProperties": self.magnetic_store_write_properties,
         }
 
 
@@ -40,30 +51,39 @@ class TimestreamDatabase(BaseModel):
         self.region_name = region_name
         self.name = database_name
         self.kms_key_id = (
-            kms_key_id or f"arn:aws:kms:{region_name}:{ACCOUNT_ID}:key/default_key"
+            kms_key_id
+            or f"arn:aws:kms:{region_name}:{get_account_id()}:key/default_key"
         )
         self.tables = dict()
 
     def update(self, kms_key_id):
         self.kms_key_id = kms_key_id
 
-    def create_table(self, table_name, retention_properties):
+    def create_table(
+        self, table_name, retention_properties, magnetic_store_write_properties
+    ):
         table = TimestreamTable(
             region_name=self.region_name,
             table_name=table_name,
             db_name=self.name,
             retention_properties=retention_properties,
+            magnetic_store_write_properties=magnetic_store_write_properties,
         )
         self.tables[table_name] = table
         return table
 
-    def update_table(self, table_name, retention_properties):
+    def update_table(
+        self, table_name, retention_properties, magnetic_store_write_properties
+    ):
         table = self.tables[table_name]
-        table.update(retention_properties=retention_properties)
+        table.update(
+            retention_properties=retention_properties,
+            magnetic_store_write_properties=magnetic_store_write_properties,
+        )
         return table
 
     def delete_table(self, table_name):
-        del self.tables[table_name]
+        self.tables.pop(table_name, None)
 
     def describe_table(self, table_name):
         if table_name not in self.tables:
@@ -75,9 +95,7 @@ class TimestreamDatabase(BaseModel):
 
     @property
     def arn(self):
-        return (
-            f"arn:aws:timestream:{self.region_name}:{ACCOUNT_ID}:database/{self.name}"
-        )
+        return f"arn:aws:timestream:{self.region_name}:{get_account_id()}:database/{self.name}"
 
     def description(self):
         return {
@@ -116,9 +134,18 @@ class TimestreamWriteBackend(BaseBackend):
         database.update(kms_key_id=kms_key_id)
         return database
 
-    def create_table(self, database_name, table_name, retention_properties, tags):
+    def create_table(
+        self,
+        database_name,
+        table_name,
+        retention_properties,
+        tags,
+        magnetic_store_write_properties,
+    ):
         database = self.describe_database(database_name)
-        table = database.create_table(table_name, retention_properties)
+        table = database.create_table(
+            table_name, retention_properties, magnetic_store_write_properties
+        )
         self.tagging_service.tag_resource(table.arn, tags)
         return table
 
@@ -136,9 +163,17 @@ class TimestreamWriteBackend(BaseBackend):
         tables = database.list_tables()
         return tables
 
-    def update_table(self, database_name, table_name, retention_properties):
+    def update_table(
+        self,
+        database_name,
+        table_name,
+        retention_properties,
+        magnetic_store_write_properties,
+    ):
         database = self.describe_database(database_name)
-        table = database.update_table(table_name, retention_properties)
+        table = database.update_table(
+            table_name, retention_properties, magnetic_store_write_properties
+        )
         return table
 
     def write_records(self, database_name, table_name, records):

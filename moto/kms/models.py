@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, CloudFormationModel
 from moto.core.utils import unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
@@ -29,7 +29,7 @@ class Key(CloudFormationModel):
         self.description = description or ""
         self.enabled = True
         self.region = region
-        self.account_id = ACCOUNT_ID
+        self.account_id = get_account_id()
         self.key_rotation_status = False
         self.deletion_date = None
         self.key_material = generate_master_key()
@@ -46,7 +46,7 @@ class Key(CloudFormationModel):
                     {
                         "Sid": "Enable IAM User Permissions",
                         "Effect": "Allow",
-                        "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                        "Principal": {"AWS": f"arn:aws:iam::{get_account_id()}:root"},
                         "Action": "kms:*",
                         "Resource": "*",
                     }

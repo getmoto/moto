@@ -14,7 +14,7 @@ from moto.codepipeline.exceptions import (
     InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 
 
 class CodePipeline(BaseModel):
@@ -26,7 +26,7 @@ class CodePipeline(BaseModel):
         self.tags = {}
 
         self._arn = "arn:aws:codepipeline:{0}:{1}:{2}".format(
-            region, ACCOUNT_ID, pipeline["name"]
+            region, get_account_id(), pipeline["name"]
         )
         self._created = datetime.utcnow()
         self._updated = datetime.utcnow()
@@ -91,7 +91,7 @@ class CodePipelineBackend(BaseBackend):
         if pipeline["name"] in self.pipelines:
             raise InvalidStructureException(
                 "A pipeline with the name '{0}' already exists in account '{1}'".format(
-                    pipeline["name"], ACCOUNT_ID
+                    pipeline["name"], get_account_id()
                 )
             )
 
@@ -130,7 +130,7 @@ class CodePipelineBackend(BaseBackend):
         if not codepipeline:
             raise PipelineNotFoundException(
                 "Account '{0}' does not have a pipeline with name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -142,7 +142,7 @@ class CodePipelineBackend(BaseBackend):
         if not codepipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, pipeline["name"]
+                    get_account_id(), pipeline["name"]
                 )
             )
 
@@ -178,7 +178,7 @@ class CodePipelineBackend(BaseBackend):
         if not pipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -193,7 +193,7 @@ class CodePipelineBackend(BaseBackend):
         if not pipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 
@@ -209,7 +209,7 @@ class CodePipelineBackend(BaseBackend):
         if not pipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    ACCOUNT_ID, name
+                    get_account_id(), name
                 )
             )
 

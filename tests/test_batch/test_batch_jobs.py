@@ -160,8 +160,8 @@ def test_list_jobs():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
-    job_def_name = "sleep5"
-    commands = ["sleep", "5"]
+    job_def_name = "sleep2"
+    commands = ["sleep", "2"]
     job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_def_name)
 
     resp = batch_client.submit_job(
@@ -179,7 +179,10 @@ def test_list_jobs():
         job.should.have.key("createdAt")
         job.should.have.key("jobDefinition")
         job.should.have.key("jobName")
-        job.should.have.key("status").which.should.be.within(["STARTING", "RUNNABLE"])
+        # This is async, so we can't be sure where we are in the process
+        job.should.have.key("status").within(
+            ["SUBMITTED", "PENDING", "STARTING", "RUNNABLE", "RUNNING"]
+        )
 
     batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")[
         "jobSummaryList"
@@ -299,30 +302,36 @@ def test_cancel_running_job():
         jobName="test_job_name", jobQueue=queue_arn, jobDefinition=job_def_arn
     )
     job_id = resp["jobId"]
-    _wait_for_job_status(batch_client, job_id, "STARTING")
+    _wait_for_job_statuses(
+        batch_client, job_id, statuses=["RUNNABLE", "STARTING", "RUNNING"]
+    )
 
     batch_client.cancel_job(jobId=job_id, reason="test_cancel")
     # We cancelled too late, the job was already running. Now we just wait for it to succeed
-    _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
+    _wait_for_job_status(batch_client, job_id, "SUCCEEDED", seconds_to_wait=30)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test_job_name")
     resp["jobs"][0].shouldnt.have.key("statusReason")
 
 
-def _wait_for_job_status(client, job_id, status, seconds_to_wait=60):
+def _wait_for_job_status(client, job_id, status, seconds_to_wait=30):
+    _wait_for_job_statuses(client, job_id, [status], seconds_to_wait)
+
+
+def _wait_for_job_statuses(client, job_id, statuses, seconds_to_wait=30):
     wait_time = datetime.datetime.now() + datetime.timedelta(seconds=seconds_to_wait)
     last_job_status = None
     while datetime.datetime.now() < wait_time:
         resp = client.describe_jobs(jobs=[job_id])
         last_job_status = resp["jobs"][0]["status"]
-        if last_job_status == status:
+        if last_job_status in statuses:
             break
         time.sleep(0.1)
     else:
         raise RuntimeError(
             "Time out waiting for job status {status}!\n Last status: {last_status}".format(
-                status=status, last_status=last_job_status
+                status=statuses, last_status=last_job_status
             )
         )
 

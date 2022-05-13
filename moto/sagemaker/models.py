@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -121,7 +121,7 @@ class FakeProcessingJob(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":processing-job/"
             + endpoint_name
         )
@@ -230,7 +230,7 @@ class FakeTrainingJob(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":training-job/"
             + endpoint_name
         )
@@ -249,7 +249,9 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.endpoint_name = endpoint_name
         self.endpoint_arn = FakeEndpoint.arn_formatter(endpoint_name, region_name)
         self.endpoint_config_name = endpoint_config_name
-        self.production_variants = production_variants
+        self.production_variants = self._process_production_variants(
+            production_variants
+        )
         self.data_capture_config = data_capture_config
         self.tags = tags or []
         self.endpoint_status = "InService"
@@ -257,6 +259,42 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
+
+    def _process_production_variants(self, production_variants):
+        endpoint_variants = []
+        for production_variant in production_variants:
+            temp_variant = {}
+
+            # VariantName is the only required param
+            temp_variant["VariantName"] = production_variant["VariantName"]
+
+            if production_variant.get("InitialInstanceCount", None):
+                temp_variant["CurrentInstanceCount"] = production_variant[
+                    "InitialInstanceCount"
+                ]
+                temp_variant["DesiredInstanceCount"] = production_variant[
+                    "InitialInstanceCount"
+                ]
+
+            if production_variant.get("InitialVariantWeight", None):
+                temp_variant["CurrentWeight"] = production_variant[
+                    "InitialVariantWeight"
+                ]
+                temp_variant["DesiredWeight"] = production_variant[
+                    "InitialVariantWeight"
+                ]
+
+            if production_variant.get("ServerlessConfig", None):
+                temp_variant["CurrentServerlessConfig"] = production_variant[
+                    "ServerlessConfig"
+                ]
+                temp_variant["DesiredServerlessConfig"] = production_variant[
+                    "ServerlessConfig"
+                ]
+
+            endpoint_variants.append(temp_variant)
+
+        return endpoint_variants
 
     @property
     def response_object(self):
@@ -275,7 +313,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":endpoint/"
             + endpoint_name
         )
@@ -465,7 +503,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":endpoint-config/"
             + model_name
         )
@@ -577,7 +615,7 @@ class Model(BaseObject, CloudFormationModel):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":model/"
             + model_name
         )
@@ -781,7 +819,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
             "arn:aws:sagemaker:"
             + self.region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":notebook-instance/"
             + self.notebook_instance_name
         )
@@ -895,7 +933,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":notebook-instance-lifecycle-configuration/"
             + notebook_instance_lifecycle_config_name
         )
@@ -1374,7 +1412,7 @@ class SageMakerModelBackend(BaseBackend):
             self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
             raise ResourceNotFound(
-                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}' does not exist."
+                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{get_account_id()}:experiment-trial/{trial_name}' does not exist."
             )
 
         if trial_component_name in self.trial_components.keys():
@@ -1403,8 +1441,8 @@ class SageMakerModelBackend(BaseBackend):
             )
 
         return {
-            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}",
-            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}",
+            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{get_account_id()}:experiment-trial-component/{trial_component_name}",
+            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{get_account_id()}:experiment-trial/{trial_name}",
         }
 
     def create_notebook_instance(
@@ -1607,7 +1645,7 @@ class SageMakerModelBackend(BaseBackend):
         try:
             return self.endpoints[endpoint_name].response_object
         except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
+            message = "Could not find endpoint '{}'.".format(
                 FakeEndpoint.arn_formatter(endpoint_name, self.region_name)
             )
             raise ValidationError(message=message)
@@ -1616,7 +1654,7 @@ class SageMakerModelBackend(BaseBackend):
         try:
             del self.endpoints[endpoint_name]
         except KeyError:
-            message = "Could not find endpoint configuration '{}'.".format(
+            message = "Could not find endpoint '{}'.".format(
                 FakeEndpoint.arn_formatter(endpoint_name, self.region_name)
             )
             raise ValidationError(message=message)
@@ -1890,6 +1928,54 @@ class SageMakerModelBackend(BaseBackend):
             "NextToken": str(next_index) if next_index is not None else None,
         }
 
+    def update_endpoint_weights_and_capacities(
+        self, endpoint_name, desired_weights_and_capacities
+    ):
+        # Validate inputs
+        endpoint = self.endpoints.get(endpoint_name, None)
+        if not endpoint:
+            raise AWSValidationException(
+                f'Could not find endpoint "{FakeEndpoint.arn_formatter(endpoint_name, self.region_name)}".'
+            )
+
+        names_checked = []
+        for variant_config in desired_weights_and_capacities:
+            name = variant_config.get("VariantName")
+
+            if name in names_checked:
+                raise AWSValidationException(
+                    f'The variant name "{name}" was non-unique within the request.'
+                )
+
+            if not any(
+                variant["VariantName"] == name
+                for variant in endpoint.production_variants
+            ):
+                raise AWSValidationException(
+                    f'The variant name(s) "{name}" is/are not present within endpoint configuration "{endpoint.endpoint_config_name}".'
+                )
+
+            names_checked.append(name)
+
+        # Update endpoint variants
+        endpoint.endpoint_status = "Updating"
+
+        for variant_config in desired_weights_and_capacities:
+            name = variant_config.get("VariantName")
+            desired_weight = variant_config.get("DesiredWeight")
+            desired_instance_count = variant_config.get("DesiredInstanceCount")
+
+            for variant in endpoint.production_variants:
+                if variant.get("VariantName") == name:
+                    variant["DesiredWeight"] = desired_weight
+                    variant["CurrentWeight"] = desired_weight
+                    variant["DesiredInstanceCount"] = desired_instance_count
+                    variant["CurrentInstanceCount"] = desired_instance_count
+                    break
+
+        endpoint.endpoint_status = "InService"
+        return endpoint.endpoint_arn
+
 
 class FakeExperiment(BaseObject):
     def __init__(self, region_name, experiment_name, tags):
@@ -1917,7 +2003,7 @@ class FakeExperiment(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":experiment/"
             + experiment_arn
         )
@@ -1953,7 +2039,7 @@ class FakeTrial(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":experiment-trial/"
             + trial_name
         )
@@ -1987,7 +2073,7 @@ class FakeTrialComponent(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":experiment-trial-component/"
             + trial_component_name
         )

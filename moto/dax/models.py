@@ -1,6 +1,8 @@
 """DAXBackend class with methods for supported APIs."""
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, get_random_hex, unix_time
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.paginator import paginate
 
@@ -63,7 +65,7 @@ class DaxEndpoint:
         return dct
 
 
-class DaxCluster(BaseModel):
+class DaxCluster(BaseModel, ManagedState):
     def __init__(
         self,
         region,
@@ -74,12 +76,17 @@ class DaxCluster(BaseModel):
         iam_role_arn,
         sse_specification,
     ):
+        # Configure ManagedState
+        super().__init__(
+            model_name="dax::cluster",
+            transitions=[("creating", "available"), ("deleting", "deleted")],
+        )
+        # Set internal properties
         self.name = name
         self.description = description
-        self.arn = f"arn:aws:dax:{region}:{ACCOUNT_ID}:cache/{self.name}"
+        self.arn = f"arn:aws:dax:{region}:{get_account_id()}:cache/{self.name}"
         self.node_type = node_type
         self.replication_factor = replication_factor
-        self.status = "creating"
         self.cluster_hex = get_random_hex(6)
         self.endpoint = DaxEndpoint(
             name=name, cluster_hex=self.cluster_hex, region=region
@@ -93,10 +100,6 @@ class DaxCluster(BaseModel):
             {"SecurityGroupIdentifier": f"sg-{get_random_hex(10)}", "Status": "active"}
         ]
         self.sse_specification = sse_specification
-
-        # Internal counter to keep track of when this cluster is available/deleted
-        # Used in conjunction with `advance()`
-        self._tick = 0
 
     def _create_new_node(self, idx):
         return DaxNode(endpoint=self.endpoint, name=self.name, index=idx)
@@ -118,19 +121,6 @@ class DaxCluster(BaseModel):
 
     def is_deleted(self):
         return self.status == "deleted"
-
-    def advance(self):
-        if self.status == "creating":
-            if self._tick < 3:
-                self._tick += 1
-            else:
-                self.status = "available"
-                self._tick = 0
-        if self.status == "deleting":
-            if self._tick < 3:
-                self._tick += 1
-            else:
-                self.status = "deleted"
 
     def to_json(self):
         use_full_repr = self.status == "available"
@@ -165,6 +155,10 @@ class DAXBackend(BaseBackend):
         self.region_name = region_name
         self._clusters = dict()
         self._tagger = TaggingService()
+
+        state_manager.register_default_transition(
+            model_name="dax::cluster", transition={"progression": "manual", "times": 4}
+        )
 
     @property
     def clusters(self):

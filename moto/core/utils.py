@@ -411,6 +411,7 @@ def extract_region_from_aws_authorization(string):
 class BackendDict(dict):
     def __init__(self, fn, service_name):
         self.fn = fn
+        self.service_name = service_name
         sess = Session()
         self.regions = list(sess.get_available_regions(service_name))
         self.regions.extend(

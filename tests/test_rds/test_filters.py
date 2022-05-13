@@ -15,10 +15,12 @@ class TestDBInstanceFilters(object):
         cls.mock.start()
         client = boto3.client("rds", region_name="us-west-2")
         for i in range(10):
-            identifier = "db-instance-{}".format(i)
+            instance_identifier = "db-instance-{}".format(i)
+            cluster_identifier = "db-cluster-{}".format(i)
             engine = "postgres" if (i % 3) else "mysql"
             client.create_db_instance(
-                DBInstanceIdentifier=identifier,
+                DBInstanceIdentifier=instance_identifier,
+                DBClusterIdentifier=cluster_identifier,
                 Engine=engine,
                 DBInstanceClass="db.m1.small",
             )
@@ -48,6 +50,16 @@ class TestDBInstanceFilters(object):
             )
         ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
         ex.value.response["Error"]["Message"].should.contain("must not be empty")
+
+    def test_db_cluster_id_filter(self):
+        resp = self.client.describe_db_instances()
+        db_cluster_identifier = resp["DBInstances"][0]["DBClusterIdentifier"]
+
+        db_instances = self.client.describe_db_instances(
+            Filters=[{"Name": "db-cluster-id", "Values": [db_cluster_identifier]}]
+        ).get("DBInstances")
+        db_instances.should.have.length_of(1)
+        db_instances[0]["DBClusterIdentifier"].should.equal(db_cluster_identifier)
 
     def test_db_instance_id_filter(self):
         resp = self.client.describe_db_instances()

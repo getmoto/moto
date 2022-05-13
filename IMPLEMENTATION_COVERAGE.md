@@ -868,7 +868,7 @@
 
 ## cognito-idp
 <details>
-<summary>55% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -935,7 +935,7 @@
 - [X] get_user
 - [ ] get_user_attribute_verification_code
 - [X] get_user_pool_mfa_config
-- [ ] global_sign_out
+- [X] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
 - [X] list_groups
@@ -962,10 +962,10 @@
 - [ ] untag_resource
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
-- [ ] update_group
+- [X] update_group
 - [X] update_identity_provider
 - [ ] update_resource_server
-- [ ] update_user_attributes
+- [X] update_user_attributes
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
@@ -1069,46 +1069,46 @@
 
 ## databrew
 <details>
-<summary>15% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] batch_delete_recipe_version
-- [ ] create_dataset
+- [X] create_dataset
 - [ ] create_profile_job
 - [ ] create_project
 - [X] create_recipe
 - [ ] create_recipe_job
 - [X] create_ruleset
 - [ ] create_schedule
-- [ ] delete_dataset
+- [X] delete_dataset
 - [ ] delete_job
 - [ ] delete_project
-- [ ] delete_recipe_version
+- [X] delete_recipe_version
 - [X] delete_ruleset
 - [ ] delete_schedule
-- [ ] describe_dataset
+- [X] describe_dataset
 - [ ] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
 - [ ] describe_recipe
 - [ ] describe_ruleset
 - [ ] describe_schedule
-- [ ] list_datasets
+- [X] list_datasets
 - [ ] list_job_runs
 - [ ] list_jobs
 - [ ] list_projects
-- [ ] list_recipe_versions
+- [X] list_recipe_versions
 - [X] list_recipes
 - [X] list_rulesets
 - [ ] list_schedules
 - [ ] list_tags_for_resource
-- [ ] publish_recipe
+- [X] publish_recipe
 - [ ] send_project_session_action
 - [ ] start_job_run
 - [ ] start_project_session
 - [ ] stop_job_run
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_dataset
+- [X] update_dataset
 - [ ] update_profile_job
 - [ ] update_project
 - [X] update_recipe
@@ -1411,6 +1411,18 @@
 - [X] get_records
 - [X] get_shard_iterator
 - [X] list_streams
+</details>
+
+## ebs
+<details>
+<summary>100% implemented</summary>
+
+- [X] complete_snapshot
+- [X] get_snapshot_block
+- [X] list_changed_blocks
+- [X] list_snapshot_blocks
+- [X] put_snapshot_block
+- [X] start_snapshot
 </details>
 
 ## ec2
@@ -2923,7 +2935,7 @@
 
 ## iam
 <details>
-<summary>71% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -2942,7 +2954,7 @@
 - [X] create_policy_version
 - [X] create_role
 - [X] create_saml_provider
-- [ ] create_service_linked_role
+- [X] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
 - [X] create_virtual_mfa_device
@@ -2962,7 +2974,7 @@
 - [X] delete_role_policy
 - [X] delete_saml_provider
 - [X] delete_server_certificate
-- [ ] delete_service_linked_role
+- [X] delete_service_linked_role
 - [ ] delete_service_specific_credential
 - [X] delete_signing_certificate
 - [X] delete_ssh_public_key
@@ -2998,7 +3010,7 @@
 - [X] get_server_certificate
 - [ ] get_service_last_accessed_details
 - [ ] get_service_last_accessed_details_with_entities
-- [ ] get_service_linked_role_deletion_status
+- [X] get_service_linked_role_deletion_status
 - [X] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
@@ -3378,23 +3390,26 @@
 
 ## kinesis-video-archived-media
 <details>
-<summary>60% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] get_clip
 - [X] get_dash_streaming_session_url
 - [X] get_hls_streaming_session_url
+- [ ] get_images
 - [ ] get_media_for_fragment_list
 - [ ] list_fragments
 </details>
 
 ## kinesisvideo
 <details>
-<summary>26% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] create_signaling_channel
 - [X] create_stream
 - [ ] delete_signaling_channel
 - [X] delete_stream
+- [ ] describe_image_generation_configuration
+- [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
 - [X] get_data_endpoint
@@ -3408,6 +3423,8 @@
 - [ ] untag_resource
 - [ ] untag_stream
 - [ ] update_data_retention
+- [ ] update_image_generation_configuration
+- [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream
 </details>
@@ -4297,7 +4314,7 @@
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
-- [ ] describe_db_instances
+- [X] describe_db_instances
 - [ ] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
@@ -4579,6 +4596,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_dataset_entries
+- [ ] update_stream_processor
 </details>
 
 ## resource-groups
@@ -5161,7 +5179,7 @@
 - [ ] update_devices
 - [ ] update_domain
 - [ ] update_endpoint
-- [ ] update_endpoint_weights_and_capacities
+- [X] update_endpoint_weights_and_capacities
 - [ ] update_experiment
 - [ ] update_image
 - [ ] update_model_package
@@ -5257,7 +5275,7 @@
 
 ## ses
 <details>
-<summary>35% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -5289,7 +5307,7 @@
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
-- [ ] get_identity_verification_attributes
+- [X] get_identity_verification_attributes
 - [X] get_send_quota
 - [X] get_send_statistics
 - [X] get_template
@@ -5854,6 +5872,7 @@
 - ce
 - chime
 - chime-sdk-identity
+- chime-sdk-media-pipelines
 - chime-sdk-meetings
 - chime-sdk-messaging
 - cloud9
@@ -5889,7 +5908,6 @@
 - dlm
 - docdb
 - drs
-- ebs
 - ecr-public
 - elastic-inference
 - evidently
@@ -5929,6 +5947,7 @@
 - iottwinmaker
 - iotwireless
 - ivs
+- ivschat
 - kafka
 - kafkaconnect
 - kendra

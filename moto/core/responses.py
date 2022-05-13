@@ -725,26 +725,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return results
 
-    def _parse_tag_specification(self, param_prefix):
-        tags = self._get_list_prefix(param_prefix)
-
-        results = defaultdict(dict)
-        for tag in tags:
-            resource_type = tag.pop("resource_type")
-
-            param_index = 1
-            while True:
-                key_name = "tag.{0}._key".format(param_index)
-                value_name = "tag.{0}._value".format(param_index)
-
-                try:
-                    results[resource_type][tag[key_name]] = tag[value_name]
-                except KeyError:
-                    break
-                param_index += 1
-
-        return results
-
     def _get_object_map(self, prefix, name="Name", value="Value"):
         """
         Given a query dict like
@@ -1038,7 +1018,7 @@ def xml_to_json_response(service_spec, operation, xml, result_node=None):
                         od[k] = [transform(v["member"], spec[k]["member"])]
                 elif isinstance(v["member"], list):
                     od[k] = [transform(o, spec[k]["member"]) for o in v["member"]]
-                elif isinstance(v["member"], OrderedDict):
+                elif isinstance(v["member"], (OrderedDict, dict)):
                     od[k] = [transform(v["member"], spec[k]["member"])]
                 else:
                     raise ValueError("Malformatted input")

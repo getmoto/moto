@@ -18,9 +18,6 @@ class MediaConnectResponse(BaseResponse):
         entitlements = self._get_param("entitlements")
         name = self._get_param("name")
         outputs = self._get_param("outputs")
-        for index, output in enumerate(outputs):
-            if output.get("protocol") in ["srt-listener", "zixi-pull"]:
-                output["listenerAddress"] = f"{index}.0.0.0"
         source = self._get_param("source")
         source_failover_config = self._get_param("sourceFailoverConfig")
         sources = self._get_param("sources")

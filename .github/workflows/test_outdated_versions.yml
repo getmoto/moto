@@ -16,6 +16,7 @@ jobs:
         python-version: [ "3.10" ]
         responses-version: ["0.11.0", "0.12.0", "0.13.0", "0.15.0", "0.17.0", "0.19.0" ]
         mock-version: [ "3.0.5", "4.0.0", "4.0.3" ]
+        werkzeug-version: ["2.0.1", "2.1.1"]
 
     steps:
     - name: Checkout repository
@@ -35,7 +36,8 @@ jobs:
         pip install -r requirements-dev.txt
         pip install responses==${{ matrix.responses-version }}
         pip install mock==${{ matrix.mock-version }}
+        pip install werkzeug==${{ matrix.werkzeug-version }}
 
     - name: Run tests
       run: |
-        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py
+        pytest -sv tests/test_core ./tests/test_apigateway/test_apigateway_integration.py ./tests/test_s3/test_server.py

@@ -523,5 +523,16 @@ class SESBackend(BaseBackend):
 
         return attributes_by_identity
 
+    def get_identity_verification_attributes(self, identities=None):
+        if identities is None:
+            identities = []
+
+        attributes_by_identity = {}
+        for identity in identities:
+            if identity in (self.domains + self.addresses):
+                attributes_by_identity[identity] = "Success"
+
+        return attributes_by_identity
+
 
 ses_backend = SESBackend()

@@ -193,7 +193,7 @@ def test_list_jobs_with_tags():
 
 
 @mock_glue
-def test_next_token_logic_does_not_create_infinite_loop():
+def test_list_jobs_next_token_logic_does_not_create_infinite_loop():
     client = create_glue_client()
     create_test_jobs(client, 4)
     first_response = client.list_jobs(MaxResults=1)
@@ -228,3 +228,66 @@ def create_test_job_w_all_attributes(client, **job_attributes):
 def create_test_jobs(client, number_of_jobs):
     for _ in range(number_of_jobs):
         create_test_job(client)
+
+
+def create_test_crawler(client, tags=None):
+    crawler_name = str(uuid4())
+    client.create_crawler(
+        Name=crawler_name,
+        Role="test_role",
+        Targets={"S3Targets": [{"Path": "s3://tests3target"}]},
+        Tags=tags or {},
+    )
+    return crawler_name
+
+
+def create_test_crawlers(client, number_of_crawlers):
+    for _ in range(number_of_crawlers):
+        create_test_crawler(client)
+
+
+@mock_glue
+def test_list_crawlers_with_max_results():
+    client = create_glue_client()
+    create_test_crawlers(client, 4)
+    response = client.list_crawlers(MaxResults=2)
+    response["CrawlerNames"].should.have.length_of(2)
+    response.should.have.key("NextToken")
+
+
+@mock_glue
+def test_list_crawlers_from_next_token():
+    client = create_glue_client()
+    create_test_crawlers(client, 10)
+    first_response = client.list_crawlers(MaxResults=3)
+    response = client.list_crawlers(NextToken=first_response["NextToken"])
+    response["CrawlerNames"].should.have.length_of(7)
+
+
+@mock_glue
+def test_list_crawlers_with_max_results_greater_than_actual_results():
+    client = create_glue_client()
+    create_test_crawlers(client, 4)
+    response = client.list_crawlers(MaxResults=10)
+    response["CrawlerNames"].should.have.length_of(4)
+
+
+@mock_glue
+def test_list_crawlers_with_tags():
+    client = create_glue_client()
+    create_test_crawler(client)
+    create_test_crawler(client, {"string": "string"})
+    response = client.list_crawlers(Tags={"string": "string"})
+    response["CrawlerNames"].should.have.length_of(1)
+
+
+@mock_glue
+def test_list_crawlers_next_token_logic_does_not_create_infinite_loop():
+    client = create_glue_client()
+    create_test_crawlers(client, 4)
+    first_response = client.list_crawlers(MaxResults=1)
+    next_token = first_response["NextToken"]
+    while next_token:
+        response = client.list_crawlers(NextToken=next_token)
+        next_token = response.get("NextToken")
+    assert not next_token
