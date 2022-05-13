@@ -420,6 +420,23 @@ class GlueResponse(BaseResponse):
             )
         )
 
+    def get_tags(self):
+        resource_arn = self.parameters.get("ResourceArn")
+        tags = self.glue_backend.get_tags(resource_arn)
+        return 200, {}, json.dumps({"Tags": tags})
+
+    def tag_resource(self):
+        resource_arn = self.parameters.get("ResourceArn")
+        tags = self.parameters.get("TagsToAdd", {})
+        self.glue_backend.tag_resource(resource_arn, tags)
+        return 201, {}, "{}"
+
+    def untag_resource(self):
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self.parameters.get("TagsToRemove")
+        self.glue_backend.untag_resource(resource_arn, tag_keys)
+        return 200, {}, "{}"
+
     def filter_jobs_by_tags(self, jobs, tags):
         if not tags:
             return [job.get_name() for job in jobs]
