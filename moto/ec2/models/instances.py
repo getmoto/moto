@@ -6,24 +6,20 @@ from datetime import datetime
 from moto.core import ACCOUNT_ID
 from moto.core.models import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
+from moto.ec2.models.instance_types import INSTANCE_TYPE_OFFERINGS
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
-from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
-from ..exceptions import (
-    EC2ClientError,
-    InvalidInstanceIdError,
-    InvalidParameterValueErrorUnknownAttribute,
-    OperationNotPermitted4,
-)
+from moto.packages.boto.ec2.instance import Instance as BotoInstance
+from moto.packages.boto.ec2.instance import Reservation
+
+from ..exceptions import (AvailabilityZoneNotFromRegionError, EC2ClientError,
+                          InvalidInstanceIdError,
+                          InvalidParameterValueErrorUnknownAttribute,
+                          OperationNotPermitted4)
+from ..utils import (convert_tag_spec, filter_reservations,
+                     random_eni_attach_id, random_instance_id,
+                     random_private_ip, random_reservation_id,
+                     utc_date_and_time)
 from .core import TaggedEC2Resource
-from ..utils import (
-    random_eni_attach_id,
-    random_instance_id,
-    random_private_ip,
-    random_reservation_id,
-    filter_reservations,
-    utc_date_and_time,
-    convert_tag_spec,
-)
 
 
 class InstanceState(object):
@@ -496,7 +492,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         ]
 
     def get_cfn_attribute(self, attribute_name):
-        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        from moto.cloudformation.exceptions import \
+            UnformattedGetAttTemplateException
 
         if attribute_name == "AvailabilityZone":
             return self.placement
@@ -538,6 +535,12 @@ class InstanceBackend(object):
         raise InvalidInstanceIdError(instance_id)
 
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
+        location_type = "availability-zone" if "placement" in kwargs and kwargs["placement"] else "region"
+        valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
+        if "placement" in kwargs and "region_name" in kwargs and kwargs["placement"]:
+            valid_availability_zones = {instance["Location"] for instance in valid_instance_types[kwargs["region_name"]]}
+            if kwargs["placement"] not in valid_availability_zones:
+                raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
 
