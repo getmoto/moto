@@ -440,7 +440,11 @@ class GlueResponse(BaseResponse):
     def filter_jobs_by_tags(self, jobs, tags):
         if not tags:
             return [job.get_name() for job in jobs]
-        return [job.get_name() for job in jobs if self.is_tags_match(self.glue_backend.get_tags(job.arn), tags)]
+        return [
+            job.get_name()
+            for job in jobs
+            if self.is_tags_match(self.glue_backend.get_tags(job.arn), tags)
+        ]
 
     @staticmethod
     def is_tags_match(glue_resource_tags, tags):

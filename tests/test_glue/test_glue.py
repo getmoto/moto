@@ -195,12 +195,10 @@ def test_list_jobs_with_tags():
 @mock_glue
 def test_list_jobs_after_tagging():
     client = create_glue_client()
-    job_name=create_test_job(client)
+    job_name = create_test_job(client)
     resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
 
-    client.tag_resource(
-        ResourceArn=resource_arn, TagsToAdd={"key1": "value1"}
-    )
+    client.tag_resource(ResourceArn=resource_arn, TagsToAdd={"key1": "value1"})
 
     response = client.list_jobs(Tags={"key1": "value1"})
     response["JobNames"].should.have.length_of(1)
@@ -209,12 +207,10 @@ def test_list_jobs_after_tagging():
 @mock_glue
 def test_list_jobs_after_removing_tag():
     client = create_glue_client()
-    job_name=create_test_job(client,{"key1": "value1"})
+    job_name = create_test_job(client, {"key1": "value1"})
     resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
 
-    client.untag_resource(
-        ResourceArn=resource_arn, TagsToRemove=["key1"]
-    )
+    client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key1"])
 
     response = client.list_jobs(Tags={"key1": "value1"})
     response["JobNames"].should.have.length_of(0)
@@ -312,12 +308,10 @@ def test_list_crawlers_with_tags():
 @mock_glue
 def test_list_crawlers_after_tagging():
     client = create_glue_client()
-    crawler_name=create_test_crawler(client)
+    crawler_name = create_test_crawler(client)
     resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
 
-    client.tag_resource(
-        ResourceArn=resource_arn, TagsToAdd={"key1": "value1"}
-    )
+    client.tag_resource(ResourceArn=resource_arn, TagsToAdd={"key1": "value1"})
 
     response = client.list_crawlers(Tags={"key1": "value1"})
     response["CrawlerNames"].should.have.length_of(1)
@@ -326,12 +320,10 @@ def test_list_crawlers_after_tagging():
 @mock_glue
 def test_list_crawlers_after_removing_tag():
     client = create_glue_client()
-    crawler_name=create_test_crawler(client,{"key1": "value1"})
+    crawler_name = create_test_crawler(client, {"key1": "value1"})
     resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
 
-    client.untag_resource(
-        ResourceArn=resource_arn, TagsToRemove=["key1"]
-    )
+    client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key1"])
 
     response = client.list_crawlers(Tags={"key1": "value1"})
     response["CrawlerNames"].should.have.length_of(0)
