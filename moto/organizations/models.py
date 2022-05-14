@@ -434,15 +434,14 @@ class OrganizationsBackend(BaseBackend):
         ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
         return ou.describe()
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_organizational_units_for_parent(self, **kwargs):
-        parent_id = self.validate_parent_id(kwargs["ParentId"])
-        return dict(
-            OrganizationalUnits=[
-                {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
-                for ou in self.ou
-                if ou.parent_id == parent_id
-            ]
-        )
+        parent_id = self.validate_parent_id(kwargs["parent_id"])
+        return [
+            {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
+            for ou in self.ou
+            if ou.parent_id == parent_id
+        ]
 
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)
