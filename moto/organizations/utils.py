@@ -41,6 +41,13 @@ PAGINATION_MODEL = {
         "result_key": "Accounts",
         "unique_attribute": "JoinedTimestamp",
     },
+    "list_organizational_units_for_parent": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 20,
+        "result_key": "OrganizationalUnits",
+        "unique_attribute": "Id",
+    },
 }
 
 
