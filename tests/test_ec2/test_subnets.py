@@ -354,6 +354,7 @@ def test_create_subnet_response_fields():
     subnet.should.have.key("MapPublicIpOnLaunch").which.should.equal(False)
     subnet.should.have.key("OwnerId")
     subnet.should.have.key("AssignIpv6AddressOnCreation").which.should.equal(False)
+    subnet.should.have.key("Ipv6Native").which.should.equal(False)
 
     subnet_arn = "arn:aws:ec2:{region}:{owner_id}:subnet/{subnet_id}".format(
         region=subnet["AvailabilityZone"][0:-1],
@@ -390,6 +391,7 @@ def test_describe_subnet_response_fields():
     subnet.should.have.key("MapPublicIpOnLaunch").which.should.equal(False)
     subnet.should.have.key("OwnerId")
     subnet.should.have.key("AssignIpv6AddressOnCreation").which.should.equal(False)
+    subnet.should.have.key("Ipv6Native").which.should.equal(False)
 
     subnet_arn = "arn:aws:ec2:{region}:{owner_id}:subnet/{subnet_id}".format(
         region=subnet["AvailabilityZone"][0:-1],
