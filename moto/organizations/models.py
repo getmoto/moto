@@ -514,15 +514,16 @@ class OrganizationsBackend(BaseBackend):
         accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
         return accounts
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts_for_parent(self, **kwargs):
-        parent_id = self.validate_parent_id(kwargs["ParentId"])
-        return dict(
-            Accounts=[
-                account.describe()
-                for account in self.accounts
-                if account.parent_id == parent_id
-            ]
-        )
+        parent_id = self.validate_parent_id(kwargs["parent_id"])
+        accounts = [
+            account.describe()
+            for account in self.accounts
+            if account.parent_id == parent_id
+        ]
+        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
+        return accounts
 
     def move_account(self, **kwargs):
         new_parent_id = self.validate_parent_id(kwargs["DestinationParentId"])
