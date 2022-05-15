@@ -59,6 +59,9 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._subnet_ips = {}  # has IP: instance
         self.state = "available"
 
+        # Placeholder for response templates until Ipv6 support implemented.
+        self.ipv6_native = False
+
     @property
     def owner_id(self):
         return get_account_id()

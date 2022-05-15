@@ -14,6 +14,7 @@ class DataBrewResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return databrew_backends[self.region]
 
+    # region Recipes
     @property
     def parameters(self):
         return json.loads(self.body)
@@ -133,6 +134,10 @@ class DataBrewResponse(BaseResponse):
         elif request.method == "GET":
             return self.get_recipe_response(recipe_name)
 
+    # endregion
+
+    # region Rulesets
+
     @amzn_request_id
     def create_ruleset(self):
         ruleset_description = self.parameters.get("Description")
@@ -202,3 +207,94 @@ class DataBrewResponse(BaseResponse):
                 "NextToken": next_token,
             }
         )
+
+    # endregion
+
+    # region Datasets
+
+    @amzn_request_id
+    def create_dataset(self):
+        dataset_name = self.parameters.get("Name")
+        dataset_format = self.parameters.get("Format")
+        dataset_format_options = self.parameters.get("FormatOptions")
+        dataset_input = self.parameters.get("Input")
+        dataset_path_otions = self.parameters.get("PathOptions")
+        dataset_tags = self.parameters.get("Tags")
+
+        return json.dumps(
+            self.databrew_backend.create_dataset(
+                dataset_name,
+                dataset_format,
+                dataset_format_options,
+                dataset_input,
+                dataset_path_otions,
+                dataset_tags,
+            ).as_dict()
+        )
+
+    @amzn_request_id
+    def list_datasets(self):
+        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        max_results = self._get_int_param(
+            "MaxResults", self._get_int_param("maxResults")
+        )
+
+        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
+        dataset_list, next_token = self.databrew_backend.list_datasets(
+            next_token=next_token, max_results=max_results
+        )
+
+        return json.dumps(
+            {
+                "Datasets": [dataset.as_dict() for dataset in dataset_list],
+                "NextToken": next_token,
+            }
+        )
+
+    @amzn_request_id
+    def update_dataset(self, dataset_name):
+        dataset_format = self.parameters.get("Format")
+        dataset_format_options = self.parameters.get("FormatOptions")
+        dataset_input = self.parameters.get("Input")
+        dataset_path_otions = self.parameters.get("PathOptions")
+        dataset_tags = self.parameters.get("Tags")
+
+        dataset = self.databrew_backend.update_dataset(
+            dataset_name,
+            dataset_format,
+            dataset_format_options,
+            dataset_input,
+            dataset_path_otions,
+            dataset_tags,
+        )
+        return 200, {}, json.dumps(dataset.as_dict())
+
+    @amzn_request_id
+    def delete_dataset(self, dataset_name):
+        self.databrew_backend.delete_dataset(dataset_name)
+        return 200, {}, json.dumps({"Name": dataset_name})
+
+    @amzn_request_id
+    def describe_dataset(self, dataset_name):
+        dataset = self.databrew_backend.describe_dataset(dataset_name)
+        return 200, {}, json.dumps(dataset.as_dict())
+
+    @amzn_request_id
+    def dataset_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        parsed_url = urlparse(full_url)
+
+        dataset_name = parsed_url.path.split("/")[-1]
+
+        if request.method == "POST":
+            return self.create_dataset()
+        elif request.method == "GET" and dataset_name:
+            return self.describe_dataset(dataset_name)
+        elif request.method == "GET":
+            return self.list_datasets()
+        elif request.method == "DELETE":
+            return self.delete_dataset(dataset_name)
+        elif request.method == "PUT":
+            return self.update_dataset(dataset_name)
+
+    # endregion

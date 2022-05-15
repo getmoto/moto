@@ -89,7 +89,7 @@
                     {{#each this}}
                     <tr>
                         {{#each this}}
-                        <td>{{@key}}: {{this}}</td>
+                        <td>{{@key}}: {{{json this}}}</td>
                         {{/each}}
                     </tr>
                     {{else}}
@@ -152,7 +152,9 @@
         }
 
         $(document).ready(function (){
-
+            Handlebars.registerHelper("json", function (context) {
+              return JSON.stringify(context);
+            });
             $.getJSON("/moto-api/data.json", function(data) {
                 var source = $('#template').html();
                 var template = Handlebars.compile(source);
