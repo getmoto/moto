@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -93,7 +93,7 @@
 - [X] get_request_validator
 - [X] get_request_validators
 - [X] get_resource
-- [ ] get_resources
+- [X] get_resources
 - [X] get_rest_api
 - [ ] get_rest_apis
 - [ ] get_sdk
@@ -111,13 +111,13 @@
 - [X] get_vpc_links
 - [ ] import_api_keys
 - [ ] import_documentation_parts
-- [ ] import_rest_api
+- [X] import_rest_api
 - [X] put_gateway_response
 - [X] put_integration
 - [X] put_integration_response
 - [X] put_method
 - [X] put_method_response
-- [ ] put_rest_api
+- [X] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
 - [ ] test_invoke_method
