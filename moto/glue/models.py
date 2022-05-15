@@ -407,7 +407,6 @@ class FakeCrawler(BaseModel):
         self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
-        self.tags = tags
 
     def get_name(self):
         return self.name
@@ -531,7 +530,6 @@ class FakeJob:
         self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
-        self.tags = tags
 
     def get_name(self):
         return self.name
