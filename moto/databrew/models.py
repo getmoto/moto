@@ -6,12 +6,15 @@ from datetime import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
+
 from .exceptions import (
+    AlreadyExistsException,
     ConflictException,
-    ResourceNotFoundException,
     ValidationException,
+    RulesetAlreadyExistsException,
+    RulesetNotFoundException,
+    ResourceNotFoundException,
 )
-from .exceptions import RulesetAlreadyExistsException, RulesetNotFoundException
 
 
 class DataBrewBackend(BaseBackend):
@@ -34,12 +37,19 @@ class DataBrewBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "list_datasets": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name):
         self.region_name = region_name
         self.recipes = OrderedDict()
         self.rulesets = OrderedDict()
+        self.datasets = OrderedDict()
 
     def reset(self):
         """Re-initialize all attributes for this instance."""
@@ -221,6 +231,74 @@ class DataBrewBackend(BaseBackend):
 
         del self.rulesets[ruleset_name]
 
+    def create_dataset(
+        self,
+        dataset_name,
+        dataset_format,
+        dataset_format_options,
+        dataset_input,
+        dataset_path_options,
+        tags,
+    ):
+        if dataset_name in self.datasets:
+            raise AlreadyExistsException(dataset_name)
+
+        dataset = FakeDataset(
+            self.region_name,
+            dataset_name,
+            dataset_format,
+            dataset_format_options,
+            dataset_input,
+            dataset_path_options,
+            tags,
+        )
+        self.datasets[dataset_name] = dataset
+        return dataset
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_datasets(self):
+        return list(self.datasets.values())
+
+    def update_dataset(
+        self,
+        dataset_name,
+        dataset_format,
+        dataset_format_options,
+        dataset_input,
+        dataset_path_options,
+        tags,
+    ):
+
+        if dataset_name not in self.datasets:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+
+        dataset = self.datasets[dataset_name]
+
+        if dataset_format is not None:
+            dataset.format = dataset_format
+        if dataset_format_options is not None:
+            dataset.format_options = dataset_format_options
+        if dataset_input is not None:
+            dataset.input = dataset_input
+        if dataset_path_options is not None:
+            dataset.path_options = dataset_path_options
+        if tags is not None:
+            dataset.tags = tags
+
+        return dataset
+
+    def delete_dataset(self, dataset_name):
+        if dataset_name not in self.datasets:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+
+        del self.datasets[dataset_name]
+
+    def describe_dataset(self, dataset_name):
+        if dataset_name not in self.datasets:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+
+        return self.datasets[dataset_name]
+
 
 class FakeRecipe(BaseModel):
     INITIAL_VERSION = 0.1
@@ -350,6 +428,38 @@ class FakeRuleset(BaseModel):
             "Rules": self.rules,
             "Description": self.description,
             "TargetArn": self.target_arn,
+            "CreateTime": self.created_time.isoformat(),
+            "Tags": self.tags or dict(),
+        }
+
+
+class FakeDataset(BaseModel):
+    def __init__(
+        self,
+        region_name,
+        dataset_name,
+        dataset_format,
+        dataset_format_options,
+        dataset_input,
+        dataset_path_options,
+        tags,
+    ):
+        self.region_name = region_name
+        self.name = dataset_name
+        self.format = dataset_format
+        self.format_options = dataset_format_options
+        self.input = dataset_input
+        self.path_options = dataset_path_options
+        self.created_time = datetime.now()
+        self.tags = tags
+
+    def as_dict(self):
+        return {
+            "Name": self.name,
+            "Format": self.format,
+            "FormatOptions": self.format_options,
+            "Input": self.input,
+            "PathOptions": self.path_options,
             "CreateTime": self.created_time.isoformat(),
             "Tags": self.tags or dict(),
         }

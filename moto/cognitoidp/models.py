@@ -1834,6 +1834,14 @@ class GlobalCognitoIdpBackend(CognitoIdpBackend):
         backend = self._find_backend_by_access_token(access_token)
         return backend.get_user(access_token)
 
+    def respond_to_auth_challenge(
+        self, session, client_id, challenge_name, challenge_responses
+    ):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.respond_to_auth_challenge(
+            session, client_id, challenge_name, challenge_responses
+        )
+
 
 cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 cognitoidp_backends["global"] = GlobalCognitoIdpBackend("global")

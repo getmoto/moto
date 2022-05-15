@@ -528,6 +528,12 @@ def filter_stacks(all_stacks, status_filter):
 
 
 class CloudFormationBackend(BaseBackend):
+    """
+    CustomResources are supported when running Moto in ServerMode.
+    Because creating these resources involves running a Lambda-function that informs the MotoServer about the status of the resources, the MotoServer has to be reachable for outside connections.
+    This means it has to run inside a Docker-container, or be started using `moto_server -h 0.0.0.0`.
+    """
+
     def __init__(self, region=None):
         self.stacks = OrderedDict()
         self.stacksets = OrderedDict()

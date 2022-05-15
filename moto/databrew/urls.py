@@ -10,4 +10,6 @@ url_paths = {
     "{0}/recipes/(?P<recipe_name>[^/]+)/publishRecipe$": DataBrewResponse().publish_recipe,
     "{0}/rulesets$": DataBrewResponse.dispatch,
     "{0}/rulesets/(?P<ruleset_name>[^/]+)$": DataBrewResponse().ruleset_response,
+    "{0}/datasets$": DataBrewResponse.dispatch,
+    "{0}/datasets/(?P<dataset_name>[^/]+)$": DataBrewResponse().dataset_response,
 }
