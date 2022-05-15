@@ -53,30 +53,23 @@ class IntegrationMethodNotDefined(BadRequestException):
 class InvalidOpenAPIDocumentException(BadRequestException):
     def __init__(self, cause=None):
         if cause is None:
-            super(InvalidOpenAPIDocumentException, self).__init__(
-                "BadRequestException",
+            super().__init__(
                 "Failed to parse the uploaded OpenAPI document, only OpenAPI 3.x.x are currently supported",
             )
         else:
-            super(InvalidOpenAPIDocumentException, self).__init__(
-                "BadRequestException",
-                "Failed to parse the uploaded OpenAPI document due to: %s",
-                "error",
-                cause.message,
+            super().__init__(
+                f"Failed to parse the uploaded OpenAPI document due to: {cause.message}"
             )
 
 
 class InvalidOpenApiDocVersionException(BadRequestException):
     def __init__(self):
-        super(InvalidOpenApiDocVersionException, self).__init__(
-            "BadRequestException", "Only OpenAPI 3.x.x are currently supported"
-        )
+        super().__init__("Only OpenAPI 3.x.x are currently supported")
 
 
 class InvalidOpenApiModeException(BadRequestException):
     def __init__(self):
-        super(InvalidOpenApiModeException, self).__init__(
-            "BadRequestException",
+        super().__init__(
             'Enumeration value of OpenAPI import mode must be "overwrite" or "merge"',
         )
 
@@ -262,6 +255,13 @@ class BasePathNotFoundException(NotFoundException):
 
     def __init__(self):
         super().__init__("Invalid base path mapping identifier specified")
+
+
+class ResourceIdNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self):
+        super().__init__("Invalid resource identifier specified")
 
 
 class VpcLinkNotFound(NotFoundException):

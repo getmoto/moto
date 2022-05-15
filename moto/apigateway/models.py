@@ -12,12 +12,7 @@ import time
 from urllib.parse import urlparse
 import responses
 
-from openapi_spec_validator.exceptions import (
-    ParameterDuplicateError,
-    ExtraParametersError,
-    UnresolvableParameterError,
-    OpenAPIValidationError,
-)
+from openapi_spec_validator.exceptions import OpenAPIValidationError
 from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
@@ -41,6 +36,7 @@ from .exceptions import (
     InvalidResourcePathException,
     AuthorizerNotFoundException,
     StageNotFoundException,
+    ResourceIdNotFoundException,
     RoleNotSpecified,
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
@@ -195,7 +191,7 @@ class Method(CloudFormationModel, dict):
                 requestValidatorId=kwargs.get("request_validator_id"),
             )
         )
-        self.method_responses = {}
+        self["methodResponses"] = {}
 
     @staticmethod
     def cloudformation_name_type():
@@ -240,14 +236,14 @@ class Method(CloudFormationModel, dict):
         method_response = MethodResponse(
             response_code, response_models, response_parameters
         )
-        self.method_responses[response_code] = method_response
+        self["methodResponses"][response_code] = method_response
         return method_response
 
     def get_response(self, response_code):
-        return self.method_responses.get(response_code)
+        return self["methodResponses"].get(response_code)
 
     def delete_response(self, response_code):
-        return self.method_responses.pop(response_code, None)
+        return self["methodResponses"].pop(response_code, None)
 
 
 class Resource(CloudFormationModel):
@@ -299,7 +295,7 @@ class Resource(CloudFormationModel):
         backend = apigateway_backends[region_name]
         if parent == api_id:
             # A Root path (/) is automatically created. Any new paths should use this as their parent
-            resources = backend.list_resources(function_id=api_id)
+            resources = backend.get_resources(function_id=api_id)
             root_id = [resource for resource in resources if resource.path_part == "/"][
                 0
             ].id
@@ -1279,6 +1275,21 @@ class APIGatewayBackend(BaseBackend):
         self.apis[api_id] = rest_api
         return rest_api
 
+    def import_rest_api(self, api_doc, fail_on_warnings):
+        """
+        Only a subset of the OpenAPI spec 3.x is currently implemented.
+        """
+        if fail_on_warnings:
+            try:
+                validate_spec(api_doc)
+            except OpenAPIValidationError as e:
+                raise InvalidOpenAPIDocumentException(e)
+        name = api_doc["info"]["title"]
+        description = api_doc["info"]["description"]
+        api = self.create_rest_api(name=name, description=description)
+        self.put_rest_api(api.id, api_doc, fail_on_warnings=fail_on_warnings)
+        return api
+
     def get_rest_api(self, function_id):
         rest_api = self.apis.get(function_id)
         if rest_api is None:
@@ -1286,6 +1297,9 @@ class APIGatewayBackend(BaseBackend):
         return rest_api
 
     def put_rest_api(self, function_id, api_doc, mode="merge", fail_on_warnings=False):
+        """
+        Only a subset of the OpenAPI spec 3.x is currently implemented.
+        """
         if mode not in ["merge", "overwrite"]:
             raise InvalidOpenApiModeException()
 
@@ -1306,21 +1320,21 @@ class APIGatewayBackend(BaseBackend):
                 api_doc["paths"].items(), key=lambda x: x[0]
             ):
                 parent_path_part = path[0 : path.rfind("/")] or "/"
-                parent_resource_id = self.apis[function_id].get_resource_for_path(
-                    parent_path_part
+                parent_resource_id = (
+                    self.apis[function_id].get_resource_for_path(parent_path_part).id
                 )
                 resource = self.create_resource(
                     function_id=function_id,
                     parent_resource_id=parent_resource_id,
-                    path_part=path[: path.rfind("/")],
+                    path_part=path[path.rfind("/") + 1 :],
                 )
 
                 for (method_type, method_doc) in resource_doc.items():
+                    method_type = method_type.upper()
                     if method_doc.get("x-amazon-apigateway-integration") is None:
                         self.put_method(function_id, resource.id, method_type, None)
-                        for (response_code, response_doc) in method_doc.get(
-                            "responses", {}
-                        ).items():
+                        method_responses = method_doc.get("responses", {}).items()
+                        for (response_code, _) in method_responses:
                             self.put_method_response(
                                 function_id,
                                 resource.id,
@@ -1329,49 +1343,10 @@ class APIGatewayBackend(BaseBackend):
                                 response_models=None,
                                 response_parameters=None,
                             )
-                    else:
-                        integration_type = method_doc[
-                            "x-amazon-apigateway-integration"
-                        ]["type"]
-                        uri = method_doc["x-amazon-apigateway-integration"]["uri"]
-                        integration_method = method_doc[
-                            "x-amazon-apigateway-integration"
-                        ].get("httpMethod", None)
-                        credentials = method_doc["x-amazon-apigateway-integration"].get(
-                            "credentials", None
-                        )
-                        request_templates = method_doc[
-                            "x-amazon-apigateway-integration"
-                        ].get("requestTemplates", None)
-                        self.create_integration(
-                            function_id=function_id,
-                            resource_id=resource.id,
-                            method_type=method_type,
-                            integration_type=integration_type,
-                            uri=uri,
-                            integration_method=integration_method,
-                            credentials=credentials,
-                            request_templates=request_templates,
-                        )
-                        for (response_code, response_doc) in method_doc[
-                            "responses"
-                        ].items():
-                            self.create_integration_response(
-                                function_id,
-                                resource.id,
-                                method_type,
-                                response_code,
-                                response_code,
-                            )
 
-        except (
-            ParameterDuplicateError,
-            ExtraParametersError,
-            UnresolvableParameterError,
-            OpenAPIValidationError,
-        ) as e:
+        except OpenAPIValidationError as e:
             raise InvalidOpenAPIDocumentException(e)
-        except KeyError as e:
+        except KeyError:
             raise InvalidOpenAPIDocumentException()
 
         return self.get_rest_api(function_id)
@@ -1390,12 +1365,14 @@ class APIGatewayBackend(BaseBackend):
         rest_api = self.apis.pop(function_id)
         return rest_api
 
-    def list_resources(self, function_id):
+    def get_resources(self, function_id):
         api = self.get_rest_api(function_id)
         return api.resources.values()
 
     def get_resource(self, function_id, resource_id):
         api = self.get_rest_api(function_id)
+        if resource_id not in api.resources:
+            raise ResourceIdNotFoundException
         resource = api.resources[resource_id]
         return resource
 
@@ -1681,7 +1658,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         methods = [
             list(res.resource_methods.values())
-            for res in self.list_resources(function_id)
+            for res in self.get_resources(function_id)
         ]
         methods = [m for sublist in methods for m in sublist]
         if not any(methods):

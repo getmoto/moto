@@ -1,7 +1,7 @@
 {
-	"openapi": "3.0.0",
+	"openapi": "2.0.0",
 	"info": {
-		"description": "description from JSON file",
+		"description": "description",
 		"version": "1",
 		"title": "doc"
 	},
@@ -27,8 +27,8 @@
 			"post": {
 				"description": "Method description.",
 				"responses": {
-					"201": {
-						"description": "201 response",
+					"200": {
+						"description": "200 response",
 						"content": {
 							"application/json": {
 								"schema": {

@@ -60,11 +60,13 @@ class APIGatewayResponse(BaseResponse):
             content_type = self.headers.get("Content-Type", None)
             api_doc = deserialize_body(self.body, content_type)
             if api_doc:
-                name = api_doc["info"]["title"]
-                description = None
-            else:
-                name = self._get_param("name")
-                description = self._get_param("description")
+                fail_on_warnings = self._get_bool_param("failonwarnings")
+                rest_api = self.backend.import_rest_api(api_doc, fail_on_warnings)
+
+                return 200, {}, json.dumps(rest_api.to_dict())
+
+            name = self._get_param("name")
+            description = self._get_param("description")
 
             api_key_source = self._get_param("apiKeySource")
             endpoint_configuration = self._get_param("endpointConfiguration")
@@ -90,9 +92,6 @@ class APIGatewayResponse(BaseResponse):
                 policy=policy,
                 minimum_compression_size=minimum_compression_size,
             )
-
-            if api_doc:
-                rest_api.put_rest_api(api_doc)
 
             return 200, {}, json.dumps(rest_api.to_dict())
 
@@ -135,7 +134,7 @@ class APIGatewayResponse(BaseResponse):
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
         if self.method == "GET":
-            resources = self.backend.list_resources(function_id)
+            resources = self.backend.get_resources(function_id)
             return (
                 200,
                 {},

@@ -1,5 +1,4 @@
 import json
-import os.path
 
 import boto3
 from freezegun import freeze_time
@@ -112,77 +111,6 @@ def test_update_rest_api_operation_add_remove():
     response = client.update_rest_api(restApiId=api_id, patchOperations=patchOperations)
     response["binaryMediaTypes"].should.equal(["image/jpeg"])
     response["description"].should.equal("")
-
-
-@mock_apigateway
-def test_put_json_rest_api():
-    client = boto3.client("apigateway", region_name="us-west-2")
-
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    resources = client.get_resources(restApiId=api_id)
-    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    client.put_method(
-        restApiId=api_id, resourceId=root_id, httpMethod="POST", authorizationType="none"
-    )
-
-    response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="POST")
-    response.should.have.key("httpMethod").equals("POST")
-
-    path = os.path.dirname(os.path.abspath(__file__))
-    with open(path + "/resources/test_api.json", "rb") as api_json:
-        response = client.put_rest_api(
-            restApiId=api_id,
-            mode="overwrite",
-            failOnWarnings=True,
-            body=api_json.read(),
-        )
-
-    response.should.have.key("id").which.should.equal(api_id)
-    response.should.have.key("name").which.should.equal("my_api")
-    response.should.have.key("description").which.should.equal("this is my api")
-
-    # Since we chose mode=overwrite, the root_id is different
-    resources = client.get_resources(restApiId=api_id)
-    new_root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
-        0
-    ]["id"]
-
-    new_root_id.shouldnt.equal(root_id)
-
-    # Our GET-method should also be gone
-    with pytest.raises(ClientError) as exc:
-        client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="POST")
-    err = exc.value.response["Error"]
-    print(err)
-
-    # We just have a GET-method, as defined in the JSON
-    client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
-
-
-@mock_apigateway
-def test_put_yaml_rest_api():
-    client = boto3.client("apigateway", region_name="us-west-2")
-
-    response = client.create_rest_api(name="my_api", description="this is my api")
-    api_id = response["id"]
-
-    path = os.path.dirname(os.path.abspath(__file__))
-    with open(path + "/resources/test_api.yaml", "rb") as api_yaml:
-        response = client.put_rest_api(
-            restApiId=api_id,
-            mode="overwrite",
-            failOnWarnings=True,
-            body=api_yaml.read(),
-        )
-
-    response.should.have.key("id").which.should.equal(api_id)
-    response.should.have.key("name").which.should.equal("my_api")
-    response.should.have.key("description").which.should.equal("this is my api")
 
 
 @mock_apigateway
@@ -439,6 +367,7 @@ def test_create_method():
             "httpMethod": "GET",
             "authorizationType": "none",
             "apiKeyRequired": False,
+            "methodResponses": {},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -473,6 +402,7 @@ def test_create_method_apikeyrequired():
             "httpMethod": "GET",
             "authorizationType": "none",
             "apiKeyRequired": True,
+            "methodResponses": {},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -522,6 +452,19 @@ def test_create_method_response():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 200}})
+
+
+@mock_apigateway
+def test_get_method_unknown_resource_id():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.get_method(restApiId=api_id, resourceId="sth", httpMethod="GET")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid resource identifier specified")
 
 
 @mock_apigateway
