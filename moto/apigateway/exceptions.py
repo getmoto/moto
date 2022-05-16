@@ -50,6 +50,25 @@ class IntegrationMethodNotDefined(BadRequestException):
         super().__init__("Enumeration value for HttpMethod must be non-empty")
 
 
+class InvalidOpenAPIDocumentException(BadRequestException):
+    def __init__(self, cause):
+        super().__init__(
+            f"Failed to parse the uploaded OpenAPI document due to: {cause.message}"
+        )
+
+
+class InvalidOpenApiDocVersionException(BadRequestException):
+    def __init__(self):
+        super().__init__("Only OpenAPI 3.x.x are currently supported")
+
+
+class InvalidOpenApiModeException(BadRequestException):
+    def __init__(self):
+        super().__init__(
+            'Enumeration value of OpenAPI import mode must be "overwrite" or "merge"',
+        )
+
+
 class InvalidResourcePathException(BadRequestException):
     def __init__(self):
         super().__init__(
@@ -231,6 +250,13 @@ class BasePathNotFoundException(NotFoundException):
 
     def __init__(self):
         super().__init__("Invalid base path mapping identifier specified")
+
+
+class ResourceIdNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self):
+        super().__init__("Invalid resource identifier specified")
 
 
 class VpcLinkNotFound(NotFoundException):

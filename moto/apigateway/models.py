@@ -6,10 +6,13 @@ import re
 from collections import defaultdict
 from copy import copy
 
+from openapi_spec_validator import validate_spec
 import time
 
 from urllib.parse import urlparse
 import responses
+
+from openapi_spec_validator.exceptions import OpenAPIValidationError
 from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
@@ -27,9 +30,13 @@ from .exceptions import (
     InvalidArn,
     InvalidIntegrationArn,
     InvalidHttpEndpoint,
+    InvalidOpenAPIDocumentException,
+    InvalidOpenApiDocVersionException,
+    InvalidOpenApiModeException,
     InvalidResourcePathException,
     AuthorizerNotFoundException,
     StageNotFoundException,
+    ResourceIdNotFoundException,
     RoleNotSpecified,
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
@@ -184,7 +191,7 @@ class Method(CloudFormationModel, dict):
                 requestValidatorId=kwargs.get("request_validator_id"),
             )
         )
-        self.method_responses = {}
+        self["methodResponses"] = {}
 
     @staticmethod
     def cloudformation_name_type():
@@ -229,14 +236,14 @@ class Method(CloudFormationModel, dict):
         method_response = MethodResponse(
             response_code, response_models, response_parameters
         )
-        self.method_responses[response_code] = method_response
+        self["methodResponses"][response_code] = method_response
         return method_response
 
     def get_response(self, response_code):
-        return self.method_responses.get(response_code)
+        return self["methodResponses"].get(response_code)
 
     def delete_response(self, response_code):
-        return self.method_responses.pop(response_code, None)
+        return self["methodResponses"].pop(response_code, None)
 
 
 class Resource(CloudFormationModel):
@@ -288,7 +295,7 @@ class Resource(CloudFormationModel):
         backend = apigateway_backends[region_name]
         if parent == api_id:
             # A Root path (/) is automatically created. Any new paths should use this as their parent
-            resources = backend.list_resources(function_id=api_id)
+            resources = backend.get_resources(function_id=api_id)
             root_id = [resource for resource in resources if resource.path_part == "/"][
                 0
             ].id
@@ -789,7 +796,7 @@ class RestAPI(CloudFormationModel):
         self.resources = {}
         self.models = {}
         self.request_validators = {}
-        self.add_child("/")  # Add default child
+        self.default = self.add_child("/")  # Add default child
 
     def __repr__(self):
         return str(self.id)
@@ -811,8 +818,6 @@ class RestAPI(CloudFormationModel):
         }
 
     def apply_patch_operations(self, patch_operations):
-        def to_path(prop):
-            return "/" + prop
 
         for op in patch_operations:
             path = op[self.OPERATION_PATH]
@@ -1270,11 +1275,79 @@ class APIGatewayBackend(BaseBackend):
         self.apis[api_id] = rest_api
         return rest_api
 
+    def import_rest_api(self, api_doc, fail_on_warnings):
+        """
+        Only a subset of the OpenAPI spec 3.x is currently implemented.
+        """
+        if fail_on_warnings:
+            try:
+                validate_spec(api_doc)
+            except OpenAPIValidationError as e:
+                raise InvalidOpenAPIDocumentException(e)
+        name = api_doc["info"]["title"]
+        description = api_doc["info"]["description"]
+        api = self.create_rest_api(name=name, description=description)
+        self.put_rest_api(api.id, api_doc, fail_on_warnings=fail_on_warnings)
+        return api
+
     def get_rest_api(self, function_id):
         rest_api = self.apis.get(function_id)
         if rest_api is None:
             raise RestAPINotFound()
         return rest_api
+
+    def put_rest_api(self, function_id, api_doc, mode="merge", fail_on_warnings=False):
+        """
+        Only a subset of the OpenAPI spec 3.x is currently implemented.
+        """
+        if mode not in ["merge", "overwrite"]:
+            raise InvalidOpenApiModeException()
+
+        if api_doc.get("swagger") is not None or (
+            api_doc.get("openapi") is not None and api_doc["openapi"][0] != "3"
+        ):
+            raise InvalidOpenApiDocVersionException()
+
+        if fail_on_warnings:
+            try:
+                validate_spec(api_doc)
+            except OpenAPIValidationError as e:
+                raise InvalidOpenAPIDocumentException(e)
+
+        if mode == "overwrite":
+            api = self.get_rest_api(function_id)
+            api.resources = {}
+            api.default = api.add_child("/")  # Add default child
+
+        for (path, resource_doc) in sorted(
+            api_doc["paths"].items(), key=lambda x: x[0]
+        ):
+            parent_path_part = path[0 : path.rfind("/")] or "/"
+            parent_resource_id = (
+                self.apis[function_id].get_resource_for_path(parent_path_part).id
+            )
+            resource = self.create_resource(
+                function_id=function_id,
+                parent_resource_id=parent_resource_id,
+                path_part=path[path.rfind("/") + 1 :],
+            )
+
+            for (method_type, method_doc) in resource_doc.items():
+                method_type = method_type.upper()
+                if method_doc.get("x-amazon-apigateway-integration") is None:
+                    self.put_method(function_id, resource.id, method_type, None)
+                    method_responses = method_doc.get("responses", {}).items()
+                    for (response_code, _) in method_responses:
+                        self.put_method_response(
+                            function_id,
+                            resource.id,
+                            method_type,
+                            response_code,
+                            response_models=None,
+                            response_parameters=None,
+                        )
+
+        return self.get_rest_api(function_id)
 
     def update_rest_api(self, function_id, patch_operations):
         rest_api = self.apis.get(function_id)
@@ -1290,19 +1363,24 @@ class APIGatewayBackend(BaseBackend):
         rest_api = self.apis.pop(function_id)
         return rest_api
 
-    def list_resources(self, function_id):
+    def get_resources(self, function_id):
         api = self.get_rest_api(function_id)
         return api.resources.values()
 
     def get_resource(self, function_id, resource_id):
         api = self.get_rest_api(function_id)
+        if resource_id not in api.resources:
+            raise ResourceIdNotFoundException
         resource = api.resources[resource_id]
         return resource
 
     def create_resource(self, function_id, parent_resource_id, path_part):
+        api = self.get_rest_api(function_id)
+        if not path_part:
+            # We're attempting to create the default resource, which already exists.
+            return api.default
         if not re.match("^\\{?[a-zA-Z0-9._-]+\\+?\\}?$", path_part):
             raise InvalidResourcePathException()
-        api = self.get_rest_api(function_id)
         child = api.add_child(path=path_part, parent_id=parent_resource_id)
         return child
 
@@ -1578,7 +1656,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(function_id)
         methods = [
             list(res.resource_methods.values())
-            for res in self.list_resources(function_id)
+            for res in self.get_resources(function_id)
         ]
         methods = [m for sublist in methods for m in sublist]
         if not any(methods):

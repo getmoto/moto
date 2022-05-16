@@ -367,6 +367,7 @@ def test_create_method():
             "httpMethod": "GET",
             "authorizationType": "none",
             "apiKeyRequired": False,
+            "methodResponses": {},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -401,6 +402,7 @@ def test_create_method_apikeyrequired():
             "httpMethod": "GET",
             "authorizationType": "none",
             "apiKeyRequired": True,
+            "methodResponses": {},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -450,6 +452,19 @@ def test_create_method_response():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal({"ResponseMetadata": {"HTTPStatusCode": 200}})
+
+
+@mock_apigateway
+def test_get_method_unknown_resource_id():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.get_method(restApiId=api_id, resourceId="sth", httpMethod="GET")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid resource identifier specified")
 
 
 @mock_apigateway
