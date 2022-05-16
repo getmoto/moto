@@ -679,16 +679,20 @@ def test_list_services():
         cluster="test_ecs_cluster2",
         serviceName="test_ecs_service3",
         taskDefinition="test_ecs_task",
-        schedulingStrategy="DAEMON",
+        schedulingStrategy="REPLICA",
         launchType="FARGATE",
         desiredCount=2,
     )
 
-    test_ecs_service1_arn = "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster1/test_ecs_service1".format(
-        ACCOUNT_ID
+    test_ecs_service1_arn = (
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster1/test_ecs_service1".format(
+            ACCOUNT_ID
+        )
     )
-    test_ecs_service2_arn = "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster1/test_ecs_service2".format(
-        ACCOUNT_ID
+    test_ecs_service2_arn = (
+        "arn:aws:ecs:us-east-1:{}:service/test_ecs_cluster1/test_ecs_service2".format(
+            ACCOUNT_ID
+        )
     )
 
     cluster1_services = client.list_services(cluster="test_ecs_cluster1")
