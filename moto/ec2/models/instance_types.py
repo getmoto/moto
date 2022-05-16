@@ -45,7 +45,9 @@ class InstanceTypeOfferingBackend(object):
         location_type = location_type or "region"
         matches = INSTANCE_TYPE_OFFERINGS[location_type]
         matches = matches.get(self.region_name, [])
-        matches = [o for o in matches if self.matches_filters(o, filters or {}, location_type)]
+        matches = [
+            o for o in matches if self.matches_filters(o, filters or {}, location_type)
+        ]
         return matches
 
     def matches_filters(self, offering, filters, location_type):

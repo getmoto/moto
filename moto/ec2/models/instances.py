@@ -501,8 +501,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         ]
 
     def get_cfn_attribute(self, attribute_name):
-        from moto.cloudformation.exceptions import \
-            UnformattedGetAttTemplateException
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "AvailabilityZone":
             return self.placement
@@ -544,16 +543,34 @@ class InstanceBackend(object):
         raise InvalidInstanceIdError(instance_id)
 
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
-        location_type = "availability-zone" if "placement" in kwargs and kwargs["placement"] else "region"
+        location_type = (
+            "availability-zone"
+            if "placement" in kwargs and kwargs["placement"]
+            else "region"
+        )
         default_region = "us-east-1"
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
-        valid_instance_types = valid_instance_types.get(kwargs["region_name"] if "region_name" in kwargs else default_region, [])
+        valid_instance_types = valid_instance_types.get(
+            kwargs["region_name"] if "region_name" in kwargs else default_region, []
+        )
         if "placement" in kwargs and "region_name" in kwargs and kwargs["placement"]:
-            valid_availability_zones = {instance["Location"] for instance in valid_instance_types[kwargs["region_name"]]}
+            valid_availability_zones = {
+                instance["Location"]
+                for instance in valid_instance_types[kwargs["region_name"]]
+            }
             if kwargs["placement"] not in valid_availability_zones:
                 raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         match_filters = InstanceTypeOfferingBackend().matches_filters
-        if not any({match_filters(valid_instance, {'instance-type': kwargs["instance_type"]}, location_type) for valid_instance in valid_instance_types}):
+        if not any(
+            {
+                match_filters(
+                    valid_instance,
+                    {"instance-type": kwargs["instance_type"]},
+                    location_type,
+                )
+                for valid_instance in valid_instance_types
+            }
+        ):
             raise InvalidInstanceTypeError(kwargs["instance_type"])
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
