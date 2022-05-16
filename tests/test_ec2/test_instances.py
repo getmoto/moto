@@ -1163,6 +1163,24 @@ def test_run_instance_with_placement():
 
 
 @mock_ec2
+def test_run_instance_with_availability_zone_not_from_region():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="t2.nano",
+            MinCount=1,
+            MaxCount=1,
+            Placement={"AvailabilityZone": "us-west-1b"},
+        )
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "Invalid Availability Zone (us-west-1b)"
+    )
+
+
+@mock_ec2
 def test_run_instance_with_subnet():
     client = boto3.client("ec2", region_name="eu-central-1")
 

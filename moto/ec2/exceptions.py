@@ -586,6 +586,14 @@ class InvalidAvailabilityZoneError(EC2ClientError):
         )
 
 
+class AvailabilityZoneNotFromRegionError(EC2ClientError):
+    def __init__(self, availability_zone_value):
+        super().__init__(
+            "InvalidParameterValue",
+            "Invalid Availability Zone ({0})".format(availability_zone_value),
+        )
+
+
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
     def __init__(self, rule_number):
         super().__init__(

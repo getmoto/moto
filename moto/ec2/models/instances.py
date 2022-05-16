@@ -6,24 +6,28 @@ from datetime import datetime
 from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
+from moto.ec2.models.instance_types import INSTANCE_TYPE_OFFERINGS
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
-from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
+from moto.packages.boto.ec2.instance import Instance as BotoInstance
+from moto.packages.boto.ec2.instance import Reservation
+
 from ..exceptions import (
+    AvailabilityZoneNotFromRegionError,
     EC2ClientError,
     InvalidInstanceIdError,
     InvalidParameterValueErrorUnknownAttribute,
     OperationNotPermitted4,
 )
-from .core import TaggedEC2Resource
 from ..utils import (
+    convert_tag_spec,
+    filter_reservations,
     random_eni_attach_id,
     random_instance_id,
     random_private_ip,
     random_reservation_id,
-    filter_reservations,
     utc_date_and_time,
-    convert_tag_spec,
 )
+from .core import TaggedEC2Resource
 
 
 class InstanceState(object):
@@ -538,6 +542,15 @@ class InstanceBackend(object):
         raise InvalidInstanceIdError(instance_id)
 
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
+        location_type = "availability-zone" if kwargs.get("placement") else "region"
+        valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
+        if "region_name" in kwargs and kwargs.get("placement"):
+            valid_availability_zones = {
+                instance["Location"]
+                for instance in valid_instance_types[kwargs["region_name"]]
+            }
+            if kwargs["placement"] not in valid_availability_zones:
+                raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
 
