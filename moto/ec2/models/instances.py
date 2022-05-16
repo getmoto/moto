@@ -6,29 +6,32 @@ from datetime import datetime
 from moto.core import ACCOUNT_ID
 from moto.core.models import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
-from moto.ec2.models.instance_types import INSTANCE_TYPE_OFFERINGS
+from moto.ec2.models.instance_types import (
+    INSTANCE_TYPE_OFFERINGS,
+    InstanceTypeOfferingBackend,
+)
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
-from moto.packages.boto.ec2.instance import Instance as BotoInstance, Reservation
+from moto.packages.boto.ec2.instance import Instance as BotoInstance
+from moto.packages.boto.ec2.instance import Reservation
+
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
     EC2ClientError,
     InvalidInstanceIdError,
+    InvalidInstanceTypeError,
     InvalidParameterValueErrorUnknownAttribute,
     OperationNotPermitted4,
 )
-from .core import TaggedEC2Resource
 from ..utils import (
+    convert_tag_spec,
+    filter_reservations,
     random_eni_attach_id,
     random_instance_id,
     random_private_ip,
     random_reservation_id,
-    filter_reservations,
     utc_date_and_time,
-    convert_tag_spec,
 )
-from moto.ec2.models.instance_types import InstanceTypeOfferingBackend
-
-from ..exceptions import InvalidInstanceTypeError
+from .core import TaggedEC2Resource
 
 
 class InstanceState(object):
@@ -550,9 +553,6 @@ class InstanceBackend(object):
         )
         default_region = "us-east-1"
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
-        valid_instance_types = valid_instance_types.get(
-            kwargs["region_name"] if "region_name" in kwargs else default_region, []
-        )
         if "placement" in kwargs and "region_name" in kwargs and kwargs["placement"]:
             valid_availability_zones = {
                 instance["Location"]
@@ -561,15 +561,20 @@ class InstanceBackend(object):
             if kwargs["placement"] not in valid_availability_zones:
                 raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         match_filters = InstanceTypeOfferingBackend().matches_filters
-        if not any(
+        if not kwargs["is_instance_type_default"] and not any(
             {
                 match_filters(
                     valid_instance,
                     {"instance-type": kwargs["instance_type"]},
                     location_type,
                 )
-                for valid_instance in valid_instance_types
-            }
+                for valid_instance in valid_instance_types.get(
+                    kwargs["region_name"]
+                    if "region_name" in kwargs
+                    else default_region,
+                    {},
+                )
+            },
         ):
             raise InvalidInstanceTypeError(kwargs["instance_type"])
         new_reservation = Reservation()
