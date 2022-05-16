@@ -542,11 +542,7 @@ class InstanceBackend(object):
         raise InvalidInstanceIdError(instance_id)
 
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
-        location_type = (
-            "availability-zone"
-            if kwargs.get("placement")
-            else "region"
-        )
+        location_type = "availability-zone" if kwargs.get("placement") else "region"
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
         if "region_name" in kwargs and kwargs.get("placement"):
             valid_availability_zones = {
