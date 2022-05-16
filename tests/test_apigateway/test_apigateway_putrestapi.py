@@ -156,7 +156,7 @@ def test_put_rest_api__fail_on_invalid_spec():
         err = exc.value.response["Error"]
         err["Code"].should.equal("BadRequestException")
         err["Message"].should.equal(
-            "Failed to parse the uploaded OpenAPI document, only OpenAPI 3.x.x are currently supported"
+            "Failed to parse the uploaded OpenAPI document due to: 'paths' is a required property"
         )
 
 

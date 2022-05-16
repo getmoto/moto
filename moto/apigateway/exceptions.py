@@ -51,15 +51,10 @@ class IntegrationMethodNotDefined(BadRequestException):
 
 
 class InvalidOpenAPIDocumentException(BadRequestException):
-    def __init__(self, cause=None):
-        if cause is None:
-            super().__init__(
-                "Failed to parse the uploaded OpenAPI document, only OpenAPI 3.x.x are currently supported",
-            )
-        else:
-            super().__init__(
-                f"Failed to parse the uploaded OpenAPI document due to: {cause.message}"
-            )
+    def __init__(self, cause):
+        super().__init__(
+            f"Failed to parse the uploaded OpenAPI document due to: {cause.message}"
+        )
 
 
 class InvalidOpenApiDocVersionException(BadRequestException):

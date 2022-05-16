@@ -1308,46 +1308,44 @@ class APIGatewayBackend(BaseBackend):
         ):
             raise InvalidOpenApiDocVersionException()
 
+        if fail_on_warnings:
+            try:
+                validate_spec(api_doc)
+            except OpenAPIValidationError as e:
+                raise InvalidOpenAPIDocumentException(e)
+
         if mode == "overwrite":
             api = self.get_rest_api(function_id)
             api.resources = {}
             api.default = api.add_child("/")  # Add default child
 
-        try:
-            if fail_on_warnings:
-                validate_spec(api_doc)
-            for (path, resource_doc) in sorted(
-                api_doc["paths"].items(), key=lambda x: x[0]
-            ):
-                parent_path_part = path[0 : path.rfind("/")] or "/"
-                parent_resource_id = (
-                    self.apis[function_id].get_resource_for_path(parent_path_part).id
-                )
-                resource = self.create_resource(
-                    function_id=function_id,
-                    parent_resource_id=parent_resource_id,
-                    path_part=path[path.rfind("/") + 1 :],
-                )
+        for (path, resource_doc) in sorted(
+            api_doc["paths"].items(), key=lambda x: x[0]
+        ):
+            parent_path_part = path[0 : path.rfind("/")] or "/"
+            parent_resource_id = (
+                self.apis[function_id].get_resource_for_path(parent_path_part).id
+            )
+            resource = self.create_resource(
+                function_id=function_id,
+                parent_resource_id=parent_resource_id,
+                path_part=path[path.rfind("/") + 1 :],
+            )
 
-                for (method_type, method_doc) in resource_doc.items():
-                    method_type = method_type.upper()
-                    if method_doc.get("x-amazon-apigateway-integration") is None:
-                        self.put_method(function_id, resource.id, method_type, None)
-                        method_responses = method_doc.get("responses", {}).items()
-                        for (response_code, _) in method_responses:
-                            self.put_method_response(
-                                function_id,
-                                resource.id,
-                                method_type,
-                                response_code,
-                                response_models=None,
-                                response_parameters=None,
-                            )
-
-        except OpenAPIValidationError as e:
-            raise InvalidOpenAPIDocumentException(e)
-        except KeyError:
-            raise InvalidOpenAPIDocumentException()
+            for (method_type, method_doc) in resource_doc.items():
+                method_type = method_type.upper()
+                if method_doc.get("x-amazon-apigateway-integration") is None:
+                    self.put_method(function_id, resource.id, method_type, None)
+                    method_responses = method_doc.get("responses", {}).items()
+                    for (response_code, _) in method_responses:
+                        self.put_method_response(
+                            function_id,
+                            resource.id,
+                            method_type,
+                            response_code,
+                            response_models=None,
+                            response_parameters=None,
+                        )
 
         return self.get_rest_api(function_id)
 
