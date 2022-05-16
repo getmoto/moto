@@ -328,7 +328,7 @@ class GlueResponse(BaseResponse):
         return [
             crawler.get_name()
             for crawler in crawlers
-            if self.is_tags_match(crawler.tags, tags)
+            if self.is_tags_match(self, crawler.arn, tags)
         ]
 
     def start_crawler(self):
@@ -420,13 +420,33 @@ class GlueResponse(BaseResponse):
             )
         )
 
+    def get_tags(self):
+        resource_arn = self.parameters.get("ResourceArn")
+        tags = self.glue_backend.get_tags(resource_arn)
+        return 200, {}, json.dumps({"Tags": tags})
+
+    def tag_resource(self):
+        resource_arn = self.parameters.get("ResourceArn")
+        tags = self.parameters.get("TagsToAdd", {})
+        self.glue_backend.tag_resource(resource_arn, tags)
+        return 201, {}, "{}"
+
+    def untag_resource(self):
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self.parameters.get("TagsToRemove")
+        self.glue_backend.untag_resource(resource_arn, tag_keys)
+        return 200, {}, "{}"
+
     def filter_jobs_by_tags(self, jobs, tags):
         if not tags:
             return [job.get_name() for job in jobs]
-        return [job.get_name() for job in jobs if self.is_tags_match(job.tags, tags)]
+        return [
+            job.get_name() for job in jobs if self.is_tags_match(self, job.arn, tags)
+        ]
 
     @staticmethod
-    def is_tags_match(glue_resource_tags, tags):
+    def is_tags_match(self, resource_arn, tags):
+        glue_resource_tags = self.glue_backend.get_tags(resource_arn)
         mutual_keys = set(glue_resource_tags).intersection(tags)
         for key in mutual_keys:
             if glue_resource_tags[key] == tags[key]:
