@@ -14,7 +14,7 @@
 ## Install
 
 ```console
-$ pip install moto[ec2,s3,all]
+$ pip install 'moto[ec2,s3,all]'
 ```
 
 ## In a nutshell
