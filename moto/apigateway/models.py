@@ -415,7 +415,6 @@ class Authorizer(BaseModel, dict):
                 "identity_validation_expression"
             )
         self["authorizerResultTtlInSeconds"] = kwargs.get("authorizer_result_ttl")
-        self["authorizerPayloadFormatVersion"] = kwargs.get("authorizer_payload_format_version")
 
     def apply_operations(self, patch_operations):
         for op in patch_operations:
@@ -438,8 +437,6 @@ class Authorizer(BaseModel, dict):
                 raise Exception('Patch operation for "%s" not implemented' % op["path"])
             elif "/type" in op["path"]:
                 self["type"] = op["value"]
-            elif "/authorizerPayloadFormatVersion" in op["path"]:
-                self["authorizerPayloadFormatVersion"] = op["value"]
             else:
                 raise Exception('Patch operation "%s" not implemented' % op["op"])
         return self
@@ -970,7 +967,6 @@ class RestAPI(CloudFormationModel):
         identity_source=None,
         identiy_validation_expression=None,
         authorizer_result_ttl=None,
-        authorizer_payload_format_version=None
     ):
         authorizer = Authorizer(
             authorizer_id=authorizer_id,
@@ -983,7 +979,6 @@ class RestAPI(CloudFormationModel):
             identity_source=identity_source,
             identiy_validation_expression=identiy_validation_expression,
             authorizer_result_ttl=authorizer_result_ttl,
-            authorizer_payload_format_version=authorizer_payload_format_version
         )
         self.authorizers[authorizer_id] = authorizer
         return authorizer
