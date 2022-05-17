@@ -267,7 +267,9 @@ class APIGatewayResponse(BaseResponse):
             authorizer_result_ttl = self._get_param(
                 "authorizerResultTtlInSeconds", if_none=300
             )
-
+            authorizer_payload_format_version = self._get_param(
+                "authorizerPayloadFormatVersion", if_none="2.0"
+            )
             # Param validation
             if authorizer_type and authorizer_type not in AUTHORIZER_TYPES:
                 return self.error(
@@ -291,6 +293,7 @@ class APIGatewayResponse(BaseResponse):
                 identity_source=identity_source,
                 identiy_validation_expression=identiy_validation_expression,
                 authorizer_result_ttl=authorizer_result_ttl,
+                authorizer_payload_format_version=authorizer_payload_format_version
             )
         elif self.method == "GET":
             authorizers = self.backend.get_authorizers(restapi_id)
