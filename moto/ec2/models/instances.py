@@ -279,6 +279,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             count=1,
             security_group_names=group_names,
             instance_type=properties.get("InstanceType", "m1.small"),
+            is_instance_type_default=not properties.get("InstanceType"),
             subnet_id=properties.get("SubnetId"),
             key_name=properties.get("KeyName"),
             private_ip=properties.get("PrivateIpAddress"),

@@ -101,6 +101,7 @@ class OpsworkInstance(BaseModel):
                 security_group_names=[],
                 security_group_ids=self.security_group_ids,
                 instance_type=self.instance_type,
+                is_instance_type_default=not self.instance_type,
                 key_name=self.ssh_keyname,
                 ebs_optimized=self.ebs_optimized,
                 subnet_id=self.subnet_id,

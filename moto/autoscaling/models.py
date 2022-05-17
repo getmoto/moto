@@ -633,6 +633,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
             launch_config=self.launch_config,
+            is_instance_type_default=False,
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self

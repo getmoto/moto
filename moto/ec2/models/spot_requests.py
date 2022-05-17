@@ -104,6 +104,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             count=1,
             user_data=self.user_data,
             instance_type=self.launch_specification.instance_type,
+            is_instance_type_default=not self.launch_specification.instance_type,
             subnet_id=self.launch_specification.subnet_id,
             key_name=self.launch_specification.key_name,
             security_group_names=[],
