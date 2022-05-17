@@ -2,6 +2,7 @@ import copy
 import warnings
 from collections import OrderedDict
 from datetime import datetime
+from moto import settings
 
 from moto.core import ACCOUNT_ID
 from moto.core.models import CloudFormationModel
@@ -573,7 +574,8 @@ class InstanceBackend(object):
                 )
             },
         ):
-            raise InvalidInstanceTypeError(kwargs["instance_type"])
+            if settings.ec2_enable_instance_type_validation():
+                raise InvalidInstanceTypeError(kwargs["instance_type"])
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
 

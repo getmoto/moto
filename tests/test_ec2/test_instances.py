@@ -1163,8 +1163,12 @@ def test_run_instance_with_placement():
 
 
 @mock_ec2
-def test_run_instance_with_invalid_instance_type():
+def test_run_instance_with_invalid_instance_type(mocker):
     ec2 = boto3.resource("ec2", region_name="us-east-1")
+    mocker.patch(
+        "moto.ec2.models.instances.settings.ec2_enable_instance_type_validation",
+        return_value=True,
+    )
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID,

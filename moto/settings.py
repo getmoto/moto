@@ -18,6 +18,8 @@ S3_IGNORE_SUBDOMAIN_BUCKETNAME = os.environ.get(
 # How many seconds to wait before we "validate" a new certificate in ACM.
 ACM_VALIDATION_WAIT = int(os.environ.get("MOTO_ACM_VALIDATION_WAIT", "60"))
 
+ec2_enable_instance_type_validation = False
+
 
 def get_sf_execution_history_type():
     """
