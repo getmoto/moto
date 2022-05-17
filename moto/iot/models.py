@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from .utils import PAGINATION_MODEL
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.utils import random_string
 from moto.utilities.paginator import paginate
@@ -37,7 +37,7 @@ class FakeThing(BaseModel):
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:thing/{thing_name}"
+        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:thing/{thing_name}"
         self.version = 1
         # TODO: we need to handle "version"?
 
@@ -153,11 +153,13 @@ class FakeCertificate(BaseModel):
         m = hashlib.sha256()
         m.update(certificate_pem.encode("utf-8"))
         self.certificate_id = m.hexdigest()
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:cert/{self.certificate_id}"
+        self.arn = (
+            f"arn:aws:iot:{region_name}:{get_account_id()}:cert/{self.certificate_id}"
+        )
         self.certificate_pem = certificate_pem
         self.status = status
 
-        self.owner = ACCOUNT_ID
+        self.owner = get_account_id()
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
@@ -211,7 +213,7 @@ class FakePolicy(BaseModel):
     def __init__(self, name, document, region_name, default_version_id="1"):
         self.name = name
         self.document = document
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:policy/{name}"
+        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
 
@@ -238,7 +240,7 @@ class FakePolicy(BaseModel):
 class FakePolicyVersion(object):
     def __init__(self, policy_name, document, is_default, region_name):
         self.name = policy_name
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:policy/{policy_name}"
+        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
         self.version_id = "1"

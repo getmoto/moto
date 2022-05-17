@@ -8,7 +8,7 @@ from hashlib import md5
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, BackendDict
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.utilities.paginator import paginate
 from .exceptions import (
     ConsumerNotFound,
@@ -36,7 +36,7 @@ class Consumer(BaseModel):
         self.created = unix_time()
         self.stream_arn = stream_arn
         stream_name = stream_arn.split("/")[-1]
-        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{ACCOUNT_ID}:stream/{stream_name}/consumer/{consumer_name}"
+        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{get_account_id()}:stream/{stream_name}/consumer/{consumer_name}"
 
     def to_json(self, include_stream_arn=False):
         resp = {
@@ -170,7 +170,7 @@ class Stream(CloudFormationModel):
             "%Y-%m-%dT%H:%M:%S.%f000"
         )
         self.region = region_name
-        self.account_number = ACCOUNT_ID
+        self.account_number = get_account_id()
         self.shards = {}
         self.tags = {}
         self.status = "ACTIVE"
@@ -211,12 +211,12 @@ class Stream(CloudFormationModel):
             pass
         else:
             raise InvalidArgumentError(
-                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {self.stream_name} under account {ACCOUNT_ID} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash - 1)}."
+                message=f"NewStartingHashKey {new_starting_hash_key} used in SplitShard() on shard {shard_to_split} in stream {self.stream_name} under account {get_account_id()} is not both greater than one plus the shard's StartingHashKey {shard.starting_hash} and less than the shard's EndingHashKey {(shard.ending_hash - 1)}."
             )
 
         if not shard.is_open:
             raise InvalidArgumentError(
-                message=f"Shard {shard.shard_id} in stream {self.stream_name} under account {ACCOUNT_ID} has already been merged or split, and thus is not eligible for merging or splitting."
+                message=f"Shard {shard.shard_id} in stream {self.stream_name} under account {get_account_id()} has already been merged or split, and thus is not eligible for merging or splitting."
             )
 
         last_id = sorted(self.shards.values(), key=attrgetter("_shard_id"))[
@@ -556,7 +556,7 @@ class KinesisBackend(BaseBackend):
             shard = stream.get_shard(shard_id)
         except ShardNotFoundError:
             raise ResourceNotFoundError(
-                message=f"Shard {shard_id} in stream {stream_name} under account {ACCOUNT_ID} does not exist"
+                message=f"Shard {shard_id} in stream {stream_name} under account {get_account_id()} does not exist"
             )
 
         shard_iterator = compose_new_shard_iterator(

@@ -30,13 +30,18 @@ def _validate_filters(filters):
 
 
 class SecretsManagerResponse(BaseResponse):
+    @property
+    def backend(self):
+        return secretsmanager_backends[self.region]
+
     def get_secret_value(self):
         secret_id = self._get_param("SecretId")
         version_id = self._get_param("VersionId")
         version_stage = self._get_param("VersionStage")
-        return secretsmanager_backends[self.region].get_secret_value(
+        value = self.backend.get_secret_value(
             secret_id=secret_id, version_id=version_id, version_stage=version_stage
         )
+        return json.dumps(value)
 
     def create_secret(self):
         name = self._get_param("Name")
@@ -46,7 +51,7 @@ class SecretsManagerResponse(BaseResponse):
         tags = self._get_param("Tags", if_none=[])
         kms_key_id = self._get_param("KmsKeyId", if_none=None)
         client_request_token = self._get_param("ClientRequestToken", if_none=None)
-        return secretsmanager_backends[self.region].create_secret(
+        return self.backend.create_secret(
             name=name,
             secret_string=secret_string,
             secret_binary=secret_binary,
@@ -62,7 +67,7 @@ class SecretsManagerResponse(BaseResponse):
         secret_binary = self._get_param("SecretBinary")
         client_request_token = self._get_param("ClientRequestToken")
         kms_key_id = self._get_param("KmsKeyId", if_none=None)
-        return secretsmanager_backends[self.region].update_secret(
+        return self.backend.update_secret(
             secret_id=secret_id,
             secret_string=secret_string,
             secret_binary=secret_binary,
@@ -81,7 +86,7 @@ class SecretsManagerResponse(BaseResponse):
         require_each_included_type = self._get_param(
             "RequireEachIncludedType", if_none=True
         )
-        return secretsmanager_backends[self.region].get_random_password(
+        return self.backend.get_random_password(
             password_length=password_length,
             exclude_characters=exclude_characters,
             exclude_numbers=exclude_numbers,
@@ -94,14 +99,15 @@ class SecretsManagerResponse(BaseResponse):
 
     def describe_secret(self):
         secret_id = self._get_param("SecretId")
-        return secretsmanager_backends[self.region].describe_secret(secret_id=secret_id)
+        secret = self.backend.describe_secret(secret_id=secret_id)
+        return json.dumps(secret)
 
     def rotate_secret(self):
         client_request_token = self._get_param("ClientRequestToken")
         rotation_lambda_arn = self._get_param("RotationLambdaARN")
         rotation_rules = self._get_param("RotationRules")
         secret_id = self._get_param("SecretId")
-        return secretsmanager_backends[self.region].rotate_secret(
+        return self.backend.rotate_secret(
             secret_id=secret_id,
             client_request_token=client_request_token,
             rotation_lambda_arn=rotation_lambda_arn,
@@ -121,7 +127,7 @@ class SecretsManagerResponse(BaseResponse):
         if not isinstance(version_stages, list):
             version_stages = [version_stages]
 
-        return secretsmanager_backends[self.region].put_secret_value(
+        return self.backend.put_secret_value(
             secret_id=secret_id,
             secret_binary=secret_binary,
             secret_string=secret_string,
@@ -131,16 +137,14 @@ class SecretsManagerResponse(BaseResponse):
 
     def list_secret_version_ids(self):
         secret_id = self._get_param("SecretId", if_none="")
-        return secretsmanager_backends[self.region].list_secret_version_ids(
-            secret_id=secret_id
-        )
+        return self.backend.list_secret_version_ids(secret_id=secret_id)
 
     def list_secrets(self):
         filters = self._get_param("Filters", if_none=[])
         _validate_filters(filters)
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        secret_list, next_token = secretsmanager_backends[self.region].list_secrets(
+        secret_list, next_token = self.backend.list_secrets(
             filters=filters, max_results=max_results, next_token=next_token
         )
         return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
@@ -149,7 +153,7 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         recovery_window_in_days = self._get_param("RecoveryWindowInDays")
         force_delete_without_recovery = self._get_param("ForceDeleteWithoutRecovery")
-        arn, name, deletion_date = secretsmanager_backends[self.region].delete_secret(
+        arn, name, deletion_date = self.backend.delete_secret(
             secret_id=secret_id,
             recovery_window_in_days=recovery_window_in_days,
             force_delete_without_recovery=force_delete_without_recovery,
@@ -158,35 +162,29 @@ class SecretsManagerResponse(BaseResponse):
 
     def restore_secret(self):
         secret_id = self._get_param("SecretId")
-        arn, name = secretsmanager_backends[self.region].restore_secret(
-            secret_id=secret_id
-        )
+        arn, name = self.backend.restore_secret(secret_id=secret_id)
         return json.dumps(dict(ARN=arn, Name=name))
 
     def get_resource_policy(self):
         secret_id = self._get_param("SecretId")
-        return secretsmanager_backends[self.region].get_resource_policy(
-            secret_id=secret_id
-        )
+        return self.backend.get_resource_policy(secret_id=secret_id)
 
     def tag_resource(self):
         secret_id = self._get_param("SecretId")
         tags = self._get_param("Tags", if_none=[])
-        return secretsmanager_backends[self.region].tag_resource(secret_id, tags)
+        return self.backend.tag_resource(secret_id, tags)
 
     def untag_resource(self):
         secret_id = self._get_param("SecretId")
         tag_keys = self._get_param("TagKeys", if_none=[])
-        return secretsmanager_backends[self.region].untag_resource(
-            secret_id=secret_id, tag_keys=tag_keys
-        )
+        return self.backend.untag_resource(secret_id=secret_id, tag_keys=tag_keys)
 
     def update_secret_version_stage(self):
         secret_id = self._get_param("SecretId")
         version_stage = self._get_param("VersionStage")
         remove_from_version_id = self._get_param("RemoveFromVersionId")
         move_to_version_id = self._get_param("MoveToVersionId")
-        return secretsmanager_backends[self.region].update_secret_version_stage(
+        return self.backend.update_secret_version_stage(
             secret_id=secret_id,
             version_stage=version_stage,
             remove_from_version_id=remove_from_version_id,

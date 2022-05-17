@@ -36,6 +36,7 @@ backend_url_patterns = [
         "dynamodbstreams",
         re.compile("https?://streams\\.dynamodb\\.(.+)\\.amazonaws.com"),
     ),
+    ("ebs", re.compile("https?://ebs\\.(.+)\\.amazonaws\\.com")),
     ("ec2", re.compile("https?://ec2\\.(.+)\\.amazonaws\\.com(|\\.cn)")),
     (
         "ec2instanceconnect",
@@ -91,7 +92,10 @@ backend_url_patterns = [
     ("medialive", re.compile("https?://medialive\\.(.+)\\.amazonaws.com")),
     ("mediapackage", re.compile("https?://mediapackage\\.(.+)\\.amazonaws.com")),
     ("mediastore", re.compile("https?://mediastore\\.(.+)\\.amazonaws\\.com")),
-    ("mediastore-data", re.compile("https?://data.mediastore\\.(.+)\\.amazonaws.com")),
+    (
+        "mediastore-data",
+        re.compile("https?://data\\.mediastore\\.(.+)\\.amazonaws.com"),
+    ),
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
@@ -125,7 +129,7 @@ backend_url_patterns = [
         "s3control",
         re.compile("https?://([0-9]+)\\.s3-control\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("sagemaker", re.compile("https?://api.sagemaker\\.(.+)\\.amazonaws.com")),
+    ("sagemaker", re.compile("https?://api\\.sagemaker\\.(.+)\\.amazonaws.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
     (

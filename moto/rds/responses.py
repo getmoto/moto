@@ -19,6 +19,7 @@ class RDSResponse(BaseResponse):
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
+            "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
             "db_name": self._get_param("DBName"),
             "db_parameter_group_name": self._get_param("DBParameterGroupName"),
@@ -26,6 +27,9 @@ class RDSResponse(BaseResponse):
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
+            "enable_cloudwatch_logs_exports": self._get_params().get(
+                "EnableCloudwatchLogsExports"
+            ),
             "enable_iam_database_authentication": self._get_bool_param(
                 "EnableIAMDatabaseAuthentication"
             ),
@@ -90,6 +94,9 @@ class RDSResponse(BaseResponse):
         return {
             "availability_zones": self._get_multi_param(
                 "AvailabilityZones.AvailabilityZone"
+            ),
+            "enable_cloudwatch_logs_exports": self._get_params().get(
+                "EnableCloudwatchLogsExports"
             ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
@@ -173,7 +180,7 @@ class RDSResponse(BaseResponse):
         filters = self._get_multi_param("Filters.Filter.")
         filters = {f["Name"]: f["Values"] for f in filters}
         all_instances = list(
-            self.backend.describe_databases(db_instance_identifier, filters=filters)
+            self.backend.describe_db_instances(db_instance_identifier, filters=filters)
         )
         marker = self._get_param("Marker")
         all_ids = [instance.db_instance_identifier for instance in all_instances]

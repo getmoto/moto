@@ -1,5 +1,4 @@
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
@@ -135,7 +134,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @property
     def association(self):

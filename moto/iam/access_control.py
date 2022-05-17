@@ -22,7 +22,7 @@ from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.exceptions import (
     SignatureDoesNotMatchError,
     AccessDeniedError,
@@ -69,7 +69,7 @@ class IAMUserAccessKey(object):
     @property
     def arn(self):
         return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
-            account_id=ACCOUNT_ID, iam_user_name=self._owner_user_name
+            account_id=get_account_id(), iam_user_name=self._owner_user_name
         )
 
     def create_credentials(self):
@@ -125,7 +125,7 @@ class AssumedRoleAccessKey(object):
     def arn(self):
         return (
             "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-                account_id=ACCOUNT_ID,
+                account_id=get_account_id(),
                 role_name=self._owner_role_name,
                 session_name=self._session_name,
             )

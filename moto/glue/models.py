@@ -3,6 +3,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.models import get_account_id
 from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
 from .exceptions import (
     JsonRESTError,
@@ -20,10 +21,17 @@ from .exceptions import (
 )
 from .utils import PartitionFilter
 from ..utilities.paginator import paginate
+from ..utilities.tagging_service import TaggingService
 
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "list_crawlers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "list_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -37,6 +45,7 @@ class GlueBackend(BaseBackend):
         self.crawlers = OrderedDict()
         self.jobs = OrderedDict()
         self.job_runs = OrderedDict()
+        self.tagger = TaggingService()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -131,6 +140,7 @@ class GlueBackend(BaseBackend):
             configuration=configuration,
             crawler_security_configuration=crawler_security_configuration,
             tags=tags,
+            backend=self,
         )
         self.crawlers[name] = crawler
 
@@ -142,6 +152,10 @@ class GlueBackend(BaseBackend):
 
     def get_crawlers(self):
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawlers(self):
+        return [crawler for _, crawler in self.crawlers.items()]
 
     def start_crawler(self, name):
         crawler = self.get_crawler(name)
@@ -199,6 +213,7 @@ class GlueBackend(BaseBackend):
             glue_version,
             number_of_workers,
             worker_type,
+            backend=self,
         )
         return name
 
@@ -219,6 +234,16 @@ class GlueBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
         return [job for _, job in self.jobs.items()]
+
+    def get_tags(self, resource_id):
+        return self.tagger.get_tag_dict_for_resource(resource_id)
+
+    def tag_resource(self, resource_arn, tags):
+        tags = TaggingService.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
 class FakeDatabase(BaseModel):
@@ -358,6 +383,7 @@ class FakeCrawler(BaseModel):
         configuration,
         crawler_security_configuration,
         tags,
+        backend,
     ):
         self.name = name
         self.role = role
@@ -372,13 +398,18 @@ class FakeCrawler(BaseModel):
         self.lineage_configuration = lineage_configuration
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
-        self.tags = tags
         self.state = "READY"
         self.creation_time = datetime.utcnow()
         self.last_updated = self.creation_time
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
+        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:crawler/{self.name}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+
+    def get_name(self):
+        return self.name
 
     def as_dict(self):
         last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None
@@ -473,6 +504,7 @@ class FakeJob:
         glue_version=None,
         number_of_workers=None,
         worker_type=None,
+        backend=None,
     ):
         self.name = name
         self.description = description
@@ -489,13 +521,15 @@ class FakeJob:
         self.state = "READY"
         self.max_capacity = max_capacity
         self.security_configuration = security_configuration
-        self.tags = tags
         self.notification_property = notification_property
         self.glue_version = glue_version
         self.number_of_workers = number_of_workers
         self.worker_type = worker_type
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
+        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:job/{self.name}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
 
     def get_name(self):
         return self.name

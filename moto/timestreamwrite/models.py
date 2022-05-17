@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import ResourceNotFound
@@ -33,7 +33,7 @@ class TimestreamTable(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:timestream:{self.region_name}:{ACCOUNT_ID}:database/{self.db_name}/table/{self.name}"
+        return f"arn:aws:timestream:{self.region_name}:{get_account_id()}:database/{self.db_name}/table/{self.name}"
 
     def description(self):
         return {
@@ -51,7 +51,8 @@ class TimestreamDatabase(BaseModel):
         self.region_name = region_name
         self.name = database_name
         self.kms_key_id = (
-            kms_key_id or f"arn:aws:kms:{region_name}:{ACCOUNT_ID}:key/default_key"
+            kms_key_id
+            or f"arn:aws:kms:{region_name}:{get_account_id()}:key/default_key"
         )
         self.tables = dict()
 
@@ -94,9 +95,7 @@ class TimestreamDatabase(BaseModel):
 
     @property
     def arn(self):
-        return (
-            f"arn:aws:timestream:{self.region_name}:{ACCOUNT_ID}:database/{self.name}"
-        )
+        return f"arn:aws:timestream:{self.region_name}:{get_account_id()}:database/{self.name}"
 
     def description(self):
         return {

@@ -1,7 +1,7 @@
 import random
 import string
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.utilities.tagging_service import TaggingService
 
@@ -33,7 +33,9 @@ class Namespace(BaseModel):
     ):
         super().__init__()
         self.id = f"ns-{random_id(20)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{ACCOUNT_ID}:namespace/{self.id}"
+        self.arn = (
+            f"arn:aws:servicediscovery:{region}:{get_account_id()}:namespace/{self.id}"
+        )
         self.name = name
         self.type = ns_type
         self.creator_request_id = creator_request_id
@@ -76,7 +78,9 @@ class Service(BaseModel):
     ):
         super().__init__()
         self.id = f"srv-{random_id(8)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{ACCOUNT_ID}:service/{self.id}"
+        self.arn = (
+            f"arn:aws:servicediscovery:{region}:{get_account_id()}:service/{self.id}"
+        )
         self.name = name
         self.namespace_id = namespace_id
         self.description = description

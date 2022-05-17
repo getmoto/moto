@@ -1,5 +1,4 @@
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from moto.kms import kms_backends
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (
@@ -152,7 +151,7 @@ class Snapshot(TaggedEC2Resource):
         volume,
         description,
         encrypted=False,
-        owner_id=ACCOUNT_ID,
+        owner_id=get_account_id(),
         from_ami=None,
     ):
         self.id = snapshot_id

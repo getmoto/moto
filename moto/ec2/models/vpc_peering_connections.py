@@ -1,6 +1,6 @@
 import weakref
 from collections import defaultdict
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from ..exceptions import (
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,

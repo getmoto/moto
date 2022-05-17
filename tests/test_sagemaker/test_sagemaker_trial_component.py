@@ -6,7 +6,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_sagemaker
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 TEST_REGION_NAME = "us-east-1"
 

@@ -2,8 +2,8 @@ import ipaddress
 import itertools
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id
+from moto.core import CloudFormationModel
 from ..exceptions import (
     GenericInvalidParameterValueError,
     InvalidAvailabilityZoneError,
@@ -59,9 +59,12 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self._subnet_ips = {}  # has IP: instance
         self.state = "available"
 
+        # Placeholder for response templates until Ipv6 support implemented.
+        self.ipv6_native = False
+
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():

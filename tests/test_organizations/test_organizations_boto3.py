@@ -144,6 +144,25 @@ def test_list_organizational_units_for_parent():
 
 
 @mock_organizations
+def test_list_organizational_units_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    for i in range(20):
+        name = "ou" + str(i)
+        client.create_organizational_unit(ParentId=root_id, Name=name)
+    response = client.list_organizational_units_for_parent(ParentId=root_id)
+    response.should_not.have.key("NextToken")
+    len(response["OrganizationalUnits"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_organizational_units_for_parent")
+    page_iterator = paginator.paginate(MaxResults=5, ParentId=root_id)
+    for page in page_iterator:
+        len(page["OrganizationalUnits"]).should.be.lower_than_or_equal_to(5)
+    page["OrganizationalUnits"][-1]["Name"].should.contain("19")
+
+
+@mock_organizations
 def test_list_organizational_units_for_parent_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -306,6 +325,28 @@ def test_list_accounts_for_parent():
     ]["AccountId"]
     response = client.list_accounts_for_parent(ParentId=root_id)
     account_id.should.be.within([account["Id"] for account in response["Accounts"]])
+
+
+@mock_organizations
+def test_list_accounts_for_parent_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    response.should_not.have.key("NextToken")
+    num_existing_accounts = len(response["Accounts"])
+    for i in range(num_existing_accounts, 21):
+        name = mockname + str(i)
+        email = name + "@" + mockdomain
+        client.create_account(AccountName=name, Email=email)
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    len(response["Accounts"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_accounts_for_parent")
+    page_iterator = paginator.paginate(MaxResults=5, ParentId=root_id)
+    for page in page_iterator:
+        len(page["Accounts"]).should.be.lower_than_or_equal_to(5)
+    page["Accounts"][-1]["Name"].should.contain("20")
 
 
 @mock_organizations

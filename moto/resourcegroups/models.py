@@ -3,7 +3,7 @@ from builtins import str
 import json
 import re
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from .exceptions import BadRequestException
 
@@ -25,7 +25,7 @@ class FakeResourceGroup(BaseModel):
             self._tags = tags
         self._raise_errors()
         self.arn = "arn:aws:resource-groups:us-west-1:{AccountId}:{name}".format(
-            name=name, AccountId=ACCOUNT_ID
+            name=name, AccountId=get_account_id()
         )
         self.configuration = configuration
 

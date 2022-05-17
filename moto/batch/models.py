@@ -5,12 +5,11 @@ import datetime
 import time
 import uuid
 import logging
-import docker
 import threading
 import dateutil.parser
 from sys import platform
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
@@ -28,7 +27,6 @@ from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
 from moto.iam.exceptions import IAMNotFoundException
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -70,7 +68,7 @@ class ComputeEnvironment(CloudFormationModel):
         self.compute_resources = compute_resources
         self.service_role = service_role
         self.arn = make_arn_for_compute_env(
-            DEFAULT_ACCOUNT_ID, compute_environment_name, region_name
+            get_account_id(), compute_environment_name, region_name
         )
 
         self.instances = []
@@ -147,7 +145,7 @@ class JobQueue(CloudFormationModel):
         self.state = state
         self.environments = environments
         self.env_order_json = env_order_json
-        self.arn = make_arn_for_job_queue(DEFAULT_ACCOUNT_ID, name, region_name)
+        self.arn = make_arn_for_job_queue(get_account_id(), name, region_name)
         self.status = "VALID"
         self.backend = backend
 
@@ -259,7 +257,7 @@ class JobDefinition(CloudFormationModel):
     def _update_arn(self):
         self.revision += 1
         self.arn = make_arn_for_task_def(
-            DEFAULT_ACCOUNT_ID, self.name, self.revision, self._region
+            get_account_id(), self.name, self.revision, self._region
         )
 
     def _get_resource_requirement(self, req_type, default=None):
@@ -568,6 +566,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         :return:
         """
         try:
+            import docker
+
             self.advance()
             while self.status == "SUBMITTED":
                 # Wait until we've moved onto state 'PENDING'
@@ -817,6 +817,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
 
 class BatchBackend(BaseBackend):
+    """
+    Batch-jobs are executed inside a Docker-container. Everytime the `submit_job`-method is called, a new Docker container is started.
+    A job is marked as 'Success' when the Docker-container exits without throwing an error.
+
+    Use `@mock_batch_simple` instead if you do not want to use a Docker-container.
+    With this decorator, jobs are simply marked as 'Success' without trying to execute any commands/scripts.
+    """
+
     def __init__(self, region_name=None):
         super().__init__()
         self.region_name = region_name
@@ -1297,20 +1305,6 @@ class BatchBackend(BaseBackend):
     def create_job_queue(
         self, queue_name, priority, state, compute_env_order, tags=None
     ):
-        """
-        Create a job queue
-
-        :param queue_name: Queue name
-        :type queue_name: str
-        :param priority: Queue priority
-        :type priority: int
-        :param state: Queue state
-        :type state: string
-        :param compute_env_order: Compute environment list
-        :type compute_env_order: list of dict
-        :return: Tuple of Name, ARN
-        :rtype: tuple of str
-        """
         for variable, var_name in (
             (queue_name, "jobQueueName"),
             (priority, "priority"),
@@ -1381,20 +1375,6 @@ class BatchBackend(BaseBackend):
         return result
 
     def update_job_queue(self, queue_name, priority, state, compute_env_order):
-        """
-        Update a job queue
-
-        :param queue_name: Queue name
-        :type queue_name: str
-        :param priority: Queue priority
-        :type priority: int
-        :param state: Queue state
-        :type state: string
-        :param compute_env_order: Compute environment list
-        :type compute_env_order: list of dict
-        :return: Tuple of Name, ARN
-        :rtype: tuple of str
-        """
         if queue_name is None:
             raise ClientException("jobQueueName must be provided")
 

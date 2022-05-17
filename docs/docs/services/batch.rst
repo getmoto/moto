@@ -12,6 +12,8 @@
 batch
 =====
 
+.. autoclass:: moto.batch.models.BatchBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -28,21 +30,6 @@ batch
 - [X] cancel_job
 - [X] create_compute_environment
 - [X] create_job_queue
-  
-        Create a job queue
-
-        :param queue_name: Queue name
-        :type queue_name: str
-        :param priority: Queue priority
-        :type priority: int
-        :param state: Queue state
-        :type state: string
-        :param compute_env_order: Compute environment list
-        :type compute_env_order: list of dict
-        :return: Tuple of Name, ARN
-        :rtype: tuple of str
-        
-
 - [ ] create_scheduling_policy
 - [X] delete_compute_environment
 - [X] delete_job_queue
@@ -83,20 +70,5 @@ batch
 - [X] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
-  
-        Update a job queue
-
-        :param queue_name: Queue name
-        :type queue_name: str
-        :param priority: Queue priority
-        :type priority: int
-        :param state: Queue state
-        :type state: string
-        :param compute_env_order: Compute environment list
-        :type compute_env_order: list of dict
-        :return: Tuple of Name, ARN
-        :rtype: tuple of str
-        
-
 - [ ] update_scheduling_policy
 

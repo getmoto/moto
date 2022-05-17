@@ -10,7 +10,7 @@ import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
@@ -370,7 +370,7 @@ class CognitoIdpUserPool(BaseModel):
         self.region = region
         self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
         self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
-            self.region, DEFAULT_ACCOUNT_ID, self.id
+            self.region, get_account_id(), self.id
         )
         self.name = name
         self.status = None
@@ -1270,8 +1270,8 @@ class CognitoIdpBackend(BaseBackend):
         elif auth_flow is AuthFlow.REFRESH_TOKEN:
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             (
-                id_token,
                 access_token,
+                id_token,
                 expires_in,
             ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
@@ -1800,6 +1800,15 @@ class GlobalCognitoIdpBackend(CognitoIdpBackend):
     # Without authentication-header, we lose the context of which region the request was send to
     # This backend will cycle through all backends as a workaround
 
+    def _find_backend_by_access_token(self, access_token):
+        for region, backend in cognitoidp_backends.items():
+            if region == "global":
+                continue
+            for p in backend.user_pools.values():
+                if access_token in p.access_tokens:
+                    return backend
+        return cognitoidp_backends["us-east-1"]
+
     def _find_backend_for_clientid(self, client_id):
         for region, backend in cognitoidp_backends.items():
             if region == "global":
@@ -1820,6 +1829,18 @@ class GlobalCognitoIdpBackend(CognitoIdpBackend):
     def confirm_sign_up(self, client_id, username):
         backend = self._find_backend_for_clientid(client_id)
         return backend.confirm_sign_up(client_id, username)
+
+    def get_user(self, access_token):
+        backend = self._find_backend_by_access_token(access_token)
+        return backend.get_user(access_token)
+
+    def respond_to_auth_challenge(
+        self, session, client_id, challenge_name, challenge_responses
+    ):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.respond_to_auth_challenge(
+            session, client_id, challenge_name, challenge_responses
+        )
 
 
 cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")

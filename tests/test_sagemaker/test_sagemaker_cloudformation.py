@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_cloudformation, mock_sagemaker
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 from .cloudformation_test_configs import (
     NotebookInstanceTestConfig,

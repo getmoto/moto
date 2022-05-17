@@ -37,7 +37,7 @@ from .exceptions import (
     InvalidAttributeValue,
 )
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
@@ -262,7 +262,7 @@ class Queue(CloudFormationModel):
         now = unix_time()
         self.created_timestamp = now
         self.queue_arn = "arn:aws:sqs:{0}:{1}:{2}".format(
-            self.region, ACCOUNT_ID, self.name
+            self.region, get_account_id(), self.name
         )
         self.dead_letter_queue = None
 
@@ -474,7 +474,7 @@ class Queue(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return f"https://sqs.{self.region}.amazonaws.com/{ACCOUNT_ID}/{self.name}"
+        return f"https://sqs.{self.region}.amazonaws.com/{get_account_id()}/{self.name}"
 
     @property
     def attributes(self):
@@ -508,7 +508,7 @@ class Queue(CloudFormationModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, ACCOUNT_ID, self.name
+            request_url.scheme, request_url.netloc, get_account_id(), self.name
         )
 
     @property

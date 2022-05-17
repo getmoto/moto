@@ -3,7 +3,7 @@ import datetime
 import xmltodict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.sts.utils import (
     random_access_key_id,
     random_secret_access_key,
@@ -50,7 +50,7 @@ class AssumedRole(BaseModel):
     def arn(self):
         return (
             "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-                account_id=ACCOUNT_ID,
+                account_id=get_account_id(),
                 role_name=self.role_arn.split("/")[-1],
                 session_name=self.session_name,
             )

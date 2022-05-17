@@ -15,7 +15,7 @@ import xmltodict
 
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -25,6 +25,7 @@ from moto.s3bucket_path.utils import (
 
 from .exceptions import (
     BucketAlreadyExists,
+    BucketAccessDeniedError,
     BucketMustHaveLockeEnabled,
     DuplicateTagKeys,
     InvalidContentMD5,
@@ -332,7 +333,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @staticmethod
     def _get_querystring(full_url):
         parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
+        # full_url can be one of two formats, depending on the version of werkzeug used:
+        # http://foobaz.localhost:5000/?prefix=bar%2Bbaz
+        # http://foobaz.localhost:5000/?prefix=bar+baz
+        # Werkzeug helpfully encodes the plus-sign for us, from >= 2.1.0
+        # However, the `parse_qs` method will (correctly) replace '+' with a space
+        #
+        # Workaround - manually reverse the encoding.
+        # Keep the + encoded, ensuring that parse_qsl doesn't replace it, and parse_qsl will unquote it afterwards
+        qs = (parsed_url.query or "").replace("+", "%2B")
+        querystring = parse_qs(qs, keep_blank_values=True)
         return querystring
 
     def _bucket_response_head(self, bucket_name, querystring):
@@ -945,9 +955,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if self.is_delete_keys(request, path, bucket_name):
             self.data["Action"] = "DeleteObject"
-            self._authenticate_and_authorize_s3_action()
-
-            return self._bucket_response_delete_keys(body, bucket_name)
+            try:
+                self._authenticate_and_authorize_s3_action()
+                return self._bucket_response_delete_keys(body, bucket_name)
+            except BucketAccessDeniedError:
+                return self._bucket_response_delete_keys(
+                    body, bucket_name, authenticated=False
+                )
 
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action()
@@ -1009,7 +1023,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else path_url(request.url)
         )
 
-    def _bucket_response_delete_keys(self, body, bucket_name):
+    def _bucket_response_delete_keys(self, body, bucket_name, authenticated=True):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(body, strip_whitespace=False)
 
@@ -1021,13 +1035,18 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if len(objects) == 0:
             raise MalformedXML()
 
-        deleted_objects = self.backend.delete_objects(bucket_name, objects)
-        error_names = []
+        if authenticated:
+            deleted_objects = self.backend.delete_objects(bucket_name, objects)
+            errors = []
+        else:
+            deleted_objects = []
+            # [(key_name, errorcode, 'error message'), ..]
+            errors = [(o["Key"], "AccessDenied", "Access Denied") for o in objects]
 
         return (
             200,
             {},
-            template.render(deleted=deleted_objects, delete_errors=error_names),
+            template.render(deleted=deleted_objects, delete_errors=errors),
         )
 
     def _handle_range_header(self, request, response_headers, response_content):
@@ -2276,9 +2295,11 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 {% if v %}<VersionId>{{v}}</VersionId>{% endif %}
 </Deleted>
 {% endfor %}
-{% for k in delete_errors %}
+{% for k,c,m in delete_errors %}
 <Error>
 <Key>{{k}}</Key>
+<Code>{{c}}</Code>
+<Message>{{m}}</Message>
 </Error>
 {% endfor %}
 </DeleteResult>"""
@@ -2437,7 +2458,7 @@ S3_ALL_MULTIPARTS = (
     <UploadId>{{ upload.id }}</UploadId>
     <Initiator>
       <ID>arn:aws:iam::"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
       <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
     </Initiator>
