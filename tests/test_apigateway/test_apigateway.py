@@ -530,7 +530,7 @@ def test_integrations():
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
-            "passthroughBehavior": "WHEN_NO_TEMPLATES"
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
         }
     )
 
@@ -546,7 +546,7 @@ def test_integrations():
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
-            "passthroughBehavior": "WHEN_NO_TEMPLATES"
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
         }
     )
 
