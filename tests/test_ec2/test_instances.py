@@ -1168,7 +1168,10 @@ def test_run_instance_with_placement():
     new_callable=mock.PropertyMock(return_value=True),
 )
 def test_run_instance_with_invalid_instance_type(m_flag):
-
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
