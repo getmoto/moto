@@ -229,6 +229,7 @@ class LayerVersion(CloudFormationModel):
 
         # optional
         self.description = spec.get("Description", "")
+        self.compatible_architectures = spec.get("CompatibleArchitectures", [])
         self.compatible_runtimes = spec.get("CompatibleRuntimes", [])
         self.license_info = spec.get("LicenseInfo", "")
 
@@ -279,6 +280,7 @@ class LayerVersion(CloudFormationModel):
             "LayerArn": self._layer.layer_arn,
             "LayerVersionArn": self.arn,
             "CreatedDate": self.created_date,
+            "CompatibleArchitectures": self.compatible_architectures,
             "CompatibleRuntimes": self.compatible_runtimes,
             "Description": self.description,
             "LicenseInfo": self.license_info,

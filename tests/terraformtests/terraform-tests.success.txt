@@ -30,6 +30,9 @@ cognitoidp:
   - TestAccCognitoUserInGroup_
   - TestAccCognitoIDPUserPoolClients
   - TestAccCognitoIDPUserPoolClientDataSource
+dax:
+  - TestAccDAXCluster_basic
+  - TestAccDAXCluster_Encryption
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
@@ -40,13 +43,18 @@ ec2:
   - TestAccEC2InternetGateway_
   - TestAccEC2NATGateway_
   - TestAccEC2RouteTableAssociation_
+  - TestAccEC2SecurityGroups
   - TestAccEC2SpotInstanceRequest_disappears
   - TestAccEC2SpotInstanceRequest_interruptUpdate
   - TestAccEC2VPCEndpointService_
+  - TestAccEC2VPCPeeringConnectionAccepter_
+  - TestAccEC2VPCsDataSource
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_
 ecr:
   - TestAccECRLifecyclePolicy
+  - TestAccECRRegistryPolicy
+  - TestAccECRReplicationConfiguration
   - TestAccECRRepository
   - TestAccECRRepositoryDataSource
   - TestAccECRRepositoryPolicy
@@ -107,6 +115,9 @@ kms:
   - TestAccKMSKey_Policy_iamServiceLinkedRole
   - TestAccKMSSecretDataSource
   - TestAccKMSSecretsDataSource
+lambda:
+  - TestAccLambdaAlias_
+  - TestAccLambdaLayerVersion_
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
