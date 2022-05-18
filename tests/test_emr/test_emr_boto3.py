@@ -48,7 +48,7 @@ input_instance_groups = [
     {
         "InstanceCount": 6,
         "InstanceRole": "TASK",
-        "InstanceType": "c1.large",
+        "InstanceType": "c3.large",
         "Market": "SPOT",
         "Name": "task-1",
         "BidPrice": "0.07",

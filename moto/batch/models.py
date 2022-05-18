@@ -1110,6 +1110,7 @@ class BatchBackend(BaseBackend):
                     subnet_id=next(subnet_cycle),
                     key_name=compute_resources.get("ec2KeyPair", "AWS_OWNED"),
                     security_group_ids=compute_resources["securityGroupIds"],
+                    is_instance_type_default=False,
                 )
 
                 new_comp_env.add_instance(reservation.instances[0])

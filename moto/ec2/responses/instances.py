@@ -49,6 +49,7 @@ class InstanceResponse(EC2BaseResponse):
         security_group_names = self._get_multi_param("SecurityGroup")
         kwargs = {
             "instance_type": self._get_param("InstanceType", if_none="m1.small"),
+            "is_instance_type_default": not self._get_param("InstanceType"),
             "placement": self._get_param("Placement.AvailabilityZone"),
             "region_name": self.region,
             "subnet_id": self._get_param("SubnetId"),

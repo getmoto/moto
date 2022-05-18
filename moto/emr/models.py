@@ -435,6 +435,7 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def add_instances(self, cluster_id, instances, instance_group):
         cluster = self.clusters[cluster_id]
+        instances["is_instance_type_default"] = not instances.get("instance_type")
         response = self.ec2_backend.add_instances(
             EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
         )

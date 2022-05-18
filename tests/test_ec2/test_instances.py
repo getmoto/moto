@@ -1,7 +1,7 @@
 from botocore.exceptions import ClientError, ParamValidationError
 
 import pytest
-from unittest import SkipTest
+from unittest import SkipTest, mock
 
 import base64
 import ipaddress
@@ -1160,6 +1160,32 @@ def test_run_instance_with_placement():
     )[0]
 
     instance.placement.should.have.key("AvailabilityZone").equal("us-east-1b")
+
+
+@mock_ec2
+@mock.patch(
+    "moto.ec2.models.instances.settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_run_instance_with_invalid_instance_type(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            InstanceType="invalid_type",
+            MinCount=1,
+            MaxCount=1,
+            Placement={"AvailabilityZone": "us-east-1b"},
+        )
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "The instance type 'invalid_type' does not exist"
+    )
+    assert m_flag is True
 
 
 @mock_ec2
