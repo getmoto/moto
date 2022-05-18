@@ -1165,9 +1165,10 @@ def test_run_instance_with_placement():
 @mock_ec2
 @mock.patch(
     "moto.ec2.models.instances.settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION",
-    return_value=True,
+    new_callable=mock.PropertyMock(return_value=True),
 )
-def test_run_instance_with_invalid_instance_type():
+def test_run_instance_with_invalid_instance_type(m_flag):
+
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
@@ -1181,6 +1182,7 @@ def test_run_instance_with_invalid_instance_type():
     ex.value.response["Error"]["Message"].should.equal(
         "The instance type 'invalid_type' does not exist"
     )
+    assert m_flag is True
 
 
 @mock_ec2
