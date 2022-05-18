@@ -1167,7 +1167,7 @@ def test_run_instance_with_placement():
     "moto.ec2.models.instances.settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION",
     return_value=True,
 )
-def test_run_instance_with_invalid_instance_type(mocker):
+def test_run_instance_with_invalid_instance_type():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
