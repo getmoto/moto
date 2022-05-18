@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -93,7 +93,7 @@
 - [X] get_request_validator
 - [X] get_request_validators
 - [X] get_resource
-- [ ] get_resources
+- [X] get_resources
 - [X] get_rest_api
 - [ ] get_rest_apis
 - [ ] get_sdk
@@ -111,13 +111,13 @@
 - [X] get_vpc_links
 - [ ] import_api_keys
 - [ ] import_documentation_parts
-- [ ] import_rest_api
+- [X] import_rest_api
 - [X] put_gateway_response
 - [X] put_integration
 - [X] put_integration_response
 - [X] put_method
 - [X] put_method_response
-- [ ] put_rest_api
+- [X] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
 - [ ] test_invoke_method
@@ -536,7 +536,7 @@
 
 ## cloudfront
 <details>
-<summary>4% implemented</summary>
+<summary>5% implemented</summary>
 
 - [ ] associate_alias
 - [ ] create_cache_policy
@@ -620,7 +620,7 @@
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
-- [ ] update_distribution
+- [X] update_distribution
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
@@ -868,7 +868,7 @@
 
 ## cognito-idp
 <details>
-<summary>55% implemented</summary>
+<summary>58% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -935,7 +935,7 @@
 - [X] get_user
 - [ ] get_user_attribute_verification_code
 - [X] get_user_pool_mfa_config
-- [ ] global_sign_out
+- [X] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
 - [X] list_groups
@@ -962,10 +962,10 @@
 - [ ] untag_resource
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
-- [ ] update_group
+- [X] update_group
 - [X] update_identity_provider
 - [ ] update_resource_server
-- [ ] update_user_attributes
+- [X] update_user_attributes
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain
@@ -1069,46 +1069,46 @@
 
 ## databrew
 <details>
-<summary>15% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] batch_delete_recipe_version
-- [ ] create_dataset
+- [X] create_dataset
 - [ ] create_profile_job
 - [ ] create_project
 - [X] create_recipe
 - [ ] create_recipe_job
 - [X] create_ruleset
 - [ ] create_schedule
-- [ ] delete_dataset
+- [X] delete_dataset
 - [ ] delete_job
 - [ ] delete_project
-- [ ] delete_recipe_version
+- [X] delete_recipe_version
 - [X] delete_ruleset
 - [ ] delete_schedule
-- [ ] describe_dataset
+- [X] describe_dataset
 - [ ] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
 - [ ] describe_recipe
 - [ ] describe_ruleset
 - [ ] describe_schedule
-- [ ] list_datasets
+- [X] list_datasets
 - [ ] list_job_runs
 - [ ] list_jobs
 - [ ] list_projects
-- [ ] list_recipe_versions
+- [X] list_recipe_versions
 - [X] list_recipes
 - [X] list_rulesets
 - [ ] list_schedules
 - [ ] list_tags_for_resource
-- [ ] publish_recipe
+- [X] publish_recipe
 - [ ] send_project_session_action
 - [ ] start_job_run
 - [ ] start_project_session
 - [ ] stop_job_run
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_dataset
+- [X] update_dataset
 - [ ] update_profile_job
 - [ ] update_project
 - [X] update_recipe
@@ -1411,6 +1411,18 @@
 - [X] get_records
 - [X] get_shard_iterator
 - [X] list_streams
+</details>
+
+## ebs
+<details>
+<summary>100% implemented</summary>
+
+- [X] complete_snapshot
+- [X] get_snapshot_block
+- [X] list_changed_blocks
+- [X] list_snapshot_blocks
+- [X] put_snapshot_block
+- [X] start_snapshot
 </details>
 
 ## ec2
@@ -1790,6 +1802,7 @@
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -2777,7 +2790,7 @@
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
-- [ ] list_crawlers
+- [X] list_crawlers
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
@@ -3358,23 +3371,26 @@
 
 ## kinesis-video-archived-media
 <details>
-<summary>60% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] get_clip
 - [X] get_dash_streaming_session_url
 - [X] get_hls_streaming_session_url
+- [ ] get_images
 - [ ] get_media_for_fragment_list
 - [ ] list_fragments
 </details>
 
 ## kinesisvideo
 <details>
-<summary>26% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] create_signaling_channel
 - [X] create_stream
 - [ ] delete_signaling_channel
 - [X] delete_stream
+- [ ] describe_image_generation_configuration
+- [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
 - [X] get_data_endpoint
@@ -3388,6 +3404,8 @@
 - [ ] untag_resource
 - [ ] untag_stream
 - [ ] update_data_retention
+- [ ] update_image_generation_configuration
+- [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream
 </details>
@@ -4277,7 +4295,7 @@
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
 - [ ] describe_db_instance_automated_backups
-- [ ] describe_db_instances
+- [X] describe_db_instances
 - [ ] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
@@ -4499,7 +4517,7 @@
 
 ## rekognition
 <details>
-<summary>3% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] compare_faces
 - [ ] create_collection
@@ -4529,7 +4547,7 @@
 - [ ] get_celebrity_recognition
 - [ ] get_content_moderation
 - [ ] get_face_detection
-- [ ] get_face_search
+- [X] get_face_search
 - [ ] get_label_detection
 - [ ] get_person_tracking
 - [ ] get_segment_detection
@@ -4547,7 +4565,7 @@
 - [ ] start_celebrity_recognition
 - [ ] start_content_moderation
 - [ ] start_face_detection
-- [ ] start_face_search
+- [X] start_face_search
 - [ ] start_label_detection
 - [ ] start_person_tracking
 - [ ] start_project_version
@@ -5871,7 +5889,6 @@
 - dlm
 - docdb
 - drs
-- ebs
 - ecr-public
 - elastic-inference
 - evidently

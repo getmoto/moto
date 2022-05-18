@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from uuid import uuid4
 from .exceptions import (
@@ -619,7 +619,7 @@ class StepFunctionBackend(BaseBackend):
         return self.describe_state_machine(state_machine_arn)
 
     def _get_account_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
 
 stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

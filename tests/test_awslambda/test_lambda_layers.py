@@ -5,7 +5,7 @@ import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from uuid import uuid4
 
 from .utilities import get_role_name, get_test_zip_file1

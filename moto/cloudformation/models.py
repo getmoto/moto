@@ -7,8 +7,7 @@ from collections import OrderedDict
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
-from moto.core import BaseBackend, BaseModel
-from moto.core.models import ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
@@ -503,7 +502,7 @@ ClientRequestToken='{client_request_token}'""".format(
             timestamp=iso_8601_datetime_with_milliseconds(self.timestamp),
             event_id=self.event_id,
             logical_resource_id=self.logical_resource_id,
-            account_id=ACCOUNT_ID,
+            account_id=get_account_id(),
             resource_properties=self.resource_properties,
             resource_status=self.resource_status,
             resource_status_reason=self.resource_status_reason,
@@ -529,6 +528,12 @@ def filter_stacks(all_stacks, status_filter):
 
 
 class CloudFormationBackend(BaseBackend):
+    """
+    CustomResources are supported when running Moto in ServerMode.
+    Because creating these resources involves running a Lambda-function that informs the MotoServer about the status of the resources, the MotoServer has to be reachable for outside connections.
+    This means it has to run inside a Docker-container, or be started using `moto_server -h 0.0.0.0`.
+    """
+
     def __init__(self, region=None):
         self.stacks = OrderedDict()
         self.stacksets = OrderedDict()

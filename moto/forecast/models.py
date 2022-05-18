@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from moto.core import ACCOUNT_ID, BaseBackend
+from moto.core import get_account_id, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from .exceptions import (
     InvalidInputException,
@@ -34,7 +34,7 @@ class DatasetGroup:
             "arn:aws:forecast:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":dataset-group/"
             + dataset_group_name
         )

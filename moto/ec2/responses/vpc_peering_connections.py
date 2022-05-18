@@ -1,5 +1,5 @@
 from moto.core.responses import BaseResponse
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 
 class VPCPeeringConnections(BaseResponse):
@@ -74,7 +74,7 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
   <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
      <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
@@ -86,7 +86,7 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
     </requesterVpcInfo>
     <accepterVpcInfo>
       <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <peeringOptions>
@@ -123,7 +123,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
   <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
      <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
@@ -136,7 +136,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
     </requesterVpcInfo>
     <accepterVpcInfo>
      <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
      <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
@@ -181,7 +181,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
     <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
       <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
       <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
@@ -189,7 +189,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
     </requesterVpcInfo>
     <accepterVpcInfo>
       <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>

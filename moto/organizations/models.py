@@ -2,7 +2,7 @@ import datetime
 import re
 import json
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
@@ -434,15 +434,14 @@ class OrganizationsBackend(BaseBackend):
         ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
         return ou.describe()
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_organizational_units_for_parent(self, **kwargs):
-        parent_id = self.validate_parent_id(kwargs["ParentId"])
-        return dict(
-            OrganizationalUnits=[
-                {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
-                for ou in self.ou
-                if ou.parent_id == parent_id
-            ]
-        )
+        parent_id = self.validate_parent_id(kwargs["parent_id"])
+        return [
+            {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
+            for ou in self.ou
+            if ou.parent_id == parent_id
+        ]
 
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)
@@ -515,15 +514,16 @@ class OrganizationsBackend(BaseBackend):
         accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
         return accounts
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts_for_parent(self, **kwargs):
-        parent_id = self.validate_parent_id(kwargs["ParentId"])
-        return dict(
-            Accounts=[
-                account.describe()
-                for account in self.accounts
-                if account.parent_id == parent_id
-            ]
-        )
+        parent_id = self.validate_parent_id(kwargs["parent_id"])
+        accounts = [
+            account.describe()
+            for account in self.accounts
+            if account.parent_id == parent_id
+        ]
+        accounts = sorted(accounts, key=lambda x: x["JoinedTimestamp"])
+        return accounts
 
     def move_account(self, **kwargs):
         new_parent_id = self.validate_parent_id(kwargs["DestinationParentId"])
@@ -774,7 +774,7 @@ class OrganizationsBackend(BaseBackend):
     def register_delegated_administrator(self, **kwargs):
         account_id = kwargs["AccountId"]
 
-        if account_id == ACCOUNT_ID:
+        if account_id == get_account_id():
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
@@ -833,7 +833,7 @@ class OrganizationsBackend(BaseBackend):
         account_id = kwargs["AccountId"]
         service = kwargs["ServicePrincipal"]
 
-        if account_id == ACCOUNT_ID:
+        if account_id == get_account_id():
             raise ConstraintViolationException(
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )

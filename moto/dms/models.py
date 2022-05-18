@@ -1,7 +1,7 @@
 import json
 
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .exceptions import (
@@ -132,7 +132,7 @@ class FakeReplicationTask(BaseModel):
     @property
     def arn(self):
         return "arn:aws:dms:{region}:{account_id}:task:{task_id}".format(
-            region=self.region, account_id=ACCOUNT_ID, task_id=self.id
+            region=self.region, account_id=get_account_id(), task_id=self.id
         )
 
     def to_dict(self):

@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 """
 SES Feedback messages
@@ -12,7 +12,7 @@ COMMON_MAIL = {
         "source": "sender@example.com",
         "sourceArn": "arn:aws:ses:us-west-2:888888888888:identity/example.com",
         "sourceIp": "127.0.3.0",
-        "sendingAccountId": ACCOUNT_ID,
+        "sendingAccountId": get_account_id(),
         "destination": ["recipient@example.com"],
         "headersTruncated": False,
         "headers": [

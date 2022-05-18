@@ -150,7 +150,7 @@ glue
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
-- [ ] list_crawlers
+- [X] list_crawlers
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs

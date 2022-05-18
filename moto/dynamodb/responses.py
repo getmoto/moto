@@ -81,22 +81,23 @@ def put_has_empty_keys(field_updates, table):
     return False
 
 
-def get_empty_str_error():
-    er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-    return (
-        400,
-        {"server": "amazon.com"},
-        dynamo_json_dump(
-            {
-                "__type": er,
-                "message": (
-                    "One or more parameter values were "
-                    "invalid: An AttributeValue may not "
-                    "contain an empty string"
-                ),
-            }
-        ),
-    )
+def put_has_empty_attrs(field_updates, table):
+    # Example invalid attribute: [{'M': {'SS': {'NS': []}}}]
+    def _validate_attr(attr: dict):
+        if "NS" in attr and attr["NS"] == []:
+            return True
+        else:
+            return any(
+                [_validate_attr(val) for val in attr.values() if isinstance(val, dict)]
+            )
+
+    if table:
+        key_names = table.attribute_keys
+        attrs_to_check = [
+            val for attr, val in field_updates.items() if attr not in key_names
+        ]
+        return any([_validate_attr(attr) for attr in attrs_to_check])
+    return False
 
 
 class DynamoHandler(BaseResponse):
@@ -352,7 +353,13 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException("Return values set to invalid value")
 
         if put_has_empty_keys(item, self.dynamodb_backend.get_table(name)):
-            return get_empty_str_error()
+            raise MockValidationException(
+                "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+            )
+        if put_has_empty_attrs(item, self.dynamodb_backend.get_table(name)):
+            raise MockValidationException(
+                "One or more parameter values were invalid: An number set  may not be empty"
+            )
 
         overwrite = "Expected" not in self.body
         if not overwrite:

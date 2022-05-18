@@ -33,6 +33,8 @@ kinesisvideo
         The CurrentVersion-parameter is not yet implemented
         
 
+- [ ] describe_image_generation_configuration
+- [ ] describe_notification_configuration
 - [ ] describe_signaling_channel
 - [X] describe_stream
 - [X] get_data_endpoint
@@ -50,6 +52,8 @@ kinesisvideo
 - [ ] untag_resource
 - [ ] untag_stream
 - [ ] update_data_retention
+- [ ] update_image_generation_configuration
+- [ ] update_notification_configuration
 - [ ] update_signaling_channel
 - [ ] update_stream
 

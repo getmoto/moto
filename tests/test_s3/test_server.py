@@ -45,13 +45,22 @@ def test_s3_server_bucket_create():
     res.status_code.should.equal(200)
     res.data.should.contain(b"ListBucketResult")
 
-    res = test_client.put("/bar", "http://foobaz.localhost:5000/", data="test value")
-    res.status_code.should.equal(200)
-    assert "ETag" in dict(res.headers)
+    for key_name in ("bar_baz", "bar+baz"):
+        res = test_client.put(
+            f"/{key_name}", "http://foobaz.localhost:5000/", data="test value"
+        )
+        res.status_code.should.equal(200)
+        assert "ETag" in dict(res.headers)
 
-    res = test_client.get("/bar", "http://foobaz.localhost:5000/")
-    res.status_code.should.equal(200)
-    res.data.should.equal(b"test value")
+        res = test_client.get(
+            "/", "http://foobaz.localhost:5000/", query_string={"prefix": key_name}
+        )
+        res.status_code.should.equal(200)
+        res.data.should.contain(b"Contents")
+
+        res = test_client.get(f"/{key_name}", "http://foobaz.localhost:5000/")
+        res.status_code.should.equal(200)
+        res.data.should.equal(b"test value")
 
 
 def test_s3_server_ignore_subdomain_for_bucketnames():

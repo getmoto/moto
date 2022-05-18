@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from ..exceptions import (
     InvalidNetworkAclIdError,
     InvalidRouteTableIdError,
@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-OWNER_ID = ACCOUNT_ID
+OWNER_ID = get_account_id()
 
 
 class NetworkAclBackend(object):

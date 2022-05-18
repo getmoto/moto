@@ -1,42 +1,17 @@
 import boto3
-
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
 from moto import mock_cloudfront
 from moto.core import ACCOUNT_ID
-
-
-def example_distribution_config(ref):
-    return {
-        "CallerReference": ref,
-        "Origins": {
-            "Quantity": 1,
-            "Items": [
-                {
-                    "Id": "origin1",
-                    "DomainName": "asdf.s3.us-east-1.amazonaws.com",
-                    "S3OriginConfig": {"OriginAccessIdentity": ""},
-                }
-            ],
-        },
-        "DefaultCacheBehavior": {
-            "TargetOriginId": "origin1",
-            "ViewerProtocolPolicy": "allow-all",
-            "MinTTL": 10,
-            "ForwardedValues": {"QueryString": False, "Cookies": {"Forward": "none"}},
-        },
-        "Comment": "an optional comment that's not actually optional",
-        "Enabled": False,
-    }
+from . import cloudfront_test_scaffolding as scaffold
+import pytest
+import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_cloudfront
 def test_create_distribution_s3_minimum():
     client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
 
-    config = example_distribution_config("ref")
     resp = client.create_distribution(DistributionConfig=config)
     resp.should.have.key("Distribution")
 
@@ -155,7 +130,7 @@ def test_create_distribution_s3_minimum():
 def test_create_distribution_with_additional_fields():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
-    config = example_distribution_config("ref")
+    config = scaffold.example_distribution_config("ref")
     config["Aliases"] = {"Quantity": 2, "Items": ["alias1", "alias2"]}
     resp = client.create_distribution(DistributionConfig=config)
     distribution = resp["Distribution"]
@@ -170,7 +145,7 @@ def test_create_distribution_with_additional_fields():
 def test_create_distribution_returns_etag():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
-    config = example_distribution_config("ref")
+    config = scaffold.example_distribution_config("ref")
     resp = client.create_distribution(DistributionConfig=config)
     dist_id = resp["Distribution"]["Id"]
 
@@ -186,7 +161,7 @@ def test_create_distribution_needs_unique_caller_reference():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
     # Create standard distribution
-    config = example_distribution_config(ref="ref")
+    config = scaffold.example_distribution_config(ref="ref")
     dist1 = client.create_distribution(DistributionConfig=config)
     dist1_id = dist1["Distribution"]["Id"]
 
@@ -200,7 +175,7 @@ def test_create_distribution_needs_unique_caller_reference():
     )
 
     # Creating another distribution with a different reference
-    config = example_distribution_config(ref="ref2")
+    config = scaffold.example_distribution_config(ref="ref2")
     dist2 = client.create_distribution(DistributionConfig=config)
     dist1_id.shouldnt.equal(dist2["Distribution"]["Id"])
 
@@ -320,9 +295,9 @@ def test_list_distributions_without_any():
 def test_list_distributions():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
-    config = example_distribution_config(ref="ref1")
+    config = scaffold.example_distribution_config(ref="ref1")
     dist1 = client.create_distribution(DistributionConfig=config)["Distribution"]
-    config = example_distribution_config(ref="ref2")
+    config = scaffold.example_distribution_config(ref="ref2")
     dist2 = client.create_distribution(DistributionConfig=config)["Distribution"]
 
     resp = client.list_distributions()
@@ -347,7 +322,7 @@ def test_get_distribution():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
     # Create standard distribution
-    config = example_distribution_config(ref="ref")
+    config = scaffold.example_distribution_config(ref="ref")
     dist = client.create_distribution(DistributionConfig=config)
     dist_id = dist["Distribution"]["Id"]
 
@@ -420,7 +395,7 @@ def test_delete_distribution_random_etag():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
     # Create standard distribution
-    config = example_distribution_config(ref="ref")
+    config = scaffold.example_distribution_config(ref="ref")
     dist1 = client.create_distribution(DistributionConfig=config)
     dist_id = dist1["Distribution"]["Id"]
 

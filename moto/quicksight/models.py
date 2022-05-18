@@ -1,6 +1,6 @@
 """QuickSightBackend class with methods for supported APIs."""
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from .exceptions import ResourceNotFoundException
 
@@ -11,7 +11,7 @@ def _create_id(aws_account_id, namespace, _id):
 
 class QuicksightDataSet(BaseModel):
     def __init__(self, region, _id, name):
-        self.arn = f"arn:aws:quicksight:{region}:{ACCOUNT_ID}:data-set/{_id}"
+        self.arn = f"arn:aws:quicksight:{region}:{get_account_id()}:data-set/{_id}"
         self._id = _id
         self.name = name
         self.region = region
@@ -20,13 +20,13 @@ class QuicksightDataSet(BaseModel):
         return {
             "Arn": self.arn,
             "DataSetId": self._id,
-            "IngestionArn": f"arn:aws:quicksight:{self.region}:{ACCOUNT_ID}:ingestion/tbd",
+            "IngestionArn": f"arn:aws:quicksight:{self.region}:{get_account_id()}:ingestion/tbd",
         }
 
 
 class QuicksightIngestion(BaseModel):
     def __init__(self, region, data_set_id, ingestion_id):
-        self.arn = f"arn:aws:quicksight:{region}:{ACCOUNT_ID}:data-set/{data_set_id}/ingestions/{ingestion_id}"
+        self.arn = f"arn:aws:quicksight:{region}:{get_account_id()}:data-set/{data_set_id}/ingestions/{ingestion_id}"
         self.ingestion_id = ingestion_id
 
     def to_json(self):
@@ -41,9 +41,7 @@ class QuicksightMembership(BaseModel):
     def __init__(self, region, group, user):
         self.group = group
         self.user = user
-        self.arn = (
-            f"arn:aws:quicksight:{region}:{ACCOUNT_ID}:group/default/{group}/{user}"
-        )
+        self.arn = f"arn:aws:quicksight:{region}:{get_account_id()}:group/default/{group}/{user}"
 
     def to_json(self):
         return {"Arn": self.arn, "MemberName": self.user}
@@ -52,7 +50,7 @@ class QuicksightMembership(BaseModel):
 class QuicksightGroup(BaseModel):
     def __init__(self, region, group_name, description, aws_account_id, namespace):
         self.arn = (
-            f"arn:aws:quicksight:{region}:{ACCOUNT_ID}:group/default/{group_name}"
+            f"arn:aws:quicksight:{region}:{get_account_id()}:group/default/{group_name}"
         )
         self.group_name = group_name
         self.description = description
@@ -88,7 +86,9 @@ class QuicksightGroup(BaseModel):
 
 class QuicksightUser(BaseModel):
     def __init__(self, region, email, identity_type, username, user_role):
-        self.arn = f"arn:aws:quicksight:{region}:{ACCOUNT_ID}:user/default/{username}"
+        self.arn = (
+            f"arn:aws:quicksight:{region}:{get_account_id()}:user/default/{username}"
+        )
         self.email = email
         self.identity_type = identity_type
         self.username = username

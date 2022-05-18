@@ -3,7 +3,7 @@ import json
 import os
 import re
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASES
 from .models import kms_backends
@@ -40,7 +40,7 @@ class KmsResponse(BaseResponse):
             id_type = "key/"
 
         return "arn:aws:kms:{region}:{account}:{id_type}{key_id}".format(
-            region=self.region, account=ACCOUNT_ID, id_type=id_type, key_id=key_id
+            region=self.region, account=get_account_id(), id_type=id_type, key_id=key_id
         )
 
     def _validate_cmk_id(self, key_id):
@@ -221,7 +221,9 @@ class KmsResponse(BaseResponse):
             raise AlreadyExistsException(
                 "An alias with the name arn:aws:kms:{region}:{account_id}:{alias_name} "
                 "already exists".format(
-                    region=self.region, account_id=ACCOUNT_ID, alias_name=alias_name
+                    region=self.region,
+                    account_id=get_account_id(),
+                    alias_name=alias_name,
                 )
             )
 
@@ -256,7 +258,9 @@ class KmsResponse(BaseResponse):
                 response_aliases.append(
                     {
                         "AliasArn": "arn:aws:kms:{region}:{account_id}:{alias_name}".format(
-                            region=region, account_id=ACCOUNT_ID, alias_name=alias_name
+                            region=region,
+                            account_id=get_account_id(),
+                            alias_name=alias_name,
                         ),
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
@@ -271,7 +275,7 @@ class KmsResponse(BaseResponse):
                     {
                         "AliasArn": "arn:aws:kms:{region}:{account_id}:{reserved_alias}".format(
                             region=region,
-                            account_id=ACCOUNT_ID,
+                            account_id=get_account_id(),
                             reserved_alias=reserved_alias,
                         ),
                         "AliasName": reserved_alias,

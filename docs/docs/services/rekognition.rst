@@ -55,7 +55,11 @@ rekognition
 - [ ] get_celebrity_recognition
 - [ ] get_content_moderation
 - [ ] get_face_detection
-- [ ] get_face_search
+- [X] get_face_search
+  
+        This returns hardcoded values and none of the parameters are taken into account.
+        
+
 - [ ] get_label_detection
 - [ ] get_person_tracking
 - [ ] get_segment_detection
@@ -77,7 +81,7 @@ rekognition
 - [ ] start_celebrity_recognition
 - [ ] start_content_moderation
 - [ ] start_face_detection
-- [ ] start_face_search
+- [X] start_face_search
 - [ ] start_label_detection
 - [ ] start_person_tracking
 - [ ] start_project_version

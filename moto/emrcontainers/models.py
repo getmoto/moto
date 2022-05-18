@@ -2,7 +2,7 @@
 import re
 from datetime import datetime
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
@@ -12,13 +12,13 @@ from ..config.exceptions import ValidationException
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":/virtualclusters/{virtual_cluster_id}"
 )
 
 JOB_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":/virtualclusters/{virtual_cluster_id}/jobruns/{job_id}"
 )
 

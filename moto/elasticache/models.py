@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .exceptions import UserAlreadyExists, UserNotFound
@@ -28,7 +28,7 @@ class User(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:elasticache:{self.region}:{ACCOUNT_ID}:user:{self.id}"
+        return f"arn:aws:elasticache:{self.region}:{get_account_id()}:user:{self.id}"
 
 
 class ElastiCacheBackend(BaseBackend):

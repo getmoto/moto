@@ -1,6 +1,6 @@
 import weakref
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
 from .utils import make_arn
@@ -22,7 +22,7 @@ class FakeEnvironment(BaseModel):
     @property
     def environment_arn(self):
         resource_path = "%s/%s" % (self.application_name, self.environment_name)
-        return make_arn(self.region, ACCOUNT_ID, "environment", resource_path)
+        return make_arn(self.region, get_account_id(), "environment", resource_path)
 
     @property
     def platform_arn(self):
@@ -59,7 +59,9 @@ class FakeApplication(BaseModel):
 
     @property
     def arn(self):
-        return make_arn(self.region, ACCOUNT_ID, "application", self.application_name)
+        return make_arn(
+            self.region, get_account_id(), "application", self.application_name
+        )
 
 
 class EBBackend(BaseBackend):

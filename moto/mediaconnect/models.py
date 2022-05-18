@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from uuid import uuid4
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.mediaconnect.exceptions import NotFoundException
 
@@ -81,7 +81,7 @@ class MediaConnectBackend(BaseBackend):
     def _add_source_details(self, source, flow_id, ingest_ip="127.0.0.1"):
         if source:
             source["sourceArn"] = (
-                f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:source"
+                f"arn:aws:mediaconnect:{self.region_name}:{get_account_id()}:source"
                 f":{flow_id}:{source['name']}"
             )
             if not source.get("entitlementArn"):
@@ -92,7 +92,7 @@ class MediaConnectBackend(BaseBackend):
 
         flow.description = "A Moto test flow"
         flow.egress_ip = "127.0.0.1"
-        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{ACCOUNT_ID}:flow:{flow_id}:{flow.name}"
+        flow.flow_arn = f"arn:aws:mediaconnect:{self.region_name}:{get_account_id()}:flow:{flow_id}:{flow.name}"
 
         for index, _source in enumerate(flow.sources):
             self._add_source_details(_source, flow_id, f"127.0.0.{index}")

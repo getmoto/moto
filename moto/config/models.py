@@ -50,7 +50,7 @@ from moto.config.exceptions import (
 )
 
 from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import BackendDict
 from moto.iam.config import role_config_query, policy_config_query
@@ -359,7 +359,7 @@ class ConfigAggregator(ConfigEmptyDictable):
 
         self.configuration_aggregator_name = name
         self.configuration_aggregator_arn = "arn:aws:config:{region}:{id}:config-aggregator/config-aggregator-{random}".format(
-            region=region, id=DEFAULT_ACCOUNT_ID, random=random_string()
+            region=region, id=get_account_id(), random=random_string()
         )
         self.account_aggregation_sources = account_sources
         self.organization_aggregation_source = org_source
@@ -397,7 +397,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
             "arn:aws:config:{region}:{id}:aggregation-authorization/"
             "{auth_account}/{auth_region}".format(
                 region=current_region,
-                id=DEFAULT_ACCOUNT_ID,
+                id=get_account_id(),
                 auth_account=authorized_account_id,
                 auth_region=authorized_aws_region,
             )
@@ -432,7 +432,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.last_update_time = datetime2int(datetime.utcnow())
         self.organization_conformance_pack_arn = (
             "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}".format(
-                region, DEFAULT_ACCOUNT_ID, self._unique_pack_name
+                region, get_account_id(), self._unique_pack_name
             )
         )
         self.organization_conformance_pack_name = name
@@ -694,7 +694,7 @@ class ConfigRule(ConfigEmptyDictable):
         self.maximum_execution_frequency = None  # keeps pylint happy
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
-        self.config_rule_arn = f"arn:aws:config:{region}:{DEFAULT_ACCOUNT_ID}:config-rule/{self.config_rule_id}"
+        self.config_rule_arn = f"arn:aws:config:{region}:{get_account_id()}:config-rule/{self.config_rule_id}"
 
     def modify_fields(self, region, config_rule, tags):
         """Initialize or update ConfigRule fields."""
@@ -1436,7 +1436,7 @@ class ConfigBackend(BaseBackend):
         resource_identifiers = []
         for identifier in identifiers:
             item = {
-                "SourceAccountId": DEFAULT_ACCOUNT_ID,
+                "SourceAccountId": get_account_id(),
                 "SourceRegion": identifier["region"],
                 "ResourceType": identifier["type"],
                 "ResourceId": identifier["id"],
@@ -1487,7 +1487,7 @@ class ConfigBackend(BaseBackend):
         if not item:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
-        item["accountId"] = DEFAULT_ACCOUNT_ID
+        item["accountId"] = get_account_id()
 
         return {"configurationItems": [item]}
 
@@ -1533,7 +1533,7 @@ class ConfigBackend(BaseBackend):
             if not item:
                 continue
 
-            item["accountId"] = DEFAULT_ACCOUNT_ID
+            item["accountId"] = get_account_id()
 
             results.append(item)
 
@@ -1589,7 +1589,7 @@ class ConfigBackend(BaseBackend):
                 not_found.append(identifier)
                 continue
 
-            item["accountId"] = DEFAULT_ACCOUNT_ID
+            item["accountId"] = get_account_id()
 
             # The 'tags' field is not included in aggregate results for some reason...
             item.pop("tags", None)
@@ -1728,7 +1728,7 @@ class ConfigBackend(BaseBackend):
         # actually here would be a list of all accounts in the organization
         statuses = [
             {
-                "AccountId": DEFAULT_ACCOUNT_ID,
+                "AccountId": get_account_id(),
                 "ConformancePackName": "OrgConformsPack-{0}".format(
                     pack._unique_pack_name
                 ),

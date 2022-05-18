@@ -98,7 +98,7 @@ cognito-idp
 - [X] get_user
 - [ ] get_user_attribute_verification_code
 - [X] get_user_pool_mfa_config
-- [ ] global_sign_out
+- [X] global_sign_out
 - [X] initiate_auth
 - [ ] list_devices
 - [X] list_groups
@@ -125,10 +125,14 @@ cognito-idp
 - [ ] untag_resource
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
-- [ ] update_group
+- [X] update_group
 - [X] update_identity_provider
 - [ ] update_resource_server
-- [ ] update_user_attributes
+- [X] update_user_attributes
+  
+        The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetails are returned.
+        
+
 - [X] update_user_pool
 - [X] update_user_pool_client
 - [X] update_user_pool_domain

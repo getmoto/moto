@@ -3154,21 +3154,22 @@ if settings.TEST_SERVER_MODE:
 
 
 @mock_s3
-def test_get_object_versions_with_prefix():
+@pytest.mark.parametrize("prefix", ["file", "file+else", "file&another"])
+def test_get_object_versions_with_prefix(prefix):
     bucket_name = "testbucket-3113"
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_versioning = s3_resource.BucketVersioning(bucket_name)
     bucket_versioning.enable()
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
-    s3_client.put_object(Bucket=bucket_name, Body=b"alttest", Key="altfile.txt")
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key="file.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=f"{prefix}.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=f"{prefix}.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"alttest", Key=f"alt{prefix}.txt")
+    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=f"{prefix}.txt")
 
-    versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix="file")
+    versions = s3_client.list_object_versions(Bucket=bucket_name, Prefix=prefix)
     versions["Versions"].should.have.length_of(3)
-    versions["Prefix"].should.equal("file")
+    versions["Prefix"].should.equal(prefix)
 
 
 @mock_s3

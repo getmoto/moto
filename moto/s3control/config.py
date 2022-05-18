@@ -5,7 +5,7 @@ import time
 from boto3 import Session
 
 from moto.core.exceptions import InvalidNextTokenException
-from moto.core.models import ConfigQueryModel
+from moto.core.common_models import ConfigQueryModel
 from moto.s3control import s3control_backends
 from moto.s3.models import get_moto_s3_account_id
 

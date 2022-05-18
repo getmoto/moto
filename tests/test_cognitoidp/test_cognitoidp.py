@@ -3940,6 +3940,41 @@ def test_admin_reset_password_and_change_password():
 
 
 @mock_cognitoidp
+def test_admin_initiate_auth__use_access_token():
+    client = boto3.client("cognito-idp", "us-west-2")
+    un = str(uuid.uuid4())
+    pw = str(uuid.uuid4())
+    # Create pool and client
+    user_pool_id = client.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = client.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
+    )["UserPoolClient"]["ClientId"]
+    client.admin_create_user(UserPoolId=user_pool_id, Username=un, TemporaryPassword=pw)
+    client.confirm_sign_up(ClientId=client_id, Username=un, ConfirmationCode="123456")
+
+    # Initiate once, to get a refresh token
+    auth_result = client.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": un, "PASSWORD": pw},
+    )
+    refresh_token = auth_result["AuthenticationResult"]["RefreshToken"]
+
+    # Initiate Auth using a Refresh Token
+    auth_result = client.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="REFRESH_TOKEN",
+        AuthParameters={"REFRESH_TOKEN": refresh_token},
+    )
+    access_token = auth_result["AuthenticationResult"]["AccessToken"]
+
+    # Verify the AccessToken of this authentication works
+    client.global_sign_out(AccessToken=access_token)
+
+
+@mock_cognitoidp
 def test_admin_reset_password_disabled_user():
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
