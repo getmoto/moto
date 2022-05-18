@@ -1,7 +1,7 @@
 from botocore.exceptions import ClientError, ParamValidationError
 
 import pytest
-from unittest import SkipTest
+from unittest import SkipTest, mock
 
 import base64
 import ipaddress
@@ -1163,12 +1163,12 @@ def test_run_instance_with_placement():
 
 
 @mock_ec2
+@mock.patch(
+    "moto.ec2.models.instances.settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION",
+    return_value=True,
+)
 def test_run_instance_with_invalid_instance_type(mocker):
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    mocker.patch(
-        "moto.ec2.models.instances.settings.ec2_enable_instance_type_validation",
-        return_value=True,
-    )
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
             ImageId=EXAMPLE_AMI_ID,

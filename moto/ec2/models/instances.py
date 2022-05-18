@@ -574,7 +574,7 @@ class InstanceBackend(object):
                 )
             },
         ):
-            if settings.ec2_enable_instance_type_validation():
+            if settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
