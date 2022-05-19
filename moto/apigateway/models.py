@@ -126,6 +126,8 @@ class Integration(BaseModel, dict):
         uri,
         http_method,
         request_templates=None,
+        passthrough_behavior="WHEN_NO_MATCH",
+        cache_key_parameters=None,
         tls_config=None,
         cache_namespace=None,
         timeout_in_millis=None,
@@ -133,7 +135,9 @@ class Integration(BaseModel, dict):
         super().__init__()
         self["type"] = integration_type
         self["uri"] = uri
-        self["httpMethod"] = http_method
+        self["httpMethod"] = http_method if integration_type != "MOCK" else None
+        self["passthroughBehavior"] = passthrough_behavior
+        self["cacheKeyParameters"] = cache_key_parameters or []
         self["requestTemplates"] = request_templates
         # self["integrationResponses"] = {"200": IntegrationResponse(200)}  # commented out (tf-compat)
         self[
@@ -369,6 +373,7 @@ class Resource(CloudFormationModel):
         integration_type,
         uri,
         request_templates=None,
+        passthrough_behavior=None,
         integration_method=None,
         tls_config=None,
         cache_namespace=None,
@@ -380,6 +385,7 @@ class Resource(CloudFormationModel):
             uri,
             integration_method,
             request_templates=request_templates,
+            passthrough_behavior=passthrough_behavior,
             tls_config=tls_config,
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
@@ -1564,6 +1570,7 @@ class APIGatewayBackend(BaseBackend):
         integration_method=None,
         credentials=None,
         request_templates=None,
+        passthrough_behavior=None,
         tls_config=None,
         cache_namespace=None,
         timeout_in_millis=None,
@@ -1604,6 +1611,7 @@ class APIGatewayBackend(BaseBackend):
             uri,
             integration_method=integration_method,
             request_templates=request_templates,
+            passthrough_behavior=passthrough_behavior,
             tls_config=tls_config,
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,

@@ -517,6 +517,7 @@ def test_integrations():
         resourceId=root_id,
         httpMethod="GET",
         type="HTTP",
+        passthroughBehavior="WHEN_NO_TEMPLATES",
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
     )
@@ -529,6 +530,8 @@ def test_integrations():
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "cacheKeyParameters": [],
         }
     )
 
@@ -544,6 +547,8 @@ def test_integrations():
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "cacheKeyParameters": [],
         }
     )
 
@@ -554,7 +559,13 @@ def test_integrations():
     response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
     response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
     response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt"}
+        {
+            "httpMethod": "POST",
+            "type": "HTTP",
+            "uri": "http://httpbin.org/robots.txt",
+            "cacheKeyParameters": [],
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+        }
     )
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -584,6 +595,7 @@ def test_integrations():
         type="HTTP",
         uri=test_uri,
         requestTemplates=templates,
+        passthroughBehavior="WHEN_NO_MATCH",
         integrationHttpMethod="POST",
         timeoutInMillis=29000,
     )
@@ -593,6 +605,7 @@ def test_integrations():
     )
     response["uri"].should.equal(test_uri)
     response["requestTemplates"].should.equal(templates)
+    response["passthroughBehavior"].should.equal("WHEN_NO_MATCH")
     response.should.have.key("timeoutInMillis").equals(29000)
 
 

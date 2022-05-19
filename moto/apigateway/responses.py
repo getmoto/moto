@@ -442,6 +442,7 @@ class APIGatewayResponse(BaseResponse):
             uri = self._get_param("uri")
             credentials = self._get_param("credentials")
             request_templates = self._get_param("requestTemplates")
+            passthrough_behavior = self._get_param("passthroughBehavior")
             tls_config = self._get_param("tlsConfig")
             cache_namespace = self._get_param("cacheNamespace")
             timeout_in_millis = self._get_param("timeoutInMillis")
@@ -460,6 +461,7 @@ class APIGatewayResponse(BaseResponse):
                 credentials=credentials,
                 integration_method=integration_http_method,
                 request_templates=request_templates,
+                passthrough_behavior=passthrough_behavior,
                 tls_config=tls_config,
                 cache_namespace=cache_namespace,
                 timeout_in_millis=timeout_in_millis,
