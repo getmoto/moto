@@ -531,6 +531,7 @@ def test_integrations():
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "cacheKeyParameters": [],
         }
     )
 
@@ -547,6 +548,7 @@ def test_integrations():
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "cacheKeyParameters": [],
         }
     )
 
@@ -557,7 +559,13 @@ def test_integrations():
     response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
     response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
     response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt"}
+        {
+            "httpMethod": "POST",
+            "type": "HTTP",
+            "uri": "http://httpbin.org/robots.txt",
+            "cacheKeyParameters": [],
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+        }
     )
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
