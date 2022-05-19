@@ -55,7 +55,7 @@ _dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
 _dep_openapi = "openapi-spec-validator>=0.2.8"
-_dep_pyparsing = "pyparsing>=3.0.0"
+_dep_pyparsing = "pyparsing>=3.0.7"
 _setuptools = "setuptools"
 
 all_extra_deps = [
