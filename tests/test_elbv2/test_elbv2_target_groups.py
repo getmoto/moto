@@ -96,13 +96,13 @@ def test_create_target_group_and_listeners():
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
     )
-    target_group_arn = response.get("TargetGroups")[0]["TargetGroupArn"]
+    target_group = response.get("TargetGroups")[0]
+    target_group_arn = target_group.get("TargetGroupArn")
+    target_group.get("HealthCheckProtocol").should.equal("HTTP")
 
     # Check it's in the describe_target_groups response
     response = conn.describe_target_groups()
     response.get("TargetGroups").should.have.length_of(1)
-    target_group = response.get("TargetGroups")[0]
-    target_group.get("HealthCheckProtocol").should.equal("HTTP")
 
     # Plain HTTP listener
     response = conn.create_listener(
