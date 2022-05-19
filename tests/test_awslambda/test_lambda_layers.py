@@ -76,6 +76,7 @@ def test_get_lambda_layers():
                 "CompatibleRuntimes": ["python3.6"],
                 "Description": "",
                 "LicenseInfo": "MIT",
+                "CompatibleArchitectures": [],
             },
             {
                 "Version": 2,
@@ -83,6 +84,7 @@ def test_get_lambda_layers():
                 "CompatibleRuntimes": ["python3.6"],
                 "Description": "",
                 "LicenseInfo": "MIT",
+                "CompatibleArchitectures": [],
             },
         ]
     )
@@ -154,10 +156,16 @@ def test_get_layer_version():
         Content={"ZipFile": get_test_zip_file1()},
         CompatibleRuntimes=["python3.6"],
         LicenseInfo="MIT",
+        CompatibleArchitectures=["x86_64"],
     )
     layer_version = resp["Version"]
 
     resp = conn.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
+    resp.should.have.key("Description").equals("")
+    resp.should.have.key("Version").equals(1)
+    resp.should.have.key("CompatibleArchitectures").equals(["x86_64"])
+    resp.should.have.key("CompatibleRuntimes").equals(["python3.6"])
+    resp.should.have.key("LicenseInfo").equals("MIT")
 
 
 @mock_lambda

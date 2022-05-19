@@ -75,6 +75,7 @@ class DaxCluster(BaseModel, ManagedState):
         replication_factor,
         iam_role_arn,
         sse_specification,
+        encryption_type,
     ):
         # Configure ManagedState
         super().__init__(
@@ -100,6 +101,7 @@ class DaxCluster(BaseModel, ManagedState):
             {"SecurityGroupIdentifier": f"sg-{get_random_hex(10)}", "Status": "active"}
         ]
         self.sse_specification = sse_specification
+        self.encryption_type = encryption_type
 
     def _create_new_node(self, idx):
         return DaxNode(endpoint=self.endpoint, name=self.name, index=idx)
@@ -142,7 +144,7 @@ class DaxCluster(BaseModel, ManagedState):
                 if self.sse_specification.get("Enabled") is True
                 else "DISABLED"
             },
-            "ClusterEndpointEncryptionType": "NONE",
+            "ClusterEndpointEncryptionType": self.encryption_type,
             "SecurityGroups": self.security_groups,
         }
         if use_full_repr:
@@ -183,10 +185,11 @@ class DAXBackend(BaseBackend):
         iam_role_arn,
         tags,
         sse_specification,
+        encryption_type,
     ):
         """
         The following parameters are not yet processed:
-        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName, ClusterEndpointEncryptionType
+        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName
         """
         cluster = DaxCluster(
             region=self.region_name,
@@ -196,6 +199,7 @@ class DAXBackend(BaseBackend):
             replication_factor=replication_factor,
             iam_role_arn=iam_role_arn,
             sse_specification=sse_specification,
+            encryption_type=encryption_type,
         )
         self.clusters[cluster_name] = cluster
         self._tagger.tag_resource(cluster.arn, tags)

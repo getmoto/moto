@@ -806,7 +806,10 @@ class ECRBackend(BaseBackend):
 
         policy = json.loads(policy_text)
         for statement in policy["Statement"]:
-            if set(statement["Action"]) - VALID_ACTIONS:
+            action = statement["Action"]
+            if isinstance(action, str):
+                action = [action]
+            if set(action) - VALID_ACTIONS:
                 raise MalformedPolicyDocument()
 
     def put_registry_policy(self, policy_text):

@@ -12,7 +12,6 @@ TestAccCloudTrail
 TestAccEventsRule
 TestAccCloudWatchEventTarget_ssmDocument
 TestAccCloudWatchMetricAlarm
-TestAccDAX
 TestAccEC2DefaultSecurityGroup
 TestAccEC2DefaultVPCAndSubnet
 TestAccMetaDefaultTagsDataSource
@@ -38,8 +37,6 @@ TestAccEc2TransitGatewayDxGatewayAttachmentDataSource
 TestAccEc2TransitGatewayPeeringAttachmentAccepter
 TestAccEc2TransitGatewayRouteTableAssociation
 TestAccEc2TransitGatewayVpcAttachment
-TestAccEcrRegistryPolicy
-TestAccEcrReplicationConfiguration
 TestAccEC2EgressOnlyInternetGateway
 TestAccEFSMountTarget
 TestAccEksClusterDataSource
@@ -48,8 +45,6 @@ TestAccIotThing
 TestAccIPRanges
 TestAccKinesisStream
 TestAccELBPolicy
-TestAccLambdaAlias
-TestAccLambdaLayerVersion
 TestAccPartition
 TestAccPinpointApp
 TestAccPinpointEventStream
