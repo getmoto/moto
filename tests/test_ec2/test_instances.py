@@ -1561,22 +1561,43 @@ def test_ec2_classic_has_public_ip_address():
 @mock_ec2
 def test_run_instance_with_keypair():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
+    key_name = "keypair_name"
+    ec2.create_key_pair(KeyName=key_name)
+
     instance = ec2.create_instances(
-        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName="keypair_name"
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName=key_name
     )[0]
 
     instance.key_name.should.equal("keypair_name")
 
 
 @mock_ec2
+def test_run_instance_with_invalid_keypair():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    key_name = "keypair_name"
+    ec2.create_key_pair(KeyName=key_name)
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName="not a key name"
+        )[0]
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.NotFound")
+
+
+@mock_ec2
 def test_run_instance_with_block_device_mappings():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+    key_name = "keypair_name"
+    ec2_resource.create_key_pair(KeyName=key_name)
 
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
         "ImageId": EXAMPLE_AMI_ID,
-        "KeyName": "the_key",
+        "KeyName": key_name,
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}}],
     }
@@ -1617,12 +1638,14 @@ def test_run_instance_with_block_device_mappings_missing_ebs():
 @mock_ec2
 def test_run_instance_with_block_device_mappings_using_no_device():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
+    key_name = "keypair_name"
+    ec2_client.create_key_pair(KeyName=key_name)
 
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
         "ImageId": EXAMPLE_AMI_ID,
-        "KeyName": "the_key",
+        "KeyName": key_name,
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "NoDevice": ""}],
     }
@@ -1684,6 +1707,8 @@ def test_run_instance_with_block_device_mappings_missing_size():
 def test_run_instance_with_block_device_mappings_from_snapshot():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+    key_name = "the_key"
+    ec2_resource.create_key_pair(KeyName=key_name)
     volume_details = {
         "AvailabilityZone": "1a",
         "Size": 30,
@@ -1695,7 +1720,7 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
         "MinCount": 1,
         "MaxCount": 1,
         "ImageId": EXAMPLE_AMI_ID,
-        "KeyName": "the_key",
+        "KeyName": key_name,
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [
             {"DeviceName": "/dev/sda2", "Ebs": {"SnapshotId": snapshot.snapshot_id}}
