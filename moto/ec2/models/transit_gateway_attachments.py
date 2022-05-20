@@ -98,10 +98,9 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
         return get_account_id()
 
 
-class TransitGatewayAttachmentBackend(object):
+class TransitGatewayAttachmentBackend:
     def __init__(self):
         self.transit_gateway_attachments = {}
-        super().__init__()
 
     def create_transit_gateway_vpn_attachment(
         self, vpn_id, transit_gateway_id, tags=None

@@ -4,6 +4,7 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import get_account_id
+from moto.core.utils import BackendDict
 from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
 from .exceptions import (
     JsonRESTError,
@@ -40,7 +41,8 @@ class GlueBackend(BaseBackend):
         },
     }
 
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.databases = OrderedDict()
         self.crawlers = OrderedDict()
         self.jobs = OrderedDict()
@@ -624,4 +626,7 @@ class FakeJobRun:
         }
 
 
-glue_backend = GlueBackend()
+glue_backends = BackendDict(
+    GlueBackend, "glue", use_boto3_regions=False, additional_regions=["global"]
+)
+glue_backend = glue_backends["global"]

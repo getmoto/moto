@@ -362,21 +362,14 @@ class EFSBackend(BaseBackend):
     such resources should always go through this class.
     """
 
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.creation_tokens = set()
         self.access_points = dict()
         self.file_systems_by_id = {}
         self.mount_targets_by_id = {}
         self.next_markers = {}
         self.tagging_service = TaggingService()
-
-    def reset(self):
-        # preserve region
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def _mark_description(self, corpus, max_items):
         if max_items < len(corpus):

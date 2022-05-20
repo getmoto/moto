@@ -1308,16 +1308,11 @@ class LambdaBackend(BaseBackend):
     .. note:: When using the decorators, a Docker container cannot reach Moto, as it does not run as a server. Any boto3-invocations used within your Lambda will try to connect to AWS.
     """
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._lambdas = LambdaStorage(region_name=region_name)
         self._event_source_mappings = {}
         self._layers = LayerStorage()
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

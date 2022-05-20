@@ -72,16 +72,10 @@ class WAFV2Backend(BaseBackend):
     https://docs.aws.amazon.com/waf/latest/APIReference/API_Operations_AWS_WAFV2.html
     """
 
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.wacls = OrderedDict()  # self.wacls[ARN] = FakeWacl
         # TODO: self.load_balancers = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_web_acl(self, name, visibility_config, default_action, scope):
         wacl_id = str(uuid4())
@@ -113,7 +107,6 @@ class WAFV2Backend(BaseBackend):
     #     return ec2_backends[self.region_name]
 
 
-wafv2_backends = BackendDict(WAFV2Backend, "waf-regional")
-wafv2_backends[GLOBAL_REGION] = WAFV2Backend(
-    GLOBAL_REGION
-)  # never used? cloudfront is global and uses us-east-1
+wafv2_backends = BackendDict(
+    WAFV2Backend, "waf-regional", additional_regions=["global"]
+)

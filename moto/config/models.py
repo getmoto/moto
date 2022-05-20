@@ -848,7 +848,8 @@ class ConfigRule(ConfigEmptyDictable):
 
 
 class ConfigBackend(BaseBackend):
-    def __init__(self, region=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.recorders = {}
         self.delivery_channels = {}
         self.config_aggregators = {}
@@ -856,12 +857,6 @@ class ConfigBackend(BaseBackend):
         self.organization_conformance_packs = {}
         self.config_rules = {}
         self.config_schema = None
-        self.region = region
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -974,7 +969,7 @@ class ConfigBackend(BaseBackend):
         ):
             aggregator = ConfigAggregator(
                 config_aggregator["ConfigurationAggregatorName"],
-                self.region,
+                self.region_name,
                 account_sources=account_sources,
                 org_source=org_source,
                 tags=tags,
@@ -1054,7 +1049,7 @@ class ConfigBackend(BaseBackend):
         agg_auth = self.aggregation_authorizations.get(key)
         if not agg_auth:
             agg_auth = ConfigAggregationAuthorization(
-                self.region, authorized_account, authorized_region, tags=tags
+                self.region_name, authorized_account, authorized_region, tags=tags
             )
             self.aggregation_authorizations[
                 "{}/{}".format(authorized_account, authorized_region)
@@ -1473,11 +1468,14 @@ class ConfigBackend(BaseBackend):
         backend_query_region = (
             backend_region  # Always provide the backend this request arrived from.
         )
+        print(RESOURCE_MAP[resource_type].backends)
         if RESOURCE_MAP[resource_type].backends.get("global"):
+            print("yes, its global")
             backend_region = "global"
 
         # If the backend region isn't implemented then we won't find the item:
         if not RESOURCE_MAP[resource_type].backends.get(backend_region):
+            print(f"cant find {backend_region} for {resource_type}")
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         # Get the item:
@@ -1485,6 +1483,7 @@ class ConfigBackend(BaseBackend):
             resource_id, backend_region=backend_query_region
         )
         if not item:
+            print("item not found")
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         item["accountId"] = get_account_id()
@@ -1655,7 +1654,7 @@ class ConfigBackend(BaseBackend):
             )
         else:
             pack = OrganizationConformancePack(
-                region=self.region,
+                region=self.region_name,
                 name=name,
                 delivery_s3_bucket=delivery_s3_bucket,
                 delivery_s3_key_prefix=delivery_s3_key_prefix,
@@ -1875,14 +1874,14 @@ class ConfigBackend(BaseBackend):
                 )
 
             # Update the current rule.
-            rule.modify_fields(self.region, config_rule, tags)
+            rule.modify_fields(self.region_name, config_rule, tags)
         else:
             # Create a new ConfigRule if the limit hasn't been reached.
             if len(self.config_rules) == ConfigRule.MAX_RULES:
                 raise MaxNumberOfConfigRulesExceededException(
                     rule_name, ConfigRule.MAX_RULES
                 )
-            rule = ConfigRule(self.region, config_rule, tags)
+            rule = ConfigRule(self.region_name, config_rule, tags)
             self.config_rules[rule_name] = rule
         return ""
 

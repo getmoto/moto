@@ -153,8 +153,8 @@ class DaxCluster(BaseModel, ManagedState):
 
 
 class DAXBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._clusters = dict()
         self._tagger = TaggingService()
 
@@ -170,11 +170,6 @@ class DAXBackend(BaseBackend):
             if cluster.status != "deleted"
         }
         return self._clusters
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_cluster(
         self,

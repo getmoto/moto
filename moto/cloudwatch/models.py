@@ -305,18 +305,13 @@ class Statistics:
 
 
 class CloudWatchBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.alarms = {}
         self.dashboards = {}
         self.metric_data = []
         self.paged_metric_data = {}
         self.tagger = TaggingService()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

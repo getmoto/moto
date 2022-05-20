@@ -37,7 +37,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.s3 import s3_backend
+from moto.s3.models import s3_backend
 from moto.utilities.tagging_service import TaggingService
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
@@ -163,16 +163,10 @@ class DeliveryStream(
 class FirehoseBackend(BaseBackend):
     """Implementation of Firehose APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.delivery_streams = {}
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initializes all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

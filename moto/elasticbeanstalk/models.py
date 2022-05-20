@@ -55,7 +55,7 @@ class FakeApplication(BaseModel):
 
     @property
     def region(self):
-        return self.backend.region
+        return self.backend.region_name
 
     @property
     def arn(self):
@@ -65,16 +65,9 @@ class FakeApplication(BaseModel):
 
 
 class EBBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.applications = dict()
-
-    def reset(self):
-        # preserve region
-        region = self.region
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

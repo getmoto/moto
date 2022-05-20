@@ -27,10 +27,9 @@ class KeyPair(object):
             raise FilterNotImplementedError(filter_name, "DescribeKeyPairs")
 
 
-class KeyPairBackend(object):
+class KeyPairBackend:
     def __init__(self):
         self.keypairs = {}
-        super().__init__()
 
     def create_key_pair(self, name):
         if name in self.keypairs:

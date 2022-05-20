@@ -107,10 +107,9 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeAddresses")
 
 
-class ElasticAddressBackend(object):
+class ElasticAddressBackend:
     def __init__(self):
         self.addresses = []
-        super().__init__()
 
     def allocate_address(self, domain, address=None, tags=None):
         if domain not in ["standard", "vpc"]:

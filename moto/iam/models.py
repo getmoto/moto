@@ -1567,7 +1567,7 @@ def filter_items_with_path_prefix(path_prefix, items):
 
 
 class IAMBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id=None):
         self.instance_profiles = {}
         self.roles = {}
         self.certificates = {}
@@ -1586,7 +1586,7 @@ class IAMBackend(BaseBackend):
         self.access_keys = {}
 
         self.tagger = TaggingService()
-        super().__init__()
+        super().__init__(region_name=region_name, account_id=account_id)
 
     def _init_managed_policies(self):
         return dict((p.arn, p) for p in aws_managed_policies)
@@ -2924,4 +2924,4 @@ class IAMBackend(BaseBackend):
         return True
 
 
-iam_backend = IAMBackend()
+iam_backend = IAMBackend("global")

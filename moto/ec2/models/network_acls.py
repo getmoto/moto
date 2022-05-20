@@ -15,10 +15,9 @@ from ..utils import (
 OWNER_ID = get_account_id()
 
 
-class NetworkAclBackend(object):
+class NetworkAclBackend:
     def __init__(self):
         self.network_acls = {}
-        super().__init__()
 
     def get_network_acl(self, network_acl_id):
         network_acl = self.network_acls.get(network_acl_id, None)

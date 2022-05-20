@@ -221,9 +221,8 @@ class ResourceGroups:
 
 
 class ResourceGroupsBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.groups = ResourceGroups()
 
     @staticmethod

@@ -4,7 +4,7 @@ import json
 
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 from moto.organizations import utils
 from moto.organizations.exceptions import (
     InvalidInputException,
@@ -335,7 +335,8 @@ class FakeDelegatedAdministrator(BaseModel):
 
 
 class OrganizationsBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._reset()
 
     def _reset(self):
@@ -913,4 +914,10 @@ class OrganizationsBackend(BaseBackend):
         self.accounts.remove(account)
 
 
-organizations_backend = OrganizationsBackend()
+organizations_backends = BackendDict(
+    OrganizationsBackend,
+    "organizations",
+    use_boto3_regions=False,
+    additional_regions=["global"],
+)
+organizations_backend = organizations_backends["global"]

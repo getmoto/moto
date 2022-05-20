@@ -2,7 +2,7 @@ from base64 import b64decode
 import datetime
 import xmltodict
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.core import get_account_id
 from moto.sts.utils import (
     random_access_key_id,
@@ -58,7 +58,8 @@ class AssumedRole(BaseModel):
 
 
 class STSBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.assumed_roles = []
 
     @staticmethod
@@ -137,4 +138,7 @@ class STSBackend(BaseBackend):
         pass
 
 
-sts_backend = STSBackend()
+sts_backends = BackendDict(
+    STSBackend, "sts", use_boto3_regions=False, additional_regions=["global"]
+)
+sts_backend = sts_backends["global"]

@@ -66,10 +66,9 @@ def validate_resource_ids(resource_ids):
     return True
 
 
-class SettingsBackend(object):
+class SettingsBackend:
     def __init__(self):
         self.ebs_encryption_by_default = False
-        super().__init__()
 
     def disable_ebs_encryption_by_default(self):
         ec2_backend = ec2_backends[self.region_name]
@@ -140,9 +139,11 @@ class EC2Backend(
 
     """
 
-    def __init__(self, region_name):
-        self.region_name = region_name
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        BaseBackend.__init__(self, region_name, account_id)
+        for backend in EC2Backend.__mro__:
+            if backend not in [EC2Backend, BaseBackend, object]:
+                backend.__init__(self)
 
         # Default VPC exists by default, which is the current behavior
         # of EC2-VPC. See for detail:
@@ -168,11 +169,6 @@ class EC2Backend(
             cidr_block = ".".join(str(i) for i in ip) + "/20"
             self.create_subnet(vpc.id, cidr_block, availability_zone=az_name)
             ip[2] += 16
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

@@ -72,10 +72,9 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         return transit_gateway
 
 
-class TransitGatewayBackend(object):
+class TransitGatewayBackend:
     def __init__(self):
         self.transit_gateways = {}
-        super().__init__()
 
     def create_transit_gateway(self, description=None, options=None, tags=None):
         transit_gateway = TransitGateway(self, description, options)

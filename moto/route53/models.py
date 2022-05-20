@@ -17,6 +17,7 @@ from moto.route53.exceptions import (
     QueryLoggingConfigAlreadyExists,
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
+from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -389,7 +390,8 @@ class QueryLoggingConfig(BaseModel):
 
 
 class Route53Backend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.zones = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
@@ -683,4 +685,7 @@ class Route53Backend(BaseBackend):
         return self.delegation_sets[delegation_set_id]
 
 
-route53_backend = Route53Backend()
+route53_backends = BackendDict(
+    Route53Backend, "route53", use_boto3_regions=False, additional_regions=["global"]
+)
+route53_backend = route53_backends["global"]

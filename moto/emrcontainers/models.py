@@ -159,20 +159,13 @@ class FakeJob(BaseModel):
 class EMRContainersBackend(BaseBackend):
     """Implementation of EMRContainers APIs."""
 
-    def __init__(self, region_name=None):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.virtual_clusters = dict()
         self.virtual_cluster_count = 0
         self.jobs = dict()
         self.job_count = 0
-        self.region_name = region_name
         self.partition = get_partition(region_name)
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_virtual_cluster(self, name, container_provider, client_token, tags=None):
         occupied_namespaces = [

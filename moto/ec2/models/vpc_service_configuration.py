@@ -36,10 +36,9 @@ class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
 
 
-class VPCServiceConfigurationBackend(object):
+class VPCServiceConfigurationBackend:
     def __init__(self):
         self.configurations = {}
-        super().__init__()
 
     @property
     def elbv2_backend(self):

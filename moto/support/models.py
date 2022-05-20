@@ -1,4 +1,5 @@
 from moto.core import BaseBackend
+from moto.core.utils import BackendDict
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import load_resource
@@ -61,20 +62,14 @@ class SupportCase(ManagedState):
 
 
 class SupportBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.check_status = {}
         self.cases = {}
 
         state_manager.register_default_transition(
             model_name="support::case", transition={"progression": "manual", "times": 1}
         )
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def describe_trusted_advisor_checks(self):
         """
@@ -235,7 +230,6 @@ class SupportBackend(BaseBackend):
         return case_values
 
 
-support_backends = {}
-
-# Only currently supported in us-east-1
-support_backends["us-east-1"] = SupportBackend("us-east-1")
+support_backends = BackendDict(
+    SupportBackend, "support", use_boto3_regions=False, additional_regions=["us-east-1"]
+)

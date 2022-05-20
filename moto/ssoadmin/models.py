@@ -40,15 +40,9 @@ class AccountAssignment(BaseModel):
 class SSOAdminBackend(BaseBackend):
     """Implementation of SSOAdmin APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.account_assignments = list()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_account_assignment(
         self,

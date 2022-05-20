@@ -25,15 +25,9 @@ KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 
 
 class SWFBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.domains = []
-        super().__init__()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def _get_domain(self, name, ignore_empty=False):
         matching = [domain for domain in self.domains if domain.name == name]

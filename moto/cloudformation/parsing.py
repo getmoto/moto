@@ -47,7 +47,7 @@ from moto.ssm import models  # noqa  # pylint: disable=all
 # End ugly list of imports
 
 from moto.core import get_account_id, CloudFormationModel
-from moto.s3 import s3_backend
+from moto.s3.models import s3_backend
 from moto.s3.utils import bucket_and_name_from_url
 from moto.ssm import ssm_backends
 from .utils import random_suffix

@@ -311,17 +311,11 @@ class ManagedNodegroup:
 
 
 class EKSBackend(BaseBackend):
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.clusters = dict()
         self.cluster_count = 0
-        self.region_name = region_name
         self.partition = get_partition(region_name)
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_cluster(
         self,

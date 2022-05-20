@@ -13,7 +13,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
-from moto.s3 import s3_backend
+from moto.s3.models import s3_backend
 from .utils import PAGINATION_MODEL
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -596,17 +596,12 @@ class LogResourcePolicy(CloudFormationModel):
 
 
 class LogsBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.groups = dict()  # { logGroupName: LogGroup}
         self.filters = MetricFilters()
         self.queries = dict()
         self.resource_policies = dict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

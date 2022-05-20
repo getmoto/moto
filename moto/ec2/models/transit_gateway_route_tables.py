@@ -37,10 +37,9 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         return iso_8601_datetime_with_milliseconds(self._created_at)
 
 
-class TransitGatewayRouteTableBackend(object):
+class TransitGatewayRouteTableBackend:
     def __init__(self):
         self.transit_gateways_route_tables = {}
-        super().__init__()
 
     def create_transit_gateway_route_table(
         self,
@@ -286,11 +285,10 @@ class TransitGatewayRelations(object):
         self.state = state
 
 
-class TransitGatewayRelationsBackend(object):
+class TransitGatewayRelationsBackend:
     def __init__(self):
         self.transit_gateway_associations = {}
         self.transit_gateway_propagations = {}
-        super().__init__()
 
     def associate_transit_gateway_route_table(
         self, transit_gateway_attachment_id=None, transit_gateway_route_table_id=None

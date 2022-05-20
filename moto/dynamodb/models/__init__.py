@@ -1176,15 +1176,10 @@ class Backup(object):
 
 
 class DynamoDBBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.tables = OrderedDict()
         self.backups = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

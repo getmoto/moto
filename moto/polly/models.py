@@ -64,16 +64,9 @@ class Lexicon(BaseModel):
 
 
 class PollyBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
-
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._lexicons = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def describe_voices(self, language_code):
         """

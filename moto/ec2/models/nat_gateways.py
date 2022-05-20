@@ -81,10 +81,9 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         return nat_gateway
 
 
-class NatGatewayBackend(object):
+class NatGatewayBackend:
     def __init__(self):
         self.nat_gateways = {}
-        super().__init__()
 
     def describe_nat_gateways(self, filters, nat_gateway_ids):
         nat_gateways = list(self.nat_gateways.values())

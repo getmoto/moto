@@ -21,10 +21,7 @@ for location_type in listdir(root / offerings_path):
         INSTANCE_TYPE_OFFERINGS[location_type][_region.replace(".json", "")] = res
 
 
-class InstanceTypeBackend(object):
-    def __init__(self):
-        super().__init__()
-
+class InstanceTypeBackend:
     def describe_instance_types(self, instance_types=None):
         matches = INSTANCE_TYPES.values()
         if instance_types:
@@ -37,10 +34,7 @@ class InstanceTypeBackend(object):
         return matches
 
 
-class InstanceTypeOfferingBackend(object):
-    def __init__(self):
-        super().__init__()
-
+class InstanceTypeOfferingBackend:
     def describe_instance_type_offerings(self, location_type=None, filters=None):
         location_type = location_type or "region"
         matches = INSTANCE_TYPE_OFFERINGS[location_type]

@@ -130,7 +130,7 @@ class Trail(BaseModel):
             raise TrailNameInvalidChars()
 
     def check_bucket_exists(self):
-        from moto.s3 import s3_backend
+        from moto.s3.models import s3_backend
 
         try:
             s3_backend.get_bucket(self.bucket_name)
@@ -242,8 +242,8 @@ class Trail(BaseModel):
 class CloudTrailBackend(BaseBackend):
     """Implementation of CloudTrail APIs."""
 
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.trails = dict()
         self.tagging_service = TaggingService(tag_name="TagsList")
 
@@ -313,7 +313,8 @@ class CloudTrailBackend(BaseBackend):
     def describe_trails(self, include_shadow_trails):
         all_trails = []
         if include_shadow_trails:
-            for backend in cloudtrail_backends.values():
+            current_account = cloudtrail_backends[self.account_id]
+            for backend in current_account.values():
                 all_trails.extend(backend.trails.values())
         else:
             all_trails.extend(self.trails.values())
@@ -362,12 +363,6 @@ class CloudTrailBackend(BaseBackend):
             kms_key_id=kms_key_id,
         )
         return trail
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def put_event_selectors(
         self, trail_name, event_selectors, advanced_event_selectors

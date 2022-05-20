@@ -52,19 +52,13 @@ class EBSSnapshot(BaseModel):
 class EBSBackend(BaseBackend):
     """Implementation of EBS APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.snapshots = dict()
 
     @property
     def ec2_backend(self):
         return ec2_backends[self.region_name]
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def start_snapshot(self, volume_size, tags, description):
         zone_name = f"{self.region_name}a"

@@ -496,18 +496,13 @@ class App(BaseModel):
 
 
 class OpsWorksBackend(BaseBackend):
-    def __init__(self, region):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.stacks = {}
         self.layers = {}
         self.apps = {}
         self.instances = {}
-        self.region_name = region
-        self.ec2_backend = ec2_backends[region]
-
-    def reset(self):
-        region = self.region_name
-        self.__dict__ = {}
-        self.__init__(region)
+        self.ec2_backend = ec2_backends[region_name]
 
     def create_stack(self, **kwargs):
         stack = Stack(**kwargs)

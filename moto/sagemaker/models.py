@@ -1020,7 +1020,8 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
 
 class SageMakerModelBackend(BaseBackend):
-    def __init__(self, region_name=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._models = {}
         self.notebook_instances = {}
         self.endpoint_configs = {}
@@ -1031,12 +1032,6 @@ class SageMakerModelBackend(BaseBackend):
         self.trial_components = {}
         self.training_jobs = {}
         self.notebook_instance_lifecycle_configurations = {}
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

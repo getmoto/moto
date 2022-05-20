@@ -296,18 +296,12 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 class Route53ResolverBackend(BaseBackend):
     """Implementation of Route53Resolver APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.resolver_endpoints = {}  # Key is self-generated ID (endpoint_id)
         self.resolver_rules = {}  # Key is self-generated ID (rule_id)
         self.resolver_rule_associations = {}  # Key is resolver_rule_association_id)
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

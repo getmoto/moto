@@ -1239,22 +1239,16 @@ class APIGatewayBackend(BaseBackend):
      - This only works when using the decorators, not in ServerMode
     """
 
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.apis = {}
         self.keys = {}
         self.usage_plans = {}
         self.usage_plan_keys = {}
         self.domain_names = {}
         self.models = {}
-        self.region_name = region_name
         self.base_path_mappings = {}
         self.vpc_links = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_rest_api(
         self,

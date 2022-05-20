@@ -390,17 +390,11 @@ class FakeSecurityConfiguration(BaseModel):
 
 
 class ElasticMapReduceBackend(BaseBackend):
-    def __init__(self, region_name):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.clusters = {}
         self.instance_groups = {}
         self.security_configurations = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
