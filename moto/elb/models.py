@@ -6,6 +6,7 @@ from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.ec2.models import ec2_backends
+from moto.ec2.exceptions import InvalidInstanceIdError
 from uuid import uuid4
 from .exceptions import (
     BadHealthCheckDefinition,
@@ -379,6 +380,26 @@ class ELBBackend(BaseBackend):
             if len(policy_names) != len(policies):
                 raise PolicyNotFoundError()
         return policies
+
+    def describe_instance_health(self, lb_name, instances):
+        provided_ids = [i["InstanceId"] for i in instances]
+        registered_ids = self.get_load_balancer(lb_name).instance_ids
+        ec2_backend = ec2_backends[self.region_name]
+        if len(provided_ids) == 0:
+            provided_ids = registered_ids
+        instances = []
+        for instance_id in provided_ids:
+            if instance_id not in registered_ids:
+                instances.append({"InstanceId": instance_id, "State": "Unknown"})
+            else:
+                try:
+                    instance = ec2_backend.get_instance(instance_id)
+                    state = "InService" if instance.is_running() else "OutOfService"
+                    instances.append({"InstanceId": instance_id, "State": state})
+                except InvalidInstanceIdError:
+                    pass
+
+        return instances
 
     def delete_load_balancer_listeners(self, name, ports):
         balancer = self.load_balancers.get(name, None)

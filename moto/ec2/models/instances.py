@@ -353,6 +353,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown",
         )
 
+    def is_running(self):
+        return self._state.name == "running"
+
     def delete(self, region):  # pylint: disable=unused-argument
         self.terminate()
 
