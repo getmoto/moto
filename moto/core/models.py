@@ -26,15 +26,10 @@ from .utils import convert_flask_to_responses_response
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
 
-def _get_default_account_id():
-    return ACCOUNT_ID
-
-
-account_id_resolver = _get_default_account_id
-
-
 def get_account_id():
-    return account_id_resolver()
+    # Those referring to the global var ACCOUNT_ID directly can continue to do so, but this will support the cases when
+    # an environment variable is overridden after moto is loaded/imported
+    return os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
 
 class BaseMockAWS:
