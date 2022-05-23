@@ -17,8 +17,8 @@ def test_create_managed_compute_environment():
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
-    key_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=key_name)
+    keypair_name = "keypair_name"
+    ec2_client.create_key_pair(KeyName=keypair_name)
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
         type="MANAGED",
@@ -32,7 +32,7 @@ def test_create_managed_compute_environment():
             "imageId": "some_image_id",
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
-            "ec2KeyPair": key_name,
+            "ec2KeyPair": keypair_name,
             "instanceRole": iam_arn.replace("role", "instance-profile"),
             "tags": {"string": "string"},
             "bidPercentage": 123,
@@ -75,8 +75,8 @@ def test_create_managed_compute_environment_with_instance_family():
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     compute_name = str(uuid4())
-    key_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=key_name)
+    keypair_name = "keypair_name"
+    ec2_client.create_key_pair(KeyName=keypair_name)
     batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
         type="MANAGED",
@@ -90,7 +90,7 @@ def test_create_managed_compute_environment_with_instance_family():
             "imageId": "some_image_id",
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
-            "ec2KeyPair": key_name,
+            "ec2KeyPair": keypair_name,
             "instanceRole": iam_arn.replace("role", "instance-profile"),
             "tags": {"string": "string"},
             "bidPercentage": 123,

@@ -60,6 +60,7 @@ def test_flow_logs_by_cloudformation():
 @mock_ec2
 @mock_cloudformation
 def test_cloudformation():
+    keypair_name = "keypair_name"
     dummy_template_json = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -71,14 +72,15 @@ def test_cloudformation():
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
                     "IamInstanceProfile": {"Ref": "InstanceProfile"},
-                    "KeyName": "mykey1",
+                    "KeyName": keypair_name,
                     "ImageId": EXAMPLE_AMI_ID,
                 },
             },
         },
     }
 
-    client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     stack_name = str(uuid4())
     cf_conn.create_stack(
@@ -91,7 +93,7 @@ def test_cloudformation():
     iam_id = resources[0]["PhysicalResourceId"]
     iam_ip_arn = f"arn:aws:iam::{ACCOUNT_ID}:instance-profile/{iam_id}"
 
-    all_assocs = client.describe_iam_instance_profile_associations()[
+    all_assocs = ec2_client.describe_iam_instance_profile_associations()[
         "IamInstanceProfileAssociations"
     ]
     our_assoc = [a for a in all_assocs if a["IamInstanceProfile"]["Arn"] == iam_ip_arn]
@@ -99,7 +101,7 @@ def test_cloudformation():
     our_assoc_id = our_assoc[0]["AssociationId"]
 
     cf_conn.delete_stack(StackName=stack_name)
-    associations = client.describe_iam_instance_profile_associations()[
+    associations = ec2_client.describe_iam_instance_profile_associations()[
         "IamInstanceProfileAssociations"
     ]
     [a["AssociationId"] for a in associations].shouldnt.contain(our_assoc_id)

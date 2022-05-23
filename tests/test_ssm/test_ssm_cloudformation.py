@@ -2,13 +2,15 @@ import boto3
 import json
 
 
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_ssm, mock_cloudformation, mock_ec2
 from tests import EXAMPLE_AMI_ID
 
 
 @mock_ssm
 @mock_cloudformation
+@mock_ec2
 def test_get_command_invocations_from_stack():
+    keypair_name = "keypair_name"
     stack_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "Test Stack",
@@ -17,7 +19,7 @@ def test_get_command_invocations_from_stack():
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
                     "ImageId": EXAMPLE_AMI_ID,
-                    "KeyName": "test",
+                    "KeyName": keypair_name,
                     "InstanceType": "t2.micro",
                     "Tags": [
                         {"Key": "Test Description", "Value": "Test tag"},
@@ -37,6 +39,8 @@ def test_get_command_invocations_from_stack():
     }
 
     cloudformation_client = boto3.client("cloudformation", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
 
     stack_template_str = json.dumps(stack_template)
 

@@ -2668,11 +2668,11 @@ def test_terminate_instance_in_auto_scaling_group_no_decrement():
 def test_attach_instances():
     asg_client = boto3.client("autoscaling", region_name="us-east-1")
     ec2_client = boto3.client("ec2", region_name="us-east-1")
-    key_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=key_name)
+    keypair_name = "keypair_name"
+    ec2_client.create_key_pair(KeyName=keypair_name)
 
     kwargs = {
-        "KeyName": key_name,
+        "KeyName": keypair_name,
         "ImageId": "ami-pytest",
         "MinCount": 1,
         "MaxCount": 1,
@@ -2686,7 +2686,7 @@ def test_attach_instances():
         LaunchConfigurationName="test_launch_configuration",
         ImageId="ami-pytest",
         InstanceType="t3.micro",
-        KeyName=key_name,
+        KeyName=keypair_name,
     )
     asg_client.create_auto_scaling_group(
         AutoScalingGroupName="test_asg",
