@@ -1,6 +1,32 @@
 Moto Changelog
 ==============
 
+3.1.10
+-----
+Docker Digest for 3.1.10: <autopopulateddigest>
+
+    New Methods:
+        * APIGateway:
+            * import_rest_api()
+            * put_rest_api()
+        * Glue:
+            * get_tags()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * APIGateway:put_integration() now supports the passthroughBehavior-parameter
+        * APIGatewayV2:create_authorizer() now supports the AuthorizerPayloadFormatVersion-parameter
+        * AWSLamba:publish_layer_version() now supports the CompatibleArchitectures-parameter
+        * DAX:create_cluster() now supports the ClusterEndpointEncryptionType-parameter
+        * EC2:describe_route_tables() now supports the filter `route.gateway-id`
+        * EC2:run_instances() now validates whether the Placement-parameter has a valid availabilty zone
+        * ECS:list_services() now supports the launchType-parameter
+        * ELB:describe_instance_health() now returns the OutOfService-status when appropriate
+        * Organizations:list_accounts_for_parent() now supports pagination
+        * Organizations:list_organizational_units_for_parent() now supports pagination
+
+
 3.1.9
 -----
 Docker Digest for 3.1.9: _sha256:eea31d2f99b2fef16cffb3ea86d21dd911647835a3182bedd8918074292ce552_

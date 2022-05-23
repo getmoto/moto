@@ -186,9 +186,6 @@ class IoTDataPlaneBackend(BaseBackend):
         return thing.thing_shadow
 
     def delete_thing_shadow(self, thing_name):
-        """after deleting, get_thing_shadow will raise ResourceNotFound.
-        But version of the shadow keep increasing...
-        """
         thing = iot_backends[self.region_name].describe_thing(thing_name)
         if thing.thing_shadow is None:
             raise ResourceNotFoundException()

@@ -563,6 +563,13 @@ ec2
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
 - [X] run_instances
+  
+        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+
+        The InstanceType-parameter can be validated, to see if it is a known instance-type.
+        This validation can be enabled by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+        
+
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
