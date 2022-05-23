@@ -785,6 +785,7 @@ class Destination(BaseModel):
     def describe(self):
         """
         Describes the Destination object as a dict
+
         Docs:
             Response Syntax in
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
@@ -1676,6 +1677,7 @@ class EventsBackend(BaseBackend):
     def describe_connection(self, name):
         """
         Retrieves details about a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
 
@@ -1699,6 +1701,7 @@ class EventsBackend(BaseBackend):
     def delete_connection(self, name):
         """
         Deletes a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
 
@@ -1730,6 +1733,7 @@ class EventsBackend(BaseBackend):
     ):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
@@ -1755,6 +1759,7 @@ class EventsBackend(BaseBackend):
     def describe_api_destination(self, name):
         """
         Retrieves details about an API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
         Args:
@@ -1773,6 +1778,7 @@ class EventsBackend(BaseBackend):
     def update_api_destination(self, *, name, **kwargs):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
 
@@ -1793,6 +1799,7 @@ class EventsBackend(BaseBackend):
     def delete_api_destination(self, name):
         """
         Deletes the specified API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
 

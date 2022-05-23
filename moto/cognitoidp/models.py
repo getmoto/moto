@@ -1384,7 +1384,9 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(client_id)
 
     def forgot_password(self, client_id, username):
-        """The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+        """
+        The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+
         Otherwise you get semi-random garbage and HTTP 200 OK, for example:
         - recovery for username which is not registered in any cognito pool
         - recovery for username belonging to a different user pool than the client id is registered to

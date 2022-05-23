@@ -652,6 +652,12 @@ class InstanceBackend(object):
         return new_reservation
 
     def run_instances(self):
+        """
+        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+
+        The InstanceType-parameter can be validated, to see if it is a known instance-type.
+        This validation can be enabled by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+        """
         # Logic resides in add_instances
         # Fake method here to make implementation coverage script aware that this method is implemented
         pass
