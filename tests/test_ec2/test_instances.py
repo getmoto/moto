@@ -1572,7 +1572,15 @@ def test_run_instance_with_keypair():
 
 
 @mock_ec2
-def test_run_instance_with_invalid_keypair():
+@mock.patch(
+    "moto.ec2.models.instances.settings.ENABLE_KEYPAIR_VALIDATION",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_run_instance_with_invalid_keypair(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     keypair_name = "keypair_name"
     ec2.create_key_pair(KeyName=keypair_name)
@@ -1584,6 +1592,7 @@ def test_run_instance_with_invalid_keypair():
 
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.NotFound")
+    assert m_flag is True
 
 
 @mock_ec2
