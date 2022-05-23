@@ -11,11 +11,10 @@ def test_run_instance_with_encrypted_ebs():
     kms = boto3.client("kms", region_name="us-east-1")
     resp = kms.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT")
     key_id = resp["KeyMetadata"]["Arn"]
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    key_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=key_name)
-
     ec2 = boto3.client("ec2", region_name="us-east-1")
+    key_name = "keypair_name"
+    ec2.create_key_pair(KeyName=key_name)
+
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
