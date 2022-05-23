@@ -21,20 +21,22 @@ template_vpc = {
     },
 }
 
+keypair_name = "keypair_name"
+
 
 @mock_ec2
 @mock_cloudformation
 def test_vpc_single_instance_in_subnet():
     template_json = json.dumps(vpc_single_instance_in_subnet.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
     stack_name = str(uuid4())[0:6]
     cf.create_stack(
         StackName=stack_name,
         TemplateBody=template_json,
-        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "my_key"}],
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": keypair_name}],
     )
-
-    ec2 = boto3.client("ec2", region_name="us-west-1")
 
     stack = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
 
@@ -45,11 +47,11 @@ def test_vpc_single_instance_in_subnet():
         if resource["ResourceType"] == "AWS::EC2::VPC"
     ][0]["PhysicalResourceId"]
 
-    vpc = ec2.describe_vpcs(VpcIds=[vpc_id])["Vpcs"][0]
+    vpc = ec2_client.describe_vpcs(VpcIds=[vpc_id])["Vpcs"][0]
     vpc["CidrBlock"].should.equal("10.0.0.0/16")
     vpc["Tags"].should.contain({"Key": "Application", "Value": stack["StackId"]})
 
-    security_group = ec2.describe_security_groups(
+    security_group = ec2_client.describe_security_groups(
         Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
     )["SecurityGroups"][0]
     security_group["VpcId"].should.equal(vpc["VpcId"])
@@ -60,7 +62,7 @@ def test_vpc_single_instance_in_subnet():
         if resource["ResourceType"] == "AWS::EC2::Subnet"
     ][0]["PhysicalResourceId"]
 
-    subnet = ec2.describe_subnets(SubnetIds=[subnet_id])["Subnets"][0]
+    subnet = ec2_client.describe_subnets(SubnetIds=[subnet_id])["Subnets"][0]
     subnet["VpcId"].should.equal(vpc["VpcId"])
 
     instance_id = [
@@ -68,7 +70,7 @@ def test_vpc_single_instance_in_subnet():
         for resource in resources
         if resource["ResourceType"] == "AWS::EC2::Instance"
     ][0]["PhysicalResourceId"]
-    res = ec2.describe_instances(InstanceIds=[instance_id])["Reservations"][0]
+    res = ec2_client.describe_instances(InstanceIds=[instance_id])["Reservations"][0]
     instance = res["Instances"][0]
     instance["Tags"].should.contain({"Key": "Foo", "Value": "Bar"})
 
@@ -77,7 +79,7 @@ def test_vpc_single_instance_in_subnet():
         for resource in resources
         if resource["ResourceType"] == "AWS::EC2::EIP"
     ][0]["PhysicalResourceId"]
-    eip = ec2.describe_addresses(PublicIps=[eip_id])["Addresses"][0]
+    eip = ec2_client.describe_addresses(PublicIps=[eip_id])["Addresses"][0]
     eip["Domain"].should.equal("vpc")
     eip["InstanceId"].should.equal(instance["InstanceId"])
 
@@ -139,7 +141,8 @@ def test_elastic_network_interfaces_cloudformation_boto3():
 @mock_ec2
 @mock_cloudformation
 def test_volume_size_through_cloudformation():
-    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
     cf = boto3.client("cloudformation", region_name="us-east-1")
 
     tag_value = str(uuid4())
@@ -150,7 +153,7 @@ def test_volume_size_through_cloudformation():
                 "Type": "AWS::EC2::Instance",
                 "Properties": {
                     "ImageId": EXAMPLE_AMI_ID,
-                    "KeyName": "dummy",
+                    "KeyName": keypair_name,
                     "InstanceType": "t2.micro",
                     "BlockDeviceMappings": [
                         {"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": "50"}}
@@ -175,13 +178,15 @@ def test_volume_size_through_cloudformation():
     resource.should.have.key("PhysicalResourceId").shouldnt.be.none
     resource.should.have.key("ResourceType").being.equal("AWS::EC2::Instance")
 
-    instances = ec2.describe_instances(InstanceIds=[resource["PhysicalResourceId"]])
+    instances = ec2_client.describe_instances(
+        InstanceIds=[resource["PhysicalResourceId"]]
+    )
 
     volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
         "Ebs"
     ]
 
-    volumes = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])
+    volumes = ec2_client.describe_volumes(VolumeIds=[volume["VolumeId"]])
     volumes["Volumes"][0]["Size"].should.equal(50)
 
 
@@ -319,11 +324,13 @@ def test_subnet_tags_through_cloudformation_boto3():
 def test_single_instance_with_ebs_volume():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
     stack_name = str(uuid4())[0:6]
     cf.create_stack(
         StackName=stack_name,
         TemplateBody=template_json,
-        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "key_name"}],
+        Parameters=[{"ParameterKey": "KeyName", "ParameterValue": keypair_name}],
     )
     resources = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"]
     instance_id = [

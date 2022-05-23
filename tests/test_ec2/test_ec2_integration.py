@@ -12,14 +12,14 @@ def test_run_instance_with_encrypted_ebs():
     resp = kms.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT")
     key_id = resp["KeyMetadata"]["Arn"]
     ec2 = boto3.client("ec2", region_name="us-east-1")
-    key_name = "keypair_name"
-    ec2.create_key_pair(KeyName=key_name)
+    keypair_name = "keypair_name"
+    ec2.create_key_pair(KeyName=keypair_name)
 
     kwargs = {
         "MinCount": 1,
         "MaxCount": 1,
         "ImageId": EXAMPLE_AMI_ID,
-        "KeyName": key_name,
+        "KeyName": keypair_name,
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [
             {

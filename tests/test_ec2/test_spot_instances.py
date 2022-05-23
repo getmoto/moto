@@ -12,20 +12,23 @@ from tests import EXAMPLE_AMI_ID
 from uuid import uuid4
 from unittest import SkipTest
 
+keypair_name = "keypair_name"
+
 
 @mock_ec2
 def test_request_spot_instances():
-    conn = boto3.client("ec2", "us-east-1")
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = conn.create_subnet(
+    ec2_client = boto3.client("ec2", "us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = ec2_client.create_subnet(
         VpcId=vpc["VpcId"], CidrBlock="10.0.0.0/16", AvailabilityZone="us-east-1a"
     )["Subnet"]
     subnet_id = subnet["SubnetId"]
 
     sec_name_1 = str(uuid4())
     sec_name_2 = str(uuid4())
-    conn.create_security_group(GroupName=sec_name_1, Description="description")
-    conn.create_security_group(GroupName=sec_name_2, Description="description")
+    ec2_client.create_security_group(GroupName=sec_name_1, Description="description")
+    ec2_client.create_security_group(GroupName=sec_name_2, Description="description")
 
     start_dt = datetime.datetime(2013, 1, 1).replace(tzinfo=pytz.utc)
     end_dt = datetime.datetime(2013, 1, 2).replace(tzinfo=pytz.utc)
@@ -33,7 +36,7 @@ def test_request_spot_instances():
     end = iso_8601_datetime_with_milliseconds(end_dt)
 
     with pytest.raises(ClientError) as ex:
-        request = conn.request_spot_instances(
+        request = ec2_client.request_spot_instances(
             SpotPrice="0.5",
             InstanceCount=1,
             Type="one-time",
@@ -43,7 +46,7 @@ def test_request_spot_instances():
             AvailabilityZoneGroup="my-group",
             LaunchSpecification={
                 "ImageId": EXAMPLE_AMI_ID,
-                "KeyName": "test",
+                "KeyName": keypair_name,
                 "SecurityGroups": [sec_name_1, sec_name_2],
                 "UserData": "some test data",
                 "InstanceType": "m1.small",
@@ -61,7 +64,7 @@ def test_request_spot_instances():
         "An error occurred (DryRunOperation) when calling the RequestSpotInstance operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    request = conn.request_spot_instances(
+    request = ec2_client.request_spot_instances(
         SpotPrice="0.5",
         InstanceCount=1,
         Type="one-time",
@@ -71,7 +74,7 @@ def test_request_spot_instances():
         AvailabilityZoneGroup="my-group",
         LaunchSpecification={
             "ImageId": EXAMPLE_AMI_ID,
-            "KeyName": "test",
+            "KeyName": keypair_name,
             "SecurityGroups": [sec_name_1, sec_name_2],
             "UserData": "some test data",
             "InstanceType": "m1.small",
@@ -84,7 +87,7 @@ def test_request_spot_instances():
     )
     request_id = request["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
 
-    all_requests = conn.describe_spot_instance_requests()["SpotInstanceRequests"]
+    all_requests = ec2_client.describe_spot_instance_requests()["SpotInstanceRequests"]
     requests = [r for r in all_requests if r["SpotInstanceRequestId"] == request_id]
     requests.should.have.length_of(1)
     request = requests[0]
@@ -104,7 +107,7 @@ def test_request_spot_instances():
     set(security_group_names).should.equal(set([sec_name_1, sec_name_2]))
 
     launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
-    launch_spec["KeyName"].should.equal("test")
+    launch_spec["KeyName"].should.equal(keypair_name)
     launch_spec["InstanceType"].should.equal("m1.small")
     launch_spec["KernelId"].should.equal("test-kernel")
     launch_spec["RamdiskId"].should.equal("test-ramdisk")
@@ -334,10 +337,11 @@ def test_request_spot_instances_with_tags():
 
 @mock_ec2
 def test_launch_spot_instance_instance_lifecycle():
-    client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
 
     kwargs = {
-        "KeyName": "foobar",
+        "KeyName": keypair_name,
         "ImageId": "ami-pytest",
         "MinCount": 1,
         "MaxCount": 1,
@@ -348,20 +352,20 @@ def test_launch_spot_instance_instance_lifecycle():
         "InstanceMarketOptions": {"MarketType": "spot"},
     }
 
-    instance = client.run_instances(**kwargs)["Instances"][0]
+    instance = ec2_client.run_instances(**kwargs)["Instances"][0]
     instance_id = instance["InstanceId"]
 
-    response = client.describe_instances(InstanceIds=[instance_id])
+    response = ec2_client.describe_instances(InstanceIds=[instance_id])
     instance = response["Reservations"][0]["Instances"][0]
     instance["InstanceLifecycle"].should.equal("spot")
 
 
 @mock_ec2
 def test_launch_instance_instance_lifecycle():
-    client = boto3.client("ec2", region_name="us-east-1")
-
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
     kwargs = {
-        "KeyName": "foobar",
+        "KeyName": keypair_name,
         "ImageId": "ami-pytest",
         "MinCount": 1,
         "MaxCount": 1,
@@ -371,10 +375,10 @@ def test_launch_instance_instance_lifecycle():
         ],
     }
 
-    instance = client.run_instances(**kwargs)["Instances"][0]
+    instance = ec2_client.run_instances(**kwargs)["Instances"][0]
     instance_id = instance["InstanceId"]
 
-    response = client.describe_instances(InstanceIds=[instance_id])
+    response = ec2_client.describe_instances(InstanceIds=[instance_id])
     instance = response["Reservations"][0]["Instances"][0]
     instance.get("InstanceLifecycle").should.equal(None)
 

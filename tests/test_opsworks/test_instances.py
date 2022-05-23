@@ -169,8 +169,10 @@ def test_ec2_integration():
     """
     instances created via OpsWorks should be discoverable via ec2
     """
-
     opsworks = boto3.client("opsworks", region_name="us-east-1")
+    keypair_name = "keypair_name"
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_key_pair(KeyName=keypair_name)
     stack_id = opsworks.create_stack(
         Name="S1",
         Region="us-east-1",
@@ -187,13 +189,11 @@ def test_ec2_integration():
         StackId=stack_id,
         LayerIds=[layer_id],
         InstanceType="t2.micro",
-        SshKeyName="testSSH",
+        SshKeyName=keypair_name,
     )["InstanceId"]
 
-    ec2 = boto3.client("ec2", region_name="us-east-1")
-
     # Before starting the instance, it shouldn't be discoverable via ec2
-    reservations = ec2.describe_instances()["Reservations"]
+    reservations = ec2_client.describe_instances()["Reservations"]
     assert reservations.should.be.empty
 
     # Before starting the instance, its status should be "stopped"
@@ -202,7 +202,7 @@ def test_ec2_integration():
 
     # After starting the instance, it should be discoverable via ec2
     opsworks.start_instance(InstanceId=instance_id)
-    reservations = ec2.describe_instances()["Reservations"]
+    reservations = ec2_client.describe_instances()["Reservations"]
     reservations[0]["Instances"].should.have.length_of(1)
     instance = reservations[0]["Instances"][0]
     opsworks_instance = opsworks.describe_instances(StackId=stack_id)["Instances"][0]
