@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.10
 -----
-Docker Digest for 3.1.10: <autopopulateddigest>
+Docker Digest for 3.1.10: _sha256:18c6367dbb843850a5b52bc2b74cde9fd2a03719da667aa01b7c80de26849fb6_
 
     New Methods:
         * APIGateway:
