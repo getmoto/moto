@@ -1,7 +1,10 @@
+import random
+import time
 import pytest
 
 from moto.core import BaseBackend
 from moto.core.utils import AccountSpecificBackend, BackendDict
+from threading import Thread
 
 
 class ExampleBackend(BaseBackend):
@@ -76,3 +79,50 @@ def test_backend_dict_can_specify_additional_regions():
 
     # Unknown regions still do not exist
     backend_dict.get("us-east-3").should.equal(None)
+
+
+class TestMultiThreadedAccess:
+    class SlowExampleBackend(BaseBackend):
+        def __init__(self, region_name, account_id):
+            super().__init__(region_name, account_id)
+            time.sleep(0.1)
+            self.data = []
+
+    def setup(self):
+        self.backend = BackendDict(TestMultiThreadedAccess.SlowExampleBackend, "ec2")
+
+    def test_access_a_slow_backend_concurrently(self):
+        """
+        Usecase that we want to avoid:
+
+        Thread 1 comes in, and sees the backend does not exist for this region
+        Thread 1 starts creating the backend
+        Thread 2 comes in, and sees the backend does not exist for this region
+        Thread 2 starts creating the backend
+        Thread 1 finishes creating the backend, initializes the list and adds a new value to it
+        Thread 2 finishes creating the backend, re-initializes the list and adds a new value to it
+
+        Creating the Backend for a region should only be invoked once at a time, and the execution flow should look like:
+
+        Thread 1 comes in, and sees the backend does not exist for this region
+        Thread 1 starts creating the backend
+        Thread 2 comes in and is blocked
+        Thread 1 finishes creating the backend, initializes the list and adds a new value to it
+        Thread 2 gains access, and re-uses the created backend
+        Thread 2 adds a new value to the list
+        """
+
+        def access(random_number):
+            self.backend["123456789012"]["us-east-1"].data.append(random_number)
+
+        threads = []
+
+        for _ in range(0, 15):
+            x = Thread(target=access, args=(random.randint(100, 200),))
+            x.start()
+            threads.append(x)
+
+        for x in threads:
+            x.join()
+
+        self.backend["123456789012"]["us-east-1"].data.should.have.length_of(15)

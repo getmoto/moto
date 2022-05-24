@@ -9,6 +9,7 @@ import string
 from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
+from threading import RLock
 from urllib.parse import urlparse
 
 
@@ -408,6 +409,9 @@ def extract_region_from_aws_authorization(string):
     return region
 
 
+backend_lock = RLock()
+
+
 class BackendDict(dict):
     """
     Data Structure to store everything related to a specific service.
@@ -471,14 +475,15 @@ class BackendDict(dict):
             return self["123456789012"][region_name]
 
     def _create_account_specific_backend(self, account_id):
-        if account_id not in self.keys():
-            self[account_id] = AccountSpecificBackend(
-                service_name=self.service_name,
-                account_id=account_id,
-                backend=self.backend,
-                use_boto3_regions=self._use_boto3_regions,
-                additional_regions=self._additional_regions,
-            )
+        with backend_lock:
+            if account_id not in self.keys():
+                self[account_id] = AccountSpecificBackend(
+                    service_name=self.service_name,
+                    account_id=account_id,
+                    backend=self.backend,
+                    use_boto3_regions=self._use_boto3_regions,
+                    additional_regions=self._additional_regions,
+                )
 
 
 class AccountSpecificBackend(dict):
@@ -517,12 +522,13 @@ class AccountSpecificBackend(dict):
         if region_name in self.keys():
             return super().__getitem__(region_name)
         # Create the backend for a specific region
-        if region_name in self.regions and region_name not in self.keys():
-            super().__setitem__(
-                region_name, self.backend(region_name, account_id=self.account_id)
-            )
-        if region_name not in self.regions and allow_unknown_region():
-            super().__setitem__(
-                region_name, self.backend(region_name, account_id=self.account_id)
-            )
+        with backend_lock:
+            if region_name in self.regions and region_name not in self.keys():
+                super().__setitem__(
+                    region_name, self.backend(region_name, account_id=self.account_id)
+                )
+            if region_name not in self.regions and allow_unknown_region():
+                super().__setitem__(
+                    region_name, self.backend(region_name, account_id=self.account_id)
+                )
         return super().__getitem__(region_name)
