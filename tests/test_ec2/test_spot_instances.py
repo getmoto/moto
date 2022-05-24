@@ -342,7 +342,7 @@ def test_launch_spot_instance_instance_lifecycle():
 
     kwargs = {
         "KeyName": keypair_name,
-        "ImageId": "ami-pytest",
+        "ImageId": EXAMPLE_AMI_ID,
         "MinCount": 1,
         "MaxCount": 1,
         "InstanceType": "c4.2xlarge",
@@ -366,7 +366,7 @@ def test_launch_instance_instance_lifecycle():
     ec2_client.create_key_pair(KeyName=keypair_name)
     kwargs = {
         "KeyName": keypair_name,
-        "ImageId": "ami-pytest",
+        "ImageId": EXAMPLE_AMI_ID,
         "MinCount": 1,
         "MaxCount": 1,
         "InstanceType": "c4.2xlarge",

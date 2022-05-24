@@ -2673,7 +2673,7 @@ def test_attach_instances():
 
     kwargs = {
         "KeyName": keypair_name,
-        "ImageId": "ami-pytest",
+        "ImageId": EXAMPLE_AMI_ID,
         "MinCount": 1,
         "MaxCount": 1,
         "InstanceType": "c4.2xlarge",
