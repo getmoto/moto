@@ -25,4 +25,11 @@ def test_create_db_instance():
     }
     res = test_client.post("/?Action=CreateDBInstance", data=json.dumps(body))
 
-    res.data.decode("utf-8").shouldnt.contain("<DBClusterIdentifier>")
+    response = res.data.decode("utf-8")
+    response.shouldnt.contain("<DBClusterIdentifier>")
+
+    # We do not pass these values - they should default to false
+    response.should.contain("<MultiAZ>false</MultiAZ>")
+    response.should.contain(
+        "<IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>"
+    )
