@@ -1,20 +1,16 @@
-from botocore.exceptions import ClientError, ParamValidationError
-
-import pytest
-from unittest import SkipTest, mock
-
 import base64
 import ipaddress
+from unittest import SkipTest, mock
+from uuid import uuid4
 
 import boto3
-from freezegun import freeze_time
+import pytest
 import sure  # noqa # pylint: disable=unused-import
-
+from botocore.exceptions import ClientError, ParamValidationError
+from freezegun import freeze_time
 from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
-
 
 decode_method = base64.decodebytes
 
@@ -2107,6 +2103,8 @@ def test_warn_on_invalid_ami(m_flag):
         "The image id '[['ami-invalid']]' does not exist"
     )
 
+    assert m_flag is True
+
 
 @mock_ec2
 @mock.patch(
@@ -2126,6 +2124,8 @@ def test_warn_on_invalid_ami_format(m_flag):
     ex.value.response["Error"]["Message"].should.equal(
         'Invalid id: "[\'invalid-ami-format\']" (expecting "ami-...")'
     )
+
+    assert m_flag is True
 
 
 @mock_ec2
