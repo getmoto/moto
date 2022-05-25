@@ -1576,8 +1576,8 @@ def test_run_instance_with_invalid_keypair(m_flag):
             "It is not possible to set the environment variable in server mode"
         )
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2.create_key_pair(KeyName=keypair_name)
+    key_name = "keypair_name"
+    ec2.create_key_pair(KeyName=key_name)
 
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(

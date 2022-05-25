@@ -4,10 +4,8 @@ import json
 import pytest
 
 from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_s3, mock_ec2
+from moto import mock_cloudformation, mock_s3
 from .test_cloudformation_stack_crud_boto3 import dummy_template_json
-
-keypair_name = "keypair_name"
 
 
 @mock_cloudformation
@@ -35,11 +33,8 @@ def test_get_stack_policy_on_nonexisting_stack():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_get_stack_policy_on_stack_without_policy():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
     resp = cf_conn.get_stack_policy(StackName="test_stack")
@@ -47,11 +42,8 @@ def test_get_stack_policy_on_stack_without_policy():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_set_stack_policy_with_both_body_and_url():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
     with pytest.raises(ClientError) as exc:
@@ -67,11 +59,8 @@ def test_set_stack_policy_with_both_body_and_url():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_set_stack_policy_with_body():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
     policy = json.dumps({"policy": "yes"})
@@ -84,10 +73,7 @@ def test_set_stack_policy_with_body():
 
 @mock_cloudformation
 @mock_s3
-@mock_ec2
 def test_set_stack_policy_with_url():
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
@@ -107,10 +93,7 @@ def test_set_stack_policy_with_url():
 
 @mock_cloudformation
 @mock_s3
-@mock_ec2
 def test_set_stack_policy_with_url_pointing_to_unknown_key():
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
