@@ -1561,11 +1561,36 @@ def test_ec2_classic_has_public_ip_address():
 @mock_ec2
 def test_run_instance_with_keypair():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
+
     instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName="keypair_name"
     )[0]
 
     instance.key_name.should.equal("keypair_name")
+
+
+@mock_ec2
+@mock.patch(
+    "moto.ec2.models.instances.settings.ENABLE_KEYPAIR_VALIDATION",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_run_instance_with_invalid_keypair(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    keypair_name = "keypair_name"
+    ec2.create_key_pair(KeyName=keypair_name)
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName="not a key name"
+        )[0]
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.NotFound")
+    assert m_flag is True
 
 
 @mock_ec2
@@ -1684,6 +1709,7 @@ def test_run_instance_with_block_device_mappings_missing_size():
 def test_run_instance_with_block_device_mappings_from_snapshot():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+
     volume_details = {
         "AvailabilityZone": "1a",
         "Size": 30,

@@ -46,7 +46,7 @@ class KeyPairBackend(object):
 
     def describe_key_pairs(self, key_names=None, filters=None):
         results = []
-        if key_names:
+        if any(key_names):
             results = [
                 keypair
                 for keypair in self.keypairs.values()

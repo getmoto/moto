@@ -553,6 +553,8 @@ class InstanceBackend(object):
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"
+        if settings.ENABLE_KEYPAIR_VALIDATION:
+            self.describe_key_pairs(key_names=[kwargs.get("key_name")])
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
         if "region_name" in kwargs and kwargs.get("placement"):
             valid_availability_zones = {
