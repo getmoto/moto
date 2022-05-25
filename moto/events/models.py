@@ -824,6 +824,9 @@ class EventPattern:
         self._raw_pattern = raw_pattern
         self._pattern = pattern
 
+    def get_pattern(self):
+        return self._pattern
+
     def matches_event(self, event):
         if not self._pattern:
             return True
@@ -921,6 +924,14 @@ class EventPatternParser:
 
 
 class EventsBackend(BaseBackend):
+    """
+    When a event occurs, the appropriate targets are triggered for a subset of usecases.
+
+    Supported events: S3:CreateBucket
+
+    Supported targets: AWSLambda functions
+    """
+
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
     _CRON_REGEX = re.compile(r"^cron\(.*\)")
