@@ -8,8 +8,17 @@ import pytest
 from unittest import SkipTest
 import boto3
 from botocore.exceptions import ClientError
-from moto import (mock_cloudformation, mock_dynamodb, mock_ec2, mock_iam,
-                  mock_lambda, mock_s3, mock_sns, mock_sqs, settings)
+from moto import (
+    mock_cloudformation,
+    mock_dynamodb,
+    mock_ec2,
+    mock_iam,
+    mock_lambda,
+    mock_s3,
+    mock_sns,
+    mock_sqs,
+    settings,
+)
 from moto.cloudformation import cloudformation_backends
 from moto.core import ACCOUNT_ID
 
