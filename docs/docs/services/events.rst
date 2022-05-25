@@ -12,6 +12,8 @@
 events
 ======
 
+.. autoclass:: moto.events.models.EventsBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
