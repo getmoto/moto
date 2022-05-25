@@ -19,7 +19,7 @@ def test_run_instance_with_encrypted_ebs():
         "MinCount": 1,
         "MaxCount": 1,
         "ImageId": EXAMPLE_AMI_ID,
-        "KeyName": keypair_name,
+        "KeyName": "the_key",
         "InstanceType": "t1.micro",
         "BlockDeviceMappings": [
             {

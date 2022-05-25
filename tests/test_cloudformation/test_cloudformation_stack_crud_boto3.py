@@ -1,14 +1,11 @@
 import copy
 import json
-import os
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from unittest import SkipTest
+import os
+import pytz
 
 import boto3
-import pytest
-import pytz
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import (
     mock_cloudformation,
@@ -23,9 +20,8 @@ from moto import (
 )
 from moto.cloudformation import cloudformation_backends
 from moto.core import ACCOUNT_ID
-from tests import EXAMPLE_AMI_ID
 
-keypair_name = "keypair_name"
+from tests import EXAMPLE_AMI_ID
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -35,7 +31,7 @@ dummy_template = {
             "Type": "AWS::EC2::Instance",
             "Properties": {
                 "ImageId": EXAMPLE_AMI_ID,
-                "KeyName": keypair_name,
+                "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [
                     {"Key": "Description", "Value": "Test tag"},
@@ -113,7 +109,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-03cf127a
-      KeyName: keypair_name
+      KeyName: dummy
       InstanceType: t2.micro
       Tags:
         - Key: Description
@@ -131,7 +127,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-03cf127a
-      KeyName: !Join [ "_", [ keypair, name ] ]
+      KeyName: !Join [ ":", [ du, m, my ] ]
       InstanceType: t2.micro
       Tags:
         - Key: Description
@@ -174,7 +170,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-03cf127a
-      KeyName: keypair_name
+      KeyName: dummy
       InstanceType: t2.micro
       Tags:
         - Key: Description
@@ -276,7 +272,7 @@ dummy_template_special_chars_in_description = {
             "Type": "AWS::EC2::Instance",
             "Properties": {
                 "ImageId": EXAMPLE_AMI_ID,
-                "KeyName": keypair_name,
+                "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [
                     {"Key": "Description", "Value": "Test tag"},
@@ -314,9 +310,6 @@ dummy_unknown_template_json = json.dumps(dummy_unknown_template)
 @mock_ec2
 def test_create_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2_client.create_key_pair(KeyName=keypair_name)
-
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
     stack = cf_conn.describe_stacks()["Stacks"][0]
@@ -330,9 +323,6 @@ def test_create_stack():
 @mock_ec2
 def test_describe_stack_instances():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack_set(
         StackSetName="test_stack_set", TemplateBody=dummy_template_json
     )
@@ -380,12 +370,8 @@ def test_list_stacksets_length():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_filter_stacks():
     conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     conn.create_stack(StackName="test_stack2", TemplateBody=dummy_template_json)
     conn.update_stack(StackName="test_stack", TemplateBody=dummy_template_json2)
@@ -916,12 +902,8 @@ def test_create_stack_s3_long_name():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_create_stack_with_yaml():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_resource.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_yaml)
 
     cf_conn.get_template(StackName="test_stack")["TemplateBody"].should.equal(
@@ -930,12 +912,8 @@ def test_create_stack_with_yaml():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_create_stack_with_short_form_func_yaml():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack(
         StackName="test_stack", TemplateBody=dummy_template_yaml_with_short_form_func
     )
@@ -1052,11 +1030,7 @@ def test_get_template_summary_for_template_containing_parameters():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_create_stack_with_ref_yaml():
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     params = [
         {"ParameterKey": "TagDescription", "ParameterValue": "desc_ref"},
@@ -1074,18 +1048,9 @@ def test_create_stack_with_ref_yaml():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_creating_stacks_across_regions():
     west1_cf = boto3.resource("cloudformation", region_name="us-west-1")
     west2_cf = boto3.resource("cloudformation", region_name="us-west-2")
-    regions = [
-        "us-west-1",
-        "us-west-2",
-    ]
-    for region in regions:
-        ec2_client = boto3.client("ec2", region_name=region)
-        keypair_name = "keypair_name"
-        ec2_client.create_key_pair(KeyName=keypair_name)
     west1_cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     west2_cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
@@ -1103,12 +1068,8 @@ def test_creating_stacks_across_regions():
 @mock_cloudformation
 @mock_sns
 @mock_sqs
-@mock_ec2
 def test_create_stack_with_notification_arn():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     queue = sqs.create_queue(QueueName="fake-queue")
     queue_arn = queue.attributes["QueueArn"]
 
@@ -1167,12 +1128,8 @@ def test_create_stack_with_notification_arn():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_create_stack_with_role_arn():
     cf = boto3.resource("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf.create_stack(
         StackName="test_stack_with_notifications",
         TemplateBody=dummy_template_json,
@@ -1183,14 +1140,8 @@ def test_create_stack_with_role_arn():
 
 
 @mock_cloudformation
-@mock_ec2
 @mock_s3
 def test_create_stack_from_s3_url():
-    regions = ["us-east-1", "us-west-1"]
-    for region in regions:
-        ec2_client = boto3.client("ec2", region_name=region)
-        keypair_name = "keypair_name"
-        ec2_client.create_key_pair(KeyName=keypair_name)
     s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
     s3_conn.create_bucket(Bucket="foobar")
@@ -1224,11 +1175,7 @@ def test_update_stack_fail_missing_new_parameter():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_update_stack_fail_update_same_template_body():
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     name = "update_stack_with_previous_value"
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     params = [
@@ -1328,13 +1275,9 @@ def test_update_stack_deleted_resources_can_reference_deleted_resources():
 
 
 @mock_cloudformation
-@mock_ec2
 def test_update_stack_with_previous_value():
     name = "update_stack_with_previous_value"
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    keypair_name = "keypair_name"
-    ec2_client.create_key_pair(KeyName=keypair_name)
     cf_conn.create_stack(
         StackName=name,
         TemplateBody=dummy_template_yaml_with_ref,
