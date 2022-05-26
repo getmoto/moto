@@ -1024,8 +1024,8 @@ class IamResponse(BaseResponse):
         allow_change_password = self._get_bool_param(
             "AllowUsersToChangePassword", False
         )
-        hard_expiry = self._get_bool_param("HardExpiry")
-        max_password_age = self._get_int_param("MaxPasswordAge")
+        hard_expiry = self._get_bool_param("HardExpiry", False)
+        max_password_age = self._get_int_param("MaxPasswordAge", 0)
         minimum_password_length = self._get_int_param("MinimumPasswordLength", 6)
         password_reuse_prevention = self._get_int_param("PasswordReusePrevention")
         require_lowercase_characters = self._get_bool_param(
