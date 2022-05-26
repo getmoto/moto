@@ -1,3 +1,4 @@
+from moto.core import BaseModel
 from ..exceptions import (
     FilterNotImplementedError,
     InvalidKeyPairNameError,
@@ -12,7 +13,7 @@ from ..utils import (
 )
 
 
-class KeyPair(object):
+class KeyPair(BaseModel):
     def __init__(self, name, fingerprint, material):
         self.name = name
         self.fingerprint = fingerprint
