@@ -84,6 +84,9 @@ events:
   - TestAccEventsConnection
   - TestAccEventsConnectionDataSource
   - TestAccEventsPermission
+guardduty:
+  - TestAccGuardDuty_serial/Detector/basic
+  - TestAccGuardDuty_serial/Filter/basic
 iam:
   - TestAccIAMAccessKey_
   - TestAccIAMAccountAlias_
