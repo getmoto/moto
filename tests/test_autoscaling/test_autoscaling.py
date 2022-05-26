@@ -2671,7 +2671,7 @@ def test_attach_instances():
 
     kwargs = {
         "KeyName": "foobar",
-        "ImageId": "ami-pytest",
+        "ImageId": EXAMPLE_AMI_ID,
         "MinCount": 1,
         "MaxCount": 1,
         "InstanceType": "c4.2xlarge",

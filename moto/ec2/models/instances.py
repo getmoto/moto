@@ -555,6 +555,8 @@ class InstanceBackend(object):
         default_region = "us-east-1"
         if settings.ENABLE_KEYPAIR_VALIDATION:
             self.describe_key_pairs(key_names=[kwargs.get("key_name")])
+        if settings.ENABLE_AMI_VALIDATION:
+            self.describe_images(ami_ids=[image_id] if image_id else [])
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
         if "region_name" in kwargs and kwargs.get("placement"):
             valid_availability_zones = {

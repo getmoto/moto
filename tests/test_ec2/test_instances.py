@@ -1,20 +1,16 @@
-from botocore.exceptions import ClientError, ParamValidationError
-
-import pytest
-from unittest import SkipTest, mock
-
 import base64
 import ipaddress
+from unittest import SkipTest, mock
+from uuid import uuid4
 
 import boto3
-from freezegun import freeze_time
+import pytest
 import sure  # noqa # pylint: disable=unused-import
-
+from botocore.exceptions import ClientError, ParamValidationError
+from freezegun import freeze_time
 from moto import mock_ec2, settings
 from moto.core import ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
-
 
 decode_method = base64.decodebytes
 
@@ -2095,6 +2091,48 @@ def test_warn_on_invalid_ami():
 
 
 @mock_ec2
+@mock.patch(
+    "moto.ec2.models.instances.settings.ENABLE_AMI_VALIDATION",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_error_on_invalid_ami(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't capture warnings in server mode.")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(ImageId="ami-invalid", MinCount=1, MaxCount=1)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("InvalidAMIID.NotFound")
+    ex.value.response["Error"]["Message"].should.equal(
+        "The image id '[['ami-invalid']]' does not exist"
+    )
+
+    assert m_flag is True
+
+
+@mock_ec2
+@mock.patch(
+    "moto.ec2.models.instances.settings.ENABLE_AMI_VALIDATION",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+def test_error_on_invalid_ami_format(m_flag):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
+    ec2 = boto3.resource("ec2", "us-east-1")
+    with pytest.raises(ClientError) as ex:
+        ec2.create_instances(ImageId="invalid-ami-format", MinCount=1, MaxCount=1)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("InvalidAMIID.Malformed")
+    ex.value.response["Error"]["Message"].should.equal(
+        'Invalid id: "[\'invalid-ami-format\']" (expecting "ami-...")'
+    )
+
+    assert m_flag is True
+
+
+@mock_ec2
 def test_filter_wildcard_in_specified_tag_only():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
 
@@ -2365,7 +2403,7 @@ def test_describe_instances_filter_vpcid_via_networkinterface():
         "PrivateIpAddresses": [{"Primary": True, "PrivateIpAddress": "10.26.1.3"}],
     }
     instance = ec2.create_instances(
-        ImageId="myami", NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
+        ImageId=EXAMPLE_AMI_ID, NetworkInterfaces=[my_interface], MinCount=1, MaxCount=1
     )[0]
 
     _filter = [{"Name": "vpc-id", "Values": [vpc.id]}]
