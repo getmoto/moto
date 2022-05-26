@@ -238,6 +238,8 @@ class NetworkAcl(TaggedEC2Resource):
             return [entry.rule_number for entry in self.network_acl_entries]
         elif filter_name == "entry.rule-action":
             return [entry.rule_action for entry in self.network_acl_entries]
+        elif filter_name == "entry.egress":
+            return [entry.egress for entry in self.network_acl_entries]
         elif filter_name == "owner-id":
             return self.owner_id
         else:
