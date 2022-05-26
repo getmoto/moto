@@ -2078,11 +2078,23 @@ def test_describe_instance_attribute():
 
 
 @mock_ec2
+def test_warn_on_invalid_ami():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't capture warnings in server mode.")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match=r"Could not find AMI with image-id:invalid-ami.+",
+    ):
+        ec2.create_instances(ImageId="invalid-ami", MinCount=1, MaxCount=1)
+
+
+@mock_ec2
 @mock.patch(
     "moto.ec2.models.instances.settings.ENABLE_AMI_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),
 )
-def test_warn_on_invalid_ami(m_flag):
+def test_error_on_invalid_ami(m_flag):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't capture warnings in server mode.")
     ec2 = boto3.resource("ec2", "us-east-1")
@@ -2102,7 +2114,7 @@ def test_warn_on_invalid_ami(m_flag):
     "moto.ec2.models.instances.settings.ENABLE_AMI_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),
 )
-def test_warn_on_invalid_ami_format(m_flag):
+def test_error_on_invalid_ami_format(m_flag):
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
             "It is not possible to set the environment variable in server mode"
