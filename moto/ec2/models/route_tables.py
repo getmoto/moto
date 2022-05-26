@@ -76,6 +76,12 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
             return self.associations.keys()
         elif filter_name == "association.subnet-id":
             return self.associations.values()
+        elif filter_name == "route.gateway-id":
+            return [
+                route.gateway.id
+                for route in self.routes.values()
+                if route.gateway is not None
+            ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 

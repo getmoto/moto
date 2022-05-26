@@ -1576,8 +1576,8 @@ def test_run_instance_with_invalid_keypair(m_flag):
             "It is not possible to set the environment variable in server mode"
         )
     ec2 = boto3.resource("ec2", region_name="us-east-1")
-    key_name = "keypair_name"
-    ec2.create_key_pair(KeyName=key_name)
+    keypair_name = "keypair_name"
+    ec2.create_key_pair(KeyName=keypair_name)
 
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(
@@ -1705,6 +1705,7 @@ def test_run_instance_with_block_device_mappings_missing_size():
 def test_run_instance_with_block_device_mappings_from_snapshot():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+
     volume_details = {
         "AvailabilityZone": "1a",
         "Size": 30,

@@ -785,6 +785,7 @@ class Destination(BaseModel):
     def describe(self):
         """
         Describes the Destination object as a dict
+
         Docs:
             Response Syntax in
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
@@ -822,6 +823,9 @@ class EventPattern:
     def __init__(self, raw_pattern, pattern):
         self._raw_pattern = raw_pattern
         self._pattern = pattern
+
+    def get_pattern(self):
+        return self._pattern
 
     def matches_event(self, event):
         if not self._pattern:
@@ -920,6 +924,14 @@ class EventPatternParser:
 
 
 class EventsBackend(BaseBackend):
+    """
+    When a event occurs, the appropriate targets are triggered for a subset of usecases.
+
+    Supported events: S3:CreateBucket
+
+    Supported targets: AWSLambda functions
+    """
+
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
     _CRON_REGEX = re.compile(r"^cron\(.*\)")
@@ -1676,6 +1688,7 @@ class EventsBackend(BaseBackend):
     def describe_connection(self, name):
         """
         Retrieves details about a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
 
@@ -1699,6 +1712,7 @@ class EventsBackend(BaseBackend):
     def delete_connection(self, name):
         """
         Deletes a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
 
@@ -1730,6 +1744,7 @@ class EventsBackend(BaseBackend):
     ):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
@@ -1755,6 +1770,7 @@ class EventsBackend(BaseBackend):
     def describe_api_destination(self, name):
         """
         Retrieves details about an API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
         Args:
@@ -1773,6 +1789,7 @@ class EventsBackend(BaseBackend):
     def update_api_destination(self, *, name, **kwargs):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
 
@@ -1793,6 +1810,7 @@ class EventsBackend(BaseBackend):
     def delete_api_destination(self, name):
         """
         Deletes the specified API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
 

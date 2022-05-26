@@ -497,7 +497,7 @@ class Database(CloudFormationModel):
               <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
               {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
-              <MultiAZ>{{ database.multi_az }}</MultiAZ>
+              <MultiAZ>{{ 'true' if database.multi_az else 'false' }}</MultiAZ>
               <VpcSecurityGroups>
                 {% for vpc_security_group_id in database.vpc_security_group_ids %}
                 <VpcSecurityGroupMembership>
@@ -536,7 +536,7 @@ class Database(CloudFormationModel):
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
               <Engine>{{ database.engine }}</Engine>
-              <IAMDatabaseAuthenticationEnabled>{{database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{'true' if database.enable_iam_database_authentication else 'false' }}</IAMDatabaseAuthenticationEnabled>
               <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <OptionGroupMemberships>

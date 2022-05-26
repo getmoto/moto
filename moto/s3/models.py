@@ -58,6 +58,7 @@ from moto.s3.exceptions import (
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
+from ..events.notifications import send_notification as events_send_notification
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -1463,6 +1464,23 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
 
         self.buckets[bucket_name] = new_bucket
+
+        notification_detail = {
+            "version": "0",
+            "bucket": {"name": bucket_name},
+            "request-id": "N4N7GDK58NMKJ12R",
+            "requester": get_account_id(),
+            "source-ip-address": "1.2.3.4",
+            "reason": "PutObject",
+        }
+        events_send_notification(
+            source="aws.s3",
+            event_name="CreateBucket",
+            region=region_name,
+            resources=[f"arn:aws:s3:::{bucket_name}"],
+            detail=notification_detail,
+        )
+
         return new_bucket
 
     def list_buckets(self):
