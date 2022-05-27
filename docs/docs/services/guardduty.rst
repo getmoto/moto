@@ -28,15 +28,15 @@ guardduty
 - [ ] accept_invitation
 - [ ] archive_findings
 - [X] create_detector
-- [ ] create_filter
+- [X] create_filter
 - [ ] create_ip_set
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
 - [ ] create_threat_intel_set
 - [ ] decline_invitations
-- [ ] delete_detector
-- [ ] delete_filter
+- [X] delete_detector
+- [X] delete_filter
 - [ ] delete_invitations
 - [ ] delete_ip_set
 - [ ] delete_members
@@ -47,9 +47,9 @@ guardduty
 - [ ] disable_organization_admin_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
-- [ ] enable_organization_admin_account
-- [ ] get_detector
-- [ ] get_filter
+- [X] enable_organization_admin_account
+- [X] get_detector
+- [X] get_filter
 - [ ] get_findings
 - [ ] get_findings_statistics
 - [ ] get_invitations_count
@@ -70,7 +70,11 @@ guardduty
 - [ ] list_invitations
 - [ ] list_ip_sets
 - [ ] list_members
-- [ ] list_organization_admin_accounts
+- [X] list_organization_admin_accounts
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
 - [ ] list_threat_intel_sets
@@ -79,8 +83,8 @@ guardduty
 - [ ] tag_resource
 - [ ] unarchive_findings
 - [ ] untag_resource
-- [ ] update_detector
-- [ ] update_filter
+- [X] update_detector
+- [X] update_filter
 - [ ] update_findings_feedback
 - [ ] update_ip_set
 - [ ] update_member_detectors
