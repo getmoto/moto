@@ -3412,13 +3412,13 @@
 
 ## kms
 <details>
-<summary>42% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
 - [ ] create_alias
 - [ ] create_custom_key_store
-- [ ] create_grant
+- [X] create_grant
 - [X] create_key
 - [X] decrypt
 - [X] delete_alias
@@ -3444,16 +3444,16 @@
 - [ ] get_public_key
 - [ ] import_key_material
 - [ ] list_aliases
-- [ ] list_grants
+- [X] list_grants
 - [ ] list_key_policies
 - [X] list_keys
 - [X] list_resource_tags
-- [ ] list_retirable_grants
+- [X] list_retirable_grants
 - [X] put_key_policy
 - [X] re_encrypt
 - [ ] replicate_key
-- [ ] retire_grant
-- [ ] revoke_grant
+- [X] retire_grant
+- [X] revoke_grant
 - [X] schedule_key_deletion
 - [ ] sign
 - [X] tag_resource

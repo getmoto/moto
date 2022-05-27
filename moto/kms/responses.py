@@ -284,6 +284,64 @@ class KmsResponse(BaseResponse):
 
         return json.dumps({"Truncated": False, "Aliases": response_aliases})
 
+    def create_grant(self):
+        key_id = self.parameters.get("KeyId")
+        grantee_principal = self.parameters.get("GranteePrincipal")
+        retiring_principal = self.parameters.get("RetiringPrincipal")
+        operations = self.parameters.get("Operations")
+        name = self.parameters.get("Name")
+        constraints = self.parameters.get("Constraints")
+
+        grant_id, grant_token = self.kms_backend.create_grant(
+            key_id,
+            grantee_principal,
+            operations,
+            name,
+            constraints=constraints,
+            retiring_principal=retiring_principal,
+        )
+        return json.dumps({"GrantId": grant_id, "GrantToken": grant_token})
+
+    def list_grants(self):
+        key_id = self.parameters.get("KeyId")
+        grant_id = self.parameters.get("GrantId")
+
+        grants = self.kms_backend.list_grants(key_id=key_id, grant_id=grant_id)
+        return json.dumps(
+            {
+                "Grants": [gr.to_json() for gr in grants],
+                "GrantCount": len(grants),
+                "Truncated": False,
+            }
+        )
+
+    def list_retirable_grants(self):
+        retiring_principal = self.parameters.get("RetiringPrincipal")
+
+        grants = self.kms_backend.list_retirable_grants(retiring_principal)
+        return json.dumps(
+            {
+                "Grants": [gr.to_json() for gr in grants],
+                "GrantCount": len(grants),
+                "Truncated": False,
+            }
+        )
+
+    def revoke_grant(self):
+        key_id = self.parameters.get("KeyId")
+        grant_id = self.parameters.get("GrantId")
+
+        self.kms_backend.revoke_grant(key_id, grant_id)
+        return "{}"
+
+    def retire_grant(self):
+        key_id = self.parameters.get("KeyId")
+        grant_id = self.parameters.get("GrantId")
+        grant_token = self.parameters.get("GrantToken")
+
+        self.kms_backend.retire_grant(key_id, grant_id, grant_token)
+        return "{}"
+
     def enable_key_rotation(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html"""
         key_id = self.parameters.get("KeyId")
