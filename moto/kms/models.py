@@ -3,8 +3,8 @@ import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from moto.core import get_account_id, BaseBackend, CloudFormationModel
-from moto.core.utils import unix_time, BackendDict
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import get_random_hex, unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
@@ -15,6 +15,37 @@ from .utils import (
     generate_key_id,
     generate_master_key,
 )
+
+
+class Grant(BaseModel):
+    def __init__(
+        self,
+        key_id,
+        name,
+        grantee_principal,
+        operations,
+        constraints,
+        retiring_principal,
+    ):
+        self.key_id = key_id
+        self.name = name
+        self.grantee_principal = grantee_principal
+        self.retiring_principal = retiring_principal
+        self.operations = operations
+        self.constraints = constraints
+        self.id = get_random_hex()
+        self.token = get_random_hex()
+
+    def to_json(self):
+        return {
+            "KeyId": self.key_id,
+            "GrantId": self.id,
+            "Name": self.name,
+            "GranteePrincipal": self.grantee_principal,
+            "RetiringPrincipal": self.retiring_principal,
+            "Operations": self.operations,
+            "Constraints": self.constraints,
+        }
 
 
 class Key(CloudFormationModel):
@@ -36,6 +67,46 @@ class Key(CloudFormationModel):
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+
+        self.grants = dict()
+
+    def add_grant(
+        self, name, grantee_principal, operations, constraints, retiring_principal
+    ) -> Grant:
+        grant = Grant(
+            self.id,
+            name,
+            grantee_principal,
+            operations,
+            constraints=constraints,
+            retiring_principal=retiring_principal,
+        )
+        self.grants[grant.id] = grant
+        return grant
+
+    def list_grants(self, grant_id) -> [Grant]:
+        grant_ids = [grant_id] if grant_id else self.grants.keys()
+        return [grant for _id, grant in self.grants.items() if _id in grant_ids]
+
+    def list_retirable_grants(self, retiring_principal) -> [Grant]:
+        return [
+            grant
+            for grant in self.grants.values()
+            if grant.retiring_principal == retiring_principal
+        ]
+
+    def revoke_grant(self, grant_id) -> None:
+        self.grants.pop(grant_id, None)
+
+    def retire_grant(self, grant_id) -> None:
+        self.grants.pop(grant_id, None)
+
+    def retire_grant_by_token(self, grant_token) -> None:
+        self.grants = {
+            _id: grant
+            for _id, grant in self.grants.items()
+            if grant.token != grant_token
+        }
 
     def generate_default_policy(self):
         return json.dumps(
@@ -214,7 +285,7 @@ class KmsBackend(BaseBackend):
 
             return self.keys.pop(key_id)
 
-    def describe_key(self, key_id):
+    def describe_key(self, key_id) -> Key:
         # allow the different methods (alias, ARN :key/, keyId, ARN alias) to
         # describe key not just KeyId
         key_id = self.get_key_id(key_id)
@@ -409,6 +480,47 @@ class KmsBackend(BaseBackend):
             "NotFoundException",
             "The request was rejected because the specified entity or resource could not be found.",
         )
+
+    def create_grant(
+        self,
+        key_id,
+        grantee_principal,
+        operations,
+        name,
+        constraints,
+        retiring_principal,
+    ):
+        key = self.describe_key(key_id)
+        grant = key.add_grant(
+            name,
+            grantee_principal,
+            operations,
+            constraints=constraints,
+            retiring_principal=retiring_principal,
+        )
+        return grant.id, grant.token
+
+    def list_grants(self, key_id, grant_id) -> [Grant]:
+        key = self.describe_key(key_id)
+        return key.list_grants(grant_id)
+
+    def list_retirable_grants(self, retiring_principal):
+        grants = []
+        for key in self.keys.values():
+            grants.extend(key.list_retirable_grants(retiring_principal))
+        return grants
+
+    def revoke_grant(self, key_id, grant_id) -> None:
+        key = self.describe_key(key_id)
+        key.revoke_grant(grant_id)
+
+    def retire_grant(self, key_id, grant_id, grant_token) -> None:
+        if grant_token:
+            for key in self.keys.values():
+                key.retire_grant_by_token(grant_token)
+        else:
+            key = self.describe_key(key_id)
+            key.retire_grant(grant_id)
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

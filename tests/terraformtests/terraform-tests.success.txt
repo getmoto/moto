@@ -112,6 +112,12 @@ iot:
   - TestAccIoTEndpointDataSource
 kms:
   - TestAccKMSAlias
+  - TestAccKMSGrant_arn
+  - TestAccKMSGrant_asymmetricKey
+  - TestAccKMSGrant_basic
+  - TestAccKMSGrant_bare
+  - TestAccKMSGrant_withConstraints
+  - TestAccKMSGrant_withRetiringPrincipal
   - TestAccKMSKey_Policy_basic
   - TestAccKMSKey_Policy_iamRole
   - TestAccKMSKey_Policy_iamRoleOrder
