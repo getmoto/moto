@@ -32,7 +32,7 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug",
+    "werkzeug>=0.5",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.9.0",
