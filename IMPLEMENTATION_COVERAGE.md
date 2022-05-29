@@ -2292,7 +2292,7 @@
 
 ## elb
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
@@ -2308,7 +2308,7 @@
 - [X] delete_load_balancer_policy
 - [ ] deregister_instances_from_load_balancer
 - [ ] describe_account_limits
-- [ ] describe_instance_health
+- [X] describe_instance_health
 - [ ] describe_load_balancer_attributes
 - [X] describe_load_balancer_policies
 - [ ] describe_load_balancer_policy_types
@@ -2663,7 +2663,7 @@
 
 ## glue
 <details>
-<summary>10% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2776,7 +2776,7 @@
 - [ ] get_table_version
 - [ ] get_table_versions
 - [X] get_tables
-- [ ] get_tags
+- [X] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
 - [ ] get_unfiltered_partition_metadata
@@ -2828,8 +2828,8 @@
 - [ ] stop_session
 - [ ] stop_trigger
 - [ ] stop_workflow_run
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_blueprint
 - [ ] update_classifier
 - [ ] update_column_statistics_for_partition
@@ -2852,20 +2852,20 @@
 
 ## guardduty
 <details>
-<summary>3% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] accept_invitation
 - [ ] archive_findings
 - [X] create_detector
-- [ ] create_filter
+- [X] create_filter
 - [ ] create_ip_set
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
 - [ ] create_threat_intel_set
 - [ ] decline_invitations
-- [ ] delete_detector
-- [ ] delete_filter
+- [X] delete_detector
+- [X] delete_filter
 - [ ] delete_invitations
 - [ ] delete_ip_set
 - [ ] delete_members
@@ -2876,9 +2876,9 @@
 - [ ] disable_organization_admin_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
-- [ ] enable_organization_admin_account
-- [ ] get_detector
-- [ ] get_filter
+- [X] enable_organization_admin_account
+- [X] get_detector
+- [X] get_filter
 - [ ] get_findings
 - [ ] get_findings_statistics
 - [ ] get_invitations_count
@@ -2895,7 +2895,7 @@
 - [ ] list_invitations
 - [ ] list_ip_sets
 - [ ] list_members
-- [ ] list_organization_admin_accounts
+- [X] list_organization_admin_accounts
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
 - [ ] list_threat_intel_sets
@@ -2904,8 +2904,8 @@
 - [ ] tag_resource
 - [ ] unarchive_findings
 - [ ] untag_resource
-- [ ] update_detector
-- [ ] update_filter
+- [X] update_detector
+- [X] update_filter
 - [ ] update_findings_feedback
 - [ ] update_ip_set
 - [ ] update_member_detectors
@@ -3412,13 +3412,13 @@
 
 ## kms
 <details>
-<summary>42% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
 - [ ] create_alias
 - [ ] create_custom_key_store
-- [ ] create_grant
+- [X] create_grant
 - [X] create_key
 - [X] decrypt
 - [X] delete_alias
@@ -3444,16 +3444,16 @@
 - [ ] get_public_key
 - [ ] import_key_material
 - [ ] list_aliases
-- [ ] list_grants
+- [X] list_grants
 - [ ] list_key_policies
 - [X] list_keys
 - [X] list_resource_tags
-- [ ] list_retirable_grants
+- [X] list_retirable_grants
 - [X] put_key_policy
 - [X] re_encrypt
 - [ ] replicate_key
-- [ ] retire_grant
-- [ ] revoke_grant
+- [X] retire_grant
+- [X] revoke_grant
 - [X] schedule_key_deletion
 - [ ] sign
 - [X] tag_resource
@@ -4194,6 +4194,7 @@
 - [X] update_group
 - [ ] update_iam_policy_assignment
 - [ ] update_ip_restriction
+- [ ] update_public_sharing_settings
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions

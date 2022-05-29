@@ -4,27 +4,23 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 import os
 import pytz
-
-import boto3
-from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
-
 import pytest
 from unittest import SkipTest
-
+import boto3
+from botocore.exceptions import ClientError
 from moto import (
     mock_cloudformation,
     mock_dynamodb,
-    mock_s3,
-    mock_sns,
-    mock_sqs,
     mock_ec2,
     mock_iam,
     mock_lambda,
+    mock_s3,
+    mock_sns,
+    mock_sqs,
+    settings,
 )
-from moto import settings
-from moto.core import ACCOUNT_ID
 from moto.cloudformation import cloudformation_backends
+from moto.core import ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID
 
@@ -1181,7 +1177,6 @@ def test_update_stack_fail_missing_new_parameter():
 
 @mock_cloudformation
 def test_update_stack_fail_update_same_template_body():
-
     name = "update_stack_with_previous_value"
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     params = [

@@ -22,6 +22,12 @@ EC2_ENABLE_INSTANCE_TYPE_VALIDATION = bool(
     os.environ.get("MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION", False)
 )
 
+ENABLE_KEYPAIR_VALIDATION = bool(
+    os.environ.get("MOTO_ENABLE_KEYPAIR_VALIDATION", False)
+)
+
+ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
+
 
 def get_sf_execution_history_type():
     """

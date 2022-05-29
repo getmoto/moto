@@ -353,6 +353,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "Client.UserInitiatedShutdown",
         )
 
+    def is_running(self):
+        return self._state.name == "running"
+
     def delete(self, region):  # pylint: disable=unused-argument
         self.terminate()
 
@@ -549,6 +552,10 @@ class InstanceBackend:
     def add_instances(self, image_id, count, user_data, security_group_names, **kwargs):
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"
+        if settings.ENABLE_KEYPAIR_VALIDATION:
+            self.describe_key_pairs(key_names=[kwargs.get("key_name")])
+        if settings.ENABLE_AMI_VALIDATION:
+            self.describe_images(ami_ids=[image_id] if image_id else [])
         valid_instance_types = INSTANCE_TYPE_OFFERINGS[location_type]
         if "region_name" in kwargs and kwargs.get("placement"):
             valid_availability_zones = {
@@ -648,6 +655,12 @@ class InstanceBackend:
         return new_reservation
 
     def run_instances(self):
+        """
+        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+
+        The InstanceType-parameter can be validated, to see if it is a known instance-type.
+        This validation can be enabled by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+        """
         # Logic resides in add_instances
         # Fake method here to make implementation coverage script aware that this method is implemented
         pass

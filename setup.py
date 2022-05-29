@@ -32,7 +32,7 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug",
+    "werkzeug>=0.5",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.9.0",
@@ -55,7 +55,7 @@ _dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
 _dep_openapi = "openapi-spec-validator>=0.2.8"
-_dep_pyparsing = "pyparsing>=3.0.0"
+_dep_pyparsing = "pyparsing>=3.0.7"
 _setuptools = "setuptools"
 
 all_extra_deps = [
@@ -89,7 +89,6 @@ extras_per_service.update(
         "appsync": [_dep_graphql],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],
-        "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
         "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
         "ec2": [_dep_sshpubkeys],
         "glue": [_dep_pyparsing],
@@ -117,6 +116,8 @@ extras_per_service["efs"] = extras_per_service["ec2"]
 # DirectoryService needs EC2 to verify VPCs and subnets.
 extras_per_service["ds"] = extras_per_service["ec2"]
 extras_per_service["route53resolver"] = extras_per_service["ec2"]
+# CloudFormation imports everything, so install everything
+extras_per_service["cloudformation"] = all_extra_deps
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,

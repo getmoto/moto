@@ -94,6 +94,8 @@ def test_route_tables_filters_standard():
 
     vpc2 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     route_table2 = ec2.create_route_table(VpcId=vpc2.id)
+    igw = ec2.create_internet_gateway()
+    route_table2.create_route(DestinationCidrBlock="10.0.0.4/24", GatewayId=igw.id)
 
     all_route_tables = client.describe_route_tables()["RouteTables"]
     all_ids = [rt["RouteTableId"] for rt in all_route_tables]
@@ -134,6 +136,16 @@ def test_route_tables_filters_standard():
     ]
     vpc2_main_route_table_ids.should_not.contain(route_table1.id)
     vpc2_main_route_table_ids.should_not.contain(route_table2.id)
+
+    # Filter by route gateway id
+    resp = client.describe_route_tables(
+        Filters=[
+            {"Name": "route.gateway-id", "Values": [igw.id]},
+        ]
+    )["RouteTables"]
+    assert any(
+        [route["GatewayId"] == igw.id for table in resp for route in table["Routes"]]
+    )
 
     # Unsupported filter
     if not settings.TEST_SERVER_MODE:
