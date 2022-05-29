@@ -1,6 +1,34 @@
 Moto Changelog
 ==============
 
+3.1.11
+-----
+Docker Digest for 3.1.11: <autopopulateddigest>
+
+    New Methods:
+        * GuardDuty:
+            * create_filter()
+            * delete_detector()
+            * delete_filter()
+            * enable_organization_admin_account()
+            * get_detector()
+            * get_filter()
+            * list_organization_admin_accounts()
+            * update_detector()
+            * update_filter()
+        * KMS:
+            * create_grant()
+            * list_grants()
+            * list_retirable_grants()
+            * retire_grant()
+            * revoke_grant()
+
+    Miscellaneous:
+        * EC2:describe_network_acls() now supports the `entry.egress`-filter
+        * EC2:run_instances() now supports validation for the KeyPair-parameter. This is disabled by default - set MOTO_ENABLE_KEYPAIR_VALIDATION to true to enable this.
+        * EC2:run_instances() now supports validation for the ImageId-parameter. This is disabled by default - set MOTO_ENABLE_AMI_VALIDATION to true to enable this.
+
+
 3.1.10
 -----
 Docker Digest for 3.1.10: _sha256:18c6367dbb843850a5b52bc2b74cde9fd2a03719da667aa01b7c80de26849fb6_
