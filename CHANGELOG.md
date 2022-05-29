@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.11
 -----
-Docker Digest for 3.1.11: <autopopulateddigest>
+Docker Digest for 3.1.11: _sha256:bb359c5e57e38534eb8e934757354277fff30598ca305d0f18f68ddfe4ce6359_
 
     New Methods:
         * GuardDuty:
