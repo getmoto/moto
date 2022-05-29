@@ -33,6 +33,7 @@ forecast
 - [ ] create_explainability_export
 - [ ] create_forecast
 - [ ] create_forecast_export_job
+- [ ] create_monitor
 - [ ] create_predictor
 - [ ] create_predictor_backtest_export_job
 - [ ] delete_dataset
@@ -42,6 +43,7 @@ forecast
 - [ ] delete_explainability_export
 - [ ] delete_forecast
 - [ ] delete_forecast_export_job
+- [ ] delete_monitor
 - [ ] delete_predictor
 - [ ] delete_predictor_backtest_export_job
 - [ ] delete_resource_tree
@@ -53,6 +55,7 @@ forecast
 - [ ] describe_explainability_export
 - [ ] describe_forecast
 - [ ] describe_forecast_export_job
+- [ ] describe_monitor
 - [ ] describe_predictor
 - [ ] describe_predictor_backtest_export_job
 - [ ] get_accuracy_metrics
@@ -63,9 +66,12 @@ forecast
 - [ ] list_explainability_exports
 - [ ] list_forecast_export_jobs
 - [ ] list_forecasts
+- [ ] list_monitor_evaluations
+- [ ] list_monitors
 - [ ] list_predictor_backtest_export_jobs
 - [ ] list_predictors
 - [ ] list_tags_for_resource
+- [ ] resume_resource
 - [ ] stop_resource
 - [ ] tag_resource
 - [ ] untag_resource
