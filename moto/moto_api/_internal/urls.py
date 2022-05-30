@@ -12,4 +12,5 @@ url_paths = {
     "{0}/moto-api/state-manager/get-transition": response_instance.get_transition,
     "{0}/moto-api/state-manager/set-transition": response_instance.set_transition,
     "{0}/moto-api/state-manager/unset-transition": response_instance.unset_transition,
+    "{0}/moto-api/redeploy": response_instance.redeploy,
 }

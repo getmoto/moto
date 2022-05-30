@@ -106,3 +106,40 @@ class MotoAPIResponse(BaseResponse):
 
         moto_api_backend.unset_transition(model_name)
         return 201, {}, ""
+
+    def redeploy(self, request, full_url, headers):
+        import moto.backends as backends
+        redeploy_data = self.model_data(request, full_url, headers)
+        redeploy_data_json = json.loads(redeploy_data[2])
+        backend_dict = {name: backend for name, backend in backends.loaded_backends()}
+        aws_instances = redeploy_data_json["ec2"]["Instance"]
+        instance_params = [
+            "image_id",
+            "owner_id",
+            "user_data",
+        ]
+        instance_kwargs_names = [
+            "instance_type",
+            "placement",
+            "region_name",
+            "subnet_id",
+            "key_name",
+            "private_ip",
+            "associate_public_ip",
+            "tags",
+            "ebs_optimized",
+            "instance_initiated_shutdown_behavior",
+        ]
+
+        for instance in aws_instances:
+            if not instance["state"] == "running":
+                continue
+            instance_data = {param: instance.get(param, None) for param in instance_params}
+            instance_data["security_group_names"] = instance.get("security_group_names", [])
+            instance_data["count"] = 1
+            instance_kwargs = {kwarg: instance.get(kwarg, None) for kwarg in instance_kwargs_names}
+            instance_kwargs["is_instance_type_default"] = False
+            backend_dict["ec2"]["us-east-1"].terminate_instances([instance["id"]])
+            backend_dict["ec2"]["us-east-1"].add_instances(**instance_data, **instance_kwargs)
+
+        return 200, {}, ""
