@@ -1,9 +1,7 @@
 import json
 import os
 import pathlib
-
 from functools import lru_cache
-
 
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
 INITIAL_NO_AUTH_ACTION_COUNT = float(
@@ -27,6 +25,11 @@ ENABLE_KEYPAIR_VALIDATION = bool(
 )
 
 ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
+
+ENABLE_RECORDING = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
+METHODS_RECORDED_FILEPATH = str(
+    os.environ.get("MOTO_METHODS_RECORDED_FILEPATH", "methods_recorded")
+)
 
 
 def get_sf_execution_history_type():
