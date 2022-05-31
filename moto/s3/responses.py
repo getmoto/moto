@@ -590,6 +590,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         result_keys, result_folders = self.backend.list_objects(
             bucket, prefix, delimiter
         )
+        encoding_type = querystring.get("encoding-type", [None])[0]
 
         if marker:
             result_keys = self._get_results_from_token(result_keys, marker)
@@ -611,6 +612,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 is_truncated=is_truncated,
                 next_marker=next_marker,
                 max_keys=max_keys,
+                encoding_type=encoding_type,
             ),
         )
 
@@ -642,6 +644,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         start_after = querystring.get("start-after", [None])[0]
+        encoding_type = querystring.get("encoding-type", [None])[0]
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
@@ -666,6 +669,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             is_truncated=is_truncated,
             next_continuation_token=next_continuation_token,
             start_after=None if continuation_token else start_after,
+            encoding_type=encoding_type,
         )
 
     @staticmethod
@@ -2051,13 +2055,16 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   {% if delimiter %}
     <Delimiter>{{ delimiter }}</Delimiter>
   {% endif %}
+  {% if encoding_type %}
+    <EncodingType>{{ encoding_type }}</EncodingType>
+  {% endif %}
   <IsTruncated>{{ is_truncated }}</IsTruncated>
   {% if next_marker %}
     <NextMarker>{{ next_marker }}</NextMarker>
   {% endif %}
   {% for key in result_keys %}
     <Contents>
-      <Key>{{ key.name }}</Key>
+      <Key>{{ key.safe_name }}</Key>
       <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
@@ -2088,6 +2095,9 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
 {% if delimiter %}
   <Delimiter>{{ delimiter }}</Delimiter>
 {% endif %}
+{% if encoding_type %}
+  <EncodingType>{{ encoding_type }}</EncodingType>
+{% endif %}
   <IsTruncated>{{ is_truncated }}</IsTruncated>
 {% if next_continuation_token %}
   <NextContinuationToken>{{ next_continuation_token }}</NextContinuationToken>
@@ -2097,7 +2107,7 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
 {% endif %}
   {% for key in result_keys %}
     <Contents>
-      <Key>{{ key.name }}</Key>
+      <Key>{{ key.safe_name }}</Key>
       <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>

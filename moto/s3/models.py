@@ -14,6 +14,7 @@ import pytz
 import sys
 import time
 import uuid
+import urllib.parse
 
 from bisect import insort
 from importlib import reload
@@ -152,6 +153,10 @@ class FakeKey(BaseModel):
         self._metadata["Content-Type"] = "binary/octet-stream"
 
         self.s3_backend = s3_backend
+
+    @property
+    def safe_name(self):
+        return urllib.parse.quote(self.name, safe="")
 
     @property
     def version_id(self):
