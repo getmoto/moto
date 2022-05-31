@@ -107,12 +107,12 @@ class MotoAPIResponse(BaseResponse):
         moto_api_backend.unset_transition(model_name)
         return 201, {}, ""
 
-    def redeploy(self, request, full_url, headers):
+    def restore_state(self, request, full_url, headers):
         import moto.backends as backends
-        redeploy_data = self.model_data(request, full_url, headers)
-        redeploy_data_json = json.loads(redeploy_data[2])
+        restore_data = self.model_data(request, full_url, headers)
+        restore_data_json = json.loads(restore_data[2])
         backend_dict = {name: backend for name, backend in backends.loaded_backends()}
-        aws_instances = redeploy_data_json["ec2"]["Instance"]
+        aws_instances = restore_data_json["ec2"]["Instance"]
         instance_params = [
             "image_id",
             "owner_id",
