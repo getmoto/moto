@@ -4,3 +4,5 @@ readthedocs-sphinx-search==0.1.1
 
 # Modules necessary to import individual classes and read the docstrings
 docker
+openapi_spec_validator
+PyYAML>=5.1

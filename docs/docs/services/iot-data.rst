@@ -26,10 +26,6 @@ iot-data
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] delete_thing_shadow
-  after deleting, get_thing_shadow will raise ResourceNotFound.
-        But version of the shadow keep increasing...
-        
-
 - [ ] get_retained_message
 - [X] get_thing_shadow
 - [ ] list_named_shadows_for_thing

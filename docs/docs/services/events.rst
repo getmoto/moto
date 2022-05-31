@@ -12,6 +12,8 @@
 events
 ======
 
+.. autoclass:: moto.events.models.EventsBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -30,6 +32,7 @@ events
 - [X] create_api_destination
   
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
@@ -47,6 +50,7 @@ events
 - [X] delete_api_destination
   
         Deletes the specified API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
 
@@ -65,6 +69,7 @@ events
 - [X] delete_connection
   
         Deletes a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
 
@@ -85,6 +90,7 @@ events
 - [X] describe_api_destination
   
         Retrieves details about an API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
         Args:
@@ -98,6 +104,7 @@ events
 - [X] describe_connection
   
         Retrieves details about a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
 
@@ -146,6 +153,7 @@ events
 - [X] update_api_destination
   
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
 

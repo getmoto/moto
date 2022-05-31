@@ -2292,7 +2292,7 @@
 
 ## elb
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
@@ -2308,7 +2308,7 @@
 - [X] delete_load_balancer_policy
 - [ ] deregister_instances_from_load_balancer
 - [ ] describe_account_limits
-- [ ] describe_instance_health
+- [X] describe_instance_health
 - [ ] describe_load_balancer_attributes
 - [X] describe_load_balancer_policies
 - [ ] describe_load_balancer_policy_types
@@ -2663,7 +2663,7 @@
 
 ## glue
 <details>
-<summary>10% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2776,7 +2776,7 @@
 - [ ] get_table_version
 - [ ] get_table_versions
 - [X] get_tables
-- [ ] get_tags
+- [X] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
 - [ ] get_unfiltered_partition_metadata
@@ -2828,8 +2828,8 @@
 - [ ] stop_session
 - [ ] stop_trigger
 - [ ] stop_workflow_run
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_blueprint
 - [ ] update_classifier
 - [ ] update_column_statistics_for_partition
@@ -4194,6 +4194,7 @@
 - [X] update_group
 - [ ] update_iam_policy_assignment
 - [ ] update_ip_restriction
+- [ ] update_public_sharing_settings
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions

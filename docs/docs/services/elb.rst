@@ -39,7 +39,7 @@ elb
 - [X] delete_load_balancer_policy
 - [ ] deregister_instances_from_load_balancer
 - [ ] describe_account_limits
-- [ ] describe_instance_health
+- [X] describe_instance_health
 - [ ] describe_load_balancer_attributes
 - [X] describe_load_balancer_policies
 - [ ] describe_load_balancer_policy_types
