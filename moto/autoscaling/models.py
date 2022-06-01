@@ -299,7 +299,7 @@ class FakeScheduledAction(CloudFormationModel):
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
 
-        self.name = scheduled_action_name if scheduled_action_name else "this-name-doesnt-matter"
+        self.name = scheduled_action_name if scheduled_action_name else "autoscaling-scheduled-action"
 
     @staticmethod
     def cloudformation_name_type():
