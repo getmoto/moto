@@ -2064,7 +2064,7 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   {% endif %}
   {% for key in result_keys %}
     <Contents>
-      <Key>{{ key.safe_name }}</Key>
+      <Key>{{ key.safe_name(encoding_type) }}</Key>
       <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
@@ -2107,7 +2107,7 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
 {% endif %}
   {% for key in result_keys %}
     <Contents>
-      <Key>{{ key.safe_name }}</Key>
+      <Key>{{ key.safe_name(encoding_type) }}</Key>
       <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
       <ETag>{{ key.etag }}</ETag>
       <Size>{{ key.size }}</Size>
