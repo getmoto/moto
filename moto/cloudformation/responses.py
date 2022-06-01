@@ -10,7 +10,7 @@ from moto.s3.models import s3_backends
 from moto.s3.exceptions import S3ClientError
 from moto.core import get_account_id
 from .models import cloudformation_backends
-from .exceptions import ValidationError
+from .exceptions import ValidationError, MissingParameterError
 from .utils import yaml_tag_constructor
 
 
