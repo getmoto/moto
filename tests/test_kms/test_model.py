@@ -1,5 +1,4 @@
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto.kms.models import KmsBackend
 
@@ -22,15 +21,15 @@ def key(backend):
 def test_encrypt_key_id(backend, key):
     ciphertext, arn = backend.encrypt(key.id, PLAINTEXT, {})
 
-    ciphertext.shouldnt.be.none
-    arn.shouldnt.be.none
+    assert ciphertext is not None
+    assert arn is not None
 
 
 def test_encrypt_key_arn(backend, key):
     ciphertext, arn = backend.encrypt(key.arn, PLAINTEXT, {})
 
-    ciphertext.shouldnt.be.none
-    arn.shouldnt.be.none
+    assert ciphertext is not None
+    assert arn is not None
 
 
 def test_encrypt_alias_name(backend, key):
@@ -38,8 +37,8 @@ def test_encrypt_alias_name(backend, key):
 
     ciphertext, arn = backend.encrypt("alias/test/test", PLAINTEXT, {})
 
-    ciphertext.shouldnt.be.none
-    arn.shouldnt.be.none
+    assert ciphertext is not None
+    assert arn is not None
 
 
 def test_encrypt_alias_arn(backend, key):
@@ -49,5 +48,5 @@ def test_encrypt_alias_arn(backend, key):
         "arn:aws:kms:us-east-1:000000000000:alias/test/test", PLAINTEXT, {}
     )
 
-    ciphertext.shouldnt.be.none
-    arn.shouldnt.be.none
+    assert ciphertext is not None
+    assert arn is not None
