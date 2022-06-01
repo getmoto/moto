@@ -276,6 +276,98 @@ class FakeLaunchConfiguration(CloudFormationModel):
         return block_device_map
 
 
+class FakeScheduledAction(CloudFormationModel):
+
+    def __init__(
+        self,
+        asg_name,
+        desired_capacity,
+        max_size,
+        min_size,
+        scheduled_action_name=None,
+        start_time=None,
+        end_time=None,
+        recurrence=None
+    ):
+
+        self.asg_name = asg_name
+        self.desired_capacity = desired_capacity
+        self.max_size = max_size
+        self.min_size = min_size
+        self.start_time = start_time
+        self.end_time = end_time
+        self.recurrence = recurrence
+        self.scheduled_action_name = scheduled_action_name
+
+        self.name = scheduled_action_name if scheduled_action_name else "this-name-doesnt-matter"
+
+    @staticmethod
+    def cloudformation_name_type():
+
+        return "ScheduledActionName"
+
+    @staticmethod
+    def cloudformation_type():
+
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-as-scheduledaction.html
+        return "AWS::AutoScaling::ScheduledAction"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name, **kwargs
+    ):
+
+        # TODO: This should create the scheduled action on the ASG passed
+        #       in the cloudformation_json
+        # TODO: This should validate the allowed cloudformation "Properties"
+
+        kwargs = {}
+
+        properties = cloudformation_json["Properties"]
+
+        if "StartTime" in properties:
+
+            kwargs.update({"start_time": properties["StartTime"]})
+
+        if "EndTime" in properties:
+
+            kwargs.update({"end_time": properties["EndTime"]})
+
+        if "Recurrence" in properties:
+
+            kwargs.update({"recurrence": properties["Recurrence"]})
+
+        return cls(
+            cloudformation_json["Properties"]["AutoScalingGroupName"],
+            cloudformation_json["Properties"]["DesiredCapacity"],
+            cloudformation_json["Properties"]["MaxSize"],
+            cloudformation_json["Properties"]["MinSize"],
+            **kwargs
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+
+        # TODO: This should remove the scheduled action from the ASG
+        #       passed in the cloudformation json
+        return None
+
+
 class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
         self,
