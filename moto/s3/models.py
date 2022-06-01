@@ -154,9 +154,10 @@ class FakeKey(BaseModel):
 
         self.s3_backend = s3_backend
 
-    @property
-    def safe_name(self):
-        return urllib.parse.quote(self.name, safe="")
+    def safe_name(self, encoding_type=None):
+        if encoding_type == "url":
+            return urllib.parse.quote(self.name, safe="")
+        return self.name
 
     @property
     def version_id(self):
