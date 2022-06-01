@@ -46,7 +46,7 @@ def test_encrypt_alias_arn(backend, key):
     backend.add_alias(key.id, "alias/test/test")
 
     ciphertext, arn = backend.encrypt(
-        "arn:aws:kms::000000000000:alias/test/test", PLAINTEXT, {}
+        "arn:aws:kms:us-east-1:000000000000:alias/test/test", PLAINTEXT, {}
     )
 
     ciphertext.shouldnt.be.none
