@@ -599,3 +599,29 @@ def test_put_item_empty_set():
     err["Message"].should.equal(
         "One or more parameter values were invalid: An number set  may not be empty"
     )
+
+
+@mock_dynamodb
+def test_update_expression_with_trailing_comma():
+    resource = boto3.resource(service_name="dynamodb", region_name="us-east-1")
+    table = resource.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table.put_item(Item={"pk": "key", "attr2": 2})
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "key", "sk": "sk"},
+            # Trailing comma should be invalid
+            UpdateExpression="SET #attr1 = :val1, #attr2 = :val2,",
+            ExpressionAttributeNames={"#attr1": "attr1", "#attr2": "attr2"},
+            ExpressionAttributeValues={":val1": 3, ":val2": 4},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        'Invalid UpdateExpression: Syntax error; token: "<EOF>", near: ","'
+    )
