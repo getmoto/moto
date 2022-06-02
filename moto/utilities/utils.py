@@ -1,4 +1,5 @@
 import json
+import hashlib
 import random
 import string
 import pkgutil
@@ -55,6 +56,19 @@ def filter_resources(resources, filters, attr_pairs):
                     result.remove(resource)
                     break
     return result
+
+
+def md5_hash(data=None):
+    """
+    MD5-hashing for non-security usecases.
+    Required for Moto to work in FIPS-enabled systems
+    """
+    args = (data,) if data else ()
+    try:
+        return hashlib.md5(*args, usedforsecurity=False)
+    except TypeError:
+        # The usedforsecurity-parameter is only available as of Python 3.9
+        return hashlib.md5(*args)
 
 
 class LowercaseDict(MutableMapping):

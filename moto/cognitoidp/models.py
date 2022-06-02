@@ -1,5 +1,4 @@
 import datetime
-import hashlib
 import json
 import os
 import time
@@ -31,6 +30,7 @@ from .utils import (
     PAGINATION_MODEL,
 )
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import md5_hash
 
 
 class UserStatus(str, enum.Enum):
@@ -595,11 +595,11 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
     def _distribution_name(self):
         if self.custom_domain_config and "CertificateArn" in self.custom_domain_config:
-            unique_hash = hashlib.md5(
+            unique_hash = md5_hash(
                 self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
             return f"{unique_hash[:16]}.cloudfront.net"
-        unique_hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
+        unique_hash = md5_hash(self.user_pool_id.encode("utf-8")).hexdigest()
         return f"{unique_hash[:16]}.amazoncognito.com"
 
     def to_json(self, extended=True):

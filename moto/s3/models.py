@@ -2,7 +2,6 @@ import json
 import os
 import base64
 import datetime
-import hashlib
 import copy
 import itertools
 import codecs
@@ -33,7 +32,7 @@ from moto.core.utils import (
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import LowercaseDict
+from moto.utilities.utils import LowercaseDict, md5_hash
 from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
@@ -213,7 +212,7 @@ class FakeKey(BaseModel):
     @property
     def etag(self):
         if self._etag is None:
-            value_md5 = hashlib.md5()
+            value_md5 = md5_hash()
             self._value_buffer.seek(0)
             while True:
                 block = self._value_buffer.read(16 * 1024 * 1024)  # read in 16MB chunks
@@ -376,7 +375,7 @@ class FakeMultipart(BaseModel):
         if count == 0:
             raise MalformedXML
 
-        etag = hashlib.md5()
+        etag = md5_hash()
         etag.update(bytes(md5s))
         return total, "{0}-{1}".format(etag.hexdigest(), count)
 
