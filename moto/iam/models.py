@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import os
 import random
 import string
@@ -22,6 +21,7 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
 )
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
+from moto.utilities.utils import md5_hash
 
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import (
@@ -1014,7 +1014,7 @@ class SshPublicKey(BaseModel):
         self.user_name = user_name
         self.ssh_public_key_body = ssh_public_key_body
         self.ssh_public_key_id = "APKA" + random_access_key()
-        self.fingerprint = hashlib.md5(ssh_public_key_body.encode()).hexdigest()
+        self.fingerprint = md5_hash(ssh_public_key_body.encode()).hexdigest()
         self.status = "Active"
         self.upload_date = datetime.utcnow()
 
