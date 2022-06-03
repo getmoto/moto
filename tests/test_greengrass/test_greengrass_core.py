@@ -3,6 +3,7 @@ import freezegun
 
 from moto import mock_greengrass
 from moto.core import get_account_id
+from moto.settings import TEST_SERVER_MODE
 
 ACCOUNT_ID = get_account_id()
 
@@ -25,9 +26,10 @@ def test_create_core_definition():
     core_name = "TestCore"
     res = client.create_core_definition(InitialVersion=initial_version, Name=core_name)
     res.should.have.key("Arn")
-    res.should.have.key("CreationTimestamp").equals("2022-06-01T12:00:00.000Z")
     res.should.have.key("Id")
-    res.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
+    if not TEST_SERVER_MODE:
+        res.should.have.key("CreationTimestamp").equals("2022-06-01T12:00:00.000Z")
+        res.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
     res.should.have.key("LatestVersionArn")
     res.should.have.key("Name").equals(core_name)
     res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
@@ -65,8 +67,8 @@ def test_create_core_definition_version():
         CoreDefinitionId=core_def_id, Cores=v2_cores
     )
     core_def_ver_res.should.have.key("Arn")
-    core_def_ver_res.should.have.key("CreationTimestamp").equals(
-        "2022-06-01T12:00:00.000Z"
-    )
+    core_def_ver_res.should.have.key("CreationTimestamp")
+    if not TEST_SERVER_MODE:
+        core_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
     core_def_ver_res.should.have.key("Id").equals(core_def_id)
     core_def_ver_res.should.have.key("Version")
