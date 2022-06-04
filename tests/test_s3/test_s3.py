@@ -135,6 +135,24 @@ def test_empty_key():
 
 
 @mock_s3
+def test_key_name_encoding_in_listing():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="foobar")
+
+    name = "6T7\x159\x12\r\x08.txt"
+
+    key = s3.Object("foobar", name)
+    key.put(Body=b"")
+
+    key_received = client.list_objects(Bucket="foobar")["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
+    key_received = client.list_objects_v2(Bucket="foobar")["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
+
+@mock_s3
 def test_empty_key_set_on_existing_key():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

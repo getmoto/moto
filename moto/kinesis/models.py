@@ -4,12 +4,12 @@ import re
 import itertools
 
 from operator import attrgetter
-from hashlib import md5
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, BackendDict
 from moto.core import get_account_id
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import md5_hash
 from .exceptions import (
     ConsumerNotFound,
     StreamNotFoundError,
@@ -363,7 +363,7 @@ class Stream(CloudFormationModel):
                 raise InvalidArgumentError("explicit_hash_key")
 
         else:
-            key = int(md5(partition_key.encode("utf-8")).hexdigest(), 16)
+            key = int(md5_hash(partition_key.encode("utf-8")).hexdigest(), 16)
 
         for shard in self.shards.values():
             if shard.starting_hash <= key < shard.ending_hash:

@@ -70,6 +70,7 @@ backend_url_patterns = [
     ("forecast", re.compile("https?://forecast\\.(.+)\\.amazonaws\\.com")),
     ("glacier", re.compile("https?://glacier\\.(.+)\\.amazonaws.com")),
     ("glue", re.compile("https?://glue\\.(.+)\\.amazonaws\\.com")),
+    ("greengrass", re.compile("https?://greengrass\\.(.+)\\.amazonaws.com")),
     ("guardduty", re.compile("https?://guardduty\\.(.+)\\.amazonaws\\.com")),
     ("iam", re.compile("https?://iam\\.(.*\\.)?amazonaws\\.com")),
     ("iot", re.compile("https?://iot\\.(.+)\\.amazonaws\\.com")),

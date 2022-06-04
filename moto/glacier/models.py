@@ -4,6 +4,7 @@ import datetime
 
 from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.utilities.utils import md5_hash
 
 from .utils import get_job_id
 
@@ -117,7 +118,7 @@ class Vault(BaseModel):
         return d
 
     def create_archive(self, body, description):
-        archive_id = hashlib.md5(body).hexdigest()
+        archive_id = md5_hash(body).hexdigest()
         self.archives[archive_id] = {}
         self.archives[archive_id]["archive_id"] = archive_id
         self.archives[archive_id]["body"] = body

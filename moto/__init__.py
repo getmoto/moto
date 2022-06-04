@@ -103,6 +103,7 @@ mock_es = lazy_load(".es", "mock_es")
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")
+mock_greengrass = lazy_load(".greengrass", "mock_greengrass")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glue = lazy_load(".glue", "mock_glue")
 mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
@@ -206,7 +207,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "3.1.11.dev"
+__version__ = "3.1.12.dev"
 
 
 try:
