@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.12
 -----
-Docker Digest for 3.1.12: <autopopulateddigest>
+Docker Digest for 3.1.12: _sha256:64dcfb63b252b3413481683b90f105d01644b6bec150b60e6f612a2569ee630c_
 
     New Services:
         * Greengrass:
