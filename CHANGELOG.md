@@ -1,6 +1,19 @@
 Moto Changelog
 ==============
 
+3.1.12
+-----
+Docker Digest for 3.1.12: <autopopulateddigest>
+
+    New Services:
+        * Greengrass:
+            * create_core_definition()
+            * create_core_definition_version()
+
+    Internal Changes:
+        * The data structure containing all of Moto's state has been updated to support multiple accounts
+
+
 3.1.11
 -----
 Docker Digest for 3.1.11: _sha256:bb359c5e57e38534eb8e934757354277fff30598ca305d0f18f68ddfe4ce6359_

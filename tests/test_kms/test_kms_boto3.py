@@ -62,7 +62,6 @@ def test_create_key():
         KeyUsage="ENCRYPT_DECRYPT",
         Tags=[{"TagKey": "project", "TagValue": "moto"}],
     )
-    print(key["KeyMetadata"])
 
     key["KeyMetadata"]["Arn"].should.equal(
         "arn:aws:kms:us-east-1:{}:key/{}".format(
