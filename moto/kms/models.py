@@ -231,7 +231,7 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name, account_id=None):
         super().__init__(region_name=region_name, account_id=account_id)
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
