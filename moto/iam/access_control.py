@@ -39,7 +39,7 @@ from moto.s3.exceptions import (
     BucketSignatureDoesNotMatchError,
     S3SignatureDoesNotMatchError,
 )
-from moto.sts import sts_backend
+from moto.sts.models import sts_backend
 from .models import iam_backend, Policy
 
 log = logging.getLogger(__name__)

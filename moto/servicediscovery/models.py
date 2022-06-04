@@ -149,18 +149,12 @@ class Operation(BaseModel):
 class ServiceDiscoveryBackend(BaseBackend):
     """Implementation of ServiceDiscovery APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.operations = dict()
         self.namespaces = dict()
         self.services = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def list_namespaces(self):
         """

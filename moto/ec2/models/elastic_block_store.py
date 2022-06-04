@@ -187,12 +187,11 @@ class Snapshot(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeSnapshots")
 
 
-class EBSBackend(object):
+class EBSBackend:
     def __init__(self):
         self.volumes = {}
         self.attachments = {}
         self.snapshots = {}
-        super().__init__()
 
     def create_volume(
         self,

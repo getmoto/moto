@@ -1,4 +1,5 @@
 import json
+from moto.core import get_account_id
 
 
 _EVENT_S3_OBJECT_CREATED = {
@@ -35,7 +36,8 @@ def _send_safe_notification(source, event_name, region, resources, detail):
     if event is None:
         return
 
-    for backend in events_backends.values():
+    account = events_backends[get_account_id()]
+    for backend in account.values():
         applicable_targets = []
         for rule in backend.rules.values():
             if rule.state != "ENABLED":

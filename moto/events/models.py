@@ -937,10 +937,10 @@ class EventsBackend(BaseBackend):
     _CRON_REGEX = re.compile(r"^cron\(.*\)")
     _RATE_REGEX = re.compile(r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)")
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.rules = OrderedDict()
         self.next_tokens = {}
-        self.region_name = region_name
         self.event_buses = {}
         self.event_sources = {}
         self.archives = {}
@@ -950,11 +950,6 @@ class EventsBackend(BaseBackend):
         self._add_default_event_bus()
         self.connections = {}
         self.destinations = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

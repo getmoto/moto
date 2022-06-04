@@ -58,10 +58,9 @@ class DHCPOptionsSet(TaggedEC2Resource):
         return self._options
 
 
-class DHCPOptionsSetBackend(object):
+class DHCPOptionsSetBackend:
     def __init__(self):
         self.dhcp_options_sets = {}
-        super().__init__()
 
     def associate_dhcp_options(self, dhcp_options, vpc):
         dhcp_options.vpc = vpc

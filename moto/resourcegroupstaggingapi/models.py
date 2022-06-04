@@ -23,20 +23,14 @@ from moto.awslambda import lambda_backends
 
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
 
         self._pages = {}
         # Like 'someuuid': {'gen': <generator>, 'misc': None}
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # theres not really any point to clean up
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @property
     def s3_backend(self):

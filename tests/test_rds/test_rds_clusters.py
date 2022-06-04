@@ -419,7 +419,7 @@ def test_create_db_cluster_snapshot_copy_tags():
     snapshot.get("Engine").should.equal("postgres")
     snapshot.get("DBClusterIdentifier").should.equal("db-primary-1")
     snapshot.get("DBClusterSnapshotIdentifier").should.equal("g-1")
-    # breakpoint()
+
     result = conn.list_tags_for_resource(ResourceName=snapshot["DBClusterSnapshotArn"])
     result["TagList"].should.equal(
         [{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}]

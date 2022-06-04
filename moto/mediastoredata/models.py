@@ -29,15 +29,9 @@ class Object(BaseModel):
 
 
 class MediaStoreDataBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._objects = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def put_object(self, body, path, storage_class="TEMPORAL"):
         """

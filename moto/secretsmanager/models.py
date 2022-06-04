@@ -190,15 +190,9 @@ class SecretsStore(dict):
 
 
 class SecretsManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.secrets = SecretsStore()
-
-    def reset(self):
-        region_name = self.region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -388,7 +382,7 @@ class SecretsManagerBackend(BaseBackend):
                 secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
-                region_name=self.region,
+                region_name=self.region_name,
                 secret_id=secret_id,
                 secret_string=secret_string,
                 secret_binary=secret_binary,
@@ -530,7 +524,7 @@ class SecretsManagerBackend(BaseBackend):
         if secret.rotation_lambda_arn:
             from moto.awslambda.models import lambda_backends
 
-            lambda_backend = lambda_backends[self.region]
+            lambda_backend = lambda_backends[self.region_name]
 
             request_headers = {}
             response_headers = {}
@@ -670,7 +664,7 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                secret = FakeSecret(self.region, secret_id)
+                secret = FakeSecret(self.region_name, secret_id)
                 arn = secret.arn
                 name = secret.name
                 deletion_date = datetime.datetime.utcnow()

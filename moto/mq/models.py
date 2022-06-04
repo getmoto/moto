@@ -350,17 +350,11 @@ class MQBackend(BaseBackend):
     No EC2 integration exists yet - subnet ID's and security group values are not validated. Default values may not exist.
     """
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.brokers = dict()
         self.configs = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_broker(
         self,

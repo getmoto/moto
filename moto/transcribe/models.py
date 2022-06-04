@@ -428,12 +428,12 @@ class FakeMedicalVocabulary(FakeVocabulary):
 
 
 class TranscribeBackend(BaseBackend):
-    def __init__(self, region_name=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.medical_transcriptions = {}
         self.transcriptions = {}
         self.medical_vocabularies = {}
         self.vocabularies = {}
-        self.region_name = region_name
 
         state_manager.register_default_transition(
             "transcribe::vocabulary", transition={"progression": "manual", "times": 1}
@@ -450,11 +450,6 @@ class TranscribeBackend(BaseBackend):
             "transcribe::medicaltranscriptionjob",
             transition={"progression": "manual", "times": 1},
         )
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

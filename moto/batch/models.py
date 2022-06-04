@@ -825,9 +825,8 @@ class BatchBackend(BaseBackend):
     With this decorator, jobs are simply marked as 'Success' without trying to execute any commands/scripts.
     """
 
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.tagger = TaggingService()
 
         self._compute_environments = {}
@@ -872,16 +871,13 @@ class BatchBackend(BaseBackend):
         return logs_backends[self.region_name]
 
     def reset(self):
-        region_name = self.region_name
-
         for job in self._jobs.values():
             if job.status not in ("FAILED", "SUCCEEDED"):
                 job.stop = True
                 # Try to join
                 job.join(0.2)
 
-        self.__dict__ = {}
-        self.__init__(region_name)
+        super().reset()
 
     def get_compute_environment_by_arn(self, arn):
         return self._compute_environments.get(arn)

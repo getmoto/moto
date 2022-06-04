@@ -224,11 +224,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         return association
 
 
-class SubnetBackend(object):
+class SubnetBackend:
     def __init__(self):
         # maps availability zone to dict of (subnet_id, subnet)
         self.subnets = defaultdict(dict)
-        super().__init__()
 
     def get_subnet(self, subnet_id):
         for subnets in self.subnets.values():
@@ -432,10 +431,9 @@ class SubnetRouteTableAssociation(CloudFormationModel):
         return subnet_association
 
 
-class SubnetRouteTableAssociationBackend(object):
+class SubnetRouteTableAssociationBackend:
     def __init__(self):
         self.subnet_associations = {}
-        super().__init__()
 
     def create_subnet_association(self, route_table_id, subnet_id):
         subnet_association = SubnetRouteTableAssociation(route_table_id, subnet_id)

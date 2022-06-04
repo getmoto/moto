@@ -188,14 +188,9 @@ class Vault(BaseModel):
 
 
 class GlacierBackend(BaseBackend):
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.vaults = {}
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def get_vault(self, vault_name):
         return self.vaults[vault_name]

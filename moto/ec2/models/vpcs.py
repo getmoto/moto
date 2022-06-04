@@ -324,14 +324,13 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         ]
 
 
-class VPCBackend(object):
+class VPCBackend:
     vpc_refs = defaultdict(set)
 
     def __init__(self):
         self.vpcs = {}
         self.vpc_end_points = {}
         self.vpc_refs[self.__class__].add(weakref.ref(self))
-        super().__init__()
 
     def create_vpc(
         self,

@@ -32,14 +32,9 @@ class CodeCommit(BaseModel):
 
 
 class CodeCommitBackend(BaseBackend):
-    def __init__(self, region=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.repositories = {}
-        self.region = region
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -54,7 +49,7 @@ class CodeCommitBackend(BaseBackend):
             raise RepositoryNameExistsException(repository_name)
 
         self.repositories[repository_name] = CodeCommit(
-            self.region, repository_description, repository_name
+            self.region_name, repository_description, repository_name
         )
 
         return self.repositories[repository_name].repository_metadata

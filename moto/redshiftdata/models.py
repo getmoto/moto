@@ -100,14 +100,9 @@ class Record:
 
 
 class RedshiftDataAPIServiceBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.statements = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def cancel_statement(self, statement_id):
         _validate_uuid(statement_id)

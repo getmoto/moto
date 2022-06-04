@@ -86,10 +86,9 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 
 
-class RouteTableBackend(object):
+class RouteTableBackend:
     def __init__(self):
         self.route_tables = {}
-        super().__init__()
 
     def create_route_table(self, vpc_id, tags=None, main=False):
         route_table_id = random_route_table_id()
@@ -284,10 +283,7 @@ class Route(CloudFormationModel):
         return route_table
 
 
-class RouteBackend(object):
-    def __init__(self):
-        super().__init__()
-
+class RouteBackend:
     def create_route(
         self,
         route_table_id,

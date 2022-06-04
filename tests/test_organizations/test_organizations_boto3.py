@@ -1243,14 +1243,14 @@ def test__get_resource_for_tagging_existing_root():
     org = FakeOrganization("ALL")
     root = FakeRoot(org)
 
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     org_backend.ou.append(root)
     response = org_backend._get_resource_for_tagging(root.id)
     response.id.should.equal(root.id)
 
 
 def test__get_resource_for_tagging_existing_non_root():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("r-abcd")
     ex = e.value
@@ -1262,7 +1262,7 @@ def test__get_resource_for_tagging_existing_non_root():
 def test__get_resource_for_tagging_existing_ou():
     org = FakeOrganization("ALL")
     ou = FakeOrganizationalUnit(org)
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
 
     org_backend.ou.append(ou)
     response = org_backend._get_resource_for_tagging(ou.id)
@@ -1270,7 +1270,7 @@ def test__get_resource_for_tagging_existing_ou():
 
 
 def test__get_resource_for_tagging_non_existing_ou():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("ou-9oyc-lv2q36ln")
     ex = e.value
@@ -1281,7 +1281,7 @@ def test__get_resource_for_tagging_non_existing_ou():
 
 def test__get_resource_for_tagging_existing_account():
     org = FakeOrganization("ALL")
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     account = FakeAccount(org, AccountName="test", Email="test@test.test")
 
     org_backend.accounts.append(account)
@@ -1290,7 +1290,7 @@ def test__get_resource_for_tagging_existing_account():
 
 
 def test__get_resource_for_tagging_non_existing_account():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("100326223992")
     ex = e.value
@@ -1301,7 +1301,7 @@ def test__get_resource_for_tagging_non_existing_account():
 
 def test__get_resource_for_tagging_existing_policy():
     org = FakeOrganization("ALL")
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
 
     org_backend.policies.append(policy)
@@ -1310,7 +1310,7 @@ def test__get_resource_for_tagging_existing_policy():
 
 
 def test__get_resource_for_tagging_non_existing_policy():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("p-y1vas4da")
     ex = e.value
@@ -1320,7 +1320,7 @@ def test__get_resource_for_tagging_non_existing_policy():
 
 
 def test__get_resource_to_tag_incorrect_resource():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(InvalidInputException) as e:
         org_backend._get_resource_for_tagging("10032622399200")
     ex = e.value

@@ -539,10 +539,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return True
 
 
-class InstanceBackend(object):
+class InstanceBackend:
     def __init__(self):
         self.reservations = OrderedDict()
-        super().__init__()
 
     def get_instance(self, instance_id):
         for instance in self.all_instances():

@@ -4,7 +4,7 @@ import json
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 from moto.core import get_account_id
 from .comparisons import get_comparison_func
 
@@ -313,7 +313,8 @@ class Table(CloudFormationModel):
 
 
 class DynamoDBBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.tables = OrderedDict()
 
     def create_table(self, name, **params):
@@ -390,4 +391,10 @@ class DynamoDBBackend(BaseBackend):
         return table.update_item(hash_key, range_key, attr_updates)
 
 
-dynamodb_backend = DynamoDBBackend()
+dynamodb_backends = BackendDict(
+    DynamoDBBackend,
+    "dynamodb_v20111205",
+    use_boto3_regions=False,
+    additional_regions=["global"],
+)
+dynamodb_backend = dynamodb_backends["global"]

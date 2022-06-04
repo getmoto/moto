@@ -631,16 +631,9 @@ def _filter_message_attributes(message, input_message_attributes):
 
 
 class SQSBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.queues: Dict[str, Queue] = {}
-        super().__init__()
-
-    def reset(self):
-        region_name = self.region_name
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

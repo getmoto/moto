@@ -107,8 +107,8 @@ class TimestreamDatabase(BaseModel):
 
 
 class TimestreamWriteBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.databases = dict()
         self.tagging_service = TaggingService()
 
@@ -205,16 +205,18 @@ class TimestreamWriteBackend(BaseBackend):
     def untag_resource(self, resource_arn, tag_keys):
         self.tagging_service.untag_resource_using_names(resource_arn, tag_keys)
 
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
-
-timestreamwrite_backends = BackendDict(TimestreamWriteBackend, "timestream-write")
 
 # Boto does not return any regions at the time of writing (20/10/2021)
 # Hardcoding the known regions for now
 # Thanks, Jeff
-for r in ["us-east-1", "us-east-2", "us-west-2", "eu-central-1", "eu-west-1"]:
-    timestreamwrite_backends[r] = TimestreamWriteBackend(r)
+timestreamwrite_backends = BackendDict(
+    TimestreamWriteBackend,
+    "timestream-write",
+    additional_regions=[
+        "us-east-1",
+        "us-east-2",
+        "us-west-2",
+        "eu-central-1",
+        "eu-west-1",
+    ],
+)

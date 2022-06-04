@@ -748,8 +748,8 @@ class EC2ContainerServiceBackend(BaseBackend):
     AWS reference: https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/
     """
 
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.account_settings = dict()
         self.capacity_providers = dict()
         self.clusters = {}
@@ -758,15 +758,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services = {}
         self.container_instances = {}
         self.task_sets = {}
-        self.region_name = region_name
         self.tagger = TaggingService(
             tag_name="tags", key_name="key", value_name="value"
         )
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

@@ -42,11 +42,10 @@ class ManagedPrefixList(TaggedEC2Resource):
         )
 
 
-class ManagedPrefixListBackend(object):
+class ManagedPrefixListBackend:
     def __init__(self):
         self.managed_prefix_lists = {}
         self.create_default_pls()
-        super().__init__()
 
     def create_managed_prefix_list(
         self,

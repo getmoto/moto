@@ -72,9 +72,8 @@ class Resource(BaseModel):
 
 
 class MediaConnectBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._flows = OrderedDict()
         self._resources = OrderedDict()
 
@@ -100,11 +99,6 @@ class MediaConnectBackend(BaseBackend):
         for index, output in enumerate(flow.outputs or []):
             if output.get("protocol") in ["srt-listener", "zixi-pull"]:
                 output["listenerAddress"] = f"{index}.0.0.0"
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_flow(
         self,

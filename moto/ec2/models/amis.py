@@ -142,14 +142,13 @@ class Ami(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeImages")
 
 
-class AmiBackend(object):
+class AmiBackend:
     AMI_REGEX = re.compile("ami-[a-z0-9]+")
 
     def __init__(self):
         self.amis = {}
         self.deleted_amis = list()
         self._load_amis()
-        super().__init__()
 
     def _load_amis(self):
         for ami in AMIS:

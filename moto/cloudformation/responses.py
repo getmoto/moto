@@ -6,7 +6,7 @@ from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
-from moto.s3 import s3_backend
+from moto.s3.models import s3_backend
 from moto.s3.exceptions import S3ClientError
 from moto.core import get_account_id
 from .models import cloudformation_backends

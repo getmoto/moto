@@ -2,6 +2,7 @@ import random
 import string
 
 from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
 from uuid import uuid4
@@ -171,7 +172,8 @@ class Distribution(BaseModel, ManagedState):
 
 
 class CloudFrontBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.distributions = dict()
 
         state_manager.register_default_transition(
@@ -247,4 +249,10 @@ class CloudFrontBackend(BaseBackend):
         return dist, dist.location, dist.etag
 
 
-cloudfront_backend = CloudFrontBackend()
+cloudfront_backends = BackendDict(
+    CloudFrontBackend,
+    "cloudfront",
+    use_boto3_regions=False,
+    additional_regions=["global"],
+)
+cloudfront_backend = cloudfront_backends["global"]

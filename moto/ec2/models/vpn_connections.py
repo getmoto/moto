@@ -31,10 +31,9 @@ class VPNConnection(TaggedEC2Resource):
         return super().get_filter_value(filter_name, "DescribeVpnConnections")
 
 
-class VPNConnectionBackend(object):
+class VPNConnectionBackend:
     def __init__(self):
         self.vpn_connections = {}
-        super().__init__()
 
     def create_vpn_connection(
         self,

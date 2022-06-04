@@ -29,6 +29,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
     unix_time_millis,
+    BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
@@ -1374,7 +1375,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     Note that this only works if the environment variable is set **before** the mock is initialized.
     """
 
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.buckets = {}
         self.tagger = TaggingService()
 
@@ -2148,4 +2150,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return bucket.notification_configuration
 
 
-s3_backend = S3Backend()
+s3_backends = BackendDict(
+    S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
+)
+s3_backend = s3_backends["global"]

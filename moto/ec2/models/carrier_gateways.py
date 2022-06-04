@@ -23,10 +23,9 @@ class CarrierGateway(TaggedEC2Resource):
         return get_account_id()
 
 
-class CarrierGatewayBackend(object):
+class CarrierGatewayBackend:
     def __init__(self):
         self.carrier_gateways = {}
-        super().__init__()
 
     def create_carrier_gateway(self, vpc_id, tags=None):
         vpc = self.get_vpc(vpc_id)

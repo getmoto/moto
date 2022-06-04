@@ -128,10 +128,9 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeFlowLogs")
 
 
-class FlowLogsBackend(object):
+class FlowLogsBackend:
     def __init__(self):
         self.flow_logs = defaultdict(dict)
-        super().__init__()
 
     def _validate_request(
         self,

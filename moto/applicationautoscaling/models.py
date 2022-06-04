@@ -63,18 +63,12 @@ class ScalableDimensionValueSet(Enum):
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
-    def __init__(self, region):
-        super().__init__()
-        self.region = region
-        self.ecs_backend = ecs_backends[region]
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
+        self.ecs_backend = ecs_backends[region_name]
         self.targets = OrderedDict()
         self.policies = {}
         self.scheduled_actions = list()
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -85,7 +79,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
     @property
     def applicationautoscaling_backend(self):
-        return applicationautoscaling_backends[self.region]
+        return applicationautoscaling_backends[self.region_name]
 
     def describe_scalable_targets(self, namespace, r_ids=None, dimension=None):
         """Describe scalable targets."""
@@ -166,7 +160,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         if policy_key in self.policies:
             old_policy = self.policies[policy_key]
             policy = FakeApplicationAutoscalingPolicy(
-                region_name=self.region,
+                region_name=self.region_name,
                 policy_name=policy_name,
                 service_namespace=service_namespace,
                 resource_id=resource_id,
@@ -176,7 +170,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
             )
         else:
             policy = FakeApplicationAutoscalingPolicy(
-                region_name=self.region,
+                region_name=self.region_name,
                 policy_name=policy_name,
                 service_namespace=service_namespace,
                 resource_id=resource_id,
@@ -311,7 +305,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 start_time,
                 end_time,
                 scalable_target_action,
-                self.region,
+                self.region_name,
             )
             self.scheduled_actions.append(action)
 

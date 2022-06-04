@@ -249,10 +249,9 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeNetworkInterfaces")
 
 
-class NetworkInterfaceBackend(object):
+class NetworkInterfaceBackend:
     def __init__(self):
         self.enis = {}
-        super().__init__()
 
     def create_network_interface(
         self,

@@ -838,9 +838,9 @@ class SimpleSystemManagerBackend(BaseBackend):
     Integration with SecretsManager is also supported.
     """
 
-    def __init__(self, region):
-        super().__init__()
-        self._parameters = ParameterDict(region)
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
+        self._parameters = ParameterDict(region_name)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
@@ -848,13 +848,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._documents: Dict[str, Documents] = {}
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
-
-        self._region = region
-
-    def reset(self):
-        region_name = self._region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1848,7 +1841,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             parameters=kwargs.get("Parameters", {}),
             service_role_arn=kwargs.get("ServiceRoleArn", ""),
             targets=kwargs.get("Targets", []),
-            backend_region=self._region,
+            backend_region=self.region_name,
         )
 
         self._commands.append(command)

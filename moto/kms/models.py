@@ -231,17 +231,11 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name, account_id=None):
+        super().__init__(region_name=region_name, account_id=account_id)
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
-
-    def reset(self):
-        region = self.region
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -259,7 +253,7 @@ class KmsBackend(BaseBackend):
                 "SYMMETRIC_DEFAULT",
                 "Default key",
                 None,
-                self.region,
+                self.region_name,
             )
             self.add_alias(key.id, alias_name)
             return key.id

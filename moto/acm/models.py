@@ -423,16 +423,10 @@ class CertBundle(BaseModel):
 
 
 class AWSCertificateManagerBackend(BaseBackend):
-    def __init__(self, region):
-        super().__init__()
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._certificates = {}
         self._idempotency_tokens = {}
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -491,12 +485,16 @@ class AWSCertificateManagerBackend(BaseBackend):
             else:
                 # Will reuse provided ARN
                 bundle = CertBundle(
-                    certificate, private_key, chain=chain, region=self.region, arn=arn
+                    certificate,
+                    private_key,
+                    chain=chain,
+                    region=self.region_name,
+                    arn=arn,
                 )
         else:
             # Will generate a random ARN
             bundle = CertBundle(
-                certificate, private_key, chain=chain, region=self.region
+                certificate, private_key, chain=chain, region=self.region_name
             )
 
         self._certificates[bundle.arn] = bundle
@@ -548,7 +546,7 @@ class AWSCertificateManagerBackend(BaseBackend):
                 return arn
 
         cert = CertBundle.generate_cert(
-            domain_name, region=self.region, sans=subject_alt_names
+            domain_name, region=self.region_name, sans=subject_alt_names
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)

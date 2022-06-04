@@ -500,14 +500,9 @@ class Stream(CloudFormationModel):
 
 
 class KinesisBackend(BaseBackend):
-    def __init__(self, region):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.streams = OrderedDict()
-        self.region_name = region
-
-    def reset(self):
-        region = self.region_name
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
