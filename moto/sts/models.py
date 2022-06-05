@@ -4,6 +4,7 @@ import xmltodict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.core import get_account_id
+from moto.iam import iam_backends
 from moto.sts.utils import (
     random_access_key_id,
     random_secret_access_key,
@@ -26,15 +27,16 @@ class Token(BaseModel):
 
 
 class AssumedRole(BaseModel):
-    def __init__(self, role_session_name, role_arn, policy, duration, external_id):
+    def __init__(self, access_key, role_session_name, role_arn, policy, duration, external_id):
         self.session_name = role_session_name
         self.role_arn = role_arn
         self.policy = policy
         now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.external_id = external_id
-        self.access_key_id = "ASIA" + random_access_key_id()
-        self.secret_access_key = random_secret_access_key()
+        self.access_key = access_key
+        self.access_key_id = access_key.access_key_id
+        self.secret_access_key = access_key.secret_access_key
         self.session_token = random_session_token()
         self.assumed_role_id = "AROA" + random_assumed_role_id()
 
@@ -77,8 +79,14 @@ class STSBackend(BaseBackend):
         token = Token(duration=duration, name=name)
         return token
 
-    def assume_role(self, **kwargs):
-        role = AssumedRole(**kwargs)
+    def assume_role(self, role_session_name, role_arn, policy, duration, external_id):
+        # TODO
+        # Access Keys are created against a user
+        # What user are we creating this against? Root user? System user?
+        # Maybe check against AWS how these roles/access keys are created
+        # They could be invisible, i.e. special type of access creds that cannot be seen by the user
+        access_key = iam_backends[self.account_id]["global"].create_access_key(role_session_name, prefix="ASIA")
+        role = AssumedRole(access_key, role_session_name, role_arn, policy, duration, external_id)
         self.assumed_roles.append(role)
         return role
 

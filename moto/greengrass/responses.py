@@ -9,7 +9,7 @@ class GreengrassResponse(BaseResponse):
 
     @property
     def greengrass_backend(self):
-        return greengrass_backends[self.region]
+        return greengrass_backends[self.get_current_account()][self.region]
 
     def create_core_definition(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

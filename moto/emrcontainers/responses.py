@@ -17,7 +17,7 @@ class EMRContainersResponse(BaseResponse):
     @property
     def emrcontainers_backend(self):
         """Return backend instance specific for this region."""
-        return emrcontainers_backends[self.region]
+        return emrcontainers_backends[self.get_current_account()][self.region]
 
     def create_virtual_cluster(self):
         name = self._get_param("name")

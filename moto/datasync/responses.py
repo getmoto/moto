@@ -8,7 +8,7 @@ from .models import datasync_backends
 class DataSyncResponse(BaseResponse):
     @property
     def datasync_backend(self):
-        return datasync_backends[self.region]
+        return datasync_backends[self.get_current_account()][self.region]
 
     def list_locations(self):
         locations = list()

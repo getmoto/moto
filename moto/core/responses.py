@@ -122,6 +122,7 @@ class ActionAuthenticatorMixin(object):
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
             iam_request = iam_request_cls(
+                account_id=self.account_id,
                 method=self.method, path=self.path, data=self.data, headers=self.headers
             )
             iam_request.check_signature()
@@ -295,7 +296,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             region = self.default_region
         return region
 
-    def get_current_user(self):
+    def get_access_key(self):
         """
         Returns the access key id used in this request as the current user id
         """
@@ -307,8 +308,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if self.querystring.get("AWSAccessKeyId"):
             return self.querystring.get("AWSAccessKeyId")
         else:
-            # Should we raise an unauthorized exception instead?
-            return "111122223333"
+            return "AKIAEXAMPLE"
+
+    def get_current_account(self):
+        from moto.iam.models import get_account_id_from
+
+        return get_account_id_from(self.get_access_key())
 
     def _dispatch(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

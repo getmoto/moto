@@ -9,7 +9,7 @@ class IoTDataPlaneResponse(BaseResponse):
 
     @property
     def iotdata_backend(self):
-        return iotdata_backends[self.region]
+        return iotdata_backends[self.get_current_account()][self.region]
 
     def update_thing_shadow(self):
         thing_name = self._get_param("thingName")

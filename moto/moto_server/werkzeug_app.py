@@ -236,6 +236,7 @@ class DomainDispatcherApplication(object):
             return None, None
 
     def __call__(self, environ, start_response):
+        print("__call__()")
         backend_app = self.get_application(environ)
         return backend_app(environ, start_response)
 

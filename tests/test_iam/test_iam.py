@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_config, mock_iam, settings
 from moto.core import ACCOUNT_ID
-from moto.iam.models import aws_managed_policies
+from moto.iam import iam_backends
 from moto.backends import get_backend
 import pytest
 
@@ -1756,7 +1756,7 @@ def test_get_credential_report_content():
     key1 = conn.create_access_key(UserName=username)["AccessKey"]
     timestamp = datetime.utcnow()
     if not settings.TEST_SERVER_MODE:
-        iam_backend = get_backend("iam")["global"]
+        iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
         iam_backend.users[username].access_keys[1].last_used = timestamp
         iam_backend.users[username].password_last_used = timestamp
     with pytest.raises(ClientError):
@@ -1797,7 +1797,7 @@ def test_get_access_key_last_used_when_used():
     # Set last used date using the IAM backend. Moto currently does not have a mechanism for tracking usage of access keys
     if not settings.TEST_SERVER_MODE:
         timestamp = datetime.utcnow()
-        iam_backend = get_backend("iam")["global"]
+        iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
         iam_backend.users[username].access_keys[0].last_used = timestamp
     resp = client.get_access_key_last_used(
         AccessKeyId=create_key_response["AccessKeyId"]
@@ -1828,6 +1828,7 @@ def test_managed_policy():
         for policy in response["Policies"]:
             aws_policies.append(policy)
         marker = response.get("Marker")
+    aws_managed_policies = iam_backends[ACCOUNT_ID]["global"].aws_managed_policies
     set(p.name for p in aws_managed_policies).should.equal(
         set(p["PolicyName"] for p in aws_policies)
     )

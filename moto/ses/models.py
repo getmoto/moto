@@ -247,7 +247,7 @@ class SESBackend(BaseBackend):
                 if sns_topic is not None:
                     message = self.__generate_feedback__(msg_type)
                     if message:
-                        sns_backends[region].publish(message, arn=sns_topic)
+                        sns_backends[self.account_id][region].publish(message, arn=sns_topic)
 
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
@@ -540,4 +540,3 @@ class SESBackend(BaseBackend):
 ses_backends = BackendDict(
     SESBackend, "ses", use_boto3_regions=False, additional_regions=["global"]
 )
-ses_backend = ses_backends["global"]

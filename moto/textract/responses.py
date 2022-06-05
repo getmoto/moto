@@ -11,7 +11,7 @@ class TextractResponse(BaseResponse):
     @property
     def textract_backend(self):
         """Return backend instance specific for this region."""
-        return textract_backends[self.region]
+        return textract_backends[self.get_current_account()][self.region]
 
     def get_document_text_detection(self):
         params = json.loads(self.body)

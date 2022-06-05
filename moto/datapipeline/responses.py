@@ -15,7 +15,7 @@ class DataPipelineResponse(BaseResponse):
 
     @property
     def datapipeline_backend(self):
-        return datapipeline_backends[self.region]
+        return datapipeline_backends[self.get_current_account()][self.region]
 
     def create_pipeline(self):
         name = self.parameters.get("name")

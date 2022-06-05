@@ -299,7 +299,7 @@ def test_write_records():
     if not settings.TEST_SERVER_MODE:
         from moto.timestreamwrite.models import timestreamwrite_backends
 
-        backend = timestreamwrite_backends["us-east-1"]
+        backend = timestreamwrite_backends[ACCOUNT_ID]["us-east-1"]
         records = backend.databases["mydatabase"].tables["mytable"].records
         records.should.equal(sample_records)
 

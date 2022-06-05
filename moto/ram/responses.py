@@ -8,7 +8,7 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     @property
     def ram_backend(self):
-        return ram_backends[self.region]
+        return ram_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

@@ -14,7 +14,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         :return: ACM Backend object
         :rtype: moto.acm.models.AWSCertificateManagerBackend
         """
-        return acm_backends[self.region]
+        return acm_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

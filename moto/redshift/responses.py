@@ -47,7 +47,7 @@ def itemize(data):
 class RedshiftResponse(BaseResponse):
     @property
     def redshift_backend(self):
-        return redshift_backends[self.region]
+        return redshift_backends[self.get_current_account()][self.region]
 
     def get_response(self, response):
         if self.request_json:

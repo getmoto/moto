@@ -920,4 +920,3 @@ organizations_backends = BackendDict(
     use_boto3_regions=False,
     additional_regions=["global"],
 )
-organizations_backend = organizations_backends["global"]

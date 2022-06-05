@@ -1,16 +1,21 @@
 from moto.core.responses import BaseResponse
 from moto.core import get_account_id
-from moto.iam import iam_backend
+from moto.iam import iam_backends
 from .exceptions import STSValidationError
-from .models import sts_backend
+from .models import sts_backends
 
 MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 
 
 class TokenResponse(BaseResponse):
+
+    @property
+    def backend(self):
+        return sts_backends[self.get_current_account()]["global"]
+
     def get_session_token(self):
         duration = int(self.querystring.get("DurationSeconds", [43200])[0])
-        token = sts_backend.get_session_token(duration=duration)
+        token = self.backend.get_session_token(duration=duration)
         template = self.response_template(GET_SESSION_TOKEN_RESPONSE)
         return template.render(token=token)
 
@@ -27,7 +32,7 @@ class TokenResponse(BaseResponse):
             )
 
         name = self.querystring.get("Name")[0]
-        token = sts_backend.get_federation_token(duration=duration, name=name)
+        token = self.backend.get_federation_token(duration=duration, name=name)
         template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
         return template.render(token=token, account_id=get_account_id())
 
@@ -39,7 +44,7 @@ class TokenResponse(BaseResponse):
         duration = int(self.querystring.get("DurationSeconds", [3600])[0])
         external_id = self.querystring.get("ExternalId", [None])[0]
 
-        role = sts_backend.assume_role(
+        role = self.backend.assume_role(
             role_session_name=role_session_name,
             role_arn=role_arn,
             policy=policy,
@@ -57,7 +62,7 @@ class TokenResponse(BaseResponse):
         duration = int(self.querystring.get("DurationSeconds", [3600])[0])
         external_id = self.querystring.get("ExternalId", [None])[0]
 
-        role = sts_backend.assume_role_with_web_identity(
+        role = self.backend.assume_role_with_web_identity(
             role_session_name=role_session_name,
             role_arn=role_arn,
             policy=policy,
@@ -72,7 +77,7 @@ class TokenResponse(BaseResponse):
         principal_arn = self.querystring.get("PrincipalArn")[0]
         saml_assertion = self.querystring.get("SAMLAssertion")[0]
 
-        role = sts_backend.assume_role_with_saml(
+        role = self.backend.assume_role_with_saml(
             role_arn=role_arn,
             principal_arn=principal_arn,
             saml_assertion=saml_assertion,
@@ -87,12 +92,13 @@ class TokenResponse(BaseResponse):
         user_id = "AKIAIOSFODNN7EXAMPLE"
         arn = "arn:aws:sts::{account_id}:user/moto".format(account_id=get_account_id())
 
-        access_key_id = self.get_current_user()
-        assumed_role = sts_backend.get_assumed_role_from_access_key(access_key_id)
+        access_key_id = self.get_access_key()
+        assumed_role = self.backend.get_assumed_role_from_access_key(access_key_id)
         if assumed_role:
             user_id = assumed_role.user_id
             arn = assumed_role.arn
 
+        iam_backend = iam_backends[self.get_current_account()]["global"]
         user = iam_backend.get_user_from_access_key_id(access_key_id)
         if user:
             user_id = user.id

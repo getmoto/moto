@@ -13,7 +13,7 @@ class EKSResponse(BaseResponse):
 
     @property
     def eks_backend(self):
-        return eks_backends[self.region]
+        return eks_backends[self.get_current_account()][self.region]
 
     def create_cluster(self):
         name = self._get_param("name")

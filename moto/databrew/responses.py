@@ -12,7 +12,7 @@ class DataBrewResponse(BaseResponse):
     @property
     def databrew_backend(self):
         """Return backend instance specific for this region."""
-        return databrew_backends[self.region]
+        return databrew_backends[self.get_current_account()][self.region]
 
     # region Recipes
     @property

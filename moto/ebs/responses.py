@@ -11,7 +11,7 @@ class EBSResponse(BaseResponse):
     @property
     def ebs_backend(self):
         """Return backend instance specific for this region."""
-        return ebs_backends[self.region]
+        return ebs_backends[self.get_current_account()][self.region]
 
     def snapshots(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

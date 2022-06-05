@@ -28,7 +28,7 @@ class KmsResponse(BaseResponse):
 
     @property
     def kms_backend(self):
-        return kms_backends[self.region]
+        return kms_backends[self.get_current_account()][self.region]
 
     def _display_arn(self, key_id):
         if key_id.startswith("arn:"):

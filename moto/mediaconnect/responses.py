@@ -11,7 +11,7 @@ class MediaConnectResponse(BaseResponse):
 
     @property
     def mediaconnect_backend(self):
-        return mediaconnect_backends[self.region]
+        return mediaconnect_backends[self.get_current_account()][self.region]
 
     def create_flow(self):
         availability_zone = self._get_param("availabilityZone")

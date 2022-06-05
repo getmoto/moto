@@ -12,7 +12,7 @@ class CloudTrailResponse(BaseResponse):
     @property
     def cloudtrail_backend(self):
         """Return backend instance specific for this region."""
-        return cloudtrail_backends[self.region]
+        return cloudtrail_backends[self.get_current_account()][self.region]
 
     def create_trail(self):
         name = self._get_param("Name")

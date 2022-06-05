@@ -20,7 +20,7 @@ class APIGatewayResponse(BaseResponse):
 
     @property
     def backend(self):
-        return apigateway_backends[self.region]
+        return apigateway_backends[self.get_current_account()][self.region]
 
     def __validate_api_key_source(self, api_key_source):
         if api_key_source and api_key_source not in API_KEY_SOURCES:

@@ -11,7 +11,7 @@ class FirehoseResponse(BaseResponse):
     @property
     def firehose_backend(self):
         """Return backend instance specific to this region."""
-        return firehose_backends[self.region]
+        return firehose_backends[self.get_current_account()][self.region]
 
     def create_delivery_stream(self):
         """Prepare arguments and respond to CreateDeliveryStream request."""

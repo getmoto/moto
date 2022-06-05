@@ -1483,7 +1483,6 @@ class ConfigBackend(BaseBackend):
             resource_id, backend_region=backend_query_region
         )
         if not item:
-            print("item not found")
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         item["accountId"] = get_account_id()

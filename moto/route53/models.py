@@ -688,4 +688,3 @@ class Route53Backend(BaseBackend):
 route53_backends = BackendDict(
     Route53Backend, "route53", use_boto3_regions=False, additional_regions=["global"]
 )
-route53_backend = route53_backends["global"]

@@ -14,7 +14,7 @@ def format_enum_error(value, attribute, allowed):
 class SageMakerResponse(BaseResponse):
     @property
     def sagemaker_backend(self):
-        return sagemaker_backends[self.region]
+        return sagemaker_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

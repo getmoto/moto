@@ -65,7 +65,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     @property
     def backend(self):
-        return emr_backends[self.region]
+        return emr_backends[self.get_current_account()][self.region]
 
     @generate_boto3_response("AddInstanceGroups")
     def add_instance_groups(self):

@@ -13,7 +13,7 @@ LEXICON_NAME_REGEX = re.compile(r"^[0-9A-Za-z]{1,20}$")
 class PollyResponse(BaseResponse):
     @property
     def polly_backend(self):
-        return polly_backends[self.region]
+        return polly_backends[self.get_current_account()][self.region]
 
     @property
     def json(self):

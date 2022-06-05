@@ -9,7 +9,7 @@ class MediaStoreDataResponse(BaseResponse):
 
     @property
     def mediastoredata_backend(self):
-        return mediastoredata_backends[self.region]
+        return mediastoredata_backends[self.get_current_account()][self.region]
 
     def get_object(self):
         path = self._get_param("Path")

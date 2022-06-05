@@ -12,7 +12,7 @@ class ElasticsearchServiceResponse(BaseResponse):
     @property
     def es_backend(self):
         """Return backend instance specific for this region."""
-        return es_backends[self.region]
+        return es_backends[self.get_current_account()][self.region]
 
     @classmethod
     def list_domains(cls, request, full_url, headers):

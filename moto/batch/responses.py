@@ -15,7 +15,7 @@ class BatchResponse(BaseResponse):
         :return: Batch Backend
         :rtype: moto.batch.models.BatchBackend
         """
-        return batch_backends[self.region]
+        return batch_backends[self.get_current_account()][self.region]
 
     @property
     def json(self):

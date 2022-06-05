@@ -7,7 +7,7 @@ from .models import budgets_backends
 class BudgetsResponse(BaseResponse):
     @property
     def backend(self):
-        return budgets_backends["global"]
+        return budgets_backends[self.get_current_account()]["global"]
 
     def create_budget(self):
         account_id = self._get_param("AccountId")

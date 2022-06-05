@@ -14,7 +14,7 @@ class ApiGatewayV2Response(BaseResponse):
     @property
     def apigatewayv2_backend(self):
         """Return backend instance specific for this region."""
-        return apigatewayv2_backends[self.region]
+        return apigatewayv2_backends[self.get_current_account()][self.region]
 
     def apis(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

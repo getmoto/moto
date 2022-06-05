@@ -8,7 +8,7 @@ from .models import forecast_backends
 class ForecastResponse(BaseResponse):
     @property
     def forecast_backend(self):
-        return forecast_backends[self.region]
+        return forecast_backends[self.get_current_account()][self.region]
 
     @amzn_request_id
     def create_dataset_group(self):

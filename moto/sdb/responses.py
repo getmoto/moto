@@ -5,7 +5,7 @@ from .models import sdb_backends
 class SimpleDBResponse(BaseResponse):
     @property
     def sdb_backend(self):
-        return sdb_backends[self.region]
+        return sdb_backends[self.get_current_account()][self.region]
 
     def create_domain(self):
         domain_name = self._get_param("DomainName")

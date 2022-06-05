@@ -9,7 +9,7 @@ class MediaStoreResponse(BaseResponse):
 
     @property
     def mediastore_backend(self):
-        return mediastore_backends[self.region]
+        return mediastore_backends[self.get_current_account()][self.region]
 
     def create_container(self):
         name = self._get_param("ContainerName")

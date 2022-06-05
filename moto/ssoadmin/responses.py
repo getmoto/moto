@@ -12,7 +12,7 @@ class SSOAdminResponse(BaseResponse):
     @property
     def ssoadmin_backend(self):
         """Return backend instance specific for this region."""
-        return ssoadmin_backends[self.region]
+        return ssoadmin_backends[self.get_current_account()][self.region]
 
     def create_account_assignment(self):
         params = json.loads(self.body)

@@ -6,7 +6,7 @@ from .models import redshiftdata_backends
 class RedshiftDataAPIServiceResponse(BaseResponse):
     @property
     def redshiftdata_backend(self):
-        return redshiftdata_backends[self.region]
+        return redshiftdata_backends[self.get_current_account()][self.region]
 
     def cancel_statement(self):
         statement_id = self._get_param("Id")

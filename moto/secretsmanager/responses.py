@@ -32,7 +32,7 @@ def _validate_filters(filters):
 class SecretsManagerResponse(BaseResponse):
     @property
     def backend(self):
-        return secretsmanager_backends[self.region]
+        return secretsmanager_backends[self.get_current_account()][self.region]
 
     def get_secret_value(self):
         secret_id = self._get_param("SecretId")

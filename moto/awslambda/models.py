@@ -25,7 +25,7 @@ import requests.exceptions
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.iam.models import iam_backend
+from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis, BackendDict
 from moto.s3.models import s3_backend
@@ -1030,12 +1030,13 @@ class LambdaVersion(CloudFormationModel):
 
 
 class LambdaStorage(object):
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
         # Format 'func_name' {'versions': []}
         self._functions = {}
         self._aliases = dict()
         self._arns = weakref.WeakValueDictionary()
         self.region_name = region_name
+        self.account_id = account_id
 
     def _get_latest(self, name):
         return self._functions[name]["latest"]
@@ -1121,6 +1122,7 @@ class LambdaStorage(object):
             if account != get_account_id():
                 raise CrossAccountNotAllowed()
             try:
+                iam_backend = iam_backends[self.account_id]["global"]
                 iam_backend.get_role_by_arn(fn.role)
             except IAMNotFoundException:
                 raise InvalidParameterValueException(
@@ -1310,7 +1312,7 @@ class LambdaBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self._lambdas = LambdaStorage(region_name=region_name)
+        self._lambdas = LambdaStorage(region_name=region_name, account_id=account_id)
         self._event_source_mappings = {}
         self._layers = LayerStorage()
 

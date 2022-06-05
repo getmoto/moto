@@ -5,6 +5,10 @@ from moto.core.responses import ActionAuthenticatorMixin, BaseResponse
 
 
 class MotoAPIResponse(BaseResponse):
+
+    def backends(self):
+        pass
+
     def reset_response(
         self, request, full_url, headers
     ):  # pylint: disable=unused-argument

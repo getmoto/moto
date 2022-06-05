@@ -51,7 +51,7 @@ from .exceptions import (
     InvalidRange,
     LockNotEnabled,
 )
-from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
+from .models import s3_backends, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey
 from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
@@ -152,13 +152,16 @@ def is_delete_keys(request, path):
 
 
 class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
-    def __init__(self, backend):
+    def __init__(self):
         super().__init__()
-        self.backend = backend
         self.method = ""
         self.path = ""
         self.data = {}
         self.headers = {}
+
+    @property
+    def backend(self):
+        return s3_backends["?"]["global"]
 
     @property
     def should_autoescape(self):
@@ -1300,7 +1303,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 304, response_headers, "Not Modified"
 
         if "acl" in query:
-            acl = s3_backend.get_object_acl(key)
+            acl = self.backend.get_object_acl(key)
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(acl=acl)
         if "tagging" in query:
@@ -2028,7 +2031,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return False
 
 
-S3ResponseInstance = ResponseObject(s3_backend)
+S3ResponseInstance = ResponseObject()
 
 S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
   <Owner>

@@ -118,7 +118,7 @@ class DynamoHandler(BaseResponse):
         :return: DynamoDB2 Backend
         :rtype: moto.dynamodb2.models.DynamoDBBackend
         """
-        return dynamodb_backends[self.region]
+        return dynamodb_backends[self.get_current_account()][self.region]
 
     @amz_crc32
     @amzn_request_id

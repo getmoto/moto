@@ -12,7 +12,7 @@ class MQResponse(BaseResponse):
     @property
     def mq_backend(self):
         """Return backend instance specific for this region."""
-        return mq_backends[self.region]
+        return mq_backends[self.get_current_account()][self.region]
 
     def broker(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

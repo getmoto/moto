@@ -9,7 +9,7 @@ class ServiceDiscoveryResponse(BaseResponse):
     @property
     def servicediscovery_backend(self):
         """Return backend instance specific for this region."""
-        return servicediscovery_backends[self.region]
+        return servicediscovery_backends[self.get_current_account()][self.region]
 
     def list_namespaces(self):
         namespaces = self.servicediscovery_backend.list_namespaces()

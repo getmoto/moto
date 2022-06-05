@@ -8,7 +8,7 @@ class KinesisVideoResponse(BaseResponse):
 
     @property
     def kinesisvideo_backend(self):
-        return kinesisvideo_backends[self.region]
+        return kinesisvideo_backends[self.get_current_account()][self.region]
 
     def create_stream(self):
         device_name = self._get_param("DeviceName")

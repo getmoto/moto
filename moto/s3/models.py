@@ -2153,4 +2153,3 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 s3_backends = BackendDict(
     S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
 )
-s3_backend = s3_backends["global"]

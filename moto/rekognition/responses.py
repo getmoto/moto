@@ -11,7 +11,7 @@ class RekognitionResponse(BaseResponse):
     @property
     def rekognition_backend(self):
         """Return backend instance specific for this region."""
-        return rekognition_backends[self.region]
+        return rekognition_backends[self.get_current_account()][self.region]
 
     def get_face_search(self):
         (

@@ -8,7 +8,7 @@ from .models import ssm_backends
 class SimpleSystemManagerResponse(BaseResponse):
     @property
     def ssm_backend(self):
-        return ssm_backends[self.region]
+        return ssm_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

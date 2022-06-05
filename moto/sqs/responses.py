@@ -29,8 +29,8 @@ class SQSResponse(BaseResponse):
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
     @property
-    def sqs_backend(self):
-        return sqs_backends[self.region]
+    def backend(self):
+        return sqs_backends[self.get_current_account()][self.region]
 
     @property
     def attribute(self):
@@ -92,7 +92,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+        queue = self.backend.create_queue(queue_name, self.tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -101,7 +101,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        queue = self.sqs_backend.get_queue_url(queue_name)
+        queue = self.backend.get_queue_url(queue_name)
 
         template = self.response_template(GET_QUEUE_URL_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -109,7 +109,7 @@ class SQSResponse(BaseResponse):
     def list_queues(self):
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
-        queues = self.sqs_backend.list_queues(queue_name_prefix)
+        queues = self.backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
@@ -122,7 +122,7 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        self.sqs_backend.change_message_visibility(
+        self.backend.change_message_visibility(
             queue_name=queue_name,
             receipt_handle=receipt_handle,
             visibility_timeout=visibility_timeout,
@@ -154,7 +154,7 @@ class SQSResponse(BaseResponse):
                 continue
 
             try:
-                self.sqs_backend.change_message_visibility(
+                self.backend.change_message_visibility(
                     queue_name=queue_name,
                     receipt_handle=entry["receipt_handle"],
                     visibility_timeout=visibility_timeout,
@@ -185,7 +185,7 @@ class SQSResponse(BaseResponse):
         if not attribute_names:
             attribute_names = self.querystring.get("AttributeName")
 
-        attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
+        attributes = self.backend.get_queue_attributes(queue_name, attribute_names)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(attributes=attributes)
@@ -202,7 +202,7 @@ class SQSResponse(BaseResponse):
                     attribute = {attr["Name"]: None}
 
         queue_name = self._get_queue_name()
-        self.sqs_backend.set_queue_attributes(queue_name, attribute)
+        self.backend.set_queue_attributes(queue_name, attribute)
 
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
@@ -210,7 +210,7 @@ class SQSResponse(BaseResponse):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
 
-        self.sqs_backend.delete_queue(queue_name)
+        self.backend.delete_queue(queue_name)
 
         template = self.response_template(DELETE_QUEUE_RESPONSE)
         return template.render()
@@ -232,7 +232,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
 
         try:
-            message = self.sqs_backend.send_message(
+            message = self.backend.send_message(
                 queue_name,
                 message,
                 message_attributes=message_attributes,
@@ -261,7 +261,7 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        self.sqs_backend.get_queue(queue_name)
+        self.backend.get_queue(queue_name)
 
         if self.querystring.get("Entries"):
             raise EmptyBatchRequest()
@@ -302,7 +302,7 @@ class SQSResponse(BaseResponse):
         if entries == {}:
             raise EmptyBatchRequest()
 
-        messages = self.sqs_backend.send_message_batch(queue_name, entries)
+        messages = self.backend.send_message_batch(queue_name, entries)
 
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages)
@@ -310,7 +310,7 @@ class SQSResponse(BaseResponse):
     def delete_message(self):
         queue_name = self._get_queue_name()
         receipt_handle = self.querystring.get("ReceiptHandle")[0]
-        self.sqs_backend.delete_message(queue_name, receipt_handle)
+        self.backend.delete_message(queue_name, receipt_handle)
         template = self.response_template(DELETE_MESSAGE_RESPONSE)
         return template.render()
 
@@ -355,7 +355,7 @@ class SQSResponse(BaseResponse):
         errors = []
         for receipt_and_id in receipts:
             try:
-                self.sqs_backend.delete_message(
+                self.backend.delete_message(
                     queue_name, receipt_and_id["receipt_handle"]
                 )
                 success.append(receipt_and_id["msg_user_id"])
@@ -374,7 +374,7 @@ class SQSResponse(BaseResponse):
 
     def purge_queue(self):
         queue_name = self._get_queue_name()
-        self.sqs_backend.purge_queue(queue_name)
+        self.backend.purge_queue(queue_name)
         template = self.response_template(PURGE_QUEUE_RESPONSE)
         return template.render()
 
@@ -386,7 +386,7 @@ class SQSResponse(BaseResponse):
 
         attribute_names = self._get_multi_param("AttributeName")
 
-        queue = self.sqs_backend.get_queue(queue_name)
+        queue = self.backend.get_queue(queue_name)
 
         try:
             message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
@@ -423,7 +423,7 @@ class SQSResponse(BaseResponse):
         except ValueError:
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
-        messages = self.sqs_backend.receive_message(
+        messages = self.backend.receive_message(
             queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
 
@@ -449,7 +449,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_queue_name()
 
-        source_queue_urls = self.sqs_backend.list_dead_letter_source_queues(queue_name)
+        source_queue_urls = self.backend.list_dead_letter_source_queues(queue_name)
 
         template = self.response_template(LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE)
         return template.render(queues=source_queue_urls, request_url=request_url)
@@ -460,7 +460,7 @@ class SQSResponse(BaseResponse):
         account_ids = self._get_multi_param("AWSAccountId")
         label = self._get_param("Label")
 
-        self.sqs_backend.add_permission(queue_name, actions, account_ids, label)
+        self.backend.add_permission(queue_name, actions, account_ids, label)
 
         template = self.response_template(ADD_PERMISSION_RESPONSE)
         return template.render()
@@ -469,7 +469,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         label = self._get_param("Label")
 
-        self.sqs_backend.remove_permission(queue_name, label)
+        self.backend.remove_permission(queue_name, label)
 
         template = self.response_template(REMOVE_PERMISSION_RESPONSE)
         return template.render()
@@ -478,7 +478,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tags = self._get_map_prefix("Tag", key_end=".Key", value_end=".Value")
 
-        self.sqs_backend.tag_queue(queue_name, tags)
+        self.backend.tag_queue(queue_name, tags)
 
         template = self.response_template(TAG_QUEUE_RESPONSE)
         return template.render()
@@ -487,7 +487,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tag_keys = self._get_multi_param("TagKey")
 
-        self.sqs_backend.untag_queue(queue_name, tag_keys)
+        self.backend.untag_queue(queue_name, tag_keys)
 
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
@@ -495,7 +495,7 @@ class SQSResponse(BaseResponse):
     def list_queue_tags(self):
         queue_name = self._get_queue_name()
 
-        queue = self.sqs_backend.list_queue_tags(queue_name)
+        queue = self.backend.list_queue_tags(queue_name)
 
         template = self.response_template(LIST_QUEUE_TAGS_RESPONSE)
         return template.render(tags=queue.tags)

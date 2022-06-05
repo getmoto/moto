@@ -7,7 +7,7 @@ from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 class ELBResponse(BaseResponse):
     @property
     def elb_backend(self):
-        return elb_backends[self.region]
+        return elb_backends[self.get_current_account()][self.region]
 
     def create_load_balancer(self):
         load_balancer_name = self._get_param("LoadBalancerName")

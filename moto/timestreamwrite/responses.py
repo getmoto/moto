@@ -11,7 +11,7 @@ class TimestreamWriteResponse(BaseResponse):
     @property
     def timestreamwrite_backend(self):
         """Return backend instance specific for this region."""
-        return timestreamwrite_backends[self.region]
+        return timestreamwrite_backends[self.get_current_account()][self.region]
 
     def create_database(self):
         database_name = self._get_param("DatabaseName")

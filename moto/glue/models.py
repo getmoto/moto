@@ -629,4 +629,3 @@ class FakeJobRun:
 glue_backends = BackendDict(
     GlueBackend, "glue", use_boto3_regions=False, additional_regions=["global"]
 )
-glue_backend = glue_backends["global"]

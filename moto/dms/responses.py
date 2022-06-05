@@ -8,7 +8,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
     @property
     def dms_backend(self):
-        return dms_backends[self.region]
+        return dms_backends[self.get_current_account()][self.region]
 
     def create_replication_task(self):
         replication_task_identifier = self._get_param("ReplicationTaskIdentifier")

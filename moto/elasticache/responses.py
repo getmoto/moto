@@ -9,7 +9,7 @@ class ElastiCacheResponse(BaseResponse):
     @property
     def elasticache_backend(self):
         """Return backend instance specific for this region."""
-        return elasticache_backends[self.region]
+        return elasticache_backends[self.get_current_account()][self.region]
 
     def create_user(self):
         params = self._get_params()

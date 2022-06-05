@@ -11,7 +11,7 @@ from .exceptions import InvalidParameterCombination
 class CloudWatchResponse(BaseResponse):
     @property
     def cloudwatch_backend(self):
-        return cloudwatch_backends[self.region]
+        return cloudwatch_backends[self.get_current_account()][self.region]
 
     def _error(self, code, message, status=400):
         template = self.response_template(ERROR_RESPONSE_TEMPLATE)

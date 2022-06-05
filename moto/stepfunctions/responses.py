@@ -8,7 +8,7 @@ from .models import stepfunction_backends
 class StepFunctionResponse(BaseResponse):
     @property
     def stepfunction_backend(self):
-        return stepfunction_backends[self.region]
+        return stepfunction_backends[self.get_current_account()][self.region]
 
     @amzn_request_id
     def create_state_machine(self):

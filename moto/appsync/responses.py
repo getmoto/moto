@@ -12,7 +12,7 @@ class AppSyncResponse(BaseResponse):
     @property
     def appsync_backend(self):
         """Return backend instance specific for this region."""
-        return appsync_backends[self.region]
+        return appsync_backends[self.get_current_account()][self.region]
 
     def graph_ql(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

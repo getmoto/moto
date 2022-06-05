@@ -13,7 +13,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         :return: ECS Backend object
         :rtype: moto.ecs.models.EC2ContainerServiceBackend
         """
-        return ecs_backends[self.region]
+        return ecs_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

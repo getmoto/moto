@@ -10,7 +10,7 @@ class GuardDutyResponse(BaseResponse):
 
     @property
     def guardduty_backend(self):
-        return guardduty_backends[self.region]
+        return guardduty_backends[self.get_current_account()][self.region]
 
     def filter(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

@@ -11,7 +11,7 @@ class OpsWorksResponse(BaseResponse):
 
     @property
     def opsworks_backend(self):
-        return opsworks_backends[self.region]
+        return opsworks_backends[self.get_current_account()][self.region]
 
     def create_stack(self):
         kwargs = dict(

@@ -11,7 +11,7 @@ class KinesisResponse(BaseResponse):
 
     @property
     def kinesis_backend(self):
-        return kinesis_backends[self.region]
+        return kinesis_backends[self.get_current_account()][self.region]
 
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")

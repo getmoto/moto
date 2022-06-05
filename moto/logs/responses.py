@@ -35,7 +35,7 @@ def validate_param(
 class LogsResponse(BaseResponse):
     @property
     def logs_backend(self):
-        return logs_backends[self.region]
+        return logs_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

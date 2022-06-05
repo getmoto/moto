@@ -14,7 +14,7 @@ class Route53ResolverResponse(BaseResponse):
     @property
     def route53resolver_backend(self):
         """Return backend instance specific for this region."""
-        return route53resolver_backends[self.region]
+        return route53resolver_backends[self.get_current_account()][self.region]
 
     def associate_resolver_rule(self):
         """Associate a Resolver rule with a VPC."""

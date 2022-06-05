@@ -11,7 +11,7 @@ class QuickSightResponse(BaseResponse):
     @property
     def quicksight_backend(self):
         """Return backend instance specific for this region."""
-        return quicksight_backends[self.region]
+        return quicksight_backends[self.get_current_account()][self.region]
 
     def dataset(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

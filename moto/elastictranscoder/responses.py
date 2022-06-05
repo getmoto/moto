@@ -10,7 +10,7 @@ class ElasticTranscoderResponse(BaseResponse):
 
     @property
     def elastictranscoder_backend(self):
-        return elastictranscoder_backends[self.region]
+        return elastictranscoder_backends[self.get_current_account()][self.region]
 
     def pipelines(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

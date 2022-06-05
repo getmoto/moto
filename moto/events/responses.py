@@ -13,7 +13,7 @@ class EventsHandler(BaseResponse):
         :return: Events Backend object
         :rtype: moto.events.models.EventsBackend
         """
-        return events_backends[self.region]
+        return events_backends[self.get_current_account()][self.region]
 
     @property
     def request_params(self):

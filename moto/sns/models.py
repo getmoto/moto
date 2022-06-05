@@ -177,7 +177,8 @@ class Topic(CloudFormationModel):
 
 
 class Subscription(BaseModel):
-    def __init__(self, topic, endpoint, protocol):
+    def __init__(self, account_id, topic, endpoint, protocol):
+        self.account_id = account_id
         self.topic = topic
         self.endpoint = endpoint
         self.protocol = protocol
@@ -196,7 +197,7 @@ class Subscription(BaseModel):
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
             if self.attributes.get("RawMessageDelivery") != "true":
-                sqs_backends[region].send_message(
+                sqs_backends[self.account_id][region].send_message(
                     queue_name,
                     json.dumps(
                         self.get_post_data(
@@ -545,7 +546,7 @@ class SNSBackend(BaseBackend):
         if old_subscription:
             return old_subscription
         topic = self.get_topic(topic_arn)
-        subscription = Subscription(topic, endpoint, protocol)
+        subscription = Subscription(self.account_id, topic, endpoint, protocol)
         attributes = {
             "PendingConfirmation": "false",
             "ConfirmationWasAuthenticated": "true",

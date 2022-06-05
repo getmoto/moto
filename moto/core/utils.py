@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
+from typing import Mapping
 from urllib.parse import urlparse
 
 
@@ -412,80 +413,6 @@ def extract_region_from_aws_authorization(string):
 backend_lock = RLock()
 
 
-class BackendDict(dict):
-    """
-    Data Structure to store everything related to a specific service.
-    Format:
-      [account_id: str]: AccountSpecificBackend
-      [account_id: str][region: str] = BaseBackend
-
-    Full multi-account support is not yet available. We will always return account_id 123456789012, regardless of the input.
-
-    To not break existing usage patterns, the following data access pattern is also supported:
-      [region: str] = BaseBackend
-
-    This will automatically resolve to:
-      [default_account_id][region: str] = BaseBackend
-    """
-
-    def __init__(
-        self, backend, service_name, use_boto3_regions=True, additional_regions=None
-    ):
-        self.backend = backend
-        self.service_name = service_name
-        self._use_boto3_regions = use_boto3_regions
-        self._additional_regions = additional_regions
-
-    def __contains__(self, account_id_or_region):
-        """
-        Possible data access patterns:
-          backend_dict[account_id][region_name]
-          backend_dict[region_name]
-          backend_dict[unknown_region]
-
-        The latter two will be phased out in the future, and we can remove this method.
-        """
-        if re.match(r"[0-9]+", account_id_or_region):
-            self._create_account_specific_backend("123456789012")
-            return True
-        else:
-            region = account_id_or_region
-            self._create_account_specific_backend("123456789012")
-            return region in self["123456789012"]
-
-    def get(self, account_id_or_region, if_none=None):
-        if self.__contains__(account_id_or_region):
-            return self.__getitem__(account_id_or_region)
-        return if_none
-
-    def __getitem__(self, account_id_or_region):
-        """
-        Possible data access patterns:
-          backend_dict[account_id][region_name]
-          backend_dict[region_name]
-          backend_dict[unknown_region]
-
-        The latter two will be phased out in the future.
-        """
-        if re.match(r"[0-9]+", account_id_or_region):
-            self._create_account_specific_backend("123456789012")
-            return super().__getitem__("123456789012")
-        else:
-            region_name = account_id_or_region
-            return self["123456789012"][region_name]
-
-    def _create_account_specific_backend(self, account_id):
-        with backend_lock:
-            if account_id not in self.keys():
-                self[account_id] = AccountSpecificBackend(
-                    service_name=self.service_name,
-                    account_id=account_id,
-                    backend=self.backend,
-                    use_boto3_regions=self._use_boto3_regions,
-                    additional_regions=self._additional_regions,
-                )
-
-
 class AccountSpecificBackend(dict):
     """
     Dictionary storing the data for a service in a specific account.
@@ -532,3 +459,40 @@ class AccountSpecificBackend(dict):
                     region_name, self.backend(region_name, account_id=self.account_id)
                 )
         return super().__getitem__(region_name)
+
+
+class BackendDict(dict):
+    """
+    Data Structure to store everything related to a specific service.
+    Format:
+      [account_id: str]: AccountSpecificBackend
+      [account_id: str][region: str] = BaseBackend
+    """
+
+    def __init__(
+        self, backend, service_name, use_boto3_regions=True, additional_regions=None
+    ):
+        self.backend = backend
+        self.service_name = service_name
+        self._use_boto3_regions = use_boto3_regions
+        self._additional_regions = additional_regions
+
+    def get(self, account_id_or_region, if_none=None):
+        if self.__contains__(account_id_or_region):
+            return self.__getitem__(account_id_or_region)
+        return if_none
+
+    def __getitem__(self, account_id) -> AccountSpecificBackend:
+        self._create_account_specific_backend(account_id)
+        return super().__getitem__(account_id)
+
+    def _create_account_specific_backend(self, account_id) -> None:
+        with backend_lock:
+            if account_id not in self.keys():
+                self[account_id] = AccountSpecificBackend(
+                    service_name=self.service_name,
+                    account_id=account_id,
+                    backend=self.backend,
+                    use_boto3_regions=self._use_boto3_regions,
+                    additional_regions=self._additional_regions,
+                )

@@ -10,7 +10,7 @@ class EFSResponse(BaseResponse):
 
     @property
     def efs_backend(self):
-        return efs_backends[self.region]
+        return efs_backends[self.get_current_account()][self.region]
 
     def create_file_system(self):
         creation_token = self._get_param("CreationToken")

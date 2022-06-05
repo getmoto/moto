@@ -250,9 +250,10 @@ class Queue(CloudFormationModel):
         "SendMessage",
     )
 
-    def __init__(self, name, region, **kwargs):
+    def __init__(self, name, region, account_id, **kwargs):
         self.name = name
         self.region = region
+        self.account_id = account_id
         self.tags = {}
         self.permissions = {}
 
@@ -389,7 +390,8 @@ class Queue(CloudFormationModel):
             self.redrive_policy["maxReceiveCount"]
         )
 
-        for queue in sqs_backends[self.region].queues.values():
+        sqs_backend = sqs_backends[self.account_id][self.region]
+        for queue in sqs_backend.queues.values():
             if queue.queue_arn == self.redrive_policy["deadLetterTargetArn"]:
                 self.dead_letter_queue = queue
 
@@ -650,7 +652,7 @@ class SQSBackend(BaseBackend):
             except KeyError:
                 pass
 
-            new_queue = Queue(name, region=self.region_name, **kwargs)
+            new_queue = Queue(name, region=self.region_name, account_id=self.account_id, **kwargs)
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
@@ -665,7 +667,7 @@ class SQSBackend(BaseBackend):
                 kwargs.pop("region")
             except KeyError:
                 pass
-            queue = Queue(name, region=self.region_name, **kwargs)
+            queue = Queue(name, region=self.region_name, account_id=self.account_id, **kwargs)
             self.queues[name] = queue
 
         if tags:

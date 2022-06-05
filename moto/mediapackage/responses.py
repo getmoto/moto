@@ -8,7 +8,7 @@ class MediaPackageResponse(BaseResponse):
 
     @property
     def mediapackage_backend(self):
-        return mediapackage_backends[self.region]
+        return mediapackage_backends[self.get_current_account()][self.region]
 
     def create_channel(self):
         description = self._get_param("description")

@@ -6,6 +6,10 @@ from moto.core.responses import BaseResponse
 
 
 class InstanceMetadataResponse(BaseResponse):
+
+    def backends(self):
+        pass
+
     def metadata_response(
         self, request, full_url, headers
     ):  # pylint: disable=unused-argument
