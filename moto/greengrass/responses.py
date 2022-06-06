@@ -31,12 +31,22 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.get_core_definition()
 
+        if self.method == "DELETE":
+            return self.delete_core_definition()
+
     def get_core_definition(self):
         core_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_core_definition(
             core_definition_id=core_definition_id
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def delete_core_definition(self):
+        core_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_core_definition(
+            core_definition_id=core_definition_id
+        )
+        return 200, {"status": 200}, json.dumps({})
 
     def create_core_definition_version(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

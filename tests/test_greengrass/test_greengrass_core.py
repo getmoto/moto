@@ -1,5 +1,7 @@
 import boto3
+from botocore.client import ClientError
 import freezegun
+import pytest
 
 from moto import mock_greengrass
 from moto.core import get_account_id
@@ -72,6 +74,35 @@ def test_get_core_definition():
         get_res.should.have.key("LastUpdatedTimestamp").equals(
             "2022-06-01T12:00:00.000Z"
         )
+
+
+@mock_greengrass
+def test_delete_core_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    cores = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123456789",
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+        }
+    ]
+
+    initial_version = {"Cores": cores}
+
+    create_res = client.create_core_definition(
+        InitialVersion=initial_version, Name="TestCore"
+    )
+    core_def_id = create_res["Id"]
+
+    client.get_core_definition(CoreDefinitionId=core_def_id)
+    client.delete_core_definition(CoreDefinitionId=core_def_id)
+    with pytest.raises(ClientError) as ex:
+        client.delete_core_definition(CoreDefinitionId=core_def_id)
+    ex.value.response["Error"]["Message"].should.equal(
+        "That cores definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")

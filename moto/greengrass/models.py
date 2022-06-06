@@ -85,6 +85,12 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That Core List Definition does not exist")
         return self.core_definitions[core_definition_id]
 
+    def delete_core_definition(self, core_definition_id):
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        del self.core_definitions[core_definition_id]
+        del self.core_definition_versions[core_definition_id]
+
     def create_core_definition_version(self, core_definition_id, cores):
 
         definition = {"Cores": cores}
