@@ -39,6 +39,40 @@ def test_create_core_definition():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_list_core_definitions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    cores = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123456789",
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+        }
+    ]
+
+    initial_version = {"Cores": cores}
+    core_name = "TestCore"
+    client.create_core_definition(InitialVersion=initial_version, Name=core_name)
+    res = client.list_core_definitions()
+    res.should.have.key("Definitions")
+    core_definition = res["Definitions"][0]
+
+    core_definition.should.have.key("Name").equals(core_name)
+    core_definition.should.have.key("Arn")
+    core_definition.should.have.key("Id")
+    core_definition.should.have.key("LatestVersion")
+    core_definition.should.have.key("LatestVersionArn")
+    if not TEST_SERVER_MODE:
+        core_definition.should.have.key("CreationTimestamp").equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+        core_definition.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_get_core_definition():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

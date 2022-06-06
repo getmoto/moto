@@ -14,8 +14,21 @@ class GreengrassResponse(BaseResponse):
     def core_definitions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
+        if self.method == "GET":
+            return self.list_core_definitions()
+
         if self.method == "POST":
             return self.create_core_definition()
+
+    def list_core_definitions(self):
+        res = self.greengrass_backend.list_core_definitions()
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {"Definitions": [core_definition.to_dict() for core_definition in res]}
+            ),
+        )
 
     def create_core_definition(self):
         name = self._get_param("Name")

@@ -82,6 +82,9 @@ class GreengrassBackend(BaseBackend):
         )
         return core_definition
 
+    def list_core_definitions(self):
+        return self.core_definitions.values()
+
     def get_core_definition(self, core_definition_id):
 
         if core_definition_id not in self.core_definitions:
