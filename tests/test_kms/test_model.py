@@ -22,14 +22,14 @@ def test_encrypt_key_id(backend, key):
     ciphertext, arn = backend.encrypt(key.id, PLAINTEXT, {})
 
     assert ciphertext is not None
-    assert arn is not None
+    assert arn == key.arn
 
 
 def test_encrypt_key_arn(backend, key):
     ciphertext, arn = backend.encrypt(key.arn, PLAINTEXT, {})
 
     assert ciphertext is not None
-    assert arn is not None
+    assert arn == key.arn
 
 
 def test_encrypt_alias_name(backend, key):
@@ -38,15 +38,15 @@ def test_encrypt_alias_name(backend, key):
     ciphertext, arn = backend.encrypt("alias/test/test", PLAINTEXT, {})
 
     assert ciphertext is not None
-    assert arn is not None
+    assert arn == key.arn
 
 
 def test_encrypt_alias_arn(backend, key):
     backend.add_alias(key.id, "alias/test/test")
 
     ciphertext, arn = backend.encrypt(
-        "arn:aws:kms:us-east-1:000000000000:alias/test/test", PLAINTEXT, {}
+        f"arn:aws:kms:{REGION}:{key.account_id}:alias/test/test", PLAINTEXT, {}
     )
 
     assert ciphertext is not None
-    assert arn is not None
+    assert arn == key.arn
