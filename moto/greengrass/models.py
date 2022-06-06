@@ -4,6 +4,7 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
+from .exceptions import IdNotFoundException
 
 
 class FakeCoreDefinition(BaseModel):
@@ -77,6 +78,12 @@ class GreengrassBackend(BaseBackend):
             core_definition.id, initial_version["Cores"]
         )
         return core_definition
+
+    def get_core_definition(self, core_definition_id):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That Core List Definition does not exist")
+        return self.core_definitions[core_definition_id]
 
     def create_core_definition_version(self, core_definition_id, cores):
 
