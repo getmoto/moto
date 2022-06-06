@@ -11,8 +11,13 @@ class GreengrassResponse(BaseResponse):
     def greengrass_backend(self):
         return greengrass_backends[self.region]
 
-    def create_core_definition(self, request, full_url, headers):
+    def core_definitions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_core_definition()
+
+    def create_core_definition(self):
         name = self._get_param("Name")
         initial_version = self._get_param("InitialVersion")
         res = self.greengrass_backend.create_core_definition(
@@ -20,8 +25,13 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def get_core_definition(self, request, full_url, headers):
+    def core_definition(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_core_definition()
+
+    def get_core_definition(self):
         core_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_core_definition(
             core_definition_id=core_definition_id
