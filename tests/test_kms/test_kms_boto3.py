@@ -647,7 +647,7 @@ def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
     if append_key_id:
         target_id += key_id
 
-    client.generate_data_key(KeyId=key_id, NumberOfBytes=32)
+    client.generate_data_key(KeyId=target_id, NumberOfBytes=32)
 
 
 @mock_kms

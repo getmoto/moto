@@ -302,7 +302,7 @@ class KmsBackend(BaseBackend):
     def get_alias_name(alias_name):
         # Allow use of ARN as well as alias name
         if alias_name.startswith("arn:") and ":alias/" in alias_name:
-            return alias_name.split(":alias/")[1]
+            return "alias/" + alias_name.split(":alias/")[1]
 
         return alias_name
 
