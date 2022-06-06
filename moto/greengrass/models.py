@@ -4,7 +4,10 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
-from .exceptions import IdNotFoundException
+from .exceptions import (
+    IdNotFoundException,
+    InvalidContainerDefinitionException,
+)
 
 
 class FakeCoreDefinition(BaseModel):
@@ -90,6 +93,16 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That cores definition does not exist.")
         del self.core_definitions[core_definition_id]
         del self.core_definition_versions[core_definition_id]
+
+    def update_core_definition(self, core_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        self.core_definitions[core_definition_id].name = name
 
     def create_core_definition_version(self, core_definition_id, cores):
 
