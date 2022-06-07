@@ -6,7 +6,7 @@ class Route53ClientError(RESTError):
     """Base class for Route53 errors."""
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("template", "single_error")
+        kwargs.setdefault("template", "wrapped_single_error")
         super().__init__(*args, **kwargs)
 
 
@@ -62,6 +62,19 @@ class NoSuchHostedZone(Route53ClientError):
     def __init__(self, host_zone_id):
         message = f"No hosted zone found with ID: {host_zone_id}"
         super().__init__("NoSuchHostedZone", message)
+        self.content_type = "text/xml"
+
+
+class HostedZoneNotEmpty(Route53ClientError):
+    """HostedZone does not exist."""
+
+    code = 400
+
+    def __init__(self):
+        message = (
+            "The hosted zone contains resource records that are not SOA or NS records."
+        )
+        super().__init__("HostedZoneNotEmpty", message)
         self.content_type = "text/xml"
 
 

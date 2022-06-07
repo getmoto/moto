@@ -115,6 +115,20 @@ class Route53(BaseResponse):
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
+    def get_dnssec_response(self, request, full_url, headers):
+        # returns static response
+        # TODO: implement enable/disable dnssec apis
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        if method == "GET":
+            route53_backend.get_dnssec(zoneid)
+            return 200, headers, GET_DNSSEC
+
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -479,7 +493,10 @@ CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://rout
 </ChangeResourceRecordSetsResponse>"""
 
 DELETE_HOSTED_ZONE_RESPONSE = """<DeleteHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
-   <ChangeInfo>
+    <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
    </ChangeInfo>
 </DeleteHostedZoneResponse>"""
 
@@ -500,19 +517,22 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
+   {% if not zone.private_zone %}
    <DelegationSet>
       <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
         {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
+   {% endif %}
+   {% if zone.private_zone %}
    <VPCs>
       <VPC>
          <VPCId>{{zone.vpcid}}</VPCId>
          <VPCRegion>{{zone.vpcregion}}</VPCRegion>
       </VPC>
    </VPCs>
-
+   {% endif %}
 </GetHostedZoneResponse>"""
 
 CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -526,17 +546,26 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
         {% endif %}
         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
+      {% if zone.private_zone %}
+      <VPC>
+        <VPCId>{{zone.vpcid}}</VPCId>
+        <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+      </VPC>
+      {% endif %}
    </HostedZone>
+   {% if not zone.private_zone %}
    <DelegationSet>
       <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
          {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
-   <VPC>
-      <VPCId>{{zone.vpcid}}</VPCId>
-      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
-   </VPC>
+   {% endif %}
+   <ChangeInfo>
+      <Id>/change/C1PA6795UKMFR9</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-15T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
 </CreateHostedZoneResponse>"""
 
 LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -696,4 +725,13 @@ GET_REUSABLE_DELEGATION_SET_TEMPLATE = """<GetReusableDelegationSetResponse>
   </NameServers>
 </DelegationSet>
 </GetReusableDelegationSetResponse>
+"""
+
+GET_DNSSEC = """<?xml version="1.0"?>
+<GetDNSSECResponse>
+    <Status>
+        <ServeSignature>NOT_SIGNING</ServeSignature>
+    </Status>
+    <KeySigningKeys/>
+</GetDNSSECResponse>
 """
