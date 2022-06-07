@@ -19,6 +19,7 @@ from moto.core import BaseBackend, BaseModel, get_account_id, CloudFormationMode
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
+    BackendDict,
 )
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.utilities.utils import md5_hash
@@ -362,7 +363,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
         role_names = properties.get("Roles", [])
         tags = properties.get("Tags", {})
 
-        policy = iam_backend.create_policy(
+        policy = iam_backends["global"].create_policy(
             description=description,
             path=path,
             policy_document=policy_document,
@@ -370,13 +371,17 @@ class ManagedPolicy(Policy, CloudFormationModel):
             tags=tags,
         )
         for group_name in group_names:
-            iam_backend.attach_group_policy(
+            iam_backends["global"].attach_group_policy(
                 group_name=group_name, policy_arn=policy.arn
             )
         for user_name in user_names:
-            iam_backend.attach_user_policy(user_name=user_name, policy_arn=policy.arn)
+            iam_backends["global"].attach_user_policy(
+                user_name=user_name, policy_arn=policy.arn
+            )
         for role_name in role_names:
-            iam_backend.attach_role_policy(role_name=role_name, policy_arn=policy.arn)
+            iam_backends["global"].attach_role_policy(
+                role_name=role_name, policy_arn=policy.arn
+            )
         return policy
 
     @property
@@ -466,7 +471,7 @@ class InlinePolicy(CloudFormationModel):
         role_names = properties.get("Roles")
         group_names = properties.get("Groups")
 
-        return iam_backend.create_inline_policy(
+        return iam_backends["global"].create_inline_policy(
             resource_name,
             policy_name,
             policy_document,
@@ -502,7 +507,7 @@ class InlinePolicy(CloudFormationModel):
             role_names = properties.get("Roles")
             group_names = properties.get("Groups")
 
-            return iam_backend.update_inline_policy(
+            return iam_backends["global"].update_inline_policy(
                 original_resource.name,
                 policy_name,
                 policy_document,
@@ -515,7 +520,7 @@ class InlinePolicy(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        iam_backend.delete_inline_policy(resource_name)
+        iam_backends["global"].delete_inline_policy(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -606,7 +611,7 @@ class Role(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
-        role = iam_backend.create_role(
+        role = iam_backends["global"].create_role(
             role_name=role_name,
             assume_role_policy_document=properties["AssumeRolePolicyDocument"],
             path=properties.get("Path", "/"),
@@ -628,14 +633,14 @@ class Role(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        for profile in iam_backend.instance_profiles.values():
+        for profile in iam_backends["global"].instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
-        for role in iam_backend.roles.values():
+        for role in iam_backends["global"].roles.values():
             if role.name == resource_name:
                 for arn in role.policies.keys():
                     role.delete_policy(arn)
-        iam_backend.delete_role(resource_name)
+        iam_backends["global"].delete_role(resource_name)
 
     @property
     def arn(self):
@@ -649,7 +654,10 @@ class Role(CloudFormationModel):
         _managed_policies = []
         for key in self.managed_policies.keys():
             _managed_policies.append(
-                {"policyArn": key, "policyName": iam_backend.managed_policies[key].name}
+                {
+                    "policyArn": key,
+                    "policyName": iam_backends["global"].managed_policies[key].name,
+                }
             )
 
         _role_policy_list = []
@@ -659,7 +667,7 @@ class Role(CloudFormationModel):
             )
 
         _instance_profiles = []
-        for key, instance_profile in iam_backend.instance_profiles.items():
+        for key, instance_profile in iam_backends["global"].instance_profiles.items():
             for _ in instance_profile.roles:
                 _instance_profiles.append(instance_profile.to_embedded_config_dict())
                 break
@@ -808,7 +816,7 @@ class InstanceProfile(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         role_names = properties["Roles"]
-        return iam_backend.create_instance_profile(
+        return iam_backends["global"].create_instance_profile(
             name=resource_name,
             path=properties.get("Path", "/"),
             role_names=role_names,
@@ -818,7 +826,7 @@ class InstanceProfile(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        iam_backend.delete_instance_profile(resource_name)
+        iam_backends["global"].delete_instance_profile(resource_name)
 
     def delete_role(self, role_name):
         self.roles = [role for role in self.roles if role.name != role_name]
@@ -964,7 +972,7 @@ class AccessKey(CloudFormationModel):
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
 
-        return iam_backend.create_access_key(user_name, status=status)
+        return iam_backends["global"].create_access_key(user_name, status=status)
 
     @classmethod
     def update_from_cloudformation_json(
@@ -984,7 +992,7 @@ class AccessKey(CloudFormationModel):
         else:  # No Interruption
             properties = cloudformation_json.get("Properties", {})
             status = properties.get("Status")
-            return iam_backend.update_access_key(
+            return iam_backends["global"].update_access_key(
                 original_resource.user_name, original_resource.access_key_id, status
             )
 
@@ -992,7 +1000,7 @@ class AccessKey(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        iam_backend.delete_access_key_by_name(resource_name)
+        iam_backends["global"].delete_access_key_by_name(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -1303,7 +1311,7 @@ class User(CloudFormationModel):
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backend.create_user(resource_name, path)
+        user, _ = iam_backends["global"].create_user(resource_name, path)
         return user
 
     @classmethod
@@ -1334,7 +1342,7 @@ class User(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        iam_backend.delete_user(resource_name)
+        iam_backends["global"].delete_user(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -2043,7 +2051,7 @@ class IAMBackend(BaseBackend):
 
         instance_profile_id = random_resource_id()
 
-        roles = [iam_backend.get_role(role_name) for role_name in role_names]
+        roles = [iam_backends["global"].get_role(role_name) for role_name in role_names]
         instance_profile = InstanceProfile(instance_profile_id, name, path, roles, tags)
         self.instance_profiles[name] = instance_profile
         return instance_profile
@@ -2838,12 +2846,10 @@ class IAMBackend(BaseBackend):
         return inline_policy
 
     def get_inline_policy(self, policy_id):
-        inline_policy = None
         try:
-            inline_policy = self.inline_policies[policy_id]
+            return self.inline_policies[policy_id]
         except KeyError:
             raise IAMNotFoundException("Inline policy {0} not found".format(policy_id))
-        return inline_policy
 
     def update_inline_policy(
         self,
@@ -2924,4 +2930,6 @@ class IAMBackend(BaseBackend):
         return True
 
 
-iam_backend = IAMBackend("global")
+iam_backends = BackendDict(
+    IAMBackend, "iam", use_boto3_regions=False, additional_regions=["global"]
+)

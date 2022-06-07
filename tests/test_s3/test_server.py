@@ -75,6 +75,9 @@ def test_s3_server_ignore_subdomain_for_bucketnames():
 def test_s3_server_bucket_versioning():
     test_client = authenticated_client()
 
+    res = test_client.put("/", "http://foobaz.localhost:5000/")
+    res.status_code.should.equal(200)
+
     # Just enough XML to enable versioning
     body = "<Status>Enabled</Status>"
     res = test_client.put("/?versioning", "http://foobaz.localhost:5000", data=body)

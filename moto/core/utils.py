@@ -412,6 +412,54 @@ def extract_region_from_aws_authorization(string):
 backend_lock = RLock()
 
 
+class AccountSpecificBackend(dict):
+    """
+    Dictionary storing the data for a service in a specific account.
+    Data access pattern:
+      account_specific_backend[region: str] = backend: BaseBackend
+    """
+
+    def __init__(
+        self, service_name, account_id, backend, use_boto3_regions, additional_regions
+    ):
+        self.service_name = service_name
+        self.account_id = account_id
+        self.backend = backend
+        self.regions = []
+        if use_boto3_regions:
+            sess = Session()
+            self.regions.extend(sess.get_available_regions(service_name))
+            self.regions.extend(
+                sess.get_available_regions(service_name, partition_name="aws-us-gov")
+            )
+            self.regions.extend(
+                sess.get_available_regions(service_name, partition_name="aws-cn")
+            )
+        self.regions.extend(additional_regions or [])
+
+    def reset(self):
+        for region_specific_backend in self.values():
+            region_specific_backend.reset()
+
+    def __contains__(self, region):
+        return region in self.regions or region in self.keys()
+
+    def __getitem__(self, region_name):
+        if region_name in self.keys():
+            return super().__getitem__(region_name)
+        # Create the backend for a specific region
+        with backend_lock:
+            if region_name in self.regions and region_name not in self.keys():
+                super().__setitem__(
+                    region_name, self.backend(region_name, account_id=self.account_id)
+                )
+            if region_name not in self.regions and allow_unknown_region():
+                super().__setitem__(
+                    region_name, self.backend(region_name, account_id=self.account_id)
+                )
+        return super().__getitem__(region_name)
+
+
 class BackendDict(dict):
     """
     Data Structure to store everything related to a specific service.
@@ -484,51 +532,3 @@ class BackendDict(dict):
                     use_boto3_regions=self._use_boto3_regions,
                     additional_regions=self._additional_regions,
                 )
-
-
-class AccountSpecificBackend(dict):
-    """
-    Dictionary storing the data for a service in a specific account.
-    Data access pattern:
-      account_specific_backend[region: str] = backend: BaseBackend
-    """
-
-    def __init__(
-        self, service_name, account_id, backend, use_boto3_regions, additional_regions
-    ):
-        self.service_name = service_name
-        self.account_id = account_id
-        self.backend = backend
-        self.regions = []
-        if use_boto3_regions:
-            sess = Session()
-            self.regions.extend(sess.get_available_regions(service_name))
-            self.regions.extend(
-                sess.get_available_regions(service_name, partition_name="aws-us-gov")
-            )
-            self.regions.extend(
-                sess.get_available_regions(service_name, partition_name="aws-cn")
-            )
-        self.regions.extend(additional_regions or [])
-
-    def reset(self):
-        for region_specific_backend in self.values():
-            region_specific_backend.reset()
-
-    def __contains__(self, region):
-        return region in self.regions or region in self.keys()
-
-    def __getitem__(self, region_name):
-        if region_name in self.keys():
-            return super().__getitem__(region_name)
-        # Create the backend for a specific region
-        with backend_lock:
-            if region_name in self.regions and region_name not in self.keys():
-                super().__setitem__(
-                    region_name, self.backend(region_name, account_id=self.account_id)
-                )
-            if region_name not in self.regions and allow_unknown_region():
-                super().__setitem__(
-                    region_name, self.backend(region_name, account_id=self.account_id)
-                )
-        return super().__getitem__(region_name)

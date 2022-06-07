@@ -39,8 +39,8 @@ from moto.s3.exceptions import (
     BucketSignatureDoesNotMatchError,
     S3SignatureDoesNotMatchError,
 )
-from moto.sts.models import sts_backend
-from .models import iam_backend, Policy
+from moto.sts.models import sts_backends
+from .models import iam_backends, Policy
 
 log = logging.getLogger(__name__)
 
@@ -53,8 +53,12 @@ def create_access_key(access_key_id, headers):
 
 
 class IAMUserAccessKey(object):
+    @property
+    def backend(self):
+        return iam_backends["global"]
+
     def __init__(self, access_key_id, headers):
-        iam_users = iam_backend.list_users("/", None, None)
+        iam_users = self.backend.list_users("/", None, None)
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:
                 if access_key.access_key_id == access_key_id:
@@ -78,28 +82,30 @@ class IAMUserAccessKey(object):
     def collect_policies(self):
         user_policies = []
 
-        inline_policy_names = iam_backend.list_user_policies(self._owner_user_name)
+        inline_policy_names = self.backend.list_user_policies(self._owner_user_name)
         for inline_policy_name in inline_policy_names:
-            inline_policy = iam_backend.get_user_policy(
+            inline_policy = self.backend.get_user_policy(
                 self._owner_user_name, inline_policy_name
             )
             user_policies.append(inline_policy)
 
-        attached_policies, _ = iam_backend.list_attached_user_policies(
+        attached_policies, _ = self.backend.list_attached_user_policies(
             self._owner_user_name
         )
         user_policies += attached_policies
 
-        user_groups = iam_backend.get_groups_for_user(self._owner_user_name)
+        user_groups = self.backend.get_groups_for_user(self._owner_user_name)
         for user_group in user_groups:
-            inline_group_policy_names = iam_backend.list_group_policies(user_group.name)
+            inline_group_policy_names = self.backend.list_group_policies(
+                user_group.name
+            )
             for inline_group_policy_name in inline_group_policy_names:
-                inline_user_group_policy = iam_backend.get_group_policy(
+                inline_user_group_policy = self.backend.get_group_policy(
                     user_group.name, inline_group_policy_name
                 )
                 user_policies.append(inline_user_group_policy)
 
-            attached_group_policies, _ = iam_backend.list_attached_group_policies(
+            attached_group_policies, _ = self.backend.list_attached_group_policies(
                 user_group.name
             )
             user_policies += attached_group_policies
@@ -108,8 +114,12 @@ class IAMUserAccessKey(object):
 
 
 class AssumedRoleAccessKey(object):
+    @property
+    def backend(self):
+        return iam_backends["global"]
+
     def __init__(self, access_key_id, headers):
-        for assumed_role in sts_backend.assumed_roles:
+        for assumed_role in sts_backends["global"].assumed_roles:
             if assumed_role.access_key_id == access_key_id:
                 self._access_key_id = access_key_id
                 self._secret_access_key = assumed_role.secret_access_key
@@ -139,14 +149,14 @@ class AssumedRoleAccessKey(object):
     def collect_policies(self):
         role_policies = []
 
-        inline_policy_names = iam_backend.list_role_policies(self._owner_role_name)
+        inline_policy_names = self.backend.list_role_policies(self._owner_role_name)
         for inline_policy_name in inline_policy_names:
-            _, inline_policy = iam_backend.get_role_policy(
+            _, inline_policy = self.backend.get_role_policy(
                 self._owner_role_name, inline_policy_name
             )
             role_policies.append(inline_policy)
 
-        attached_policies, _ = iam_backend.list_attached_role_policies(
+        attached_policies, _ = self.backend.list_attached_role_policies(
             self._owner_role_name
         )
         role_policies += attached_policies

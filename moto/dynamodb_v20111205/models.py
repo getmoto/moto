@@ -397,4 +397,3 @@ dynamodb_backends = BackendDict(
     use_boto3_regions=False,
     additional_regions=["global"],
 )
-dynamodb_backend = dynamodb_backends["global"]

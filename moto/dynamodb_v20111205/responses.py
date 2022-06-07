@@ -2,7 +2,7 @@ import json
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from .models import dynamodb_backend, dynamo_json_dump
+from .models import dynamodb_backends, dynamo_json_dump
 
 
 class DynamoHandler(BaseResponse):
@@ -36,15 +36,19 @@ class DynamoHandler(BaseResponse):
         else:
             return 404, self.response_headers, ""
 
+    @property
+    def backend(self):
+        return dynamodb_backends["global"]
+
     def list_tables(self):
         body = self.body
         limit = body.get("Limit")
         if body.get("ExclusiveStartTableName"):
             last = body.get("ExclusiveStartTableName")
-            start = list(dynamodb_backend.tables.keys()).index(last) + 1
+            start = list(self.backend.tables.keys()).index(last) + 1
         else:
             start = 0
-        all_tables = list(dynamodb_backend.tables.keys())
+        all_tables = list(self.backend.tables.keys())
         if limit:
             tables = all_tables[start : start + limit]
         else:
@@ -71,7 +75,7 @@ class DynamoHandler(BaseResponse):
         read_units = throughput["ReadCapacityUnits"]
         write_units = throughput["WriteCapacityUnits"]
 
-        table = dynamodb_backend.create_table(
+        table = self.backend.create_table(
             name,
             hash_key_attr=hash_key_attr,
             hash_key_type=hash_key_type,
@@ -84,7 +88,7 @@ class DynamoHandler(BaseResponse):
 
     def delete_table(self):
         name = self.body["TableName"]
-        table = dynamodb_backend.delete_table(name)
+        table = self.backend.delete_table(name)
         if table:
             return dynamo_json_dump(table.describe)
         else:
@@ -96,7 +100,7 @@ class DynamoHandler(BaseResponse):
         throughput = self.body["ProvisionedThroughput"]
         new_read_units = throughput["ReadCapacityUnits"]
         new_write_units = throughput["WriteCapacityUnits"]
-        table = dynamodb_backend.update_table_throughput(
+        table = self.backend.update_table_throughput(
             name, new_read_units, new_write_units
         )
         return dynamo_json_dump(table.describe)
@@ -104,7 +108,7 @@ class DynamoHandler(BaseResponse):
     def describe_table(self):
         name = self.body["TableName"]
         try:
-            table = dynamodb_backend.tables[name]
+            table = self.backend.tables[name]
         except KeyError:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
             return self.error(er)
@@ -113,7 +117,7 @@ class DynamoHandler(BaseResponse):
     def put_item(self):
         name = self.body["TableName"]
         item = self.body["Item"]
-        result = dynamodb_backend.put_item(name, item)
+        result = self.backend.put_item(name, item)
         if result:
             item_dict = result.to_json()
             item_dict["ConsumedCapacityUnits"] = 1
@@ -132,12 +136,12 @@ class DynamoHandler(BaseResponse):
 
                 if request_type == "PutRequest":
                     item = request["Item"]
-                    dynamodb_backend.put_item(table_name, item)
+                    self.backend.put_item(table_name, item)
                 elif request_type == "DeleteRequest":
                     key = request["Key"]
                     hash_key = key["HashKeyElement"]
                     range_key = key.get("RangeKeyElement")
-                    item = dynamodb_backend.delete_item(table_name, hash_key, range_key)
+                    self.backend.delete_item(table_name, hash_key, range_key)
 
         response = {
             "Responses": {
@@ -156,7 +160,7 @@ class DynamoHandler(BaseResponse):
         range_key = key.get("RangeKeyElement")
         attrs_to_get = self.body.get("AttributesToGet")
         try:
-            item = dynamodb_backend.get_item(name, hash_key, range_key)
+            item = self.backend.get_item(name, hash_key, range_key)
         except ValueError:
             er = "com.amazon.coral.validate#ValidationException"
             return self.error(er, status=400)
@@ -181,7 +185,7 @@ class DynamoHandler(BaseResponse):
             for key in keys:
                 hash_key = key["HashKeyElement"]
                 range_key = key.get("RangeKeyElement")
-                item = dynamodb_backend.get_item(table_name, hash_key, range_key)
+                item = self.backend.get_item(table_name, hash_key, range_key)
                 if item:
                     item_describe = item.describe_attrs(attributes_to_get)
                     items.append(item_describe)
@@ -202,9 +206,7 @@ class DynamoHandler(BaseResponse):
             range_comparison = None
             range_values = []
 
-        items, _ = dynamodb_backend.query(
-            name, hash_key, range_comparison, range_values
-        )
+        items, _ = self.backend.query(name, hash_key, range_comparison, range_values)
 
         if items is None:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
@@ -236,7 +238,7 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
-        items, scanned_count, _ = dynamodb_backend.scan(name, filters)
+        items, scanned_count, _ = self.backend.scan(name, filters)
 
         if items is None:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
@@ -263,7 +265,7 @@ class DynamoHandler(BaseResponse):
         hash_key = key["HashKeyElement"]
         range_key = key.get("RangeKeyElement")
         return_values = self.body.get("ReturnValues", "")
-        item = dynamodb_backend.delete_item(name, hash_key, range_key)
+        item = self.backend.delete_item(name, hash_key, range_key)
         if item:
             if return_values == "ALL_OLD":
                 item_dict = item.to_json()
@@ -282,7 +284,7 @@ class DynamoHandler(BaseResponse):
         range_key = key.get("RangeKeyElement")
         updates = self.body["AttributeUpdates"]
 
-        item = dynamodb_backend.update_item(name, hash_key, range_key, updates)
+        item = self.backend.update_item(name, hash_key, range_key, updates)
 
         if item:
             item_dict = item.to_json()
