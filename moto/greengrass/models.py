@@ -7,6 +7,7 @@ from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from .exceptions import (
     IdNotFoundException,
     InvalidContainerDefinitionException,
+    VersionNotFoundException,
 )
 
 
@@ -45,8 +46,8 @@ class FakeCoreDefinitionVersion(BaseModel):
         self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/cores/{self.core_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_detail=False):
+        obj = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
                 self.created_at_datetime
@@ -54,6 +55,11 @@ class FakeCoreDefinitionVersion(BaseModel):
             "Id": self.core_definition_id,
             "Version": self.version,
         }
+
+        if include_detail:
+            obj["Definition"] = self.definition
+
+        return obj
 
 
 class GreengrassBackend(BaseBackend):
@@ -123,6 +129,31 @@ class GreengrassBackend(BaseBackend):
         self.core_definitions[core_definition_id].latest_version_arn = core_def_ver.arn
 
         return core_def_ver
+
+    def list_core_definition_versions(self, core_definition_id):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        return self.core_definition_versions[core_definition_id].values()
+
+    def get_core_definition_version(
+        self, core_definition_id, core_definition_version_id
+    ):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+
+        if (
+            core_definition_version_id
+            not in self.core_definition_versions[core_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {core_definition_version_id} of Core List Definition {core_definition_id} does not exist."
+            )
+
+        return self.core_definition_versions[core_definition_id][
+            core_definition_version_id
+        ]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
