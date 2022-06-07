@@ -81,3 +81,18 @@ class GreengrassResponse(BaseResponse):
             core_definition_id=core_definition_id, cores=cores
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def core_definition_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_core_definition_version()
+
+    def get_core_definition_version(self):
+        core_definition_id = self.path.split("/")[-3]
+        core_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_core_definition_version(
+            core_definition_id=core_definition_id,
+            core_definition_version_id=core_definition_version_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
