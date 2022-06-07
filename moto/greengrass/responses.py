@@ -72,8 +72,13 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def create_core_definition_version(self, request, full_url, headers):
+    def core_definition_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_core_definition_version()
+
+    def create_core_definition_version(self):
         core_definition_id = self.path.split("/")[-2]
         cores = self._get_param("Cores")
 
