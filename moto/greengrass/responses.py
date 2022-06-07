@@ -75,6 +75,9 @@ class GreengrassResponse(BaseResponse):
     def core_definition_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
+        if self.method == "GET":
+            return self.list_core_definition_versions()
+
         if self.method == "POST":
             return self.create_core_definition_version()
 
@@ -86,6 +89,15 @@ class GreengrassResponse(BaseResponse):
             core_definition_id=core_definition_id, cores=cores
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_core_definition_versions(self):
+        core_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_core_definition_versions(core_definition_id)
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Versions": [core_def_ver.to_dict() for core_def_ver in res]}),
+        )
 
     def core_definition_version(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

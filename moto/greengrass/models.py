@@ -130,6 +130,12 @@ class GreengrassBackend(BaseBackend):
 
         return core_def_ver
 
+    def list_core_definition_versions(self, core_definition_id):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        return self.core_definition_versions[core_definition_id].values()
+
     def get_core_definition_version(
         self, core_definition_id, core_definition_version_id
     ):
