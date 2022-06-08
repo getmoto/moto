@@ -64,7 +64,7 @@ def random_password(
 
 
 def secret_arn(region, secret_id):
-    id_string = "".join(random.choice(string.ascii_letters) for _ in range(5))
+    id_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
     return "arn:aws:secretsmanager:{0}:{1}:secret:{2}-{3}".format(
         region, get_account_id(), secret_id, id_string
     )
