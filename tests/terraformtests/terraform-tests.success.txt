@@ -135,6 +135,34 @@ quicksight:
   - TestAccQuickSightUser
 redshift:
   - TestAccRedshiftServiceAccountDataSource
+route53:
+  - TestAccRoute53Record_basic
+  - TestAccRoute53Record_underscored
+  - TestAccRoute53Record_disappears
+  - TestAccRoute53Record_Disappears_multipleRecords
+  - TestAccRoute53Record_Basic_fqdn
+  - TestAccRoute53Record_Basic_trailingPeriodAndZoneID
+  - TestAccRoute53Record_txtSupport
+  - TestAccRoute53Record_spfSupport
+  - TestAccRoute53Record_caaSupport
+  - TestAccRoute53Record_dsSupport
+  - TestAccRoute53Record_generatesSuffix
+  - TestAccRoute53Record_wildcard
+  - TestAccRoute53Record_failover
+  - TestAccRoute53Record_Weighted_basic
+  - TestAccRoute53Record_WeightedToSimple_basic
+  - TestAccRoute53Record_Alias_s3
+  - TestAccRoute53Record_Geolocation_basic
+  - TestAccRoute53Record_HealthCheckID_setIdentifierChange
+  - TestAccRoute53Record_HealthCheckID_typeChange
+  - TestAccRoute53Record_Latency_basic
+  - TestAccRoute53Record_typeChange
+  - TestAccRoute53Record_nameChange
+  - TestAccRoute53Record_setIdentifierChange
+  - TestAccRoute53Record_empty
+  - TestAccRoute53Record_longTXTrecord
+  - TestAccRoute53Record_doNotAllowOverwrite
+  - TestAccRoute53Record_allowOverwrite
 s3:
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock
