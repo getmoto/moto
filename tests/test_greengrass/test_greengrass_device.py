@@ -79,3 +79,31 @@ def test_create_device_definition_version():
 
     if not TEST_SERVER_MODE:
         device_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_create_device_definition_version_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    devices = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123",
+            "SyncShadow": True,
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/v1Thing",
+        }
+    ]
+
+    client.create_device_definition(
+        InitialVersion={"Devices": devices}, Name="TestDevice"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_device_definition_version(
+            DeviceDefinitionId="123", Devices=devices
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That devices definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")

@@ -216,6 +216,10 @@ class GreengrassBackend(BaseBackend):
         return device_def
 
     def create_device_definition_version(self, device_definition_id, devices):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+
         device_ver = FakeDeviceDefinitionVersion(
             self.region_name, device_definition_id, devices
         )
