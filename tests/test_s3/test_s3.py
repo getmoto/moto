@@ -553,6 +553,9 @@ def test_restore_key():
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3
 def test_restore_key_transition():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
     state_manager.set_transition(
         model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
     )
