@@ -36,7 +36,6 @@ def test_secret_arn():
         Name=DEFAULT_SECRET_NAME,
         SecretString="secret_string",
     )
-    
     assert re.match(f"arn:aws:secretsmanager:{region}:{ACCOUNT_ID}:secret:{DEFAULT_SECRET_NAME}-" + r"\w{6}", create_dict['ARN'])
 
 
