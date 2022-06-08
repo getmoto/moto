@@ -206,7 +206,6 @@ class Route53(BaseResponse):
     def health_check_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
-        parsed_url = urlparse(full_url)
         method = request.method
 
         if method == "POST":
@@ -234,11 +233,6 @@ class Route53(BaseResponse):
             )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check, xmlns=XMLNS)
-        elif method == "DELETE":
-            health_check_id = parsed_url.path.split("/")[-1]
-            route53_backend.delete_health_check(health_check_id)
-            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
-            return 200, headers, template.render(xmlns=XMLNS)
         elif method == "GET":
             template = Template(LIST_HEALTH_CHECKS_RESPONSE)
             health_checks = route53_backend.list_health_checks()
@@ -247,6 +241,23 @@ class Route53(BaseResponse):
                 headers,
                 template.render(health_checks=health_checks, xmlns=XMLNS),
             )
+
+    def get_or_delete_health_check_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+
+        if method == "DELETE":
+            health_check_id = parsed_url.path.split("/")[-1]
+            route53_backend.delete_health_check(health_check_id)
+            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(xmlns=XMLNS)
+        elif method == "GET":
+            health_check_id = parsed_url.path.split("/")[-1]
+            health_check = route53_backend.get_health_check(health_check_id)
+            template = Template(GET_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(health_check=health_check)
 
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -734,4 +745,10 @@ GET_DNSSEC = """<?xml version="1.0"?>
     </Status>
     <KeySigningKeys/>
 </GetDNSSECResponse>
+"""
+
+GET_HEALTH_CHECK_RESPONSE = """<?xml version="1.0"?>
+<GetHealthCheckResponse>
+    {{ health_check.to_xml() }}
+</GetHealthCheckResponse>
 """

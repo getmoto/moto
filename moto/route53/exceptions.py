@@ -65,6 +65,17 @@ class NoSuchHostedZone(Route53ClientError):
         self.content_type = "text/xml"
 
 
+class NoSuchHealthCheck(Route53ClientError):
+    """HealthCheck does not exist."""
+
+    code = 404
+
+    def __init__(self, health_check_id):
+        message = f"A health check with id {health_check_id} does not exist."
+        super().__init__("NoSuchHealthCheck", message)
+        self.content_type = "text/xml"
+
+
 class HostedZoneNotEmpty(Route53ClientError):
     """HostedZone does not exist."""
 

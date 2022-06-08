@@ -13,6 +13,7 @@ from moto.route53.exceptions import (
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
+    NoSuchHealthCheck,
     NoSuchHostedZone,
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
@@ -591,6 +592,12 @@ class Route53Backend(BaseBackend):
 
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
+
+    def get_health_check(self, health_check_id):
+        health_check = self.health_checks.get(health_check_id)
+        if not health_check:
+            raise NoSuchHealthCheck(health_check_id)
+        return health_check
 
     @staticmethod
     def _validate_arn(region, arn):
