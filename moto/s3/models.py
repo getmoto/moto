@@ -269,7 +269,9 @@ class FakeKey(BaseModel, ManagedState):
             if self.status == "IN_PROGRESS":
                 header = 'ongoing-request="true"'
             else:
-                header = 'ongoing-request="false", expiry-date="{0}"'.format(self.expiry_date)
+                header = 'ongoing-request="false", expiry-date="{0}"'.format(
+                    self.expiry_date
+                )
             res["x-amz-restore"] = header
 
         if self._is_versioned:

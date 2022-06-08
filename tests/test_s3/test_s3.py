@@ -553,8 +553,9 @@ def test_restore_key():
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3
 def test_restore_key_transition():
-    state_manager.set_transition(model_name="s3::keyrestore",
-                                 transition={"progression": "manual", "times": 1})
+    state_manager.set_transition(
+        model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
+    )
 
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3.Bucket("foobar")
