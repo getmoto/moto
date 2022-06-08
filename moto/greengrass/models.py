@@ -62,6 +62,57 @@ class FakeCoreDefinitionVersion(BaseModel):
         return obj
 
 
+class FakeDeviceDefinition(BaseModel):
+    def __init__(self, region_name, name, initial_version):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/devices/{self.id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self):
+        res = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+        }
+        if self.name is not None:
+            res["Name"] = self.name
+        return res
+
+
+class FakeDeviceDefinitionVersion(BaseModel):
+    def __init__(self, region_name, device_definition_id, devices):
+        self.region_name = region_name
+        self.device_definition_id = device_definition_id
+        self.devices = devices
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Definition": {"Devices": self.devices},
+            "Id": self.device_definition_id,
+            "Version": self.version,
+        }
+
+
 class GreengrassBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
@@ -154,6 +205,37 @@ class GreengrassBackend(BaseBackend):
         return self.core_definition_versions[core_definition_id][
             core_definition_version_id
         ]
+
+    def create_device_definition(self, name, initial_version):
+        device_def = FakeDeviceDefinition(self.region_name, name, initial_version)
+        self.device_definitions[device_def.id] = device_def
+        init_ver = device_def.initial_version
+        init_device_def = init_ver.get("Devices", {})
+        self.create_device_definition_version(device_def.id, init_device_def)
+
+        return device_def
+
+    def create_device_definition_version(self, device_definition_id, devices):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+
+        device_ver = FakeDeviceDefinitionVersion(
+            self.region_name, device_definition_id, devices
+        )
+        device_vers = self.device_definition_versions.get(
+            device_ver.device_definition_id, {}
+        )
+        device_vers[device_ver.version] = device_ver
+        self.device_definition_versions[device_ver.device_definition_id] = device_vers
+        self.device_definitions[
+            device_definition_id
+        ].latest_version = device_ver.version
+        self.device_definitions[
+            device_definition_id
+        ].latest_version_arn = device_ver.arn
+
+        return device_ver
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
