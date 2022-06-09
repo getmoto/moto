@@ -206,6 +206,7 @@ class Route53(BaseResponse):
     def health_check_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
+        parsed_url = urlparse(full_url)
         method = request.method
 
         if method == "POST":
@@ -233,6 +234,11 @@ class Route53(BaseResponse):
             )
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check, xmlns=XMLNS)
+        elif method == "DELETE":
+            health_check_id = parsed_url.path.split("/")[-1]
+            route53_backend.delete_health_check(health_check_id)
+            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(xmlns=XMLNS)
         elif method == "GET":
             template = Template(LIST_HEALTH_CHECKS_RESPONSE)
             health_checks = route53_backend.list_health_checks()
@@ -248,12 +254,7 @@ class Route53(BaseResponse):
         parsed_url = urlparse(full_url)
         method = request.method
 
-        if method == "DELETE":
-            health_check_id = parsed_url.path.split("/")[-1]
-            route53_backend.delete_health_check(health_check_id)
-            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
-            return 200, headers, template.render(xmlns=XMLNS)
-        elif method == "GET":
+        if method == "GET":
             health_check_id = parsed_url.path.split("/")[-1]
             health_check = route53_backend.get_health_check(health_check_id)
             template = Template(GET_HEALTH_CHECK_RESPONSE)
@@ -547,22 +548,22 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
 </GetHostedZoneResponse>"""
 
 CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+    {% if zone.private_zone %}
+    <VPC>
+      <VPCId>{{zone.vpcid}}</VPCId>
+      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+    </VPC>
+    {% endif %}
    <HostedZone>
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
-      <ResourceRecordSetCount>0</ResourceRecordSetCount>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
         {% endif %}
         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
-      {% if zone.private_zone %}
-      <VPC>
-        <VPCId>{{zone.vpcid}}</VPCId>
-        <VPCRegion>{{zone.vpcregion}}</VPCRegion>
-      </VPC>
-      {% endif %}
    </HostedZone>
    {% if not zone.private_zone %}
    <DelegationSet>
