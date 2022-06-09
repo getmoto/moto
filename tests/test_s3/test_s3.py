@@ -579,6 +579,8 @@ def test_restore_key_transition():
     key.load()
     key.restore.should.contain('ongoing-request="false"')
 
+    state_manager.unset_transition(model_name="s3::keyrestore")
+
 
 @mock_s3
 def test_cannot_restore_standard_class_object():
