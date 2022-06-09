@@ -10,6 +10,7 @@ from .core import TaggedEC2Resource
 from ..exceptions import (
     CidrLimitExceeded,
     UnsupportedTenancy,
+    DefaultVpcAlreadyExists,
     DependencyViolationError,
     InvalidCIDRBlockParameterError,
     InvalidServiceName,
@@ -332,12 +333,20 @@ class VPCBackend:
         self.vpc_end_points = {}
         self.vpc_refs[self.__class__].add(weakref.ref(self))
 
+    def create_default_vpc(self):
+        default_vpc = self.describe_vpcs(filters={"is-default": "true"})
+        if default_vpc:
+            raise DefaultVpcAlreadyExists
+        cidr_block = "172.31.0.0/16"
+        return self.create_vpc(cidr_block=cidr_block, is_default=True)
+
     def create_vpc(
         self,
         cidr_block,
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
         tags=None,
+        is_default=False,
     ):
         vpc_id = random_vpc_id()
         try:
@@ -350,9 +359,9 @@ class VPCBackend:
             self,
             vpc_id,
             cidr_block,
-            len(self.vpcs) == 0,
-            instance_tenancy,
-            amazon_provided_ipv6_cidr_block,
+            is_default=is_default,
+            instance_tenancy=instance_tenancy,
+            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
         )
 
         for tag in tags or []:
