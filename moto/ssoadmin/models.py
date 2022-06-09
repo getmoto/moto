@@ -3,6 +3,9 @@ from .exceptions import ResourceNotFound
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from uuid import uuid4
+import random
+from moto.utilities.paginator import paginate
+from .utils import PAGINATION_MODEL
 
 
 class AccountAssignment(BaseModel):
@@ -37,12 +40,54 @@ class AccountAssignment(BaseModel):
         return summary
 
 
+class PermissionSet(BaseModel):
+    def __init__(
+        self,
+        name,
+        description,
+        instance_arn,
+        session_duration,
+        relay_state,
+        tags,
+    ):
+        self.name = name
+        self.description = description
+        self.instance_arn = instance_arn
+        self.permission_set_arn = PermissionSet.generate_id(instance_arn)
+        self.session_duration = session_duration
+        self.relay_state = relay_state
+        self.tags = tags
+        self.created_date = unix_time()
+
+    def to_json(self, include_creation_date=False):
+        summary = {
+            "Name": self.name,
+            "Description": self.description,
+            "PermissionSetArn": self.permission_set_arn,
+            "SessionDuration": self.session_duration,
+            "RelayState": self.relay_state,
+        }
+        if include_creation_date:
+            summary["CreatedDate"] = self.created_date
+        return summary
+
+    @staticmethod
+    def generate_id(instance_arn):
+        chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
+        return (
+            instance_arn
+            + "/ps-"
+            + "".join(str(random.choice(chars)) for _ in range(16))
+        )
+
+
 class SSOAdminBackend(BaseBackend):
     """Implementation of SSOAdmin APIs."""
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.account_assignments = list()
+        self.permission_sets = list()
 
     def create_account_assignment(
         self,
@@ -131,6 +176,90 @@ class SSOAdminBackend(BaseBackend):
                     }
                 )
         return account_assignments
+
+    def create_permission_set(
+        self,
+        name,
+        description,
+        instance_arn,
+        session_duration,
+        relay_state,
+        tags,
+    ):
+        permission_set = PermissionSet(
+            name,
+            description,
+            instance_arn,
+            session_duration,
+            relay_state,
+            tags,
+        )
+        self.permission_sets.append(permission_set)
+        return permission_set.to_json(True)
+
+    def update_permission_set(
+        self,
+        instance_arn,
+        permission_set_arn,
+        description,
+        session_duration,
+        relay_state,
+    ):
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        self.permission_sets.remove(permission_set)
+        permission_set.description = description
+        permission_set.session_duration = session_duration
+        permission_set.relay_state = relay_state
+        self.permission_sets.append(permission_set)
+        return permission_set.to_json(True)
+
+    def describe_permission_set(
+        self,
+        instance_arn,
+        permission_set_arn,
+    ):
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        return permission_set.to_json(True)
+
+    def delete_permission_set(
+        self,
+        instance_arn,
+        permission_set_arn,
+    ):
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        self.permission_sets.remove(permission_set)
+        return permission_set.to_json(include_creation_date=True)
+
+    def _find_permission_set(
+        self,
+        instance_arn,
+        permission_set_arn,
+    ):
+        for permission_set in self.permission_sets:
+            instance_arn_match = permission_set.instance_arn == instance_arn
+            permission_set_match = (
+                permission_set.permission_set_arn == permission_set_arn
+            )
+            if instance_arn_match and permission_set_match:
+                return permission_set
+        raise ResourceNotFound
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_permission_sets(self, instance_arn):
+        permission_sets = []
+        for permission_set in self.permission_sets:
+            if permission_set.instance_arn == instance_arn:
+                permission_sets.append(permission_set)
+        return permission_sets
 
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")
