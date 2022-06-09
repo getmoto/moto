@@ -152,6 +152,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_device_definition_version()
 
+        if self.method == "GET":
+            return self.list_device_definition_versions()
+
     def create_device_definition_version(self):
 
         device_definition_id = self.path.split("/")[-2]
@@ -161,6 +164,20 @@ class GreengrassResponse(BaseResponse):
             device_definition_id=device_definition_id, devices=devices
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_device_definition_versions(self):
+
+        device_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_device_definition_versions(
+            device_definition_id
+        )
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {"Versions": [device_def_ver.to_dict() for device_def_ver in res]}
+            ),
+        )
 
     def device_definition(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

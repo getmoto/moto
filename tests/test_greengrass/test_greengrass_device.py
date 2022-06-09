@@ -307,3 +307,38 @@ def test_update_device_definition_with_invalid_id():
         "That devices definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_device_definition_versions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    devices = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123",
+            "SyncShadow": True,
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/v1Thing",
+        }
+    ]
+
+    initial_version = {"Devices": devices}
+    create_res = client.create_device_definition(
+        InitialVersion=initial_version, Name="TestDevice"
+    )
+    device_def_id = create_res["Id"]
+
+    device_def_vers_res = client.list_device_definition_versions(
+        DeviceDefinitionId=device_def_id
+    )
+
+    device_def_vers_res.should.have.key("Versions")
+    device_def_ver = device_def_vers_res["Versions"][0]
+    device_def_ver.should.have.key("Arn")
+    device_def_ver.should.have.key("CreationTimestamp")
+
+    if not TEST_SERVER_MODE:
+        device_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+    device_def_ver.should.have.key("Id").equals(device_def_id)
+    device_def_ver.should.have.key("Version")

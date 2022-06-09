@@ -240,6 +240,12 @@ class GreengrassBackend(BaseBackend):
 
         return device_ver
 
+    def list_device_definition_versions(self, device_definition_id):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        return self.device_definition_versions[device_definition_id].values()
+
     def get_device_definition(self, device_definition_id):
 
         if device_definition_id not in self.device_definitions:
