@@ -335,6 +335,7 @@ class VPCBackend:
     def create_vpc(
         self,
         cidr_block,
+        is_default=False,
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
         tags=None,
@@ -350,7 +351,7 @@ class VPCBackend:
             self,
             vpc_id,
             cidr_block,
-            len(self.vpcs) == 0,
+            is_default,
             instance_tenancy,
             amazon_provided_ipv6_cidr_block,
         )
