@@ -395,7 +395,9 @@ def test_deleting_latency_route():
     )["ResourceRecordSets"]
     cnames.should.have.length_of(3)
     foo_cname = [
-        cname for cname in cnames if cname.get("SetIdentifier") and cname["SetIdentifier"] == "success-test-foo"
+        cname
+        for cname in cnames
+        if cname.get("SetIdentifier") and cname["SetIdentifier"] == "success-test-foo"
     ][0]
     foo_cname["Region"].should.equal("us-west-2")
 
