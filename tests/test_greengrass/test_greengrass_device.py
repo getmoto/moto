@@ -42,6 +42,60 @@ def test_create_device_definition():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_get_device_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Devices": [
+            {
+                "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+                "Id": "123",
+                "SyncShadow": True,
+                "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+            }
+        ]
+    }
+
+    device_name = "TestDevice"
+    create_res = client.create_device_definition(
+        InitialVersion=init_ver, Name=device_name
+    )
+    device_def_id = create_res["Id"]
+    arn = create_res["Arn"]
+    latest_version = create_res["LatestVersion"]
+    latest_version_arn = create_res["LatestVersionArn"]
+
+    get_res = client.get_device_definition(DeviceDefinitionId=device_def_id)
+
+    get_res.should.have.key("Name").equals(device_name)
+    get_res.should.have.key("Arn").equals(arn)
+    get_res.should.have.key("Id").equals(device_def_id)
+    get_res.should.have.key("LatestVersion").equals(latest_version)
+    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+
+    if not TEST_SERVER_MODE:
+        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        get_res.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_get_device_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_device_definition(
+            DeviceDefinitionId="b552443b-1888-469b-81f8-0ebc5ca92949"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That Device List Definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_create_device_definition_version():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

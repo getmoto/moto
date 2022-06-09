@@ -144,3 +144,16 @@ class GreengrassResponse(BaseResponse):
             device_definition_id=device_definition_id, devices=devices
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def device_definition(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_device_definition()
+
+    def get_device_definition(self):
+        device_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_device_definition(
+            device_definition_id=device_definition_id
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
