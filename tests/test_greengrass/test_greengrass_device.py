@@ -42,6 +42,43 @@ def test_create_device_definition():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_list_device_definitions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Devices": [
+            {
+                "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+                "Id": "123",
+                "SyncShadow": True,
+                "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+            }
+        ]
+    }
+
+    device_name = "TestDevice"
+    client.create_device_definition(InitialVersion=init_ver, Name=device_name)
+
+    res = client.list_device_definitions()
+    res.should.have.key("Definitions")
+    device_definition = res["Definitions"][0]
+
+    device_definition.should.have.key("Name").equals(device_name)
+    device_definition.should.have.key("Arn")
+    device_definition.should.have.key("Id")
+    device_definition.should.have.key("LatestVersion")
+    device_definition.should.have.key("LatestVersionArn")
+    if not TEST_SERVER_MODE:
+        device_definition.should.have.key("CreationTimestamp").equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+        device_definition.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_get_device_definition():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

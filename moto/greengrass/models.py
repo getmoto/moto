@@ -215,6 +215,9 @@ class GreengrassBackend(BaseBackend):
 
         return device_def
 
+    def list_device_definitions(self):
+        return self.device_definitions.values()
+
     def create_device_definition_version(self, device_definition_id, devices):
 
         if device_definition_id not in self.device_definitions:
