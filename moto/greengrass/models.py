@@ -215,6 +215,9 @@ class GreengrassBackend(BaseBackend):
 
         return device_def
 
+    def list_device_definitions(self):
+        return self.device_definitions.values()
+
     def create_device_definition_version(self, device_definition_id, devices):
 
         if device_definition_id not in self.device_definitions:
@@ -236,6 +239,28 @@ class GreengrassBackend(BaseBackend):
         ].latest_version_arn = device_ver.arn
 
         return device_ver
+
+    def get_device_definition(self, device_definition_id):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That Device List Definition does not exist.")
+        return self.device_definitions[device_definition_id]
+
+    def delete_device_definition(self, device_definition_id):
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        del self.device_definitions[device_definition_id]
+        del self.device_definition_versions[device_definition_id]
+
+    def update_device_definition(self, device_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        self.device_definitions[device_definition_id].name = name
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

@@ -42,6 +42,97 @@ def test_create_device_definition():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_list_device_definitions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Devices": [
+            {
+                "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+                "Id": "123",
+                "SyncShadow": True,
+                "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+            }
+        ]
+    }
+
+    device_name = "TestDevice"
+    client.create_device_definition(InitialVersion=init_ver, Name=device_name)
+
+    res = client.list_device_definitions()
+    res.should.have.key("Definitions")
+    device_definition = res["Definitions"][0]
+
+    device_definition.should.have.key("Name").equals(device_name)
+    device_definition.should.have.key("Arn")
+    device_definition.should.have.key("Id")
+    device_definition.should.have.key("LatestVersion")
+    device_definition.should.have.key("LatestVersionArn")
+    if not TEST_SERVER_MODE:
+        device_definition.should.have.key("CreationTimestamp").equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+        device_definition.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_device_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Devices": [
+            {
+                "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+                "Id": "123",
+                "SyncShadow": True,
+                "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+            }
+        ]
+    }
+
+    device_name = "TestDevice"
+    create_res = client.create_device_definition(
+        InitialVersion=init_ver, Name=device_name
+    )
+    device_def_id = create_res["Id"]
+    arn = create_res["Arn"]
+    latest_version = create_res["LatestVersion"]
+    latest_version_arn = create_res["LatestVersionArn"]
+
+    get_res = client.get_device_definition(DeviceDefinitionId=device_def_id)
+
+    get_res.should.have.key("Name").equals(device_name)
+    get_res.should.have.key("Arn").equals(arn)
+    get_res.should.have.key("Id").equals(device_def_id)
+    get_res.should.have.key("LatestVersion").equals(latest_version)
+    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+
+    if not TEST_SERVER_MODE:
+        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        get_res.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_get_device_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_device_definition(
+            DeviceDefinitionId="b552443b-1888-469b-81f8-0ebc5ca92949"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That Device List Definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_create_device_definition_version():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")
@@ -102,6 +193,115 @@ def test_create_device_definition_version_with_invalid_id():
     with pytest.raises(ClientError) as ex:
         client.create_device_definition_version(
             DeviceDefinitionId="123", Devices=devices
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That devices definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_delete_device_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    devices = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123",
+            "SyncShadow": True,
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/v1Thing",
+        }
+    ]
+
+    create_res = client.create_device_definition(
+        InitialVersion={"Devices": devices}, Name="TestDevice"
+    )
+
+    device_def_id = create_res["Id"]
+    del_res = client.delete_device_definition(DeviceDefinitionId=device_def_id)
+    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_greengrass
+def test_delete_device_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_device_definition(
+            DeviceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That devices definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_update_device_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    devices = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123",
+            "SyncShadow": True,
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/v1Thing",
+        }
+    ]
+
+    initial_version = {"Devices": devices}
+    create_res = client.create_device_definition(
+        InitialVersion=initial_version, Name="TestDevice"
+    )
+    device_def_id = create_res["Id"]
+    updated_device_name = "UpdatedDevice"
+    update_res = client.update_device_definition(
+        DeviceDefinitionId=device_def_id, Name=updated_device_name
+    )
+    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    get_res = client.get_device_definition(DeviceDefinitionId=device_def_id)
+    get_res.should.have.key("Name").equals(updated_device_name)
+
+
+@mock_greengrass
+def test_update_device_definition_with_empty_name():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    devices = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123",
+            "SyncShadow": True,
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/v1Thing",
+        }
+    ]
+
+    initial_version = {"Devices": devices}
+    create_res = client.create_device_definition(
+        InitialVersion=initial_version, Name="TestDevice"
+    )
+    device_def_id = create_res["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_device_definition(DeviceDefinitionId=device_def_id, Name="")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Input does not contain any attributes to be updated"
+    )
+    ex.value.response["Error"]["Code"].should.equal(
+        "InvalidContainerDefinitionException"
+    )
+
+
+@mock_greengrass
+def test_update_device_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_device_definition(
+            DeviceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
         )
     ex.value.response["Error"]["Message"].should.equal(
         "That devices definition does not exist."
