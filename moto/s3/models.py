@@ -32,6 +32,8 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import LowercaseDict, md5_hash
 from moto.s3.exceptions import (
@@ -101,7 +103,7 @@ class FakeDeleteMarker(BaseModel):
         return self._version_id
 
 
-class FakeKey(BaseModel):
+class FakeKey(BaseModel, ManagedState):
     def __init__(
         self,
         name,
@@ -121,6 +123,14 @@ class FakeKey(BaseModel):
         lock_until=None,
         s3_backend=None,
     ):
+        ManagedState.__init__(
+            self,
+            "s3::keyrestore",
+            transitions=[
+                (None, "IN_PROGRESS"),
+                ("IN_PROGRESS", "RESTORED"),
+            ],
+        )
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl("private")
@@ -256,8 +266,13 @@ class FakeKey(BaseModel):
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
-            rhdr = 'ongoing-request="false", expiry-date="{0}"'
-            res["x-amz-restore"] = rhdr.format(self.expiry_date)
+            if self.status == "IN_PROGRESS":
+                header = 'ongoing-request="true"'
+            else:
+                header = 'ongoing-request="false", expiry-date="{0}"'.format(
+                    self.expiry_date
+                )
+            res["x-amz-restore"] = header
 
         if self._is_versioned:
             res["x-amz-version-id"] = str(self.version_id)
@@ -1380,6 +1395,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self.buckets = {}
         self.tagger = TaggingService()
 
+        state_manager.register_default_transition(
+            "s3::keyrestore", transition={"progression": "immediate"}
+        )
+
     @property
     def _url_module(self):
         # The urls-property can be different depending on env variables
@@ -1741,6 +1760,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 key = key.multipart.parts[part_number]
 
         if isinstance(key, FakeKey):
+            key.advance()
             return key
         else:
             return None
