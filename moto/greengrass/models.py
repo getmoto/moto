@@ -243,5 +243,11 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That Device List Definition does not exist.")
         return self.device_definitions[device_definition_id]
 
+    def delete_device_definition(self, device_definition_id):
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException('That devices definition does not exist.')
+        del self.device_definitions[device_definition_id]
+        del self.device_definition_versions[device_definition_id]
+
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
