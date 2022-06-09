@@ -130,10 +130,10 @@ class Trail(BaseModel):
             raise TrailNameInvalidChars()
 
     def check_bucket_exists(self):
-        from moto.s3.models import s3_backend
+        from moto.s3.models import s3_backends
 
         try:
-            s3_backend.get_bucket(self.bucket_name)
+            s3_backends["global"].get_bucket(self.bucket_name)
         except Exception:
             raise S3BucketDoesNotExistException(
                 f"S3 bucket {self.bucket_name} does not exist!"

@@ -6,7 +6,7 @@ from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
-from moto.s3.models import s3_backend
+from moto.s3.models import s3_backends
 from moto.s3.exceptions import S3ClientError
 from moto.core import get_account_id
 from .models import cloudformation_backends
@@ -68,7 +68,7 @@ class CloudFormationResponse(BaseResponse):
                 bucket_name = template_url_parts.netloc.split(".")[0]
                 key_name = template_url_parts.path.lstrip("/")
 
-        key = s3_backend.get_object(bucket_name, key_name)
+        key = s3_backends["global"].get_object(bucket_name, key_name)
         return key.value.decode("utf-8")
 
     def _get_params_from_list(self, parameters_list):

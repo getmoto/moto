@@ -121,7 +121,6 @@ class FakeKey(BaseModel, ManagedState):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
-        s3_backend=None,
     ):
         ManagedState.__init__(
             self,
@@ -161,8 +160,6 @@ class FakeKey(BaseModel, ManagedState):
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
-
-        self.s3_backend = s3_backend
 
     def safe_name(self, encoding_type=None):
         if encoding_type == "url":
@@ -292,7 +289,7 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
-        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        tags = s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn)
         if tags:
             res["x-amz-tagging-count"] = len(tags.keys())
 
@@ -1228,13 +1225,13 @@ class FakeBucket(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        bucket = s3_backend.create_bucket(resource_name, region_name)
+        bucket = s3_backends["global"].create_bucket(resource_name, region_name)
 
         properties = cloudformation_json.get("Properties", {})
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backend.put_bucket_encryption(
+            s3_backends["global"].put_bucket_encryption(
                 bucket_name=resource_name, encryption=bucket_encryption
             )
 
@@ -1264,7 +1261,7 @@ class FakeBucket(CloudFormationModel):
                 bucket_encryption = cfn_to_api_encryption(
                     properties["BucketEncryption"]
                 )
-                s3_backend.put_bucket_encryption(
+                s3_backends["global"].put_bucket_encryption(
                     bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
@@ -1273,7 +1270,7 @@ class FakeBucket(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        s3_backend.delete_bucket(resource_name)
+        s3_backends["global"].delete_bucket(resource_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1298,7 +1295,7 @@ class FakeBucket(CloudFormationModel):
             "resourceCreationTime": str(self.creation_date),
             "relatedEvents": [],
             "relationships": [],
-            "tags": s3_backend.tagger.get_tag_dict_for_resource(self.arn),
+            "tags": s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn),
             "configuration": {
                 "name": self.name,
                 "owner": {"id": OWNER},
@@ -1449,7 +1446,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     @classmethod
     def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in s3_backend.buckets.items():
+        for name, bucket in s3_backends["global"].buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1700,7 +1697,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
-            s3_backend=s3_backend,
         )
 
         keys = [
@@ -2173,4 +2169,3 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 s3_backends = BackendDict(
     S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
 )
-s3_backend = s3_backends["global"]

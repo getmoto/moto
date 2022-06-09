@@ -4,6 +4,7 @@ from collections import defaultdict
 import copy
 import datetime
 from gzip import GzipFile
+from typing import Mapping
 from sys import platform
 
 import docker
@@ -25,10 +26,10 @@ import requests.exceptions
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.iam.models import iam_backend
+from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis, BackendDict
-from moto.s3.models import s3_backend
+from moto.s3.models import s3_backends
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
@@ -182,7 +183,7 @@ def _validate_s3_bucket_and_key(data):
     key = None
     try:
         # FIXME: does not validate bucket region
-        key = s3_backend.get_object(data["S3Bucket"], data["S3Key"])
+        key = s3_backends["global"].get_object(data["S3Bucket"], data["S3Key"])
     except MissingBucket:
         if do_validate_s3():
             raise InvalidParameterValueException(
@@ -585,7 +586,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_object(
+                key = s3_backends["global"].get_object(
                     updated_spec["S3Bucket"], updated_spec["S3Key"]
                 )
             except MissingBucket:
@@ -1121,7 +1122,7 @@ class LambdaStorage(object):
             if account != get_account_id():
                 raise CrossAccountNotAllowed()
             try:
-                iam_backend.get_role_by_arn(fn.role)
+                iam_backends["global"].get_role_by_arn(fn.role)
             except IAMNotFoundException:
                 raise InvalidParameterValueException(
                     "The role defined for the function cannot be assumed by Lambda."
@@ -1666,4 +1667,4 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-lambda_backends = BackendDict(LambdaBackend, "lambda")
+lambda_backends: Mapping[str, LambdaBackend] = BackendDict(LambdaBackend, "lambda")

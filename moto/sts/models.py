@@ -11,6 +11,7 @@ from moto.sts.utils import (
     random_assumed_role_id,
     DEFAULT_STS_SESSION_DURATION,
 )
+from typing import Mapping
 
 
 class Token(BaseModel):
@@ -138,7 +139,6 @@ class STSBackend(BaseBackend):
         pass
 
 
-sts_backends = BackendDict(
+sts_backends: Mapping[str, STSBackend] = BackendDict(
     STSBackend, "sts", use_boto3_regions=False, additional_regions=["global"]
 )
-sts_backend = sts_backends["global"]

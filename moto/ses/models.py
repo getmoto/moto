@@ -6,6 +6,7 @@ from email.mime.base import MIMEBase
 from email.utils import parseaddr
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_7or8bit
+from typing import Mapping
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
@@ -537,7 +538,6 @@ class SESBackend(BaseBackend):
         return attributes_by_identity
 
 
-ses_backends = BackendDict(
+ses_backends: Mapping[str, SESBackend] = BackendDict(
     SESBackend, "ses", use_boto3_regions=False, additional_regions=["global"]
 )
-ses_backend = ses_backends["global"]

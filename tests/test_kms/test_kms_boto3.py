@@ -647,7 +647,10 @@ def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
     if append_key_id:
         target_id += key_id
 
-    client.generate_data_key(KeyId=target_id, NumberOfBytes=32)
+    resp = client.generate_data_key(KeyId=target_id, NumberOfBytes=32)
+    resp.should.have.key("KeyId").equals(
+        f"arn:aws:kms:us-east-1:123456789012:key/{key_id}"
+    )
 
 
 @mock_kms
