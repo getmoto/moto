@@ -259,6 +259,11 @@ class Route53(BaseResponse):
             health_check = route53_backend.get_health_check(health_check_id)
             template = Template(GET_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(health_check=health_check)
+        elif method == "DELETE":
+            health_check_id = parsed_url.path.split("/")[-1]
+            route53_backend.delete_health_check(health_check_id)
+            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(xmlns=XMLNS)
 
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
