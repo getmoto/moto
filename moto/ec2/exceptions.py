@@ -461,6 +461,13 @@ class InvalidParameterValueError(EC2ClientError):
         )
 
 
+class EmptyTagSpecError(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "InvalidParameterValue", "Tag specification must have at least one tag"
+        )
+
+
 class InvalidParameterValueErrorTagNull(EC2ClientError):
     def __init__(self):
         super().__init__(
