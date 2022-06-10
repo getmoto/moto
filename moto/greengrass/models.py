@@ -4,6 +4,11 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
+from .exceptions import (
+    IdNotFoundException,
+    InvalidContainerDefinitionException,
+    VersionNotFoundException,
+)
 
 
 class FakeCoreDefinition(BaseModel):
@@ -41,8 +46,8 @@ class FakeCoreDefinitionVersion(BaseModel):
         self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/cores/{self.core_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_detail=False):
+        obj = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
                 self.created_at_datetime
@@ -50,6 +55,66 @@ class FakeCoreDefinitionVersion(BaseModel):
             "Id": self.core_definition_id,
             "Version": self.version,
         }
+
+        if include_detail:
+            obj["Definition"] = self.definition
+
+        return obj
+
+
+class FakeDeviceDefinition(BaseModel):
+    def __init__(self, region_name, name, initial_version):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/devices/{self.id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self):
+        res = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+        }
+        if self.name is not None:
+            res["Name"] = self.name
+        return res
+
+
+class FakeDeviceDefinitionVersion(BaseModel):
+    def __init__(self, region_name, device_definition_id, devices):
+        self.region_name = region_name
+        self.device_definition_id = device_definition_id
+        self.devices = devices
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+
+    def to_dict(self, include_detail=False):
+        obj = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.device_definition_id,
+            "Version": self.version,
+        }
+
+        if include_detail:
+            obj["Definition"] = {"Devices": self.devices}
+
+        return obj
 
 
 class GreengrassBackend(BaseBackend):
@@ -78,6 +143,31 @@ class GreengrassBackend(BaseBackend):
         )
         return core_definition
 
+    def list_core_definitions(self):
+        return self.core_definitions.values()
+
+    def get_core_definition(self, core_definition_id):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That Core List Definition does not exist")
+        return self.core_definitions[core_definition_id]
+
+    def delete_core_definition(self, core_definition_id):
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        del self.core_definitions[core_definition_id]
+        del self.core_definition_versions[core_definition_id]
+
+    def update_core_definition(self, core_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        self.core_definitions[core_definition_id].name = name
+
     def create_core_definition_version(self, core_definition_id, cores):
 
         definition = {"Cores": cores}
@@ -94,6 +184,112 @@ class GreengrassBackend(BaseBackend):
         self.core_definitions[core_definition_id].latest_version_arn = core_def_ver.arn
 
         return core_def_ver
+
+    def list_core_definition_versions(self, core_definition_id):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+        return self.core_definition_versions[core_definition_id].values()
+
+    def get_core_definition_version(
+        self, core_definition_id, core_definition_version_id
+    ):
+
+        if core_definition_id not in self.core_definitions:
+            raise IdNotFoundException("That cores definition does not exist.")
+
+        if (
+            core_definition_version_id
+            not in self.core_definition_versions[core_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {core_definition_version_id} of Core List Definition {core_definition_id} does not exist."
+            )
+
+        return self.core_definition_versions[core_definition_id][
+            core_definition_version_id
+        ]
+
+    def create_device_definition(self, name, initial_version):
+        device_def = FakeDeviceDefinition(self.region_name, name, initial_version)
+        self.device_definitions[device_def.id] = device_def
+        init_ver = device_def.initial_version
+        init_device_def = init_ver.get("Devices", {})
+        self.create_device_definition_version(device_def.id, init_device_def)
+
+        return device_def
+
+    def list_device_definitions(self):
+        return self.device_definitions.values()
+
+    def create_device_definition_version(self, device_definition_id, devices):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+
+        device_ver = FakeDeviceDefinitionVersion(
+            self.region_name, device_definition_id, devices
+        )
+        device_vers = self.device_definition_versions.get(
+            device_ver.device_definition_id, {}
+        )
+        device_vers[device_ver.version] = device_ver
+        self.device_definition_versions[device_ver.device_definition_id] = device_vers
+        self.device_definitions[
+            device_definition_id
+        ].latest_version = device_ver.version
+        self.device_definitions[
+            device_definition_id
+        ].latest_version_arn = device_ver.arn
+
+        return device_ver
+
+    def list_device_definition_versions(self, device_definition_id):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        return self.device_definition_versions[device_definition_id].values()
+
+    def get_device_definition(self, device_definition_id):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That Device List Definition does not exist.")
+        return self.device_definitions[device_definition_id]
+
+    def delete_device_definition(self, device_definition_id):
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        del self.device_definitions[device_definition_id]
+        del self.device_definition_versions[device_definition_id]
+
+    def update_device_definition(self, device_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        self.device_definitions[device_definition_id].name = name
+
+    def get_device_definition_version(
+        self, device_definition_id, device_definition_version_id
+    ):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+
+        if (
+            device_definition_version_id
+            not in self.device_definition_versions[device_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {device_definition_version_id} of Device List Definition {device_definition_id} does not exist."
+            )
+
+        return self.device_definition_versions[device_definition_id][
+            device_definition_version_id
+        ]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

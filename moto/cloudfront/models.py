@@ -255,4 +255,3 @@ cloudfront_backends = BackendDict(
     use_boto3_regions=False,
     additional_regions=["global"],
 )
-cloudfront_backend = cloudfront_backends["global"]

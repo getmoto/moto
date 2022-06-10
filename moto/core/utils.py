@@ -477,11 +477,6 @@ class BackendDict(dict):
         self._use_boto3_regions = use_boto3_regions
         self._additional_regions = additional_regions
 
-    def get(self, account_id_or_region, if_none=None):
-        if self.__contains__(account_id_or_region):
-            return self.__getitem__(account_id_or_region)
-        return if_none
-
     def __getitem__(self, account_id) -> AccountSpecificBackend:
         self._create_account_specific_backend(account_id)
         return super().__getitem__(account_id)

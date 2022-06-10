@@ -32,6 +32,8 @@ from moto.core.utils import (
     BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import LowercaseDict, md5_hash
 from moto.s3.exceptions import (
@@ -101,7 +103,7 @@ class FakeDeleteMarker(BaseModel):
         return self._version_id
 
 
-class FakeKey(BaseModel):
+class FakeKey(BaseModel, ManagedState):
     def __init__(
         self,
         name,
@@ -119,8 +121,15 @@ class FakeKey(BaseModel):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
-        s3_backend=None,
     ):
+        ManagedState.__init__(
+            self,
+            "s3::keyrestore",
+            transitions=[
+                (None, "IN_PROGRESS"),
+                ("IN_PROGRESS", "RESTORED"),
+            ],
+        )
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl("private")
@@ -151,8 +160,6 @@ class FakeKey(BaseModel):
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
-
-        self.s3_backend = s3_backend
 
     def safe_name(self, encoding_type=None):
         if encoding_type == "url":
@@ -256,8 +263,13 @@ class FakeKey(BaseModel):
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
-            rhdr = 'ongoing-request="false", expiry-date="{0}"'
-            res["x-amz-restore"] = rhdr.format(self.expiry_date)
+            if self.status == "IN_PROGRESS":
+                header = 'ongoing-request="true"'
+            else:
+                header = 'ongoing-request="false", expiry-date="{0}"'.format(
+                    self.expiry_date
+                )
+            res["x-amz-restore"] = header
 
         if self._is_versioned:
             res["x-amz-version-id"] = str(self.version_id)
@@ -277,7 +289,7 @@ class FakeKey(BaseModel):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
-        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        tags = s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn)
         if tags:
             res["x-amz-tagging-count"] = len(tags.keys())
 
@@ -1213,13 +1225,13 @@ class FakeBucket(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        bucket = s3_backend.create_bucket(resource_name, region_name)
+        bucket = s3_backends["global"].create_bucket(resource_name, region_name)
 
         properties = cloudformation_json.get("Properties", {})
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backend.put_bucket_encryption(
+            s3_backends["global"].put_bucket_encryption(
                 bucket_name=resource_name, encryption=bucket_encryption
             )
 
@@ -1249,7 +1261,7 @@ class FakeBucket(CloudFormationModel):
                 bucket_encryption = cfn_to_api_encryption(
                     properties["BucketEncryption"]
                 )
-                s3_backend.put_bucket_encryption(
+                s3_backends["global"].put_bucket_encryption(
                     bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
@@ -1258,7 +1270,7 @@ class FakeBucket(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        s3_backend.delete_bucket(resource_name)
+        s3_backends["global"].delete_bucket(resource_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1283,7 +1295,7 @@ class FakeBucket(CloudFormationModel):
             "resourceCreationTime": str(self.creation_date),
             "relatedEvents": [],
             "relationships": [],
-            "tags": s3_backend.tagger.get_tag_dict_for_resource(self.arn),
+            "tags": s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn),
             "configuration": {
                 "name": self.name,
                 "owner": {"id": OWNER},
@@ -1380,6 +1392,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self.buckets = {}
         self.tagger = TaggingService()
 
+        state_manager.register_default_transition(
+            "s3::keyrestore", transition={"progression": "immediate"}
+        )
+
     @property
     def _url_module(self):
         # The urls-property can be different depending on env variables
@@ -1430,7 +1446,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     @classmethod
     def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in s3_backend.buckets.items():
+        for name, bucket in s3_backends["global"].buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1681,7 +1697,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
-            s3_backend=s3_backend,
         )
 
         keys = [
@@ -1741,6 +1756,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 key = key.multipart.parts[part_number]
 
         if isinstance(key, FakeKey):
+            key.advance()
             return key
         else:
             return None

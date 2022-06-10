@@ -1,15 +1,6 @@
 Moto Changelog
 ==============
 
-#### TODO
-s3: Response doesn't extend BaseResponse. Should it? Can we simplify things by doing that? 
-   Maybe take care of this first, in a separate PR?
-s3 config: convert to BackendDict
-change scaffold to use backend[account_id][region]
-Fix server tests - needs to pass an account ID
-Add more tests - verify that requests to different accounts are separated 
-fix ServerMode tests - needs to find this account ID 
-
 3.1.12
 -----
 Docker Digest for 3.1.12: _sha256:64dcfb63b252b3413481683b90f105d01644b6bec150b60e6f612a2569ee630c_

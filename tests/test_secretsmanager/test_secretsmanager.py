@@ -2,6 +2,7 @@ import os
 
 import boto3
 from dateutil.tz import tzlocal
+import re
 
 from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import ACCOUNT_ID
@@ -24,6 +25,22 @@ def test_get_secret_value():
     conn.create_secret(Name="java-util-test-password", SecretString="foosecret")
     result = conn.get_secret_value(SecretId="java-util-test-password")
     assert result["SecretString"] == "foosecret"
+
+
+@mock_secretsmanager
+def test_secret_arn():
+    region = "us-west-2"
+    conn = boto3.client("secretsmanager", region_name=region)
+
+    create_dict = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="secret_string",
+    )
+    assert re.match(
+        f"arn:aws:secretsmanager:{region}:{ACCOUNT_ID}:secret:{DEFAULT_SECRET_NAME}-"
+        + r"\w{6}",
+        create_dict["ARN"],
+    )
 
 
 @mock_secretsmanager

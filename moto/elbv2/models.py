@@ -1547,9 +1547,9 @@ Member must satisfy regular expression pattern: {}".format(
         except AWSResourceNotFoundException:
             pass
 
-        from moto.iam import iam_backend
+        from moto.iam import iam_backends
 
-        cert = iam_backend.get_certificate_by_arn(certificate_arn)
+        cert = iam_backends["global"].get_certificate_by_arn(certificate_arn)
         if cert is not None:
             return True
 

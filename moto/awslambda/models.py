@@ -4,6 +4,7 @@ from collections import defaultdict
 import copy
 import datetime
 from gzip import GzipFile
+from typing import Mapping
 from sys import platform
 
 import docker
@@ -28,7 +29,7 @@ from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis, BackendDict
-from moto.s3.models import s3_backend
+from moto.s3.models import s3_backends
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
@@ -182,7 +183,7 @@ def _validate_s3_bucket_and_key(data):
     key = None
     try:
         # FIXME: does not validate bucket region
-        key = s3_backend.get_object(data["S3Bucket"], data["S3Key"])
+        key = s3_backends["global"].get_object(data["S3Bucket"], data["S3Key"])
     except MissingBucket:
         if do_validate_s3():
             raise InvalidParameterValueException(
@@ -379,9 +380,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.region = region
         self.code = spec["Code"]
         self.function_name = spec["FunctionName"]
-        self.handler = spec["Handler"]
+        self.handler = spec.get("Handler")
         self.role = spec["Role"]
-        self.run_time = spec["Runtime"]
+        self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.policy = None
@@ -422,7 +423,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             # TODO: we should be putting this in a lambda bucket
             self.code["UUID"] = str(uuid.uuid4())
             self.code["S3Key"] = "{}-{}".format(self.function_name, self.code["UUID"])
-        else:
+        elif "S3Bucket" in self.code:
             key = _validate_s3_bucket_and_key(self.code)
             if key:
                 (
@@ -435,6 +436,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_bytes = ""
                 self.code_size = 0
                 self.code_sha_256 = ""
+        elif "ImageUri" in self.code:
+            self.code_sha_256 = hashlib.sha256(
+                self.code["ImageUri"].encode("utf-8")
+            ).hexdigest()
+            self.code_size = 0
 
         self.function_arn = make_function_arn(
             self.region, get_account_id(), self.function_name
@@ -520,26 +526,33 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         return config
 
     def get_code(self):
-        code = {
-            "Code": {
+        resp = {"Configuration": self.get_configuration()}
+        if "S3Key" in self.code:
+            resp["Code"] = {
                 "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/{1}".format(
                     self.region, self.code["S3Key"]
                 ),
                 "RepositoryType": "S3",
-            },
-            "Configuration": self.get_configuration(),
-        }
+            }
+        elif "ImageUri" in self.code:
+            resp["Code"] = {
+                "RepositoryType": "ECR",
+                "ImageUri": self.code.get("ImageUri"),
+                "ResolvedImageUri": self.code.get("ImageUri").split(":")[0]
+                + "@sha256:"
+                + self.code_sha_256,
+            }
         if self.tags:
-            code["Tags"] = self.tags
+            resp["Tags"] = self.tags
         if self.reserved_concurrency:
-            code.update(
+            resp.update(
                 {
                     "Concurrency": {
                         "ReservedConcurrentExecutions": self.reserved_concurrency
                     }
                 }
             )
-        return code
+        return resp
 
     def update_configuration(self, config_updates):
         for key, value in config_updates.items():
@@ -585,7 +598,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_object(
+                key = s3_backends["global"].get_object(
                     updated_spec["S3Bucket"], updated_spec["S3Key"]
                 )
             except MissingBucket:
@@ -744,7 +757,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         )
 
     def invoke(self, body, request_headers, response_headers):
-
         if body:
             body = json.loads(body)
         else:
@@ -1641,6 +1653,9 @@ class LambdaBackend(BaseBackend):
         return fn.update_configuration(body) if fn else None
 
     def invoke(self, function_name, qualifier, body, headers, response_headers):
+        """
+        Invoking a Function with PackageType=Image is not yet supported.
+        """
         fn = self.get_function(function_name, qualifier)
         if fn:
             payload = fn.invoke(body, headers, response_headers)
@@ -1668,4 +1683,4 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-lambda_backends = BackendDict(LambdaBackend, "lambda")
+lambda_backends: Mapping[str, LambdaBackend] = BackendDict(LambdaBackend, "lambda")

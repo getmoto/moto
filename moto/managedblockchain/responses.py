@@ -5,7 +5,6 @@ from moto.core.responses import BaseResponse
 from .exceptions import exception_handler
 from .models import managedblockchain_backends
 from .utils import (
-    region_from_managedblckchain_url,
     networkid_from_managedblockchain_url,
     proposalid_from_managedblockchain_url,
     invitationid_from_managedblockchain_url,
@@ -15,29 +14,21 @@ from .utils import (
 
 
 class ManagedBlockchainResponse(BaseResponse):
-    def __init__(self, backend):
-        super().__init__()
-        self.backend = backend
+    @property
+    def backend(self):
+        return managedblockchain_backends[self.region]
 
-    @classmethod
     @exception_handler
-    def network_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._network_response(request, headers)
+    def network_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._network_response(request, headers)
 
     def _network_response(self, request, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         if method == "GET":
             return self._all_networks_response(headers)
         elif method == "POST":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._network_response_post(json_body, headers)
 
     def _all_networks_response(self, headers):
@@ -70,14 +61,10 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return 200, headers, json.dumps(response)
 
-    @classmethod
     @exception_handler
-    def networkid_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._networkid_response(request, full_url, headers)
+    def networkid_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._networkid_response(request, full_url, headers)
 
     def _networkid_response(self, request, full_url, headers):
         method = request.method
@@ -92,26 +79,18 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    @classmethod
     @exception_handler
-    def proposal_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._proposal_response(request, full_url, headers)
+    def proposal_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._proposal_response(request, full_url, headers)
 
     def _proposal_response(self, request, full_url, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
         if method == "GET":
             return self._all_proposals_response(network_id, headers)
         elif method == "POST":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._proposal_response_post(network_id, json_body, headers)
 
     def _all_proposals_response(self, network_id, headers):
@@ -134,14 +113,10 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return 200, headers, json.dumps(response)
 
-    @classmethod
     @exception_handler
-    def proposalid_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._proposalid_response(request, full_url, headers)
+    def proposalid_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._proposalid_response(request, full_url, headers)
 
     def _proposalid_response(self, request, full_url, headers):
         method = request.method
@@ -156,27 +131,19 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    @classmethod
     @exception_handler
-    def proposal_votes_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._proposal_votes_response(request, full_url, headers)
+    def proposal_votes_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._proposal_votes_response(request, full_url, headers)
 
     def _proposal_votes_response(self, request, full_url, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
         proposal_id = proposalid_from_managedblockchain_url(full_url)
         if method == "GET":
             return self._all_proposal_votes_response(network_id, proposal_id, headers)
         elif method == "POST":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._proposal_votes_response_post(
                 network_id, proposal_id, json_body, headers
             )
@@ -196,14 +163,10 @@ class ManagedBlockchainResponse(BaseResponse):
         self.backend.vote_on_proposal(network_id, proposal_id, votermemberid, vote)
         return 200, headers, ""
 
-    @classmethod
     @exception_handler
-    def invitation_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._invitation_response(request, headers)
+    def invitation_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._invitation_response(request, headers)
 
     def _invitation_response(self, request, headers):
         method = request.method
@@ -218,14 +181,10 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, response
 
-    @classmethod
     @exception_handler
-    def invitationid_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._invitationid_response(request, full_url, headers)
+    def invitationid_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._invitationid_response(request, full_url, headers)
 
     def _invitationid_response(self, request, full_url, headers):
         method = request.method
@@ -238,26 +197,18 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, ""
 
-    @classmethod
     @exception_handler
-    def member_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._member_response(request, full_url, headers)
+    def member_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._member_response(request, full_url, headers)
 
     def _member_response(self, request, full_url, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
         if method == "GET":
             return self._all_members_response(network_id, headers)
         elif method == "POST":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._member_response_post(network_id, json_body, headers)
 
     def _all_members_response(self, network_id, headers):
@@ -275,27 +226,19 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return 200, headers, json.dumps(response)
 
-    @classmethod
     @exception_handler
-    def memberid_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._memberid_response(request, full_url, headers)
+    def memberid_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._memberid_response(request, full_url, headers)
 
     def _memberid_response(self, request, full_url, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_request(full_url, body)
+        member_id = memberid_from_managedblockchain_request(full_url, self.body)
         if method == "GET":
             return self._memberid_response_get(network_id, member_id, headers)
         elif method == "PATCH":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._memberid_response_patch(
                 network_id, member_id, json_body, headers
             )
@@ -318,32 +261,24 @@ class ManagedBlockchainResponse(BaseResponse):
         headers["content-type"] = "application/json"
         return 200, headers, ""
 
-    @classmethod
     @exception_handler
-    def node_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._node_response(request, full_url, headers)
+    def node_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._node_response(request, full_url, headers)
 
     def _node_response(self, request, full_url, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_request(full_url, body)
+        member_id = memberid_from_managedblockchain_request(full_url, self.body)
         if method == "GET":
             status = None
             if "status" in querystring:
                 status = querystring["status"][0]
             return self._all_nodes_response(network_id, member_id, status, headers)
         elif method == "POST":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._node_response_post(network_id, member_id, json_body, headers)
 
     def _all_nodes_response(self, network_id, member_id, status, headers):
@@ -368,28 +303,20 @@ class ManagedBlockchainResponse(BaseResponse):
         )
         return 200, headers, json.dumps(response)
 
-    @classmethod
     @exception_handler
-    def nodeid_response(clazz, request, full_url, headers):
-        region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(
-            managedblockchain_backends[region_name]
-        )
-        return response_instance._nodeid_response(request, full_url, headers)
+    def nodeid_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        return self._nodeid_response(request, full_url, headers)
 
     def _nodeid_response(self, request, full_url, headers):
         method = request.method
-        if hasattr(request, "body"):
-            body = request.body
-        else:
-            body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
-        member_id = memberid_from_managedblockchain_request(full_url, body)
+        member_id = memberid_from_managedblockchain_request(full_url, self.body)
         node_id = nodeid_from_managedblockchain_url(full_url)
         if method == "GET":
             return self._nodeid_response_get(network_id, member_id, node_id, headers)
         elif method == "PATCH":
-            json_body = json.loads(body.decode("utf-8"))
+            json_body = json.loads(self.body)
             return self._nodeid_response_patch(
                 network_id, member_id, node_id, json_body, headers
             )

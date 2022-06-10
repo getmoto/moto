@@ -56,7 +56,7 @@ def test_create_stack_hosted_zone_by_id():
     # then a hosted zone should exist
     zone = conn.list_hosted_zones()["HostedZones"][0]
     zone.should.have.key("Name").equal("foo.bar.baz")
-    zone.should.have.key("ResourceRecordSetCount").equal(0)
+    zone.should.have.key("ResourceRecordSetCount").equal(1)
 
     # when adding a record set to this zone
     cf_conn.create_stack(
@@ -69,7 +69,7 @@ def test_create_stack_hosted_zone_by_id():
     updated_zone = conn.list_hosted_zones()["HostedZones"][0]
     updated_zone.should.have.key("Id").equal(zone["Id"])
     updated_zone.should.have.key("Name").equal("foo.bar.baz")
-    updated_zone.should.have.key("ResourceRecordSetCount").equal(1)
+    updated_zone.should.have.key("ResourceRecordSetCount").equal(2)
 
 
 @mock_cloudformation
@@ -88,8 +88,8 @@ def test_route53_roundrobin():
     rrsets = route53.list_resource_record_sets(HostedZoneId=zone_id)[
         "ResourceRecordSets"
     ]
-    rrsets.should.have.length_of(2)
-    record_set1 = rrsets[0]
+    rrsets.should.have.length_of(3)
+    record_set1 = rrsets[1]
     record_set1["Name"].should.equal("test_stack.us-west-1.my_zone.")
     record_set1["SetIdentifier"].should.equal("test_stack AWS")
     record_set1["Type"].should.equal("CNAME")
@@ -97,7 +97,7 @@ def test_route53_roundrobin():
     record_set1["Weight"].should.equal(3)
     record_set1["ResourceRecords"][0]["Value"].should.equal("aws.amazon.com")
 
-    record_set2 = rrsets[1]
+    record_set2 = rrsets[2]
     record_set2["Name"].should.equal("test_stack.us-west-1.my_zone.")
     record_set2["SetIdentifier"].should.equal("test_stack Amazon")
     record_set2["Type"].should.equal("CNAME")
@@ -135,9 +135,9 @@ def test_route53_ec2_instance_with_public_ip():
     rrsets = route53.list_resource_record_sets(HostedZoneId=zone_id)[
         "ResourceRecordSets"
     ]
-    rrsets.should.have.length_of(1)
+    rrsets.should.have.length_of(2)
 
-    record_set = rrsets[0]
+    record_set = rrsets[1]
     record_set["Name"].should.equal("{0}.us-west-1.my_zone.".format(instance_id))
     record_set.shouldnt.have.key("SetIdentifier")
     record_set["Type"].should.equal("A")
@@ -174,7 +174,7 @@ def test_route53_associate_health_check():
     rrsets = route53.list_resource_record_sets(HostedZoneId=zone_id)[
         "ResourceRecordSets"
     ]
-    rrsets.should.have.length_of(1)
+    rrsets.should.have.length_of(2)
     record_set = rrsets[0]
     record_set["HealthCheckId"].should.equal(health_check_id)
 
@@ -197,22 +197,22 @@ def test_route53_with_update():
     rrsets = route53.list_resource_record_sets(HostedZoneId=zone_id)[
         "ResourceRecordSets"
     ]
-    rrsets.should.have.length_of(1)
+    rrsets.should.have.length_of(2)
 
     record_set = rrsets[0]
     record_set["ResourceRecords"][0]["Value"].should.equal("my.example.com")
 
-    # given
+    # # given
     template = deepcopy(route53_health_check.template)
     template["Resources"]["myDNSRecord"]["Properties"]["ResourceRecords"] = [
         "my_other.example.com"
     ]
     template_json = json.dumps(template)
 
-    # when
+    # # when
     cf.update_stack(StackName="test_stack", TemplateBody=template_json)
 
-    # then
+    # # then
     zones = route53.list_hosted_zones()["HostedZones"]
     zones.should.have.length_of(1)
     zone_id = zones[0]["Id"].split("/")[2]
@@ -220,7 +220,7 @@ def test_route53_with_update():
     rrsets = route53.list_resource_record_sets(HostedZoneId=zone_id)[
         "ResourceRecordSets"
     ]
-    rrsets.should.have.length_of(1)
+    rrsets.should.have.length_of(2)
 
     record_set = rrsets[0]
     record_set["ResourceRecords"][0]["Value"].should.equal("my_other.example.com")

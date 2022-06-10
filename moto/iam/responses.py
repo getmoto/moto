@@ -1099,7 +1099,9 @@ class IamResponse(BaseResponse):
         description = self._get_param("Description")
         suffix = self._get_param("CustomSuffix")
 
-        role = self.backend.create_service_linked_role(service_name, description, suffix)
+        role = self.backend.create_service_linked_role(
+            service_name, description, suffix
+        )
 
         template = self.response_template(CREATE_SERVICE_LINKED_ROLE_TEMPLATE)
         return template.render(role=role)
@@ -1762,26 +1764,6 @@ LIST_GROUPS_TEMPLATE = """<ListGroupsResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListGroupsResponse>"""
-
-LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
-  <ListGroupsForUserResult>
-    <Groups>
-        {% for group in groups %}
-        <member>
-            <Path>{{ group.path }}</Path>
-            <GroupName>{{ group.name }}</GroupName>
-            <GroupId>{{ group.id }}</GroupId>
-            <Arn>{{ group.arn }}</Arn>
-            <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
-        </member>
-        {% endfor %}
-    </Groups>
-    <IsTruncated>false</IsTruncated>
-  </ListGroupsForUserResult>
-  <ResponseMetadata>
-    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
-  </ResponseMetadata>
-</ListGroupsForUserResponse>"""
 
 LIST_GROUP_POLICIES_TEMPLATE = """<ListGroupPoliciesResponse>
   <ListGroupPoliciesResult>

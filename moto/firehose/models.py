@@ -37,7 +37,7 @@ from moto.firehose.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.s3.models import s3_backend
+from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
@@ -447,7 +447,7 @@ class FirehoseBackend(BaseBackend):
 
         batched_data = b"".join([b64decode(r["Data"]) for r in records])
         try:
-            s3_backend.put_object(bucket_name, object_path, batched_data)
+            s3_backends["global"].put_object(bucket_name, object_path, batched_data)
         except Exception as exc:
             # This could be better ...
             raise RuntimeError(

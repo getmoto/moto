@@ -1468,14 +1468,11 @@ class ConfigBackend(BaseBackend):
         backend_query_region = (
             backend_region  # Always provide the backend this request arrived from.
         )
-        print(RESOURCE_MAP[resource_type].backends)
         if RESOURCE_MAP[resource_type].backends.get("global"):
-            print("yes, its global")
             backend_region = "global"
 
         # If the backend region isn't implemented then we won't find the item:
         if not RESOURCE_MAP[resource_type].backends.get(backend_region):
-            print(f"cant find {backend_region} for {resource_type}")
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         # Get the item:

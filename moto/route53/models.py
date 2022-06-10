@@ -9,9 +9,11 @@ import uuid
 from jinja2 import Template
 
 from moto.route53.exceptions import (
+    HostedZoneNotEmpty,
     InvalidInput,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
+    NoSuchHealthCheck,
     NoSuchHostedZone,
     NoSuchQueryLoggingConfig,
     QueryLoggingConfigAlreadyExists,
@@ -153,9 +155,9 @@ class RecordSet(CloudFormationModel):
         self.health_check = kwargs.get("HealthCheckId")
         self.hosted_zone_name = kwargs.get("HostedZoneName")
         self.hosted_zone_id = kwargs.get("HostedZoneId")
-        self.alias_target = kwargs.get("AliasTarget")
-        self.failover = kwargs.get("Failover")
-        self.geo_location = kwargs.get("GeoLocation")
+        self.alias_target = kwargs.get("AliasTarget", [])
+        self.failover = kwargs.get("Failover", [])
+        self.geo_location = kwargs.get("GeoLocation", [])
 
     @staticmethod
     def cloudformation_name_type():
@@ -411,6 +413,9 @@ class Route53Backend(BaseBackend):
         delegation_set = self.create_reusable_delegation_set(
             caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
         )
+        # default delegation set does not contains id
+        if not delegation_set_id:
+            delegation_set.id = ""
         new_zone = FakeZone(
             name,
             new_id,
@@ -420,8 +425,20 @@ class Route53Backend(BaseBackend):
             comment=comment,
             delegation_set=delegation_set,
         )
+        # default nameservers are also part of rrset
+        record_set = {
+            "Name": name,
+            "ResourceRecords": delegation_set.name_servers,
+            "TTL": "172800",
+            "Type": "NS",
+        }
+        new_zone.add_rrset(record_set)
         self.zones[new_id] = new_zone
         return new_zone
+
+    def get_dnssec(self, zone_id):
+        # check if hosted zone exists
+        self.get_hosted_zone(zone_id)
 
     def change_tags_for_resource(self, resource_id, tags):
         if "Tag" in tags:
@@ -557,7 +574,11 @@ class Route53Backend(BaseBackend):
 
     def delete_hosted_zone(self, id_):
         # Verify it exists
-        self.get_hosted_zone(id_)
+        zone = self.get_hosted_zone(id_)
+        if len(zone.rrsets) > 0:
+            for rrset in zone.rrsets:
+                if rrset.type_ != "NS" and rrset.type_ != "SOA":
+                    raise HostedZoneNotEmpty()
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
     def create_health_check(self, caller_reference, health_check_args):
@@ -571,6 +592,12 @@ class Route53Backend(BaseBackend):
 
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
+
+    def get_health_check(self, health_check_id):
+        health_check = self.health_checks.get(health_check_id)
+        if not health_check:
+            raise NoSuchHealthCheck(health_check_id)
+        return health_check
 
     @staticmethod
     def _validate_arn(region, arn):

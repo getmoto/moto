@@ -544,7 +544,6 @@ class CloudWatchBackend(BaseBackend):
         unit=None,
     ):
         period_delta = timedelta(seconds=period)
-        # TODO: Also filter by unit and dimensions
         filtered_data = [
             md
             for md in self.get_all_metrics()

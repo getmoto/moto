@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from moto.core import get_account_id, BaseBackend, BaseModel
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, BackendDict
 from moto.s3.exceptions import (
     WrongPublicAccessBlockAccountIdError,
     NoSuchPublicAccessBlockConfiguration,
@@ -43,15 +43,10 @@ class AccessPoint(BaseModel):
 
 
 class S3ControlBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.public_access_block = None
         self.access_points = defaultdict(dict)
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def get_public_access_block(self, account_id):
         # The account ID should equal the account id that is set for Moto:
@@ -129,4 +124,9 @@ class S3ControlBackend(BaseBackend):
         return True
 
 
-s3control_backend = S3ControlBackend()
+s3control_backends = BackendDict(
+    S3ControlBackend,
+    "s3control",
+    use_boto3_regions=False,
+    additional_regions=["global"],
+)

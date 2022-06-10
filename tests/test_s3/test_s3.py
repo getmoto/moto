@@ -15,6 +15,7 @@ from botocore.handlers import disable_signing
 from freezegun import freeze_time
 import requests
 
+from moto.moto_api import state_manager
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
@@ -547,6 +548,38 @@ def test_restore_key():
         key.restore.should.equal(
             'ongoing-request="false", expiry-date="Tue, 03 Jan 2012 12:00:00 GMT"'
         )
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_restore_key_transition():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    state_manager.set_transition(
+        model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
+    )
+
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3.Bucket("foobar")
+    bucket.create()
+
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
+    key.restore.should.equal(None)
+    key.restore_object(RestoreRequest={"Days": 1})
+
+    # first call: there should be an ongoing request
+    key.restore.should.contain('ongoing-request="true"')
+
+    # second call: request should be done
+    key.load()
+    key.restore.should.contain('ongoing-request="false"')
+
+    # third call: request should still be done
+    key.load()
+    key.restore.should.contain('ongoing-request="false"')
+
+    state_manager.unset_transition(model_name="s3::keyrestore")
 
 
 @mock_s3

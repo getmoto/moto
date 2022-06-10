@@ -151,7 +151,7 @@ class EC2Backend(
         #   docs.aws.amazon.com/AmazonVPC/latest/UserGuide/default-vpc.html
         #
         if not self.vpcs:
-            vpc = self.create_vpc("172.31.0.0/16")
+            vpc = self.create_default_vpc()
         else:
             # For now this is included for potential
             # backward-compatibility issues
