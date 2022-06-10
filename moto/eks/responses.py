@@ -1,5 +1,5 @@
 import json
-
+from urllib.parse import unquote
 from moto.core.responses import BaseResponse
 
 from .models import eks_backends
@@ -190,3 +190,35 @@ class EKSResponse(BaseResponse):
         )
 
         return 200, {}, json.dumps({"nodegroup": dict(nodegroup)})
+
+    def tags(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self.list_tags_for_resource()
+        if request.method == "POST":
+            return self.tag_resource()
+        if request.method == "DELETE":
+            return self.untag_resource()
+
+    def tag_resource(self):
+        self.eks_backend.tag_resource(
+            self._extract_arn_from_path(), self._get_param("tags")
+        )
+
+        return 200, {}, ""
+
+    def untag_resource(self):
+        self.eks_backend.untag_resource(
+            self._extract_arn_from_path(), self._get_param("tagKeys")
+        )
+
+        return 200, {}, ""
+
+    def list_tags_for_resource(self):
+        tags = self.eks_backend.list_tags_for_resource(self._extract_arn_from_path())
+        return 200, {}, json.dumps({"tags": tags})
+
+    def _extract_arn_from_path(self):
+        # /tags/arn_that_may_contain_a_slash
+        path = unquote(self.path)
+        return "/".join(path.split("/")[2:])
