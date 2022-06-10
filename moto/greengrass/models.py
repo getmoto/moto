@@ -101,16 +101,20 @@ class FakeDeviceDefinitionVersion(BaseModel):
         self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_detail=False):
+        obj = {
             "Arn": self.arn,
             "CreationTimestamp": iso_8601_datetime_with_milliseconds(
                 self.created_at_datetime
             ),
-            "Definition": {"Devices": self.devices},
             "Id": self.device_definition_id,
             "Version": self.version,
         }
+
+        if include_detail:
+            obj["Definition"] = {"Devices": self.devices}
+
+        return obj
 
 
 class GreengrassBackend(BaseBackend):
@@ -240,6 +244,12 @@ class GreengrassBackend(BaseBackend):
 
         return device_ver
 
+    def list_device_definition_versions(self, device_definition_id):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+        return self.device_definition_versions[device_definition_id].values()
+
     def get_device_definition(self, device_definition_id):
 
         if device_definition_id not in self.device_definitions:
@@ -261,6 +271,25 @@ class GreengrassBackend(BaseBackend):
         if device_definition_id not in self.device_definitions:
             raise IdNotFoundException("That devices definition does not exist.")
         self.device_definitions[device_definition_id].name = name
+
+    def get_device_definition_version(
+        self, device_definition_id, device_definition_version_id
+    ):
+
+        if device_definition_id not in self.device_definitions:
+            raise IdNotFoundException("That devices definition does not exist.")
+
+        if (
+            device_definition_version_id
+            not in self.device_definition_versions[device_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {device_definition_version_id} of Device List Definition {device_definition_id} does not exist."
+            )
+
+        return self.device_definition_versions[device_definition_id][
+            device_definition_version_id
+        ]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
