@@ -214,6 +214,37 @@ def test_create_function__with_tracingmode(tracing_mode):
 
 
 @mock_lambda
+def test_create_function_from_image():
+    lambda_client = boto3.client("lambda", "us-east-1")
+    fn_name = str(uuid4())[0:6]
+    image_uri = "111122223333.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
+    dic = {
+        "FunctionName": fn_name,
+        "Role": get_role_name(),
+        "Code": {"ImageUri": image_uri},
+        "PackageType": "Image",
+        "Timeout": 100,
+    }
+    resp = lambda_client.create_function(**dic)
+
+    resp.should.have.key("FunctionName").equals(fn_name)
+    resp.should.have.key("CodeSize").equals(0)
+    resp.should.have.key("CodeSha256")
+    resp.should.have.key("PackageType").equals("Image")
+
+    result = lambda_client.get_function(FunctionName=fn_name)
+    result.should.have.key("Configuration")
+    config = result["Configuration"]
+    result.should.have.key("Code")
+    code = result["Code"]
+    code.should.have.key("RepositoryType").equals("ECR")
+    code.should.have.key("ImageUri").equals(image_uri)
+    image_uri_without_tag = image_uri.split(":")[0]
+    resolved_image_uri = f"{image_uri_without_tag}@sha256:{config['CodeSha256']}"
+    code.should.have.key("ResolvedImageUri").equals(resolved_image_uri)
+
+
+@mock_lambda
 @mock_s3
 @freeze_time("2015-01-01 00:00:00")
 def test_get_function():

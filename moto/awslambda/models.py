@@ -380,9 +380,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.region = region
         self.code = spec["Code"]
         self.function_name = spec["FunctionName"]
-        self.handler = spec["Handler"]
+        self.handler = spec.get("Handler")
         self.role = spec["Role"]
-        self.run_time = spec["Runtime"]
+        self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.policy = None
@@ -423,7 +423,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             # TODO: we should be putting this in a lambda bucket
             self.code["UUID"] = str(uuid.uuid4())
             self.code["S3Key"] = "{}-{}".format(self.function_name, self.code["UUID"])
-        else:
+        elif "S3Bucket" in self.code:
             key = _validate_s3_bucket_and_key(self.code)
             if key:
                 (
@@ -436,6 +436,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.code_bytes = ""
                 self.code_size = 0
                 self.code_sha_256 = ""
+        elif "ImageUri" in self.code:
+            self.code_sha_256 = hashlib.sha256(
+                self.code["ImageUri"].encode("utf-8")
+            ).hexdigest()
+            self.code_size = 0
 
         self.function_arn = make_function_arn(
             self.region, get_account_id(), self.function_name
@@ -521,26 +526,33 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         return config
 
     def get_code(self):
-        code = {
-            "Code": {
+        resp = {"Configuration": self.get_configuration()}
+        if "S3Key" in self.code:
+            resp["Code"] = {
                 "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/{1}".format(
                     self.region, self.code["S3Key"]
                 ),
                 "RepositoryType": "S3",
-            },
-            "Configuration": self.get_configuration(),
-        }
+            }
+        elif "ImageUri" in self.code:
+            resp["Code"] = {
+                "RepositoryType": "ECR",
+                "ImageUri": self.code.get("ImageUri"),
+                "ResolvedImageUri": self.code.get("ImageUri").split(":")[0]
+                + "@sha256:"
+                + self.code_sha_256,
+            }
         if self.tags:
-            code["Tags"] = self.tags
+            resp["Tags"] = self.tags
         if self.reserved_concurrency:
-            code.update(
+            resp.update(
                 {
                     "Concurrency": {
                         "ReservedConcurrentExecutions": self.reserved_concurrency
                     }
                 }
             )
-        return code
+        return resp
 
     def update_configuration(self, config_updates):
         for key, value in config_updates.items():
@@ -745,7 +757,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         )
 
     def invoke(self, body, request_headers, response_headers):
-
         if body:
             body = json.loads(body)
         else:
@@ -1640,6 +1651,9 @@ class LambdaBackend(BaseBackend):
         return fn.update_configuration(body) if fn else None
 
     def invoke(self, function_name, qualifier, body, headers, response_headers):
+        """
+        Invoking a Function with PackageType=Image is not yet supported.
+        """
         fn = self.get_function(function_name, qualifier)
         if fn:
             payload = fn.invoke(body, headers, response_headers)
