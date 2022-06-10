@@ -7,6 +7,7 @@ from freezegun import freeze_time
 import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
+from unittest import SkipTest
 import pytest
 from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
@@ -398,6 +399,9 @@ def test_publish_to_sqs_in_different_region():
 @freeze_time("2013-01-01")
 @mock_sns
 def test_publish_to_http():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock requests in ServerMode")
+
     def callback(request):
         request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
         json.loads.when.called_with(request.body.decode()).should_not.throw(Exception)
@@ -418,13 +422,12 @@ def test_publish_to_http():
 
     conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
 
-    if not settings.TEST_SERVER_MODE:
-        sns_backend = sns_backends["us-east-1"]
-        sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
-        notification = sns_backend.topics[topic_arn].sent_notifications[0]
-        _, msg, subject, _, _ = notification
-        msg.should.equal("my message")
-        subject.should.equal("my subject")
+    sns_backend = sns_backends["us-east-1"]
+    sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
+    notification = sns_backend.topics[topic_arn].sent_notifications[0]
+    _, msg, subject, _, _ = notification
+    msg.should.equal("my message")
+    subject.should.equal("my subject")
 
 
 @mock_sqs

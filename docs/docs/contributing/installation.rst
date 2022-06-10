@@ -1,7 +1,7 @@
 .. _contributing installation:
 
 =============================
-Installation
+Development Installation
 =============================
 
 This is a guide how to install Moto for contributors.

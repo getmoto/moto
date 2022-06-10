@@ -1,6 +1,45 @@
 Moto Changelog
 ==============
 
+3.1.13
+-----
+Docker Digest for 3.1.13: <autopopulateddigest>
+
+    New Methods:
+        * EC2:
+            * create_default_vpc()
+
+        * Greengrass:
+            * create_device_definition()
+            * create_device_definition_version()
+            * delete_core_definition()
+            * delete_device_definition()
+            * get_core_definition()
+            * get_core_definition_version()
+            * get_device_definition()
+            * get_device_definition_version()
+            * list_core_definitions()
+            * list_core_definition_versions()
+            * list_device_definitions()
+            * list_device_definition_versions()
+            * update_core_definition()
+            * update_device_definition()
+
+        * SSO Admin:
+            * create_permission_set()
+            * delete_permission_set()
+            * describe_permission_set()
+            * list_permission_sets()
+            * update_permission_set()
+
+        * Route53:
+            * get_dnssec()
+            * get_health_check()
+
+    * Miscellaneous:
+        * StateManager now supports `s3::keyrestore`, managing how long it takes to restore S3 objects from Glacier.
+
+
 3.1.12
 -----
 Docker Digest for 3.1.12: _sha256:64dcfb63b252b3413481683b90f105d01644b6bec150b60e6f612a2569ee630c_
