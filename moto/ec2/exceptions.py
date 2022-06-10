@@ -28,6 +28,14 @@ class EC2ClientError(RESTError):
         super().__init__(*args, **kwargs)
 
 
+class DefaultVpcAlreadyExists(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "DefaultVpcAlreadyExists",
+            "A Default VPC already exists for this account in this region.",
+        )
+
+
 class DependencyViolationError(EC2ClientError):
     def __init__(self, message):
         super().__init__("DependencyViolation", message)

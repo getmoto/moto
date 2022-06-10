@@ -12,6 +12,12 @@ class VPCs(EC2BaseResponse):
             else "2016-11-15"
         )
 
+    def create_default_vpc(self):
+        vpc = self.ec2_backend.create_default_vpc()
+        doc_date = self._get_doc_date()
+        template = self.response_template(CREATE_VPC_RESPONSE)
+        return template.render(vpc=vpc, doc_date=doc_date)
+
     def create_vpc(self):
         cidr_block = self._get_param("CidrBlock")
         tags = self._get_multi_param("TagSpecification")
