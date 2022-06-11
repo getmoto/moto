@@ -52,7 +52,7 @@ class FakeApplication(BaseModel):
         # Provided parameters
         self.name = name
         self.release_label = release_label
-        self.application_type = application_type
+        self.application_type = application_type.capitalize()
         self.client_token = client_token
         self.initial_capacity = initial_capacity
         self.maximum_capacity = maximum_capacity
@@ -73,7 +73,9 @@ class FakeApplication(BaseModel):
         )
         self.state = APPLICATION_STATUS
         self.state_details = ""
-        self.created_at = iso_8601_datetime_without_milliseconds(datetime.today())
+        self.created_at = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        )
         self.updated_at = self.created_at
 
     def __iter__(self):
@@ -144,7 +146,9 @@ class FakeJob(BaseModel):
         )
         self.state = JOB_STATUS
         self.state_details = ""
-        self.created_at = iso_8601_datetime_without_milliseconds(datetime.today())
+        self.created_at = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        )
         self.updated_at = self.created_at
 
     def to_dict(self, include_details=False):
@@ -242,9 +246,24 @@ class EMRServerlessBackend(BaseBackend):
         self.applications[application_id].state = "STARTED"
 
     def list_applications(self, next_token, max_results, states):
-        return [app.to_dict() for app in self.applications.values()], next_token
+        applications = [
+            application.to_dict() for application in self.applications.values()
+        ]
+        if states:
+            applications = [
+                application
+                for application in applications
+                if application["state"] in states
+            ]
+        sort_key = "name"
+        return paginated_list(applications, sort_key, max_results, next_token)
 
     def get_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(
+                f"Application {application_id} does not exist"
+            )
+
         return self.applications[application_id].to_dict(include_details=True)
 
     def stop_application(self, application_id):

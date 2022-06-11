@@ -1,6 +1,7 @@
 """Unit tests for emrserverless-supported APIs."""
 import contextlib
 import re
+from datetime import datetime, timezone
 from unittest import SkipTest
 from contextlib import nullcontext as does_not_raise
 
@@ -146,23 +147,57 @@ class TestDeleteApplication:
         assert err["Message"] == "Application fake_applicarion_id does not exist"
 
 
-    # @staticmethod
-    # @mock_emrserverless
-    # def test_delete_unstopped_application(client):
-    #     app_info = client.create_application(
-    #         name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
-    #     )
-    #     app_id = app_info["applicationId"]
-    #     with pytest.raises(ClientError) as exc:
-    #         resp = client.delete_application(applicationId=app_id)
-    #         assert resp is not None
-    #
-    #     err = exc.value.response["Error"]
-    #     assert err["Code"] == "ValidationException"
-    #     assert "must be in one of the following statuses" in err["Message"]
+class TestListApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
 
+    def test_response_context(self):
+        resp = self.client.list_applications()
+        expected_resp = {
+            "id": self.application_ids[1],
+            "name": f"test-emr-serverless-application-CREATED",
+            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[1]}",
+            "releaseLabel": "emr-6.6.0",
+            "type": "Spark",
+            "state": "CREATED",
+            "stateDetails": "",
+            "createdAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "updatedAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+        }
 
-# botocore.errorfactory.ValidationException:
+        assert resp["applications"][0] == expected_resp
+
+    @pytest.mark.parametrize(
+        "list_applications_args,job_count",
+        [
+            ({}, 7),
+            ({"states": ["CREATED"]}, 1),
+            ({"states": ["CREATED", "STARTING"]}, 2),
+            ({"states": ["FOOBAA"]}, 0),
+            ({"maxResults": 1}, 1),
+        ],
+    )
+    def test_filtering(self, list_applications_args, job_count):
+        resp = self.client.list_applications(**list_applications_args)
+        assert len(resp["applications"]) == job_count
+
+    def test_next_token(self):
+        resp = self.client.list_applications(maxResults=2)
+        assert len(resp["applications"]) == 2
+
+        resp = self.client.list_applications(nextToken=resp["nextToken"])
+        assert len(resp["applications"]) == 5
+
 
 #
 # class TestEmrServerlessApplication:

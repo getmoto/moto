@@ -13,7 +13,7 @@ These are the available methos:
     cancel_job_run()
     close()
     create_application() -> DONE
-    delete_application() -> UD
+    delete_application() -> DONE
     get_application()
     get_job_run()
     get_paginator()
@@ -73,10 +73,9 @@ class EMRServerlessResponse(BaseResponse):
         return (200, {}, None)
 
     def list_applications(self):
-        params = self._get_params()
-        next_token = params.get("nextToken")
-        max_results = params.get("maxResults")
-        states = params.get("states")
+        states = self.querystring.get("states", [])
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
 
         applications, next_token = self.emrserverless_backend.list_applications(
             next_token=next_token,
