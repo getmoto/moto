@@ -103,6 +103,26 @@ class TestCreateApplication:
         )
 
 
+class TestStartApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
+
+    def test_valid_application_id(self):
+        resp = self.client.start_application(applicationId=self.application_ids[1])
+        assert resp is not None
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    def test_invalid_application_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.start_application(applicationId="fake_applicarion_id")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Application fake_applicarion_id does not exist"
+
+
 class TestDeleteApplication:
     @pytest.fixture(autouse=True)
     def _setup_environment(self, client, application_factory):
@@ -202,22 +222,7 @@ class TestListApplication:
 #
 # class TestEmrServerlessApplication:
 #     @staticmethod
-#     @mock_emrserverless
-#     def test_list_applications(client):
-#         # TODO: Move this to a fixture
-#         client.create_application(
-#             name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
-#         )
-#         resp = client.list_applications()
-#         assert len(resp["applications"]) == 1
-#
-#         app_info = resp["applications"][0]
-#         for key in ["state", "createdAt", "releaseLabel"]:
-#             assert key in app_info
-#         assert "initialCapacity" not in app_info
-#         assert app_info["state"] == "STARTED"
-#         assert app_info["releaseLabel"] == DEFAULT_RELEASE_LABEL
-#
+
 #     @staticmethod
 #     @mock_emrserverless
 #     def test_get_application(client):

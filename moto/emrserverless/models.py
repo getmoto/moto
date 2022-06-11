@@ -238,13 +238,6 @@ class EMRServerlessBackend(BaseBackend):
         self.applications[application.id] = application
         return application
 
-    def start_application(self, application_id):
-        if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(
-                f"Application {application_id} does not exist"
-            )
-        self.applications[application_id].state = "STARTED"
-
     def list_applications(self, next_token, max_results, states):
         applications = [
             application.to_dict() for application in self.applications.values()
@@ -260,29 +253,28 @@ class EMRServerlessBackend(BaseBackend):
 
     def get_application(self, application_id):
         if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(
-                f"Application {application_id} does not exist"
-            )
+            raise ResourceNotFoundException(application_id)
 
         return self.applications[application_id].to_dict(include_details=True)
 
+    def start_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(application_id)
+        self.applications[application_id].state = "STARTED"
+
     def stop_application(self, application_id):
         if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(
-                f"Application {application_id} does not exist"
-            )
+            raise ResourceNotFoundException(application_id)
         self.applications[application_id].state = "STOPPED"
 
     def delete_application(self, application_id):
         if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(
-                f"Application {application_id} does not exist"
-            )
+            raise ResourceNotFoundException(application_id)
 
-        app_state = self.applications[application_id].state
-        if app_state not in ["CREATED", "STOPPED"]:
+        if self.applications[application_id].state not in ["CREATED", "STOPPED"]:
             raise ValidationException(
-                f"Application {application_id} must be in one of the following statuses [CREATED, STOPPED]. Current status: {app_state}"
+                f"Application {application_id} must be in one of the following statuses [CREATED, STOPPED]. "
+                f"Current status: {self.applications[application_id].state}"
             )
         self.applications[application_id].state = "TERMINATED"
 
@@ -296,9 +288,7 @@ class EMRServerlessBackend(BaseBackend):
         tags,
     ):
         if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(
-                f"Application {application_id} does not exist"
-            )
+            raise ResourceNotFoundException(application_id)
 
         job = FakeJob(
             application_id=application_id,

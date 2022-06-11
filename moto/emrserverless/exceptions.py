@@ -6,7 +6,9 @@ class ResourceNotFoundException(JsonRESTError):
     code = 400
 
     def __init__(self, resource):
-        super().__init__("ResourceNotFoundException", resource)
+        super().__init__(
+            "ResourceNotFoundException", f"Application {resource} does not exist"
+        )
 
 
 class ValidationException(JsonRESTError):

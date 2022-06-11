@@ -18,10 +18,10 @@ These are the available methos:
     get_job_run()
     get_paginator()
     get_waiter()
-    list_applications()
+    list_applications() -> DONE
     list_job_runs()
     list_tags_for_resource()
-    start_application()
+    start_application() -> DONE
     start_job_run()
     stop_application()
     tag_resource()
