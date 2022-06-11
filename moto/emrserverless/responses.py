@@ -23,7 +23,7 @@ These are the available methos:
     list_tags_for_resource()
     start_application() -> DONE
     start_job_run()
-    stop_application()
+    stop_application() -> DONE
     tag_resource()
     untag_resource()
     update_application()
