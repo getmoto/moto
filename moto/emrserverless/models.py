@@ -1,11 +1,13 @@
 """EMRServerlessBackend class with methods for supported APIs."""
-
+import re
 from datetime import datetime
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
 from .utils import (
-    default_capacity_for_type,
+    default_auto_start_configuration,
+    default_auto_stop_configuration,
+    defakult_capacity_for_type,
     default_max_capacity,
     get_partition,
     paginated_list,
@@ -40,18 +42,29 @@ class FakeApplication(BaseModel):
         application_type,
         client_token,
         region_name,
-        initial_capacity=None,
-        maximum_capacity=None,
+        initial_capacity,
+        maximum_capacity,
+        tags,
+        auto_start_configuration,
+        auto_stop_configuration,
+        network_configuration,
     ):
         # Provided parameters
         self.name = name
         self.release_label = release_label
         self.application_type = application_type
         self.client_token = client_token
-        self.initial_capacity = initial_capacity or default_capacity_for_type(
-            application_type
+        self.initial_capacity = initial_capacity
+        self.maximum_capacity = maximum_capacity
+        self.auto_start_configuration = (
+            auto_start_configuration or default_auto_start_configuration()
         )
-        self.maximum_capacity = maximum_capacity or default_max_capacity()
+        self.auto_stop_configuration = (
+            auto_stop_configuration or default_auto_stop_configuration()
+        )
+        self.auto_stop_idle_timeout_mins = 15
+        self.network_configuration = network_configuration
+        self.tags = tags
 
         # Service-generated-parameters
         self.id = random_appplication_id()
@@ -62,10 +75,11 @@ class FakeApplication(BaseModel):
         self.state_details = ""
         self.created_at = iso_8601_datetime_without_milliseconds(datetime.today())
         self.updated_at = self.created_at
-        self.auto_start_enabled = True
-        self.auto_stop_enabled = True
-        self.auto_stop_idle_timeout_mins = 15
-        self.tags = {}
+
+    def __iter__(self):
+        yield "applicationId", self.id
+        yield "name", self.name
+        yield "arn", self.arn
 
     def to_dict(self, include_details=False):
         """
@@ -174,11 +188,11 @@ class EMRServerlessBackend(BaseBackend):
         self.jobs = dict()
         self.partition = get_partition(region_name)
 
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
+    # def reset(self):
+    #     """Re-initialize all attributes for this instance."""
+    #     region_name = self.region_name
+    #     self.__dict__ = {}
+    #     self.__init__(self.region_name, )
 
     # add methods from here
 
@@ -191,9 +205,19 @@ class EMRServerlessBackend(BaseBackend):
         initial_capacity,
         maximum_capacity,
         tags,
-        auto_start_config,
-        auto_stop_config,
+        auto_start_configuration,
+        auto_stop_configuration,
+        network_configuration,
     ):
+
+        if type not in ["HIVE", "SPARK"]:
+            raise ValidationException(f"Unsupported engine {type}")
+
+        if not re.match(r"emr-[0-9]{1}\.[0-9]{1,2}\.0(" "|-[0-9]{8})", release_label):
+            raise ValidationException(
+                f"Type '{type}' is not supported for release label '{release_label}' or release label does not exist"
+            )
+
         application = FakeApplication(
             name=name,
             release_label=release_label,
@@ -202,9 +226,13 @@ class EMRServerlessBackend(BaseBackend):
             client_token=client_token,
             initial_capacity=initial_capacity,
             maximum_capacity=maximum_capacity,
+            tags=tags,
+            auto_start_configuration=auto_start_configuration,
+            auto_stop_configuration=auto_stop_configuration,
+            network_configuration=network_configuration,
         )
         self.applications[application.id] = application
-        return application.id, application.name, application.arn
+        return application
 
     def start_application(self, application_id):
         if application_id not in self.applications.keys():

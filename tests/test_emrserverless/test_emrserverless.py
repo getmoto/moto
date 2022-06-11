@@ -1,9 +1,12 @@
 """Unit tests for emrserverless-supported APIs."""
+import re
+
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_emrserverless
+from moto.core import ACCOUNT_ID
 from moto.emrserverless import REGION as DEFAULT_REGION
 from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
 
@@ -12,6 +15,60 @@ from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
 def client():
     with mock_emrserverless():
         yield boto3.client("emr-serverless", region_name=DEFAULT_REGION)
+
+
+class TestCreateApplication:
+    @staticmethod
+    @mock_emrserverless
+    def test_create_application(client):
+        resp = client.create_application(
+            name="test-emr-serverless-application",
+            type="SPARK",
+            releaseLabel=DEFAULT_RELEASE_LABEL,
+        )
+
+        assert resp["name"] == "test-emr-serverless-application"
+        assert re.match(r"[a-z,0-9]{16}", resp["applicationId"])
+        assert (
+            resp["arn"]
+            == f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/applications/{resp['applicationId']}"
+        )
+
+    @staticmethod
+    @mock_emrserverless
+    def test_create_application_incorrect_type(client):
+        with pytest.raises(ClientError) as exc:
+            client.create_application(
+                name="test-emr-serverless-application",
+                type="SPARK3",
+                releaseLabel=DEFAULT_RELEASE_LABEL,
+            )
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "Unsupported engine SPARK3"
+
+    @staticmethod
+    @mock_emrserverless
+    def test_create_application_incorrect_release_label(client):
+        with pytest.raises(ClientError) as exc:
+            client.create_application(
+                name="test-emr-serverless-application",
+                type="SPARK",
+                releaseLabel="emr-fake",
+            )
+
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == "Type 'SPARK' is not supported for release label 'emr-fake' or release label does not exist"
+        )
+
+
+# botocore.errorfactory.ValidationException:
 
 
 class TestEmrServerlessApplication:

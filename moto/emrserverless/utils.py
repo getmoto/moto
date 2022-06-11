@@ -69,6 +69,14 @@ def default_max_capacity():
     }
 
 
+def default_auto_start_configuration():
+    return {"enabled": True}
+
+
+def default_auto_stop_configuration():
+    return {"enabled": True, "idleTimeoutMinutes": 15}
+
+
 def paginated_list(full_list, sort_key, max_results, next_token):
     """
     Returns a tuple containing a slice of the full list starting at next_token and ending with at most the max_results

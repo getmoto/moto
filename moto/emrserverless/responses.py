@@ -8,6 +8,28 @@ from .models import emrserverless_backends
 DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""
 
+"""
+These are the available methos:
+    can_paginate()
+    cancel_job_run()
+    close()
+    create_application() -> Review
+    delete_application()
+    get_application()
+    get_job_run()
+    get_paginator()
+    get_waiter()
+    list_applications()
+    list_job_runs()
+    list_tags_for_resource()
+    start_application()
+    start_job_run()
+    stop_application()
+    tag_resource()
+    untag_resource()
+    update_application()
+"""
+
 
 class EMRServerlessResponse(BaseResponse):
     """Handler for EMRServerless requests and responses."""
@@ -27,9 +49,11 @@ class EMRServerlessResponse(BaseResponse):
         initial_capacity = self._get_param("initialCapacity")
         maximum_capacity = self._get_param("maximumCapacity")
         tags = self._get_param("tags")
-        auto_start_config = self._get_param("autoStartConfig")
-        auto_stop_config = self._get_param("autoStopConfig")
-        application_id, name, arn = self.emrserverless_backend.create_application(
+        auto_start_configuration = self._get_param("autoStartConfig")
+        auto_stop_configuration = self._get_param("autoStopConfig")
+        network_configuration = self._get_param("networkConfiguration")
+
+        application = self.emrserverless_backend.create_application(
             name=name,
             release_label=release_label,
             type=type,
@@ -37,17 +61,15 @@ class EMRServerlessResponse(BaseResponse):
             initial_capacity=initial_capacity,
             maximum_capacity=maximum_capacity,
             tags=tags,
-            auto_start_config=auto_start_config,
-            auto_stop_config=auto_stop_config,
+            auto_start_configuration=auto_start_configuration,
+            auto_stop_configuration=auto_stop_configuration,
+            network_configuration=network_configuration,
         )
-        return (
-            200,
-            {},
-            json.dumps(dict(applicationId=application_id, name=name, arn=arn)),
-        )
+        return (200, {}, json.dumps(dict(application)))
 
     def start_application(self):
         application_id = self._get_param("applicationId")
+
         self.emrserverless_backend.start_application(application_id=application_id)
         return (200, {}, None)
 
@@ -56,29 +78,30 @@ class EMRServerlessResponse(BaseResponse):
         next_token = params.get("nextToken")
         max_results = params.get("maxResults")
         states = params.get("states")
+
         applications, next_token = self.emrserverless_backend.list_applications(
             next_token=next_token,
             max_results=max_results,
             states=states,
         )
-        return (
-            200,
-            {},
-            json.dumps(dict(applications=applications, nextToken=next_token)),
-        )
+        response = {"applications": applications, "nextToken": next_token}
+        return 200, {}, json.dumps(response)
 
     def get_application(self):
         app_id = self._get_param("applicationId")
+
         application = self.emrserverless_backend.get_application(application_id=app_id)
-        return 200, {}, json.dumps(dict(application=application))
+        return 200, {}, json.dumps(application)
 
     def stop_application(self):
         application_id = self._get_param("applicationId")
+
         self.emrserverless_backend.stop_application(application_id=application_id)
         return (200, {}, None)
 
     def delete_application(self):
         application_id = self._get_param("applicationId")
+
         self.emrserverless_backend.delete_application(application_id=application_id)
         return (200, {}, None)
 
@@ -108,6 +131,7 @@ class EMRServerlessResponse(BaseResponse):
         created_after = self._get_param("createdAfter")
         created_before = self._get_param("createdBefore")
         application_id = self._get_param("applicationId")
+
         jobs, next_token = self.emrserverless_backend.list_job_runs(
             application_id=application_id,
             created_after=created_after,
@@ -121,6 +145,7 @@ class EMRServerlessResponse(BaseResponse):
     def get_job_run(self):
         app_id = self._get_param("applicationId")
         job_id = self._get_param("jobRunId")
+
         job = self.emrserverless_backend.get_job_run(
             application_id=app_id, job_run_id=job_id
         )
