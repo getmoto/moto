@@ -14,7 +14,7 @@ These are the available methos:
     close()
     create_application() -> DONE
     delete_application() -> DONE
-    get_application()
+    get_application() -> DONE
     get_job_run()
     get_paginator()
     get_waiter()
@@ -89,7 +89,8 @@ class EMRServerlessResponse(BaseResponse):
         app_id = self._get_param("applicationId")
 
         application = self.emrserverless_backend.get_application(application_id=app_id)
-        return 200, {}, json.dumps(application)
+        response = {"application": application}
+        return 200, {}, json.dumps(response)
 
     def stop_application(self):
         application_id = self._get_param("applicationId")

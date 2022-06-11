@@ -1,14 +1,13 @@
 """EMRServerlessBackend class with methods for supported APIs."""
 import re
 from datetime import datetime
+import inspect
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
 from .utils import (
     default_auto_start_configuration,
     default_auto_stop_configuration,
-    default_capacity_for_type,
-    default_max_capacity,
     get_partition,
     paginated_list,
     random_appplication_id,
@@ -62,9 +61,8 @@ class FakeApplication(BaseModel):
         self.auto_stop_configuration = (
             auto_stop_configuration or default_auto_stop_configuration()
         )
-        self.auto_stop_idle_timeout_mins = 15
         self.network_configuration = network_configuration
-        self.tags = tags
+        self.tags = tags or {}
 
         # Service-generated-parameters
         self.id = random_appplication_id()
@@ -82,37 +80,52 @@ class FakeApplication(BaseModel):
         yield "applicationId", self.id
         yield "name", self.name
         yield "arn", self.arn
+        yield "autoStartConfig", self.auto_start_configuration,
+        yield "autoStopConfig", self.auto_stop_configuration,
 
-    def to_dict(self, include_details=False):
+    def to_dict(self):
         """
         Dictionary representation of an EMR Serverless Application.
         When used in `list-applications`, capacity, auto-start/stop configs, and tags are not returned. https://docs.aws.amazon.com/emr-serverless/latest/APIReference/API_ListApplications.html
         When used in `get-application`, more details are returned. https://docs.aws.amazon.com/emr-serverless/latest/APIReference/API_GetApplication.html#API_GetApplication_ResponseSyntax
         """
-        response = {
-            "id": self.id,
-            "name": self.name,
-            "arn": self.arn,
-            "releaseLabel": self.release_label,
-            "type": self.application_type,
-            "state": self.state,
-            "stateDetails": self.state_details,
-            "createdAt": self.created_at,
-            "updatedAt": self.updated_at,
-        }
-        if include_details:
-            response.update(
-                {
-                    "autoStartConfig": {"enabled": self.auto_start_enabled},
-                    "autoStopConfig": {
-                        "enabled": self.auto_stop_enabled,
-                        "idleTimeout": self.auto_stop_idle_timeout_mins,
-                    },
-                    "tags": self.tags,
-                    "initialCapacity": self.initial_capacity,
-                    "maximumCapacity": self.maximum_capacity,
-                }
-            )
+        caller_methods = inspect.stack()[1].function
+        caller_methods_type = caller_methods.split("_")[0]
+
+        if caller_methods_type == "get":
+            response = {
+                "applicationId": self.id,
+                "name": self.name,
+                "arn": self.arn,
+                "releaseLabel": self.release_label,
+                "type": self.application_type,
+                "state": self.state,
+                "stateDetails": self.state_details,
+                "createdAt": self.created_at,
+                "updatedAt": self.updated_at,
+                "autoStartConfiguration": self.auto_start_configuration,
+                "autoStopConfiguration": self.auto_stop_configuration,
+                "tags": self.tags,
+            }
+        else:
+            response = {
+                "id": self.id,
+                "name": self.name,
+                "arn": self.arn,
+                "releaseLabel": self.release_label,
+                "type": self.application_type,
+                "state": self.state,
+                "stateDetails": self.state_details,
+                "createdAt": self.created_at,
+                "updatedAt": self.updated_at,
+            }
+
+        if self.network_configuration:
+            response.update({"networkConfiguration": self.network_configuration})
+        if self.initial_capacity:
+            response.update({"initialCapacity": self.initial_capacity})
+        if self.maximum_capacity:
+            response.update({"maximumCapacity": self.maximum_capacity})
 
         return response
 
@@ -192,14 +205,6 @@ class EMRServerlessBackend(BaseBackend):
         self.jobs = dict()
         self.partition = get_partition(region_name)
 
-    # def reset(self):
-    #     """Re-initialize all attributes for this instance."""
-    #     region_name = self.region_name
-    #     self.__dict__ = {}
-    #     self.__init__(self.region_name, )
-
-    # add methods from here
-
     def create_application(
         self,
         name,
@@ -255,7 +260,7 @@ class EMRServerlessBackend(BaseBackend):
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
 
-        return self.applications[application_id].to_dict(include_details=True)
+        return self.applications[application_id].to_dict()
 
     def start_application(self, application_id):
         if application_id not in self.applications.keys():

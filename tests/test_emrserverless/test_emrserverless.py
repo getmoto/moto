@@ -239,21 +239,125 @@ class TestListApplication:
         assert len(resp["applications"]) == 5
 
 
-#
-# class TestEmrServerlessApplication:
-#     @staticmethod
+class TestGetApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
 
-#     @staticmethod
-#     @mock_emrserverless
-#     def test_get_application(client):
-#         app_info = client.create_application(
-#             name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
-#         )
-#         resp = client.get_application(applicationId=app_info["applicationId"])
-#         assert "initialCapacity" in resp["application"]
-#         assert "maximumCapacity" in resp["application"]
-#
-#
+    @staticmethod
+    def get_expected_resp(application_id, extra_configuration):
+        response = {
+            "applicationId": application_id,
+            "name": f"test-emr-serverless-application",
+            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{application_id}",
+            "releaseLabel": "emr-6.6.0",
+            "type": "Spark",
+            "state": "STARTED",
+            "stateDetails": "",
+            "autoStartConfiguration": {"enabled": True},
+            "autoStopConfiguration": {"enabled": True, "idleTimeoutMinutes": 15},
+            "tags": {},
+            "createdAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "updatedAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+        }
+        return {**response, **extra_configuration}
+
+    @pytest.mark.parametrize(
+        "name, extra_configuration",
+        [
+            ("base", {}),
+            (
+                "with_initial_capacity",
+                {
+                    "initialCapacity": {
+                        "Driver": {
+                            "workerCount": 1,
+                            "workerConfiguration": {
+                                "cpu": "2 vCPU",
+                                "memory": "4 GB",
+                                "disk": "20 GB",
+                            },
+                        }
+                    }
+                },
+            ),
+            (
+                "with_maximum_capacity",
+                {
+                    "maximumCapacity": {
+                        "cpu": "400 vCPU",
+                        "memory": "1024 GB",
+                        "disk": "1000 GB",
+                    }
+                },
+            ),
+            (
+                "with_networking",
+                {
+                    "networkConfiguration": {
+                        "subnetIds": ["subnet-0123456789abcdefg"],
+                        "securityGroupIds": ["sg-0123456789abcdefg"],
+                    }
+                },
+            ),
+            (
+                "full",
+                {
+                    "initialCapacity": {
+                        "Driver": {
+                            "workerCount": 1,
+                            "workerConfiguration": {
+                                "cpu": "2 vCPU",
+                                "memory": "4 GB",
+                                "disk": "20 GB",
+                            },
+                        }
+                    },
+                    "maximumCapacity": {
+                        "cpu": "400 vCPU",
+                        "memory": "1024 GB",
+                        "disk": "1000 GB",
+                    },
+                    "networkConfiguration": {
+                        "subnetIds": ["subnet-0123456789abcdefg"],
+                        "securityGroupIds": ["sg-0123456789abcdefg"],
+                    },
+                },
+            ),
+        ],
+    )
+    def test_filtering(self, name, extra_configuration):
+        application_id = self.client.create_application(
+            name="test-emr-serverless-application",
+            type="SPARK",
+            releaseLabel=DEFAULT_RELEASE_LABEL,
+            **extra_configuration,
+        )["applicationId"]
+        expected_resp = self.get_expected_resp(application_id, extra_configuration)
+
+        actual_resp = self.client.get_application(applicationId=application_id)[
+            "application"
+        ]
+
+        assert actual_resp == expected_resp
+
+    def test_invalid_application_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.get_application(applicationId="fake_application_id")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Application fake_application_id does not exist"
+
+
 # class TestEmrServerlessJob:
 #     @staticmethod
 #     @mock_emrserverless
