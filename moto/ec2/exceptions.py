@@ -28,6 +28,14 @@ class EC2ClientError(RESTError):
         super().__init__(*args, **kwargs)
 
 
+class DefaultVpcAlreadyExists(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "DefaultVpcAlreadyExists",
+            "A Default VPC already exists for this account in this region.",
+        )
+
+
 class DependencyViolationError(EC2ClientError):
     def __init__(self, message):
         super().__init__("DependencyViolation", message)
@@ -583,6 +591,14 @@ class InvalidAvailabilityZoneError(EC2ClientError):
             "Subnets can currently only be created in the following availability zones: {1}.".format(
                 availability_zone_value, valid_availability_zones
             ),
+        )
+
+
+class AvailabilityZoneNotFromRegionError(EC2ClientError):
+    def __init__(self, availability_zone_value):
+        super().__init__(
+            "InvalidParameterValue",
+            "Invalid Availability Zone ({0})".format(availability_zone_value),
         )
 
 

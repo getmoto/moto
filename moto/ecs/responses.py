@@ -228,7 +228,10 @@ class EC2ContainerServiceResponse(BaseResponse):
     def list_services(self):
         cluster_str = self._get_param("cluster", "default")
         scheduling_strategy = self._get_param("schedulingStrategy")
-        service_arns = self.ecs_backend.list_services(cluster_str, scheduling_strategy)
+        launch_type = self._get_param("launchType")
+        service_arns = self.ecs_backend.list_services(
+            cluster_str, scheduling_strategy, launch_type=launch_type
+        )
         return json.dumps(
             {
                 "serviceArns": service_arns

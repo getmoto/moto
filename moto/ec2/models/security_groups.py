@@ -454,15 +454,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         )
 
 
-class SecurityGroupBackend(object):
+class SecurityGroupBackend:
     def __init__(self):
         # the key in the dict group is the vpc_id or None (non-vpc)
         self.groups = defaultdict(dict)
         # This will help us in RuleLimitExceed errors.
         self.sg_old_ingress_ruls = {}
         self.sg_old_egress_ruls = {}
-
-        super().__init__()
 
     def create_security_group(
         self, name, description, vpc_id=None, tags=None, force=False, is_default=None

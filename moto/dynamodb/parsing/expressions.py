@@ -555,6 +555,9 @@ class UpdateExpressionActionsParser(ExpressionParser, NestableExpressionParserMi
             self.skip_white_space()
             if self.get_next_token_type() == Token.COMMA:
                 self.goto_next_significant_token()
+                if self.is_at_end():
+                    # The expression should not end with a comma
+                    self.raise_unexpected_token()
             else:
                 break
 

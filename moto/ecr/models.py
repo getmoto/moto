@@ -326,17 +326,12 @@ class Image(BaseObject):
 
 
 class ECRBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.registry_policy = None
         self.replication_config = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
         self.tagger = TaggingService(tag_name="tags")
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -806,7 +801,10 @@ class ECRBackend(BaseBackend):
 
         policy = json.loads(policy_text)
         for statement in policy["Statement"]:
-            if set(statement["Action"]) - VALID_ACTIONS:
+            action = statement["Action"]
+            if isinstance(action, str):
+                action = [action]
+            if set(action) - VALID_ACTIONS:
                 raise MalformedPolicyDocument()
 
     def put_registry_policy(self, policy_text):

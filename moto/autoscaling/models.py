@@ -97,7 +97,7 @@ class FakeScalingPolicy(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:autoscaling:{self.autoscaling_backend.region}:{get_account_id()}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
+        return f"arn:aws:autoscaling:{self.autoscaling_backend.region_name}:{get_account_id()}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
 
     def execute(self):
         if self.adjustment_type == "ExactCapacity":
@@ -303,7 +303,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.name = name
         self._id = str(uuid4())
-        self.region = self.autoscaling_backend.region
+        self.region = self.autoscaling_backend.region_name
 
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
@@ -633,6 +633,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
             launch_config=self.launch_config,
+            is_instance_type_default=False,
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self
@@ -649,7 +650,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
 
 class AutoScalingBackend(BaseBackend):
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
         self.policies = {}
@@ -657,12 +659,6 @@ class AutoScalingBackend(BaseBackend):
         self.ec2_backend = ec2_backends[region_name]
         self.elb_backend = elb_backends[region_name]
         self.elbv2_backend = elbv2_backends[region_name]
-        self.region = region_name
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -720,7 +716,7 @@ class AutoScalingBackend(BaseBackend):
             ebs_optimized=ebs_optimized,
             associate_public_ip_address=associate_public_ip_address,
             block_device_mapping_dict=block_device_mappings,
-            region_name=self.region,
+            region_name=self.region_name,
             metadata_options=metadata_options,
             classic_link_vpc_id=classic_link_vpc_id,
             classic_link_vpc_security_groups=classic_link_vpc_security_groups,
@@ -1272,4 +1268,4 @@ class AutoScalingBackend(BaseBackend):
         return tags
 
 
-autoscaling_backends = BackendDict(AutoScalingBackend, "ec2")
+autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")

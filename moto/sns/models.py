@@ -424,8 +424,8 @@ class SNSBackend(BaseBackend):
     Note that, as this is an internal API, the exact format may differ per versions.
     """
 
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.topics = OrderedDict()
         self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
@@ -443,11 +443,6 @@ class SNSBackend(BaseBackend):
             "+447700900545",
             "+447700900907",
         ]
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

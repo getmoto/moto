@@ -564,9 +564,8 @@ class FakeDomainConfiguration(BaseModel):
 
 
 class IoTBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.things = OrderedDict()
         self.jobs = OrderedDict()
         self.job_executions = OrderedDict()
@@ -580,11 +579,6 @@ class IoTBackend(BaseBackend):
         self.rules = OrderedDict()
         self.endpoint = None
         self.domain_configurations = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

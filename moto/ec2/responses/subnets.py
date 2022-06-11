@@ -105,6 +105,7 @@ CREATE_SUBNET_RESPONSE = """
     {% endif %}
     {% endfor %}
     </ipv6CidrBlockAssociationSet>
+    <ipv6Native>{{ 'false' if not subnet.ipv6_native else 'true' }}</ipv6Native>
     <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
     <tagSet>
         {% for tag in subnet.get_tags() %}
@@ -156,6 +157,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         {% endfor %}
         </ipv6CidrBlockAssociationSet>
         <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
+        <ipv6Native>{{ 'false' if not subnet.ipv6_native else 'true' }}</ipv6Native>
         {% if subnet.get_tags() %}
           <tagSet>
             {% for tag in subnet.get_tags() %}

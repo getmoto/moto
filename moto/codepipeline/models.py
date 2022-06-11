@@ -67,14 +67,9 @@ class CodePipeline(BaseModel):
 
 
 class CodePipelineBackend(BaseBackend):
-    def __init__(self, region=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.pipelines = {}
-        self.region = region
-
-    def reset(self):
-        region_name = self.region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -114,7 +109,7 @@ class CodePipelineBackend(BaseBackend):
                 "Pipeline has only 1 stage(s). There should be a minimum of 2 stages in a pipeline"
             )
 
-        self.pipelines[pipeline["name"]] = CodePipeline(self.region, pipeline)
+        self.pipelines[pipeline["name"]] = CodePipeline(self.region_name, pipeline)
 
         if tags:
             self.pipelines[pipeline["name"]].validate_tags(tags)

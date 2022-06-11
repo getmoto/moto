@@ -45,16 +45,11 @@ class DataBrewBackend(BaseBackend):
         },
     }
 
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.recipes = OrderedDict()
         self.rulesets = OrderedDict()
         self.datasets = OrderedDict()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__init__(region_name)
 
     @staticmethod
     def validate_length(param, param_name, max_length):

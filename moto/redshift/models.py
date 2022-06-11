@@ -553,13 +553,13 @@ class Snapshot(TaggableResourceMixin, BaseModel):
 
 
 class RedshiftBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.clusters = {}
         self.subnet_groups = {}
         self.security_groups = {
             "Default": SecurityGroup(
-                "Default", "Default Redshift Security Group", self.region
+                "Default", "Default Redshift Security Group", self.region_name
             )
         }
         self.parameter_groups = {
@@ -567,10 +567,10 @@ class RedshiftBackend(BaseBackend):
                 "default.redshift-1.0",
                 "redshift-1.0",
                 "Default Redshift parameter group",
-                self.region,
+                self.region_name,
             )
         }
-        self.ec2_backend = ec2_backends[self.region]
+        self.ec2_backend = ec2_backends[self.region_name]
         self.snapshots = OrderedDict()
         self.RESOURCE_TYPE_MAP = {
             "cluster": self.clusters,
@@ -580,11 +580,6 @@ class RedshiftBackend(BaseBackend):
             "subnetgroup": self.subnet_groups,
         }
         self.snapshot_copy_grants = {}
-
-    def reset(self):
-        region_name = self.region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -606,9 +601,9 @@ class RedshiftBackend(BaseBackend):
                 raise InvalidParameterValueError(
                     "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
                 )
-            if kwargs["destination_region"] == self.region:
+            if kwargs["destination_region"] == self.region_name:
                 raise UnknownSnapshotCopyRegionFaultError(
-                    "Invalid region {}".format(self.region)
+                    "Invalid region {}".format(self.region_name)
                 )
             status = {
                 "DestinationRegion": kwargs["destination_region"],

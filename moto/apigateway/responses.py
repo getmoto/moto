@@ -4,6 +4,7 @@ from urllib.parse import unquote
 from moto.utilities.utils import merge_multiple_dicts
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
+from .utils import deserialize_body
 from .exceptions import InvalidRequestInput
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -56,8 +57,16 @@ class APIGatewayResponse(BaseResponse):
             apis = self.backend.list_apis()
             return 200, {}, json.dumps({"item": [api.to_dict() for api in apis]})
         elif self.method == "POST":
+            api_doc = deserialize_body(self.body)
+            if api_doc:
+                fail_on_warnings = self._get_bool_param("failonwarnings")
+                rest_api = self.backend.import_rest_api(api_doc, fail_on_warnings)
+
+                return 200, {}, json.dumps(rest_api.to_dict())
+
             name = self._get_param("name")
             description = self._get_param("description")
+
             api_key_source = self._get_param("apiKeySource")
             endpoint_configuration = self._get_param("endpointConfiguration")
             tags = self._get_param("tags")
@@ -82,6 +91,7 @@ class APIGatewayResponse(BaseResponse):
                 policy=policy,
                 minimum_compression_size=minimum_compression_size,
             )
+
             return 200, {}, json.dumps(rest_api.to_dict())
 
     def __validte_rest_patch_operations(self, patch_operations):
@@ -99,6 +109,15 @@ class APIGatewayResponse(BaseResponse):
             rest_api = self.backend.get_rest_api(function_id)
         elif self.method == "DELETE":
             rest_api = self.backend.delete_rest_api(function_id)
+        elif self.method == "PUT":
+            mode = self._get_param("mode", "merge")
+            fail_on_warnings = self._get_bool_param("failonwarnings", False)
+
+            api_doc = deserialize_body(self.body)
+
+            rest_api = self.backend.put_rest_api(
+                function_id, api_doc, mode, fail_on_warnings
+            )
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             response = self.__validte_rest_patch_operations(patch_operations)
@@ -113,7 +132,7 @@ class APIGatewayResponse(BaseResponse):
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
         if self.method == "GET":
-            resources = self.backend.list_resources(function_id)
+            resources = self.backend.get_resources(function_id)
             return (
                 200,
                 {},
@@ -423,6 +442,7 @@ class APIGatewayResponse(BaseResponse):
             uri = self._get_param("uri")
             credentials = self._get_param("credentials")
             request_templates = self._get_param("requestTemplates")
+            passthrough_behavior = self._get_param("passthroughBehavior")
             tls_config = self._get_param("tlsConfig")
             cache_namespace = self._get_param("cacheNamespace")
             timeout_in_millis = self._get_param("timeoutInMillis")
@@ -441,6 +461,7 @@ class APIGatewayResponse(BaseResponse):
                 credentials=credentials,
                 integration_method=integration_http_method,
                 request_templates=request_templates,
+                passthrough_behavior=passthrough_behavior,
                 tls_config=tls_config,
                 cache_namespace=cache_namespace,
                 timeout_in_millis=timeout_in_millis,

@@ -188,3 +188,203 @@ def test_list_account_assignments():
             }
         ]
     )
+
+
+@mock_ssoadmin
+def test_create_permission_set():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+    resp = client.create_permission_set(
+        Name="test",
+        Description="Test permission set",
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        SessionDuration="PT1H",
+        RelayState="https://console.aws.amazon.com/ec2",
+    )
+    resp.should.have.key("PermissionSet")
+    permissionSet = resp["PermissionSet"]
+    permissionSet.should.have.key("Name").equals("test")
+    permissionSet.should.have.key("PermissionSetArn")
+    permissionSet.should.have.key("Description")
+    permissionSet.should.have.key("CreatedDate")
+    permissionSet.should.have.key("SessionDuration")
+    permissionSet.should.have.key("RelayState")
+
+
+@mock_ssoadmin
+def test_update_permission_set():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+    resp = client.create_permission_set(
+        Name="test",
+        Description="Test permission set",
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        SessionDuration="PT1H",
+    )
+    permissionSet = resp["PermissionSet"]
+
+    resp = client.update_permission_set(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn=permissionSet["PermissionSetArn"],
+        Description="New description",
+        SessionDuration="PT2H",
+        RelayState="https://console.aws.amazon.com/s3",
+    )
+    resp = client.describe_permission_set(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn=permissionSet["PermissionSetArn"],
+    )
+    resp.should.have.key("PermissionSet")
+    permissionSet = resp["PermissionSet"]
+    permissionSet.should.have.key("Name").equals("test")
+    permissionSet.should.have.key("Description").equals("New description")
+    permissionSet.should.have.key("CreatedDate")
+    permissionSet.should.have.key("SessionDuration").equals("PT2H")
+    permissionSet.should.have.key("RelayState").equals(
+        "https://console.aws.amazon.com/s3"
+    )
+
+
+@mock_ssoadmin
+def test_update_permission_set_unknown():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_permission_set(
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+            PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+            Description="New description",
+            SessionDuration="PT2H",
+            RelayState="https://console.aws.amazon.com/s3",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFound")
+
+
+@mock_ssoadmin
+def test_describe_permission_set():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+    resp = client.create_permission_set(
+        Name="test",
+        Description="Test permission set",
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        SessionDuration="PT1H",
+    )
+    permissionSet = resp["PermissionSet"]
+
+    resp = client.describe_permission_set(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn=permissionSet["PermissionSetArn"],
+    )
+    resp.should.have.key("PermissionSet")
+    permissionSet = resp["PermissionSet"]
+    permissionSet.should.have.key("Name").equals("test")
+    permissionSet.should.have.key("PermissionSetArn")
+    permissionSet.should.have.key("Description")
+    permissionSet.should.have.key("CreatedDate")
+    permissionSet.should.have.key("SessionDuration")
+
+
+@mock_ssoadmin
+def test_describe_permission_set_unknown():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_permission_set(
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+            PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFound")
+
+
+@mock_ssoadmin
+def test_delete_permission_set():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+    resp = client.create_permission_set(
+        Name="test",
+        Description="Test permission set",
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        SessionDuration="PT1H",
+    )
+    permissionSet = resp["PermissionSet"]
+    resp = client.delete_permission_set(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn=permissionSet["PermissionSetArn"],
+    )
+    with pytest.raises(ClientError) as exc:
+        client.describe_permission_set(
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+            PermissionSetArn=permissionSet["PermissionSetArn"],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFound")
+
+
+@mock_ssoadmin
+def test_delete_permission_set_unknown():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_permission_set(
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+            PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFound")
+
+
+@mock_ssoadmin
+def test_list_permission_sets():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+
+    response = client.list_permission_sets(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+    )
+    response.should.have.key("PermissionSets")
+    permissionSets = response["PermissionSets"]
+    len(permissionSets).should.equal(0)
+
+    for i in range(5):
+        client.create_permission_set(
+            Name="test" + str(i),
+            Description="Test permission set " + str(i),
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+            SessionDuration="PT1H",
+        )
+    response = client.list_permission_sets(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+    )
+    response.should.have.key("PermissionSets")
+    permissionSets = response["PermissionSets"]
+    len(permissionSets).should.equal(5)
+
+
+@mock_ssoadmin
+def test_list_permission_sets_pagination():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+
+    response = client.list_permission_sets(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+    )
+    response.should.have.key("PermissionSets")
+    permissionSets = response["PermissionSets"]
+    len(permissionSets).should.equal(0)
+
+    for i in range(25):
+        client.create_permission_set(
+            Name="test" + str(i),
+            Description="Test permission set " + str(i),
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+            SessionDuration="PT1H",
+        )
+    response = client.list_permission_sets(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+    )
+    response.should.have.key("PermissionSets")
+    response.should_not.have.key("NextToken")
+
+    paginator = client.get_paginator("list_permission_sets")
+    page_iterator = paginator.paginate(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd", MaxResults=5
+    )
+    for page in page_iterator:
+        len(page["PermissionSets"]).should.be.lower_than_or_equal_to(5)

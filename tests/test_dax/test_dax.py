@@ -79,6 +79,7 @@ def test_create_cluster_with_sse_enabled():
         ReplicationFactor=3,
         IamRoleArn=iam_role_arn,
         SSESpecification={"Enabled": True},
+        ClusterEndpointEncryptionType="TLS",
     )["Cluster"]
 
     described_cluster = client.describe_clusters(ClusterNames=["daxcluster"])[
@@ -88,6 +89,7 @@ def test_create_cluster_with_sse_enabled():
     for cluster in [created_cluster, described_cluster]:
         cluster["ClusterName"].should.equal("daxcluster")
         cluster["SSEDescription"].should.equal({"Status": "ENABLED"})
+        cluster["ClusterEndpointEncryptionType"].should.equal("TLS")
 
 
 @mock_dax

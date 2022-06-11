@@ -868,30 +868,69 @@ def test_connection_settings_attribute():
 def test_describe_instance_health():
     elb = boto3.client("elb", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
-    instances = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)[
-        "Instances"
-    ]
+    # Create three instances
+    resp = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    instance_ids = [i["InstanceId"] for i in resp["Instances"]]
+
+    # Register two instances with an LB
     lb_name = "my_load_balancer"
     elb.create_load_balancer(
         Listeners=[{"InstancePort": 80, "LoadBalancerPort": 8080, "Protocol": "HTTP"}],
         LoadBalancerName=lb_name,
     )
     elb.register_instances_with_load_balancer(
-        LoadBalancerName=lb_name, Instances=[{"InstanceId": instances[0]["InstanceId"]}]
+        LoadBalancerName=lb_name,
+        Instances=[{"InstanceId": instance_ids[0]}, {"InstanceId": instance_ids[1]}],
     )
+
+    # Describe the Health of all instances
+    instances_health = elb.describe_instance_health(LoadBalancerName=lb_name)[
+        "InstanceStates"
+    ]
+    instances_health.should.have.length_of(2)
+
+
+@mock_ec2
+@mock_elb
+def test_describe_instance_health__with_instance_ids():
+    elb = boto3.client("elb", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    # Create three instances
+    resp = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
+    instance_ids = [i["InstanceId"] for i in resp["Instances"]]
+
+    # Register two instances with an LB
+    lb_name = "my_load_balancer"
+    elb.create_load_balancer(
+        Listeners=[{"InstancePort": 80, "LoadBalancerPort": 8080, "Protocol": "HTTP"}],
+        LoadBalancerName=lb_name,
+    )
+    elb.register_instances_with_load_balancer(
+        LoadBalancerName=lb_name,
+        Instances=[{"InstanceId": instance_ids[0]}, {"InstanceId": instance_ids[2]}],
+    )
+
+    # Stop one instance
+    ec2.stop_instances(InstanceIds=[instance_ids[2]])
+
+    # Describe the Health of instances
     instances_health = elb.describe_instance_health(
         LoadBalancerName=lb_name,
-        Instances=[{"InstanceId": instance["InstanceId"]} for instance in instances],
-    )
-    instances_health["InstanceStates"].should.have.length_of(2)
-    instances_health["InstanceStates"][0]["InstanceId"].should.equal(
-        instances[0]["InstanceId"]
-    )
-    instances_health["InstanceStates"][0]["State"].should.equal("InService")
-    instances_health["InstanceStates"][1]["InstanceId"].should.equal(
-        instances[1]["InstanceId"]
-    )
-    instances_health["InstanceStates"][1]["State"].should.equal("Unknown")
+        Instances=[{"InstanceId": iid} for iid in instance_ids],
+    )["InstanceStates"]
+    instances_health.should.have.length_of(3)
+
+    # The first instance is healthy
+    instances_health[0]["InstanceId"].should.equal(instance_ids[0])
+    instances_health[0]["State"].should.equal("InService")
+
+    # The second instance was never known to ELB
+    instances_health[1]["InstanceId"].should.equal(instance_ids[1])
+    instances_health[1]["State"].should.equal("Unknown")
+
+    # The third instance was stopped
+    instances_health[2]["InstanceId"].should.equal(instance_ids[2])
+    instances_health[2]["State"].should.equal("OutOfService")
 
 
 @mock_elb

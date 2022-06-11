@@ -85,9 +85,8 @@ class NamedQuery(BaseModel):
 class AthenaBackend(BaseBackend):
     region_name = None
 
-    def __init__(self, region_name=None):
-        if region_name is not None:
-            self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.work_groups = {}
         self.executions = {}
         self.named_queries = {}

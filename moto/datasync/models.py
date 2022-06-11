@@ -96,20 +96,14 @@ class TaskExecution(BaseModel):
 
 
 class DataSyncBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         # Always increase when new things are created
         # This ensures uniqueness
         self.arn_counter = 0
         self.locations = OrderedDict()
         self.tasks = OrderedDict()
         self.task_executions = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

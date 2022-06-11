@@ -22,7 +22,7 @@
 
 ## apigateway
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [X] create_api_key
 - [X] create_authorizer
@@ -93,7 +93,7 @@
 - [X] get_request_validator
 - [X] get_request_validators
 - [X] get_resource
-- [ ] get_resources
+- [X] get_resources
 - [X] get_rest_api
 - [ ] get_rest_apis
 - [ ] get_sdk
@@ -111,13 +111,13 @@
 - [X] get_vpc_links
 - [ ] import_api_keys
 - [ ] import_documentation_parts
-- [ ] import_rest_api
+- [X] import_rest_api
 - [X] put_gateway_response
 - [X] put_integration
 - [X] put_integration_response
 - [X] put_method
 - [X] put_method_response
-- [ ] put_rest_api
+- [X] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
 - [ ] test_invoke_method
@@ -536,7 +536,7 @@
 
 ## cloudfront
 <details>
-<summary>4% implemented</summary>
+<summary>5% implemented</summary>
 
 - [ ] associate_alias
 - [ ] create_cache_policy
@@ -620,7 +620,7 @@
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
-- [ ] update_distribution
+- [X] update_distribution
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
@@ -1069,7 +1069,7 @@
 
 ## databrew
 <details>
-<summary>27% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] batch_delete_recipe_version
 - [X] create_dataset
@@ -1802,6 +1802,7 @@
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -2291,7 +2292,7 @@
 
 ## elb
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [ ] add_tags
 - [X] apply_security_groups_to_load_balancer
@@ -2307,7 +2308,7 @@
 - [X] delete_load_balancer_policy
 - [ ] deregister_instances_from_load_balancer
 - [ ] describe_account_limits
-- [ ] describe_instance_health
+- [X] describe_instance_health
 - [ ] describe_load_balancer_attributes
 - [X] describe_load_balancer_policies
 - [ ] describe_load_balancer_policy_types
@@ -2592,7 +2593,7 @@
 
 ## forecast
 <details>
-<summary>11% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] create_auto_predictor
 - [ ] create_dataset
@@ -2602,6 +2603,7 @@
 - [ ] create_explainability_export
 - [ ] create_forecast
 - [ ] create_forecast_export_job
+- [ ] create_monitor
 - [ ] create_predictor
 - [ ] create_predictor_backtest_export_job
 - [ ] delete_dataset
@@ -2611,6 +2613,7 @@
 - [ ] delete_explainability_export
 - [ ] delete_forecast
 - [ ] delete_forecast_export_job
+- [ ] delete_monitor
 - [ ] delete_predictor
 - [ ] delete_predictor_backtest_export_job
 - [ ] delete_resource_tree
@@ -2622,6 +2625,7 @@
 - [ ] describe_explainability_export
 - [ ] describe_forecast
 - [ ] describe_forecast_export_job
+- [ ] describe_monitor
 - [ ] describe_predictor
 - [ ] describe_predictor_backtest_export_job
 - [ ] get_accuracy_metrics
@@ -2632,9 +2636,12 @@
 - [ ] list_explainability_exports
 - [ ] list_forecast_export_jobs
 - [ ] list_forecasts
+- [ ] list_monitor_evaluations
+- [ ] list_monitors
 - [ ] list_predictor_backtest_export_jobs
 - [ ] list_predictors
 - [ ] list_tags_for_resource
+- [ ] resume_resource
 - [ ] stop_resource
 - [ ] tag_resource
 - [ ] untag_resource
@@ -2682,7 +2689,7 @@
 
 ## glue
 <details>
-<summary>10% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2795,7 +2802,7 @@
 - [ ] get_table_version
 - [ ] get_table_versions
 - [X] get_tables
-- [ ] get_tags
+- [X] get_tags
 - [ ] get_trigger
 - [ ] get_triggers
 - [ ] get_unfiltered_partition_metadata
@@ -2809,7 +2816,7 @@
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
-- [ ] list_crawlers
+- [X] list_crawlers
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
@@ -2847,8 +2854,8 @@
 - [ ] stop_session
 - [ ] stop_trigger
 - [ ] stop_workflow_run
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_blueprint
 - [ ] update_classifier
 - [ ] update_column_statistics_for_partition
@@ -2869,22 +2876,120 @@
 - [ ] update_workflow
 </details>
 
+## greengrass
+<details>
+<summary>2% implemented</summary>
+
+- [ ] associate_role_to_group
+- [ ] associate_service_role_to_account
+- [ ] create_connector_definition
+- [ ] create_connector_definition_version
+- [X] create_core_definition
+- [X] create_core_definition_version
+- [ ] create_deployment
+- [ ] create_device_definition
+- [ ] create_device_definition_version
+- [ ] create_function_definition
+- [ ] create_function_definition_version
+- [ ] create_group
+- [ ] create_group_certificate_authority
+- [ ] create_group_version
+- [ ] create_logger_definition
+- [ ] create_logger_definition_version
+- [ ] create_resource_definition
+- [ ] create_resource_definition_version
+- [ ] create_software_update_job
+- [ ] create_subscription_definition
+- [ ] create_subscription_definition_version
+- [ ] delete_connector_definition
+- [ ] delete_core_definition
+- [ ] delete_device_definition
+- [ ] delete_function_definition
+- [ ] delete_group
+- [ ] delete_logger_definition
+- [ ] delete_resource_definition
+- [ ] delete_subscription_definition
+- [ ] disassociate_role_from_group
+- [ ] disassociate_service_role_from_account
+- [ ] get_associated_role
+- [ ] get_bulk_deployment_status
+- [ ] get_connectivity_info
+- [ ] get_connector_definition
+- [ ] get_connector_definition_version
+- [ ] get_core_definition
+- [ ] get_core_definition_version
+- [ ] get_deployment_status
+- [ ] get_device_definition
+- [ ] get_device_definition_version
+- [ ] get_function_definition
+- [ ] get_function_definition_version
+- [ ] get_group
+- [ ] get_group_certificate_authority
+- [ ] get_group_certificate_configuration
+- [ ] get_group_version
+- [ ] get_logger_definition
+- [ ] get_logger_definition_version
+- [ ] get_resource_definition
+- [ ] get_resource_definition_version
+- [ ] get_service_role_for_account
+- [ ] get_subscription_definition
+- [ ] get_subscription_definition_version
+- [ ] get_thing_runtime_configuration
+- [ ] list_bulk_deployment_detailed_reports
+- [ ] list_bulk_deployments
+- [ ] list_connector_definition_versions
+- [ ] list_connector_definitions
+- [ ] list_core_definition_versions
+- [ ] list_core_definitions
+- [ ] list_deployments
+- [ ] list_device_definition_versions
+- [ ] list_device_definitions
+- [ ] list_function_definition_versions
+- [ ] list_function_definitions
+- [ ] list_group_certificate_authorities
+- [ ] list_group_versions
+- [ ] list_groups
+- [ ] list_logger_definition_versions
+- [ ] list_logger_definitions
+- [ ] list_resource_definition_versions
+- [ ] list_resource_definitions
+- [ ] list_subscription_definition_versions
+- [ ] list_subscription_definitions
+- [ ] list_tags_for_resource
+- [ ] reset_deployments
+- [ ] start_bulk_deployment
+- [ ] stop_bulk_deployment
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_connectivity_info
+- [ ] update_connector_definition
+- [ ] update_core_definition
+- [ ] update_device_definition
+- [ ] update_function_definition
+- [ ] update_group
+- [ ] update_group_certificate_configuration
+- [ ] update_logger_definition
+- [ ] update_resource_definition
+- [ ] update_subscription_definition
+- [ ] update_thing_runtime_configuration
+</details>
+
 ## guardduty
 <details>
-<summary>3% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] accept_invitation
 - [ ] archive_findings
 - [X] create_detector
-- [ ] create_filter
+- [X] create_filter
 - [ ] create_ip_set
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
 - [ ] create_threat_intel_set
 - [ ] decline_invitations
-- [ ] delete_detector
-- [ ] delete_filter
+- [X] delete_detector
+- [X] delete_filter
 - [ ] delete_invitations
 - [ ] delete_ip_set
 - [ ] delete_members
@@ -2895,9 +3000,9 @@
 - [ ] disable_organization_admin_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
-- [ ] enable_organization_admin_account
-- [ ] get_detector
-- [ ] get_filter
+- [X] enable_organization_admin_account
+- [X] get_detector
+- [X] get_filter
 - [ ] get_findings
 - [ ] get_findings_statistics
 - [ ] get_invitations_count
@@ -2914,7 +3019,7 @@
 - [ ] list_invitations
 - [ ] list_ip_sets
 - [ ] list_members
-- [ ] list_organization_admin_accounts
+- [X] list_organization_admin_accounts
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
 - [ ] list_threat_intel_sets
@@ -2923,8 +3028,8 @@
 - [ ] tag_resource
 - [ ] unarchive_findings
 - [ ] untag_resource
-- [ ] update_detector
-- [ ] update_filter
+- [X] update_detector
+- [X] update_filter
 - [ ] update_findings_feedback
 - [ ] update_ip_set
 - [ ] update_member_detectors
@@ -3431,13 +3536,13 @@
 
 ## kms
 <details>
-<summary>42% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
 - [ ] create_alias
 - [ ] create_custom_key_store
-- [ ] create_grant
+- [X] create_grant
 - [X] create_key
 - [X] decrypt
 - [X] delete_alias
@@ -3463,16 +3568,16 @@
 - [ ] get_public_key
 - [ ] import_key_material
 - [ ] list_aliases
-- [ ] list_grants
+- [X] list_grants
 - [ ] list_key_policies
 - [X] list_keys
 - [X] list_resource_tags
-- [ ] list_retirable_grants
+- [X] list_retirable_grants
 - [X] put_key_policy
 - [X] re_encrypt
 - [ ] replicate_key
-- [ ] retire_grant
-- [ ] revoke_grant
+- [X] retire_grant
+- [X] revoke_grant
 - [X] schedule_key_deletion
 - [ ] sign
 - [X] tag_resource
@@ -4213,6 +4318,7 @@
 - [X] update_group
 - [ ] update_iam_policy_assignment
 - [ ] update_ip_restriction
+- [ ] update_public_sharing_settings
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions
@@ -4536,7 +4642,7 @@
 
 ## rekognition
 <details>
-<summary>3% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] compare_faces
 - [ ] create_collection
@@ -4566,7 +4672,7 @@
 - [ ] get_celebrity_recognition
 - [ ] get_content_moderation
 - [ ] get_face_detection
-- [ ] get_face_search
+- [X] get_face_search
 - [ ] get_label_detection
 - [ ] get_person_tracking
 - [ ] get_segment_detection
@@ -4584,7 +4690,7 @@
 - [ ] start_celebrity_recognition
 - [ ] start_content_moderation
 - [ ] start_face_detection
-- [ ] start_face_search
+- [X] start_face_search
 - [ ] start_label_detection
 - [ ] start_person_tracking
 - [ ] start_project_version
@@ -4637,12 +4743,14 @@
 
 ## route53
 <details>
-<summary>34% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
+- [ ] change_cidr_collection
 - [X] change_resource_record_sets
 - [X] change_tags_for_resource
+- [ ] create_cidr_collection
 - [X] create_health_check
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
@@ -4653,6 +4761,7 @@
 - [ ] create_traffic_policy_version
 - [ ] create_vpc_association_authorization
 - [ ] deactivate_key_signing_key
+- [ ] delete_cidr_collection
 - [X] delete_health_check
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
@@ -4682,6 +4791,9 @@
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
+- [ ] list_cidr_blocks
+- [ ] list_cidr_collections
+- [ ] list_cidr_locations
 - [ ] list_geo_locations
 - [X] list_health_checks
 - [X] list_hosted_zones
@@ -5570,15 +5682,15 @@
 - [ ] attach_managed_policy_to_permission_set
 - [X] create_account_assignment
 - [ ] create_instance_access_control_attribute_configuration
-- [ ] create_permission_set
+- [X] create_permission_set
 - [X] delete_account_assignment
 - [ ] delete_inline_policy_from_permission_set
 - [ ] delete_instance_access_control_attribute_configuration
-- [ ] delete_permission_set
+- [X] delete_permission_set
 - [ ] describe_account_assignment_creation_status
 - [ ] describe_account_assignment_deletion_status
 - [ ] describe_instance_access_control_attribute_configuration
-- [ ] describe_permission_set
+- [X] describe_permission_set
 - [ ] describe_permission_set_provisioning_status
 - [ ] detach_managed_policy_from_permission_set
 - [ ] get_inline_policy_for_permission_set
@@ -5589,7 +5701,7 @@
 - [ ] list_instances
 - [ ] list_managed_policies_in_permission_set
 - [ ] list_permission_set_provisioning_status
-- [ ] list_permission_sets
+- [X] list_permission_sets
 - [ ] list_permission_sets_provisioned_to_account
 - [ ] list_tags_for_resource
 - [ ] provision_permission_set
@@ -5597,7 +5709,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_instance_access_control_attribute_configuration
-- [ ] update_permission_set
+- [X] update_permission_set
 </details>
 
 ## stepfunctions
@@ -5910,6 +6022,7 @@
 - drs
 - ecr-public
 - elastic-inference
+- emr-serverless
 - evidently
 - finspace
 - finspace-data
@@ -5922,7 +6035,6 @@
 - gamesparks
 - globalaccelerator
 - grafana
-- greengrass
 - greengrassv2
 - groundstation
 - health

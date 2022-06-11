@@ -27,8 +27,10 @@ route53
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
+- [ ] change_cidr_collection
 - [X] change_resource_record_sets
 - [X] change_tags_for_resource
+- [ ] create_cidr_collection
 - [X] create_health_check
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
@@ -41,6 +43,7 @@ route53
 - [ ] create_traffic_policy_version
 - [ ] create_vpc_association_authorization
 - [ ] deactivate_key_signing_key
+- [ ] delete_cidr_collection
 - [X] delete_health_check
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
@@ -74,6 +77,9 @@ route53
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
+- [ ] list_cidr_blocks
+- [ ] list_cidr_collections
+- [ ] list_cidr_locations
 - [ ] list_geo_locations
 - [X] list_health_checks
 - [X] list_hosted_zones

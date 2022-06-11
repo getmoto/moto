@@ -30,10 +30,9 @@ class EgressOnlyInternetGateway(TaggedEC2Resource):
         return self.id
 
 
-class EgressOnlyInternetGatewayBackend(object):
+class EgressOnlyInternetGatewayBackend:
     def __init__(self):
         self.egress_only_internet_gateway_backend = {}
-        super().__init__()
 
     def create_egress_only_internet_gateway(self, vpc_id, tags=None):
         vpc = self.get_vpc(vpc_id)
@@ -113,10 +112,9 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
             return "detached"
 
 
-class InternetGatewayBackend(object):
+class InternetGatewayBackend:
     def __init__(self):
         self.internet_gateways = {}
-        super().__init__()
 
     def create_internet_gateway(self, tags=None):
         igw = InternetGateway(self)

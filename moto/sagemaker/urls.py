@@ -1,7 +1,7 @@
 from .responses import SageMakerResponse
 
 url_bases = [
-    r"https?://api.sagemaker\.(.+)\.amazonaws.com",
+    r"https?://api\.sagemaker\.(.+)\.amazonaws.com",
 ]
 
 url_paths = {

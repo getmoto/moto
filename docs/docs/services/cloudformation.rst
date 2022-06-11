@@ -12,6 +12,8 @@
 cloudformation
 ==============
 
+.. autoclass:: moto.cloudformation.models.CloudFormationBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python

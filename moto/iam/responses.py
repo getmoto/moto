@@ -1,48 +1,52 @@
 from moto.core.responses import BaseResponse
 
-from .models import iam_backend, User
+from .models import iam_backends, User
 
 
 class IamResponse(BaseResponse):
+    @property
+    def backend(self):
+        return iam_backends["global"]
+
     def attach_role_policy(self):
         policy_arn = self._get_param("PolicyArn")
         role_name = self._get_param("RoleName")
-        iam_backend.attach_role_policy(policy_arn, role_name)
+        self.backend.attach_role_policy(policy_arn, role_name)
         template = self.response_template(ATTACH_ROLE_POLICY_TEMPLATE)
         return template.render()
 
     def detach_role_policy(self):
         role_name = self._get_param("RoleName")
         policy_arn = self._get_param("PolicyArn")
-        iam_backend.detach_role_policy(policy_arn, role_name)
+        self.backend.detach_role_policy(policy_arn, role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DetachRolePolicy")
 
     def attach_group_policy(self):
         policy_arn = self._get_param("PolicyArn")
         group_name = self._get_param("GroupName")
-        iam_backend.attach_group_policy(policy_arn, group_name)
+        self.backend.attach_group_policy(policy_arn, group_name)
         template = self.response_template(ATTACH_GROUP_POLICY_TEMPLATE)
         return template.render()
 
     def detach_group_policy(self):
         policy_arn = self._get_param("PolicyArn")
         group_name = self._get_param("GroupName")
-        iam_backend.detach_group_policy(policy_arn, group_name)
+        self.backend.detach_group_policy(policy_arn, group_name)
         template = self.response_template(DETACH_GROUP_POLICY_TEMPLATE)
         return template.render()
 
     def attach_user_policy(self):
         policy_arn = self._get_param("PolicyArn")
         user_name = self._get_param("UserName")
-        iam_backend.attach_user_policy(policy_arn, user_name)
+        self.backend.attach_user_policy(policy_arn, user_name)
         template = self.response_template(ATTACH_USER_POLICY_TEMPLATE)
         return template.render()
 
     def detach_user_policy(self):
         policy_arn = self._get_param("PolicyArn")
         user_name = self._get_param("UserName")
-        iam_backend.detach_user_policy(policy_arn, user_name)
+        self.backend.detach_user_policy(policy_arn, user_name)
         template = self.response_template(DETACH_USER_POLICY_TEMPLATE)
         return template.render()
 
@@ -52,7 +56,7 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
         policy_name = self._get_param("PolicyName")
         tags = self._get_multi_param("Tags.member")
-        policy = iam_backend.create_policy(
+        policy = self.backend.create_policy(
             description, path, policy_document, policy_name, tags
         )
         template = self.response_template(CREATE_POLICY_TEMPLATE)
@@ -60,7 +64,7 @@ class IamResponse(BaseResponse):
 
     def get_policy(self):
         policy_arn = self._get_param("PolicyArn")
-        policy = iam_backend.get_policy(policy_arn)
+        policy = self.backend.get_policy(policy_arn)
         template = self.response_template(GET_POLICY_TEMPLATE)
         return template.render(policy=policy)
 
@@ -69,7 +73,7 @@ class IamResponse(BaseResponse):
         max_items = self._get_int_param("MaxItems", 100)
         path_prefix = self._get_param("PathPrefix", "/")
         role_name = self._get_param("RoleName")
-        policies, marker = iam_backend.list_attached_role_policies(
+        policies, marker = self.backend.list_attached_role_policies(
             role_name, marker=marker, max_items=max_items, path_prefix=path_prefix
         )
         template = self.response_template(LIST_ATTACHED_ROLE_POLICIES_TEMPLATE)
@@ -80,7 +84,7 @@ class IamResponse(BaseResponse):
         max_items = self._get_int_param("MaxItems", 100)
         path_prefix = self._get_param("PathPrefix", "/")
         group_name = self._get_param("GroupName")
-        policies, marker = iam_backend.list_attached_group_policies(
+        policies, marker = self.backend.list_attached_group_policies(
             group_name, marker=marker, max_items=max_items, path_prefix=path_prefix
         )
         template = self.response_template(LIST_ATTACHED_GROUP_POLICIES_TEMPLATE)
@@ -91,7 +95,7 @@ class IamResponse(BaseResponse):
         max_items = self._get_int_param("MaxItems", 100)
         path_prefix = self._get_param("PathPrefix", "/")
         user_name = self._get_param("UserName")
-        policies, marker = iam_backend.list_attached_user_policies(
+        policies, marker = self.backend.list_attached_user_policies(
             user_name, marker=marker, max_items=max_items, path_prefix=path_prefix
         )
         template = self.response_template(LIST_ATTACHED_USER_POLICIES_TEMPLATE)
@@ -103,7 +107,7 @@ class IamResponse(BaseResponse):
         only_attached = self._get_bool_param("OnlyAttached", False)
         path_prefix = self._get_param("PathPrefix", "/")
         scope = self._get_param("Scope", "All")
-        policies, marker = iam_backend.list_policies(
+        policies, marker = self.backend.list_policies(
             marker, max_items, only_attached, path_prefix, scope
         )
         template = self.response_template(LIST_POLICIES_TEMPLATE)
@@ -124,7 +128,7 @@ class IamResponse(BaseResponse):
         entity_users = []
 
         if not entity or entity == "User":
-            users = iam_backend.list_users(path_prefix, marker, max_items)
+            users = self.backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
                     for p in user.managed_policies:
@@ -132,7 +136,7 @@ class IamResponse(BaseResponse):
                             entity_users.append({"name": user.name, "id": user.id})
 
         if not entity or entity == "Role":
-            roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
+            roles, _ = self.backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
                     for p in role.managed_policies:
@@ -140,7 +144,7 @@ class IamResponse(BaseResponse):
                             entity_roles.append({"name": role.name, "id": role.id})
 
         if not entity or entity == "Group":
-            groups = iam_backend.list_groups()
+            groups = self.backend.list_groups()
             if groups:
                 for group in groups:
                     for p in group.managed_policies:
@@ -148,21 +152,21 @@ class IamResponse(BaseResponse):
                             entity_groups.append({"name": group.name, "id": group.id})
 
         if entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
-            users = iam_backend.list_users(path_prefix, marker, max_items)
+            users = self.backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
                     for p in user.managed_policies:
                         if p == policy_arn:
                             entity_users.append({"name": user.name, "id": user.id})
 
-            roles, _ = iam_backend.list_roles(path_prefix, marker, max_items)
+            roles, _ = self.backend.list_roles(path_prefix, marker, max_items)
             if roles:
                 for role in roles:
                     for p in role.managed_policies:
                         if p == policy_arn:
                             entity_roles.append({"name": role.name, "id": role.id})
 
-            groups = iam_backend.list_groups()
+            groups = self.backend.list_groups()
             if groups:
                 for group in groups:
                     for p in group.managed_policies:
@@ -177,7 +181,7 @@ class IamResponse(BaseResponse):
     def set_default_policy_version(self):
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
-        iam_backend.set_default_policy_version(policy_arn, version_id)
+        self.backend.set_default_policy_version(policy_arn, version_id)
         template = self.response_template(SET_DEFAULT_POLICY_VERSION_TEMPLATE)
         return template.render()
 
@@ -190,7 +194,7 @@ class IamResponse(BaseResponse):
         tags = self._get_multi_param("Tags.member")
         max_session_duration = self._get_param("MaxSessionDuration", 3600)
 
-        role = iam_backend.create_role(
+        role = self.backend.create_role(
             role_name,
             assume_role_policy_document,
             path,
@@ -204,20 +208,20 @@ class IamResponse(BaseResponse):
 
     def get_role(self):
         role_name = self._get_param("RoleName")
-        role = iam_backend.get_role(role_name)
+        role = self.backend.get_role(role_name)
 
         template = self.response_template(GET_ROLE_TEMPLATE)
         return template.render(role=role)
 
     def delete_role(self):
         role_name = self._get_param("RoleName")
-        iam_backend.delete_role(role_name)
+        self.backend.delete_role(role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteRole")
 
     def list_role_policies(self):
         role_name = self._get_param("RoleName")
-        role_policies_names = iam_backend.list_role_policies(role_name)
+        role_policies_names = self.backend.list_role_policies(role_name)
         template = self.response_template(LIST_ROLE_POLICIES)
         return template.render(role_policies=role_policies_names)
 
@@ -225,21 +229,21 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
         policy_document = self._get_param("PolicyDocument")
-        iam_backend.put_role_policy(role_name, policy_name, policy_document)
+        self.backend.put_role_policy(role_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutRolePolicy")
 
     def delete_role_policy(self):
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
-        iam_backend.delete_role_policy(role_name, policy_name)
+        self.backend.delete_role_policy(role_name, policy_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteRolePolicy")
 
     def get_role_policy(self):
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
-        policy_name, policy_document = iam_backend.get_role_policy(
+        policy_name, policy_document = self.backend.get_role_policy(
             role_name, policy_name
         )
         template = self.response_template(GET_ROLE_POLICY_TEMPLATE)
@@ -251,7 +255,7 @@ class IamResponse(BaseResponse):
 
     def update_assume_role_policy(self):
         role_name = self._get_param("RoleName")
-        role = iam_backend.get_role(role_name)
+        role = self.backend.get_role(role_name)
         role.assume_role_policy_document = self._get_param("PolicyDocument")
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicy")
@@ -259,7 +263,7 @@ class IamResponse(BaseResponse):
     def update_role_description(self):
         role_name = self._get_param("RoleName")
         description = self._get_param("Description")
-        role = iam_backend.update_role_description(role_name, description)
+        role = self.backend.update_role_description(role_name, description)
         template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
         return template.render(role=role)
 
@@ -267,20 +271,20 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         description = self._get_param("Description")
         max_session_duration = self._get_param("MaxSessionDuration", 3600)
-        role = iam_backend.update_role(role_name, description, max_session_duration)
+        role = self.backend.update_role(role_name, description, max_session_duration)
         template = self.response_template(UPDATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
     def put_role_permissions_boundary(self):
         permissions_boundary = self._get_param("PermissionsBoundary")
         role_name = self._get_param("RoleName")
-        iam_backend.put_role_permissions_boundary(role_name, permissions_boundary)
+        self.backend.put_role_permissions_boundary(role_name, permissions_boundary)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutRolePermissionsBoundary")
 
     def delete_role_permissions_boundary(self):
         role_name = self._get_param("RoleName")
-        iam_backend.delete_role_permissions_boundary(role_name)
+        self.backend.delete_role_permissions_boundary(role_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteRolePermissionsBoundary")
 
@@ -288,7 +292,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         policy_document = self._get_param("PolicyDocument")
         set_as_default = self._get_param("SetAsDefault")
-        policy_version = iam_backend.create_policy_version(
+        policy_version = self.backend.create_policy_version(
             policy_arn, policy_document, set_as_default
         )
         template = self.response_template(CREATE_POLICY_VERSION_TEMPLATE)
@@ -297,13 +301,13 @@ class IamResponse(BaseResponse):
     def get_policy_version(self):
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
-        policy_version = iam_backend.get_policy_version(policy_arn, version_id)
+        policy_version = self.backend.get_policy_version(policy_arn, version_id)
         template = self.response_template(GET_POLICY_VERSION_TEMPLATE)
         return template.render(policy_version=policy_version)
 
     def list_policy_versions(self):
         policy_arn = self._get_param("PolicyArn")
-        policy_versions = iam_backend.list_policy_versions(policy_arn)
+        policy_versions = self.backend.list_policy_versions(policy_arn)
 
         template = self.response_template(LIST_POLICY_VERSIONS_TEMPLATE)
         return template.render(policy_versions=policy_versions)
@@ -313,7 +317,7 @@ class IamResponse(BaseResponse):
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems", 100)
 
-        tags, marker = iam_backend.list_policy_tags(policy_arn, marker, max_items)
+        tags, marker = self.backend.list_policy_tags(policy_arn, marker, max_items)
 
         template = self.response_template(LIST_POLICY_TAG_TEMPLATE)
         return template.render(tags=tags, marker=marker)
@@ -322,7 +326,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         tags = self._get_multi_param("Tags.member")
 
-        iam_backend.tag_policy(policy_arn, tags)
+        self.backend.tag_policy(policy_arn, tags)
 
         template = self.response_template(TAG_POLICY_TEMPLATE)
         return template.render()
@@ -331,7 +335,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         tag_keys = self._get_multi_param("TagKeys.member")
 
-        iam_backend.untag_policy(policy_arn, tag_keys)
+        self.backend.untag_policy(policy_arn, tag_keys)
 
         template = self.response_template(UNTAG_POLICY_TEMPLATE)
         return template.render()
@@ -340,7 +344,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
 
-        iam_backend.delete_policy_version(policy_arn, version_id)
+        self.backend.delete_policy_version(policy_arn, version_id)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeletePolicyVersion")
 
@@ -349,7 +353,7 @@ class IamResponse(BaseResponse):
         path = self._get_param("Path", "/")
         tags = self._get_multi_param("Tags.member")
 
-        profile = iam_backend.create_instance_profile(
+        profile = self.backend.create_instance_profile(
             profile_name, path, role_names=[], tags=tags
         )
         template = self.response_template(CREATE_INSTANCE_PROFILE_TEMPLATE)
@@ -358,13 +362,13 @@ class IamResponse(BaseResponse):
     def delete_instance_profile(self):
         profile_name = self._get_param("InstanceProfileName")
 
-        profile = iam_backend.delete_instance_profile(profile_name)
+        profile = self.backend.delete_instance_profile(profile_name)
         template = self.response_template(DELETE_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
 
     def get_instance_profile(self):
         profile_name = self._get_param("InstanceProfileName")
-        profile = iam_backend.get_instance_profile(profile_name)
+        profile = self.backend.get_instance_profile(profile_name)
 
         template = self.response_template(GET_INSTANCE_PROFILE_TEMPLATE)
         return template.render(profile=profile)
@@ -373,7 +377,7 @@ class IamResponse(BaseResponse):
         profile_name = self._get_param("InstanceProfileName")
         role_name = self._get_param("RoleName")
 
-        iam_backend.add_role_to_instance_profile(profile_name, role_name)
+        self.backend.add_role_to_instance_profile(profile_name, role_name)
         template = self.response_template(ADD_ROLE_TO_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
@@ -381,7 +385,7 @@ class IamResponse(BaseResponse):
         profile_name = self._get_param("InstanceProfileName")
         role_name = self._get_param("RoleName")
 
-        iam_backend.remove_role_from_instance_profile(profile_name, role_name)
+        self.backend.remove_role_from_instance_profile(profile_name, role_name)
         template = self.response_template(REMOVE_ROLE_FROM_INSTANCE_PROFILE_TEMPLATE)
         return template.render()
 
@@ -390,19 +394,19 @@ class IamResponse(BaseResponse):
         marker = self._get_param("Marker", "0")
         max_items = self._get_param("MaxItems", 100)
 
-        roles, marker = iam_backend.list_roles(path_prefix, marker, max_items)
+        roles, marker = self.backend.list_roles(path_prefix, marker, max_items)
         template = self.response_template(LIST_ROLES_TEMPLATE)
         return template.render(roles=roles, marker=marker)
 
     def list_instance_profiles(self):
-        profiles = iam_backend.get_instance_profiles()
+        profiles = self.backend.get_instance_profiles()
 
         template = self.response_template(LIST_INSTANCE_PROFILES_TEMPLATE)
         return template.render(instance_profiles=profiles)
 
     def list_instance_profiles_for_role(self):
         role_name = self._get_param("RoleName")
-        profiles = iam_backend.get_instance_profiles_for_role(role_name=role_name)
+        profiles = self.backend.get_instance_profiles_for_role(role_name=role_name)
 
         template = self.response_template(LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE)
         return template.render(instance_profiles=profiles)
@@ -414,26 +418,26 @@ class IamResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         cert_chain = self._get_param("CertificateName")
 
-        cert = iam_backend.upload_server_certificate(
+        cert = self.backend.upload_server_certificate(
             cert_name, cert_body, private_key, cert_chain=cert_chain, path=path
         )
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
         return template.render(certificate=cert)
 
     def list_server_certificates(self):
-        certs = iam_backend.list_server_certificates()
+        certs = self.backend.list_server_certificates()
         template = self.response_template(LIST_SERVER_CERTIFICATES_TEMPLATE)
         return template.render(server_certificates=certs)
 
     def get_server_certificate(self):
         cert_name = self._get_param("ServerCertificateName")
-        cert = iam_backend.get_server_certificate(cert_name)
+        cert = self.backend.get_server_certificate(cert_name)
         template = self.response_template(GET_SERVER_CERTIFICATE_TEMPLATE)
         return template.render(certificate=cert)
 
     def delete_server_certificate(self):
         cert_name = self._get_param("ServerCertificateName")
-        iam_backend.delete_server_certificate(cert_name)
+        self.backend.delete_server_certificate(cert_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteServerCertificate")
 
@@ -441,26 +445,26 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         path = self._get_param("Path", "/")
 
-        group = iam_backend.create_group(group_name, path)
+        group = self.backend.create_group(group_name, path)
         template = self.response_template(CREATE_GROUP_TEMPLATE)
         return template.render(group=group)
 
     def get_group(self):
         group_name = self._get_param("GroupName")
 
-        group = iam_backend.get_group(group_name)
+        group = self.backend.get_group(group_name)
         template = self.response_template(GET_GROUP_TEMPLATE)
         return template.render(group=group)
 
     def list_groups(self):
-        groups = iam_backend.list_groups()
+        groups = self.backend.list_groups()
         template = self.response_template(LIST_GROUPS_TEMPLATE)
         return template.render(groups=groups)
 
     def list_groups_for_user(self):
         user_name = self._get_param("UserName")
 
-        groups = iam_backend.get_groups_for_user(user_name)
+        groups = self.backend.get_groups_for_user(user_name)
         template = self.response_template(LIST_GROUPS_FOR_USER_TEMPLATE)
         return template.render(groups=groups)
 
@@ -468,14 +472,14 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
         policy_document = self._get_param("PolicyDocument")
-        iam_backend.put_group_policy(group_name, policy_name, policy_document)
+        self.backend.put_group_policy(group_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutGroupPolicy")
 
     def list_group_policies(self):
         group_name = self._get_param("GroupName")
         marker = self._get_param("Marker")
-        policies = iam_backend.list_group_policies(group_name)
+        policies = self.backend.list_group_policies(group_name)
         template = self.response_template(LIST_GROUP_POLICIES_TEMPLATE)
         return template.render(
             name="ListGroupPoliciesResponse", policies=policies, marker=marker
@@ -484,20 +488,20 @@ class IamResponse(BaseResponse):
     def get_group_policy(self):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
-        policy_result = iam_backend.get_group_policy(group_name, policy_name)
+        policy_result = self.backend.get_group_policy(group_name, policy_name)
         template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
         return template.render(name="GetGroupPolicyResponse", **policy_result)
 
     def delete_group_policy(self):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
-        iam_backend.delete_group_policy(group_name, policy_name)
+        self.backend.delete_group_policy(group_name, policy_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteGroupPolicy")
 
     def delete_group(self):
         group_name = self._get_param("GroupName")
-        iam_backend.delete_group(group_name)
+        self.backend.delete_group(group_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteGroup")
 
@@ -505,7 +509,7 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         new_group_name = self._get_param("NewGroupName")
         new_path = self._get_param("NewPath")
-        iam_backend.update_group(group_name, new_group_name, new_path)
+        self.backend.update_group(group_name, new_group_name, new_path)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateGroup")
 
@@ -513,7 +517,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
         tags = self._get_multi_param("Tags.member")
-        user, user_tags = iam_backend.create_user(user_name, path, tags)
+        user, user_tags = self.backend.create_user(user_name, path, tags)
         template = self.response_template(USER_TEMPLATE)
         return template.render(action="Create", user=user, tags=user_tags["Tags"])
 
@@ -521,12 +525,12 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         if not user_name:
             access_key_id = self.get_current_user()
-            user = iam_backend.get_user_from_access_key_id(access_key_id)
+            user = self.backend.get_user_from_access_key_id(access_key_id)
             if user is None:
                 user = User("default_user")
         else:
-            user = iam_backend.get_user(user_name)
-        tags = iam_backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])
+            user = self.backend.get_user(user_name)
+        tags = self.backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])
         template = self.response_template(USER_TEMPLATE)
         return template.render(action="Get", user=user, tags=tags)
 
@@ -534,7 +538,7 @@ class IamResponse(BaseResponse):
         path_prefix = self._get_param("PathPrefix")
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems")
-        users = iam_backend.list_users(path_prefix, marker, max_items)
+        users = self.backend.list_users(path_prefix, marker, max_items)
         template = self.response_template(LIST_USERS_TEMPLATE)
         return template.render(action="List", users=users, isTruncated=False)
 
@@ -542,25 +546,25 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         new_path = self._get_param("NewPath")
         new_user_name = self._get_param("NewUserName")
-        iam_backend.update_user(user_name, new_path, new_user_name)
+        self.backend.update_user(user_name, new_path, new_user_name)
         if new_user_name:
-            user = iam_backend.get_user(new_user_name)
+            user = self.backend.get_user(new_user_name)
         else:
-            user = iam_backend.get_user(user_name)
+            user = self.backend.get_user(user_name)
         template = self.response_template(USER_TEMPLATE)
         return template.render(action="Update", user=user)
 
     def create_login_profile(self):
         user_name = self._get_param("UserName")
         password = self._get_param("Password")
-        user = iam_backend.create_login_profile(user_name, password)
+        user = self.backend.create_login_profile(user_name, password)
 
         template = self.response_template(CREATE_LOGIN_PROFILE_TEMPLATE)
         return template.render(user=user)
 
     def get_login_profile(self):
         user_name = self._get_param("UserName")
-        user = iam_backend.get_login_profile(user_name)
+        user = self.backend.get_login_profile(user_name)
 
         template = self.response_template(GET_LOGIN_PROFILE_TEMPLATE)
         return template.render(user=user)
@@ -569,7 +573,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         password = self._get_param("Password")
         password_reset_required = self._get_param("PasswordResetRequired")
-        user = iam_backend.update_login_profile(
+        user = self.backend.update_login_profile(
             user_name, password, password_reset_required
         )
 
@@ -580,7 +584,7 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         user_name = self._get_param("UserName")
 
-        iam_backend.add_user_to_group(group_name, user_name)
+        self.backend.add_user_to_group(group_name, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="AddUserToGroup")
 
@@ -588,7 +592,7 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         user_name = self._get_param("UserName")
 
-        iam_backend.remove_user_from_group(group_name, user_name)
+        self.backend.remove_user_from_group(group_name, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="RemoveUserFromGroup")
 
@@ -596,7 +600,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         policy_name = self._get_param("PolicyName")
 
-        policy_document = iam_backend.get_user_policy(user_name, policy_name)
+        policy_document = self.backend.get_user_policy(user_name, policy_name)
         template = self.response_template(GET_USER_POLICY_TEMPLATE)
         return template.render(
             user_name=user_name,
@@ -606,13 +610,13 @@ class IamResponse(BaseResponse):
 
     def list_user_policies(self):
         user_name = self._get_param("UserName")
-        policies = iam_backend.list_user_policies(user_name)
+        policies = self.backend.list_user_policies(user_name)
         template = self.response_template(LIST_USER_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
     def list_user_tags(self):
         user_name = self._get_param("UserName")
-        tags = iam_backend.list_user_tags(user_name)
+        tags = self.backend.list_user_tags(user_name)
         template = self.response_template(LIST_USER_TAGS_TEMPLATE)
         return template.render(user_tags=tags["Tags"])
 
@@ -621,7 +625,7 @@ class IamResponse(BaseResponse):
         policy_name = self._get_param("PolicyName")
         policy_document = self._get_param("PolicyDocument")
 
-        iam_backend.put_user_policy(user_name, policy_name, policy_document)
+        self.backend.put_user_policy(user_name, policy_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="PutUserPolicy")
 
@@ -629,7 +633,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         policy_name = self._get_param("PolicyName")
 
-        iam_backend.delete_user_policy(user_name, policy_name)
+        self.backend.delete_user_policy(user_name, policy_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteUserPolicy")
 
@@ -637,10 +641,10 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         if not user_name:
             access_key_id = self.get_current_user()
-            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            access_key = self.backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
-        key = iam_backend.create_access_key(user_name)
+        key = self.backend.create_access_key(user_name)
         template = self.response_template(CREATE_ACCESS_KEY_TEMPLATE)
         return template.render(key=key)
 
@@ -649,16 +653,16 @@ class IamResponse(BaseResponse):
         access_key_id = self._get_param("AccessKeyId")
         status = self._get_param("Status")
         if not user_name:
-            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            access_key = self.backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
-        iam_backend.update_access_key(user_name, access_key_id, status)
+        self.backend.update_access_key(user_name, access_key_id, status)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAccessKey")
 
     def get_access_key_last_used(self):
         access_key_id = self._get_param("AccessKeyId")
-        last_used_response = iam_backend.get_access_key_last_used(access_key_id)
+        last_used_response = self.backend.get_access_key_last_used(access_key_id)
         template = self.response_template(GET_ACCESS_KEY_LAST_USED_TEMPLATE)
         return template.render(
             user_name=last_used_response["user_name"],
@@ -669,10 +673,10 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         if not user_name:
             access_key_id = self.get_current_user()
-            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            access_key = self.backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
-        keys = iam_backend.list_access_keys(user_name)
+        keys = self.backend.list_access_keys(user_name)
         template = self.response_template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
 
@@ -680,10 +684,10 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         access_key_id = self._get_param("AccessKeyId")
         if not user_name:
-            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            access_key = self.backend.get_access_key_last_used(access_key_id)
             user_name = access_key["user_name"]
 
-        iam_backend.delete_access_key(access_key_id, user_name)
+        self.backend.delete_access_key(access_key_id, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteAccessKey")
 
@@ -691,7 +695,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         ssh_public_key_body = self._get_param("SSHPublicKeyBody")
 
-        key = iam_backend.upload_ssh_public_key(user_name, ssh_public_key_body)
+        key = self.backend.upload_ssh_public_key(user_name, ssh_public_key_body)
         template = self.response_template(UPLOAD_SSH_PUBLIC_KEY_TEMPLATE)
         return template.render(key=key)
 
@@ -699,14 +703,14 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         ssh_public_key_id = self._get_param("SSHPublicKeyId")
 
-        key = iam_backend.get_ssh_public_key(user_name, ssh_public_key_id)
+        key = self.backend.get_ssh_public_key(user_name, ssh_public_key_id)
         template = self.response_template(GET_SSH_PUBLIC_KEY_TEMPLATE)
         return template.render(key=key)
 
     def list_ssh_public_keys(self):
         user_name = self._get_param("UserName")
 
-        keys = iam_backend.get_all_ssh_public_keys(user_name)
+        keys = self.backend.get_all_ssh_public_keys(user_name)
         template = self.response_template(LIST_SSH_PUBLIC_KEYS_TEMPLATE)
         return template.render(keys=keys)
 
@@ -715,7 +719,7 @@ class IamResponse(BaseResponse):
         ssh_public_key_id = self._get_param("SSHPublicKeyId")
         status = self._get_param("Status")
 
-        iam_backend.update_ssh_public_key(user_name, ssh_public_key_id, status)
+        self.backend.update_ssh_public_key(user_name, ssh_public_key_id, status)
         template = self.response_template(UPDATE_SSH_PUBLIC_KEY_TEMPLATE)
         return template.render()
 
@@ -723,7 +727,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         ssh_public_key_id = self._get_param("SSHPublicKeyId")
 
-        iam_backend.delete_ssh_public_key(user_name, ssh_public_key_id)
+        self.backend.delete_ssh_public_key(user_name, ssh_public_key_id)
         template = self.response_template(DELETE_SSH_PUBLIC_KEY_TEMPLATE)
         return template.render()
 
@@ -731,7 +735,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         serial_number = self._get_param("SerialNumber")
 
-        iam_backend.deactivate_mfa_device(user_name, serial_number)
+        self.backend.deactivate_mfa_device(user_name, serial_number)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeactivateMFADevice")
 
@@ -741,7 +745,7 @@ class IamResponse(BaseResponse):
         authentication_code_1 = self._get_param("AuthenticationCode1")
         authentication_code_2 = self._get_param("AuthenticationCode2")
 
-        iam_backend.enable_mfa_device(
+        self.backend.enable_mfa_device(
             user_name, serial_number, authentication_code_1, authentication_code_2
         )
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
@@ -749,7 +753,7 @@ class IamResponse(BaseResponse):
 
     def list_mfa_devices(self):
         user_name = self._get_param("UserName")
-        devices = iam_backend.list_mfa_devices(user_name)
+        devices = self.backend.list_mfa_devices(user_name)
         template = self.response_template(LIST_MFA_DEVICES_TEMPLATE)
         return template.render(user_name=user_name, devices=devices)
 
@@ -757,7 +761,7 @@ class IamResponse(BaseResponse):
         path = self._get_param("Path")
         virtual_mfa_device_name = self._get_param("VirtualMFADeviceName")
 
-        virtual_mfa_device = iam_backend.create_virtual_mfa_device(
+        virtual_mfa_device = self.backend.create_virtual_mfa_device(
             virtual_mfa_device_name, path
         )
 
@@ -767,7 +771,7 @@ class IamResponse(BaseResponse):
     def delete_virtual_mfa_device(self):
         serial_number = self._get_param("SerialNumber")
 
-        iam_backend.delete_virtual_mfa_device(serial_number)
+        self.backend.delete_virtual_mfa_device(serial_number)
 
         template = self.response_template(DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE)
         return template.render()
@@ -777,7 +781,7 @@ class IamResponse(BaseResponse):
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems", 100)
 
-        devices, marker = iam_backend.list_virtual_mfa_devices(
+        devices, marker = self.backend.list_virtual_mfa_devices(
             assignment_status, marker, max_items
         )
 
@@ -786,54 +790,54 @@ class IamResponse(BaseResponse):
 
     def delete_user(self):
         user_name = self._get_param("UserName")
-        iam_backend.delete_user(user_name)
+        self.backend.delete_user(user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteUser")
 
     def delete_policy(self):
         policy_arn = self._get_param("PolicyArn")
-        iam_backend.delete_policy(policy_arn)
+        self.backend.delete_policy(policy_arn)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeletePolicy")
 
     def delete_login_profile(self):
         user_name = self._get_param("UserName")
-        iam_backend.delete_login_profile(user_name)
+        self.backend.delete_login_profile(user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteLoginProfile")
 
     def generate_credential_report(self):
-        if iam_backend.report_generated():
+        if self.backend.report_generated():
             template = self.response_template(CREDENTIAL_REPORT_GENERATED)
         else:
             template = self.response_template(CREDENTIAL_REPORT_GENERATING)
-        iam_backend.generate_report()
+        self.backend.generate_report()
         return template.render()
 
     def get_credential_report(self):
-        report = iam_backend.get_credential_report()
+        report = self.backend.get_credential_report()
         template = self.response_template(CREDENTIAL_REPORT)
         return template.render(report=report)
 
     def list_account_aliases(self):
-        aliases = iam_backend.list_account_aliases()
+        aliases = self.backend.list_account_aliases()
         template = self.response_template(LIST_ACCOUNT_ALIASES_TEMPLATE)
         return template.render(aliases=aliases)
 
     def create_account_alias(self):
         alias = self._get_param("AccountAlias")
-        iam_backend.create_account_alias(alias)
+        self.backend.create_account_alias(alias)
         template = self.response_template(CREATE_ACCOUNT_ALIAS_TEMPLATE)
         return template.render()
 
     def delete_account_alias(self):
-        iam_backend.delete_account_alias()
+        self.backend.delete_account_alias()
         template = self.response_template(DELETE_ACCOUNT_ALIAS_TEMPLATE)
         return template.render()
 
     def get_account_authorization_details(self):
         filter_param = self._get_multi_param("Filter.member")
-        account_details = iam_backend.get_account_authorization_details(filter_param)
+        account_details = self.backend.get_account_authorization_details(filter_param)
         template = self.response_template(GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE)
         return template.render(
             instance_profiles=account_details["instance_profiles"],
@@ -841,13 +845,13 @@ class IamResponse(BaseResponse):
             users=account_details["users"],
             groups=account_details["groups"],
             roles=account_details["roles"],
-            get_groups_for_user=iam_backend.get_groups_for_user,
+            get_groups_for_user=self.backend.get_groups_for_user,
         )
 
     def create_saml_provider(self):
         saml_provider_name = self._get_param("Name")
         saml_metadata_document = self._get_param("SAMLMetadataDocument")
-        saml_provider = iam_backend.create_saml_provider(
+        saml_provider = self.backend.create_saml_provider(
             saml_provider_name, saml_metadata_document
         )
 
@@ -857,7 +861,7 @@ class IamResponse(BaseResponse):
     def update_saml_provider(self):
         saml_provider_arn = self._get_param("SAMLProviderArn")
         saml_metadata_document = self._get_param("SAMLMetadataDocument")
-        saml_provider = iam_backend.update_saml_provider(
+        saml_provider = self.backend.update_saml_provider(
             saml_provider_arn, saml_metadata_document
         )
 
@@ -866,20 +870,20 @@ class IamResponse(BaseResponse):
 
     def delete_saml_provider(self):
         saml_provider_arn = self._get_param("SAMLProviderArn")
-        iam_backend.delete_saml_provider(saml_provider_arn)
+        self.backend.delete_saml_provider(saml_provider_arn)
 
         template = self.response_template(DELETE_SAML_PROVIDER_TEMPLATE)
         return template.render()
 
     def list_saml_providers(self):
-        saml_providers = iam_backend.list_saml_providers()
+        saml_providers = self.backend.list_saml_providers()
 
         template = self.response_template(LIST_SAML_PROVIDERS_TEMPLATE)
         return template.render(saml_providers=saml_providers)
 
     def get_saml_provider(self):
         saml_provider_arn = self._get_param("SAMLProviderArn")
-        saml_provider = iam_backend.get_saml_provider(saml_provider_arn)
+        saml_provider = self.backend.get_saml_provider(saml_provider_arn)
 
         template = self.response_template(GET_SAML_PROVIDER_TEMPLATE)
         return template.render(saml_provider=saml_provider)
@@ -888,7 +892,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         cert_body = self._get_param("CertificateBody")
 
-        cert = iam_backend.upload_signing_certificate(user_name, cert_body)
+        cert = self.backend.upload_signing_certificate(user_name, cert_body)
         template = self.response_template(UPLOAD_SIGNING_CERTIFICATE_TEMPLATE)
         return template.render(cert=cert)
 
@@ -897,7 +901,7 @@ class IamResponse(BaseResponse):
         cert_id = self._get_param("CertificateId")
         status = self._get_param("Status")
 
-        iam_backend.update_signing_certificate(user_name, cert_id, status)
+        self.backend.update_signing_certificate(user_name, cert_id, status)
         template = self.response_template(UPDATE_SIGNING_CERTIFICATE_TEMPLATE)
         return template.render()
 
@@ -905,14 +909,14 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         cert_id = self._get_param("CertificateId")
 
-        iam_backend.delete_signing_certificate(user_name, cert_id)
+        self.backend.delete_signing_certificate(user_name, cert_id)
         template = self.response_template(DELETE_SIGNING_CERTIFICATE_TEMPLATE)
         return template.render()
 
     def list_signing_certificates(self):
         user_name = self._get_param("UserName")
 
-        certs = iam_backend.list_signing_certificates(user_name)
+        certs = self.backend.list_signing_certificates(user_name)
         template = self.response_template(LIST_SIGNING_CERTIFICATES_TEMPLATE)
         return template.render(user_name=user_name, certificates=certs)
 
@@ -921,7 +925,7 @@ class IamResponse(BaseResponse):
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems", 100)
 
-        tags, marker = iam_backend.list_role_tags(role_name, marker, max_items)
+        tags, marker = self.backend.list_role_tags(role_name, marker, max_items)
 
         template = self.response_template(LIST_ROLE_TAG_TEMPLATE)
         return template.render(tags=tags, marker=marker)
@@ -930,7 +934,7 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         tags = self._get_multi_param("Tags.member")
 
-        iam_backend.tag_role(role_name, tags)
+        self.backend.tag_role(role_name, tags)
 
         template = self.response_template(TAG_ROLE_TEMPLATE)
         return template.render()
@@ -939,7 +943,7 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         tag_keys = self._get_multi_param("TagKeys.member")
 
-        iam_backend.untag_role(role_name, tag_keys)
+        self.backend.untag_role(role_name, tag_keys)
 
         template = self.response_template(UNTAG_ROLE_TEMPLATE)
         return template.render()
@@ -950,7 +954,7 @@ class IamResponse(BaseResponse):
         client_id_list = self._get_multi_param("ClientIDList.member")
         tags = self._get_multi_param("Tags.member")
 
-        open_id_provider = iam_backend.create_open_id_connect_provider(
+        open_id_provider = self.backend.create_open_id_connect_provider(
             open_id_provider_url, thumbprint_list, client_id_list, tags
         )
 
@@ -961,7 +965,7 @@ class IamResponse(BaseResponse):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
         thumbprint_list = self._get_multi_param("ThumbprintList.member")
 
-        iam_backend.update_open_id_connect_provider_thumbprint(
+        self.backend.update_open_id_connect_provider_thumbprint(
             open_id_provider_arn, thumbprint_list
         )
 
@@ -972,7 +976,7 @@ class IamResponse(BaseResponse):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
         tags = self._get_multi_param("Tags.member")
 
-        iam_backend.tag_open_id_connect_provider(open_id_provider_arn, tags)
+        self.backend.tag_open_id_connect_provider(open_id_provider_arn, tags)
 
         template = self.response_template(TAG_OPEN_ID_CONNECT_PROVIDER)
         return template.render()
@@ -981,7 +985,7 @@ class IamResponse(BaseResponse):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
         tag_keys = self._get_multi_param("TagKeys.member")
 
-        iam_backend.untag_open_id_connect_provider(open_id_provider_arn, tag_keys)
+        self.backend.untag_open_id_connect_provider(open_id_provider_arn, tag_keys)
 
         template = self.response_template(UNTAG_OPEN_ID_CONNECT_PROVIDER)
         return template.render()
@@ -990,7 +994,7 @@ class IamResponse(BaseResponse):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems", 100)
-        tags, marker = iam_backend.list_open_id_connect_provider_tags(
+        tags, marker = self.backend.list_open_id_connect_provider_tags(
             open_id_provider_arn, marker, max_items
         )
         template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDER_TAGS)
@@ -999,7 +1003,7 @@ class IamResponse(BaseResponse):
     def delete_open_id_connect_provider(self):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
 
-        iam_backend.delete_open_id_connect_provider(open_id_provider_arn)
+        self.backend.delete_open_id_connect_provider(open_id_provider_arn)
 
         template = self.response_template(DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
         return template.render()
@@ -1007,7 +1011,7 @@ class IamResponse(BaseResponse):
     def get_open_id_connect_provider(self):
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
 
-        open_id_provider = iam_backend.get_open_id_connect_provider(
+        open_id_provider = self.backend.get_open_id_connect_provider(
             open_id_provider_arn
         )
 
@@ -1015,7 +1019,7 @@ class IamResponse(BaseResponse):
         return template.render(open_id_provider=open_id_provider)
 
     def list_open_id_connect_providers(self):
-        open_id_provider_arns = iam_backend.list_open_id_connect_providers()
+        open_id_provider_arns = self.backend.list_open_id_connect_providers()
 
         template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE)
         return template.render(open_id_provider_arns=open_id_provider_arns)
@@ -1024,8 +1028,8 @@ class IamResponse(BaseResponse):
         allow_change_password = self._get_bool_param(
             "AllowUsersToChangePassword", False
         )
-        hard_expiry = self._get_bool_param("HardExpiry")
-        max_password_age = self._get_int_param("MaxPasswordAge")
+        hard_expiry = self._get_bool_param("HardExpiry", False)
+        max_password_age = self._get_int_param("MaxPasswordAge", 0)
         minimum_password_length = self._get_int_param("MinimumPasswordLength", 6)
         password_reuse_prevention = self._get_int_param("PasswordReusePrevention")
         require_lowercase_characters = self._get_bool_param(
@@ -1037,7 +1041,7 @@ class IamResponse(BaseResponse):
             "RequireUppercaseCharacters", False
         )
 
-        iam_backend.update_account_password_policy(
+        self.backend.update_account_password_policy(
             allow_change_password,
             hard_expiry,
             max_password_age,
@@ -1053,19 +1057,19 @@ class IamResponse(BaseResponse):
         return template.render()
 
     def get_account_password_policy(self):
-        account_password_policy = iam_backend.get_account_password_policy()
+        account_password_policy = self.backend.get_account_password_policy()
 
         template = self.response_template(GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render(password_policy=account_password_policy)
 
     def delete_account_password_policy(self):
-        iam_backend.delete_account_password_policy()
+        self.backend.delete_account_password_policy()
 
         template = self.response_template(DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render()
 
     def get_account_summary(self):
-        account_summary = iam_backend.get_account_summary()
+        account_summary = self.backend.get_account_summary()
 
         template = self.response_template(GET_ACCOUNT_SUMMARY_TEMPLATE)
         return template.render(summary_map=account_summary.summary_map)
@@ -1074,7 +1078,7 @@ class IamResponse(BaseResponse):
         name = self._get_param("UserName")
         tags = self._get_multi_param("Tags.member")
 
-        iam_backend.tag_user(name, tags)
+        self.backend.tag_user(name, tags)
 
         template = self.response_template(TAG_USER_TEMPLATE)
         return template.render()
@@ -1083,7 +1087,7 @@ class IamResponse(BaseResponse):
         name = self._get_param("UserName")
         tag_keys = self._get_multi_param("TagKeys.member")
 
-        iam_backend.untag_user(name, tag_keys)
+        self.backend.untag_user(name, tag_keys)
 
         template = self.response_template(UNTAG_USER_TEMPLATE)
         return template.render()
@@ -1093,7 +1097,9 @@ class IamResponse(BaseResponse):
         description = self._get_param("Description")
         suffix = self._get_param("CustomSuffix")
 
-        role = iam_backend.create_service_linked_role(service_name, description, suffix)
+        role = self.backend.create_service_linked_role(
+            service_name, description, suffix
+        )
 
         template = self.response_template(CREATE_SERVICE_LINKED_ROLE_TEMPLATE)
         return template.render(role=role)
@@ -1101,13 +1107,13 @@ class IamResponse(BaseResponse):
     def delete_service_linked_role(self):
         role_name = self._get_param("RoleName")
 
-        deletion_task_id = iam_backend.delete_service_linked_role(role_name)
+        deletion_task_id = self.backend.delete_service_linked_role(role_name)
 
         template = self.response_template(DELETE_SERVICE_LINKED_ROLE_TEMPLATE)
         return template.render(deletion_task_id=deletion_task_id)
 
     def get_service_linked_role_deletion_status(self):
-        iam_backend.get_service_linked_role_deletion_status()
+        self.backend.get_service_linked_role_deletion_status()
 
         template = self.response_template(
             GET_SERVICE_LINKED_ROLE_DELETION_STATUS_TEMPLATE
@@ -1756,26 +1762,6 @@ LIST_GROUPS_TEMPLATE = """<ListGroupsResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListGroupsResponse>"""
-
-LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
-  <ListGroupsForUserResult>
-    <Groups>
-        {% for group in groups %}
-        <member>
-            <Path>{{ group.path }}</Path>
-            <GroupName>{{ group.name }}</GroupName>
-            <GroupId>{{ group.id }}</GroupId>
-            <Arn>{{ group.arn }}</Arn>
-            <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
-        </member>
-        {% endfor %}
-    </Groups>
-    <IsTruncated>false</IsTruncated>
-  </ListGroupsForUserResult>
-  <ResponseMetadata>
-    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
-  </ResponseMetadata>
-</ListGroupsForUserResponse>"""
 
 LIST_GROUP_POLICIES_TEMPLATE = """<ListGroupPoliciesResponse>
   <ListGroupPoliciesResult>

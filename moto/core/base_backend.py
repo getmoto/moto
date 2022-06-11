@@ -22,6 +22,10 @@ class InstanceTrackerMeta(type):
 
 
 class BaseBackend:
+    def __init__(self, region_name, account_id=None):
+        self.region_name = region_name
+        self.account_id = account_id
+
     def _reset_model_refs(self):
         # Remove all references to the models stored
         for models in model_data.values():
@@ -29,9 +33,11 @@ class BaseBackend:
                 model.instances = []
 
     def reset(self):
+        region_name = self.region_name
+        account_id = self.account_id
         self._reset_model_refs()
         self.__dict__ = {}
-        self.__init__()
+        self.__init__(region_name, account_id)
 
     @property
     def _url_module(self):

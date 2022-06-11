@@ -30,8 +30,10 @@ cloudfront
 - [ ] create_cloud_front_origin_access_identity
 - [X] create_distribution
   
-        This has been tested against an S3-distribution with the simplest possible configuration.
-        Please raise an issue if we're not persisting/returning the correct attributes for your use-case.
+        This has been tested against an S3-distribution with the
+        simplest possible configuration.  Please raise an issue if
+        we're not persisting/returning the correct attributes for your
+        use-case.
         
 
 - [ ] create_distribution_with_tags
@@ -122,13 +124,10 @@ cloudfront
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
 - [X] update_distribution
-
+  
         The IfMatch-value is ignored - any value is considered valid.
         Calling this function without a value is invalid, per AWS' behaviour
-
-	This implementation is immature, and tests the basic
-	functionality of updating an exisint distribution with very
-	simple changes.
+        
 
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile

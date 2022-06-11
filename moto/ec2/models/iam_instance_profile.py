@@ -22,10 +22,9 @@ class IamInstanceProfileAssociation(CloudFormationModel):
         self.state = "associated"
 
 
-class IamInstanceProfileAssociationBackend(object):
+class IamInstanceProfileAssociationBackend:
     def __init__(self):
         self.iam_instance_profile_associations = {}
-        super().__init__()
 
     def associate_iam_instance_profile(
         self, instance_id, iam_instance_profile_name=None, iam_instance_profile_arn=None

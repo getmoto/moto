@@ -84,16 +84,10 @@ class EventStream(BaseModel):
 class PinpointBackend(BaseBackend):
     """Implementation of Pinpoint APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.apps = {}
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_app(self, name, tags):
         app = App(name)

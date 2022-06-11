@@ -20,6 +20,7 @@ class DAXResponse(BaseResponse):
         iam_role_arn = params.get("IamRoleArn")
         tags = params.get("Tags", [])
         sse_specification = params.get("SSESpecification", {})
+        encryption_type = params.get("ClusterEndpointEncryptionType", "NONE")
 
         self._validate_arn(iam_role_arn)
         self._validate_name(cluster_name)
@@ -32,6 +33,7 @@ class DAXResponse(BaseResponse):
             iam_role_arn=iam_role_arn,
             tags=tags,
             sse_specification=sse_specification,
+            encryption_type=encryption_type,
         )
         return json.dumps(dict(Cluster=cluster.to_json()))
 

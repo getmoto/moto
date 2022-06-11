@@ -9,6 +9,7 @@ PATCH="etc/0001-Patch-Hardcode-endpoints-to-local-server.patch"
 (git apply $pwd/etc/0001-Patch-Hardcode-endpoints-to-local-server.patch > /dev/null 2>&1 && echo "Patched endpoints") || echo "Not patching endpoints - Directory was probably already patched."
 (git apply $pwd/etc/0002-EC2-reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched EC2") || echo "Not patching EC2 - Directory was probably already patched."
 (git apply $pwd/etc/0003-Patch-IAM-wait-times.patch > /dev/null 2>&1 && echo "Patched IAM") || echo "Not patching IAM - Directory was probably already patched."
+(git apply $pwd/etc/0004-DAX-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched DAX") || echo "Not patching DAX - Directory was probably already patched."
 )
 
 (

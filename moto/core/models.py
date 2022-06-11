@@ -53,13 +53,11 @@ class BaseMockAWS:
             "moto_api": moto_api_backend,
         }
         if "us-east-1" in self.backends:
-            # We only need to know the URL for a single region
-            # They will be the same everywhere
+            # We only need to know the URL for a single region - they will be the same everywhere
             self.backends_for_urls["us-east-1"] = self.backends["us-east-1"]
-        else:
+        elif "global" in self.backends:
             # If us-east-1 is not available, it's probably a global service
-            # Global services will only have a single region anyway
-            self.backends_for_urls.update(self.backends)
+            self.backends_for_urls["global"] = self.backends["global"]
         self.backends_for_urls.update(default_backends)
 
         self.FAKE_KEYS = {

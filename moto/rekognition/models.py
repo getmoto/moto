@@ -10,15 +10,6 @@ from moto.core.utils import BackendDict
 class RekognitionBackend(BaseBackend):
     """Implementation of Rekognition APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
     def start_face_search(self):
         return self._job_id()
 

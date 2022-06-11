@@ -204,7 +204,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def dispatch(cls, *args, **kwargs):
         return cls()._dispatch(*args, **kwargs)
 
-    def setup_class(self, request, full_url, headers):
+    def setup_class(self, request, full_url, headers, use_raw_body=False):
+        """
+        use_raw_body: Use incoming bytes if True, encode to string otherwise
+        """
         querystring = OrderedDict()
         if hasattr(request, "body"):
             # Boto
@@ -222,7 +225,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 querystring[key] = [value]
 
         raw_body = self.body
-        if isinstance(self.body, bytes):
+        if isinstance(self.body, bytes) and not use_raw_body:
             self.body = self.body.decode("utf-8")
 
         if not querystring:
@@ -244,7 +247,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 flat = flatten_json_request_body("", decoded, input_spec)
                 for key, value in flat.items():
                     querystring[key] = [value]
-            elif self.body:
+            elif self.body and not use_raw_body:
                 try:
                     querystring.update(
                         OrderedDict(
@@ -254,7 +257,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                             )
                         )
                     )
-                except (UnicodeEncodeError, UnicodeDecodeError):
+                except (UnicodeEncodeError, UnicodeDecodeError, AttributeError):
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)

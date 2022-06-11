@@ -636,8 +636,8 @@ class FakeLoadBalancer(CloudFormationModel):
 
 
 class ELBv2Backend(BaseBackend):
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.target_groups = OrderedDict()
         self.load_balancers = OrderedDict()
         self.tagging_service = TaggingService()
@@ -658,11 +658,6 @@ class ELBv2Backend(BaseBackend):
         :rtype: moto.ec2.models.EC2Backend
         """
         return ec2_backends[self.region_name]
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_load_balancer(
         self,
@@ -1552,9 +1547,9 @@ Member must satisfy regular expression pattern: {}".format(
         except AWSResourceNotFoundException:
             pass
 
-        from moto.iam import iam_backend
+        from moto.iam import iam_backends
 
-        cert = iam_backend.get_certificate_by_arn(certificate_arn)
+        cert = iam_backends["global"].get_certificate_by_arn(certificate_arn)
         if cert is not None:
             return True
 

@@ -28,10 +28,9 @@ class CustomerGateway(TaggedEC2Resource):
         return super().get_filter_value(filter_name, "DescribeCustomerGateways")
 
 
-class CustomerGatewayBackend(object):
+class CustomerGatewayBackend:
     def __init__(self):
         self.customer_gateways = {}
-        super().__init__()
 
     def create_customer_gateway(
         self, gateway_type="ipsec.1", ip_address=None, bgp_asn=None, tags=None

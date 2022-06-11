@@ -33,6 +33,9 @@ from uuid import uuid4
 
 from .utils import PAGINATION_MODEL
 
+# Sentinel to signal the absence of a field for `Exists` pattern matching
+UNDEFINED = object()
+
 
 class Rule(CloudFormationModel):
     Arn = namedtuple("Arn", ["service", "resource_type", "resource_id"])
@@ -782,6 +785,7 @@ class Destination(BaseModel):
     def describe(self):
         """
         Describes the Destination object as a dict
+
         Docs:
             Response Syntax in
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
@@ -820,6 +824,9 @@ class EventPattern:
         self._raw_pattern = raw_pattern
         self._pattern = pattern
 
+    def get_pattern(self):
+        return self._pattern
+
     def matches_event(self, event):
         if not self._pattern:
             return True
@@ -827,7 +834,7 @@ class EventPattern:
         return self._does_event_match(event, self._pattern)
 
     def _does_event_match(self, event, pattern):
-        items_and_filters = [(event.get(k), v) for k, v in pattern.items()]
+        items_and_filters = [(event.get(k, UNDEFINED), v) for k, v in pattern.items()]
         nested_filter_matches = [
             self._does_event_match(item, nested_filter)
             for item, nested_filter in items_and_filters
@@ -856,7 +863,7 @@ class EventPattern:
         filter_name, filter_value = list(pattern.items())[0]
         if filter_name == "exists":
             is_leaf_node = not isinstance(item, dict)
-            leaf_exists = is_leaf_node and item is not None
+            leaf_exists = is_leaf_node and item is not UNDEFINED
             should_exist = filter_value
             return leaf_exists if should_exist else not leaf_exists
         if filter_name == "prefix":
@@ -917,15 +924,23 @@ class EventPatternParser:
 
 
 class EventsBackend(BaseBackend):
+    """
+    When a event occurs, the appropriate targets are triggered for a subset of usecases.
+
+    Supported events: S3:CreateBucket
+
+    Supported targets: AWSLambda functions
+    """
+
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
     _CRON_REGEX = re.compile(r"^cron\(.*\)")
     _RATE_REGEX = re.compile(r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)")
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.rules = OrderedDict()
         self.next_tokens = {}
-        self.region_name = region_name
         self.event_buses = {}
         self.event_sources = {}
         self.archives = {}
@@ -935,11 +950,6 @@ class EventsBackend(BaseBackend):
         self._add_default_event_bus()
         self.connections = {}
         self.destinations = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1673,6 +1683,7 @@ class EventsBackend(BaseBackend):
     def describe_connection(self, name):
         """
         Retrieves details about a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
 
@@ -1696,6 +1707,7 @@ class EventsBackend(BaseBackend):
     def delete_connection(self, name):
         """
         Deletes a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
 
@@ -1727,6 +1739,7 @@ class EventsBackend(BaseBackend):
     ):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
@@ -1752,6 +1765,7 @@ class EventsBackend(BaseBackend):
     def describe_api_destination(self, name):
         """
         Retrieves details about an API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
         Args:
@@ -1770,6 +1784,7 @@ class EventsBackend(BaseBackend):
     def update_api_destination(self, *, name, **kwargs):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
 
@@ -1790,6 +1805,7 @@ class EventsBackend(BaseBackend):
     def delete_api_destination(self, name):
         """
         Deletes the specified API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
 

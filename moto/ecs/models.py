@@ -748,8 +748,8 @@ class EC2ContainerServiceBackend(BaseBackend):
     AWS reference: https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/
     """
 
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.account_settings = dict()
         self.capacity_providers = dict()
         self.clusters = {}
@@ -758,15 +758,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services = {}
         self.container_instances = {}
         self.task_sets = {}
-        self.region_name = region_name
         self.tagger = TaggingService(
             tag_name="tags", key_name="key", value_name="value"
         )
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1278,16 +1272,23 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return service
 
-    def list_services(self, cluster_str, scheduling_strategy=None):
+    def list_services(self, cluster_str, scheduling_strategy=None, launch_type=None):
         cluster_name = cluster_str.split("/")[-1]
         service_arns = []
         for key, service in self.services.items():
-            if cluster_name + ":" in key:
-                if (
-                    scheduling_strategy is None
-                    or service.scheduling_strategy == scheduling_strategy
-                ):
-                    service_arns.append(service.arn)
+            if cluster_name + ":" not in key:
+                continue
+
+            if (
+                scheduling_strategy is not None
+                and service.scheduling_strategy != scheduling_strategy
+            ):
+                continue
+
+            if launch_type is not None and service.launch_type != launch_type:
+                continue
+
+            service_arns.append(service.arn)
 
         return sorted(service_arns)
 

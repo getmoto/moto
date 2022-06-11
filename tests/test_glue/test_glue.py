@@ -193,6 +193,30 @@ def test_list_jobs_with_tags():
 
 
 @mock_glue
+def test_list_jobs_after_tagging():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    client.tag_resource(ResourceArn=resource_arn, TagsToAdd={"key1": "value1"})
+
+    response = client.list_jobs(Tags={"key1": "value1"})
+    response["JobNames"].should.have.length_of(1)
+
+
+@mock_glue
+def test_list_jobs_after_removing_tag():
+    client = create_glue_client()
+    job_name = create_test_job(client, {"key1": "value1"})
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key1"])
+
+    response = client.list_jobs(Tags={"key1": "value1"})
+    response["JobNames"].should.have.length_of(0)
+
+
+@mock_glue
 def test_list_jobs_next_token_logic_does_not_create_infinite_loop():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -282,6 +306,30 @@ def test_list_crawlers_with_tags():
 
 
 @mock_glue
+def test_list_crawlers_after_tagging():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    client.tag_resource(ResourceArn=resource_arn, TagsToAdd={"key1": "value1"})
+
+    response = client.list_crawlers(Tags={"key1": "value1"})
+    response["CrawlerNames"].should.have.length_of(1)
+
+
+@mock_glue
+def test_list_crawlers_after_removing_tag():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client, {"key1": "value1"})
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key1"])
+
+    response = client.list_crawlers(Tags={"key1": "value1"})
+    response["CrawlerNames"].should.have.length_of(0)
+
+
+@mock_glue
 def test_list_crawlers_next_token_logic_does_not_create_infinite_loop():
     client = create_glue_client()
     create_test_crawlers(client, 4)
@@ -291,3 +339,113 @@ def test_list_crawlers_next_token_logic_does_not_create_infinite_loop():
         response = client.list_crawlers(NextToken=next_token)
         next_token = response.get("NextToken")
     assert not next_token
+
+
+@mock_glue
+def test_get_tags_job():
+    client = create_glue_client()
+    job_name = create_test_job(client, {"key1": "value1", "key2": "value2"})
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+
+
+@mock_glue
+def test_get_tags_jobs_no_tags():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({})
+
+
+@mock_glue
+def test_tag_glue_job():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    client.tag_resource(
+        ResourceArn=resource_arn, TagsToAdd={"key1": "value1", "key2": "value2"}
+    )
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+
+
+@mock_glue
+def test_untag_glue_job():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:job/{job_name}"
+
+    client.tag_resource(
+        ResourceArn=resource_arn,
+        TagsToAdd={"key1": "value1", "key2": "value2", "key3": "value3"},
+    )
+
+    client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key2"])
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+
+
+@mock_glue
+def test_get_tags_crawler():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client, {"key1": "value1", "key2": "value2"})
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+
+
+@mock_glue
+def test_get_tags_crawler_no_tags():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({})
+
+
+@mock_glue
+def test_tag_glue_crawler():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    client.tag_resource(
+        ResourceArn=resource_arn, TagsToAdd={"key1": "value1", "key2": "value2"}
+    )
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+
+
+@mock_glue
+def test_untag_glue_crawler():
+    client = create_glue_client()
+    crawler_name = create_test_crawler(client)
+    resource_arn = f"arn:aws:glue:us-east-1:123456789012:crawler/{crawler_name}"
+
+    client.tag_resource(
+        ResourceArn=resource_arn,
+        TagsToAdd={"key1": "value1", "key2": "value2", "key3": "value3"},
+    )
+
+    client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key2"])
+
+    resp = client.get_tags(ResourceArn=resource_arn)
+
+    resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})

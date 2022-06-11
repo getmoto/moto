@@ -427,6 +427,7 @@ ec2
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_instance_types_from_instance_requirements
+- [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -562,6 +563,19 @@ ec2
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
 - [X] run_instances
+  
+        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+
+        The InstanceType-parameter can be validated, to see if it is a known instance-type.
+        Enable this validation by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+
+        The ImageId-parameter can be validated, to see if it is a known AMI.
+        Enable this validation by setting the environment variable `MOTO_ENABLE_AMI_VALIDATION=true`
+
+        The KeyPair-parameter can be validated, to see if it is a known key-pair.
+        Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
+        
+
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
