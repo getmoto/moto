@@ -116,11 +116,31 @@ class TestStartApplication:
 
     def test_invalid_application_id(self):
         with pytest.raises(ClientError) as exc:
-            self.client.start_application(applicationId="fake_applicarion_id")
+            self.client.start_application(applicationId="fake_application_id")
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Application fake_applicarion_id does not exist"
+        assert err["Message"] == "Application fake_application_id does not exist"
+
+
+class TestStopApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
+
+    def test_valid_application_id(self):
+        resp = self.client.stop_application(applicationId=self.application_ids[1])
+        assert resp is not None
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    def test_invalid_application_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.stop_application(applicationId="fake_application_id")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Application fake_application_id does not exist"
 
 
 class TestDeleteApplication:
@@ -160,11 +180,11 @@ class TestDeleteApplication:
 
     def test_invalid_application_id(self):
         with pytest.raises(ClientError) as exc:
-            self.client.delete_application(applicationId="fake_applicarion_id")
+            self.client.delete_application(applicationId="fake_application_id")
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Application fake_applicarion_id does not exist"
+        assert err["Message"] == "Application fake_application_id does not exist"
 
 
 class TestListApplication:
