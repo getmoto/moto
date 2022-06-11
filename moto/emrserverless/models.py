@@ -4,7 +4,7 @@ from datetime import datetime
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
-from moto.emrserverless.utils import (
+from .utils import (
     default_capacity_for_type,
     default_max_capacity,
     get_partition,
@@ -167,8 +167,8 @@ class FakeJob(BaseModel):
 class EMRServerlessBackend(BaseBackend):
     """Implementation of EMRServerless APIs."""
 
-    def __init__(self, region_name=None):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.region_name = region_name
         self.applications = dict()
         self.jobs = dict()
