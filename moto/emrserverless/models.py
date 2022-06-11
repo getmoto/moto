@@ -7,7 +7,7 @@ from moto.core.utils import BackendDict, iso_8601_datetime_without_milliseconds
 from .utils import (
     default_auto_start_configuration,
     default_auto_stop_configuration,
-    defakult_capacity_for_type,
+    default_capacity_for_type,
     default_max_capacity,
     get_partition,
     paginated_list,

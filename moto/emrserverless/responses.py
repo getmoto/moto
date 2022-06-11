@@ -2,7 +2,6 @@
 import json
 
 from moto.core.responses import BaseResponse
-
 from .models import emrserverless_backends
 
 DEFAULT_MAX_RESULTS = 100
@@ -13,8 +12,8 @@ These are the available methos:
     can_paginate()
     cancel_job_run()
     close()
-    create_application() -> Review
-    delete_application()
+    create_application() -> DONE
+    delete_application() -> UD
     get_application()
     get_job_run()
     get_paginator()
