@@ -1219,13 +1219,14 @@
 
 ## dms
 <details>
-<summary>9% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_endpoint
 - [ ] create_event_subscription
+- [ ] create_fleet_advisor_collector
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
@@ -1233,6 +1234,8 @@
 - [ ] delete_connection
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
+- [ ] delete_fleet_advisor_collector
+- [ ] delete_fleet_advisor_databases
 - [ ] delete_replication_instance
 - [ ] delete_replication_subnet_group
 - [X] delete_replication_task
@@ -1247,6 +1250,11 @@
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
 - [ ] describe_events
+- [ ] describe_fleet_advisor_collectors
+- [ ] describe_fleet_advisor_databases
+- [ ] describe_fleet_advisor_lsa_analysis
+- [ ] describe_fleet_advisor_schema_object_summary
+- [ ] describe_fleet_advisor_schemas
 - [ ] describe_orderable_replication_instances
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_refresh_schemas_status
@@ -1271,6 +1279,7 @@
 - [ ] refresh_schemas
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
+- [ ] run_fleet_advisor_lsa_analysis
 - [X] start_replication_task
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
@@ -1483,7 +1492,7 @@
 - [ ] create_client_vpn_route
 - [X] create_customer_gateway
 - [ ] create_default_subnet
-- [ ] create_default_vpc
+- [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
 - [ ] create_fleet
@@ -2858,7 +2867,7 @@
 
 ## greengrass
 <details>
-<summary>2% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] associate_role_to_group
 - [ ] associate_service_role_to_account
@@ -2867,8 +2876,8 @@
 - [X] create_core_definition
 - [X] create_core_definition_version
 - [ ] create_deployment
-- [ ] create_device_definition
-- [ ] create_device_definition_version
+- [X] create_device_definition
+- [X] create_device_definition_version
 - [ ] create_function_definition
 - [ ] create_function_definition_version
 - [ ] create_group
@@ -2882,8 +2891,8 @@
 - [ ] create_subscription_definition
 - [ ] create_subscription_definition_version
 - [ ] delete_connector_definition
-- [ ] delete_core_definition
-- [ ] delete_device_definition
+- [X] delete_core_definition
+- [X] delete_device_definition
 - [ ] delete_function_definition
 - [ ] delete_group
 - [ ] delete_logger_definition
@@ -2896,11 +2905,11 @@
 - [ ] get_connectivity_info
 - [ ] get_connector_definition
 - [ ] get_connector_definition_version
-- [ ] get_core_definition
-- [ ] get_core_definition_version
+- [X] get_core_definition
+- [X] get_core_definition_version
 - [ ] get_deployment_status
-- [ ] get_device_definition
-- [ ] get_device_definition_version
+- [X] get_device_definition
+- [X] get_device_definition_version
 - [ ] get_function_definition
 - [ ] get_function_definition_version
 - [ ] get_group
@@ -2919,11 +2928,11 @@
 - [ ] list_bulk_deployments
 - [ ] list_connector_definition_versions
 - [ ] list_connector_definitions
-- [ ] list_core_definition_versions
-- [ ] list_core_definitions
+- [X] list_core_definition_versions
+- [X] list_core_definitions
 - [ ] list_deployments
-- [ ] list_device_definition_versions
-- [ ] list_device_definitions
+- [X] list_device_definition_versions
+- [X] list_device_definitions
 - [ ] list_function_definition_versions
 - [ ] list_function_definitions
 - [ ] list_group_certificate_authorities
@@ -2943,8 +2952,8 @@
 - [ ] untag_resource
 - [ ] update_connectivity_info
 - [ ] update_connector_definition
-- [ ] update_core_definition
-- [ ] update_device_definition
+- [X] update_core_definition
+- [X] update_device_definition
 - [ ] update_function_definition
 - [ ] update_group
 - [ ] update_group_certificate_configuration
@@ -4570,6 +4579,7 @@
 - [ ] enable_logging
 - [X] enable_snapshot_copy
 - [X] get_cluster_credentials
+- [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] modify_aqua_configuration
@@ -4723,7 +4733,7 @@
 
 ## route53
 <details>
-<summary>31% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [ ] associate_vpc_with_hosted_zone
@@ -4756,9 +4766,9 @@
 - [ ] get_account_limit
 - [ ] get_change
 - [ ] get_checker_ip_ranges
-- [ ] get_dnssec
+- [X] get_dnssec
 - [ ] get_geo_location
-- [ ] get_health_check
+- [X] get_health_check
 - [ ] get_health_check_count
 - [ ] get_health_check_last_failure_reason
 - [ ] get_health_check_status
@@ -5657,7 +5667,7 @@
 
 ## sso-admin
 <details>
-<summary>9% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] attach_managed_policy_to_permission_set
 - [X] create_account_assignment
@@ -6059,6 +6069,7 @@
 - lookoutequipment
 - lookoutmetrics
 - lookoutvision
+- m2
 - machinelearning
 - macie
 - macie2

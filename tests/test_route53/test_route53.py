@@ -66,6 +66,39 @@ def test_delete_hosted_zone():
 
 
 @mock_route53
+def test_delete_hosted_zone_with_change_sets():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_id = conn.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]["Id"]
+
+    conn.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "foo.bar.testdns.aws.com",
+                        "Type": "A",
+                        "ResourceRecords": [{"Value": "1.2.3.4"}],
+                    },
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.delete_hosted_zone(Id=zone_id)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("HostedZoneNotEmpty")
+    err["Message"].should.equal(
+        "The hosted zone contains resource records that are not SOA or NS records."
+    )
+
+
+@mock_route53
 def test_get_hosted_zone_count_no_zones():
     conn = boto3.client("route53", region_name="us-east-1")
     zone_count = conn.get_hosted_zone_count()

@@ -1,5 +1,7 @@
 import boto3
+import pytest
 import sure  # noqa # pylint: disable=unused-import
+from botocore.exceptions import ClientError
 from moto import mock_route53
 
 
@@ -167,3 +169,45 @@ def test_create_calculated_health_check_with_children():
     config.should.have.key("ChildHealthChecks").being.equal(
         [child1["HealthCheck"]["Id"], child2["HealthCheck"]["Id"]]
     )
+
+
+@mock_route53
+def test_get_health_check():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    hc_id = client.create_health_check(
+        CallerReference="callref",
+        HealthCheckConfig={
+            "Type": "CALCULATED",
+            "Inverted": False,
+            "Disabled": False,
+            "HealthThreshold": 1,
+        },
+    )["HealthCheck"]["Id"]
+
+    resp = client.get_health_check(HealthCheckId=hc_id)["HealthCheck"]
+    resp.should.have.key("Id").equals(hc_id)
+    resp.should.have.key("CallerReference").equals("callref")
+    resp.should.have.key("HealthCheckVersion").equals(1)
+
+
+@mock_route53
+def test_get_unknown_health_check():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_health_check(HealthCheckId="unknown")
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("NoSuchHealthCheck")
+    err["Message"].should.equal("A health check with id unknown does not exist.")
+
+
+@mock_route53
+def test_get_dns_sec():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    hosted_zone_id = client.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]["Id"]
+    dns_sec = client.get_dnssec(HostedZoneId=hosted_zone_id)
+    dns_sec.should.have.key("Status").equals({"ServeSignature": "NOT_SIGNING"})

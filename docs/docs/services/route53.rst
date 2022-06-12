@@ -60,9 +60,9 @@ route53
 - [ ] get_account_limit
 - [ ] get_change
 - [ ] get_checker_ip_ranges
-- [ ] get_dnssec
+- [X] get_dnssec
 - [ ] get_geo_location
-- [ ] get_health_check
+- [X] get_health_check
 - [ ] get_health_check_count
 - [ ] get_health_check_last_failure_reason
 - [ ] get_health_check_status
