@@ -11,7 +11,7 @@ from .utils import (
     get_partition,
     paginated_list,
     random_appplication_id,
-    random_job_id,
+    # random_job_id,
 )
 
 from .exceptions import ResourceNotFoundException, ValidationException
@@ -130,71 +130,6 @@ class FakeApplication(BaseModel):
         return response
 
 
-class FakeJob(BaseModel):
-    def __init__(
-        self,
-        application_id,
-        client_token,
-        region_name,
-        configuration_overrides,
-        execution_role_arn,
-        job_driver,
-        tags,
-    ):
-        # Provided parameters
-        self.application_id = application_id
-        self.client_token = client_token
-        self.configuration_overrides = configuration_overrides
-        self.execution_role_arn = execution_role_arn
-        self.job_driver = job_driver
-        self.tags = tags
-
-        # Service-generated-parameters
-        self.id = random_job_id()
-        self.arn = JOB_ARN_TEMPLATE.format(
-            partition="aws",
-            region=region_name,
-            application_id=application_id,
-            job_id=self.id,
-        )
-        self.state = JOB_STATUS
-        self.state_details = ""
-        self.created_at = iso_8601_datetime_without_milliseconds(
-            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
-        )
-        self.updated_at = self.created_at
-
-    def to_dict(self, include_details=False):
-        """
-        Dictionary representation of an EMR Serverless Application.
-        """
-        response = {
-            "applicationId": self.application_id,
-            "id": self.id,
-            "arn": self.arn,
-            "createdBy": "arn:aws:sts::568026268536:assumed-role/Admin/dcortesi-Isengard",
-            "createdAt": self.created_at,
-            "stateUpdatedAt": self.updated_at,
-            "executionRole": self.execution_role_arn,
-            "state": self.state,
-            "stateDetails": self.state_details,
-            # TODO: Figure out how to propagate releaseLabel
-            "releaseLabel": "emr-6.5.0-preview",
-            "type": "SPARK_SUBMIT",
-        }
-        if include_details:
-            # In the detailed response, `id` is replaced with `jobRunId`
-            response["jobRunId"] = response.pop("id")
-            response.update(
-                {
-                    "configurationOverrides": self.configuration_overrides,
-                    "jobDriver": self.job_driver,
-                    "tags": self.tags,
-                }
-            )
-        return response
-
-
 class EMRServerlessBackend(BaseBackend):
     """Implementation of EMRServerless APIs."""
 
@@ -209,7 +144,7 @@ class EMRServerlessBackend(BaseBackend):
         self,
         name,
         release_label,
-        type,
+        application_type,
         client_token,
         initial_capacity,
         maximum_capacity,
@@ -219,18 +154,18 @@ class EMRServerlessBackend(BaseBackend):
         network_configuration,
     ):
 
-        if type not in ["HIVE", "SPARK"]:
-            raise ValidationException(f"Unsupported engine {type}")
+        if application_type not in ["HIVE", "SPARK"]:
+            raise ValidationException(f"Unsupported engine {application_type}")
 
         if not re.match(r"emr-[0-9]{1}\.[0-9]{1,2}\.0(" "|-[0-9]{8})", release_label):
             raise ValidationException(
-                f"Type '{type}' is not supported for release label '{release_label}' or release label does not exist"
+                f"Type '{application_type}' is not supported for release label '{release_label}' or release label does not exist"
             )
 
         application = FakeApplication(
             name=name,
             release_label=release_label,
-            application_type=type,
+            application_type=application_type,
             region_name=self.region_name,
             client_token=client_token,
             initial_capacity=initial_capacity,
@@ -286,7 +221,6 @@ class EMRServerlessBackend(BaseBackend):
     def update_application(
         self,
         application_id,
-        client_token,
         initial_capacity,
         maximum_capacity,
         auto_start_configuration,
@@ -330,71 +264,6 @@ class EMRServerlessBackend(BaseBackend):
         )
 
         return self.applications[application_id].to_dict()
-
-    def start_job_run(
-        self,
-        application_id,
-        client_token,
-        configuration_overrides,
-        execution_role_arn,
-        job_driver,
-        tags,
-    ):
-        if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(application_id)
-
-        job = FakeJob(
-            application_id=application_id,
-            client_token=client_token,
-            execution_role_arn=execution_role_arn,
-            job_driver=job_driver,
-            configuration_overrides=configuration_overrides,
-            tags=tags,
-            region_name=self.region_name,
-        )
-        self.jobs[job.id] = job
-        return job.application_id, job.id, job.arn
-
-    def list_job_runs(
-        self,
-        application_id,
-        created_after,
-        created_before,
-        states,
-        max_results,
-        next_token,
-    ):
-        application_jobs = [
-            job for job in self.jobs.values() if job.application_id == application_id
-        ]
-
-        if created_after:
-            application_jobs = [
-                job for job in application_jobs if job.createdAt >= created_after
-            ]
-
-        if created_before:
-            application_jobs = [
-                job for job in application_jobs if job.createdAt >= created_before
-            ]
-
-        if states:
-            application_jobs = [job for job in application_jobs if job.state in states]
-
-        sort_key = "createdAt"
-        jobs_list = [job.to_dict() for job in application_jobs]
-        return paginated_list(jobs_list, sort_key, max_results, next_token)
-
-    def get_job_run(self, application_id, job_run_id):
-        job = self.jobs[job_run_id]
-        return job.to_dict(include_details=True)
-
-    def cancel_job_run(self, application_id, job_run_id):
-        job = self.jobs[job_run_id]
-        job.state = "CANCELLED"
-        job.updated_at = iso_8601_datetime_without_milliseconds(datetime.today())
-        job.state_details = "Cancelled"
-        return job.to_dict(include_details=True)
 
 
 emrserverless_backends = BackendDict(EMRServerlessBackend, "emr-serverless")

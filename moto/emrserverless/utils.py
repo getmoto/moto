@@ -4,6 +4,17 @@ import string
 
 
 def get_partition(region):
+    valid_matches = [
+        # (region prefix, aws partition)
+        ("cn-", "aws-cn"),
+        ("us-gov-", "aws-us-gov"),
+        ("us-gov-iso-", "aws-iso"),
+        ("us-gov-iso-b-", "aws-iso-b"),
+    ]
+
+    for prefix, partition in valid_matches:
+        if region.startswith(prefix):
+            return partition
     return "aws"
 
 

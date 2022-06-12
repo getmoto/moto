@@ -164,7 +164,7 @@ class TestDeleteApplication:
 
 class TestGetApplication:
     @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, application_factory):
+    def _setup_environment(self, client):
         self.client = client
 
     @staticmethod
@@ -194,70 +194,58 @@ class TestGetApplication:
         return {**response, **extra_configuration}
 
     @pytest.mark.parametrize(
-        "name, extra_configuration",
+        "extra_configuration",
         [
-            ("base", {}),
-            (
-                "with_initial_capacity",
-                {
-                    "initialCapacity": {
-                        "Driver": {
-                            "workerCount": 1,
-                            "workerConfiguration": {
-                                "cpu": "2 vCPU",
-                                "memory": "4 GB",
-                                "disk": "20 GB",
-                            },
-                        }
+            {},
+            {
+                "initialCapacity": {
+                    "Driver": {
+                        "workerCount": 1,
+                        "workerConfiguration": {
+                            "cpu": "2 vCPU",
+                            "memory": "4 GB",
+                            "disk": "20 GB",
+                        },
+                    }
+                }
+            },
+            {
+                "maximumCapacity": {
+                    "cpu": "400 vCPU",
+                    "memory": "1024 GB",
+                    "disk": "1000 GB",
+                }
+            },
+            {
+                "networkConfiguration": {
+                    "subnetIds": ["subnet-0123456789abcdefg"],
+                    "securityGroupIds": ["sg-0123456789abcdefg"],
+                }
+            },
+            {
+                "initialCapacity": {
+                    "Driver": {
+                        "workerCount": 1,
+                        "workerConfiguration": {
+                            "cpu": "2 vCPU",
+                            "memory": "4 GB",
+                            "disk": "20 GB",
+                        },
                     }
                 },
-            ),
-            (
-                "with_maximum_capacity",
-                {
-                    "maximumCapacity": {
-                        "cpu": "400 vCPU",
-                        "memory": "1024 GB",
-                        "disk": "1000 GB",
-                    }
+                "maximumCapacity": {
+                    "cpu": "400 vCPU",
+                    "memory": "1024 GB",
+                    "disk": "1000 GB",
                 },
-            ),
-            (
-                "with_networking",
-                {
-                    "networkConfiguration": {
-                        "subnetIds": ["subnet-0123456789abcdefg"],
-                        "securityGroupIds": ["sg-0123456789abcdefg"],
-                    }
+                "networkConfiguration": {
+                    "subnetIds": ["subnet-0123456789abcdefg"],
+                    "securityGroupIds": ["sg-0123456789abcdefg"],
                 },
-            ),
-            (
-                "full",
-                {
-                    "initialCapacity": {
-                        "Driver": {
-                            "workerCount": 1,
-                            "workerConfiguration": {
-                                "cpu": "2 vCPU",
-                                "memory": "4 GB",
-                                "disk": "20 GB",
-                            },
-                        }
-                    },
-                    "maximumCapacity": {
-                        "cpu": "400 vCPU",
-                        "memory": "1024 GB",
-                        "disk": "1000 GB",
-                    },
-                    "networkConfiguration": {
-                        "subnetIds": ["subnet-0123456789abcdefg"],
-                        "securityGroupIds": ["sg-0123456789abcdefg"],
-                    },
-                },
-            ),
+            },
         ],
     )
-    def test_filtering(self, name, extra_configuration):
+    def test_filtering(self, extra_configuration):
         application_id = self.client.create_application(
             name="test-emr-serverless-application",
             type="SPARK",
@@ -435,88 +423,70 @@ class TestUpdateApplication:
             )
 
     @pytest.mark.parametrize(
-        "name, update_configuration",
+        "update_configuration",
         [
-            ("base", {}),
-            (
-                "with_initial_capacity",
-                {
-                    "initialCapacity": {
-                        "Driver": {
-                            "workerCount": 1,
-                            "workerConfiguration": {
-                                "cpu": "2 vCPU",
-                                "memory": "4 GB",
-                                "disk": "20 GB",
-                            },
-                        }
+            {},
+            {
+                "initialCapacity": {
+                    "Driver": {
+                        "workerCount": 1,
+                        "workerConfiguration": {
+                            "cpu": "2 vCPU",
+                            "memory": "4 GB",
+                            "disk": "20 GB",
+                        },
+                    }
+                }
+            },
+            {
+                "maximumCapacity": {
+                    "cpu": "400 vCPU",
+                    "memory": "1024 GB",
+                    "disk": "1000 GB",
+                }
+            },
+            {"autoStartConfiguration": {"enabled": False}},
+            {
+                "autoStopConfiguration": {
+                    "enabled": False,
+                    "idleTimeoutMinutes": 5,
+                }
+            },
+            {
+                "networkConfiguration": {
+                    "subnetIds": ["subnet-0123456789abcdefg"],
+                    "securityGroupIds": ["sg-0123456789abcdefg"],
+                }
+            },
+            {
+                "initialCapacity": {
+                    "Driver": {
+                        "workerCount": 1,
+                        "workerConfiguration": {
+                            "cpu": "2 vCPU",
+                            "memory": "4 GB",
+                            "disk": "20 GB",
+                        },
                     }
                 },
-            ),
-            (
-                "with_maximum_capacity",
-                {
-                    "maximumCapacity": {
-                        "cpu": "400 vCPU",
-                        "memory": "1024 GB",
-                        "disk": "1000 GB",
-                    }
+                "maximumCapacity": {
+                    "cpu": "400 vCPU",
+                    "memory": "1024 GB",
+                    "disk": "1000 GB",
                 },
-            ),
-            (
-                "without_auto_start_configuration",
-                {"autoStartConfiguration": {"enabled": False}},
-            ),
-            (
-                "without_auto_stop_configuration",
-                {
-                    "autoStopConfiguration": {
-                        "enabled": False,
-                        "idleTimeoutMinutes": 5,
-                    }
+                "autoStartConfiguration": {"enabled": False},
+                "autoStopConfiguration": {
+                    "enabled": False,
+                    "idleTimeoutMinutes": 5,
                 },
-            ),
-            (
-                "with_networking",
-                {
-                    "networkConfiguration": {
-                        "subnetIds": ["subnet-0123456789abcdefg"],
-                        "securityGroupIds": ["sg-0123456789abcdefg"],
-                    }
+                "networkConfiguration": {
+                    "subnetIds": ["subnet-0123456789abcdefg"],
+                    "securityGroupIds": ["sg-0123456789abcdefg"],
                 },
-            ),
-            (
-                "full",
-                {
-                    "initialCapacity": {
-                        "Driver": {
-                            "workerCount": 1,
-                            "workerConfiguration": {
-                                "cpu": "2 vCPU",
-                                "memory": "4 GB",
-                                "disk": "20 GB",
-                            },
-                        }
-                    },
-                    "maximumCapacity": {
-                        "cpu": "400 vCPU",
-                        "memory": "1024 GB",
-                        "disk": "1000 GB",
-                    },
-                    "autoStartConfiguration": {"enabled": False},
-                    "autoStopConfiguration": {
-                        "enabled": False,
-                        "idleTimeoutMinutes": 5,
-                    },
-                    "networkConfiguration": {
-                        "subnetIds": ["subnet-0123456789abcdefg"],
-                        "securityGroupIds": ["sg-0123456789abcdefg"],
-                    },
-                },
-            ),
+            },
         ],
     )
-    def test_valid_update(self, base_application, name, update_configuration):
+    def test_valid_update(self, base_application, update_configuration):
         expected_resp = self.get_expected_resp(base_application, update_configuration)
 
         actual_resp = self.client.update_application(
@@ -532,74 +502,3 @@ class TestUpdateApplication:
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
         assert err["Message"] == "Application fake_application_id does not exist"
-
-
-# class TestEmrServerlessJob:
-#     @staticmethod
-#     @mock_emrserverless
-#     def test_create_job_with_invalid_app(client):
-#         with pytest.raises(ClientError) as exc:
-#             resp = client.start_job_run(
-#                 applicationId="DOES_NOT_EXIST",
-#                 executionRoleArn="aws:arn:ACCOUNT_ID:somerole",
-#             )
-#             assert resp is not None
-#
-#         err = exc.value.response["Error"]
-#
-#         assert err["Code"] == "ResourceNotFoundException"
-#         assert err["Message"] == "Application DOES_NOT_EXIST does not exist"
-#
-#     @staticmethod
-#     @mock_emrserverless
-#     def test_create_job(client):
-#         resp = client.create_application(
-#             name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
-#         )
-#         assert resp["name"] == "test-emr-serverless"
-#
-#         resp = client.start_job_run(
-#             applicationId=resp["applicationId"],
-#             executionRoleArn="aws:arn:ACCOUNT_ID:somerole",
-#         )
-#         assert resp is not None
-#         assert sorted(resp.keys()) == sorted(
-#             ["ResponseMetadata", "applicationId", "arn", "jobRunId"]
-#         )
-#
-#     @staticmethod
-#     @mock_emrserverless
-#     def test_list_jobs(client):
-#         # TODO: Move this to a fixture
-#         app_resp = client.create_application(
-#             name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
-#         )
-#         assert app_resp is not None
-#         application_id = app_resp["applicationId"]
-#
-#         job_resp = client.start_job_run(
-#             applicationId=application_id,
-#             executionRoleArn="aws:arn:ACCOUNT_ID:somerole",
-#         )
-#         assert job_resp is not None
-#
-#         list_resp = client.list_job_runs(
-#             applicationId=application_id,
-#         )
-#         assert list_resp is not None
-#         assert len(list_resp["jobRuns"]) == 1
-#
-#     @staticmethod
-#     @mock_emrserverless
-#     def test_get_job_run(client):
-#         app_info = client.create_application(
-#             name="test-emr-serverless", type="SPARK", releaseLabel=DEFAULT_RELEASE_LABEL
-#         )
-#         job_resp = client.start_job_run(
-#             applicationId=app_info["applicationId"],
-#             executionRoleArn="aws:arn:ACCOUNT_ID:somerole",
-#         )
-#
-#         job = client.get_job_run(
-#             applicationId=app_info["applicationId"], jobRunId=job_resp["jobRunId"]
-#         )

@@ -43,7 +43,7 @@ class EMRServerlessResponse(BaseResponse):
     def create_application(self):
         name = self._get_param("name")
         release_label = self._get_param("releaseLabel")
-        type = self._get_param("type")
+        application_type = self._get_param("type")
         client_token = self._get_param("clientToken")
         initial_capacity = self._get_param("initialCapacity")
         maximum_capacity = self._get_param("maximumCapacity")
@@ -55,7 +55,7 @@ class EMRServerlessResponse(BaseResponse):
         application = self.emrserverless_backend.create_application(
             name=name,
             release_label=release_label,
-            type=type,
+            application_type=application_type,
             client_token=client_token,
             initial_capacity=initial_capacity,
             maximum_capacity=maximum_capacity,
@@ -108,7 +108,6 @@ class EMRServerlessResponse(BaseResponse):
 
     def update_application(self):
         application_id = self._get_param("applicationId")
-        client_token = self._get_param("clientToken")
         initial_capacity = self._get_param("initialCapacity")
         maximum_capacity = self._get_param("maximumCapacity")
         auto_start_configuration = self._get_param("autoStartConfiguration")
@@ -117,7 +116,6 @@ class EMRServerlessResponse(BaseResponse):
 
         application = self.emrserverless_backend.update_application(
             application_id=application_id,
-            client_token=client_token,
             initial_capacity=initial_capacity,
             maximum_capacity=maximum_capacity,
             auto_start_configuration=auto_start_configuration,
@@ -126,49 +124,3 @@ class EMRServerlessResponse(BaseResponse):
         )
         response = {"application": application}
         return 200, {}, json.dumps(response)
-
-    def start_job_run(self):
-        application_id = self._get_param("applicationId")
-        job_driver = self._get_param("jobDriver")
-        client_token = self._get_param("clientToken")
-        configuration_overrides = self._get_param("configurationOverrides")
-        execution_role_arn = self._get_param("executionRoleArn")
-        tags = self._get_param("tags")
-
-        app_id, job_id, arn = self.emrserverless_backend.start_job_run(
-            application_id=application_id,
-            client_token=client_token,
-            configuration_overrides=configuration_overrides,
-            execution_role_arn=execution_role_arn,
-            job_driver=job_driver,
-            tags=tags,
-        )
-        return 200, {}, json.dumps(dict(applicationId=app_id, arn=arn, jobRunId=job_id))
-
-    def list_job_runs(self):
-        params = self._get_params()
-        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
-        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
-        states = params.get("states")
-        created_after = self._get_param("createdAfter")
-        created_before = self._get_param("createdBefore")
-        application_id = self._get_param("applicationId")
-
-        jobs, next_token = self.emrserverless_backend.list_job_runs(
-            application_id=application_id,
-            created_after=created_after,
-            created_before=created_before,
-            next_token=next_token,
-            max_results=max_results,
-            states=states,
-        )
-        return 200, {}, json.dumps(dict(jobRuns=jobs, nextToken=next_token))
-
-    def get_job_run(self):
-        app_id = self._get_param("applicationId")
-        job_id = self._get_param("jobRunId")
-
-        job = self.emrserverless_backend.get_job_run(
-            application_id=app_id, job_run_id=job_id
-        )
-        return 200, {}, json.dumps(dict(job=job))
