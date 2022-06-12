@@ -48,8 +48,8 @@ class EMRServerlessResponse(BaseResponse):
         initial_capacity = self._get_param("initialCapacity")
         maximum_capacity = self._get_param("maximumCapacity")
         tags = self._get_param("tags")
-        auto_start_configuration = self._get_param("autoStartConfig")
-        auto_stop_configuration = self._get_param("autoStopConfig")
+        auto_start_configuration = self._get_param("autoStartConfiguration")
+        auto_stop_configuration = self._get_param("autoStopConfiguration")
         network_configuration = self._get_param("networkConfiguration")
 
         application = self.emrserverless_backend.create_application(
@@ -107,16 +107,16 @@ class EMRServerlessResponse(BaseResponse):
         return (200, {}, None)
 
     def update_application(self):
-        name = self._get_param("applicationId")
+        application_id = self._get_param("applicationId")
         client_token = self._get_param("clientToken")
         initial_capacity = self._get_param("initialCapacity")
         maximum_capacity = self._get_param("maximumCapacity")
-        auto_start_configuration = self._get_param("autoStartConfig")
-        auto_stop_configuration = self._get_param("autoStopConfig")
+        auto_start_configuration = self._get_param("autoStartConfiguration")
+        auto_stop_configuration = self._get_param("autoStopConfiguration")
         network_configuration = self._get_param("networkConfiguration")
 
         application = self.emrserverless_backend.update_application(
-            name=name,
+            application_id=application_id,
             client_token=client_token,
             initial_capacity=initial_capacity,
             maximum_capacity=maximum_capacity,
@@ -124,7 +124,8 @@ class EMRServerlessResponse(BaseResponse):
             auto_stop_configuration=auto_stop_configuration,
             network_configuration=network_configuration,
         )
-        return (200, {}, json.dumps(dict(application)))
+        response = {"application": application}
+        return 200, {}, json.dumps(response)
 
     def start_job_run(self):
         application_id = self._get_param("applicationId")

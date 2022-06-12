@@ -52,6 +52,21 @@ def application_factory(client):
     yield application_list
 
 
+@pytest.fixture(scope="function")
+def base_application(client):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+
+    with patch("moto.emrserverless.models.APPLICATION_STATUS", "CREATED"):
+        resp = client.create_application(
+            name="test-emr-serverless-application",
+            type="SPARK",
+            releaseLabel=DEFAULT_RELEASE_LABEL,
+        )
+
+    yield resp["applicationId"]
+
+
 class TestCreateApplication:
     @staticmethod
     @mock_emrserverless
@@ -156,7 +171,7 @@ class TestGetApplication:
     def get_expected_resp(application_id, extra_configuration):
         response = {
             "applicationId": application_id,
-            "name": f"test-emr-serverless-application",
+            "name": "test-emr-serverless-application",
             "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{application_id}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
@@ -276,7 +291,7 @@ class TestListApplication:
         resp = self.client.list_applications()
         expected_resp = {
             "id": self.application_ids[1],
-            "name": f"test-emr-serverless-application-CREATED",
+            "name": "test-emr-serverless-application-CREATED",
             "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[1]}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
@@ -352,6 +367,167 @@ class TestStopApplication:
     def test_invalid_application_id(self):
         with pytest.raises(ClientError) as exc:
             self.client.stop_application(applicationId="fake_application_id")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Application fake_application_id does not exist"
+
+
+class TestUpdateApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
+
+    @staticmethod
+    def get_expected_resp(application_id, extra_configuration):
+        response = {
+            "applicationId": application_id,
+            "name": "test-emr-serverless-application",
+            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{application_id}",
+            "releaseLabel": "emr-6.6.0",
+            "type": "Spark",
+            "state": "CREATED",
+            "stateDetails": "",
+            "autoStartConfiguration": {"enabled": True},
+            "autoStopConfiguration": {"enabled": True, "idleTimeoutMinutes": 15},
+            "tags": {},
+            "createdAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "updatedAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+        }
+        return {**response, **extra_configuration}
+
+    @pytest.mark.parametrize(
+        "index,status,expectation",
+        [
+            (0, "CREATING", pytest.raises(ClientError)),
+            (1, "CREATED", does_not_raise()),
+            (2, "STARTING", pytest.raises(ClientError)),
+            (3, "STARTED", pytest.raises(ClientError)),
+            (4, "STOPPING", pytest.raises(ClientError)),
+            (5, "STOPPED", does_not_raise()),
+            (6, "TERMINATED", pytest.raises(ClientError)),
+        ],
+    )
+    def test_application_status(self, index, status, expectation):
+        with expectation as exc:
+            resp = self.client.update_application(
+                applicationId=self.application_ids[index]
+            )
+
+        if type(expectation) == contextlib.nullcontext:
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+        else:
+            err = exc.value.response["Error"]
+            assert err["Code"] == "ValidationException"
+            assert (
+                err["Message"]
+                == f"Application {self.application_ids[index]} must be in one of the following statuses [CREATED, STOPPED]. Current status: {status}"
+            )
+
+    @pytest.mark.parametrize(
+        "name, update_configuration",
+        [
+            ("base", {}),
+            (
+                "with_initial_capacity",
+                {
+                    "initialCapacity": {
+                        "Driver": {
+                            "workerCount": 1,
+                            "workerConfiguration": {
+                                "cpu": "2 vCPU",
+                                "memory": "4 GB",
+                                "disk": "20 GB",
+                            },
+                        }
+                    }
+                },
+            ),
+            (
+                "with_maximum_capacity",
+                {
+                    "maximumCapacity": {
+                        "cpu": "400 vCPU",
+                        "memory": "1024 GB",
+                        "disk": "1000 GB",
+                    }
+                },
+            ),
+            (
+                "without_auto_start_configuration",
+                {"autoStartConfiguration": {"enabled": False}},
+            ),
+            (
+                "without_auto_stop_configuration",
+                {
+                    "autoStopConfiguration": {
+                        "enabled": False,
+                        "idleTimeoutMinutes": 5,
+                    }
+                },
+            ),
+            (
+                "with_networking",
+                {
+                    "networkConfiguration": {
+                        "subnetIds": ["subnet-0123456789abcdefg"],
+                        "securityGroupIds": ["sg-0123456789abcdefg"],
+                    }
+                },
+            ),
+            (
+                "full",
+                {
+                    "initialCapacity": {
+                        "Driver": {
+                            "workerCount": 1,
+                            "workerConfiguration": {
+                                "cpu": "2 vCPU",
+                                "memory": "4 GB",
+                                "disk": "20 GB",
+                            },
+                        }
+                    },
+                    "maximumCapacity": {
+                        "cpu": "400 vCPU",
+                        "memory": "1024 GB",
+                        "disk": "1000 GB",
+                    },
+                    "autoStartConfiguration": {"enabled": False},
+                    "autoStopConfiguration": {
+                        "enabled": False,
+                        "idleTimeoutMinutes": 5,
+                    },
+                    "networkConfiguration": {
+                        "subnetIds": ["subnet-0123456789abcdefg"],
+                        "securityGroupIds": ["sg-0123456789abcdefg"],
+                    },
+                },
+            ),
+        ],
+    )
+    def test_valid_update(self, base_application, name, update_configuration):
+        expected_resp = self.get_expected_resp(base_application, update_configuration)
+
+        actual_resp = self.client.update_application(
+            applicationId=base_application, **update_configuration
+        )["application"]
+
+        assert actual_resp == expected_resp
+
+    def test_invalid_application_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.update_application(applicationId="fake_application_id")
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"

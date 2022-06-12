@@ -92,7 +92,7 @@ class FakeApplication(BaseModel):
         caller_methods = inspect.stack()[1].function
         caller_methods_type = caller_methods.split("_")[0]
 
-        if caller_methods_type == "get":
+        if caller_methods_type in ["get", "update"]:
             response = {
                 "applicationId": self.id,
                 "name": self.name,
@@ -282,6 +282,54 @@ class EMRServerlessBackend(BaseBackend):
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
         self.applications[application_id].state = "STOPPED"
+
+    def update_application(
+        self,
+        application_id,
+        client_token,
+        initial_capacity,
+        maximum_capacity,
+        auto_start_configuration,
+        auto_stop_configuration,
+        network_configuration,
+    ):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(application_id)
+
+        if self.applications[application_id].state not in ["CREATED", "STOPPED"]:
+            raise ValidationException(
+                f"Application {application_id} must be in one of the following statuses [CREATED, STOPPED]. "
+                f"Current status: {self.applications[application_id].state}"
+            )
+
+        if initial_capacity:
+            self.applications[application_id].initial_capacity = initial_capacity
+
+        if maximum_capacity:
+            self.applications[application_id].maximum_capacity = maximum_capacity
+
+        if auto_start_configuration:
+            self.applications[
+                application_id
+            ].auto_start_configuration = auto_start_configuration
+
+        if auto_stop_configuration:
+            self.applications[
+                application_id
+            ].auto_stop_configuration = auto_stop_configuration
+
+        if network_configuration:
+            self.applications[
+                application_id
+            ].network_configuration = network_configuration
+
+        self.applications[
+            application_id
+        ].updated_at = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        )
+
+        return self.applications[application_id].to_dict()
 
     def start_job_run(
         self,
