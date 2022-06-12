@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.13
 -----
-Docker Digest for 3.1.13: <autopopulateddigest>
+Docker Digest for 3.1.13: _sha256:d7f6c779c79f03b686747ae26b52bdca26fd81a50c6a41a8a6cba50c96982abf_
 
     New Methods:
         * EC2:
