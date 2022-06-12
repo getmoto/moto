@@ -6,11 +6,13 @@ from .models import iot_backends
 
 
 class IoTResponse(BaseResponse):
-    SERVICE_NAME = "iot"
+
+    def __init__(self):
+        super().__init__(service_name="iot")
 
     @property
     def iot_backend(self):
-        return iot_backends[self.get_current_account()][self.region]
+        return iot_backends[self.current_account][self.region]
 
     def create_certificate_from_csr(self):
         certificate_signing_request = self._get_param("certificateSigningRequest")

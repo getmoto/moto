@@ -201,6 +201,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     )
     aws_service_spec = None
 
+    def __init__(self, service_name=None):
+        super().__init__()
+        self.service_name = service_name
+
     @classmethod
     def dispatch(cls, *args, **kwargs):
         return cls()._dispatch(*args, **kwargs)
@@ -280,6 +284,18 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if "host" not in self.headers:
             self.headers["host"] = urlparse(full_url).netloc
         self.response_headers = {"server": "amazon.com"}
+
+        # Register visit with IAM
+        from moto.iam.models import mark_account_as_visited
+
+        self.access_key = self.get_access_key()
+        self.current_account = self.get_current_account()
+        mark_account_as_visited(
+            account_id=self.current_account,
+            access_key=self.access_key,
+            service=self.service_name,
+            region=self.region
+        )
 
     def get_region_from_url(self, request, full_url):
         url_match = self.region_regex.search(full_url)
@@ -362,10 +378,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         # service response class should have 'SERVICE_NAME' class member,
         # if you want to get action from method and url
-        if not hasattr(self, "SERVICE_NAME"):
-            return None
-        service = self.SERVICE_NAME
-        conn = boto3.client(service, region_name=self.region)
+        conn = boto3.client(self.service_name, region_name=self.region)
 
         # make cache if it does not exist yet
         if not hasattr(self, "method_urls"):
@@ -386,15 +399,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _get_action(self):
         action = self.querystring.get("Action", [""])[0]
-        if not action:  # Some services use a header for the action
-            # Headers are case-insensitive. Probably a better way to do this.
-            match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
-            if match:
-                action = match.split(".")[-1]
+        if action:
+            return action
+        # Some services use a header for the action
+        # Headers are case-insensitive. Probably a better way to do this.
+        match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
+        if match:
+            return match.split(".")[-1]
         # get action from method and uri
-        if not action:
-            return self._get_action_from_method_and_request_uri(self.method, self.path)
-        return action
+        return self._get_action_from_method_and_request_uri(self.method, self.path)
 
     def call_action(self):
         headers = self.response_headers

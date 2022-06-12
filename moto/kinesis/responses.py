@@ -5,13 +5,17 @@ from .models import kinesis_backends
 
 
 class KinesisResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="kinesis")
+
     @property
     def parameters(self):
         return json.loads(self.body)
 
     @property
     def kinesis_backend(self):
-        return kinesis_backends[self.get_current_account()][self.region]
+        return kinesis_backends[self.current_account][self.region]
 
     def create_stream(self):
         stream_name = self.parameters.get("StreamName")

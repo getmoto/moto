@@ -3,9 +3,13 @@ from .models import sdb_backends
 
 
 class SimpleDBResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="sdb")
+
     @property
     def sdb_backend(self):
-        return sdb_backends[self.get_current_account()][self.region]
+        return sdb_backends[self.current_account][self.region]
 
     def create_domain(self):
         domain_name = self._get_param("DomainName")

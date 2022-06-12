@@ -8,9 +8,13 @@ from .models import ecr_backends, DEFAULT_REGISTRY_ID
 
 
 class ECRResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="ecr")
+
     @property
     def ecr_backend(self):
-        return ecr_backends[self.get_current_account()][self.region]
+        return ecr_backends[self.current_account][self.region]
 
     @property
     def request_params(self):

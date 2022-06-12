@@ -16,6 +16,10 @@ from .exceptions import (
 
 
 class KmsResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="kms")
+
     @property
     def parameters(self):
         params = json.loads(self.body)
@@ -28,7 +32,7 @@ class KmsResponse(BaseResponse):
 
     @property
     def kms_backend(self):
-        return kms_backends[self.get_current_account()][self.region]
+        return kms_backends[self.current_account][self.region]
 
     def _display_arn(self, key_id):
         if key_id.startswith("arn:"):

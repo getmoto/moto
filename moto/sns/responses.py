@@ -15,9 +15,12 @@ class SNSResponse(BaseResponse):
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
 
+    def __init__(self):
+        super().__init__(service_name="sns")
+
     @property
     def backend(self):
-        return sns_backends[self.get_current_account()][self.region]
+        return sns_backends[self.current_account][self.region]
 
     def _error(self, code, message, sender="Sender"):
         template = self.response_template(ERROR_RESPONSE)

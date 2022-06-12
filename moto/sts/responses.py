@@ -9,9 +9,12 @@ MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 
 class TokenResponse(BaseResponse):
 
+    def __init__(self):
+        super().__init__(service_name="sts")
+
     @property
     def backend(self):
-        return sts_backends[self.get_current_account()]["global"]
+        return sts_backends[self.current_account]["global"]
 
     def get_session_token(self):
         duration = int(self.querystring.get("DurationSeconds", [43200])[0])
@@ -98,7 +101,7 @@ class TokenResponse(BaseResponse):
             user_id = assumed_role.user_id
             arn = assumed_role.arn
 
-        iam_backend = iam_backends[self.get_current_account()]["global"]
+        iam_backend = iam_backends[self.current_account]["global"]
         user = iam_backend.get_user_from_access_key_id(access_key_id)
         if user:
             user_id = user.id

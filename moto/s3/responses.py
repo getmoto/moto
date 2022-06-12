@@ -154,9 +154,12 @@ def is_delete_keys(request, path):
 
 class S3Response(BaseResponse):
 
+    def __init__(self):
+        super().__init__(service_name="s3")
+
     @property
     def backend(self):
-        return s3_backends[self.get_current_account()]["global"]
+        return s3_backends[self.current_account]["global"]
 
     @property
     def should_autoescape(self):

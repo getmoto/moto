@@ -6,11 +6,13 @@ import re
 
 
 class ElasticTranscoderResponse(BaseResponse):
-    SERVICE_NAME = "elastictranscoder"
+
+    def __init__(self):
+        super().__init__(service_name="elastictranscoder")
 
     @property
     def elastictranscoder_backend(self):
-        return elastictranscoder_backends[self.get_current_account()][self.region]
+        return elastictranscoder_backends[self.current_account][self.region]
 
     def pipelines(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

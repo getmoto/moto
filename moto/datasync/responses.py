@@ -6,9 +6,13 @@ from .models import datasync_backends
 
 
 class DataSyncResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="datasync")
+
     @property
     def datasync_backend(self):
-        return datasync_backends[self.get_current_account()][self.region]
+        return datasync_backends[self.current_account][self.region]
 
     def list_locations(self):
         locations = list()

@@ -7,9 +7,13 @@ from .exceptions import DBParameterGroupNotFoundError
 
 
 class RDSResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="rds")
+
     @property
     def backend(self):
-        return rds_backends[self.get_current_account()][self.region]
+        return rds_backends[self.current_account][self.region]
 
     def _get_db_kwargs(self):
         args = {

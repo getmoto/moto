@@ -5,12 +5,16 @@ from .exceptions import InvalidParameterValueError
 
 
 class EBResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="elasticbeanstalk")
+
     @property
     def backend(self):
         """
         :rtype: EBBackend
         """
-        return eb_backends[self.get_current_account()][self.region]
+        return eb_backends[self.current_account][self.region]
 
     def create_application(self):
         app = self.backend.create_application(

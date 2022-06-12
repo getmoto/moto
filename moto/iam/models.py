@@ -70,6 +70,15 @@ def get_account_id_from(access_key):
     return get_account_id()
 
 
+def mark_account_as_visited(account_id, access_key, service, region):
+    account = iam_backends[account_id]
+    if access_key in account["global"].access_keys:
+        account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(timestamp=datetime.utcnow(), service=service, region=region)
+    else:
+        # User provided access credentials unknown to us
+        pass
+
+
 class MFADevice(object):
     """MFA Device class."""
 
@@ -936,6 +945,17 @@ class SigningCertificate(BaseModel):
         return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
+class AccessKeyLastUsed:
+    def __init__(self, timestamp, service, region):
+        self._timestamp = timestamp
+        self.service = service
+        self.region = region
+
+    @property
+    def timestamp(self):
+        return iso_8601_datetime_without_milliseconds(self._timestamp)
+
+
 class AccessKey(CloudFormationModel):
     def __init__(self, user_name, prefix, status="Active"):
         self.user_name = user_name
@@ -943,15 +963,11 @@ class AccessKey(CloudFormationModel):
         self.secret_access_key = random_alphanumeric(40)
         self.status = status
         self.create_date = datetime.utcnow()
-        self.last_used = None
+        self.last_used: AccessKeyLastUsed = None
 
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_without_milliseconds(self.create_date)
-
-    @property
-    def last_used_iso_8601(self):
-        return iso_8601_datetime_without_milliseconds(self.last_used)
 
     @classmethod
     def has_cfn_attr(cls, attr):
@@ -1109,7 +1125,7 @@ class User(CloudFormationModel):
         self.mfa_devices = {}
         self.policies = {}
         self.managed_policies = {}
-        self.access_keys = []
+        self.access_keys: Mapping[str, AccessKey] = []
         self.ssh_public_keys = []
         self.password = None
         self.password_last_used = None
@@ -2442,7 +2458,7 @@ class IAMBackend(BaseBackend):
 
     def create_access_key(self, user_name=None, prefix="AKIA", status="Active"):
         user = self.get_user(user_name)
-        key = user.create_access_key(status, prefix=prefix)
+        key = user.create_access_key(prefix=prefix, status=status)
         self.access_keys[key.physical_resource_id] = key
         return key
 
@@ -2454,7 +2470,7 @@ class IAMBackend(BaseBackend):
         access_keys_list = self.get_all_access_keys_for_all_users()
         for key in access_keys_list:
             if key.access_key_id == access_key_id:
-                return {"user_name": key.user_name, "last_used": key.last_used_iso_8601}
+                return {"user_name": key.user_name, "last_used": key.last_used}
 
         raise IAMNotFoundException(
             f"The Access Key with id {access_key_id} cannot be found"
@@ -2471,7 +2487,6 @@ class IAMBackend(BaseBackend):
         """
         Pagination is not yet implemented
         """
-        print(f"list_access_keys({user_name}) ({self.account_id}, {self.region_name})")
         user = self.get_user(user_name)
         keys = user.get_all_access_keys()
         return keys

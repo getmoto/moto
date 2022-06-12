@@ -5,9 +5,12 @@ from .models import iam_backends, User
 
 class IamResponse(BaseResponse):
 
+    def __init__(self):
+        super().__init__(service_name="iam")
+
     @property
     def backend(self):
-        return iam_backends[self.get_current_account()]["global"]
+        return iam_backends[self.current_account]["global"]
 
     def attach_role_policy(self):
         policy_arn = self._get_param("PolicyArn")
@@ -640,7 +643,6 @@ class IamResponse(BaseResponse):
 
     def create_access_key(self):
         user_name = self._get_param("UserName")
-        print(f"create_access_key({user_name})")
         if not user_name:
             access_key_id = self.get_access_key()
             access_key = self.backend.get_access_key_last_used(access_key_id)
@@ -1962,10 +1964,13 @@ GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
         <UserName>{{ user_name }}</UserName>
         <AccessKeyLastUsed>
         {% if last_used %}
-          <LastUsedDate>{{ last_used }}</LastUsedDate>
-        {% endif %}
+          <LastUsedDate>{{ last_used.timestamp }}</LastUsedDate>
+          <ServiceName>{{ last_used.service }}</ServiceName>
+          <Region>{{ last_used.region }}</Region>
+        {% else %}
           <ServiceName>N/A</ServiceName>
           <Region>N/A</Region>
+        {% endif %}
         </AccessKeyLastUsed>
     </GetAccessKeyLastUsedResult>
 </GetAccessKeyLastUsedResponse>

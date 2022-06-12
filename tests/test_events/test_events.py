@@ -286,7 +286,6 @@ def test_list_rule_names_by_target_using_limit():
     client = generate_environment()
 
     response = client.list_rule_names_by_target(TargetArn=test_1_target["Arn"], Limit=1)
-    print(response)
     response.should.have.key("NextToken")
     response["RuleNames"].should.have.length_of(1)
     #

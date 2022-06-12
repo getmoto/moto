@@ -16,6 +16,10 @@ region_agnostic_backend = RegionAgnosticBackend()
 
 
 class CognitoIdpResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="cognito-idp")
+
     @property
     def parameters(self):
         return json.loads(self.body)
@@ -444,7 +448,6 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         region = find_region_by_value("client_id", client_id)
-        print(f"Region: {region}")
         confirmation_code, response = cognitoidp_backends[region].forgot_password(
             client_id, username
         )

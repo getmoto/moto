@@ -86,11 +86,15 @@ class EC2Response(
     IamInstanceProfiles,
     CarrierGateway,
 ):
+
+    def __init__(self):
+        super().__init__(service_name="ec2")
+
     @property
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends
 
-        return ec2_backends[self.get_current_account()][self.region]
+        return ec2_backends[self.current_account][self.region]
 
     @property
     def should_autoescape(self):

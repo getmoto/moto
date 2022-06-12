@@ -6,6 +6,10 @@ from .models import acm_backends, AWSValidationException
 
 
 class AWSCertificateManagerResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="acm")
+
     @property
     def acm_backend(self):
         """
@@ -14,7 +18,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         :return: ACM Backend object
         :rtype: moto.acm.models.AWSCertificateManagerBackend
         """
-        return acm_backends[self.get_current_account()][self.region]
+        return acm_backends[self.current_account][self.region]
 
     @property
     def request_params(self):

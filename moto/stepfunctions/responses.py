@@ -6,9 +6,13 @@ from .models import stepfunction_backends
 
 
 class StepFunctionResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="stepfunctions")
+
     @property
     def stepfunction_backend(self):
-        return stepfunction_backends[self.get_current_account()][self.region]
+        return stepfunction_backends[self.current_account][self.region]
 
     @amzn_request_id
     def create_state_machine(self):

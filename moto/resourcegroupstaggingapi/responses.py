@@ -4,7 +4,9 @@ import json
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):
-    SERVICE_NAME = "resourcegroupstaggingapi"
+
+    def __init__(self):
+        super().__init__(service_name="resourcegroupstaggingapi")
 
     @property
     def backend(self):

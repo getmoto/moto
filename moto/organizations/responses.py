@@ -5,9 +5,13 @@ from .models import organizations_backends
 
 
 class OrganizationsResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="organizations")
+
     @property
     def organizations_backend(self):
-        return organizations_backends[self.get_current_account()]["global"]
+        return organizations_backends[self.current_account]["global"]
 
     @property
     def request_params(self):

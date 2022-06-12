@@ -7,6 +7,9 @@ from moto.core.responses import BaseResponse
 
 class InstanceMetadataResponse(BaseResponse):
 
+    def __init__(self):
+        super().__init__(service_name=None)
+
     def backends(self):
         pass
 

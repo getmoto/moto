@@ -5,9 +5,13 @@ from .models import budgets_backends
 
 
 class BudgetsResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="budgets")
+
     @property
     def backend(self):
-        return budgets_backends[self.get_current_account()]["global"]
+        return budgets_backends[self.current_account]["global"]
 
     def create_budget(self):
         account_id = self._get_param("AccountId")

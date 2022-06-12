@@ -9,6 +9,10 @@ from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="awslambda")
+
     @property
     def json_body(self):
         """

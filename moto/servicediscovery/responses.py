@@ -6,10 +6,14 @@ from .models import servicediscovery_backends
 
 
 class ServiceDiscoveryResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="servicediscovery")
+
     @property
     def servicediscovery_backend(self):
         """Return backend instance specific for this region."""
-        return servicediscovery_backends[self.get_current_account()][self.region]
+        return servicediscovery_backends[self.current_account][self.region]
 
     def list_namespaces(self):
         namespaces = self.servicediscovery_backend.list_namespaces()

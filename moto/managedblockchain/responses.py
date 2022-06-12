@@ -14,6 +14,10 @@ from .utils import (
 
 
 class ManagedBlockchainResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="managedblockchain")
+
     @property
     def backend(self):
         return managedblockchain_backends[self.region]

@@ -9,6 +9,10 @@ from .exceptions import AWSValidationException
 
 
 class ApplicationAutoScalingResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="application-autoscaling")
+
     @property
     def applicationautoscaling_backend(self):
         return applicationautoscaling_backends[self.region]

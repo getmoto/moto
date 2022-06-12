@@ -4,6 +4,10 @@ from .utils import get_random_identity_id
 
 
 class CognitoIdentityResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="cognito-identity")
+
     @property
     def backend(self):
         return cognitoidentity_backends[self.region]

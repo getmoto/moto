@@ -39,9 +39,13 @@ def get_template_summary_response_from_template(template_body):
 
 
 class CloudFormationResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="cloudformation")
+
     @property
     def cloudformation_backend(self):
-        return cloudformation_backends[self.get_current_account()][self.region]
+        return cloudformation_backends[self.current_account][self.region]
 
     @classmethod
     def cfnresponse(cls, *args, **kwargs):  # pylint: disable=unused-argument

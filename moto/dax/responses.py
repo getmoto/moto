@@ -7,9 +7,13 @@ from .models import dax_backends
 
 
 class DAXResponse(BaseResponse):
+
+    def __init__(self):
+        super().__init__(service_name="dax")
+
     @property
     def dax_backend(self):
-        return dax_backends[self.get_current_account()][self.region]
+        return dax_backends[self.current_account][self.region]
 
     def create_cluster(self):
         params = json.loads(self.body)

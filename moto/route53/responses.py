@@ -14,6 +14,9 @@ XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 class Route53(BaseResponse):
     """Handler for Route53 requests and responses."""
 
+    def __init__(self):
+        super().__init__(service_name="route53")
+
     @staticmethod
     def _convert_to_bool(bool_str):
         if isinstance(bool_str, bool):
@@ -26,7 +29,7 @@ class Route53(BaseResponse):
 
     @property
     def backend(self):
-        return route53_backends[self.get_current_account()]["global"]
+        return route53_backends[self.current_account]["global"]
 
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

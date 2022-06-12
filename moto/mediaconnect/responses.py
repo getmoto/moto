@@ -7,11 +7,13 @@ from urllib.parse import unquote
 
 
 class MediaConnectResponse(BaseResponse):
-    SERVICE_NAME = "mediaconnect"
+
+    def __init__(self):
+        super().__init__(service_name="mediaconnect")
 
     @property
     def mediaconnect_backend(self):
-        return mediaconnect_backends[self.get_current_account()][self.region]
+        return mediaconnect_backends[self.current_account][self.region]
 
     def create_flow(self):
         availability_zone = self._get_param("availabilityZone")
