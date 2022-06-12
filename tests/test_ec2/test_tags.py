@@ -402,6 +402,26 @@ def test_create_snapshot_with_tags():
 
 
 @mock_ec2
+def test_create_volume_without_tags():
+    client = boto3.client("ec2", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_volume(
+            AvailabilityZone="us-east-1a",
+            Encrypted=False,
+            Size=40,
+            TagSpecifications=[
+                {
+                    "ResourceType": "volume",
+                    "Tags": [],
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidParameterValue")
+    err["Message"].should.equal("Tag specification must have at least one tag")
+
+
+@mock_ec2
 def test_create_tag_empty_resource():
     # create ec2 client in us-west-1
     client = boto3.client("ec2", region_name="us-west-1")
