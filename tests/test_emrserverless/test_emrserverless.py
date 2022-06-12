@@ -103,46 +103,6 @@ class TestCreateApplication:
         )
 
 
-class TestStartApplication:
-    @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, application_factory):
-        self.client = client
-        self.application_ids = application_factory
-
-    def test_valid_application_id(self):
-        resp = self.client.start_application(applicationId=self.application_ids[1])
-        assert resp is not None
-        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    def test_invalid_application_id(self):
-        with pytest.raises(ClientError) as exc:
-            self.client.start_application(applicationId="fake_application_id")
-
-        err = exc.value.response["Error"]
-        assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Application fake_application_id does not exist"
-
-
-class TestStopApplication:
-    @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, application_factory):
-        self.client = client
-        self.application_ids = application_factory
-
-    def test_valid_application_id(self):
-        resp = self.client.stop_application(applicationId=self.application_ids[1])
-        assert resp is not None
-        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    def test_invalid_application_id(self):
-        with pytest.raises(ClientError) as exc:
-            self.client.stop_application(applicationId="fake_application_id")
-
-        err = exc.value.response["Error"]
-        assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Application fake_application_id does not exist"
-
-
 class TestDeleteApplication:
     @pytest.fixture(autouse=True)
     def _setup_environment(self, client, application_factory):
@@ -185,58 +145,6 @@ class TestDeleteApplication:
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
         assert err["Message"] == "Application fake_application_id does not exist"
-
-
-class TestListApplication:
-    @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, application_factory):
-        self.client = client
-        self.application_ids = application_factory
-
-    def test_response_context(self):
-        resp = self.client.list_applications()
-        expected_resp = {
-            "id": self.application_ids[1],
-            "name": f"test-emr-serverless-application-CREATED",
-            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[1]}",
-            "releaseLabel": "emr-6.6.0",
-            "type": "Spark",
-            "state": "CREATED",
-            "stateDetails": "",
-            "createdAt": (
-                datetime.today()
-                .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
-            ),
-            "updatedAt": (
-                datetime.today()
-                .replace(hour=0, minute=0, second=0, microsecond=0)
-                .replace(tzinfo=timezone.utc)
-            ),
-        }
-
-        assert resp["applications"][0] == expected_resp
-
-    @pytest.mark.parametrize(
-        "list_applications_args,job_count",
-        [
-            ({}, 7),
-            ({"states": ["CREATED"]}, 1),
-            ({"states": ["CREATED", "STARTING"]}, 2),
-            ({"states": ["FOOBAA"]}, 0),
-            ({"maxResults": 1}, 1),
-        ],
-    )
-    def test_filtering(self, list_applications_args, job_count):
-        resp = self.client.list_applications(**list_applications_args)
-        assert len(resp["applications"]) == job_count
-
-    def test_next_token(self):
-        resp = self.client.list_applications(maxResults=2)
-        assert len(resp["applications"]) == 2
-
-        resp = self.client.list_applications(nextToken=resp["nextToken"])
-        assert len(resp["applications"]) == 5
 
 
 class TestGetApplication:
@@ -352,6 +260,98 @@ class TestGetApplication:
     def test_invalid_application_id(self):
         with pytest.raises(ClientError) as exc:
             self.client.get_application(applicationId="fake_application_id")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Application fake_application_id does not exist"
+
+
+class TestListApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
+
+    def test_response_context(self):
+        resp = self.client.list_applications()
+        expected_resp = {
+            "id": self.application_ids[1],
+            "name": f"test-emr-serverless-application-CREATED",
+            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[1]}",
+            "releaseLabel": "emr-6.6.0",
+            "type": "Spark",
+            "state": "CREATED",
+            "stateDetails": "",
+            "createdAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+            "updatedAt": (
+                datetime.today()
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .replace(tzinfo=timezone.utc)
+            ),
+        }
+
+        assert resp["applications"][0] == expected_resp
+
+    @pytest.mark.parametrize(
+        "list_applications_args,job_count",
+        [
+            ({}, 7),
+            ({"states": ["CREATED"]}, 1),
+            ({"states": ["CREATED", "STARTING"]}, 2),
+            ({"states": ["FOOBAA"]}, 0),
+            ({"maxResults": 1}, 1),
+        ],
+    )
+    def test_filtering(self, list_applications_args, job_count):
+        resp = self.client.list_applications(**list_applications_args)
+        assert len(resp["applications"]) == job_count
+
+    def test_next_token(self):
+        resp = self.client.list_applications(maxResults=2)
+        assert len(resp["applications"]) == 2
+
+        resp = self.client.list_applications(nextToken=resp["nextToken"])
+        assert len(resp["applications"]) == 5
+
+
+class TestStartApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
+
+    def test_valid_application_id(self):
+        resp = self.client.start_application(applicationId=self.application_ids[1])
+        assert resp is not None
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    def test_invalid_application_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.start_application(applicationId="fake_application_id")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "Application fake_application_id does not exist"
+
+
+class TestStopApplication:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(self, client, application_factory):
+        self.client = client
+        self.application_ids = application_factory
+
+    def test_valid_application_id(self):
+        resp = self.client.stop_application(applicationId=self.application_ids[1])
+        assert resp is not None
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    def test_invalid_application_id(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.stop_application(applicationId="fake_application_id")
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"

@@ -243,6 +243,23 @@ class EMRServerlessBackend(BaseBackend):
         self.applications[application.id] = application
         return application
 
+    def delete_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(application_id)
+
+        if self.applications[application_id].state not in ["CREATED", "STOPPED"]:
+            raise ValidationException(
+                f"Application {application_id} must be in one of the following statuses [CREATED, STOPPED]. "
+                f"Current status: {self.applications[application_id].state}"
+            )
+        self.applications[application_id].state = "TERMINATED"
+
+    def get_application(self, application_id):
+        if application_id not in self.applications.keys():
+            raise ResourceNotFoundException(application_id)
+
+        return self.applications[application_id].to_dict()
+
     def list_applications(self, next_token, max_results, states):
         applications = [
             application.to_dict() for application in self.applications.values()
@@ -256,12 +273,6 @@ class EMRServerlessBackend(BaseBackend):
         sort_key = "name"
         return paginated_list(applications, sort_key, max_results, next_token)
 
-    def get_application(self, application_id):
-        if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(application_id)
-
-        return self.applications[application_id].to_dict()
-
     def start_application(self, application_id):
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
@@ -271,17 +282,6 @@ class EMRServerlessBackend(BaseBackend):
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
         self.applications[application_id].state = "STOPPED"
-
-    def delete_application(self, application_id):
-        if application_id not in self.applications.keys():
-            raise ResourceNotFoundException(application_id)
-
-        if self.applications[application_id].state not in ["CREATED", "STOPPED"]:
-            raise ValidationException(
-                f"Application {application_id} must be in one of the following statuses [CREATED, STOPPED]. "
-                f"Current status: {self.applications[application_id].state}"
-            )
-        self.applications[application_id].state = "TERMINATED"
 
     def start_job_run(
         self,

@@ -66,11 +66,20 @@ class EMRServerlessResponse(BaseResponse):
         )
         return (200, {}, json.dumps(dict(application)))
 
-    def start_application(self):
+    def delete_application(self):
         application_id = self._get_param("applicationId")
 
-        self.emrserverless_backend.start_application(application_id=application_id)
+        self.emrserverless_backend.delete_application(application_id=application_id)
         return (200, {}, None)
+
+    def get_application(self):
+        application_id = self._get_param("applicationId")
+
+        application = self.emrserverless_backend.get_application(
+            application_id=application_id
+        )
+        response = {"application": application}
+        return 200, {}, json.dumps(response)
 
     def list_applications(self):
         states = self.querystring.get("states", [])
@@ -85,12 +94,11 @@ class EMRServerlessResponse(BaseResponse):
         response = {"applications": applications, "nextToken": next_token}
         return 200, {}, json.dumps(response)
 
-    def get_application(self):
-        app_id = self._get_param("applicationId")
+    def start_application(self):
+        application_id = self._get_param("applicationId")
 
-        application = self.emrserverless_backend.get_application(application_id=app_id)
-        response = {"application": application}
-        return 200, {}, json.dumps(response)
+        self.emrserverless_backend.start_application(application_id=application_id)
+        return (200, {}, None)
 
     def stop_application(self):
         application_id = self._get_param("applicationId")
@@ -98,11 +106,25 @@ class EMRServerlessResponse(BaseResponse):
         self.emrserverless_backend.stop_application(application_id=application_id)
         return (200, {}, None)
 
-    def delete_application(self):
-        application_id = self._get_param("applicationId")
+    def update_application(self):
+        name = self._get_param("applicationId")
+        client_token = self._get_param("clientToken")
+        initial_capacity = self._get_param("initialCapacity")
+        maximum_capacity = self._get_param("maximumCapacity")
+        auto_start_configuration = self._get_param("autoStartConfig")
+        auto_stop_configuration = self._get_param("autoStopConfig")
+        network_configuration = self._get_param("networkConfiguration")
 
-        self.emrserverless_backend.delete_application(application_id=application_id)
-        return (200, {}, None)
+        application = self.emrserverless_backend.update_application(
+            name=name,
+            client_token=client_token,
+            initial_capacity=initial_capacity,
+            maximum_capacity=maximum_capacity,
+            auto_start_configuration=auto_start_configuration,
+            auto_stop_configuration=auto_stop_configuration,
+            network_configuration=network_configuration,
+        )
+        return (200, {}, json.dumps(dict(application)))
 
     def start_job_run(self):
         application_id = self._get_param("applicationId")
