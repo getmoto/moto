@@ -240,6 +240,7 @@ class DataBrewBackend(BaseBackend):
 
         dataset = FakeDataset(
             self.region_name,
+            self.account_id,
             dataset_name,
             dataset_format,
             dataset_format_options,
@@ -432,6 +433,7 @@ class FakeDataset(BaseModel):
     def __init__(
         self,
         region_name,
+        account_id,
         dataset_name,
         dataset_format,
         dataset_format_options,
@@ -440,6 +442,7 @@ class FakeDataset(BaseModel):
         tags,
     ):
         self.region_name = region_name
+        self.account_id = account_id
         self.name = dataset_name
         self.format = dataset_format
         self.format_options = dataset_format_options
@@ -447,6 +450,12 @@ class FakeDataset(BaseModel):
         self.path_options = dataset_path_options
         self.created_time = datetime.now()
         self.tags = tags
+
+    @property
+    def resource_arn(self):
+        return (
+            f"arn:aws:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
+        )
 
     def as_dict(self):
         return {
@@ -457,6 +466,7 @@ class FakeDataset(BaseModel):
             "PathOptions": self.path_options,
             "CreateTime": self.created_time.isoformat(),
             "Tags": self.tags or dict(),
+            "ResourceArn": self.resource_arn,
         }
 
 
