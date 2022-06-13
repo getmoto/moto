@@ -15,9 +15,25 @@ class InvalidInput(Route53ClientError):
 
     code = 400
 
-    def __init__(self):
-        message = "The ARN for the CloudWatch Logs log group is invalid"
+    def __init__(self, message: str):
         super().__init__("InvalidInput", message)
+
+
+class InvalidCloudWatchArn(InvalidInput):
+    def __init__(
+        self,
+    ):
+        message = "The ARN for the CloudWatch Logs log group is invalid"
+        super().__init__(message)
+
+
+class InvalidActionValue(InvalidInput):
+    def __init__(self, value: str):
+        message = (
+            f"Invalid XML ; cvc-enumeration-valid: Value '{value}' is not facet-valid"
+            " with respect to enumeration '[CREATE, DELETE, UPSERT]'. It must be a value from the enumeration."
+        )
+        super().__init__(message)
 
 
 class InvalidPaginationToken(Route53ClientError):

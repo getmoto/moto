@@ -10,7 +10,8 @@ from jinja2 import Template
 
 from moto.route53.exceptions import (
     HostedZoneNotEmpty,
-    InvalidInput,
+    InvalidActionValue,
+    InvalidCloudWatchArn,
     LastVPCAssociation,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
@@ -501,6 +502,10 @@ class Route53Backend(BaseBackend):
         the_zone = self.get_hosted_zone(zoneid)
         for value in change_list:
             action = value["Action"]
+
+            if action not in ("CREATE", "UPSERT", "DELETE"):
+                raise InvalidActionValue(action)
+
             record_set = value["ResourceRecordSet"]
 
             cleaned_record_name = record_set["Name"].strip(".")
@@ -632,12 +637,12 @@ class Route53Backend(BaseBackend):
     def _validate_arn(region, arn):
         match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
-            raise InvalidInput()
+            raise InvalidCloudWatchArn()
 
         # The CloudWatch Logs log group must be in the "us-east-1" region.
         match = re.match(r"^(?:[^:]+:){3}(?P<region>[^:]+).*", arn)
         if match.group("region") != "us-east-1":
-            raise InvalidInput()
+            raise InvalidCloudWatchArn()
 
     def create_query_logging_config(self, region, hosted_zone_id, log_group_arn):
         """Process the create_query_logging_config request."""
