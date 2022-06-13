@@ -560,7 +560,9 @@ class Table(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        table = dynamodb_backends[account_id][region_name].delete_table(name=resource_name)
+        table = dynamodb_backends[account_id][region_name].delete_table(
+            name=resource_name
+        )
         return table
 
     def _generate_arn(self, name):
@@ -1198,7 +1200,9 @@ class DynamoDBBackend(BaseBackend):
     def create_table(self, name, **params):
         if name in self.tables:
             raise ResourceInUseException
-        table = Table(name, account_id=self.account_id, region=self.region_name, **params)
+        table = Table(
+            name, account_id=self.account_id, region=self.region_name, **params
+        )
         self.tables[name] = table
         return table
 
@@ -1826,7 +1830,10 @@ class DynamoDBBackend(BaseBackend):
         if target_table_name in self.tables:
             raise TableAlreadyExistsException(target_table_name)
         new_table = RestoredTable(
-            target_table_name, account_id=self.account_id, region=self.region_name, backup=backup
+            target_table_name,
+            account_id=self.account_id,
+            region=self.region_name,
+            backup=backup,
         )
         self.tables[target_table_name] = new_table
         return new_table
@@ -1844,7 +1851,10 @@ class DynamoDBBackend(BaseBackend):
         if target_table_name in self.tables:
             raise TableAlreadyExistsException(target_table_name)
         new_table = RestoredPITTable(
-            target_table_name, account_id=self.account_id, region=self.region_name, source=source
+            target_table_name,
+            account_id=self.account_id,
+            region=self.region_name,
+            source=source,
         )
         self.tables[target_table_name] = new_table
         return new_table

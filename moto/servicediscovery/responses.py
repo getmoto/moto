@@ -6,7 +6,6 @@ from .models import servicediscovery_backends
 
 
 class ServiceDiscoveryResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="servicediscovery")
 

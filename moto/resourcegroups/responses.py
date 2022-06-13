@@ -7,7 +7,6 @@ from .models import resourcegroups_backends
 
 
 class ResourceGroupsResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="resource-groups")
 

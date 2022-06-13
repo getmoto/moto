@@ -676,19 +676,21 @@ def filter_iam_instance_profile_associations(iam_instance_associations, filter_d
     return result
 
 
-def filter_iam_instance_profiles(account_id, iam_instance_profile_arn, iam_instance_profile_name):
+def filter_iam_instance_profiles(
+    account_id, iam_instance_profile_arn, iam_instance_profile_name
+):
     instance_profile = None
     instance_profile_by_name = None
     instance_profile_by_arn = None
     if iam_instance_profile_name:
-        instance_profile_by_name = iam_backends[account_id]["global"].get_instance_profile(
-            iam_instance_profile_name
-        )
+        instance_profile_by_name = iam_backends[account_id][
+            "global"
+        ].get_instance_profile(iam_instance_profile_name)
         instance_profile = instance_profile_by_name
     if iam_instance_profile_arn:
-        instance_profile_by_arn = iam_backends[account_id]["global"].get_instance_profile_by_arn(
-            iam_instance_profile_arn
-        )
+        instance_profile_by_arn = iam_backends[account_id][
+            "global"
+        ].get_instance_profile_by_arn(iam_instance_profile_arn)
         instance_profile = instance_profile_by_arn
     # We would prefer instance profile that we found by arn
     if iam_instance_profile_arn and iam_instance_profile_name:

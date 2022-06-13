@@ -340,9 +340,9 @@ class EBSBackend:
     def copy_snapshot(self, source_snapshot_id, source_region, description=None):
         from ..models import ec2_backends
 
-        source_snapshot = ec2_backends[self.account_id][source_region].describe_snapshots(
-            snapshot_ids=[source_snapshot_id]
-        )[0]
+        source_snapshot = ec2_backends[self.account_id][
+            source_region
+        ].describe_snapshots(snapshot_ids=[source_snapshot_id])[0]
         snapshot_id = random_snapshot_id()
         snapshot = Snapshot(
             self,

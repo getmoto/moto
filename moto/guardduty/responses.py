@@ -6,7 +6,6 @@ from urllib.parse import unquote
 
 
 class GuardDutyResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="guardduty")
 

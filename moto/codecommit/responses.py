@@ -17,7 +17,6 @@ def _is_repository_name_valid(repository_name):
 
 
 class CodeCommitResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="codecommit")
 

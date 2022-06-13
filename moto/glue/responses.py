@@ -10,7 +10,6 @@ from .models import glue_backends
 
 
 class GlueResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="glue")
 

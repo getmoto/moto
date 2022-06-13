@@ -6,7 +6,6 @@ from .models import efs_backends
 
 
 class EFSResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="efs")
 

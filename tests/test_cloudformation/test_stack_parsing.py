@@ -344,9 +344,9 @@ def test_parse_stack_with_null_outputs_section():
             null_output_template_json,
             {},
             account_id=ACCOUNT_ID,
-            region_name="us-west-1"
-    )
-    err = exc.value
+            region_name="us-west-1",
+        )
+    err = str(exc.value)
     err.should.contain("[/Outputs] 'null' values are not allowed in templates")
 
 

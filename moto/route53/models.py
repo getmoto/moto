@@ -186,7 +186,12 @@ class RecordSet(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, account_id, region_name
@@ -219,11 +224,12 @@ class RecordSet(CloudFormationModel):
     def physical_resource_id(self):
         return self.name
 
-    def delete(self, *args, **kwargs):  # pylint: disable=unused-argument
-        """Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored"""
-        hosted_zone = route53_backend.get_hosted_zone_by_name(self.hosted_zone_name)
+    def delete(self, account_id, region):  # pylint: disable=unused-argument
+        """Not exposed as part of the Route 53 API - used for CloudFormation"""
+        backend = route53_backends[account_id][region]
+        hosted_zone = backend.get_hosted_zone_by_name(self.hosted_zone_name)
         if not hosted_zone:
-            hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)
+            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)
         hosted_zone.delete_rrset({"Name": self.name, "Type": self.type_})
 
 

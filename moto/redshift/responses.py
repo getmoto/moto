@@ -45,7 +45,6 @@ def itemize(data):
 
 
 class RedshiftResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="redshift")
 

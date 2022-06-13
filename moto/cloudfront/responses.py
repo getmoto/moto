@@ -8,7 +8,6 @@ XMLNS = "http://cloudfront.amazonaws.com/doc/2020-05-31/"
 
 
 class CloudFrontResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="cloudfront")
 

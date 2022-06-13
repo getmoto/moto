@@ -6,7 +6,6 @@ from .models import datasync_backends
 
 
 class DataSyncResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="datasync")
 

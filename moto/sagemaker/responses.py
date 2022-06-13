@@ -12,7 +12,6 @@ def format_enum_error(value, attribute, allowed):
 
 
 class SageMakerResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="sagemaker")
 

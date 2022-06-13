@@ -6,7 +6,6 @@ from .models import iot_backends
 
 
 class IoTResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="iot")
 

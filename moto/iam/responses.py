@@ -4,7 +4,6 @@ from .models import iam_backends, User
 
 
 class IamResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="iam")
 
@@ -2220,6 +2219,27 @@ DELETE_ACCOUNT_ALIAS_TEMPLATE = """<DeleteAccountAliasResponse xmlns="https://ia
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteAccountAliasResponse>"""
+
+
+LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
+  <ListGroupsForUserResult>
+    <Groups>
+        {% for group in groups %}
+        <member>
+            <Path>{{ group.path }}</Path>
+            <GroupName>{{ group.name }}</GroupName>
+            <GroupId>{{ group.id }}</GroupId>
+            <Arn>{{ group.arn }}</Arn>
+            <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
+        </member>
+        {% endfor %}
+    </Groups>
+    <IsTruncated>false</IsTruncated>
+  </ListGroupsForUserResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupsForUserResponse>"""
 
 
 GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

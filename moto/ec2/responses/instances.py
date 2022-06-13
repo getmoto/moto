@@ -94,8 +94,12 @@ class InstanceResponse(EC2BaseResponse):
             from moto.autoscaling import autoscaling_backends
             from moto.elbv2 import elbv2_backends
 
-            autoscaling_backends[self.current_account][self.region].notify_terminate_instances(instance_ids)
-            elbv2_backends[self.current_account][self.region].notify_terminate_instances(instance_ids)
+            autoscaling_backends[self.current_account][
+                self.region
+            ].notify_terminate_instances(instance_ids)
+            elbv2_backends[self.current_account][
+                self.region
+            ].notify_terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
             return template.render(instances=instances)
 

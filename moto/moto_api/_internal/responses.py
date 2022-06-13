@@ -5,7 +5,6 @@ from moto.core.responses import ActionAuthenticatorMixin, BaseResponse
 
 
 class MotoAPIResponse(BaseResponse):
-
     def backends(self):
         pass
 

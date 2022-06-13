@@ -6,7 +6,6 @@ from .models import forecast_backends
 
 
 class ForecastResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="forecast")
 

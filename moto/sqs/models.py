@@ -437,7 +437,12 @@ class Queue(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
         queue_name = original_resource.name
@@ -652,7 +657,9 @@ class SQSBackend(BaseBackend):
             except KeyError:
                 pass
 
-            new_queue = Queue(name, region=self.region_name, account_id=self.account_id, **kwargs)
+            new_queue = Queue(
+                name, region=self.region_name, account_id=self.account_id, **kwargs
+            )
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
@@ -667,7 +674,9 @@ class SQSBackend(BaseBackend):
                 kwargs.pop("region")
             except KeyError:
                 pass
-            queue = Queue(name, region=self.region_name, account_id=self.account_id, **kwargs)
+            queue = Queue(
+                name, region=self.region_name, account_id=self.account_id, **kwargs
+            )
             self.queues[name] = queue
 
         if tags:

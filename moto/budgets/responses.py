@@ -5,7 +5,6 @@ from .models import budgets_backends
 
 
 class BudgetsResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="budgets")
 

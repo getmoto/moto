@@ -5,7 +5,6 @@ from .models import organizations_backends
 
 
 class OrganizationsResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="organizations")
 

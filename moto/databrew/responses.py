@@ -7,7 +7,6 @@ from .models import databrew_backends
 
 
 class DataBrewResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="databrew")
 

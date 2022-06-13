@@ -6,7 +6,6 @@ from .models import ssm_backends
 
 
 class SimpleSystemManagerResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="ssm")
 

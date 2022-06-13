@@ -10,7 +10,6 @@ from botocore.exceptions import ClientError
 from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
-from typing import Mapping
 from urllib.parse import urlparse
 
 

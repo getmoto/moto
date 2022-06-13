@@ -3,7 +3,6 @@ from .models import ec2instanceconnect_backends
 
 
 class Ec2InstanceConnectResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="ec2-instanceconnect")
 

@@ -3,7 +3,6 @@ from .models import sdb_backends
 
 
 class SimpleDBResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="sdb")
 

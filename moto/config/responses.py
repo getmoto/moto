@@ -4,7 +4,6 @@ from .models import config_backends
 
 
 class ConfigResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="config")
 

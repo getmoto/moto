@@ -213,7 +213,9 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         )
         try:
             self._access_key = create_access_key(
-                account_id=self.account_id, access_key_id=credential_data[0], headers=headers
+                account_id=self.account_id,
+                access_key_id=credential_data[0],
+                headers=headers,
             )
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)

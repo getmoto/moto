@@ -4,7 +4,6 @@ from .models import dynamodbstreams_backends
 
 
 class DynamoDBStreamsHandler(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="dynamodb-streams")
 

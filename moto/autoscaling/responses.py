@@ -10,7 +10,6 @@ from .models import autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="autoscaling")
 

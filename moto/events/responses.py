@@ -5,7 +5,6 @@ from moto.events import events_backends
 
 
 class EventsHandler(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="events")
 

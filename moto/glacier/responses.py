@@ -6,7 +6,6 @@ from .utils import vault_from_glacier_url
 
 
 class GlacierResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="glacier")
 

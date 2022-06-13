@@ -5,7 +5,6 @@ from .models import kinesis_backends
 
 
 class KinesisResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="kinesis")
 

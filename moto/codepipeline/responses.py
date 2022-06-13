@@ -5,7 +5,6 @@ from .models import codepipeline_backends
 
 
 class CodePipelineResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="codepipeline")
 

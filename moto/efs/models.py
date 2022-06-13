@@ -240,11 +240,18 @@ class FileSystem(CloudFormationModel):
                 "supported by AWS Cloudformation."
             )
 
-        return efs_backends[account_id][region_name].create_file_system(resource_name, **props)
+        return efs_backends[account_id][region_name].create_file_system(
+            resource_name, **props
+        )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         raise NotImplementedError(
             "Update of EFS File System via cloudformation is not yet implemented."
@@ -341,7 +348,12 @@ class MountTarget(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         raise NotImplementedError(
             "Updates of EFS Mount Target via cloudformation are not yet implemented."

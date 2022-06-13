@@ -280,7 +280,12 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
@@ -383,7 +388,12 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
@@ -587,7 +597,12 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         if new_resource_name == original_resource.name:
             properties = cloudformation_json["Properties"]

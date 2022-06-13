@@ -4,7 +4,6 @@ import json
 
 
 class MediaLiveResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="medialive")
 

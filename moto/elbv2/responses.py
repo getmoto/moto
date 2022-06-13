@@ -135,7 +135,6 @@ SSL_POLICIES = [
 
 
 class ELBV2Response(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="elbv2")
 

@@ -176,7 +176,12 @@ class StateMachine(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json.get("Properties", {})
         name = properties.get("StateMachineName", original_resource.name)

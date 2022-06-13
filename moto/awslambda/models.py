@@ -183,7 +183,9 @@ def _validate_s3_bucket_and_key(account_id, data):
     key = None
     try:
         # FIXME: does not validate bucket region
-        key = s3_backends[account_id]["global"].get_object(data["S3Bucket"], data["S3Key"])
+        key = s3_backends[account_id]["global"].get_object(
+            data["S3Bucket"], data["S3Key"]
+        )
     except MissingBucket:
         if do_validate_s3():
             raise InvalidParameterValueException(
@@ -842,7 +844,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         updated_props = cloudformation_json["Properties"]
         original_resource.update_configuration(updated_props)
@@ -989,7 +996,12 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid
@@ -1365,7 +1377,12 @@ class LambdaBackend(BaseBackend):
         if function_name is None:
             raise RESTError("InvalidParameterValueException", "Missing FunctionName")
 
-        fn = LambdaFunction(account_id=self.account_id, spec=spec, region=self.region_name, version="$LATEST")
+        fn = LambdaFunction(
+            account_id=self.account_id,
+            spec=spec,
+            region=self.region_name,
+            version="$LATEST",
+        )
 
         self._lambdas.put_function(fn)
 
@@ -1431,7 +1448,9 @@ class LambdaBackend(BaseBackend):
         for param in required:
             if not spec.get(param):
                 raise InvalidParameterValueException("Missing {}".format(param))
-        layer_version = LayerVersion(spec, account_id=self.account_id, region=self.region_name)
+        layer_version = LayerVersion(
+            spec, account_id=self.account_id, region=self.region_name
+        )
         self._layers.put_layer_version(layer_version)
         return layer_version
 

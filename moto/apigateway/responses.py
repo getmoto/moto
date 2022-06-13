@@ -13,7 +13,6 @@ ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
 
 
 class APIGatewayResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="apigateway")
 

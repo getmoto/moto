@@ -108,7 +108,12 @@ class Cluster(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         if original_resource.name != new_resource_name:
             ecs_backend = ecs_backends[region_name]
@@ -255,7 +260,12 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
         family = properties.get(
@@ -479,7 +489,12 @@ class Service(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
         if isinstance(properties["Cluster"], Cluster):

@@ -30,7 +30,6 @@ def _validate_filters(filters):
 
 
 class SecretsManagerResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="secretsmanager")
 

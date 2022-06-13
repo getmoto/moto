@@ -123,7 +123,10 @@ class ActionAuthenticatorMixin(object):
         ):
             iam_request = iam_request_cls(
                 account_id=self.account_id,
-                method=self.method, path=self.path, data=self.data, headers=self.headers
+                method=self.method,
+                path=self.path,
+                data=self.data,
+                headers=self.headers,
             )
             iam_request.check_signature()
             iam_request.check_action_permitted()
@@ -294,7 +297,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             account_id=self.current_account,
             access_key=self.access_key,
             service=self.service_name,
-            region=self.region
+            region=self.region,
         )
 
     def get_region_from_url(self, request, full_url):

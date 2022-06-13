@@ -4,7 +4,6 @@ from .models import redshiftdata_backends
 
 
 class RedshiftDataAPIServiceResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="redshift-data")
 

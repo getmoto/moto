@@ -223,7 +223,12 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         cls._delete_security_group_given_vpc_id(
             original_resource.name, original_resource.vpc_id, account_id, region_name
@@ -238,10 +243,14 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         vpc_id = properties.get("VpcId")
-        cls._delete_security_group_given_vpc_id(resource_name, vpc_id, account_id, region_name)
+        cls._delete_security_group_given_vpc_id(
+            resource_name, vpc_id, account_id, region_name
+        )
 
     @classmethod
-    def _delete_security_group_given_vpc_id(cls, resource_name, vpc_id, account_id, region_name):
+    def _delete_security_group_given_vpc_id(
+        cls, resource_name, vpc_id, account_id, region_name
+    ):
         from ..models import ec2_backends
 
         ec2_backend = ec2_backends[account_id][region_name]

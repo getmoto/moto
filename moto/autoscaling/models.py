@@ -214,13 +214,18 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, region_name
+            original_resource.name, cloudformation_json, account_id, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
@@ -473,7 +478,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, region_name

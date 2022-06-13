@@ -133,7 +133,7 @@ class Route53(BaseResponse):
         zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
 
         if method == "GET":
-            route53_backend.get_dnssec(zoneid)
+            self.backend.get_dnssec(zoneid)
             return 200, headers, GET_DNSSEC
 
     def rrset_response(self, request, full_url, headers):
@@ -263,12 +263,12 @@ class Route53(BaseResponse):
 
         if method == "GET":
             health_check_id = parsed_url.path.split("/")[-1]
-            health_check = route53_backend.get_health_check(health_check_id)
+            health_check = self.backend.get_health_check(health_check_id)
             template = Template(GET_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(health_check=health_check)
         elif method == "DELETE":
             health_check_id = parsed_url.path.split("/")[-1]
-            route53_backend.delete_health_check(health_check_id)
+            self.backend.delete_health_check(health_check_id)
             template = Template(DELETE_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(xmlns=XMLNS)
 

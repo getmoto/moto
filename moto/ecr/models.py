@@ -200,7 +200,12 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         ecr_backend = ecr_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]

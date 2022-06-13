@@ -242,7 +242,9 @@ class FlowLogsBackend:
                 try:
                     # Need something easy to check the group exists.
                     # The list_tags_log_group seems to do the trick.
-                    logs_backends[self.account_id][self.region_name].list_tags_log_group(log_group_name)
+                    logs_backends[self.account_id][
+                        self.region_name
+                    ].list_tags_log_group(log_group_name)
                 except ResourceNotFoundException:
                     deliver_logs_status = "FAILED"
                     deliver_logs_error_message = "Access error"

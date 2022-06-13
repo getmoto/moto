@@ -6,7 +6,6 @@ from .models import acm_backends, AWSValidationException
 
 
 class AWSCertificateManagerResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="acm")
 

@@ -5,7 +5,6 @@ from .models import ecs_backends
 
 
 class EC2ContainerServiceResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="ecs")
 

@@ -73,7 +73,9 @@ def get_account_id_from(access_key):
 def mark_account_as_visited(account_id, access_key, service, region):
     account = iam_backends[account_id]
     if access_key in account["global"].access_keys:
-        account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(timestamp=datetime.utcnow(), service=service, region=region)
+        account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(
+            timestamp=datetime.utcnow(), service=service, region=region
+        )
     else:
         # User provided access credentials unknown to us
         pass
@@ -499,7 +501,12 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1002,16 +1009,24 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
         if cls.is_replacement_update(properties):
             new_resource = cls.create_from_cloudformation_json(
-                new_resource_name, cloudformation_json, region_name
+                new_resource_name, cloudformation_json, account_id, region_name
             )
             cls.delete_from_cloudformation_json(
-                original_resource.physical_resource_id, cloudformation_json, region_name
+                original_resource.physical_resource_id,
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             return new_resource
 
@@ -1024,9 +1039,9 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudcreate_accessformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_access_key_by_name(resource_name)
+        iam_backends[account_id]["global"].delete_access_key_by_name(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -1342,7 +1357,12 @@ class User(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 

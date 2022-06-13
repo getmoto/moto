@@ -5,7 +5,6 @@ from .models import mediastoredata_backends
 
 
 class MediaStoreDataResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="mediastore-data")
 

@@ -4,7 +4,6 @@ import json
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="resourcegroupstaggingapi")
 

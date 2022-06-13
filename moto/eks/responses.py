@@ -9,7 +9,6 @@ DEFAULT_NEXT_TOKEN = ""
 
 
 class EKSResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="eks")
 

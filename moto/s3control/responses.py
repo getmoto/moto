@@ -9,7 +9,6 @@ from .models import s3control_backends
 
 
 class S3ControlResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="s3control")
 

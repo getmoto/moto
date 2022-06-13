@@ -362,7 +362,12 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Changes to the Endpoint will not change resource name
         cls.delete_from_cloudformation_json(
@@ -554,7 +559,12 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Most changes to the endpoint config will change resource name for EndpointConfigs
         cls.delete_from_cloudformation_json(
@@ -574,7 +584,9 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         # using the name for most of its operations.
         endpoint_config_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[account_id][region_name].delete_endpoint_config(endpoint_config_name)
+        sagemaker_backends[account_id][region_name].delete_endpoint_config(
+            endpoint_config_name
+        )
 
 
 class Model(BaseObject, CloudFormationModel):
@@ -668,7 +680,12 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Most changes to the model will change resource name for Models
         cls.delete_from_cloudformation_json(
@@ -883,7 +900,12 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
@@ -991,7 +1013,12 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(

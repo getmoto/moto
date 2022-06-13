@@ -153,7 +153,6 @@ def is_delete_keys(request, path):
 
 
 class S3Response(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="s3")
 

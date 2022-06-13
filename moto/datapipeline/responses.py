@@ -5,7 +5,6 @@ from .models import datapipeline_backends
 
 
 class DataPipelineResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="datapipeline")
 

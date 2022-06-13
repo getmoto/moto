@@ -5,7 +5,6 @@ from urllib.parse import unquote
 
 
 class IoTDataPlaneResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="iot-data")
 

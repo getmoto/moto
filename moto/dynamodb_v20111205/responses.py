@@ -6,7 +6,6 @@ from .models import dynamodb_backends, dynamo_json_dump
 
 
 class DynamoHandler(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="dynamodb")
 

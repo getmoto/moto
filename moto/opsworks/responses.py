@@ -5,7 +5,6 @@ from .models import opsworks_backends
 
 
 class OpsWorksResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="opsworks")
 

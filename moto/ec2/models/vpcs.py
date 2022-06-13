@@ -748,7 +748,9 @@ class VPCBackend:
 
         The DryRun parameter is ignored.
         """
-        default_services = self._collect_default_endpoint_services(self.account_id, region)
+        default_services = self._collect_default_endpoint_services(
+            self.account_id, region
+        )
         for service_name in service_names:
             if service_name not in [x["ServiceName"] for x in default_services]:
                 raise InvalidServiceName(service_name)

@@ -4,7 +4,6 @@ import json
 
 
 class KinesisVideoResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="kinesisvideo")
 

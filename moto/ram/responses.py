@@ -4,7 +4,6 @@ import json
 
 
 class ResourceAccessManagerResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="ram")
 

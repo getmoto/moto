@@ -9,7 +9,6 @@ from .exceptions import InvalidParameterCombination
 
 
 class CloudWatchResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="cloudwatch")
 

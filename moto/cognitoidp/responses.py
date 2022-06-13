@@ -16,7 +16,6 @@ region_agnostic_backend = RegionAgnosticBackend()
 
 
 class CognitoIdpResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="cognito-idp")
 

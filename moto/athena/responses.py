@@ -5,7 +5,6 @@ from .models import athena_backends
 
 
 class AthenaResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="athena")
 

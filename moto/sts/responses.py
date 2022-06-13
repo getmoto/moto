@@ -8,7 +8,6 @@ MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 
 
 class TokenResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="sts")
 

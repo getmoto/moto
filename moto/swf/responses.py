@@ -7,7 +7,6 @@ from .models import swf_backends
 
 
 class SWFResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="swf")
 

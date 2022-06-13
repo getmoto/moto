@@ -7,7 +7,6 @@ from .exceptions import DBParameterGroupNotFoundError
 
 
 class RDSResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="rds")
 

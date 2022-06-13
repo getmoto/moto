@@ -8,7 +8,6 @@ from .models import ecr_backends, DEFAULT_REGISTRY_ID
 
 
 class ECRResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="ecr")
 

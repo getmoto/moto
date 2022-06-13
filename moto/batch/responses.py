@@ -6,7 +6,6 @@ import json
 
 
 class BatchResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="batch")
 

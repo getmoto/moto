@@ -5,7 +5,6 @@ from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 
 
 class ELBResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="elb")
 

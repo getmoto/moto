@@ -9,7 +9,6 @@ from .models import lambda_backends
 
 
 class LambdaResponse(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="awslambda")
 
@@ -291,9 +290,7 @@ class LambdaResponse(BaseResponse):
         return 201, {}, json.dumps(config)
 
     def _list_event_source_mappings(self, event_source_arn, function_name):
-        esms = self.backend.list_event_source_mappings(
-            event_source_arn, function_name
-        )
+        esms = self.backend.list_event_source_mappings(event_source_arn, function_name)
         result = {"EventSourceMappings": [esm.get_configuration() for esm in esms]}
         return 200, {}, json.dumps(result)
 
@@ -450,9 +447,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
         concurrency = self._get_param("ReservedConcurrentExecutions", None)
-        resp = self.backend.put_function_concurrency(
-            path_function_name, concurrency
-        )
+        resp = self.backend.put_function_concurrency(path_function_name, concurrency)
 
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
 
@@ -518,9 +513,7 @@ class LambdaResponse(BaseResponse):
     def _get_alias(self):
         function_name = unquote(self.path.rsplit("/")[-3])
         alias_name = unquote(self.path.rsplit("/", 2)[-1])
-        alias = self.backend.get_alias(
-            name=alias_name, function_name=function_name
-        )
+        alias = self.backend.get_alias(name=alias_name, function_name=function_name)
         return 201, {}, json.dumps(alias.to_json())
 
     def _update_alias(self):

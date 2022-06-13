@@ -572,28 +572,31 @@ class LogResourcePolicy(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]
         policy_document = properties["PolicyDocument"]
 
         backend = logs_backends[account_id][region_name]
-        updated = backend.put_resource_policy(
-            policy_name, policy_document
-        )
+        updated = backend.put_resource_policy(policy_name, policy_document)
         # TODO: move `update by replacement logic` to cloudformation. this is required for implementing rollbacks
         if original_resource.policy_name != policy_name:
-            backend.delete_resource_policy(
-                original_resource.policy_name
-            )
+            backend.delete_resource_policy(original_resource.policy_name)
         return updated
 
     @classmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        return logs_backends[account_id][region_name].delete_resource_policy(resource_name)
+        return logs_backends[account_id][region_name].delete_resource_policy(
+            resource_name
+        )
 
 
 class LogsBackend(BaseBackend):

@@ -48,7 +48,12 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        account_id,
+        region_name,
     ):
         # This must be implemented as a classmethod with parameters:
         # cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name

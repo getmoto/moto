@@ -101,7 +101,6 @@ def put_has_empty_attrs(field_updates, table):
 
 
 class DynamoHandler(BaseResponse):
-
     def __init__(self):
         super().__init__(service_name="dynamodb")
 
