@@ -89,6 +89,28 @@ class HostedZoneNotEmpty(Route53ClientError):
         self.content_type = "text/xml"
 
 
+class PublicZoneVPCAssociation(Route53ClientError):
+    """Public hosted zone can't be associated."""
+
+    code = 400
+
+    def __init__(self):
+        message = "You're trying to associate a VPC with a public hosted zone. Amazon Route 53 doesn't support associating a VPC with a public hosted zone."
+        super().__init__("PublicZoneVPCAssociation", message)
+        self.content_type = "text/xml"
+
+
+class LastVPCAssociation(Route53ClientError):
+    """Last VPC can't be disassociate."""
+
+    code = 400
+
+    def __init__(self):
+        message = "The VPC that you're trying to disassociate from the private hosted zone is the last VPC that is associated with the hosted zone. Amazon Route 53 doesn't support disassociating the last VPC from a hosted zone."
+        super().__init__("LastVPCAssociation", message)
+        self.content_type = "text/xml"
+
+
 class NoSuchQueryLoggingConfig(Route53ClientError):
     """Query log config does not exist."""
 
