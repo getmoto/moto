@@ -22,8 +22,8 @@ class LambdaResponse(BaseResponse):
         return json.loads(self.body)
 
     @property
-    def backends(self):
-        return lambda_backends
+    def backend(self):
+        return lambda_backends[self.current_account][self.region]
 
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

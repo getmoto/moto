@@ -97,9 +97,9 @@ class Cluster(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        ecs_backend = ecs_backends[region_name]
+        ecs_backend = ecs_backends[account_id][region_name]
         return ecs_backend.create_cluster(
             # ClusterName is optional in CloudFormation, thus create a random
             # name if necessary
@@ -108,7 +108,7 @@ class Cluster(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         if original_resource.name != new_resource_name:
             ecs_backend = ecs_backends[region_name]
@@ -236,7 +236,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -248,14 +248,14 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         )
         volumes = remap_nested_keys(properties.get("Volumes", []), pascal_to_camelcase)
 
-        ecs_backend = ecs_backends[region_name]
+        ecs_backend = ecs_backends[account_id][region_name]
         return ecs_backend.register_task_definition(
             family=family, container_definitions=container_definitions, volumes=volumes
         )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
         family = properties.get(
@@ -457,7 +457,7 @@ class Service(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         if isinstance(properties["Cluster"], Cluster):
@@ -472,14 +472,14 @@ class Service(BaseObject, CloudFormationModel):
         # TODO: LoadBalancers
         # TODO: Role
 
-        ecs_backend = ecs_backends[region_name]
+        ecs_backend = ecs_backends[account_id][region_name]
         return ecs_backend.create_service(
             cluster, resource_name, desired_count, task_definition_str=task_definition
         )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
         if isinstance(properties["Cluster"], Cluster):

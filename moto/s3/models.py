@@ -108,6 +108,7 @@ class FakeKey(BaseModel, ManagedState):
         self,
         name,
         value,
+        account_id=None,
         storage="STANDARD",
         etag=None,
         is_versioned=False,
@@ -131,6 +132,7 @@ class FakeKey(BaseModel, ManagedState):
             ],
         )
         self.name = name
+        self.account_id = account_id
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl("private")
         self.website_redirect_location = None
@@ -289,7 +291,7 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
-        tags = s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn)
+        tags = s3_backends[self.account_id]["global"].tagger.get_tag_dict_for_resource(self.arn)
         if tags:
             res["x-amz-tagging-count"] = len(tags.keys())
 
@@ -1223,9 +1225,9 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        bucket = s3_backends["global"].create_bucket(resource_name, region_name)
+        bucket = s3_backends[account_id]["global"].create_bucket(resource_name, region_name)
 
         properties = cloudformation_json.get("Properties", {})
 
@@ -1239,7 +1241,7 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1268,9 +1270,9 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        s3_backends["global"].delete_bucket(resource_name)
+        s3_backends[account_id]["global"].delete_bucket(resource_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1686,6 +1688,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             name=key_name,
             bucket_name=bucket_name,
             value=value,
+            account_id=self.account_id,
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,

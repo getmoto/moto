@@ -65,7 +65,7 @@ class ScalableDimensionValueSet(Enum):
 class ApplicationAutoscalingBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self.ecs_backend = ecs_backends[region_name]
+        self.ecs_backend = ecs_backends[account_id][region_name]
         self.targets = OrderedDict()
         self.policies = {}
         self.scheduled_actions = list()

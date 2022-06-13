@@ -32,7 +32,7 @@ class IamInstanceProfileAssociationBackend:
         iam_association_id = random_iam_instance_profile_association_id()
 
         instance_profile = filter_iam_instance_profiles(
-            iam_instance_profile_arn, iam_instance_profile_name
+            self.account_id, iam_instance_profile_arn, iam_instance_profile_name
         )
 
         if instance_id in self.iam_instance_profile_associations.keys():
@@ -101,7 +101,7 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_arn=None,
     ):
         instance_profile = filter_iam_instance_profiles(
-            iam_instance_profile_arn, iam_instance_profile_name
+            self.account_id, iam_instance_profile_arn, iam_instance_profile_name
         )
 
         iam_instance_profile_association = None

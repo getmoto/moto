@@ -97,9 +97,9 @@ class ComputeEnvironment(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        backend = batch_backends[region_name]
+        backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         env = backend.create_compute_environment(
@@ -182,9 +182,9 @@ class JobQueue(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        backend = batch_backends[region_name]
+        backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         # Need to deal with difference case from cloudformation compute_resources, e.g. instanceRole vs InstanceRole
@@ -392,9 +392,9 @@ class JobDefinition(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        backend = batch_backends[region_name]
+        backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         res = backend.register_job_definition(
             def_name=resource_name,
@@ -844,7 +844,7 @@ class BatchBackend(BaseBackend):
         :return: IAM Backend
         :rtype: moto.iam.models.IAMBackend
         """
-        return iam_backends["global"]
+        return iam_backends[self.account_id]["global"]
 
     @property
     def ec2_backend(self):
@@ -852,7 +852,7 @@ class BatchBackend(BaseBackend):
         :return: EC2 Backend
         :rtype: moto.ec2.models.EC2Backend
         """
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     @property
     def ecs_backend(self):

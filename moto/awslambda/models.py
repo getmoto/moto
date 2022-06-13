@@ -179,11 +179,11 @@ def _s3_content(key):
     return key.value, key.size, base64ed_sha, sha_hex_digest
 
 
-def _validate_s3_bucket_and_key(data):
+def _validate_s3_bucket_and_key(account_id, data):
     key = None
     try:
         # FIXME: does not validate bucket region
-        key = s3_backends["global"].get_object(data["S3Bucket"], data["S3Key"])
+        key = s3_backends[account_id]["global"].get_object(data["S3Bucket"], data["S3Key"])
     except MissingBucket:
         if do_validate_s3():
             raise InvalidParameterValueException(
@@ -212,18 +212,19 @@ class Permission(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        backend = lambda_backends[region_name]
+        backend = lambda_backends[account_id][region_name]
         fn = backend.get_function(properties["FunctionName"])
         fn.policy.add_statement(raw=json.dumps(properties))
         return Permission(region=region_name)
 
 
 class LayerVersion(CloudFormationModel):
-    def __init__(self, spec, region):
+    def __init__(self, spec, account_id, region):
         # required
+        self.account_id = account_id
         self.region = region
         self.name = spec["LayerName"]
         self.content = spec["Content"]
@@ -248,7 +249,7 @@ class LayerVersion(CloudFormationModel):
                 self.code_digest,
             ) = _zipfile_content(self.content["ZipFile"])
         else:
-            key = _validate_s3_bucket_and_key(self.content)
+            key = _validate_s3_bucket_and_key(account_id, data=self.content)
             if key:
                 (
                     self.code_bytes,
@@ -297,7 +298,7 @@ class LayerVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = ("Description", "CompatibleRuntimes", "LicenseInfo")
@@ -311,7 +312,7 @@ class LayerVersion(CloudFormationModel):
             if prop in properties:
                 spec[prop] = properties[prop]
 
-        backend = lambda_backends[region_name]
+        backend = lambda_backends[account_id][region_name]
         layer_version = backend.publish_layer_version(spec)
         return layer_version
 
@@ -374,16 +375,17 @@ class Layer(object):
 
 
 class LambdaFunction(CloudFormationModel, DockerModel):
-    def __init__(self, spec, region, version=1):
+    def __init__(self, account_id, spec, region, version=1):
         DockerModel.__init__(self)
         # required
+        self.account_id = account_id
         self.region = region
         self.code = spec["Code"]
         self.function_name = spec["FunctionName"]
         self.handler = spec.get("Handler")
         self.role = spec["Role"]
         self.run_time = spec.get("Runtime")
-        self.logs_backend = logs_backends[self.region]
+        self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.policy = None
         self.state = "Active"
@@ -424,7 +426,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.code["UUID"] = str(uuid.uuid4())
             self.code["S3Key"] = "{}-{}".format(self.function_name, self.code["UUID"])
         elif "S3Bucket" in self.code:
-            key = _validate_s3_bucket_and_key(self.code)
+            key = _validate_s3_bucket_and_key(self.account_id, data=self.code)
             if key:
                 (
                     self.code_bytes,
@@ -787,7 +789,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         optional_properties = (
@@ -823,7 +825,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 cls._create_zipfile_from_plaintext_code(spec["Code"]["ZipFile"])
             )
 
-        backend = lambda_backends[region_name]
+        backend = lambda_backends[account_id][region_name]
         fn = backend.create_function(spec)
         return fn
 
@@ -840,7 +842,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         updated_props = cloudformation_json["Properties"]
         original_resource.update_configuration(updated_props)
@@ -861,8 +863,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         zip_output.seek(0)
         return zip_output.read()
 
-    def delete(self, region):
-        lambda_backends[region].delete_function(self.function_name)
+    def delete(self, account_id, region):
+        lambda_backends[account_id][region].delete_function(self.function_name)
 
     def delete_alias(self, name):
         self._aliases.pop(name, None)
@@ -964,8 +966,8 @@ class EventSourceMapping(CloudFormationModel):
             "StateTransitionReason": "User initiated",
         }
 
-    def delete(self, region_name):
-        lambda_backend = lambda_backends[region_name]
+    def delete(self, account_id, region_name):
+        lambda_backend = lambda_backends[account_id][region_name]
         lambda_backend.delete_event_source_mapping(self.uuid)
 
     @staticmethod
@@ -979,15 +981,15 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        lambda_backend = lambda_backends[region_name]
+        lambda_backend = lambda_backends[account_id][region_name]
         return lambda_backend.create_event_source_mapping(properties)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid
@@ -996,10 +998,10 @@ class EventSourceMapping(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
-        lambda_backend = lambda_backends[region_name]
+        lambda_backend = lambda_backends[account_id][region_name]
         esms = lambda_backend.list_event_source_mappings(
             event_source_arn=properties["EventSourceArn"],
             function_name=properties["FunctionName"],
@@ -1007,7 +1009,7 @@ class EventSourceMapping(CloudFormationModel):
 
         for esm in esms:
             if esm.uuid == resource_name:
-                esm.delete(region_name)
+                esm.delete(account_id, region_name)
 
     @property
     def physical_resource_id(self):
@@ -1032,11 +1034,11 @@ class LambdaVersion(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
-        func = lambda_backends[region_name].publish_function(function_name)
+        func = lambda_backends[account_id][region_name].publish_function(function_name)
         spec = {"Version": func.version}
         return LambdaVersion(spec)
 
@@ -1363,7 +1365,7 @@ class LambdaBackend(BaseBackend):
         if function_name is None:
             raise RESTError("InvalidParameterValueException", "Missing FunctionName")
 
-        fn = LambdaFunction(spec, self.region_name, version="$LATEST")
+        fn = LambdaFunction(account_id=self.account_id, spec=spec, region=self.region_name, version="$LATEST")
 
         self._lambdas.put_function(fn)
 
@@ -1389,7 +1391,8 @@ class LambdaBackend(BaseBackend):
             raise RESTError("ResourceNotFoundException", "Invalid FunctionName")
 
         # Validate queue
-        for queue in sqs_backends[self.region_name].queues.values():
+        sqs_backend = sqs_backends[self.account_id][self.region_name]
+        for queue in sqs_backend.queues.values():
             if queue.queue_arn == spec["EventSourceArn"]:
                 if queue.lambda_event_source_mappings.get("func.function_arn"):
                     # TODO: Correct exception?
@@ -1410,15 +1413,15 @@ class LambdaBackend(BaseBackend):
                     queue.lambda_event_source_mappings[esm.function_arn] = esm
 
                     return esm
-        for stream in json.loads(
-            dynamodbstreams_backends[self.region_name].list_streams()
-        )["Streams"]:
+        ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
+        ddb_backend = dynamodb_backends[self.account_id][self.region_name]
+        for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
             if stream["StreamArn"] == spec["EventSourceArn"]:
                 spec.update({"FunctionArn": func.function_arn})
                 esm = EventSourceMapping(spec)
                 self._event_source_mappings[esm.uuid] = esm
                 table_name = stream["TableName"]
-                table = dynamodb_backends[self.region_name].get_table(table_name)
+                table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
         raise RESTError("ResourceNotFoundException", "Invalid EventSourceArn")
@@ -1428,7 +1431,7 @@ class LambdaBackend(BaseBackend):
         for param in required:
             if not spec.get(param):
                 raise InvalidParameterValueException("Missing {}".format(param))
-        layer_version = LayerVersion(spec, self.region_name)
+        layer_version = LayerVersion(spec, account_id=self.account_id, region=self.region_name)
         self._layers.put_layer_version(layer_version)
         return layer_version
 

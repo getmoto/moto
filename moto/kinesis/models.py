@@ -415,7 +415,7 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         shard_count = properties.get("ShardCount", 1)
@@ -425,7 +425,7 @@ class Stream(CloudFormationModel):
             for tag_item in properties.get("Tags", [])
         }
 
-        backend = kinesis_backends[region_name]
+        backend = kinesis_backends[account_id][region_name]
         stream = backend.create_stream(
             resource_name, shard_count, retention_period_hours
         )
@@ -435,7 +435,7 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -468,9 +468,9 @@ class Stream(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        backend = kinesis_backends[region_name]
+        backend = kinesis_backends[account_id][region_name]
         backend.delete_stream(resource_name)
 
     @staticmethod

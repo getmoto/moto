@@ -411,7 +411,7 @@ class ElasticMapReduceBackend(BaseBackend):
         """
         from moto.ec2 import ec2_backends
 
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     def add_applications(self, cluster_id, applications):
         cluster = self.describe_cluster(cluster_id)

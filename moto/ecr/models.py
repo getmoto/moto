@@ -148,8 +148,8 @@ class Repository(BaseObject, CloudFormationModel):
         if image_tag_mutability:
             self.image_tag_mutability = image_tag_mutability
 
-    def delete(self, region_name):
-        ecr_backend = ecr_backends[region_name]
+    def delete(self, account_id, region_name):
+        ecr_backend = ecr_backends[account_id][region_name]
         ecr_backend.delete_repository(self.name)
 
     @classmethod
@@ -177,9 +177,9 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        ecr_backend = ecr_backends[region_name]
+        ecr_backend = ecr_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         encryption_config = properties.get("EncryptionConfiguration")
@@ -200,9 +200,9 @@ class Repository(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
-        ecr_backend = ecr_backends[region_name]
+        ecr_backend = ecr_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         encryption_configuration = properties.get(
             "EncryptionConfiguration", {"encryptionType": "AES256"}
@@ -223,9 +223,9 @@ class Repository(BaseObject, CloudFormationModel):
 
             return original_resource
         else:
-            original_resource.delete(region_name)
+            original_resource.delete(account_id, region_name)
             return cls.create_from_cloudformation_json(
-                new_resource_name, cloudformation_json, region_name
+                new_resource_name, cloudformation_json, account_id, region_name
             )
 
 

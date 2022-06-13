@@ -286,11 +286,11 @@ class LogGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         tags = properties.get("Tags", {})
-        return logs_backends[region_name].create_log_group(
+        return logs_backends[account_id][region_name].create_log_group(
             resource_name, tags, **properties
         )
 
@@ -561,38 +561,39 @@ class LogResourcePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]
         policy_document = properties["PolicyDocument"]
-        return logs_backends[region_name].put_resource_policy(
+        return logs_backends[account_id][region_name].put_resource_policy(
             policy_name, policy_document
         )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
         policy_name = properties["PolicyName"]
         policy_document = properties["PolicyDocument"]
 
-        updated = logs_backends[region_name].put_resource_policy(
+        backend = logs_backends[account_id][region_name]
+        updated = backend.put_resource_policy(
             policy_name, policy_document
         )
         # TODO: move `update by replacement logic` to cloudformation. this is required for implementing rollbacks
         if original_resource.policy_name != policy_name:
-            logs_backends[region_name].delete_resource_policy(
+            backend.delete_resource_policy(
                 original_resource.policy_name
             )
         return updated
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        return logs_backends[region_name].delete_resource_policy(resource_name)
+        return logs_backends[account_id][region_name].delete_resource_policy(resource_name)
 
 
 class LogsBackend(BaseBackend):

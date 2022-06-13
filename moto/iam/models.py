@@ -376,7 +376,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = json.dumps(properties.get("PolicyDocument"))
@@ -479,7 +479,7 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = properties.get("PolicyDocument")
@@ -499,7 +499,7 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -535,9 +535,9 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_inline_policy(resource_name)
+        iam_backends[account_id]["global"].delete_inline_policy(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -623,12 +623,13 @@ class Role(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
-        role = iam_backends["global"].create_role(
+        iam_backend = iam_backends[account_id]["global"]
+        role = iam_backend.create_role(
             role_name=role_name,
             assume_role_policy_document=properties["AssumeRolePolicyDocument"],
             path=properties.get("Path", "/"),
@@ -648,16 +649,17 @@ class Role(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        for profile in iam_backends["global"].instance_profiles.values():
+        backend = iam_backends[account_id]["global"]
+        for profile in backend.instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
-        for role in iam_backends["global"].roles.values():
+        for role in backend.roles.values():
             if role.name == resource_name:
                 for arn in role.policies.keys():
                     role.delete_policy(arn)
-        iam_backends["global"].delete_role(resource_name)
+        backend.delete_role(resource_name)
 
     @property
     def arn(self):
@@ -828,12 +830,12 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
         role_names = properties["Roles"]
-        return iam_backends["global"].create_instance_profile(
+        return iam_backends[account_id]["global"].create_instance_profile(
             name=resource_name,
             path=properties.get("Path", "/"),
             role_names=role_names,
@@ -841,9 +843,9 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_instance_profile(resource_name)
+        iam_backends[account_id]["global"].delete_instance_profile(resource_name)
 
     def delete_role(self, role_name):
         self.roles = [role for role in self.roles if role.name != role_name]
@@ -990,7 +992,7 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         user_name = properties.get("UserName")
@@ -1000,7 +1002,7 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1331,7 +1333,7 @@ class User(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
@@ -1340,7 +1342,7 @@ class User(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1364,9 +1366,9 @@ class User(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        iam_backends["global"].delete_user(resource_name)
+        iam_backends[account_id]["global"].delete_user(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):

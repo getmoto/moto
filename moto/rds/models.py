@@ -702,7 +702,7 @@ class Database(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -740,7 +740,7 @@ class Database(CloudFormationModel):
             "vpc_security_group_ids": properties.get("VpcSecurityGroupIds", []),
         }
 
-        rds_backend = rds_backends[region_name]
+        rds_backend = rds_backends[account_id][region_name]
         source_db_identifier = properties.get("SourceDBInstanceIdentifier")
         if source_db_identifier:
             # Replica
@@ -838,8 +838,8 @@ class Database(CloudFormationModel):
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
-    def delete(self, region_name):
-        backend = rds_backends[region_name]
+    def delete(self, account_id, region_name):
+        backend = rds_backends[account_id][region_name]
         backend.delete_db_instance(self.db_instance_identifier)
 
 
@@ -1104,7 +1104,7 @@ class SecurityGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         group_name = resource_name.lower()
@@ -1112,8 +1112,8 @@ class SecurityGroup(CloudFormationModel):
         security_group_ingress_rules = properties.get("DBSecurityGroupIngress", [])
         tags = properties.get("Tags")
 
-        ec2_backend = ec2_backends[region_name]
-        rds_backend = rds_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
+        rds_backend = rds_backends[account_id][region_name]
         security_group = rds_backend.create_db_security_group(
             group_name, description, tags
         )
@@ -1141,8 +1141,8 @@ class SecurityGroup(CloudFormationModel):
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
-    def delete(self, region_name):
-        backend = rds_backends[region_name]
+    def delete(self, account_id, region_name):
+        backend = rds_backends[account_id][region_name]
         backend.delete_security_group(self.group_name)
 
 
@@ -1212,7 +1212,7 @@ class SubnetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1220,9 +1220,9 @@ class SubnetGroup(CloudFormationModel):
         subnet_ids = properties["SubnetIds"]
         tags = properties.get("Tags")
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
-        rds_backend = rds_backends[region_name]
+        rds_backend = rds_backends[account_id][region_name]
         subnet_group = rds_backend.create_subnet_group(
             resource_name, description, subnets, tags
         )
@@ -1240,8 +1240,8 @@ class SubnetGroup(CloudFormationModel):
     def remove_tags(self, tag_keys):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
-    def delete(self, region_name):
-        backend = rds_backends[region_name]
+    def delete(self, account_id, region_name):
+        backend = rds_backends[account_id][region_name]
         backend.delete_subnet_group(self.subnet_name)
 
 
@@ -2174,8 +2174,8 @@ class DBParameterGroup(CloudFormationModel):
             parameter = self.parameters[new_parameter["ParameterName"]]
             parameter.update(new_parameter)
 
-    def delete(self, region_name):
-        backend = rds_backends[region_name]
+    def delete(self, account_id, region_name):
+        backend = rds_backends[account_id][region_name]
         backend.delete_db_parameter_group(self.name)
 
     @staticmethod
@@ -2189,7 +2189,7 @@ class DBParameterGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 

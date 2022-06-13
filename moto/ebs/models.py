@@ -58,7 +58,7 @@ class EBSBackend(BaseBackend):
 
     @property
     def ec2_backend(self):
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     def start_snapshot(self, volume_size, tags, description):
         zone_name = f"{self.region_name}a"

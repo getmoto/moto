@@ -345,7 +345,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         sagemaker_backend = sagemaker_backends[region_name]
 
@@ -362,7 +362,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         # Changes to the Endpoint will not change resource name
         cls.delete_from_cloudformation_json(
@@ -375,14 +375,14 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         endpoint_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[region_name].delete_endpoint(endpoint_name)
+        sagemaker_backends[account_id][region_name].delete_endpoint(endpoint_name)
 
 
 class FakeEndpointConfig(BaseObject, CloudFormationModel):
@@ -535,9 +535,9 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        sagemaker_backend = sagemaker_backends[region_name]
+        sagemaker_backend = sagemaker_backends[account_id][region_name]
 
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -554,7 +554,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         # Most changes to the endpoint config will change resource name for EndpointConfigs
         cls.delete_from_cloudformation_json(
@@ -567,14 +567,14 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         endpoint_config_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[region_name].delete_endpoint_config(endpoint_config_name)
+        sagemaker_backends[account_id][region_name].delete_endpoint_config(endpoint_config_name)
 
 
 class Model(BaseObject, CloudFormationModel):
@@ -647,9 +647,9 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        sagemaker_backend = sagemaker_backends[region_name]
+        sagemaker_backend = sagemaker_backends[account_id][region_name]
 
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -668,7 +668,7 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         # Most changes to the model will change resource name for Models
         cls.delete_from_cloudformation_json(
@@ -681,14 +681,14 @@ class Model(BaseObject, CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         model_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[region_name].delete_model(model_name)
+        sagemaker_backends[account_id][region_name].delete_model(model_name)
 
 
 class VpcConfig(BaseObject):
@@ -867,14 +867,14 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
         instance_type = properties["InstanceType"]
         role_arn = properties["RoleArn"]
 
-        notebook = sagemaker_backends[region_name].create_notebook_instance(
+        notebook = sagemaker_backends[account_id][region_name].create_notebook_instance(
             notebook_instance_name=resource_name,
             instance_type=instance_type,
             role_arn=role_arn,
@@ -883,7 +883,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
@@ -896,14 +896,14 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         notebook_instance_name = resource_name.split("/")[-1]
 
-        backend = sagemaker_backends[region_name]
+        backend = sagemaker_backends[account_id][region_name]
         backend.stop_notebook_instance(notebook_instance_name)
         backend.delete_notebook_instance(notebook_instance_name)
 
@@ -976,7 +976,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -991,7 +991,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
@@ -1008,14 +1008,14 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # Get actual name because resource_name actually provides the ARN
         # since the Physical Resource ID is the ARN despite SageMaker
         # using the name for most of its operations.
         config_name = resource_name.split("/")[-1]
 
-        backend = sagemaker_backends[region_name]
+        backend = sagemaker_backends[account_id][region_name]
         backend.delete_notebook_instance_lifecycle_config(config_name)
 
 

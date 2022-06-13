@@ -502,7 +502,7 @@ class OpsWorksBackend(BaseBackend):
         self.layers = {}
         self.apps = {}
         self.instances = {}
-        self.ec2_backend = ec2_backends[region_name]
+        self.ec2_backend = ec2_backends[account_id][region_name]
 
     def create_stack(self, **kwargs):
         stack = Stack(**kwargs)

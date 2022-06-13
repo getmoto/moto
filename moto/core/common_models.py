@@ -37,10 +37,10 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         # This must be implemented as a classmethod with parameters:
-        # cls, resource_name, cloudformation_json, region_name
+        # cls, resource_name, cloudformation_json, account_id, region_name
         # Extract the resource parameters from the cloudformation json
         # and return an instance of the resource class
         pass
@@ -48,10 +48,10 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         # This must be implemented as a classmethod with parameters:
-        # cls, original_resource, new_resource_name, cloudformation_json, region_name
+        # cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
         # Extract the resource parameters from the cloudformation json,
         # delete the old resource and return the new one. Optionally inspect
         # the change in parameters and no-op when nothing has changed.
@@ -60,10 +60,10 @@ class CloudFormationModel(BaseModel):
     @classmethod
     @abstractmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # This must be implemented as a classmethod with parameters:
-        # cls, resource_name, cloudformation_json, region_name
+        # cls, resource_name, cloudformation_json, account_id, region_name
         # Extract the resource parameters from the cloudformation json
         # and delete the resource. Do not include a return statement.
         pass

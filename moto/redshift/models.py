@@ -171,9 +171,9 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        redshift_backend = redshift_backends[region_name]
+        redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         if "ClusterSubnetGroupName" in properties:
@@ -378,9 +378,9 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        redshift_backend = redshift_backends[region_name]
+        redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         subnet_group = redshift_backend.create_cluster_subnet_group(
@@ -475,9 +475,9 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        redshift_backend = redshift_backends[region_name]
+        redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         parameter_group = redshift_backend.create_cluster_parameter_group(

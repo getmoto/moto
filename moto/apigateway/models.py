@@ -84,13 +84,13 @@ class Deployment(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
         name = properties["StageName"]
         desc = properties.get("Description", "")
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         return backend.create_deployment(
             function_id=rest_api_id, name=name, description=desc
         )
@@ -207,7 +207,7 @@ class Method(CloudFormationModel, dict):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         rest_api_id = properties["RestApiId"]
@@ -215,7 +215,7 @@ class Method(CloudFormationModel, dict):
         method_type = properties["HttpMethod"]
         auth_type = properties["AuthorizationType"]
         key_req = properties["ApiKeyRequired"]
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         m = backend.put_method(
             function_id=rest_api_id,
             resource_id=resource_id,
@@ -289,14 +289,14 @@ class Resource(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         api_id = properties["RestApiId"]
         parent = properties["ParentId"]
         path = properties["PathPart"]
 
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         if parent == api_id:
             # A Root path (/) is automatically created. Any new paths should use this as their parent
             resources = backend.get_resources(function_id=api_id)
@@ -879,13 +879,13 @@ class RestAPI(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         name = properties["Name"]
         desc = properties.get("Description", "")
         config = properties.get("EndpointConfiguration", None)
-        backend = apigateway_backends[region_name]
+        backend = apigateway_backends[account_id][region_name]
         return backend.create_rest_api(
             name=name, description=desc, endpoint_configuration=config
         )

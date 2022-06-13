@@ -71,15 +71,15 @@ class SettingsBackend:
         self.ebs_encryption_by_default = False
 
     def disable_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
         ec2_backend.ebs_encryption_by_default = False
 
     def enable_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
         ec2_backend.ebs_encryption_by_default = True
 
     def get_ebs_encryption_by_default(self):
-        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
         return ec2_backend.ebs_encryption_by_default
 
 

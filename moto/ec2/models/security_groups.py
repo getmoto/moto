@@ -181,13 +181,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         vpc_id = properties.get("VpcId")
         security_group = ec2_backend.create_security_group(
             name=resource_name,
@@ -223,35 +223,35 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         cls._delete_security_group_given_vpc_id(
-            original_resource.name, original_resource.vpc_id, region_name
+            original_resource.name, original_resource.vpc_id, account_id, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
         vpc_id = properties.get("VpcId")
-        cls._delete_security_group_given_vpc_id(resource_name, vpc_id, region_name)
+        cls._delete_security_group_given_vpc_id(resource_name, vpc_id, account_id, region_name)
 
     @classmethod
-    def _delete_security_group_given_vpc_id(cls, resource_name, vpc_id, region_name):
+    def _delete_security_group_given_vpc_id(cls, resource_name, vpc_id, account_id, region_name):
         from ..models import ec2_backends
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         security_group = ec2_backend.get_security_group_by_name_or_id(
             resource_name, vpc_id
         )
         if security_group:
-            security_group.delete(region_name)
+            security_group.delete(account_id, region_name)
 
-    def delete(self, region_name):  # pylint: disable=unused-argument
+    def delete(self, account_id, region_name):  # pylint: disable=unused-argument
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
 
@@ -1061,13 +1061,13 @@ class SecurityGroupIngress(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         group_name = properties.get("GroupName")
         group_id = properties.get("GroupId")
         ip_protocol = properties.get("IpProtocol")

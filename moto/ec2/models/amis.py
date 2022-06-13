@@ -196,7 +196,7 @@ class AmiBackend:
     def copy_image(self, source_image_id, source_region, name=None, description=None):
         from ..models import ec2_backends
 
-        source_ami = ec2_backends[source_region].describe_images(
+        source_ami = ec2_backends[self.account_id][source_region].describe_images(
             ami_ids=[source_image_id]
         )[0]
         ami_id = random_ami_id()

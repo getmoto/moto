@@ -172,11 +172,11 @@ class FakeTargetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[region_name]
+        elbv2_backend = elbv2_backends[account_id][region_name]
 
         vpc_id = properties.get("VpcId")
         protocol = properties.get("Protocol")
@@ -268,11 +268,11 @@ class FakeListener(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[region_name]
+        elbv2_backend = elbv2_backends[account_id][region_name]
         load_balancer_arn = properties.get("LoadBalancerArn")
         protocol = properties.get("Protocol")
         port = properties.get("Port")
@@ -288,11 +288,11 @@ class FakeListener(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[region_name]
+        elbv2_backend = elbv2_backends[account_id][region_name]
         protocol = properties.get("Protocol")
         port = properties.get("Port")
         ssl_policy = properties.get("SslPolicy")
@@ -330,10 +330,10 @@ class FakeListenerRule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        elbv2_backend = elbv2_backends[region_name]
+        elbv2_backend = elbv2_backends[account_id][region_name]
         listener_arn = properties.get("ListenerArn")
         priority = properties.get("Priority")
         conditions = properties.get("Conditions")
@@ -346,12 +346,12 @@ class FakeListenerRule(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
 
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[region_name]
+        elbv2_backend = elbv2_backends[account_id][region_name]
         conditions = properties.get("Conditions")
 
         actions = elbv2_backend.convert_and_validate_action_properties(properties)
@@ -563,9 +563,9 @@ class FakeLoadBalancer(CloudFormationModel):
         if self.state == "provisioning":
             self.state = "active"
 
-    def delete(self, region):
+    def delete(self, account_id, region):
         """Not exposed as part of the ELB API - used for CloudFormation."""
-        elbv2_backends[region].delete_load_balancer(self.arn)
+        elbv2_backends[account_id][region].delete_load_balancer(self.arn)
 
     @staticmethod
     def cloudformation_name_type():
@@ -578,11 +578,11 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elbv2_backend = elbv2_backends[region_name]
+        elbv2_backend = elbv2_backends[account_id][region_name]
 
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get("Subnets")
@@ -657,7 +657,7 @@ class ELBv2Backend(BaseBackend):
         :return: EC2 Backend
         :rtype: moto.ec2.models.EC2Backend
         """
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     def create_load_balancer(
         self,

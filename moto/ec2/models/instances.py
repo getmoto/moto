@@ -261,13 +261,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         security_group_ids = properties.get("SecurityGroups", [])
         group_names = [
             ec2_backend.get_security_group_from_id(group_id).name
@@ -303,11 +303,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         from ..models import ec2_backends
 
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         all_instances = ec2_backend.all_instances()
 
         # the resource_name for instances is the stack name, logical id, and random suffix separated
@@ -322,7 +322,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     tag["key"] == "aws:cloudformation:logical-id"
                     and tag["value"] == logical_id
                 ):
-                    instance.delete(region_name)
+                    instance.delete(account_id, region_name)
 
     @property
     def physical_resource_id(self):
@@ -356,7 +356,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def is_running(self):
         return self._state.name == "running"
 
-    def delete(self, region):  # pylint: disable=unused-argument
+    def delete(self, account_id, region):  # pylint: disable=unused-argument
         self.terminate()
 
     def terminate(self):

@@ -72,7 +72,7 @@ class CloudFormationResponse(BaseResponse):
                 bucket_name = template_url_parts.netloc.split(".")[0]
                 key_name = template_url_parts.path.lstrip("/")
 
-        key = s3_backends["global"].get_object(bucket_name, key_name)
+        key = s3_backends[self.current_account]["global"].get_object(bucket_name, key_name)
         return key.value.decode("utf-8")
 
     def _get_params_from_list(self, parameters_list):

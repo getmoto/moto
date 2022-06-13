@@ -218,6 +218,7 @@ class FakeStack(BaseModel):
         name,
         template,
         parameters,
+        account_id,
         region_name,
         notification_arns=None,
         tags=None,
@@ -226,6 +227,7 @@ class FakeStack(BaseModel):
     ):
         self.stack_id = stack_id
         self.name = name
+        self.account_id = account_id
         self.template = template
         if template != {}:
             self._parse_template()
@@ -267,9 +269,10 @@ class FakeStack(BaseModel):
             self.name,
             self.parameters,
             self.tags,
-            self.region_name,
-            self.template_dict,
-            self.cross_stack_resources,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            template=self.template_dict,
+            cross_stack_resources=self.cross_stack_resources,
         )
         resource_map.load()
         return resource_map
@@ -296,7 +299,7 @@ class FakeStack(BaseModel):
             resource_properties=resource_properties,
         )
 
-        event.sendToSns(self.region_name, self.notification_arns)
+        event.sendToSns(self.account_id, self.region_name, self.notification_arns)
         self.events.append(event)
 
     def _add_resource_event(
@@ -486,7 +489,7 @@ class FakeEvent(BaseModel):
         self.event_id = uuid.uuid4()
         self.client_request_token = client_request_token
 
-    def sendToSns(self, region, sns_topic_arns):
+    def sendToSns(self, account_id, region, sns_topic_arns):
         message = """StackId='{stack_id}'
 Timestamp='{timestamp}'
 EventId='{event_id}'
@@ -512,7 +515,7 @@ ClientRequestToken='{client_request_token}'""".format(
         )
 
         for sns_topic_arn in sns_topic_arns:
-            sns_backends[region].publish(
+            sns_backends[account_id][region].publish(
                 message, subject="AWS CloudFormation Notification", arn=sns_topic_arn
             )
 
@@ -677,6 +680,7 @@ class CloudFormationBackend(BaseBackend):
             name=name,
             template=template,
             parameters=parameters,
+            account_id=self.account_id,
             region_name=self.region_name,
             notification_arns=notification_arns,
             tags=tags,
@@ -718,6 +722,7 @@ class CloudFormationBackend(BaseBackend):
                 name=stack_name,
                 template={},
                 parameters=parameters,
+                account_id=self.account_id,
                 region_name=self.region_name,
                 notification_arns=notification_arns,
                 tags=tags,

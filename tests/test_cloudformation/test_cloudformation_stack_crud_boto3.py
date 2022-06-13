@@ -1911,7 +1911,7 @@ def test_update_stack_when_rolled_back():
     stack = cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     stack_id = stack["StackId"]
 
-    cloudformation_backends["us-east-1"].stacks[stack_id].status = "ROLLBACK_COMPLETE"
+    cloudformation_backends[ACCOUNT_ID]["us-east-1"].stacks[stack_id].status = "ROLLBACK_COMPLETE"
 
     with pytest.raises(ClientError) as ex:
         cf.update_stack(StackName="test_stack", TemplateBody=dummy_template_json)

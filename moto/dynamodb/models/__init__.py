@@ -398,6 +398,7 @@ class Table(CloudFormationModel):
     def __init__(
         self,
         table_name,
+        account_id,
         region,
         schema=None,
         attr=None,
@@ -467,16 +468,16 @@ class Table(CloudFormationModel):
         self.sse_specification = sse_specification
         if sse_specification and "KMSMasterKeyId" not in self.sse_specification:
             self.sse_specification["KMSMasterKeyId"] = self._get_default_encryption_key(
-                region
+                account_id, region
             )
 
-    def _get_default_encryption_key(self, region):
+    def _get_default_encryption_key(self, account_id, region):
         from moto.kms import kms_backends
 
         # https://aws.amazon.com/kms/features/#AWS_Service_Integration
         # An AWS managed CMK is created automatically when you first create
         # an encrypted resource using an AWS service integrated with KMS.
-        kms = kms_backends[region]
+        kms = kms_backends[account_id][region]
         ddb_alias = "alias/aws/dynamodb"
         if not kms.alias_exists(ddb_alias):
             key = kms.create_key(
@@ -532,7 +533,7 @@ class Table(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         params = {}
@@ -550,16 +551,16 @@ class Table(CloudFormationModel):
         if "StreamSpecification" in properties:
             params["streams"] = properties["StreamSpecification"]
 
-        table = dynamodb_backends[region_name].create_table(
+        table = dynamodb_backends[account_id][region_name].create_table(
             name=resource_name, **params
         )
         return table
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        table = dynamodb_backends[region_name].delete_table(name=resource_name)
+        table = dynamodb_backends[account_id][region_name].delete_table(name=resource_name)
         return table
 
     def _generate_arn(self, name):
@@ -1042,14 +1043,14 @@ class Table(CloudFormationModel):
 
         return results, last_evaluated_key
 
-    def delete(self, region_name):
-        dynamodb_backends[region_name].delete_table(self.name)
+    def delete(self, account_id, region_name):
+        dynamodb_backends[account_id][region_name].delete_table(self.name)
 
 
 class RestoredTable(Table):
-    def __init__(self, name, region, backup):
+    def __init__(self, name, account_id, region, backup):
         params = self._parse_params_from_backup(backup)
-        super().__init__(name, region=region, **params)
+        super().__init__(name, account_id=account_id, region=region, **params)
         self.indexes = copy.deepcopy(backup.table.indexes)
         self.global_indexes = copy.deepcopy(backup.table.global_indexes)
         self.items = copy.deepcopy(backup.table.items)
@@ -1079,9 +1080,9 @@ class RestoredTable(Table):
 
 
 class RestoredPITTable(Table):
-    def __init__(self, name, region, source):
+    def __init__(self, name, account_id, region, source):
         params = self._parse_params_from_table(source)
-        super().__init__(name, region=region, **params)
+        super().__init__(name, account_id=account_id, region=region, **params)
         self.indexes = copy.deepcopy(source.indexes)
         self.global_indexes = copy.deepcopy(source.global_indexes)
         self.items = copy.deepcopy(source.items)
@@ -1197,7 +1198,7 @@ class DynamoDBBackend(BaseBackend):
     def create_table(self, name, **params):
         if name in self.tables:
             raise ResourceInUseException
-        table = Table(name, region=self.region_name, **params)
+        table = Table(name, account_id=self.account_id, region=self.region_name, **params)
         self.tables[name] = table
         return table
 
@@ -1825,7 +1826,7 @@ class DynamoDBBackend(BaseBackend):
         if target_table_name in self.tables:
             raise TableAlreadyExistsException(target_table_name)
         new_table = RestoredTable(
-            target_table_name, region=self.region_name, backup=backup
+            target_table_name, account_id=self.account_id, region=self.region_name, backup=backup
         )
         self.tables[target_table_name] = new_table
         return new_table
@@ -1843,7 +1844,7 @@ class DynamoDBBackend(BaseBackend):
         if target_table_name in self.tables:
             raise TableAlreadyExistsException(target_table_name)
         new_table = RestoredPITTable(
-            target_table_name, region=self.region_name, source=source
+            target_table_name, account_id=self.account_id, region=self.region_name, source=source
         )
         self.tables[target_table_name] = new_table
         return new_table

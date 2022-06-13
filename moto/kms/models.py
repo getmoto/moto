@@ -186,8 +186,8 @@ class Key(CloudFormationModel):
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
 
-    def delete(self, region_name):
-        kms_backends[region_name].delete_key(self.id)
+    def delete(self, account_id, region_name):
+        kms_backends[account_id][region_name].delete_key(self.id)
 
     @staticmethod
     def cloudformation_name_type():
@@ -200,9 +200,9 @@ class Key(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        kms_backend = kms_backends[region_name]
+        kms_backend = kms_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
         key = kms_backend.create_key(

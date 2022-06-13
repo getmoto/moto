@@ -100,8 +100,8 @@ class Rule(CloudFormationModel):
     def disable(self):
         self.state = "DISABLED"
 
-    def delete(self, region_name):
-        event_backend = events_backends[region_name]
+    def delete(self, account_id, region_name):
+        event_backend = events_backends[account_id][region_name]
         event_backend.delete_rule(name=self.name)
 
     def put_targets(self, targets):
@@ -248,7 +248,7 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
         properties.setdefault("EventBusName", "default")
@@ -266,7 +266,7 @@ class Rule(CloudFormationModel):
         event_bus_name = properties.get("EventBusName")
         tags = properties.get("Tags")
 
-        backend = events_backends[region_name]
+        backend = events_backends[account_id][region_name]
         return backend.put_rule(
             event_name,
             scheduled_expression=scheduled_expression,
@@ -280,18 +280,18 @@ class Rule(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
-        original_resource.delete(region_name)
+        original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        event_backend = events_backends[region_name]
+        event_backend = events_backends[account_id][region_name]
         event_backend.delete_rule(resource_name)
 
     def describe(self):
@@ -340,8 +340,8 @@ class EventBus(CloudFormationModel):
     def has_permissions(self):
         return len(self._statements) > 0
 
-    def delete(self, region_name):
-        event_backend = events_backends[region_name]
+    def delete(self, account_id, region_name):
+        event_backend = events_backends[account_id][region_name]
         event_backend.delete_event_bus(name=self.name)
 
     @classmethod
@@ -371,10 +371,10 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        event_backend = events_backends[region_name]
+        event_backend = events_backends[account_id][region_name]
         event_name = resource_name
         event_source_name = properties.get("EventSourceName")
         return event_backend.create_event_bus(
@@ -383,18 +383,18 @@ class EventBus(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
-        original_resource.delete(region_name)
+        original_resource.delete(account_id, region_name)
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        event_backend = events_backends[region_name]
+        event_backend = events_backends[account_id][region_name]
         event_bus_name = resource_name
         event_backend.delete_event_bus(event_bus_name)
 
@@ -542,8 +542,8 @@ class Archive(CloudFormationModel):
         if retention:
             self.retention = retention
 
-    def delete(self, region_name):
-        event_backend = events_backends[region_name]
+    def delete(self, account_id, region_name):
+        event_backend = events_backends[account_id][region_name]
         event_backend.archives.pop(self.name)
 
     @classmethod
@@ -571,10 +571,10 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
-        event_backend = events_backends[region_name]
+        event_backend = events_backends[account_id][region_name]
 
         source_arn = properties.get("SourceArn")
         description = properties.get("Description")
@@ -587,7 +587,7 @@ class Archive(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         if new_resource_name == original_resource.name:
             properties = cloudformation_json["Properties"]
@@ -600,9 +600,9 @@ class Archive(CloudFormationModel):
 
             return original_resource
         else:
-            original_resource.delete(region_name)
+            original_resource.delete(account_id, region_name)
             return cls.create_from_cloudformation_json(
-                new_resource_name, cloudformation_json, region_name
+                new_resource_name, cloudformation_json, account_id, region_name
             )
 
 

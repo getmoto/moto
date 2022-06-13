@@ -187,13 +187,13 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
         instance_profile_name = properties.get("IamInstanceProfile")
 
-        backend = autoscaling_backends[region_name]
+        backend = autoscaling_backends[account_id][region_name]
         config = backend.create_launch_configuration(
             name=resource_name,
             image_id=properties.get("ImageId"),
@@ -214,7 +214,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, region_name
@@ -225,16 +225,16 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        backend = autoscaling_backends[region_name]
+        backend = autoscaling_backends[account_id][region_name]
         try:
             backend.delete_launch_configuration(resource_name)
         except KeyError:
             pass
 
-    def delete(self, region_name):
-        backend = autoscaling_backends[region_name]
+    def delete(self, account_id, region_name):
+        backend = autoscaling_backends[account_id][region_name]
         backend.delete_launch_configuration(self.name)
 
     @property
@@ -431,7 +431,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
@@ -443,7 +443,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         load_balancer_names = properties.get("LoadBalancerNames", [])
         target_group_arns = properties.get("TargetGroupARNs", [])
 
-        backend = autoscaling_backends[region_name]
+        backend = autoscaling_backends[account_id][region_name]
         group = backend.create_auto_scaling_group(
             name=resource_name,
             availability_zones=properties.get("AvailabilityZones", []),
@@ -473,7 +473,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, region_name
@@ -484,16 +484,16 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        backend = autoscaling_backends[region_name]
+        backend = autoscaling_backends[account_id][region_name]
         try:
             backend.delete_auto_scaling_group(resource_name)
         except KeyError:
             pass
 
-    def delete(self, region_name):
-        backend = autoscaling_backends[region_name]
+    def delete(self, account_id, region_name):
+        backend = autoscaling_backends[account_id][region_name]
         backend.delete_auto_scaling_group(self.name)
 
     @property
@@ -656,9 +656,9 @@ class AutoScalingBackend(BaseBackend):
         self.launch_configurations = OrderedDict()
         self.policies = {}
         self.lifecycle_hooks = {}
-        self.ec2_backend = ec2_backends[region_name]
-        self.elb_backend = elb_backends[region_name]
-        self.elbv2_backend = elbv2_backends[region_name]
+        self.ec2_backend = ec2_backends[self.account_id][region_name]
+        self.elb_backend = elb_backends[self.account_id][region_name]
+        self.elbv2_backend = elbv2_backends[self.account_id][region_name]
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

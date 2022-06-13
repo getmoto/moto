@@ -80,7 +80,7 @@ class HealthCheck(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]["HealthCheckConfig"]
         health_check_args = {
@@ -93,7 +93,8 @@ class HealthCheck(CloudFormationModel):
             "request_interval": properties.get("RequestInterval"),
             "failure_threshold": properties.get("FailureThreshold"),
         }
-        health_check = route53_backend.create_health_check(
+        backend = route53_backends[account_id]["global"]
+        health_check = backend.create_health_check(
             caller_reference=resource_name, health_check_args=health_check_args
         )
         return health_check
@@ -170,42 +171,44 @@ class RecordSet(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
+        backend = route53_backends[account_id]["global"]
         if zone_name:
-            hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
         else:
-            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
+            hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
         record_set = hosted_zone.add_rrset(properties)
         return record_set
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, region_name
+            original_resource.name, cloudformation_json, account_id, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
         # this will break if you changed the zone the record is in,
         # unfortunately
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
+        backend = route53_backends[account_id]["global"]
         if zone_name:
-            hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
         else:
-            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
+            hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
 
         try:
             hosted_zone.delete_rrset({"Name": resource_name})
@@ -321,9 +324,9 @@ class FakeZone(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        hosted_zone = route53_backend.create_hosted_zone(
+        hosted_zone = route53_backends[account_id]["global"].create_hosted_zone(
             resource_name, private_zone=False
         )
         return hosted_zone
@@ -349,15 +352,16 @@ class RecordSetGroup(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
+        backend = route53_backends[account_id]["global"]
         if zone_name:
-            hosted_zone = route53_backend.get_hosted_zone_by_name(zone_name)
+            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
         else:
-            hosted_zone = route53_backend.get_hosted_zone(properties["HostedZoneId"])
+            hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
         record_sets = properties["RecordSets"]
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
@@ -634,7 +638,7 @@ class Route53Backend(BaseBackend):
 
         from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
 
-        response = logs_backends[region].describe_log_groups()
+        response = logs_backends[self.account_id][region].describe_log_groups()
         log_groups = response[0] if response else []
         for entry in log_groups:
             if log_group_arn == entry["arn"]:

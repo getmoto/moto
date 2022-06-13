@@ -138,11 +138,11 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         properties = cloudformation_json["Properties"]
 
-        elb_backend = elb_backends[region_name]
+        elb_backend = elb_backends[account_id][region_name]
         new_elb = elb_backend.create_load_balancer(
             name=properties.get("LoadBalancerName", resource_name),
             zones=properties.get("AvailabilityZones", []),
@@ -186,7 +186,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, region_name
@@ -197,9 +197,9 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        elb_backend = elb_backends[region_name]
+        elb_backend = elb_backends[account_id][region_name]
         try:
             elb_backend.delete_load_balancer(resource_name)
         except KeyError:
@@ -264,9 +264,9 @@ class FakeLoadBalancer(CloudFormationModel):
         if key in self.tags:
             del self.tags[key]
 
-    def delete(self, region):
+    def delete(self, account_id, region):
         """Not exposed as part of the ELB API - used for CloudFormation."""
-        elb_backends[region].delete_load_balancer(self.name)
+        elb_backends[account_id][region].delete_load_balancer(self.name)
 
 
 class ELBBackend(BaseBackend):
@@ -284,7 +284,7 @@ class ELBBackend(BaseBackend):
         security_groups=None,
     ):
         vpc_id = None
-        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
         if subnets:
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id

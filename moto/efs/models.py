@@ -220,7 +220,7 @@ class FileSystem(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-filesystem.html
         props = deepcopy(cloudformation_json["Properties"])
@@ -240,11 +240,11 @@ class FileSystem(CloudFormationModel):
                 "supported by AWS Cloudformation."
             )
 
-        return efs_backends[region_name].create_file_system(resource_name, **props)
+        return efs_backends[account_id][region_name].create_file_system(resource_name, **props)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         raise NotImplementedError(
             "Update of EFS File System via cloudformation is not yet implemented."
@@ -252,9 +252,9 @@ class FileSystem(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        return efs_backends[region_name].delete_file_system(resource_name)
+        return efs_backends[account_id][region_name].delete_file_system(resource_name)
 
 
 class MountTarget(CloudFormationModel):
@@ -332,16 +332,16 @@ class MountTarget(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-mounttarget.html
         props = deepcopy(cloudformation_json["Properties"])
         props = {camelcase_to_underscores(k): v for k, v in props.items()}
-        return efs_backends[region_name].create_mount_target(**props)
+        return efs_backends[account_id][region_name].create_mount_target(**props)
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls, original_resource, new_resource_name, cloudformation_json, account_id, region_name
     ):
         raise NotImplementedError(
             "Updates of EFS Mount Target via cloudformation are not yet implemented."
@@ -349,9 +349,9 @@ class MountTarget(CloudFormationModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, account_id, region_name
     ):
-        return efs_backends[region_name].delete_mount_target(resource_name)
+        return efs_backends[account_id][region_name].delete_mount_target(resource_name)
 
 
 class EFSBackend(BaseBackend):
@@ -384,7 +384,7 @@ class EFSBackend(BaseBackend):
 
     @property
     def ec2_backend(self):
-        return ec2_backends[self.region_name]
+        return ec2_backends[self.account_id][self.region_name]
 
     def create_file_system(
         self,
