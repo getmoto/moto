@@ -5,6 +5,7 @@ from datetime import datetime
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from .exceptions import (
+    GreengrassClientError,
     IdNotFoundException,
     InvalidContainerDefinitionException,
     VersionNotFoundException,
@@ -342,6 +343,9 @@ class GreengrassBackend(BaseBackend):
 
     def create_resource_definition(self, name, initial_version):
 
+        resources = initial_version.get("Resources", [])
+        GreengrassBackend._validate_resources(resources)
+
         resource_def = FakeResourceDefinition(self.region_name, name, initial_version)
         self.resource_definitions[resource_def.id] = resource_def
         init_ver = resource_def.initial_version
@@ -354,6 +358,8 @@ class GreengrassBackend(BaseBackend):
 
         if resource_definition_id not in self.resource_definitions:
             raise IdNotFoundException("That resource definition does not exist.")
+
+        GreengrassBackend._validate_resources(resources)
 
         resource_def_ver = FakeResourceDefinitionVersion(
             self.region_name, resource_definition_id, resources
@@ -376,6 +382,33 @@ class GreengrassBackend(BaseBackend):
         ].latest_version_arn = resource_def_ver.arn
 
         return resource_def_ver
+
+    @staticmethod
+    def _validate_resources(resources):
+        for resource in resources:
+            volume_source_path = (
+                resource.get("ResourceDataContainer", {})
+                .get("LocalVolumeResourceData", {})
+                .get("SourcePath", "")
+            )
+            if volume_source_path == "/sys" or volume_source_path.startswith("/sys/"):
+                raise GreengrassClientError(
+                    "400",
+                    "The resources definition is invalid. (ErrorDetails: [Accessing /sys is prohibited])",
+                )
+
+            local_device_resource_data = resource.get("ResourceDataContainer", {}).get(
+                "LocalDeviceResourceData", {}
+            )
+            if local_device_resource_data:
+                device_source_path = local_device_resource_data["SourcePath"]
+                if not device_source_path.startswith("/dev"):
+                    raise GreengrassClientError(
+                        "400",
+                        f"The resources definition is invalid. (ErrorDetails: [Device resource path should begin with "
+                        "/dev"
+                        f", but got: {device_source_path}])",
+                    )
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
