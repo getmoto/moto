@@ -1269,6 +1269,51 @@ def test_change_resource_record_invalid():
 
 
 @mock_route53
+def test_change_resource_record_invalid_action_value():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    invalid_a_record_payload = {
+        "Comment": "this should fail",
+        "Changes": [
+            {
+                "Action": "INVALID_ACTION",
+                "ResourceRecordSet": {
+                    "Name": "prod.scooby.doo",
+                    "Type": "A",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "127.0.0.1"}],
+                },
+            }
+        ],
+    }
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id, ChangeBatch=invalid_a_record_payload
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInput")
+    err["Message"].should.equal(
+        "Invalid XML ; cvc-enumeration-valid: Value 'INVALID_ACTION' is not facet-valid"
+        " with respect to enumeration '[CREATE, DELETE, UPSERT]'. It must be a value from the enumeration."
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
+
+
+@mock_route53
 def test_list_resource_record_sets_name_type_filters():
     conn = boto3.client("route53", region_name="us-east-1")
     create_hosted_zone_response = conn.create_hosted_zone(
