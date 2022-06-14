@@ -377,3 +377,46 @@ def test_get_resource_definition_with_invalid_id():
         "That Resource List Definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_delete_resource_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name="TestResource"
+    )
+
+    resource_def_id = create_res["Id"]
+    del_res = client.delete_resource_definition(ResourceDefinitionId=resource_def_id)
+    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_greengrass
+def test_delete_resource_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_resource_definition(
+            ResourceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")

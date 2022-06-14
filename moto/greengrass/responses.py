@@ -263,12 +263,23 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.get_resource_definition()
 
+        if self.method == "DELETE":
+            return self.delete_resource_definition()
+
     def get_resource_definition(self):
         resource_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_resource_definition(
             resource_definition_id=resource_definition_id
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def delete_resource_definition(self):
+
+        resource_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_resource_definition(
+            resource_definition_id=resource_definition_id
+        )
+        return 200, {"status": 200}, json.dumps({})
 
     def resource_definition_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

@@ -363,6 +363,12 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That Resource List Definition does not exist.")
         return self.resource_definitions[resource_definition_id]
 
+    def delete_resource_definition(self, resource_definition_id):
+        if resource_definition_id not in self.resource_definitions:
+            raise IdNotFoundException("That resources definition does not exist.")
+        del self.resource_definitions[resource_definition_id]
+        del self.resource_definition_versions[resource_definition_id]
+
     def create_resource_definition_version(self, resource_definition_id, resources):
 
         if resource_definition_id not in self.resource_definitions:
