@@ -236,6 +236,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_resource_definition()
 
+        if self.method == "GET":
+            return self.list_resource_definitions()
+
     def create_resource_definition(self):
 
         initial_version = self._get_param("InitialVersion")
@@ -244,6 +247,15 @@ class GreengrassResponse(BaseResponse):
             name=name, initial_version=initial_version
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_resource_definitions(self):
+
+        res = self.greengrass_backend.list_resource_definitions()
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Definitions": [i.to_dict() for i in res.values()]}),
+        )
 
     def resource_definition_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

@@ -270,3 +270,51 @@ def test_create_resources_definition_version_with_invalid_local_device_resource(
         f", but got: {source_path}])"
     )
     ex.value.response["Error"]["Code"].should.equal("400")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_resources():
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    resource_name = "MotoTestResource"
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name=resource_name
+    )
+
+    res_def_id = create_res["Id"]
+    res_def_arn = create_res["Arn"]
+    res_ver = create_res["LatestVersion"]
+    res_ver_arn = create_res["LatestVersionArn"]
+
+    res = client.list_resource_definitions()
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    res.should.have.key("Definitions")
+    res["Definitions"].should.have.length_of(1)
+    definition = res["Definitions"][0]
+    definition.should.have.key("Id").equals(res_def_id)
+    definition.should.have.key("Arn").equals(res_def_arn)
+    definition.should.have.key("LatestVersion").equals(res_ver)
+    definition.should.have.key("LatestVersionArn").equals(res_ver_arn)
+
+    if not TEST_SERVER_MODE:
+        definition.should.have.key("CreationTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+        definition.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )

@@ -354,6 +354,9 @@ class GreengrassBackend(BaseBackend):
 
         return resource_def
 
+    def list_resource_definitions(self):
+        return self.resource_definitions
+
     def create_resource_definition_version(self, resource_definition_id, resources):
 
         if resource_definition_id not in self.resource_definitions:
