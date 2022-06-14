@@ -575,10 +575,9 @@ class Route53Backend(BaseBackend):
                 this_zone = self.get_hosted_zone(zone.id)
                 for vpc in this_zone.vpcs:
                     if vpc["vpc_id"] == vpc_id:
-                        this_id = f"/hostedzone/{zone.id}"
                         zone_list.append(
                             {
-                                "HostedZoneId": this_id,
+                                "HostedZoneId": zone.id,
                                 "Name": zone.name,
                                 "Owner": {"OwningAccount": get_account_id()},
                             }
