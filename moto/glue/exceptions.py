@@ -30,6 +30,11 @@ class CrawlerAlreadyExistsException(AlreadyExistsException):
         super().__init__("Crawler")
 
 
+class RegistryAlreadyExistsException(AlreadyExistsException):
+    def __init__(self):
+        super().__init__("Registry")
+
+
 class EntityNotFoundException(GlueClientError):
     def __init__(self, msg):
         super().__init__("EntityNotFoundException", msg)
@@ -97,3 +102,13 @@ class InvalidInputException(_InvalidOperationException):
 class InvalidStateException(_InvalidOperationException):
     def __init__(self, op, msg):
         super().__init__("InvalidStateException", op, msg)
+
+
+class ResourceNumberLimitExceededException(_InvalidOperationException):
+    def __init__(self, op, msg):
+        super().__init__("ResourceNumberLimitExceededException", op, msg)
+
+
+class GSRAlreadyExistsException(_InvalidOperationException):
+    def __init__(self, op, msg):
+        super().__init__("AlreadyExistsException", op, msg)
