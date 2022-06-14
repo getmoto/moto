@@ -506,11 +506,7 @@ def test_hosted_zone_private_zone_preserved():
     hosted_zone = conn.get_hosted_zone(Id=zone_id)
     hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
     hosted_zone.should.have.key("VPCs")
-    hosted_zone["VPCs"].should.have.length_of(1)
-    hosted_zone["VPCs"][0].should.have.key("VPCId")
-    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should.equal("")
-    hosted_zone["VPCs"][0]["VPCRegion"].should.equal("")
+    hosted_zone["VPCs"].should.have.length_of(0)
 
     hosted_zones = conn.list_hosted_zones()
     hosted_zones["HostedZones"].should.have.length_of(2)

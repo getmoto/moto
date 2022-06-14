@@ -163,6 +163,17 @@ route53:
   - TestAccRoute53Record_longTXTrecord
   - TestAccRoute53Record_doNotAllowOverwrite
   - TestAccRoute53Record_allowOverwrite
+  - TestAccRoute53Zone_basic
+  - TestAccRoute53Zone_disappears
+  - TestAccRoute53Zone_multiple
+  - TestAccRoute53Zone_comment
+  - TestAccRoute53Zone_delegationSetID
+  - TestAccRoute53Zone_forceDestroy
+  - TestAccRoute53Zone_ForceDestroy_trailingPeriod
+  - TestAccRoute53Zone_tags
+  - TestAccRoute53Zone_VPC_single
+  - TestAccRoute53Zone_VPC_multiple
+  - TestAccRoute53Zone_VPC_updates
 s3:
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock

@@ -11,11 +11,13 @@ from jinja2 import Template
 from moto.route53.exceptions import (
     HostedZoneNotEmpty,
     InvalidInput,
+    LastVPCAssociation,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
     NoSuchHealthCheck,
     NoSuchHostedZone,
     NoSuchQueryLoggingConfig,
+    PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
 )
 from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
@@ -236,19 +238,14 @@ class FakeZone(CloudFormationModel):
         name,
         id_,
         private_zone,
-        vpcid=None,
-        vpcregion=None,
         comment=None,
         delegation_set=None,
     ):
         self.name = name
         self.id = id_
+        self.vpcs = []
         if comment is not None:
             self.comment = comment
-        if vpcid is not None:
-            self.vpcid = vpcid
-        if vpcregion is not None:
-            self.vpcregion = vpcregion
         self.private_zone = private_zone
         self.rrsets = []
         self.delegation_set = delegation_set
@@ -286,6 +283,19 @@ class FakeZone(CloudFormationModel):
             for record_set in self.rrsets
             if record_set.set_identifier != set_identifier
         ]
+
+    def add_vpc(self, vpc_id, vpc_region):
+        vpc = {}
+        if vpc_id is not None:
+            vpc["vpc_id"] = vpc_id
+        if vpc_region is not None:
+            vpc["vpc_region"] = vpc_region
+        if vpc_id or vpc_region:
+            self.vpcs.append(vpc)
+        return vpc
+
+    def delete_vpc(self, vpc_id):
+        self.vpcs = [vpc for vpc in self.vpcs if vpc["vpc_id"] != vpc_id]
 
     def get_record_sets(self, start_type, start_name):
         def predicate(rrset):
@@ -420,8 +430,6 @@ class Route53Backend(BaseBackend):
             name,
             new_id,
             private_zone=private_zone,
-            vpcid=vpcid,
-            vpcregion=vpcregion,
             comment=comment,
             delegation_set=delegation_set,
         )
@@ -433,12 +441,27 @@ class Route53Backend(BaseBackend):
             "Type": "NS",
         }
         new_zone.add_rrset(record_set)
+        new_zone.add_vpc(vpcid, vpcregion)
         self.zones[new_id] = new_zone
         return new_zone
 
     def get_dnssec(self, zone_id):
         # check if hosted zone exists
         self.get_hosted_zone(zone_id)
+
+    def associate_vpc(self, zone_id, vpcid, vpcregion):
+        zone = self.get_hosted_zone(zone_id)
+        if not zone.private_zone:
+            raise PublicZoneVPCAssociation()
+        zone.add_vpc(vpcid, vpcregion)
+        return zone
+
+    def disassociate_vpc(self, zone_id, vpcid):
+        zone = self.get_hosted_zone(zone_id)
+        if len(zone.vpcs) <= 1:
+            raise LastVPCAssociation()
+        zone.delete_vpc(vpcid)
+        return zone
 
     def change_tags_for_resource(self, resource_id, tags):
         if "Tag" in tags:
@@ -545,15 +568,16 @@ class Route53Backend(BaseBackend):
         for zone in self.list_hosted_zones():
             if zone.private_zone is True:
                 this_zone = self.get_hosted_zone(zone.id)
-                if this_zone.vpcid == vpc_id:
-                    this_id = f"/hostedzone/{zone.id}"
-                    zone_list.append(
-                        {
-                            "HostedZoneId": this_id,
-                            "Name": zone.name,
-                            "Owner": {"OwningAccount": get_account_id()},
-                        }
-                    )
+                for vpc in this_zone.vpcs:
+                    if vpc["vpc_id"] == vpc_id:
+                        this_id = f"/hostedzone/{zone.id}"
+                        zone_list.append(
+                            {
+                                "HostedZoneId": this_id,
+                                "Name": zone.name,
+                                "Owner": {"OwningAccount": get_account_id()},
+                            }
+                        )
 
         return zone_list
 
@@ -580,6 +604,11 @@ class Route53Backend(BaseBackend):
                 if rrset.type_ != "NS" and rrset.type_ != "SOA":
                     raise HostedZoneNotEmpty()
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
+
+    def update_hosted_zone_comment(self, id_, comment):
+        zone = self.get_hosted_zone(id_)
+        zone.comment = comment
+        return zone
 
     def create_health_check(self, caller_reference, health_check_args):
         health_check_id = str(uuid.uuid4())
