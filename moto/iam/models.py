@@ -390,8 +390,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
         role_names = properties.get("Roles", [])
         tags = properties.get("Tags", {})
 
-        # TODO: pass account_id to this method?
-        policy = iam_backends["global"].create_policy(
+        policy = iam_backends[account_id]["global"].create_policy(
             description=description,
             path=path,
             policy_document=policy_document,
@@ -399,15 +398,15 @@ class ManagedPolicy(Policy, CloudFormationModel):
             tags=tags,
         )
         for group_name in group_names:
-            iam_backends["global"].attach_group_policy(
+            iam_backends[account_id]["global"].attach_group_policy(
                 group_name=group_name, policy_arn=policy.arn
             )
         for user_name in user_names:
-            iam_backends["global"].attach_user_policy(
+            iam_backends[account_id]["global"].attach_user_policy(
                 user_name=user_name, policy_arn=policy.arn
             )
         for role_name in role_names:
-            iam_backends["global"].attach_role_policy(
+            iam_backends[account_id]["global"].attach_role_policy(
                 role_name=role_name, policy_arn=policy.arn
             )
         return policy
@@ -490,7 +489,7 @@ class InlinePolicy(CloudFormationModel):
         role_names = properties.get("Roles")
         group_names = properties.get("Groups")
 
-        return iam_backends["global"].create_inline_policy(
+        return iam_backends[account_id]["global"].create_inline_policy(
             resource_name,
             policy_name,
             policy_document,
@@ -515,11 +514,14 @@ class InlinePolicy(CloudFormationModel):
             if resource_name_property not in properties:
                 properties[resource_name_property] = new_resource_name
             new_resource = cls.create_from_cloudformation_json(
-                properties[resource_name_property], cloudformation_json, region_name
+                properties[resource_name_property],
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             properties[resource_name_property] = original_resource.name
             cls.delete_from_cloudformation_json(
-                original_resource.name, cloudformation_json, region_name
+                original_resource.name, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -531,7 +533,7 @@ class InlinePolicy(CloudFormationModel):
             role_names = properties.get("Roles")
             group_names = properties.get("Groups")
 
-            return iam_backends["global"].update_inline_policy(
+            return iam_backends[account_id]["global"].update_inline_policy(
                 original_resource.name,
                 policy_name,
                 policy_document,
@@ -1005,7 +1007,9 @@ class AccessKey(CloudFormationModel):
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
 
-        return iam_backends["global"].create_access_key(user_name, status=status)
+        return iam_backends[account_id]["global"].create_access_key(
+            user_name, status=status
+        )
 
     @classmethod
     def update_from_cloudformation_json(
@@ -1033,7 +1037,7 @@ class AccessKey(CloudFormationModel):
         else:  # No Interruption
             properties = cloudformation_json.get("Properties", {})
             status = properties.get("Status")
-            return iam_backends["global"].update_access_key(
+            return iam_backends[account_id]["global"].update_access_key(
                 original_resource.user_name, original_resource.access_key_id, status
             )
 
@@ -1352,7 +1356,7 @@ class User(CloudFormationModel):
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backends["global"].create_user(resource_name, path)
+        user, _ = iam_backends[account_id]["global"].create_user(resource_name, path)
         return user
 
     @classmethod
@@ -1371,11 +1375,14 @@ class User(CloudFormationModel):
             if resource_name_property not in properties:
                 properties[resource_name_property] = new_resource_name
             new_resource = cls.create_from_cloudformation_json(
-                properties[resource_name_property], cloudformation_json, region_name
+                properties[resource_name_property],
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             properties[resource_name_property] = original_resource.name
             cls.delete_from_cloudformation_json(
-                original_resource.name, cloudformation_json, region_name
+                original_resource.name, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -2108,7 +2115,10 @@ class IAMBackend(BaseBackend):
 
         instance_profile_id = random_resource_id()
 
-        roles = [iam_backends["global"].get_role(role_name) for role_name in role_names]
+        roles = [
+            iam_backends[self.account_id]["global"].get_role(role_name)
+            for role_name in role_names
+        ]
         instance_profile = InstanceProfile(instance_profile_id, name, path, roles, tags)
         self.instance_profiles[name] = instance_profile
         return instance_profile

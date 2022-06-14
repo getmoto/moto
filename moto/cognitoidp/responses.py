@@ -5,7 +5,7 @@ import re
 from moto.core.responses import BaseResponse
 from .models import (
     cognitoidp_backends,
-    find_region_by_value,
+    find_account_region_by_value,
     RegionAgnosticBackend,
     UserStatus,
 )
@@ -25,7 +25,7 @@ class CognitoIdpResponse(BaseResponse):
 
     @property
     def backend(self):
-        return cognitoidp_backends[self.region]
+        return cognitoidp_backends[self.current_account][self.region]
 
     # User pool
     def create_user_pool(self):
@@ -141,9 +141,7 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-        user_pool_clients, next_token = cognitoidp_backends[
-            self.region
-        ].list_user_pool_clients(
+        user_pool_clients, next_token = self.backend.list_user_pool_clients(
             user_pool_id, max_results=max_results, next_token=next_token
         )
         response = {
@@ -192,9 +190,7 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_id = self._get_param("UserPoolId")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-        identity_providers, next_token = cognitoidp_backends[
-            self.region
-        ].list_identity_providers(
+        identity_providers, next_token = self.backend.list_identity_providers(
             user_pool_id, max_results=max_results, next_token=next_token
         )
         response = {
@@ -446,10 +442,10 @@ class CognitoIdpResponse(BaseResponse):
     def forgot_password(self):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
-        region = find_region_by_value("client_id", client_id)
-        confirmation_code, response = cognitoidp_backends[region].forgot_password(
-            client_id, username
-        )
+        account, region = find_account_region_by_value("client_id", client_id)
+        confirmation_code, response = cognitoidp_backends[account][
+            region
+        ].forgot_password(client_id, username)
         self.response_headers[
             "x-moto-forgot-password-confirmation-code"
         ] = confirmation_code
@@ -464,8 +460,8 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         password = self._get_param("Password")
         confirmation_code = self._get_param("ConfirmationCode")
-        region = find_region_by_value("client_id", client_id)
-        cognitoidp_backends[region].confirm_forgot_password(
+        account, region = find_account_region_by_value("client_id", client_id)
+        cognitoidp_backends[account][region].confirm_forgot_password(
             client_id, username, password, confirmation_code
         )
         return ""
@@ -475,8 +471,8 @@ class CognitoIdpResponse(BaseResponse):
         access_token = self._get_param("AccessToken")
         previous_password = self._get_param("PreviousPassword")
         proposed_password = self._get_param("ProposedPassword")
-        region = find_region_by_value("access_token", access_token)
-        cognitoidp_backends[region].change_password(
+        account, region = find_account_region_by_value("access_token", access_token)
+        cognitoidp_backends[account][region].change_password(
             access_token, previous_password, proposed_password
         )
         return ""

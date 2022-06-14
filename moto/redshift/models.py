@@ -570,7 +570,7 @@ class RedshiftBackend(BaseBackend):
                 self.region_name,
             )
         }
-        self.ec2_backend = ec2_backends[self.region_name]
+        self.ec2_backend = ec2_backends[self.account_id][self.region_name]
         self.snapshots = OrderedDict()
         self.RESOURCE_TYPE_MAP = {
             "cluster": self.clusters,

@@ -251,9 +251,12 @@ class Method(CloudFormationModel, dict):
 
 
 class Resource(CloudFormationModel):
-    def __init__(self, resource_id, region_name, api_id, path_part, parent_id):
+    def __init__(
+        self, resource_id, account_id, region_name, api_id, path_part, parent_id
+    ):
         super().__init__()
         self.id = resource_id
+        self.account_id = account_id
         self.region_name = region_name
         self.api_id = api_id
         self.path_part = path_part
@@ -313,7 +316,7 @@ class Resource(CloudFormationModel):
 
     def get_parent_path(self):
         if self.parent_id:
-            backend = apigateway_backends[self.region_name]
+            backend = apigateway_backends[self.account_id][self.region_name]
             parent = backend.get_resource(self.api_id, self.parent_id)
             parent_path = parent.get_path()
             if parent_path != "/":  # Root parent
@@ -776,9 +779,10 @@ class RestAPI(CloudFormationModel):
     OPERATION_VALUE = "value"
     OPERATION_OP = "op"
 
-    def __init__(self, api_id, region_name, name, description, **kwargs):
+    def __init__(self, api_id, account_id, region_name, name, description, **kwargs):
         super().__init__()
         self.id = api_id
+        self.account_id = account_id
         self.region_name = region_name
         self.name = name
         self.description = description
@@ -894,6 +898,7 @@ class RestAPI(CloudFormationModel):
         child_id = create_id()
         child = Resource(
             resource_id=child_id,
+            account_id=self.account_id,
             region_name=self.region_name,
             api_id=self.id,
             path_part=path,
@@ -1263,6 +1268,7 @@ class APIGatewayBackend(BaseBackend):
         api_id = create_id()
         rest_api = RestAPI(
             api_id,
+            self.account_id,
             self.region_name,
             name,
             description,

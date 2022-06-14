@@ -38,7 +38,8 @@ class ResourceShare(BaseModel):
         "transit-gateway",  # Amazon EC2 transit gateway
     ]
 
-    def __init__(self, region, **kwargs):
+    def __init__(self, account_id, region, **kwargs):
+        self.account_id = account_id
         self.region = region
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
@@ -56,7 +57,7 @@ class ResourceShare(BaseModel):
 
     @property
     def organizations_backend(self):
-        return organizations_backends["global"]
+        return organizations_backends[self.account_id]["global"]
 
     def add_principals(self, principals):
         for principal in principals:
@@ -161,10 +162,10 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     @property
     def organizations_backend(self):
-        return organizations_backends["global"]
+        return organizations_backends[self.account_id]["global"]
 
     def create_resource_share(self, **kwargs):
-        resource = ResourceShare(self.region_name, **kwargs)
+        resource = ResourceShare(self.account_id, self.region_name, **kwargs)
         resource.add_principals(kwargs.get("principals", []))
         resource.add_resources(kwargs.get("resourceArns", []))
 

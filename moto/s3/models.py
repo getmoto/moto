@@ -1259,11 +1259,14 @@ class FakeBucket(CloudFormationModel):
             if resource_name_property not in properties:
                 properties[resource_name_property] = new_resource_name
             new_resource = cls.create_from_cloudformation_json(
-                properties[resource_name_property], cloudformation_json, region_name
+                properties[resource_name_property],
+                cloudformation_json,
+                account_id,
+                region_name,
             )
             properties[resource_name_property] = original_resource.name
             cls.delete_from_cloudformation_json(
-                original_resource.name, cloudformation_json, region_name
+                original_resource.name, cloudformation_json, account_id, region_name
             )
             return new_resource
 

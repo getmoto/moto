@@ -9,7 +9,7 @@ class ConfigResponse(BaseResponse):
 
     @property
     def config_backend(self):
-        return config_backends[self.region]
+        return config_backends[self.current_account][self.region]
 
     def put_configuration_recorder(self):
         self.config_backend.put_configuration_recorder(

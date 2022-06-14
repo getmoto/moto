@@ -14,7 +14,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
 
     @property
     def applicationautoscaling_backend(self):
-        return applicationautoscaling_backends[self.region]
+        return applicationautoscaling_backends[self.current_account][self.region]
 
     def describe_scalable_targets(self):
         self._validate_params()

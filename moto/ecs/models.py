@@ -116,7 +116,7 @@ class Cluster(BaseObject, CloudFormationModel):
         region_name,
     ):
         if original_resource.name != new_resource_name:
-            ecs_backend = ecs_backends[region_name]
+            ecs_backend = ecs_backends[account_id][region_name]
             ecs_backend.delete_cluster(original_resource.arn)
             return ecs_backend.create_cluster(
                 # ClusterName is optional in CloudFormation, thus create a
@@ -280,7 +280,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         ):
             # currently TaskRoleArn isn't stored at TaskDefinition
             # instances
-            ecs_backend = ecs_backends[region_name]
+            ecs_backend = ecs_backends[account_id][region_name]
             ecs_backend.deregister_task_definition(original_resource.arn)
             return ecs_backend.register_task_definition(
                 family=family,
@@ -507,7 +507,7 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"]
         desired_count = properties.get("DesiredCount", None)
 
-        ecs_backend = ecs_backends[region_name]
+        ecs_backend = ecs_backends[account_id][region_name]
         service_name = original_resource.name
         if original_resource.cluster_arn != Cluster(cluster_name, region_name).arn:
             # TODO: LoadBalancers
@@ -537,7 +537,7 @@ class Service(BaseObject, CloudFormationModel):
 
 
 class ContainerInstance(BaseObject):
-    def __init__(self, ec2_instance_id, region_name, cluster_name, backend):
+    def __init__(self, ec2_instance_id, account_id, region_name, cluster_name, backend):
         self.ec2_instance_id = ec2_instance_id
         self.agent_connected = True
         self.status = "ACTIVE"
@@ -612,7 +612,7 @@ class ContainerInstance(BaseObject):
             "agentHash": "4023248",
             "dockerVersion": "DockerVersion: 1.5.0",
         }
-        ec2_backend = ec2_backends[region_name]
+        ec2_backend = ec2_backends[account_id][region_name]
         ec2_instance = ec2_backend.get_instance(ec2_instance_id)
         self.attributes = {
             "ecs.ami-id": ec2_instance.image_id,
@@ -1363,7 +1363,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
         container_instance = ContainerInstance(
-            ec2_instance_id, self.region_name, cluster_name, backend=self
+            ec2_instance_id,
+            self.account_id,
+            self.region_name,
+            cluster_name,
+            backend=self,
         )
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}

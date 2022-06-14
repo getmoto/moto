@@ -1794,20 +1794,20 @@ def test_get_access_key_last_used_when_used():
     with pytest.raises(ClientError):
         client.get_access_key_last_used(AccessKeyId="non-existent-key-id")
     create_key_response = client.create_access_key(UserName=username)["AccessKey"]
-    # Set last used date using the IAM backend. Moto currently does not have a mechanism for tracking usage of access keys
-    if not settings.TEST_SERVER_MODE:
-        timestamp = datetime.utcnow()
-        iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
-        iam_backend.users[username].access_keys[0].last_used = timestamp
+
+    access_key_client = boto3.client(
+        "iam",
+        aws_access_key_id=create_key_response["AccessKeyId"],
+        aws_secret_access_key=create_key_response["SecretAccessKey"],
+    )
+    access_key_client.list_users()
+
     resp = client.get_access_key_last_used(
         AccessKeyId=create_key_response["AccessKeyId"]
     )
-    if not settings.TEST_SERVER_MODE:
-        datetime.strftime(
-            resp["AccessKeyLastUsed"]["LastUsedDate"], "%Y-%m-%d"
-        ).should.equal(timestamp.strftime("%Y-%m-%d"))
-    else:
-        resp["AccessKeyLastUsed"].should_not.contain("LastUsedDate")
+    resp["AccessKeyLastUsed"].should.have.key("LastUsedDate")
+    resp["AccessKeyLastUsed"].should.have.key("ServiceName").equals("iam")
+    resp["AccessKeyLastUsed"].should.have.key("Region").equals("us-east-1")
 
 
 @mock_iam

@@ -122,7 +122,7 @@ class ActionAuthenticatorMixin(object):
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
             iam_request = iam_request_cls(
-                account_id=self.account_id,
+                account_id=self.current_account,
                 method=self.method,
                 path=self.path,
                 data=self.data,
@@ -328,7 +328,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return match.group(1)
 
         if self.querystring.get("AWSAccessKeyId"):
-            return self.querystring.get("AWSAccessKeyId")
+            return self.querystring.get("AWSAccessKeyId")[0]
         else:
             return "AKIAEXAMPLE"
 

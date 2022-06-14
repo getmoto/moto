@@ -1847,17 +1847,16 @@ cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
 # password) have no authorization header from which to extract the region.
-def find_region_by_value(key, value):
-    account_specific_backends = cognitoidp_backends[get_account_id()]
-    for region in account_specific_backends:
-        backend = cognitoidp_backends[region]
-        for user_pool in backend.user_pools.values():
-            if key == "client_id" and value in user_pool.clients:
-                return region
+def find_account_region_by_value(key, value):
+    for account_id, account_specific_backend in cognitoidp_backends.items():
+        for region, backend in account_specific_backend.items():
+            for user_pool in backend.user_pools.values():
+                if key == "client_id" and value in user_pool.clients:
+                    return account_id, region
 
-            if key == "access_token" and value in user_pool.access_tokens:
-                return region
+                if key == "access_token" and value in user_pool.access_tokens:
+                    return account_id, region
     # If we can't find the `client_id` or `access_token`, we just pass
     # back a default backend region, which will raise the appropriate
     # error message (e.g. NotAuthorized or NotFound).
-    return list(account_specific_backends)[0]
+    return account_id, region
