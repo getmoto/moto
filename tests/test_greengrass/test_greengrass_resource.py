@@ -318,3 +318,62 @@ def test_list_resources():
         definition.should.have.key("LastUpdatedTimestamp").equals(
             "2022-06-01T12:00:00.000Z"
         )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_resource_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    resource_name = "MotoTestResource"
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name=resource_name
+    )
+
+    resource_def_id = create_res["Id"]
+    arn = create_res["Arn"]
+    latest_version = create_res["LatestVersion"]
+    latest_version_arn = create_res["LatestVersionArn"]
+
+    get_res = client.get_resource_definition(ResourceDefinitionId=resource_def_id)
+
+    get_res.should.have.key("Name").equals(resource_name)
+    get_res.should.have.key("Arn").equals(arn)
+    get_res.should.have.key("Id").equals(resource_def_id)
+    get_res.should.have.key("LatestVersion").equals(latest_version)
+    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+
+    if not TEST_SERVER_MODE:
+        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        get_res.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_get_resource_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_resource_definition(
+            ResourceDefinitionId="76f22a66-176a-4474-b450-04099dc4b069"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That Resource List Definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
