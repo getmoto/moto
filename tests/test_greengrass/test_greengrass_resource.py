@@ -420,3 +420,81 @@ def test_delete_resource_definition_with_invalid_id():
         "That resources definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_update_resource_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+    updated_resource_name = "UpdatedResource"
+    update_res = client.update_resource_definition(
+        ResourceDefinitionId=resource_def_id, Name=updated_resource_name
+    )
+    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    get_res = client.get_resource_definition(ResourceDefinitionId=resource_def_id)
+    get_res.should.have.key("Name").equals(updated_resource_name)
+
+
+@mock_greengrass
+def test_update_device_definition_with_empty_name():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_resource_definition(ResourceDefinitionId=resource_def_id, Name="")
+    ex.value.response["Error"]["Message"].should.equal("Invalid resource name.")
+    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_greengrass
+def test_update_resource_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_resource_definition(
+            ResourceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")

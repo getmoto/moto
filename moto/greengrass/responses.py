@@ -266,6 +266,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "DELETE":
             return self.delete_resource_definition()
 
+        if self.method == "PUT":
+            return self.update_resource_definition()
+
     def get_resource_definition(self):
         resource_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_resource_definition(
@@ -278,6 +281,15 @@ class GreengrassResponse(BaseResponse):
         resource_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_resource_definition(
             resource_definition_id=resource_definition_id
+        )
+        return 200, {"status": 200}, json.dumps({})
+
+    def update_resource_definition(self):
+
+        resource_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_resource_definition(
+            resource_definition_id=resource_definition_id, name=name
         )
         return 200, {"status": 200}, json.dumps({})
 
