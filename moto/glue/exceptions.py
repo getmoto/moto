@@ -30,6 +30,11 @@ class CrawlerAlreadyExistsException(AlreadyExistsException):
         super().__init__("Crawler")
 
 
+class RegistryAlreadyExistsException(AlreadyExistsException):
+    def __init__(self):
+        super().__init__("Registry")
+
+
 class EntityNotFoundException(GlueClientError):
     def __init__(self, msg):
         super().__init__("EntityNotFoundException", msg)
