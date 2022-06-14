@@ -131,6 +131,7 @@ class Integration(BaseModel, dict):
         tls_config=None,
         cache_namespace=None,
         timeout_in_millis=None,
+        request_parameters=None,
     ):
         super().__init__()
         self["type"] = integration_type
@@ -146,6 +147,7 @@ class Integration(BaseModel, dict):
         self["tlsConfig"] = tls_config
         self["cacheNamespace"] = cache_namespace
         self["timeoutInMillis"] = timeout_in_millis
+        self["requestParameters"] = request_parameters
 
     def create_integration_response(
         self, status_code, selection_pattern, response_templates, content_handling
@@ -378,6 +380,7 @@ class Resource(CloudFormationModel):
         tls_config=None,
         cache_namespace=None,
         timeout_in_millis=None,
+        request_parameters=None,
     ):
         integration_method = integration_method or method_type
         integration = Integration(
@@ -389,6 +392,7 @@ class Resource(CloudFormationModel):
             tls_config=tls_config,
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
+            request_parameters=request_parameters,
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
@@ -1568,6 +1572,7 @@ class APIGatewayBackend(BaseBackend):
         tls_config=None,
         cache_namespace=None,
         timeout_in_millis=None,
+        request_parameters=None,
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -1609,6 +1614,7 @@ class APIGatewayBackend(BaseBackend):
             tls_config=tls_config,
             cache_namespace=cache_namespace,
             timeout_in_millis=timeout_in_millis,
+            request_parameters=request_parameters,
         )
         return integration
 
