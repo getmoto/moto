@@ -1,4 +1,5 @@
 import time
+import warnings
 from collections import OrderedDict
 from datetime import datetime
 from uuid import uuid4
@@ -6,7 +7,14 @@ from uuid import uuid4
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import get_account_id
 from moto.core.utils import BackendDict
-from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
+from moto.glue.exceptions import (
+    CrawlerRunningException,
+    CrawlerNotRunningException,
+    SchemaVersionNotFoundFromSchemaVersionIdException,
+    SchemaVersionNotFoundFromSchemaIdException,
+    SchemaNotFoundException,
+    SchemaVersionMetadataAlreadyExistsException,
+)
 from .exceptions import (
     JsonRESTError,
     CrawlerAlreadyExistsException,
@@ -26,12 +34,20 @@ from .glue_schema_registry_utils import (
     validate_registry_id,
     validate_schema_id,
     validate_schema_params,
-    validate_schema_version_params,
     get_schema_version_if_definition_exists,
     validate_registry_params,
+    validate_schema_version_params,
+    validate_schema_definition_length,
+    validate_schema_version_metadata_pattern_and_length,
+    validate_number_of_schema_version_metadata_allowed,
+    get_put_schema_version_metadata_response,
+    validate_register_schema_version_params,
+    delete_schema_response,
 )
 from .glue_schema_registry_constants import (
     DEFAULT_REGISTRY_NAME,
+    AVAILABLE_STATUS,
+    DELETING_STATUS,
 )
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
@@ -264,13 +280,13 @@ class GlueBackend(BaseBackend):
 
     def create_registry(self, registry_name, description=None, tags=None):
         """CreateRegistry API"""
-        """ If registry name id default-registry, create default-registry """
+        # If registry name id default-registry, create default-registry
         if registry_name == DEFAULT_REGISTRY_NAME:
             registry = FakeRegistry(registry_name, description, tags)
             self.registries[registry_name] = registry
             return registry
 
-        """ Validate Registry Parameters """
+        # Validate Registry Parameters
         validate_registry_params(self.registries, registry_name, description, tags)
 
         registry = FakeRegistry(registry_name, description, tags)
@@ -288,7 +304,14 @@ class GlueBackend(BaseBackend):
         tags=None,
     ):
         """CrateSchema API"""
-        """Validate Registry Id"""
+        warnings.warn(
+            "CreateSchema : Following compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL are not yet implemented."
+        )
+        warnings.warn(
+            "CreateSchema: Data format parsing and syntax validation is not implemented "
+        )
+
+        # Validate Registry Id
         registry_name = validate_registry_id(registry_id, self.registries)
         if (
             registry_name == DEFAULT_REGISTRY_NAME
@@ -297,7 +320,7 @@ class GlueBackend(BaseBackend):
             self.create_registry(registry_name)
         registry = self.registries[registry_name]
 
-        """ Validate Schema Parameters """
+        # Validate Schema Parameters
         validate_schema_params(
             registry,
             schema_name,
@@ -309,7 +332,7 @@ class GlueBackend(BaseBackend):
             tags,
         )
 
-        """ Create Schema """
+        # Create Schema
         schema_version = FakeSchemaVersion(
             registry_name, schema_name, schema_definition, version_number=1
         )
@@ -333,24 +356,28 @@ class GlueBackend(BaseBackend):
 
     def register_schema_version(self, schema_id, schema_definition):
         """RegisterSchemaVersion API"""
-        """ Validate Schema Id """
-        registry_name, schema_name = validate_schema_id(schema_id, self.registries)
+        # Validate Schema Id
+        registry_name, schema_name, schema_arn = validate_schema_id(
+            schema_id, self.registries
+        )
 
         compatibility = (
             self.registries[registry_name].schemas[schema_name].compatibility
         )
         data_format = self.registries[registry_name].schemas[schema_name].data_format
-        validate_schema_version_params(
+
+        validate_register_schema_version_params(
             registry_name,
             schema_name,
+            schema_arn,
             self.num_schema_versions,
             schema_definition,
             compatibility,
             data_format,
         )
 
-        """ If the same schema definition is already stored in Schema Registry as a version,
-        the schema ID of the existing schema is returned to the caller. """
+        # If the same schema definition is already stored in Schema Registry as a version,
+        # the schema ID of the existing schema is returned to the caller.
         schema_versions = (
             self.registries[registry_name].schemas[schema_name].schema_versions.values()
         )
@@ -360,13 +387,17 @@ class GlueBackend(BaseBackend):
         if existing_schema_version:
             return existing_schema_version
 
-        """ Register Schema Version """
+        # Register Schema Version
         version_number = (
             self.registries[registry_name]
             .schemas[schema_name]
             .get_next_schema_version()
         )
         self.registries[registry_name].schemas[schema_name].update_next_schema_version()
+
+        self.registries[registry_name].schemas[
+            schema_name
+        ].update_latest_schema_version()
         self.num_schema_versions += 1
 
         schema_version = FakeSchemaVersion(
@@ -375,7 +406,185 @@ class GlueBackend(BaseBackend):
         self.registries[registry_name].schemas[schema_name].schema_versions[
             schema_version.schema_version_id
         ] = schema_version
+
         return schema_version.as_dict()
+
+    def get_schema_version(
+        self, schema_id=None, schema_version_id=None, schema_version_number=None
+    ):
+        """GetSchemaVersion API"""
+
+        # Validate Schema Parameters
+        (
+            schema_version_id,
+            registry_name,
+            schema_name,
+            schema_arn,
+            version_number,
+            latest_version,
+        ) = validate_schema_version_params(
+            self.registries, schema_id, schema_version_id, schema_version_number
+        )
+
+        # GetSchemaVersion using SchemaVersionId
+        if schema_version_id:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    if (
+                        schema.schema_versions.get(schema_version_id, None)
+                        and schema.schema_versions[
+                            schema_version_id
+                        ].schema_version_status
+                        != DELETING_STATUS
+                    ):
+                        get_schema_version_dict = schema.schema_versions[
+                            schema_version_id
+                        ].get_schema_version_as_dict()
+                        get_schema_version_dict["DataFormat"] = schema.data_format
+                        return get_schema_version_dict
+            raise SchemaVersionNotFoundFromSchemaVersionIdException(schema_version_id)
+
+        # GetSchemaVersion using VersionNumber
+        schema = self.registries[registry_name].schemas[schema_name]
+        for schema_version in schema.schema_versions.values():
+            if (
+                version_number == schema_version.version_number
+                and schema_version.schema_version_status != DELETING_STATUS
+            ):
+                get_schema_version_dict = schema_version.get_schema_version_as_dict()
+                get_schema_version_dict["DataFormat"] = schema.data_format
+                return get_schema_version_dict
+        raise SchemaVersionNotFoundFromSchemaIdException(
+            registry_name, schema_name, schema_arn, version_number, latest_version
+        )
+
+    def get_schema_by_definition(self, schema_id, schema_definition):
+        """GetSchemaByDefinition API"""
+        # Validate SchemaId
+        validate_schema_definition_length(schema_definition)
+        registry_name, schema_name, schema_arn = validate_schema_id(
+            schema_id, self.registries
+        )
+
+        # Get Schema By Definition
+        schema = self.registries[registry_name].schemas[schema_name]
+        for schema_version in schema.schema_versions.values():
+            if (
+                schema_definition == schema_version.schema_definition
+                and schema_version.schema_version_status != DELETING_STATUS
+            ):
+                get_schema_by_definition_dict = (
+                    schema_version.get_schema_by_definition_as_dict()
+                )
+                get_schema_by_definition_dict["DataFormat"] = schema.data_format
+                return get_schema_by_definition_dict
+        raise SchemaNotFoundException(schema_name, registry_name, schema_arn)
+
+    def put_schema_version_metadata(
+        self, schema_id, schema_version_number, schema_version_id, metadata_key_value
+    ):
+        """PutSchemaVersionMetadata API"""
+        # Validate metadata_key_value and schema version params
+        (
+            metadata_key,
+            metadata_value,
+        ) = validate_schema_version_metadata_pattern_and_length(metadata_key_value)
+        (
+            schema_version_id,
+            registry_name,
+            schema_name,
+            schema_arn,
+            version_number,
+            latest_version,
+        ) = validate_schema_version_params(
+            self.registries, schema_id, schema_version_id, schema_version_number
+        )
+
+        # PutSchemaVersionMetadata using SchemaVersionId
+        if schema_version_id:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    if schema.schema_versions.get(schema_version_id, None):
+                        validate_number_of_schema_version_metadata_allowed(
+                            schema.schema_versions[schema_version_id].metadata
+                        )
+
+                        if (
+                            metadata_key
+                            in schema.schema_versions[schema_version_id].metadata
+                        ):
+                            if (
+                                metadata_value
+                                in schema.schema_versions[schema_version_id].metadata[
+                                    metadata_key
+                                ]
+                            ):
+                                raise SchemaVersionMetadataAlreadyExistsException(
+                                    schema_version_id, metadata_key, metadata_value
+                                )
+                            schema.schema_versions[schema_version_id].metadata[
+                                metadata_key
+                            ].append(metadata_value)
+
+                        schema.schema_versions[schema_version_id].metadata[
+                            metadata_key
+                        ] = [metadata_value]
+                        return get_put_schema_version_metadata_response(
+                            schema_id,
+                            schema_version_number,
+                            schema_version_id,
+                            metadata_key_value,
+                        )
+
+            raise SchemaVersionNotFoundFromSchemaVersionIdException(schema_version_id)
+
+        # PutSchemaVersionMetadata using VersionNumber
+        schema = self.registries[registry_name].schemas[schema_name]
+        for schema_version in schema.schema_versions.values():
+            if version_number == schema_version.version_number:
+                validate_number_of_schema_version_metadata_allowed(
+                    schema_version.metadata
+                )
+                if metadata_key in schema_version.metadata:
+                    if metadata_value in schema_version.metadata[metadata_key]:
+                        raise SchemaVersionMetadataAlreadyExistsException(
+                            schema_version.schema_version_id,
+                            metadata_key,
+                            metadata_value,
+                        )
+                    schema_version.metadata[metadata_key].append(metadata_value)
+
+                schema_version.metadata[metadata_key] = [metadata_value]
+                return get_put_schema_version_metadata_response(
+                    schema_id,
+                    schema_version_number,
+                    schema_version_id,
+                    metadata_key_value,
+                )
+
+        raise SchemaVersionNotFoundFromSchemaIdException(
+            registry_name, schema_name, schema_arn, version_number, latest_version
+        )
+
+    def delete_schema(self, schema_id):
+        """DeleteSchema API"""
+        # Validate schema_id
+        registry_name, schema_name, _ = validate_schema_id(schema_id, self.registries)
+
+        # delete schema pre-processing
+        schema = self.registries[registry_name].schemas[schema_name]
+        num_schema_version_in_schema = len(schema.schema_versions)
+        schema.schema_status = DELETING_STATUS
+        response = delete_schema_response(
+            schema.schema_name, schema.schema_arn, schema.schema_status
+        )
+
+        # delete schema
+        del self.registries[registry_name].schemas[schema_name]
+        self.num_schemas -= 1
+        self.num_schema_versions -= num_schema_version_in_schema
+
+        return response
 
 
 class FakeDatabase(BaseModel):
@@ -806,16 +1015,19 @@ class FakeSchema(BaseModel):
         self.schema_checkpoint = 1
         self.latest_schema_version = 1
         self.next_schema_version = 2
-        self.schema_status = "AVAILABLE"
+        self.schema_status = AVAILABLE_STATUS
         self.tags = tags
         self.schema_version_id = schema_version_id
-        self.schema_version_status = "AVAILABLE"
+        self.schema_version_status = AVAILABLE_STATUS
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
         self.schema_versions = OrderedDict()
 
     def update_next_schema_version(self):
         self.next_schema_version += 1
+
+    def update_latest_schema_version(self):
+        self.latest_schema_version += 1
 
     def get_next_schema_version(self):
         return self.next_schema_version
@@ -845,11 +1057,12 @@ class FakeSchemaVersion(BaseModel):
         self.schema_name = schema_name
         self.schema_arn = f"arn:aws:glue:us-east-1:{get_account_id()}:schema/{self.registry_name}/{self.schema_name}"
         self.schema_definition = schema_definition
-        self.schema_version_status = "AVAILABLE"
+        self.schema_version_status = AVAILABLE_STATUS
         self.version_number = version_number
         self.schema_version_id = str(uuid4())
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
+        self.metadata = OrderedDict()
 
     def get_schema_version_id(self):
         return self.schema_version_id
@@ -859,6 +1072,26 @@ class FakeSchemaVersion(BaseModel):
             "SchemaVersionId": self.schema_version_id,
             "VersionNumber": self.version_number,
             "Status": self.schema_version_status,
+        }
+
+    def get_schema_version_as_dict(self):
+        # add data_format for full return dictionary of get_schema_version
+        return {
+            "SchemaVersionId": self.schema_version_id,
+            "SchemaDefinition": self.schema_definition,
+            "SchemaArn": self.schema_arn,
+            "VersionNumber": self.version_number,
+            "Status": self.schema_version_status,
+            "CreatedTime": str(self.created_time),
+        }
+
+    def get_schema_by_definition_as_dict(self):
+        # add data_format for full return dictionary of get_schema_by_definition
+        return {
+            "SchemaVersionId": self.schema_version_id,
+            "SchemaArn": self.schema_arn,
+            "Status": self.schema_version_status,
+            "CreatedTime": str(self.created_time),
         }
 
 

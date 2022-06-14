@@ -9,57 +9,65 @@ from moto import mock_glue
 
 from . import helpers
 from .fixtures.schema_registry import (
-    REGISTRY_NAME,
-    REGISTRY_ARN,
-    DESCRIPTION,
-    TAGS,
-    SCHEMA_NAME,
-    SCHEMA_ARN,
-    AVRO_SCHEMA_DEFINITION,
-    NEW_AVRO_SCHEMA_DEFINITION,
-    JSON_SCHEMA_DEFINITION,
-    NEW_JSON_SCHEMA_DEFINITION,
-    PROTOBUF_SCHEMA_DEFINITION,
-    NEW_PROTOBUF_SCHEMA_DEFINITION,
-    AVRO_DATA_FORMAT,
-    JSON_DATA_FORMAT,
-    PROTOBUF_DATA_FORMAT,
-    REGISTRY_ID,
-    SCHEMA_ID,
-    BACKWARD_COMPATIBILITY,
-    DISABLED_COMPATIBILITY,
-    AVAILABLE_STATUS,
+    TEST_REGISTRY_NAME,
+    TEST_REGISTRY_ARN,
+    TEST_DESCRIPTION,
+    TEST_TAGS,
+    TEST_SCHEMA_NAME,
+    TEST_SCHEMA_ARN,
+    TEST_AVRO_SCHEMA_DEFINITION,
+    TEST_NEW_AVRO_SCHEMA_DEFINITION,
+    TEST_JSON_SCHEMA_DEFINITION,
+    TEST_NEW_JSON_SCHEMA_DEFINITION,
+    TEST_PROTOBUF_SCHEMA_DEFINITION,
+    TEST_NEW_PROTOBUF_SCHEMA_DEFINITION,
+    TEST_AVRO_DATA_FORMAT,
+    TEST_JSON_DATA_FORMAT,
+    TEST_PROTOBUF_DATA_FORMAT,
+    TEST_REGISTRY_ID,
+    TEST_SCHEMA_ID,
+    TEST_BACKWARD_COMPATIBILITY,
+    TEST_DISABLED_COMPATIBILITY,
+    TEST_AVAILABLE_STATUS,
+    TEST_SCHEMA_VERSION_NUMBER,
+    TEST_SCHEMA_VERSION_NUMBER_LATEST_VERSION,
+    TEST_VERSION_ID,
+    TEST_INVALID_SCHEMA_NAME_DOES_NOT_EXIST,
+    TEST_INVALID_SCHEMA_ID_SCHEMA_DOES_NOT_EXIST,
+    TEST_INVALID_SCHEMA_ID_REGISTRY_DOES_NOT_EXIST,
+    TEST_METADATA_KEY_VALUE,
+    TEST_METADATA_KEY,
+    TEST_METADATA_VALUE,
+    TEST_DELETING_STATUS,
 )
 
 
-def create_glue_client():
+@pytest.fixture
+def client():
     return boto3.client("glue", region_name="us-east-1")
 
 
 # Test create_registry
 @mock_glue
-def test_create_registry_valid_input():
-    client = create_glue_client()
+def test_create_registry_valid_input(client):
     response = client.create_registry(
-        RegistryName=REGISTRY_NAME, Description=DESCRIPTION, Tags=TAGS
+        RegistryName=TEST_REGISTRY_NAME, Description=TEST_DESCRIPTION, Tags=TEST_TAGS
     )
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("Description").equals(DESCRIPTION)
-    response.should.have.key("Tags").equals(TAGS)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("Description").equals(TEST_DESCRIPTION)
+    response.should.have.key("Tags").equals(TEST_TAGS)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
 
 
 @mock_glue
-def test_create_registry_valid_partial_input():
-    client = create_glue_client()
-    response = client.create_registry(RegistryName=REGISTRY_NAME)
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
+def test_create_registry_valid_partial_input(client):
+    response = client.create_registry(RegistryName=TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
 
 
 @mock_glue
-def test_create_registry_invalid_registry_name_too_long():
-    client = create_glue_client()
+def test_create_registry_invalid_registry_name_too_long(client):
     registry_name = ""
     for _ in range(80):
         registry_name = registry_name + "toolong"
@@ -74,14 +82,13 @@ def test_create_registry_invalid_registry_name_too_long():
 
 
 @mock_glue
-def test_create_registry_more_than_allowed():
-    client = create_glue_client()
+def test_create_registry_more_than_allowed(client):
 
     for i in range(10):
-        client.create_registry(RegistryName=REGISTRY_NAME + str(i))
+        client.create_registry(RegistryName=TEST_REGISTRY_NAME + str(i))
 
     with pytest.raises(ClientError) as exc:
-        client.create_registry(RegistryName=REGISTRY_NAME)
+        client.create_registry(RegistryName=TEST_REGISTRY_NAME)
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("ResourceNumberLimitExceededException")
@@ -91,8 +98,7 @@ def test_create_registry_more_than_allowed():
 
 
 @mock_glue
-def test_create_registry_invalid_registry_name():
-    client = create_glue_client()
+def test_create_registry_invalid_registry_name(client):
     invalid_registry_name = "A,B,C"
 
     with pytest.raises(ClientError) as exc:
@@ -105,30 +111,28 @@ def test_create_registry_invalid_registry_name():
 
 
 @mock_glue
-def test_create_registry_already_exists():
-    client = create_glue_client()
+def test_create_registry_already_exists(client):
 
-    client.create_registry(RegistryName=REGISTRY_NAME)
+    client.create_registry(RegistryName=TEST_REGISTRY_NAME)
 
     with pytest.raises(ClientError) as exc:
-        client.create_registry(RegistryName=REGISTRY_NAME)
+        client.create_registry(RegistryName=TEST_REGISTRY_NAME)
     err = exc.value.response["Error"]
     err["Code"].should.equal("AlreadyExistsException")
     err["Message"].should.equal(
-        "Registry already exists. RegistryName: " + REGISTRY_NAME
+        "Registry already exists. RegistryName: " + TEST_REGISTRY_NAME
     )
 
 
 @mock_glue
-def test_create_registry_invalid_description_too_long():
-    client = create_glue_client()
+def test_create_registry_invalid_description_too_long(client):
     description = ""
     for _ in range(350):
         description = description + "toolong"
 
     with pytest.raises(ClientError) as exc:
         client.create_registry(
-            RegistryName=REGISTRY_NAME,
+            RegistryName=TEST_REGISTRY_NAME,
             Description=description,
         )
     err = exc.value.response["Error"]
@@ -139,17 +143,16 @@ def test_create_registry_invalid_description_too_long():
 
 
 @mock_glue
-def test_create_registry_invalid_number_of_tags():
+def test_create_registry_invalid_number_of_tags(client):
     tags = {}
     for i in range(51):
         key = "k" + str(i)
         val = "v" + str(i)
         tags[key] = val
 
-    client = create_glue_client()
     with pytest.raises(ClientError) as exc:
         client.create_registry(
-            RegistryName=REGISTRY_NAME,
+            RegistryName=TEST_REGISTRY_NAME,
             Tags=tags,
         )
     err = exc.value.response["Error"]
@@ -159,150 +162,144 @@ def test_create_registry_invalid_number_of_tags():
 
 # Test create_schema
 @mock_glue
-def test_create_schema_valid_input_registry_name_avro():
-    client = create_glue_client()
+def test_create_schema_valid_input_registry_name_avro(client):
     helpers.create_registry(client)
 
     response = client.create_schema(
-        RegistryId=REGISTRY_ID,
-        SchemaName=SCHEMA_NAME,
-        DataFormat=AVRO_DATA_FORMAT,
-        Compatibility=BACKWARD_COMPATIBILITY,
-        SchemaDefinition=AVRO_SCHEMA_DEFINITION,
-        Description=DESCRIPTION,
-        Tags=TAGS,
+        RegistryId=TEST_REGISTRY_ID,
+        SchemaName=TEST_SCHEMA_NAME,
+        DataFormat=TEST_AVRO_DATA_FORMAT,
+        Compatibility=TEST_BACKWARD_COMPATIBILITY,
+        SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
+        Description=TEST_DESCRIPTION,
+        Tags=TEST_TAGS,
     )
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
-    response.should.have.key("SchemaName").equals(SCHEMA_NAME)
-    response.should.have.key("SchemaArn").equals(SCHEMA_ARN)
-    response.should.have.key("Description").equals(DESCRIPTION)
-    response.should.have.key("DataFormat").equals(AVRO_DATA_FORMAT)
-    response.should.have.key("Compatibility").equals(BACKWARD_COMPATIBILITY)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("Description").equals(TEST_DESCRIPTION)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
     response.should.have.key("SchemaCheckpoint").equals(1)
     response.should.have.key("LatestSchemaVersion").equals(1)
     response.should.have.key("NextSchemaVersion").equals(2)
-    response.should.have.key("SchemaStatus").equals(AVAILABLE_STATUS)
-    response.should.have.key("Tags").equals(TAGS)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("Tags").equals(TEST_TAGS)
     response.should.have.key("SchemaVersionId")
-    response.should.have.key("SchemaVersionStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_create_schema_valid_input_registry_name_json():
-    client = create_glue_client()
+def test_create_schema_valid_input_registry_name_json(client):
     helpers.create_registry(client)
 
     response = client.create_schema(
-        RegistryId=REGISTRY_ID,
-        SchemaName=SCHEMA_NAME,
-        DataFormat=JSON_DATA_FORMAT,
-        Compatibility=BACKWARD_COMPATIBILITY,
-        SchemaDefinition=JSON_SCHEMA_DEFINITION,
-        Description=DESCRIPTION,
-        Tags=TAGS,
+        RegistryId=TEST_REGISTRY_ID,
+        SchemaName=TEST_SCHEMA_NAME,
+        DataFormat=TEST_JSON_DATA_FORMAT,
+        Compatibility=TEST_BACKWARD_COMPATIBILITY,
+        SchemaDefinition=TEST_JSON_SCHEMA_DEFINITION,
+        Description=TEST_DESCRIPTION,
+        Tags=TEST_TAGS,
     )
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
-    response.should.have.key("SchemaName").equals(SCHEMA_NAME)
-    response.should.have.key("SchemaArn").equals(SCHEMA_ARN)
-    response.should.have.key("Description").equals(DESCRIPTION)
-    response.should.have.key("DataFormat").equals(JSON_DATA_FORMAT)
-    response.should.have.key("Compatibility").equals(BACKWARD_COMPATIBILITY)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("Description").equals(TEST_DESCRIPTION)
+    response.should.have.key("DataFormat").equals(TEST_JSON_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
     response.should.have.key("SchemaCheckpoint").equals(1)
     response.should.have.key("LatestSchemaVersion").equals(1)
     response.should.have.key("NextSchemaVersion").equals(2)
-    response.should.have.key("SchemaStatus").equals(AVAILABLE_STATUS)
-    response.should.have.key("Tags").equals(TAGS)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("Tags").equals(TEST_TAGS)
     response.should.have.key("SchemaVersionId")
-    response.should.have.key("SchemaVersionStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_create_schema_valid_input_registry_name_protobuf():
-    client = create_glue_client()
+def test_create_schema_valid_input_registry_name_protobuf(client):
     helpers.create_registry(client)
 
     response = client.create_schema(
-        RegistryId=REGISTRY_ID,
-        SchemaName=SCHEMA_NAME,
-        DataFormat=PROTOBUF_DATA_FORMAT,
-        Compatibility=BACKWARD_COMPATIBILITY,
-        SchemaDefinition=PROTOBUF_SCHEMA_DEFINITION,
-        Description=DESCRIPTION,
-        Tags=TAGS,
+        RegistryId=TEST_REGISTRY_ID,
+        SchemaName=TEST_SCHEMA_NAME,
+        DataFormat=TEST_PROTOBUF_DATA_FORMAT,
+        Compatibility=TEST_BACKWARD_COMPATIBILITY,
+        SchemaDefinition=TEST_PROTOBUF_SCHEMA_DEFINITION,
+        Description=TEST_DESCRIPTION,
+        Tags=TEST_TAGS,
     )
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
-    response.should.have.key("SchemaName").equals(SCHEMA_NAME)
-    response.should.have.key("SchemaArn").equals(SCHEMA_ARN)
-    response.should.have.key("Description").equals(DESCRIPTION)
-    response.should.have.key("DataFormat").equals(PROTOBUF_DATA_FORMAT)
-    response.should.have.key("Compatibility").equals(BACKWARD_COMPATIBILITY)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("Description").equals(TEST_DESCRIPTION)
+    response.should.have.key("DataFormat").equals(TEST_PROTOBUF_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
     response.should.have.key("SchemaCheckpoint").equals(1)
     response.should.have.key("LatestSchemaVersion").equals(1)
     response.should.have.key("NextSchemaVersion").equals(2)
-    response.should.have.key("SchemaStatus").equals(AVAILABLE_STATUS)
-    response.should.have.key("Tags").equals(TAGS)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("Tags").equals(TEST_TAGS)
     response.should.have.key("SchemaVersionId")
-    response.should.have.key("SchemaVersionStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_create_schema_valid_input_registry_arn():
-    client = create_glue_client()
+def test_create_schema_valid_input_registry_arn(client):
     helpers.create_registry(client)
 
-    registry_id = {"RegistryArn": f"{REGISTRY_ARN}"}
+    registry_id = {"RegistryArn": f"{TEST_REGISTRY_ARN}"}
     response = client.create_schema(
         RegistryId=registry_id,
-        SchemaName=SCHEMA_NAME,
-        DataFormat=AVRO_DATA_FORMAT,
-        Compatibility=BACKWARD_COMPATIBILITY,
-        SchemaDefinition=AVRO_SCHEMA_DEFINITION,
-        Description=DESCRIPTION,
-        Tags=TAGS,
+        SchemaName=TEST_SCHEMA_NAME,
+        DataFormat=TEST_AVRO_DATA_FORMAT,
+        Compatibility=TEST_BACKWARD_COMPATIBILITY,
+        SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
+        Description=TEST_DESCRIPTION,
+        Tags=TEST_TAGS,
     )
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
-    response.should.have.key("SchemaName").equals(SCHEMA_NAME)
-    response.should.have.key("SchemaArn").equals(SCHEMA_ARN)
-    response.should.have.key("Description").equals(DESCRIPTION)
-    response.should.have.key("DataFormat").equals(AVRO_DATA_FORMAT)
-    response.should.have.key("Compatibility").equals(BACKWARD_COMPATIBILITY)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("Description").equals(TEST_DESCRIPTION)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
     response.should.have.key("SchemaCheckpoint").equals(1)
     response.should.have.key("LatestSchemaVersion").equals(1)
     response.should.have.key("NextSchemaVersion").equals(2)
-    response.should.have.key("SchemaStatus").equals(AVAILABLE_STATUS)
-    response.should.have.key("Tags").equals(TAGS)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("Tags").equals(TEST_TAGS)
     response.should.have.key("SchemaVersionId")
-    response.should.have.key("SchemaVersionStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_create_schema_valid_partial_input():
-    client = create_glue_client()
+def test_create_schema_valid_partial_input(client):
     helpers.create_registry(client)
 
-    response = helpers.create_schema(client, REGISTRY_ID)
-    response.should.have.key("RegistryName").equals(REGISTRY_NAME)
-    response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
-    response.should.have.key("SchemaName").equals(SCHEMA_NAME)
-    response.should.have.key("SchemaArn").equals(SCHEMA_ARN)
-    response.should.have.key("DataFormat").equals(AVRO_DATA_FORMAT)
-    response.should.have.key("Compatibility").equals(BACKWARD_COMPATIBILITY)
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
     response.should.have.key("SchemaCheckpoint").equals(1)
     response.should.have.key("LatestSchemaVersion").equals(1)
     response.should.have.key("NextSchemaVersion").equals(2)
-    response.should.have.key("SchemaStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
     response.should.have.key("SchemaStatus")
     response.should.have.key("SchemaVersionId")
-    response.should.have.key("SchemaVersionStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_create_schema_valid_default_registry():
-    client = create_glue_client()
+def test_create_schema_valid_default_registry(client):
     helpers.create_registry(client)
 
     empty_registry_id = {}
@@ -313,28 +310,55 @@ def test_create_schema_valid_default_registry():
     response.should.have.key("RegistryArn").equals(
         f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/{default_registry_name}"
     )
-    response.should.have.key("SchemaName").equals(SCHEMA_NAME)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
     response.should.have.key("SchemaArn").equals(
-        f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:schema/{default_registry_name}/{SCHEMA_NAME}"
+        f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:schema/{default_registry_name}/{TEST_SCHEMA_NAME}"
     )
-    response.should.have.key("DataFormat").equals(AVRO_DATA_FORMAT)
-    response.should.have.key("Compatibility").equals(BACKWARD_COMPATIBILITY)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
     response.should.have.key("SchemaCheckpoint").equals(1)
     response.should.have.key("LatestSchemaVersion").equals(1)
     response.should.have.key("NextSchemaVersion").equals(2)
-    response.should.have.key("SchemaStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
     response.should.have.key("SchemaStatus")
     response.should.have.key("SchemaVersionId")
-    response.should.have.key("SchemaVersionStatus").equals(AVAILABLE_STATUS)
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_create_schema_invalid_registry_arn():
-    client = create_glue_client()
+def test_create_schema_valid_default_registry_in_registry_id(client):
+    helpers.create_registry(client)
+
+    default_registry_name = "default-registry"
+    registry_id_default_registry = {"RegistryName": f"{default_registry_name}"}
+
+    response = helpers.create_schema(client, registry_id=registry_id_default_registry)
+
+    response.should.have.key("RegistryName").equals(default_registry_name)
+    response.should.have.key("RegistryArn").equals(
+        f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/{default_registry_name}"
+    )
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("SchemaArn").equals(
+        f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:schema/{default_registry_name}/{TEST_SCHEMA_NAME}"
+    )
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("Compatibility").equals(TEST_BACKWARD_COMPATIBILITY)
+    response.should.have.key("SchemaCheckpoint").equals(1)
+    response.should.have.key("LatestSchemaVersion").equals(1)
+    response.should.have.key("NextSchemaVersion").equals(2)
+    response.should.have.key("SchemaStatus").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("SchemaStatus")
+    response.should.have.key("SchemaVersionId")
+    response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
+
+
+@mock_glue
+def test_create_schema_invalid_registry_arn(client):
     helpers.create_registry(client)
 
     invalid_registry_arn = (
-        f"invalid:arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/{REGISTRY_NAME}"
+        f"invalid:arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/{TEST_REGISTRY_NAME}"
     )
     invalid_registry_id = {"RegistryArn": f"{invalid_registry_arn}"}
 
@@ -348,13 +372,12 @@ def test_create_schema_invalid_registry_arn():
 
 
 @mock_glue
-def test_create_schema_invalid_registry_id_both_params_provided():
-    client = create_glue_client()
+def test_create_schema_invalid_registry_id_both_params_provided(client):
     helpers.create_registry(client)
 
     invalid_registry_id = {
-        "RegistryName": f"{REGISTRY_NAME}",
-        "RegistryArn": f"{REGISTRY_ARN}",
+        "RegistryName": f"{TEST_REGISTRY_NAME}",
+        "RegistryArn": f"{TEST_REGISTRY_ARN}",
     }
 
     with pytest.raises(ClientError) as exc:
@@ -367,19 +390,18 @@ def test_create_schema_invalid_registry_id_both_params_provided():
 
 
 @mock_glue
-def test_create_schema_invalid_schema_name():
-    client = create_glue_client()
+def test_create_schema_invalid_schema_name(client):
     helpers.create_registry(client)
 
     invalid_schema_name = "Invalid,Schema,Name"
 
     with pytest.raises(ClientError) as exc:
         client.create_schema(
-            RegistryId=REGISTRY_ID,
+            RegistryId=TEST_REGISTRY_ID,
             SchemaName=invalid_schema_name,
-            DataFormat=AVRO_DATA_FORMAT,
-            Compatibility=BACKWARD_COMPATIBILITY,
-            SchemaDefinition=AVRO_SCHEMA_DEFINITION,
+            DataFormat=TEST_AVRO_DATA_FORMAT,
+            Compatibility=TEST_BACKWARD_COMPATIBILITY,
+            SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
@@ -389,8 +411,7 @@ def test_create_schema_invalid_schema_name():
 
 
 @mock_glue
-def test_create_schema_invalid_schema_name_too_long():
-    client = create_glue_client()
+def test_create_schema_invalid_schema_name_too_long(client):
     helpers.create_registry(client)
 
     invalid_schema_name = ""
@@ -399,11 +420,11 @@ def test_create_schema_invalid_schema_name_too_long():
 
     with pytest.raises(ClientError) as exc:
         client.create_schema(
-            RegistryId=REGISTRY_ID,
+            RegistryId=TEST_REGISTRY_ID,
             SchemaName=invalid_schema_name,
-            DataFormat=AVRO_DATA_FORMAT,
-            Compatibility=BACKWARD_COMPATIBILITY,
-            SchemaDefinition=AVRO_SCHEMA_DEFINITION,
+            DataFormat=TEST_AVRO_DATA_FORMAT,
+            Compatibility=TEST_BACKWARD_COMPATIBILITY,
+            SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
@@ -413,36 +434,35 @@ def test_create_schema_invalid_schema_name_too_long():
 
 
 @mock_glue
-def test_create_schema_invalid_data_format():
-    client = create_glue_client()
+def test_create_schema_invalid_data_format(client):
     helpers.create_registry(client)
 
     invalid_data_format = "INVALID"
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, REGISTRY_ID, data_format=invalid_data_format)
+        helpers.create_schema(client, TEST_REGISTRY_ID, data_format=invalid_data_format)
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal("Data format is not valid.")
 
 
 @mock_glue
-def test_create_schema_invalid_compatibility():
-    client = create_glue_client()
+def test_create_schema_invalid_compatibility(client):
     helpers.create_registry(client)
 
     invalid_compatibility = "INVALID"
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, REGISTRY_ID, compatibility=invalid_compatibility)
+        helpers.create_schema(
+            client, TEST_REGISTRY_ID, compatibility=invalid_compatibility
+        )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal("Compatibility is not valid.")
 
 
 @mock_glue
-def test_create_schema_invalid_schema_definition():
-    client = create_glue_client()
+def test_create_schema_invalid_schema_definition(client):
     helpers.create_registry(client)
 
     invalid_schema_definition = """{
@@ -451,231 +471,821 @@ def test_create_schema_invalid_schema_definition():
 
     with pytest.raises(ClientError) as exc:
         helpers.create_schema(
-            client, REGISTRY_ID, schema_definition=invalid_schema_definition
+            client, TEST_REGISTRY_ID, schema_definition=invalid_schema_definition
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.have(
-        f"Schema definition of {AVRO_DATA_FORMAT} data format is invalid"
+        f"Schema definition of {TEST_AVRO_DATA_FORMAT} data format is invalid"
     )
 
 
-# test RegisterSchemaVersion
+# test register_schema_version
 @mock_glue
-def test_register_schema_version_valid_input_avro():
-    client = create_glue_client()
+def test_register_schema_version_valid_input_avro(client):
     helpers.create_registry(client)
 
-    helpers.create_schema(client, REGISTRY_ID)
+    helpers.create_schema(client, TEST_REGISTRY_ID)
 
     response = client.register_schema_version(
-        SchemaId=SCHEMA_ID, SchemaDefinition=NEW_AVRO_SCHEMA_DEFINITION
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_NEW_AVRO_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId")
     response.should.have.key("VersionNumber").equals(2)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_valid_input_json():
-    client = create_glue_client()
+def test_register_schema_version_valid_input_json(client):
     helpers.create_registry(client)
 
     helpers.create_schema(
         client,
-        REGISTRY_ID,
+        TEST_REGISTRY_ID,
         data_format="JSON",
-        schema_definition=JSON_SCHEMA_DEFINITION,
+        schema_definition=TEST_JSON_SCHEMA_DEFINITION,
     )
 
     response = client.register_schema_version(
-        SchemaId=SCHEMA_ID, SchemaDefinition=NEW_JSON_SCHEMA_DEFINITION
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_NEW_JSON_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId")
     response.should.have.key("VersionNumber").equals(2)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_valid_input_protobuf():
-    client = create_glue_client()
+def test_register_schema_version_valid_input_protobuf(client):
     helpers.create_registry(client)
 
     helpers.create_schema(
         client,
-        REGISTRY_ID,
+        TEST_REGISTRY_ID,
         data_format="PROTOBUF",
-        schema_definition=PROTOBUF_SCHEMA_DEFINITION,
+        schema_definition=TEST_PROTOBUF_SCHEMA_DEFINITION,
     )
 
     response = client.register_schema_version(
-        SchemaId=SCHEMA_ID, SchemaDefinition=NEW_PROTOBUF_SCHEMA_DEFINITION
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_NEW_PROTOBUF_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId")
     response.should.have.key("VersionNumber").equals(2)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_valid_input_schema_arn():
-    client = create_glue_client()
+def test_register_schema_version_valid_input_schema_arn(client):
     helpers.create_registry(client)
 
-    helpers.create_schema(client, REGISTRY_ID)
+    helpers.create_schema(client, TEST_REGISTRY_ID)
 
-    schema_id = {"SchemaArn": SCHEMA_ARN}
+    schema_id = {"SchemaArn": TEST_SCHEMA_ARN}
     response = client.register_schema_version(
-        SchemaId=schema_id, SchemaDefinition=NEW_AVRO_SCHEMA_DEFINITION
+        SchemaId=schema_id, SchemaDefinition=TEST_NEW_AVRO_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId")
     response.should.have.key("VersionNumber").equals(2)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_identical_schema_version_avro():
-    client = create_glue_client()
+def test_register_schema_version_identical_schema_version_avro(client):
     helpers.create_registry(client)
 
-    response = helpers.create_schema(client, REGISTRY_ID)
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
 
     version_id = response["SchemaVersionId"]
 
     response = client.register_schema_version(
-        SchemaId=SCHEMA_ID, SchemaDefinition=AVRO_SCHEMA_DEFINITION
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId").equals(version_id)
     response.should.have.key("VersionNumber").equals(1)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_identical_schema_version_json():
-    client = create_glue_client()
+def test_register_schema_version_identical_schema_version_json(client):
     helpers.create_registry(client)
 
     response = helpers.create_schema(
         client,
-        REGISTRY_ID,
-        data_format=JSON_DATA_FORMAT,
-        schema_definition=JSON_SCHEMA_DEFINITION,
+        TEST_REGISTRY_ID,
+        data_format=TEST_JSON_DATA_FORMAT,
+        schema_definition=TEST_JSON_SCHEMA_DEFINITION,
     )
 
     version_id = response["SchemaVersionId"]
 
     response = client.register_schema_version(
-        SchemaId=SCHEMA_ID, SchemaDefinition=JSON_SCHEMA_DEFINITION
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_JSON_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId").equals(version_id)
     response.should.have.key("VersionNumber").equals(1)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_identical_schema_version_protobuf():
-    client = create_glue_client()
+def test_register_schema_version_identical_schema_version_protobuf(client):
     helpers.create_registry(client)
 
     response = helpers.create_schema(
         client,
-        REGISTRY_ID,
-        data_format=PROTOBUF_DATA_FORMAT,
-        schema_definition=PROTOBUF_SCHEMA_DEFINITION,
+        TEST_REGISTRY_ID,
+        data_format=TEST_PROTOBUF_DATA_FORMAT,
+        schema_definition=TEST_PROTOBUF_SCHEMA_DEFINITION,
     )
 
     version_id = response["SchemaVersionId"]
 
     response = client.register_schema_version(
-        SchemaId=SCHEMA_ID, SchemaDefinition=PROTOBUF_SCHEMA_DEFINITION
+        SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_PROTOBUF_SCHEMA_DEFINITION
     )
 
     response.should.have.key("SchemaVersionId").equals(version_id)
     response.should.have.key("VersionNumber").equals(1)
-    response.should.have.key("Status").equals(AVAILABLE_STATUS)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
 @mock_glue
-def test_register_schema_version_invalid_registry_schema_does_not_exist():
-    client = create_glue_client()
+def test_register_schema_version_invalid_registry_schema_does_not_exist(client):
     helpers.create_registry(client)
 
-    helpers.create_schema(client, REGISTRY_ID)
-
-    invalid_schema_id = {
-        "RegistryName": "InvalidRegistryDoesNotExist",
-        "SchemaName": f"{SCHEMA_NAME}",
-    }
+    helpers.create_schema(client, TEST_REGISTRY_ID)
 
     with pytest.raises(ClientError) as exc:
         client.register_schema_version(
-            SchemaId=invalid_schema_id, SchemaDefinition=AVRO_SCHEMA_DEFINITION
+            SchemaId=TEST_INVALID_SCHEMA_ID_REGISTRY_DOES_NOT_EXIST,
+            SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
         )
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("EntityNotFoundException")
-    err["Message"].should.equal("Schema is not found.")
+    err["Message"].should.have("Schema is not found.")
 
 
 @mock_glue
-def test_register_schema_version_invalid_schema_schema_does_not_exist():
-    client = create_glue_client()
+def test_register_schema_version_invalid_schema_schema_does_not_exist(client):
     helpers.create_registry(client)
 
-    helpers.create_schema(client, REGISTRY_ID)
-
-    invalid_schema_id = {
-        "RegistryName": f"{REGISTRY_NAME}",
-        "SchemaName": "InvalidSchemaDoesNotExist",
-    }
+    helpers.create_schema(client, TEST_REGISTRY_ID)
 
     with pytest.raises(ClientError) as exc:
         client.register_schema_version(
-            SchemaId=invalid_schema_id, SchemaDefinition=AVRO_SCHEMA_DEFINITION
+            SchemaId=TEST_INVALID_SCHEMA_ID_SCHEMA_DOES_NOT_EXIST,
+            SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("EntityNotFoundException")
-    err["Message"].should.equal("Schema is not found.")
+    err["Message"].should.have("Schema is not found.")
 
 
 @mock_glue
-def test_register_schema_version_invalid_compatibility_disabled():
-    client = create_glue_client()
+def test_register_schema_version_invalid_compatibility_disabled(client):
     helpers.create_registry(client)
 
-    helpers.create_schema(client, REGISTRY_ID, compatibility=DISABLED_COMPATIBILITY)
+    helpers.create_schema(
+        client, TEST_REGISTRY_ID, compatibility=TEST_DISABLED_COMPATIBILITY
+    )
 
     with pytest.raises(ClientError) as exc:
         client.register_schema_version(
-            SchemaId=SCHEMA_ID, SchemaDefinition=AVRO_SCHEMA_DEFINITION
+            SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal(
-        "Compatibility DISABLED does not allow versioning. SchemaId: SchemaId(schemaName="
-        + SCHEMA_NAME
+        "Compatibility DISABLED does not allow versioning. SchemaId: SchemaId(schemaArn=null"
+        + ", schemaName="
+        + TEST_SCHEMA_NAME
         + ", registryName="
-        + REGISTRY_NAME
+        + TEST_REGISTRY_NAME
         + ")"
     )
 
 
 @mock_glue
-def test_register_schema_version_invalid_schema_definition():
-    client = create_glue_client()
+def test_register_schema_version_invalid_schema_definition(client):
     helpers.create_registry(client)
 
-    helpers.create_schema(client, REGISTRY_ID, compatibility=DISABLED_COMPATIBILITY)
+    helpers.create_schema(
+        client, TEST_REGISTRY_ID, compatibility=TEST_DISABLED_COMPATIBILITY
+    )
 
     with pytest.raises(ClientError) as exc:
         client.register_schema_version(
-            SchemaId=SCHEMA_ID, SchemaDefinition=AVRO_SCHEMA_DEFINITION
+            SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION
         )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.have("Schema definition of JSON data format is invalid:")
+
+
+@mock_glue
+def test_register_schema_version_invalid_schema_id(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+    invalid_schema_id = {
+        "SchemaArn": TEST_SCHEMA_ARN,
+        "RegistryName": TEST_REGISTRY_NAME,
+        "SchemaName": TEST_INVALID_SCHEMA_NAME_DOES_NOT_EXIST,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.register_schema_version(
+            SchemaId=invalid_schema_id, SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "One of (registryName and schemaName) or schemaArn has to be provided, both cannot be provided."
+    )
+
+
+# test get_schema_version
+@mock_glue
+def test_get_schema_version_valid_input_schema_version_id(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    response = client.get_schema_version(
+        SchemaVersionId=version_id,
+    )
+
+    response.should.have.key("SchemaVersionId").equals(version_id)
+    response.should.have.key("SchemaDefinition").equals(TEST_AVRO_SCHEMA_DEFINITION)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("VersionNumber").equals(1)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("CreatedTime")
+
+
+@mock_glue
+def test_get_schema_version_valid_input_version_number(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    response = client.get_schema_version(
+        SchemaId=TEST_SCHEMA_ID,
+        SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+    )
+
+    response.should.have.key("SchemaVersionId").equals(version_id)
+    response.should.have.key("SchemaDefinition").equals(TEST_AVRO_SCHEMA_DEFINITION)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("VersionNumber").equals(1)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("CreatedTime")
+
+
+@mock_glue
+def test_get_schema_version_valid_input_version_number_latest_version(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    response = helpers.register_schema_version(client)
+    version_id = response["SchemaVersionId"]
+
+    response = client.get_schema_version(
+        SchemaId=TEST_SCHEMA_ID,
+        SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER_LATEST_VERSION,
+    )
+
+    response.should.have.key("SchemaVersionId").equals(version_id)
+    response.should.have.key("SchemaDefinition").equals(TEST_NEW_AVRO_SCHEMA_DEFINITION)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("VersionNumber").equals(2)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("CreatedTime")
+
+
+@mock_glue
+def test_get_schema_version_empty_input(client):
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version()
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.have(
+        "At least one of (registryName and schemaName) or schemaArn has to be provided."
+    )
+
+
+@mock_glue
+def test_get_schema_version_invalid_schema_id_schema_version_number_both_provided(
+    client,
+):
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionId=TEST_VERSION_ID,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER_LATEST_VERSION,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "No other input parameters can be specified when fetching by SchemaVersionId."
+    )
+
+
+@mock_glue
+def test_get_schema_version_insufficient_params_provided(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaId=TEST_SCHEMA_ID,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "One of version number (or) latest version is required."
+    )
+
+
+@mock_glue
+def test_get_schema_version_invalid_schema_version_number(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    invalid_schema_version_number = {"VersionNumber": 1, "LatestVersion": True}
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=invalid_schema_version_number,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "Only one of VersionNumber or LatestVersion is required."
+    )
+
+
+@mock_glue
+def test_get_schema_version_invalid_version_number(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    invalid_schema_version_number = {"VersionNumber": 2}
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=invalid_schema_version_number,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.have("Schema is not found.")
+
+
+@mock_glue
+def test_get_schema_version_invalid_schema_id_schema_name(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaId=TEST_INVALID_SCHEMA_ID_SCHEMA_DOES_NOT_EXIST,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.equal(
+        f"Schema is not found. RegistryName: {TEST_REGISTRY_NAME}, SchemaName: {TEST_INVALID_SCHEMA_NAME_DOES_NOT_EXIST}, SchemaArn: null"
+    )
+
+
+@mock_glue
+def test_get_schema_version_invalid_schema_id_registry_name(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaId=TEST_INVALID_SCHEMA_ID_REGISTRY_DOES_NOT_EXIST,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.have("Schema is not found.")
+
+
+@mock_glue
+def test_get_schema_version_invalid_schema_version(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+    invalid_schema_version_id = "00000000-0000-0000-0000-00000000000p"
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaVersionId=invalid_schema_version_id,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "The parameter value contains one or more characters that are not valid. Parameter Name: SchemaVersionId"
+    )
+
+
+# Test get_schema_by_definition
+@mock_glue
+def test_get_schema_by_definition_valid_input(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    response = client.get_schema_by_definition(
+        SchemaId=TEST_SCHEMA_ID,
+        SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
+    )
+
+    response.should.have.key("SchemaVersionId").equals(version_id)
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("DataFormat").equals(TEST_AVRO_DATA_FORMAT)
+    response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
+    response.should.have.key("CreatedTime")
+
+
+@mock_glue
+def test_get_schema_by_definition_invalid_schema_id_schema_does_not_exist(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_by_definition(
+            SchemaId=TEST_INVALID_SCHEMA_ID_SCHEMA_DOES_NOT_EXIST,
+            SchemaDefinition=TEST_AVRO_SCHEMA_DEFINITION,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.have("Schema is not found.")
+
+
+@mock_glue
+def test_get_schema_by_definition_invalid_schema_definition_does_not_exist(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_by_definition(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaDefinition=TEST_NEW_AVRO_SCHEMA_DEFINITION,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.have("Schema is not found.")
+
+
+# test put_schema_version_metadata
+@mock_glue
+def test_put_schema_version_metadata_valid_input_schema_version_number(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    response = client.put_schema_version_metadata(
+        SchemaId=TEST_SCHEMA_ID,
+        SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+        MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+    )
+
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
+    response.should.have.key("LatestVersion").equals(False)
+    response.should.have.key("VersionNumber").equals(1)
+    response.should.have.key("MetadataKey").equals(
+        TEST_METADATA_KEY_VALUE["MetadataKey"]
+    )
+    response.should.have.key("MetadataValue").equals(
+        TEST_METADATA_KEY_VALUE["MetadataValue"]
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_valid_input_schema_version_id(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    response = client.put_schema_version_metadata(
+        SchemaVersionId=version_id,
+        MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+    )
+
+    response.should.have.key("SchemaVersionId").equals(version_id)
+    response.should.have.key("LatestVersion").equals(False)
+    response.should.have.key("VersionNumber").equals(0)
+    response.should.have.key("MetadataKey").equals(TEST_METADATA_KEY)
+    response.should.have.key("MetadataValue").equals(TEST_METADATA_VALUE)
+
+
+@mock_glue
+def test_put_schema_version_metadata_more_than_allowed_schema_version_id(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    for i in range(10):
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue={
+                "MetadataKey": f"test_metadata_key{i}",
+                "MetadataValue": f"test_metadata_value{i}",
+            },
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNumberLimitExceededException")
+    err["Message"].should.equal(
+        "Your resource limits for Schema Version Metadata have been exceeded."
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_already_exists_schema_version_id(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    client.put_schema_version_metadata(
+        SchemaVersionId=version_id,
+        MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("AlreadyExistsException")
+    err["Message"].should.equal(
+        f"Resource already exist for schema version id: {version_id}, metadata key: {TEST_METADATA_KEY}, metadata value: {TEST_METADATA_VALUE}"
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_invalid_characters_metadata_key_schema_version_id(
+    client,
+):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    invalid_metadata_key = {
+        "MetadataKey": "invalid~metadata~key",
+        "MetadataValue": TEST_METADATA_VALUE,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue=invalid_metadata_key,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.have(
+        "key contains one or more characters that are not valid."
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_invalid_characters_metadata_value_schema_version_id(
+    client,
+):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    invalid_metadata_value = {
+        "MetadataKey": TEST_METADATA_KEY,
+        "MetadataValue": "invalid~metadata~value",
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue=invalid_metadata_value,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.have(
+        "value contains one or more characters that are not valid."
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_more_than_allowed_schema_version_number(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    for i in range(10):
+        client.put_schema_version_metadata(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+            MetadataKeyValue={
+                "MetadataKey": f"test_metadata_key{i}",
+                "MetadataValue": f"test_metadata_value{i}",
+            },
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+            MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNumberLimitExceededException")
+    err["Message"].should.equal(
+        "Your resource limits for Schema Version Metadata have been exceeded."
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_already_exists_schema_version_number(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    client.put_schema_version_metadata(
+        SchemaId=TEST_SCHEMA_ID,
+        SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+        MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+            MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("AlreadyExistsException")
+    err["Message"].should.equal(
+        f"Resource already exist for schema version id: {version_id}, metadata key: {TEST_METADATA_KEY}, metadata value: {TEST_METADATA_VALUE}"
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_invalid_characters_metadata_key_schema_version_number(
+    client,
+):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    invalid_metadata_key = {
+        "MetadataKey": "invalid~metadata~key",
+        "MetadataValue": TEST_METADATA_VALUE,
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+            MetadataKeyValue=invalid_metadata_key,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.have(
+        "key contains one or more characters that are not valid."
+    )
+
+
+@mock_glue
+def test_put_schema_version_metadata_invalid_characters_metadata_value_schema_version_number(
+    client,
+):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    invalid_metadata_value = {
+        "MetadataKey": TEST_METADATA_KEY,
+        "MetadataValue": "invalid~metadata~value",
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaId=TEST_SCHEMA_ID,
+            SchemaVersionNumber=TEST_SCHEMA_VERSION_NUMBER,
+            MetadataKeyValue=invalid_metadata_value,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.have(
+        "value contains one or more characters that are not valid."
+    )
+
+
+# test delete_schema
+@mock_glue
+def test_delete_schema_valid_input(client):
+    helpers.create_registry(client)
+
+    helpers.create_schema(client, TEST_REGISTRY_ID)
+
+    response = client.delete_schema(
+        SchemaId=TEST_SCHEMA_ID,
+    )
+
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("Status").equals(TEST_DELETING_STATUS)
+
+
+@mock_glue
+def test_delete_schema_valid_input_schema_arn(client):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    schema_id = {"SchemaArn": f"{TEST_SCHEMA_ARN}"}
+    response = client.delete_schema(
+        SchemaId=schema_id,
+    )
+
+    response.should.have.key("SchemaArn").equals(TEST_SCHEMA_ARN)
+    response.should.have.key("SchemaName").equals(TEST_SCHEMA_NAME)
+    response.should.have.key("Status").equals(TEST_DELETING_STATUS)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schema_version(
+            SchemaVersionId=version_id,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.have("Schema is not found.")
+
+
+@mock_glue
+def test_delete_schema_schema_not_found(client):
+    helpers.create_registry(client)
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_schema(
+            SchemaId=TEST_SCHEMA_ID,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("EntityNotFoundException")
+    err["Message"].should.have(
+        f"Schema is not found. RegistryName: {TEST_REGISTRY_NAME}, SchemaName: {TEST_SCHEMA_NAME}, SchemaArn: null"
+    )
