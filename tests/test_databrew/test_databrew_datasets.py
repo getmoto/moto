@@ -237,6 +237,9 @@ def test_update_dataset():
     dataset = client.describe_dataset(Name=response["Name"])
     dataset["Name"].should.equal(response["Name"])
     dataset["Format"].should.equal("TEST")
+    dataset.should.have.key("ResourceArn").equal(
+        f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
+    )
 
 
 @mock_databrew
