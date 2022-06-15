@@ -1635,7 +1635,7 @@ def test_change_message_visibility_on_old_message():
 def test_change_message_visibility_on_visible_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "2"}
     )
 
     queue.send_message(MessageBody="test message")
