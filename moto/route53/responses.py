@@ -172,7 +172,7 @@ class Route53(BaseResponse):
         route53_backend.disassociate_vpc(zoneid, vpcid)
 
         template = Template(DISASSOCIATE_VPC_RESPONSE)
-        return 200, headers, template.render(comment)
+        return 200, headers, template.render(comment=comment)
 
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -825,7 +825,7 @@ UPDATE_HOSTED_ZONE_COMMENT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 ASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <AssociateVPCWithHostedZoneResponse>
    <ChangeInfo>
-      <Comment>{{ comment }}</Comment>
+      <Comment>{{ comment or "" }}</Comment>
       <Id>/change/a1b2c3d4</Id>
       <Status>INSYNC</Status>
       <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
@@ -836,7 +836,7 @@ ASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 DISASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DisassociateVPCFromHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
    <ChangeInfo>
-      <Comment>{{ comment }}</Comment>
+      <Comment>{{ comment or "" }}</Comment>
       <Id>/change/a1b2c3d4</Id>
       <Status>INSYNC</Status>
       <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
