@@ -3,8 +3,7 @@ import contextlib
 import re
 from datetime import datetime, timezone
 from unittest import SkipTest
-from contextlib import nullcontext as does_not_raise
-
+from contextlib import contextmanager
 
 import boto3
 import pytest
@@ -15,6 +14,11 @@ from moto.core import ACCOUNT_ID
 from moto.emrserverless import REGION as DEFAULT_REGION
 from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
 from unittest.mock import patch
+
+
+@contextmanager
+def does_not_raise():
+    yield
 
 
 @pytest.fixture(scope="function")
