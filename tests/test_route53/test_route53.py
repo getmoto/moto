@@ -752,13 +752,14 @@ def test_list_hosted_zones_by_vpc():
         HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
+    zone_id = zone_b["HostedZone"]["Id"].split("/")[2]
     response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
     response.should.have.key("ResponseMetadata")
     response.should.have.key("HostedZoneSummaries")
     response["HostedZoneSummaries"].should.have.length_of(1)
     response["HostedZoneSummaries"][0].should.have.key("HostedZoneId")
     retured_zone = response["HostedZoneSummaries"][0]
-    retured_zone["HostedZoneId"].should.equal(zone_b["HostedZone"]["Id"])
+    retured_zone["HostedZoneId"].should.equal(zone_id)
     retured_zone["Name"].should.equal(zone_b["HostedZone"]["Name"])
 
 
@@ -792,8 +793,9 @@ def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
     for summary in response["HostedZoneSummaries"]:
         # use the zone name as the index
         index = summary["Name"].split(".")[1]
+        zone_id = zones[index]["HostedZone"]["Id"].split("/")[2]
         summary.should.have.key("HostedZoneId")
-        summary["HostedZoneId"].should.equal(zones[index]["HostedZone"]["Id"])
+        summary["HostedZoneId"].should.equal(zone_id)
         summary.should.have.key("Name")
         summary["Name"].should.equal(zones[index]["HostedZone"]["Name"])
 
