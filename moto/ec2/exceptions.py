@@ -239,6 +239,14 @@ class InvalidRouteError(EC2ClientError):
         )
 
 
+class RouteAlreadyExistsError(EC2ClientError):
+    def __init__(self, cidr):
+        super().__init__(
+            "RouteAlreadyExists",
+            "The route identified by {0} already exists".format(cidr),
+        )
+
+
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id):
         if isinstance(instance_id, str):
