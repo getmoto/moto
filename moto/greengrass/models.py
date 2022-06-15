@@ -5,6 +5,7 @@ from datetime import datetime
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from .exceptions import (
+    GreengrassClientError,
     IdNotFoundException,
     InvalidContainerDefinitionException,
     VersionNotFoundException,
@@ -115,6 +116,55 @@ class FakeDeviceDefinitionVersion(BaseModel):
             obj["Definition"] = {"Devices": self.devices}
 
         return obj
+
+
+class FakeResourceDefinition(BaseModel):
+    def __init__(self, region_name, name, initial_version):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/resources/{self.id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self):
+        return {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+            "Name": self.name,
+        }
+
+
+class FakeResourceDefinitionVersion(BaseModel):
+    def __init__(self, region_name, resource_definition_id, resources):
+        self.region_name = region_name
+        self.resource_definition_id = resource_definition_id
+        self.resources = resources
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Definition": {"Resources": self.resources},
+            "Id": self.resource_definition_id,
+            "Version": self.version,
+        }
 
 
 class GreengrassBackend(BaseBackend):
@@ -290,6 +340,75 @@ class GreengrassBackend(BaseBackend):
         return self.device_definition_versions[device_definition_id][
             device_definition_version_id
         ]
+
+    def create_resource_definition(self, name, initial_version):
+
+        resources = initial_version.get("Resources", [])
+        GreengrassBackend._validate_resources(resources)
+
+        resource_def = FakeResourceDefinition(self.region_name, name, initial_version)
+        self.resource_definitions[resource_def.id] = resource_def
+        init_ver = resource_def.initial_version
+        resources = init_ver.get("Resources", {})
+        self.create_resource_definition_version(resource_def.id, resources)
+
+        return resource_def
+
+    def create_resource_definition_version(self, resource_definition_id, resources):
+
+        if resource_definition_id not in self.resource_definitions:
+            raise IdNotFoundException("That resource definition does not exist.")
+
+        GreengrassBackend._validate_resources(resources)
+
+        resource_def_ver = FakeResourceDefinitionVersion(
+            self.region_name, resource_definition_id, resources
+        )
+
+        resources_ver = self.resource_definition_versions.get(
+            resource_def_ver.resource_definition_id, {}
+        )
+        resources_ver[resource_def_ver.version] = resource_def_ver
+        self.resource_definition_versions[
+            resource_def_ver.resource_definition_id
+        ] = resources_ver
+
+        self.resource_definitions[
+            resource_definition_id
+        ].latest_version = resource_def_ver.version
+
+        self.resource_definitions[
+            resource_definition_id
+        ].latest_version_arn = resource_def_ver.arn
+
+        return resource_def_ver
+
+    @staticmethod
+    def _validate_resources(resources):
+        for resource in resources:
+            volume_source_path = (
+                resource.get("ResourceDataContainer", {})
+                .get("LocalVolumeResourceData", {})
+                .get("SourcePath", "")
+            )
+            if volume_source_path == "/sys" or volume_source_path.startswith("/sys/"):
+                raise GreengrassClientError(
+                    "400",
+                    "The resources definition is invalid. (ErrorDetails: [Accessing /sys is prohibited])",
+                )
+
+            local_device_resource_data = resource.get("ResourceDataContainer", {}).get(
+                "LocalDeviceResourceData", {}
+            )
+            if local_device_resource_data:
+                device_source_path = local_device_resource_data["SourcePath"]
+                if not device_source_path.startswith("/dev"):
+                    raise GreengrassClientError(
+                        "400",
+                        f"The resources definition is invalid. (ErrorDetails: [Device resource path should begin with "
+                        "/dev"
+                        f", but got: {device_source_path}])",
+                    )
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
