@@ -308,3 +308,110 @@ class GreengrassResponse(BaseResponse):
             resource_definition_id=resource_definition_id, resources=resources
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def function_definitions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_function_definition()
+
+        if self.method == "GET":
+            return self.list_function_definitions()
+
+    def create_function_definition(self):
+
+        initial_version = self._get_param("InitialVersion")
+        name = self._get_param("Name")
+        res = self.greengrass_backend.create_function_definition(
+            name=name, initial_version=initial_version
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_function_definitions(self):
+        res = self.greengrass_backend.list_function_definitions()
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {"Definitions": [func_definition.to_dict() for func_definition in res]}
+            ),
+        )
+
+    def function_definition(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_function_definition()
+
+        if self.method == "DELETE":
+            return self.delete_function_definition()
+
+        if self.method == "PUT":
+            return self.update_function_definition()
+
+    def get_function_definition(self):
+        function_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_function_definition(
+            function_definition_id=function_definition_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def delete_function_definition(self):
+        function_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_function_definition(
+            function_definition_id=function_definition_id,
+        )
+        return 200, {"status": 200}, json.dumps({})
+
+    def update_function_definition(self):
+        function_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_function_definition(
+            function_definition_id=function_definition_id, name=name
+        )
+        return 200, {"status": 200}, json.dumps({})
+
+    def function_definition_versions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_function_definition_version()
+
+        if self.method == "GET":
+            return self.list_function_definition_versions()
+
+    def create_function_definition_version(self):
+
+        default_config = self._get_param("DefaultConfig")
+        function_definition_id = self.path.split("/")[-2]
+        functions = self._get_param("Functions")
+
+        res = self.greengrass_backend.create_function_definition_version(
+            default_config=default_config,
+            function_definition_id=function_definition_id,
+            functions=functions,
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_function_definition_versions(self):
+        function_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_function_definition_versions(
+            function_definition_id=function_definition_id
+        )
+        versions = [i.to_dict() for i in res.values()]
+        return 200, {"status": 200}, json.dumps({"Versions": versions})
+
+    def function_definition_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_function_definition_version()
+
+    def get_function_definition_version(self):
+        function_definition_id = self.path.split("/")[-3]
+        function_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_function_definition_version(
+            function_definition_id=function_definition_id,
+            function_definition_version_id=function_definition_version_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())

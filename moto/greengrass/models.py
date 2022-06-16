@@ -168,6 +168,58 @@ class FakeResourceDefinitionVersion(BaseModel):
         }
 
 
+class FakeFunctionDefinition(BaseModel):
+    def __init__(self, region_name, name, initial_version):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/functions/{self.id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self):
+        res = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+        }
+        if self.name is not None:
+            res["Name"] = self.name
+        return res
+
+
+class FakeFunctionDefinitionVersion(BaseModel):
+    def __init__(self, region_name, function_definition_id, functions, default_config):
+        self.region_name = region_name
+        self.function_definition_id = function_definition_id
+        self.functions = functions
+        self.default_config = default_config
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Definition": {"Functions": self.functions},
+            "Id": self.function_definition_id,
+            "Version": self.version,
+        }
+
+
 class GreengrassBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
@@ -433,6 +485,89 @@ class GreengrassBackend(BaseBackend):
                         "/dev"
                         f", but got: {device_source_path}])",
                     )
+
+    def create_function_definition(self, name, initial_version):
+        func_def = FakeFunctionDefinition(self.region_name, name, initial_version)
+        self.function_definitions[func_def.id] = func_def
+        init_ver = func_def.initial_version
+        init_func_def = init_ver.get("Functions", {})
+        init_config = init_ver.get("DefaultConfig", {})
+        self.create_function_definition_version(func_def.id, init_func_def, init_config)
+
+        return func_def
+
+    def list_function_definitions(self):
+        return self.function_definitions.values()
+
+    def get_function_definition(self, function_definition_id):
+
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That Lambda List Definition does not exist.")
+        return self.function_definitions[function_definition_id]
+
+    def delete_function_definition(self, function_definition_id):
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+        del self.function_definitions[function_definition_id]
+        del self.function_definition_versions[function_definition_id]
+
+    def update_function_definition(self, function_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+        self.function_definitions[function_definition_id].name = name
+
+    def create_function_definition_version(
+        self, function_definition_id, functions, default_config
+    ):
+
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That lambdas does not exist.")
+
+        func_ver = FakeFunctionDefinitionVersion(
+            self.region_name, function_definition_id, functions, default_config
+        )
+        func_vers = self.function_definition_versions.get(
+            func_ver.function_definition_id, {}
+        )
+        func_vers[func_ver.version] = func_ver
+        self.function_definition_versions[func_ver.function_definition_id] = func_vers
+        self.function_definitions[
+            function_definition_id
+        ].latest_version = func_ver.version
+        self.function_definitions[
+            function_definition_id
+        ].latest_version_arn = func_ver.arn
+
+        return func_ver
+
+    def list_function_definition_versions(self, function_definition_id):
+        if function_definition_id not in self.function_definition_versions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+        return self.function_definition_versions[function_definition_id]
+
+    def get_function_definition_version(
+        self, function_definition_id, function_definition_version_id
+    ):
+
+        if function_definition_id not in self.function_definition_versions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+
+        if (
+            function_definition_version_id
+            not in self.function_definition_versions[function_definition_id]
+        ):
+            raise IdNotFoundException(
+                f"Version {function_definition_version_id} of Lambda List Definition {function_definition_id} does not exist."
+            )
+
+        return self.function_definition_versions[function_definition_id][
+            function_definition_version_id
+        ]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
