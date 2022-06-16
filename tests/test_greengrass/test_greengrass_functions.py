@@ -116,3 +116,57 @@ def test_create_function_definition_version_with_invalid_id():
         )
     ex.value.response["Error"]["Message"].should.equal("That lambdas does not exist.")
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_function_definition_versions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    functions = [
+        {
+            "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+            "Id": "1234567890",
+            "FunctionConfiguration": {
+                "MemorySize": 16384,
+                "EncodingType": "binary",
+                "Pinned": True,
+                "Timeout": 3,
+            },
+        }
+    ]
+
+    initial_version = {"Functions": functions}
+    create_res = client.create_function_definition(
+        InitialVersion=initial_version, Name="TestFunction"
+    )
+    func_def_id = create_res["Id"]
+
+    func_def_vers_res = client.list_function_definition_versions(
+        FunctionDefinitionId=func_def_id
+    )
+
+    func_def_vers_res.should.have.key("Versions")
+    device_def_ver = func_def_vers_res["Versions"][0]
+    device_def_ver.should.have.key("Arn")
+    device_def_ver.should.have.key("CreationTimestamp")
+
+    if not TEST_SERVER_MODE:
+        device_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+    device_def_ver.should.have.key("Id").equals(func_def_id)
+    device_def_ver.should.have.key("Version")
+
+
+@mock_greengrass
+def test_list_function_definition_versions_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_function_definition_versions(
+            FunctionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That lambdas definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")

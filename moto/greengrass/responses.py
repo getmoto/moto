@@ -282,6 +282,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_function_definition_version()
 
+        if self.method == "GET":
+            return self.list_function_definition_versions()
+
     def create_function_definition_version(self):
 
         default_config = self._get_param("DefaultConfig")
@@ -294,3 +297,11 @@ class GreengrassResponse(BaseResponse):
             functions=functions,
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_function_definition_versions(self):
+        function_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_function_definition_versions(
+            function_definition_id=function_definition_id
+        )
+        versions = [i.to_dict() for i in res.values()]
+        return 200, {"status": 200}, json.dumps({"Versions": versions})
