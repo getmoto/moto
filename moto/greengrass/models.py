@@ -475,6 +475,12 @@ class GreengrassBackend(BaseBackend):
     def list_function_definitions(self):
         return self.function_definitions.values()
 
+    def get_function_definition(self, function_definition_id):
+
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That Lambda List Definition does not exist.")
+        return self.function_definitions[function_definition_id]
+
     def create_function_definition_version(
         self, function_definition_id, functions, default_config
     ):

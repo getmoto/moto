@@ -18,6 +18,7 @@ url_paths = {
     "{0}/greengrass/definition/devices/(?P<definition_id>[^/]+)/versions$": response.device_definition_versions,
     "{0}/greengrass/definition/devices/(?P<definition_id>[^/]+)/versions/(?P<definition_version_id>[^/]+)/?$": response.device_definition_version,
     "{0}/greengrass/definition/functions$": response.function_definitions,
+    "{0}/greengrass/definition/functions/(?P<definition_id>[^/]+)/?$": response.function_definition,
     "{0}/greengrass/definition/functions/(?P<definition_id>[^/]+)/versions$": response.function_definition_versions,
     "{0}/greengrass/definition/functions/(?P<definition_id>[^/]+)/versions/(?P<definition_version_id>[^/]+)/?$": response.function_definition_version,
     "{0}/greengrass/definition/resources$": response.resource_definitions,
