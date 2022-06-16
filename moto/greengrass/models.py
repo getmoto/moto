@@ -501,5 +501,24 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That lambdas definition does not exist.")
         return self.function_definition_versions[function_definition_id]
 
+    def get_function_definition_version(
+        self, function_definition_id, function_definition_version_id
+    ):
+
+        if function_definition_id not in self.function_definition_versions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+
+        if (
+            function_definition_version_id
+            not in self.function_definition_versions[function_definition_id]
+        ):
+            raise IdNotFoundException(
+                f"Version {function_definition_version_id} of Lambda List Definition {function_definition_id} does not exist."
+            )
+
+        return self.function_definition_versions[function_definition_id][
+            function_definition_version_id
+        ]
+
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

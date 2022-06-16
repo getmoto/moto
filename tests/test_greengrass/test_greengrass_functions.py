@@ -170,3 +170,95 @@ def test_list_function_definition_versions_with_invalid_id():
         "That lambdas definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_function_definition_version():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    functions = [
+        {
+            "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+            "Id": "1234567890",
+            "FunctionConfiguration": {
+                "MemorySize": 16384,
+                "EncodingType": "binary",
+                "Pinned": True,
+                "Timeout": 3,
+            },
+        }
+    ]
+
+    initial_version = {"Functions": functions}
+    create_res = client.create_function_definition(
+        InitialVersion=initial_version, Name="TestFunction"
+    )
+
+    func_def_id = create_res["Id"]
+    func_def_ver_id = create_res["LatestVersion"]
+
+    func_def_ver_res = client.get_function_definition_version(
+        FunctionDefinitionId=func_def_id, FunctionDefinitionVersionId=func_def_ver_id
+    )
+
+    func_def_ver_res.should.have.key("Arn")
+    func_def_ver_res.should.have.key("CreationTimestamp")
+    func_def_ver_res.should.have.key("Definition").should.equal(initial_version)
+    func_def_ver_res.should.have.key("Id").equals(func_def_id)
+    func_def_ver_res.should.have.key("Version")
+
+    if not TEST_SERVER_MODE:
+        func_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+
+
+@mock_greengrass
+def test_get_function_definition_version_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_function_definition_version(
+            FunctionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
+            FunctionDefinitionVersionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That lambdas definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_get_function_definition_version_with_invalid_version_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    functions = [
+        {
+            "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+            "Id": "1234567890",
+            "FunctionConfiguration": {
+                "MemorySize": 16384,
+                "EncodingType": "binary",
+                "Pinned": True,
+                "Timeout": 3,
+            },
+        }
+    ]
+
+    initial_version = {"Functions": functions}
+    create_res = client.create_function_definition(
+        InitialVersion=initial_version, Name="TestFunction"
+    )
+
+    func_def_id = create_res["Id"]
+    invalid_func_def_ver_id = "7b0bdeae-54c7-47cf-9f93-561e672efd9c"
+
+    with pytest.raises(ClientError) as ex:
+        client.get_function_definition_version(
+            FunctionDefinitionId=func_def_id,
+            FunctionDefinitionVersionId=invalid_func_def_ver_id,
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        f"Version {invalid_func_def_ver_id} of Lambda List Definition {func_def_id} does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
