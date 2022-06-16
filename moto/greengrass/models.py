@@ -459,6 +459,13 @@ class GreengrassBackend(BaseBackend):
 
         return resource_def_ver
 
+    def list_resource_definition_versions(self, resource_definition_id):
+
+        if resource_definition_id not in self.resource_definition_versions:
+            raise IdNotFoundException("That resources definition does not exist.")
+
+        return self.resource_definition_versions[resource_definition_id].values()
+
     @staticmethod
     def _validate_resources(resources):
         for resource in resources:

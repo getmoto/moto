@@ -498,3 +498,56 @@ def test_update_resource_definition_with_invalid_id():
         "That resources definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_resource_definition_versions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    resources = [
+        {
+            "Id": "123",
+            "Name": "test_directory",
+            "ResourceDataContainer": {
+                "LocalDeviceResourceData": {
+                    "SourcePath": "/dev/null",
+                }
+            },
+        }
+    ]
+
+    initial_version = {"Resources": resources}
+    create_res = client.create_resource_definition(
+        InitialVersion=initial_version, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+
+    resource_def_vers_res = client.list_resource_definition_versions(
+        ResourceDefinitionId=resource_def_id
+    )
+
+    resource_def_vers_res.should.have.key("Versions")
+    resource_def_vers_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    device_def_ver = resource_def_vers_res["Versions"][0]
+    device_def_ver.should.have.key("Arn")
+    device_def_ver.should.have.key("CreationTimestamp")
+    device_def_ver.should.have.key("Id").equals(resource_def_id)
+    device_def_ver.should.have.key("Version")
+
+    if not TEST_SERVER_MODE:
+        device_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+
+
+@mock_greengrass
+def test_list_resource_definition_versions_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.list_resource_definition_versions(
+            ResourceDefinitionId="fe2392e9-e67f-4308-af1b-ff94a128b231"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
