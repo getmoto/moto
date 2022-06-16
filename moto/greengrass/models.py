@@ -481,6 +481,12 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That Lambda List Definition does not exist.")
         return self.function_definitions[function_definition_id]
 
+    def delete_function_definition(self, function_definition_id):
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+        del self.function_definitions[function_definition_id]
+        del self.function_definition_versions[function_definition_id]
+
     def create_function_definition_version(
         self, function_definition_id, functions, default_config
     ):
