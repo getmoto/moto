@@ -472,6 +472,9 @@ class GreengrassBackend(BaseBackend):
 
         return func_def
 
+    def list_function_definitions(self):
+        return self.function_definitions.values()
+
     def create_function_definition_version(
         self, function_definition_id, functions, default_config
     ):

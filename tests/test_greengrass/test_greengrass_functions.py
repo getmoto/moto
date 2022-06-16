@@ -46,6 +46,43 @@ def test_create_function_definition():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_list_function_definitions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Functions": [
+            {
+                "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+                "Id": "1234567890",
+                "FunctionConfiguration": {
+                    "MemorySize": 16384,
+                    "EncodingType": "binary",
+                    "Pinned": True,
+                    "Timeout": 3,
+                },
+            }
+        ]
+    }
+    func_name = "TestFunc"
+    client.create_function_definition(InitialVersion=init_ver, Name=func_name)
+
+    res = client.list_function_definitions()
+    func_def = res["Definitions"][0]
+
+    func_def.should.have.key("Name").equals(func_name)
+    func_def.should.have.key("Arn")
+    func_def.should.have.key("Id")
+    func_def.should.have.key("LatestVersion")
+    func_def.should.have.key("LatestVersionArn")
+    if not TEST_SERVER_MODE:
+        func_def.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        func_def.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_create_function_definition_version():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")
