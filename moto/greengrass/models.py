@@ -487,6 +487,16 @@ class GreengrassBackend(BaseBackend):
         del self.function_definitions[function_definition_id]
         del self.function_definition_versions[function_definition_id]
 
+    def update_function_definition(self, function_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if function_definition_id not in self.function_definitions:
+            raise IdNotFoundException("That lambdas definition does not exist.")
+        self.function_definitions[function_definition_id].name = name
+
     def create_function_definition_version(
         self, function_definition_id, functions, default_config
     ):

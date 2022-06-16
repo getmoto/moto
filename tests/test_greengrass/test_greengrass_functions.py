@@ -182,6 +182,88 @@ def test_delete_function_definition_with_invalid_id():
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
 
 
+@mock_greengrass
+def test_update_function_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Functions": [
+            {
+                "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+                "Id": "1234567890",
+                "FunctionConfiguration": {
+                    "MemorySize": 16384,
+                    "EncodingType": "binary",
+                    "Pinned": True,
+                    "Timeout": 3,
+                },
+            }
+        ]
+    }
+    create_res = client.create_function_definition(
+        InitialVersion=init_ver, Name="TestFunc"
+    )
+
+    func_def_id = create_res["Id"]
+    updated_func_name = "UpdatedFunction"
+    update_res = client.update_function_definition(
+        FunctionDefinitionId=func_def_id, Name=updated_func_name
+    )
+    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    get_res = client.get_function_definition(FunctionDefinitionId=func_def_id)
+    get_res.should.have.key("Name").equals(updated_func_name)
+
+
+@mock_greengrass
+def test_update_function_definition_with_empty_name():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Functions": [
+            {
+                "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+                "Id": "1234567890",
+                "FunctionConfiguration": {
+                    "MemorySize": 16384,
+                    "EncodingType": "binary",
+                    "Pinned": True,
+                    "Timeout": 3,
+                },
+            }
+        ]
+    }
+    create_res = client.create_function_definition(
+        InitialVersion=init_ver, Name="TestFunc"
+    )
+
+    func_def_id = create_res["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_function_definition(FunctionDefinitionId=func_def_id, Name="")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Input does not contain any attributes to be updated"
+    )
+    ex.value.response["Error"]["Code"].should.equal(
+        "InvalidContainerDefinitionException"
+    )
+
+
+@mock_greengrass
+def test_update_function_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_function_definition(
+            FunctionDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That lambdas definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_function_definition_version():

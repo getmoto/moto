@@ -298,6 +298,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "DELETE":
             return self.delete_function_definition()
 
+        if self.method == "PUT":
+            return self.update_function_definition()
+
     def get_function_definition(self):
         function_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_function_definition(
@@ -309,6 +312,14 @@ class GreengrassResponse(BaseResponse):
         function_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_function_definition(
             function_definition_id=function_definition_id,
+        )
+        return 200, {"status": 200}, json.dumps({})
+
+    def update_function_definition(self):
+        function_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_function_definition(
+            function_definition_id=function_definition_id, name=name
         )
         return 200, {"status": 200}, json.dumps({})
 
