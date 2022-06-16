@@ -2,6 +2,11 @@ import json
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+
+from cryptography.hazmat.primitives.asymmetric import padding
+from moto.apigateway.exceptions import ValidationException
 
 from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex, unix_time, BackendDict
@@ -14,6 +19,7 @@ from .utils import (
     encrypt,
     generate_key_id,
     generate_master_key,
+    generate_private_key,
 )
 
 
@@ -64,6 +70,7 @@ class Key(CloudFormationModel):
         self.key_rotation_status = False
         self.deletion_date = None
         self.key_material = generate_master_key()
+        self.private_key = generate_private_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
@@ -515,6 +522,95 @@ class KmsBackend(BaseBackend):
         else:
             key = self.describe_key(key_id)
             key.retire_grant(grant_id)
+
+    def __ensure_valid_sing_and_verify_key(self, key: Key):
+        if key.key_usage != "SIGN_VERIFY":
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{key_id}' at 'KeyId' failed "
+                    "to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
+                ).format(key_id=key.id)
+            )
+
+    def __ensure_valid_signing_augorithm(self, key: Key, signing_algorithm):
+        if signing_algorithm not in key.signing_algorithms:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_sign_algorithms}"
+                ).format(
+                    signing_algorithm=signing_algorithm,
+                    valid_sign_algorithms=key.signing_algorithms,
+                )
+            )
+
+    def __ensure_implemented_sign_and_verify_args(self, grant_tokens, message_type):
+        if grant_tokens:
+            raise NotImplementedError(
+                "GrantTokens not supported by kms_verify mock yet"
+            )
+
+        if message_type == "DIGEST":
+            raise NotImplementedError(
+                "MessageType DIGEST not supported by kms_verify mock yet"
+            )
+
+    def sign(self, key_id, message, message_type, grant_tokens, signing_algorithm):
+        key = self.describe_key(key_id)
+
+        self.__ensure_implemented_sign_and_verify_args(grant_tokens, message_type)
+        self.__ensure_valid_sing_and_verify_key(key)
+        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+
+        # TODO: support more than one hardcoded algorithm based on KeySpec
+        signature = key.private_key.sign(
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+
+        return key.arn, signature, signing_algorithm
+
+    def verify(
+        self, key_id, message, message_type, signature, signing_algorithm, grant_tokens
+    ):
+        key = self.describe_key(key_id)
+
+        self.__ensure_implemented_sign_and_verify_args(grant_tokens, message_type)
+        self.__ensure_valid_sing_and_verify_key(key)
+        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+
+        if signing_algorithm not in key.signing_algorithms:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_sign_algorithms}"
+                ).format(
+                    signing_algorithm=signing_algorithm,
+                    valid_sign_algorithms=key.signing_algorithms,
+                )
+            )
+
+        public_key = key.private_key.public_key()
+
+        try:
+            # TODO: support more than one hardcoded algorithm based on KeySpec
+            public_key.verify(
+                signature,
+                message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH,
+                ),
+                hashes.SHA256(),
+            )
+            return key.arn, True, signing_algorithm
+        except InvalidSignature:
+            return key.arn, False, signing_algorithm
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

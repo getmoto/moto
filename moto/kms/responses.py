@@ -599,6 +599,93 @@ class KmsResponse(BaseResponse):
 
         return json.dumps({"Plaintext": response_entropy})
 
+    def sign(self):
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_Sign.html"""
+        key_id = self.parameters.get("KeyId")
+        message = self.parameters.get("Message")
+        message_type = self.parameters.get("MessageType")
+        grant_tokens = self.parameters.get("GrantTokens")
+        signing_algorithm = self.parameters.get("SigningAlgorithm")
+
+        self._validate_key_id(key_id)
+
+        if isinstance(message, str):
+            message = message.encode("utf-8")
+
+        if message == b"":
+            raise ValidationException(
+                "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+            )
+
+        if not message_type:
+            message_type = "RAW"
+
+        key_id, signature, signing_algorithm = self.kms_backend.sign(
+            key_id=key_id,
+            message=message,
+            message_type=message_type,
+            grant_tokens=grant_tokens,
+            signing_algorithm=signing_algorithm,
+        )
+
+        signature_blob_response = base64.b64encode(signature).decode("utf-8")
+
+        return json.dumps(
+            {
+                "KeyId": key_id,
+                "Signature": signature_blob_response,
+                "SigningAlgorithm": signing_algorithm,
+            }
+        )
+
+    def verify(self):
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_Verify.html"""
+        key_id = self.parameters.get("KeyId")
+        message = self.parameters.get("Message")
+        message_type = self.parameters.get("MessageType")
+        signature = self.parameters.get("Signature")
+        signing_algorithm = self.parameters.get("SigningAlgorithm")
+        grant_tokens = self.parameters.get("GrantTokens")
+
+        self._validate_key_id(key_id)
+
+        if not message_type:
+            message_type = "RAW"
+
+        if isinstance(message, str):
+            message = message.encode("utf-8")
+
+        if message == b"":
+            raise ValidationException(
+                "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+            )
+
+        if isinstance(signature, str):
+            # we return base64 signatures, when signing
+            signature = base64.b64decode(signature.encode("utf-8"))
+
+        if signature == b"":
+            raise ValidationException(
+                "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
+            )
+
+        key_arn, signature_valid, signing_algorithm = self.kms_backend.verify(
+            key_id=key_id,
+            message=message,
+            message_type=message_type,
+            signature=signature,
+            signing_algorithm=signing_algorithm,
+            grant_tokens=grant_tokens,
+        )
+
+        return json.dumps(
+            {
+                "KeyId": key_arn,
+                "SignatureValid": signature_valid,
+                "SigningAlgorithm": signing_algorithm,
+            }
+        )
+
 
 def _assert_default_policy(policy_name):
     if policy_name != "default":

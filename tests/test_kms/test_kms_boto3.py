@@ -1106,3 +1106,101 @@ def test_key_tag_added_arn_based_happy():
     ]
     client.tag_resource(KeyId=key_id, Tags=tags)
     _check_tags(key_id, tags, client)
+
+
+@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
+@mock_kms
+def test_sign_happy(plaintext):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    sign_response = client.sign(
+        KeyId=key_id, Message=plaintext, SigningAlgorithm=signing_algorithm
+    )
+
+    sign_response["Signature"].should_not.equal(plaintext)
+    sign_response["SigningAlgorithm"].should.equal(signing_algorithm)
+    sign_response["KeyId"].should.equal(key_arn)
+
+
+@mock_kms
+def test_sign_invalid_signing_algorithm():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signing_algorithm = "INVALID"
+
+    try:
+        client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+        assert False
+    except ClientError:
+        assert True
+
+
+@mock_kms
+def test_sign_invalid_key_usage():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="ENCRYPT_DECRYPT")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    try:
+        client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+        assert False
+    except ClientError:
+        assert True
+
+
+@mock_kms
+def test_sign_invalid_message():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = ""
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    try:
+        client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+        assert False
+    except ClientError:
+        assert True
+
+
+@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
+@mock_kms
+def test_verify_happy(plaintext):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    sign_response = client.sign(
+        KeyId=key_id, Message=plaintext, SigningAlgorithm=signing_algorithm
+    )
+
+    signature = sign_response["Signature"]
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=plaintext,
+        Signature=signature,
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    verify_response["SigningAlgorithm"].should.equal(signing_algorithm)
+    verify_response["KeyId"].should.equal(key_arn)
+    verify_response["SignatureValid"].should.equal(True)
