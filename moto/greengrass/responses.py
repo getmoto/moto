@@ -327,6 +327,21 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
+    def resource_definition_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_resource_definition_version()
+
+    def get_resource_definition_version(self):
+        resource_definition_id = self.path.split("/")[-3]
+        resource_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_resource_definition_version(
+            resource_definition_id=resource_definition_id,
+            resource_definition_version_id=resource_definition_version_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
     def function_definitions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
