@@ -477,7 +477,7 @@ class GreengrassBackend(BaseBackend):
     ):
 
         if function_definition_id not in self.function_definitions:
-            raise IdNotFoundException("That functions definition does not exist.")
+            raise IdNotFoundException("That lambdas does not exist.")
 
         func_ver = FakeFunctionDefinitionVersion(
             self.region_name, function_definition_id, functions, default_config
