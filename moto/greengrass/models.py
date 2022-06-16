@@ -7,6 +7,7 @@ from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
 from .exceptions import (
     GreengrassClientError,
     IdNotFoundException,
+    InvalidInputException,
     InvalidContainerDefinitionException,
     VersionNotFoundException,
 )
@@ -353,6 +354,29 @@ class GreengrassBackend(BaseBackend):
         self.create_resource_definition_version(resource_def.id, resources)
 
         return resource_def
+
+    def list_resource_definitions(self):
+        return self.resource_definitions
+
+    def get_resource_definition(self, resource_definition_id):
+
+        if resource_definition_id not in self.resource_definitions:
+            raise IdNotFoundException("That Resource List Definition does not exist.")
+        return self.resource_definitions[resource_definition_id]
+
+    def delete_resource_definition(self, resource_definition_id):
+        if resource_definition_id not in self.resource_definitions:
+            raise IdNotFoundException("That resources definition does not exist.")
+        del self.resource_definitions[resource_definition_id]
+        del self.resource_definition_versions[resource_definition_id]
+
+    def update_resource_definition(self, resource_definition_id, name):
+
+        if name == "":
+            raise InvalidInputException("Invalid resource name.")
+        if resource_definition_id not in self.resource_definitions:
+            raise IdNotFoundException("That resources definition does not exist.")
+        self.resource_definitions[resource_definition_id].name = name
 
     def create_resource_definition_version(self, resource_definition_id, resources):
 

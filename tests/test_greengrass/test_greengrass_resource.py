@@ -270,3 +270,231 @@ def test_create_resources_definition_version_with_invalid_local_device_resource(
         f", but got: {source_path}])"
     )
     ex.value.response["Error"]["Code"].should.equal("400")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_resources():
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    resource_name = "MotoTestResource"
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name=resource_name
+    )
+
+    res_def_id = create_res["Id"]
+    res_def_arn = create_res["Arn"]
+    res_ver = create_res["LatestVersion"]
+    res_ver_arn = create_res["LatestVersionArn"]
+
+    res = client.list_resource_definitions()
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    res.should.have.key("Definitions")
+    res["Definitions"].should.have.length_of(1)
+    definition = res["Definitions"][0]
+    definition.should.have.key("Id").equals(res_def_id)
+    definition.should.have.key("Arn").equals(res_def_arn)
+    definition.should.have.key("LatestVersion").equals(res_ver)
+    definition.should.have.key("LatestVersionArn").equals(res_ver_arn)
+
+    if not TEST_SERVER_MODE:
+        definition.should.have.key("CreationTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+        definition.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_resource_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    resource_name = "MotoTestResource"
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name=resource_name
+    )
+
+    resource_def_id = create_res["Id"]
+    arn = create_res["Arn"]
+    latest_version = create_res["LatestVersion"]
+    latest_version_arn = create_res["LatestVersionArn"]
+
+    get_res = client.get_resource_definition(ResourceDefinitionId=resource_def_id)
+
+    get_res.should.have.key("Name").equals(resource_name)
+    get_res.should.have.key("Arn").equals(arn)
+    get_res.should.have.key("Id").equals(resource_def_id)
+    get_res.should.have.key("LatestVersion").equals(latest_version)
+    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+
+    if not TEST_SERVER_MODE:
+        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        get_res.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_get_resource_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_resource_definition(
+            ResourceDefinitionId="76f22a66-176a-4474-b450-04099dc4b069"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That Resource List Definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_delete_resource_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name="TestResource"
+    )
+
+    resource_def_id = create_res["Id"]
+    del_res = client.delete_resource_definition(ResourceDefinitionId=resource_def_id)
+    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_greengrass
+def test_delete_resource_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_resource_definition(
+            ResourceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_update_resource_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+    updated_resource_name = "UpdatedResource"
+    update_res = client.update_resource_definition(
+        ResourceDefinitionId=resource_def_id, Name=updated_resource_name
+    )
+    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    get_res = client.get_resource_definition(ResourceDefinitionId=resource_def_id)
+    get_res.should.have.key("Name").equals(updated_resource_name)
+
+
+@mock_greengrass
+def test_update_device_definition_with_empty_name():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+    create_res = client.create_resource_definition(
+        InitialVersion=init_ver, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_resource_definition(ResourceDefinitionId=resource_def_id, Name="")
+    ex.value.response["Error"]["Message"].should.equal("Invalid resource name.")
+    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_greengrass
+def test_update_resource_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_resource_definition(
+            ResourceDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")

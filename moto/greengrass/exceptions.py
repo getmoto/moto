@@ -21,3 +21,9 @@ class VersionNotFoundException(GreengrassClientError):
     def __init__(self, msg):
         self.code = 404
         super().__init__("VersionNotFoundException", msg)
+
+
+class InvalidInputException(GreengrassClientError):
+    def __init__(self, msg):
+        self.code = 400
+        super().__init__("InvalidInputException", msg)
