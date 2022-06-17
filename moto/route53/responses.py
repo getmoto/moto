@@ -248,7 +248,7 @@ class Route53(BaseResponse):
             )
             return 200, headers, template
 
-    def health_check_response(self, request, full_url, headers):
+    def health_check_response1(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
@@ -273,6 +273,7 @@ class Route53(BaseResponse):
                 "disabled": config.get("Disabled"),
                 "enable_sni": config.get("EnableSNI"),
                 "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
+                "regions": config.get("Regions", {}).get("Region"),
             }
             health_check = route53_backend.create_health_check(
                 caller_reference, health_check_args
@@ -293,22 +294,42 @@ class Route53(BaseResponse):
                 template.render(health_checks=health_checks, xmlns=XMLNS),
             )
 
-    def get_or_delete_health_check_response(self, request, full_url, headers):
+    def health_check_response2(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
         method = request.method
+        health_check_id = parsed_url.path.split("/")[-1]
 
         if method == "GET":
-            health_check_id = parsed_url.path.split("/")[-1]
             health_check = route53_backend.get_health_check(health_check_id)
             template = Template(GET_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(health_check=health_check)
         elif method == "DELETE":
-            health_check_id = parsed_url.path.split("/")[-1]
             route53_backend.delete_health_check(health_check_id)
             template = Template(DELETE_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(xmlns=XMLNS)
+        elif method == "POST":
+            config = xmltodict.parse(self.body)["UpdateHealthCheckRequest"]
+            health_check_args = {
+                "ip_address": config.get("IPAddress"),
+                "port": config.get("Port"),
+                "resource_path": config.get("ResourcePath"),
+                "fqdn": config.get("FullyQualifiedDomainName"),
+                "search_string": config.get("SearchString"),
+                "failure_threshold": config.get("FailureThreshold"),
+                "health_threshold": config.get("HealthThreshold"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
+                "regions": config.get("Regions", {}).get("Region"),
+            }
+            health_check = route53_backend.update_health_check(
+                health_check_id, health_check_args
+            )
+            template = Template(UPDATE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(health_check=health_check)
 
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -696,6 +717,12 @@ CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">
   {{ health_check.to_xml() }}
 </CreateHealthCheckResponse>"""
+
+UPDATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHealthCheckResponse>
+  {{ health_check.to_xml() }}
+</UpdateHealthCheckResponse>
+"""
 
 LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListHealthChecksResponse xmlns="{{ xmlns }}">
