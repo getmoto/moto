@@ -12,7 +12,6 @@ import time
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from functools import cached_property
 from jinja2 import Template
 from typing import Mapping
 from urllib import parse
@@ -299,7 +298,7 @@ class PolicyVersion(object):
 class ManagedPolicy(Policy, CloudFormationModel):
     """Managed policy."""
 
-    @cached_property
+    @property
     def backend(self):
         return iam_backends[self.account_id]["global"]
 
@@ -1649,7 +1648,7 @@ class IAMBackend(BaseBackend):
 
         self.tagger = TaggingService()
 
-    @cached_property
+    @property
     def aws_managed_policies(self):
         # AWS defines some of its own managed policies and we periodically
         # import them via `make aws_managed_policies`
