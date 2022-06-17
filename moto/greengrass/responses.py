@@ -510,3 +510,18 @@ class GreengrassResponse(BaseResponse):
         )
         versions = [i.to_dict() for i in res.values()]
         return 200, {"status": 200}, json.dumps({"Versions": versions})
+
+    def subscription_definition_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_subscription_definition_version()
+
+    def get_subscription_definition_version(self):
+        subscription_definition_id = self.path.split("/")[-3]
+        subscription_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_subscription_definition_version(
+            subscription_definition_id=subscription_definition_id,
+            subscription_definition_version_id=subscription_definition_version_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
