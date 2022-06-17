@@ -692,6 +692,9 @@ class GreengrassBackend(BaseBackend):
         sub_def.latest_version_arn = sub_def_ver.arn
         return sub_def
 
+    def list_subscription_definitions(self):
+        return self.subscription_definitions.values()
+
     def create_subscription_definition_version(
         self, subscription_definition_id, subscriptions
     ):

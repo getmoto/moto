@@ -102,6 +102,44 @@ def test_create_subscription_definition_with_invalid_source():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_list_subscription_definitions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+    subscription_name = "TestSubscription"
+    client.create_subscription_definition(
+        InitialVersion=init_ver, Name=subscription_name
+    )
+
+    res = client.list_subscription_definitions()
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    subscription_def = res["Definitions"][0]
+    subscription_def.should.have.key("Name").equals(subscription_name)
+    subscription_def.should.have.key("Arn")
+    subscription_def.should.have.key("Id")
+    subscription_def.should.have.key("LatestVersion")
+    subscription_def.should.have.key("LatestVersionArn")
+    if not TEST_SERVER_MODE:
+        subscription_def.should.have.key("CreationTimestamp").equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+        subscription_def.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_create_subscription_definition_version():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

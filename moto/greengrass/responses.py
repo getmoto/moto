@@ -422,6 +422,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_subscription_definition()
 
+        if self.method == "GET":
+            return self.list_subscription_definitions()
+
     def create_subscription_definition(self):
 
         initial_version = self._get_param("InitialVersion")
@@ -430,6 +433,22 @@ class GreengrassResponse(BaseResponse):
             name=name, initial_version=initial_version
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_subscription_definitions(self):
+
+        res = self.greengrass_backend.list_subscription_definitions()
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {
+                    "Definitions": [
+                        subscription_definition.to_dict()
+                        for subscription_definition in res
+                    ]
+                }
+            ),
+        )
 
     def subscription_definition_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
