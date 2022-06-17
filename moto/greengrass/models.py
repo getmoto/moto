@@ -740,5 +740,10 @@ class GreengrassBackend(BaseBackend):
 
         return sub_def_ver
 
+    def list_subscription_definition_versions(self, subscription_definition_id):
+        if subscription_definition_id not in self.subscription_definition_versions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+        return self.subscription_definition_versions[subscription_definition_id]
+
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

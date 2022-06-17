@@ -456,3 +456,56 @@ def test_create_subscription_definition_version_with_invalid_source():
         "The subscriptions definition is invalid or corrupted. (ErrorDetails: [Subscription source is invalid. ID is '999999' and Source is 'foo'])"
     )
     ex.value.response["Error"]["Code"].should.equal("400")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_subscription_definition_versions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+
+    create_res = client.create_subscription_definition(
+        InitialVersion=init_ver, Name="TestSubscription"
+    )
+    subscription_def_id = create_res["Id"]
+    subscription_def_ver_res = client.list_subscription_definition_versions(
+        SubscriptionDefinitionId=subscription_def_id
+    )
+
+    subscription_def_ver_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    subscription_def_ver_res.should.have.key("Versions")
+    subscription_def_ver = subscription_def_ver_res["Versions"][0]
+    subscription_def_ver.should.have.key("Arn")
+    subscription_def_ver.should.have.key("CreationTimestamp")
+    subscription_def_ver.should.have.key("Id").equals(subscription_def_id)
+    subscription_def_ver.should.have.key("Version")
+
+    if not TEST_SERVER_MODE:
+        subscription_def_ver["CreationTimestamp"].should.equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_list_subscription_definition_versions_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_subscription_definition_versions(
+            SubscriptionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That subscriptions definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
