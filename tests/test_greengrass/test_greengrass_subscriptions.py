@@ -140,6 +140,64 @@ def test_list_subscription_definitions():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_get_subscription_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+    subscription_name = "TestSubscription"
+    create_res = client.create_subscription_definition(
+        InitialVersion=init_ver, Name=subscription_name
+    )
+
+    subscription_def_id = create_res["Id"]
+    arn = create_res["Arn"]
+    latest_version = create_res["LatestVersion"]
+    latest_version_arn = create_res["LatestVersionArn"]
+
+    get_res = client.get_subscription_definition(
+        SubscriptionDefinitionId=subscription_def_id
+    )
+
+    get_res.should.have.key("Name").equals(subscription_name)
+    get_res.should.have.key("Arn").equals(arn)
+    get_res.should.have.key("Id").equals(subscription_def_id)
+    get_res.should.have.key("LatestVersion").equals(latest_version)
+    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+    get_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    if not TEST_SERVER_MODE:
+        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        get_res.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_get_subscription_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_subscription_definition(
+            SubscriptionDefinitionId="b552443b-1888-469b-81f8-0ebc5ca92949"
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "That Subscription List Definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_create_subscription_definition_version():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

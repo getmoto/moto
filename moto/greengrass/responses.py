@@ -450,6 +450,19 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
+    def subscription_definition(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_subscription_definition()
+
+    def get_subscription_definition(self):
+        subscription_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_subscription_definition(
+            subscription_definition_id=subscription_definition_id
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
     def subscription_definition_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 

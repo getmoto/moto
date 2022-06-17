@@ -695,6 +695,14 @@ class GreengrassBackend(BaseBackend):
     def list_subscription_definitions(self):
         return self.subscription_definitions.values()
 
+    def get_subscription_definition(self, subscription_definition_id):
+
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException(
+                "That Subscription List Definition does not exist."
+            )
+        return self.subscription_definitions[subscription_definition_id]
+
     def create_subscription_definition_version(
         self, subscription_definition_id, subscriptions
     ):
