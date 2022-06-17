@@ -299,6 +299,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_resource_definition_version()
 
+        if self.method == "GET":
+            return self.list_resource_definition_versions()
+
     def create_resource_definition_version(self):
 
         resource_definition_id = self.path.split("/")[-2]
@@ -308,6 +311,36 @@ class GreengrassResponse(BaseResponse):
             resource_definition_id=resource_definition_id, resources=resources
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_resource_definition_versions(self):
+
+        resource_device_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_resource_definition_versions(
+            resource_device_definition_id
+        )
+
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {"Versions": [resource_def_ver.to_dict() for resource_def_ver in res]}
+            ),
+        )
+
+    def resource_definition_version(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_resource_definition_version()
+
+    def get_resource_definition_version(self):
+        resource_definition_id = self.path.split("/")[-3]
+        resource_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_resource_definition_version(
+            resource_definition_id=resource_definition_id,
+            resource_definition_version_id=resource_definition_version_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
 
     def function_definitions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

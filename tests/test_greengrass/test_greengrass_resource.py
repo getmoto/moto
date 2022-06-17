@@ -498,3 +498,147 @@ def test_update_resource_definition_with_invalid_id():
         "That resources definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_resource_definition_versions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    resources = [
+        {
+            "Id": "123",
+            "Name": "test_directory",
+            "ResourceDataContainer": {
+                "LocalDeviceResourceData": {
+                    "SourcePath": "/dev/null",
+                }
+            },
+        }
+    ]
+
+    initial_version = {"Resources": resources}
+    create_res = client.create_resource_definition(
+        InitialVersion=initial_version, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+
+    resource_def_vers_res = client.list_resource_definition_versions(
+        ResourceDefinitionId=resource_def_id
+    )
+
+    resource_def_vers_res.should.have.key("Versions")
+    resource_def_vers_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    device_def_ver = resource_def_vers_res["Versions"][0]
+    device_def_ver.should.have.key("Arn")
+    device_def_ver.should.have.key("CreationTimestamp")
+    device_def_ver.should.have.key("Id").equals(resource_def_id)
+    device_def_ver.should.have.key("Version")
+
+    if not TEST_SERVER_MODE:
+        device_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+
+
+@mock_greengrass
+def test_list_resource_definition_versions_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.list_resource_definition_versions(
+            ResourceDefinitionId="fe2392e9-e67f-4308-af1b-ff94a128b231"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_resource_definition_version():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    resources = [
+        {
+            "Id": "123",
+            "Name": "test_directory",
+            "ResourceDataContainer": {
+                "LocalDeviceResourceData": {
+                    "SourcePath": "/dev/null",
+                }
+            },
+        }
+    ]
+
+    initial_version = {"Resources": resources}
+    create_res = client.create_resource_definition(
+        InitialVersion=initial_version, Name="TestResource"
+    )
+    resource_def_id = create_res["Id"]
+    resource_def_ver_id = create_res["LatestVersion"]
+
+    resource_def_ver_res = client.get_resource_definition_version(
+        ResourceDefinitionId=resource_def_id,
+        ResourceDefinitionVersionId=resource_def_ver_id,
+    )
+
+    resource_def_ver_res.should.have.key("Arn")
+    resource_def_ver_res.should.have.key("CreationTimestamp")
+    resource_def_ver_res.should.have.key("Definition").should.equal(initial_version)
+    resource_def_ver_res.should.have.key("Id").equals(resource_def_id)
+    resource_def_ver_res.should.have.key("Version")
+    resource_def_ver_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    if not TEST_SERVER_MODE:
+        resource_def_ver_res["CreationTimestamp"].should.equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_get_resource_definition_version_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_resource_definition_version(
+            ResourceDefinitionId="fe2392e9-e67f-4308-af1b-ff94a128b231",
+            ResourceDefinitionVersionId="cd2ea6dc-6634-4e89-8441-8003500435f9",
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That resources definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_get_resource_definition_version_with_invalid_version_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    resources = [
+        {
+            "Id": "123",
+            "Name": "test_directory",
+            "ResourceDataContainer": {
+                "LocalDeviceResourceData": {
+                    "SourcePath": "/dev/null",
+                }
+            },
+        }
+    ]
+
+    initial_version = {"Resources": resources}
+    create_res = client.create_resource_definition(
+        InitialVersion=initial_version, Name="TestResource"
+    )
+
+    resource_def_id = create_res["Id"]
+    invalid_resource_version_id = "6fbffc21-989e-4d29-a793-a42f450a78c6"
+    with pytest.raises(ClientError) as ex:
+        client.get_resource_definition_version(
+            ResourceDefinitionId=resource_def_id,
+            ResourceDefinitionVersionId=invalid_resource_version_id,
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        f"Version {invalid_resource_version_id} of Resource List Definition {resource_def_id} does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("VersionNotFoundException")

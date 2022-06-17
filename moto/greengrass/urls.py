@@ -28,4 +28,5 @@ url_paths = {
     "{0}/greengrass/definition/subscriptions/(?P<definition_id>[^/]+)/?$": response.subscription_definition,
     "{0}/greengrass/definition/subscriptions/(?P<definition_id>[^/]+)/versions$": response.subscription_definition_versions,
     "{0}/greengrass/definition/subscriptions/(?P<definition_id>[^/]+)/versions/(?P<definition_version_id>[^/]+)/?$": response.subscription_definition_version,
+    "{0}/greengrass/definition/resources/(?P<definition_id>[^/]+)/versions/(?P<definition_version_id>[^/]+)/?$": response.resource_definition_version,
 }
