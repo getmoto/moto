@@ -415,3 +415,18 @@ class GreengrassResponse(BaseResponse):
             function_definition_version_id=function_definition_version_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def subscription_definitions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_subscription_definition()
+
+    def create_subscription_definition(self):
+
+        initial_version = self._get_param("InitialVersion")
+        name = self._get_param("Name")
+        res = self.greengrass_backend.create_subscription_definition(
+            name=name, initial_version=initial_version
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
