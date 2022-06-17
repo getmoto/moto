@@ -196,6 +196,46 @@ def test_get_subscription_definition_with_invalid_id():
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
 
 
+@mock_greengrass
+def test_delete_subscription_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+    create_res = client.create_subscription_definition(
+        InitialVersion=init_ver, Name="TestSubscription"
+    )
+
+    subscription_def_id = create_res["Id"]
+    del_res = client.delete_subscription_definition(
+        SubscriptionDefinitionId=subscription_def_id
+    )
+    del_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_greengrass
+def test_delete_subscription_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_subscription_definition(
+            SubscriptionDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That subscriptions definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_subscription_definition_version():

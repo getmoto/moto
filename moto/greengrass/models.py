@@ -703,6 +703,12 @@ class GreengrassBackend(BaseBackend):
             )
         return self.subscription_definitions[subscription_definition_id]
 
+    def delete_subscription_definition(self, subscription_definition_id):
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+        del self.subscription_definitions[subscription_definition_id]
+        del self.subscription_definition_versions[subscription_definition_id]
+
     def create_subscription_definition_version(
         self, subscription_definition_id, subscriptions
     ):
