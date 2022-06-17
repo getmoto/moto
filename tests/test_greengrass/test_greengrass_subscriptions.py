@@ -222,6 +222,83 @@ def test_delete_subscription_definition():
 
 
 @mock_greengrass
+def test_update_subscription_definition():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+    create_res = client.create_subscription_definition(
+        InitialVersion=init_ver, Name="TestSubscription"
+    )
+
+    subscription_def_id = create_res["Id"]
+    updated_subscription_name = "UpdatedSubscription"
+    update_res = client.update_subscription_definition(
+        SubscriptionDefinitionId=subscription_def_id, Name=updated_subscription_name
+    )
+    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    get_res = client.get_subscription_definition(
+        SubscriptionDefinitionId=subscription_def_id
+    )
+    get_res.should.have.key("Name").equals(updated_subscription_name)
+
+
+@mock_greengrass
+def test_update_subscription_definition_with_empty_name():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+    create_res = client.create_subscription_definition(
+        InitialVersion=init_ver, Name="TestSubscription"
+    )
+    subscription_def_id = create_res["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_subscription_definition(
+            SubscriptionDefinitionId=subscription_def_id, Name=""
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "Input does not contain any attributes to be updated"
+    )
+    ex.value.response["Error"]["Code"].should.equal(
+        "InvalidContainerDefinitionException"
+    )
+
+
+@mock_greengrass
+def test_update_subscription_definition_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_subscription_definition(
+            SubscriptionDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123"
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That subscriptions definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
 def test_delete_subscription_definition_with_invalid_id():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

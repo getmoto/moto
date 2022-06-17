@@ -459,6 +459,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "DELETE":
             return self.delete_subscription_definition()
 
+        if self.method == "PUT":
+            return self.update_subscription_definition()
+
     def get_subscription_definition(self):
         subscription_definition_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_subscription_definition(
@@ -470,6 +473,14 @@ class GreengrassResponse(BaseResponse):
         subscription_definition_id = self.path.split("/")[-1]
         self.greengrass_backend.delete_subscription_definition(
             subscription_definition_id=subscription_definition_id
+        )
+        return 200, {"status": 200}, json.dumps({})
+
+    def update_subscription_definition(self):
+        subscription_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_subscription_definition(
+            subscription_definition_id=subscription_definition_id, name=name
         )
         return 200, {"status": 200}, json.dumps({})
 

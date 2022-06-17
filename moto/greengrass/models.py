@@ -709,6 +709,16 @@ class GreengrassBackend(BaseBackend):
         del self.subscription_definitions[subscription_definition_id]
         del self.subscription_definition_versions[subscription_definition_id]
 
+    def update_subscription_definition(self, subscription_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+        self.subscription_definitions[subscription_definition_id].name = name
+
     def create_subscription_definition_version(
         self, subscription_definition_id, subscriptions
     ):
