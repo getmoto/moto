@@ -98,3 +98,148 @@ def test_create_subscription_definition_with_invalid_source():
         "The subscriptions definition is invalid or corrupted. (ErrorDetails: [Subscription source is invalid. ID is '123456' and Source is 'foo'])"
     )
     ex.value.response["Error"]["Code"].should.equal("400")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_create_subscription_definition_version():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    v1_subscriptions = [
+        {
+            "Id": "123456",
+            "Source": "cloud",
+            "Subject": "foo/bar",
+            "Target": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+        }
+    ]
+
+    initial_version = {"Subscriptions": v1_subscriptions}
+    subscription_def_res = client.create_subscription_definition(
+        InitialVersion=initial_version, Name="TestSubscription"
+    )
+    subscription_def_id = subscription_def_res["Id"]
+
+    v2_subscriptions = [
+        {
+            "Id": "123456",
+            "Source": "cloud",
+            "Subject": "foo/bar",
+            "Target": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:2",
+        }
+    ]
+
+    subscription_def_ver_res = client.create_subscription_definition_version(
+        SubscriptionDefinitionId=subscription_def_id, Subscriptions=v2_subscriptions
+    )
+    subscription_def_ver_res.should.have.key("Arn")
+    subscription_def_ver_res.should.have.key("CreationTimestamp")
+    subscription_def_ver_res.should.have.key("Id").equals(subscription_def_id)
+    subscription_def_ver_res.should.have.key("Version")
+
+    if not TEST_SERVER_MODE:
+        subscription_def_ver_res["CreationTimestamp"].should.equal(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@mock_greengrass
+def test_create_subscription_definition_version_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    subscriptions = [
+        {
+            "Id": "123456",
+            "Source": "cloud",
+            "Subject": "foo/bar",
+            "Target": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:2",
+        }
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_subscription_definition_version(
+            SubscriptionDefinitionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
+            Subscriptions=subscriptions,
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That subscriptions does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_create_subscription_definition_version_with_invalid_target():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    v1_subscriptions = [
+        {
+            "Id": "123456",
+            "Source": "cloud",
+            "Subject": "foo/bar",
+            "Target": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+        }
+    ]
+
+    initial_version = {"Subscriptions": v1_subscriptions}
+    subscription_def_res = client.create_subscription_definition(
+        InitialVersion=initial_version, Name="TestSubscription"
+    )
+    subscription_def_id = subscription_def_res["Id"]
+
+    v2_subscriptions = [
+        {
+            "Id": "999999",
+            "Source": "cloud",
+            "Subject": "foo/bar",
+            "Target": "foo",
+        }
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_subscription_definition_version(
+            SubscriptionDefinitionId=subscription_def_id, Subscriptions=v2_subscriptions
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "The subscriptions definition is invalid or corrupted. (ErrorDetails: [Subscription target is invalid. ID is '999999' and Target is 'foo'])"
+    )
+    ex.value.response["Error"]["Code"].should.equal("400")
+
+
+@mock_greengrass
+def test_create_subscription_definition_version_with_invalid_source():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    v1_subscriptions = [
+        {
+            "Id": "123456",
+            "Source": "cloud",
+            "Subject": "foo/bar",
+            "Target": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+        }
+    ]
+
+    initial_version = {"Subscriptions": v1_subscriptions}
+    subscription_def_res = client.create_subscription_definition(
+        InitialVersion=initial_version, Name="TestSubscription"
+    )
+    subscription_def_id = subscription_def_res["Id"]
+
+    v2_subscriptions = [
+        {
+            "Id": "999999",
+            "Source": "foo",
+            "Subject": "foo/bar",
+            "Target": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+        }
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_subscription_definition_version(
+            SubscriptionDefinitionId=subscription_def_id, Subscriptions=v2_subscriptions
+        )
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "The subscriptions definition is invalid or corrupted. (ErrorDetails: [Subscription source is invalid. ID is '999999' and Source is 'foo'])"
+    )
+    ex.value.response["Error"]["Code"].should.equal("400")

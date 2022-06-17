@@ -639,13 +639,13 @@ class GreengrassBackend(BaseBackend):
 
         return False
 
-    def create_subscription_definition(self, name, initial_version):
+    @staticmethod
+    def _validate_subscription_target_or_source(subscriptions):
 
         target_errors = []
         source_errors = []
 
-        for subscription in initial_version["Subscriptions"]:
-
+        for subscription in subscriptions:
             subscription_id = subscription["Id"]
             source = subscription["Source"]
             target = subscription["Target"]
@@ -674,6 +674,12 @@ class GreengrassBackend(BaseBackend):
                 f"The subscriptions definition is invalid or corrupted. (ErrorDetails: [{error_msg}])",
             )
 
+    def create_subscription_definition(self, name, initial_version):
+
+        GreengrassBackend._validate_subscription_target_or_source(
+            initial_version["Subscriptions"]
+        )
+
         sub_def = FakeSubscriptionDefinition(self.region_name, name, initial_version)
         self.subscription_definitions[sub_def.id] = sub_def
         init_ver = sub_def.initial_version
@@ -689,6 +695,11 @@ class GreengrassBackend(BaseBackend):
     def create_subscription_definition_version(
         self, subscription_definition_id, subscriptions
     ):
+
+        GreengrassBackend._validate_subscription_target_or_source(subscriptions)
+
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions does not exist.")
 
         sub_def_ver = FakeSubscriptionDefinitionVersion(
             self.region_name, subscription_definition_id, subscriptions
