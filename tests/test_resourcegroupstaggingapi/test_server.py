@@ -1,6 +1,7 @@
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -8,7 +9,9 @@ Test the different server responses
 
 
 def test_resourcegroupstaggingapi_list():
-    backend = server.create_backend_app("resourcegroupstaggingapi")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="resourcegroupstaggingapi"
+    )
     test_client = backend.test_client()
     # do test
 

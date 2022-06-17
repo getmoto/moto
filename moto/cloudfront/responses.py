@@ -16,7 +16,7 @@ class CloudFrontResponse(BaseResponse):
 
     @property
     def backend(self):
-        return cloudfront_backends["global"]
+        return cloudfront_backends[self.current_account]["global"]
 
     def distributions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

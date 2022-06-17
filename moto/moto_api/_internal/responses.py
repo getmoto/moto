@@ -12,9 +12,10 @@ class MotoAPIResponse(BaseResponse):
         self, request, full_url, headers
     ):  # pylint: disable=unused-argument
         if request.method == "POST":
-            from .models import moto_api_backend
+            from .models import moto_api_backends
 
-            moto_api_backend.reset()
+            for account_backend in moto_api_backends.values():
+                account_backend.reset()
             return 200, {}, json.dumps({"status": "ok"})
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
 

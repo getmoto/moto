@@ -1,6 +1,7 @@
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -8,7 +9,7 @@ Test the different server responses
 
 
 def test_sts_get_session_token():
-    backend = server.create_backend_app("sts")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="sts")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=GetSessionToken")
@@ -18,7 +19,7 @@ def test_sts_get_session_token():
 
 
 def test_sts_get_federation_token():
-    backend = server.create_backend_app("sts")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="sts")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=GetFederationToken&Name=Bob")
@@ -28,7 +29,7 @@ def test_sts_get_federation_token():
 
 
 def test_sts_get_caller_identity():
-    backend = server.create_backend_app("sts")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="sts")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=GetCallerIdentity")
@@ -39,7 +40,7 @@ def test_sts_get_caller_identity():
 
 
 def test_sts_wellformed_xml():
-    backend = server.create_backend_app("sts")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="sts")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=GetFederationToken&Name=Bob")

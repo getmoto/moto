@@ -6,6 +6,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_iot
+from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -14,7 +15,7 @@ Test the different server responses
 
 @mock_iot
 def test_iot_list():
-    backend = server.create_backend_app("iot")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="iot")
     test_client = backend.test_client()
 
     # just making sure that server is up
@@ -31,7 +32,7 @@ def test_iot_list():
 )
 @mock_iot
 def test_list_attached_policies(url_encode_arn):
-    backend = server.create_backend_app("iot")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="iot")
     test_client = backend.test_client()
 
     result = test_client.post("/keys-and-certificate?setAsActive=true")

@@ -4,6 +4,7 @@ import threading
 import time
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -11,7 +12,7 @@ Test the different server responses
 
 
 def test_sqs_list_identities():
-    backend = server.create_backend_app("sqs")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="sqs")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=ListQueues")
@@ -42,7 +43,7 @@ def test_sqs_list_identities():
 
 
 def test_messages_polling():
-    backend = server.create_backend_app("sqs")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="sqs")
     test_client = backend.test_client()
     messages = []
 

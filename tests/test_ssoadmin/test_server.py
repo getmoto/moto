@@ -2,10 +2,13 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_ssoadmin_list():
-    backend = server.create_backend_app("sso-admin")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="sso-admin"
+    )
     test_client = backend.test_client()
 
     headers = {

@@ -1,10 +1,11 @@
 import json
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 import sure  # noqa # pylint: disable=unused-import
 
 
 def test_list_databases():
-    backend = server.create_backend_app("rds")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="rds")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=DescribeDBInstances")
@@ -13,7 +14,7 @@ def test_list_databases():
 
 
 def test_create_db_instance():
-    backend = server.create_backend_app("rds")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="rds")
     test_client = backend.test_client()
 
     body = {

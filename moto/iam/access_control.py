@@ -54,7 +54,7 @@ def create_access_key(account_id, access_key_id, headers):
 class IAMUserAccessKey:
     @property
     def backend(self):
-        return iam_backends["global"]
+        return iam_backends[self.account_id]["global"]
 
     def __init__(self, account_id, access_key_id, headers):
         self.account_id = account_id

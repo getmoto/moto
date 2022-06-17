@@ -81,7 +81,7 @@ class TestNodegroup:
 
 @pytest.fixture(autouse=True)
 def test_client():
-    backend = server.create_backend_app(SERVICE)
+    backend = server.create_backend_app(account_id=ACCOUNT_ID, service=SERVICE)
     yield backend.test_client()
 
 

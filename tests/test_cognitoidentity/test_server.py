@@ -4,6 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_cognitoidentity
+from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -13,7 +14,9 @@ Test the different server responses
 @mock_cognitoidentity
 def test_create_identity_pool():
 
-    backend = server.create_backend_app("cognito-identity")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="cognito-identity"
+    )
     test_client = backend.test_client()
 
     res = test_client.post(
@@ -30,7 +33,9 @@ def test_create_identity_pool():
 
 @mock_cognitoidentity
 def test_get_id():
-    backend = server.create_backend_app("cognito-identity")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="cognito-identity"
+    )
     test_client = backend.test_client()
 
     res = test_client.post(
@@ -62,7 +67,9 @@ def test_get_id():
 
 @mock_cognitoidentity
 def test_list_identities():
-    backend = server.create_backend_app("cognito-identity")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="cognito-identity"
+    )
     test_client = backend.test_client()
 
     res = test_client.post(

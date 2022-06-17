@@ -3,6 +3,7 @@ import json
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 from tests.test_redshiftdata.test_redshiftdata_constants import (
     DEFAULT_ENCODING,
     HttpHeaders,
@@ -20,7 +21,9 @@ def headers(action):
 
 @pytest.fixture(autouse=True)
 def client():
-    backend = server.create_backend_app("redshift-data")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="redshift-data"
+    )
     yield backend.test_client()
 
 

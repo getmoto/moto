@@ -41,7 +41,7 @@ class DynamoHandler(BaseResponse):
 
     @property
     def backend(self):
-        return dynamodb_backends["global"]
+        return dynamodb_backends[self.current_account]["global"]
 
     def list_tables(self):
         body = self.body

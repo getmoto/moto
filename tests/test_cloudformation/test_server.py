@@ -3,6 +3,7 @@ import re
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -10,7 +11,9 @@ Test the different server responses
 
 
 def test_cloudformation_server_get():
-    backend = server.create_backend_app("cloudformation")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="cloudformation"
+    )
     stack_name = "test stack"
     test_client = backend.test_client()
     template_body = {"Resources": {}}

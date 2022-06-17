@@ -19,7 +19,7 @@ LIST_WEB_ACL_HEADERS = {
 
 @mock_wafv2
 def test_create_web_acl():
-    backend = server.create_backend_app("wafv2")
+    backend = server.create_backend_app(account_id=ACCOUNT_ID, service="wafv2")
     test_client = backend.test_client()
 
     res = test_client.post(
@@ -61,7 +61,7 @@ def test_create_web_acl():
 
 @mock_wafv2
 def test_list_web_ac_ls():
-    backend = server.create_backend_app("wafv2")
+    backend = server.create_backend_app(account_id=ACCOUNT_ID, service="wafv2")
     test_client = backend.test_client()
 
     test_client.post(

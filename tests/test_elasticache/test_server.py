@@ -1,10 +1,13 @@
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_elasticache_describe_users():
-    backend = server.create_backend_app("elasticache")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="elasticache"
+    )
     test_client = backend.test_client()
 
     data = "Action=DescribeUsers"

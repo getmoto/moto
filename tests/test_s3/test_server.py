@@ -4,6 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 from flask.testing import FlaskClient
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 from unittest.mock import patch
 
 """
@@ -20,7 +21,7 @@ class AuthenticatedClient(FlaskClient):
 
 
 def authenticated_client():
-    backend = server.create_backend_app("s3")
+    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="s3")
     backend.test_client_class = AuthenticatedClient
     return backend.test_client()
 

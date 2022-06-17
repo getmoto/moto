@@ -7,6 +7,7 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs, settings
+from tests import DEFAULT_ACCOUNT_ID
 from tests.test_awslambda.test_lambda import get_test_zip_file1
 
 DEFAULT_SECRET_NAME = "test-secret"
@@ -15,7 +16,9 @@ DEFAULT_SECRET_NAME = "test-secret"
 @mock_secretsmanager
 def test_get_secret_value():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -37,7 +40,9 @@ def test_get_secret_value():
 @mock_secretsmanager
 def test_get_secret_that_does_not_exist():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     get_secret = test_client.post(
@@ -52,7 +57,9 @@ def test_get_secret_that_does_not_exist():
 
 @mock_secretsmanager
 def test_get_secret_that_does_not_match():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -72,7 +79,9 @@ def test_get_secret_that_does_not_match():
 
 @mock_secretsmanager
 def test_get_secret_that_has_no_value():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -97,7 +106,9 @@ def test_get_secret_that_has_no_value():
 @mock_secretsmanager
 def test_create_secret():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     res = test_client.post(
@@ -123,7 +134,9 @@ def test_create_secret():
 @mock_secretsmanager
 def test_describe_secret():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -162,7 +175,9 @@ def test_describe_secret():
 @mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     describe_secret = test_client.post(
@@ -179,7 +194,9 @@ def test_describe_secret_that_does_not_exist():
 @mock_secretsmanager
 def test_describe_secret_that_does_not_match():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -200,7 +217,9 @@ def test_describe_secret_that_does_not_match():
 
 @mock_secretsmanager
 def test_rotate_secret():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -228,7 +247,7 @@ def test_rotate_secret():
 
 # @mock_secretsmanager
 # def test_rotate_secret_enable_rotation():
-#     backend = server.create_backend_app('secretsmanager')
+#     backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service='secretsmanager')
 #     test_client = backend.test_client()
 
 #     create_secret = test_client.post(
@@ -286,7 +305,9 @@ def test_rotate_secret():
 
 @mock_secretsmanager
 def test_rotate_secret_that_does_not_exist():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     rotate_secret = test_client.post(
@@ -302,7 +323,9 @@ def test_rotate_secret_that_does_not_exist():
 
 @mock_secretsmanager
 def test_rotate_secret_that_does_not_match():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -324,7 +347,9 @@ def test_rotate_secret_that_does_not_match():
 
 @mock_secretsmanager
 def test_rotate_secret_that_is_still_rotating():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     create_secret = test_client.post(
@@ -372,7 +397,9 @@ def test_rotate_secret_that_is_still_rotating():
 
 @mock_secretsmanager
 def test_rotate_secret_client_request_token_too_short():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -398,7 +425,9 @@ def test_rotate_secret_client_request_token_too_short():
 
 @mock_secretsmanager
 def test_rotate_secret_client_request_token_too_long():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -426,7 +455,9 @@ def test_rotate_secret_client_request_token_too_long():
 
 @mock_secretsmanager
 def test_rotate_secret_rotation_lambda_arn_too_long():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -472,7 +503,9 @@ if not settings.TEST_SERVER_MODE:
             Role=role["Role"]["Arn"],
         )
 
-        secretsmanager_backend = server.create_backend_app("secretsmanager")
+        secretsmanager_backend = server.create_backend_app(
+            account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+        )
         secretsmanager_client = secretsmanager_backend.test_client()
 
         secretsmanager_client.post(
@@ -503,7 +536,9 @@ if not settings.TEST_SERVER_MODE:
     @mock_logs
     @mock_secretsmanager
     def test_rotate_secret_with_incorrect_lambda_arn():
-        secretsmanager_backend = server.create_backend_app("secretsmanager")
+        secretsmanager_backend = server.create_backend_app(
+            account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+        )
         secretsmanager_client = secretsmanager_backend.test_client()
 
         secretsmanager_client.post(
@@ -525,7 +560,9 @@ if not settings.TEST_SERVER_MODE:
 
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
     test_client.post(
         "/",
@@ -575,7 +612,9 @@ def test_put_secret_value_puts_new_secret():
 
 @mock_secretsmanager
 def test_put_secret_value_can_get_first_version_if_put_twice():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     first_secret_string = "first_secret"
@@ -633,7 +672,9 @@ def test_put_secret_value_can_get_first_version_if_put_twice():
 
 @mock_secretsmanager
 def test_put_secret_value_versions_differ_if_same_secret_put_twice():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -674,7 +715,9 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
 
 @mock_secretsmanager
 def test_can_list_secret_version_ids():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -728,7 +771,9 @@ def test_can_list_secret_version_ids():
 @mock_secretsmanager
 def test_get_resource_policy_secret():
 
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     test_client.post(
@@ -752,7 +797,9 @@ def test_get_resource_policy_secret():
 @pytest.mark.parametrize("pass_arn", [True, False])
 def test_update_secret_version_stage(pass_arn):
     custom_stage = "CUSTOM_STAGE"
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
     create_secret = test_client.post(
         "/",
@@ -815,7 +862,9 @@ def test_update_secret_version_stage(pass_arn):
 
 @mock_secretsmanager
 def test_update_secret_version_stage_currentversion_handling():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
     create_secret = test_client.post(
         "/",
@@ -872,7 +921,9 @@ def test_update_secret_version_stage_currentversion_handling():
 
 @mock_secretsmanager
 def test_update_secret_version_stage_validation():
-    backend = server.create_backend_app("secretsmanager")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="secretsmanager"
+    )
     test_client = backend.test_client()
 
     # Secret ID that doesn't exist

@@ -3,11 +3,14 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_budgets
+from tests import DEFAULT_ACCOUNT_ID
 
 
 @mock_budgets
 def test_budgets_describe_budgets():
-    backend = server.create_backend_app("budgets")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="budgets"
+    )
     test_client = backend.test_client()
 
     headers = {"X-Amz-Target": "AWSBudgetServiceGateway.DescribeBudgets"}

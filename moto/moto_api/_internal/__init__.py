@@ -1,5 +1,2 @@
-from .models import moto_api_backend
+from .models import moto_api_backends  # noqa
 from .state_manager import StateManager  # noqa
-
-
-moto_api_backends = {"global": moto_api_backend}

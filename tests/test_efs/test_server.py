@@ -3,6 +3,7 @@ import pytest
 
 from moto import mock_efs, mock_ec2
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 
 FILE_SYSTEMS = "/2015-02-01/file-systems"
@@ -21,13 +22,17 @@ def aws_credentials(monkeypatch):
 @pytest.fixture(scope="function")
 def efs_client(aws_credentials):  # pylint: disable=unused-argument
     with mock_efs():
-        yield server.create_backend_app("efs").test_client()
+        yield server.create_backend_app(
+            account_id=DEFAULT_ACCOUNT_ID, service="efs"
+        ).test_client()
 
 
 @pytest.fixture(scope="function")
 def subnet_id(aws_credentials):  # pylint: disable=unused-argument
     with mock_ec2():
-        ec2_client = server.create_backend_app("ec2").test_client()
+        ec2_client = server.create_backend_app(
+            account_id=DEFAULT_ACCOUNT_ID, service="ec2"
+        ).test_client()
         resp = ec2_client.get("/?Action=DescribeSubnets")
         subnet_ids = re.findall("<subnetId>(.*?)</subnetId>", resp.data.decode("utf-8"))
         yield subnet_ids[0]

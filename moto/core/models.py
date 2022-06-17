@@ -42,25 +42,25 @@ class BaseMockAWS:
     mocks_active = False
 
     def __init__(self, backends):
-        from moto.instance_metadata import instance_metadata_backend
-        from moto.moto_api._internal.models import moto_api_backend
+        from moto.instance_metadata import instance_metadata_backends
+        from moto.moto_api._internal.models import moto_api_backends
 
         self.backends = backends
 
-        self.backends_for_urls = {}
-        default_backends = {
-            "instance_metadata": instance_metadata_backend,
-            "moto_api": moto_api_backend,
-        }
+        self.backends_for_urls = []
         default_account_id = get_account_id()
+        default_backends = [
+            instance_metadata_backends[default_account_id]["global"],
+            moto_api_backends[default_account_id]["global"],
+        ]
         backend_default_account = self.backends[default_account_id]
         if "us-east-1" in backend_default_account:
             # We only need to know the URL for a single region - they will be the same everywhere
-            self.backends_for_urls["us-east-1"] = backend_default_account["us-east-1"]
+            self.backends_for_urls.append(backend_default_account["us-east-1"])
         elif "global" in backend_default_account:
             # If us-east-1 is not available, it's probably a global service
-            self.backends_for_urls["global"] = backend_default_account["global"]
-        self.backends_for_urls.update(default_backends)
+            self.backends_for_urls.append(backend_default_account["global"])
+        self.backends_for_urls.extend(default_backends)
 
         self.FAKE_KEYS = {
             "AWS_ACCESS_KEY_ID": "foobar_key",
@@ -285,7 +285,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
     def enable_patching(self, reset=True):  # pylint: disable=unused-argument
         botocore_stubber.enabled = True
         for method in BOTOCORE_HTTP_METHODS:
-            for backend in self.backends_for_urls.values():
+            for backend in self.backends_for_urls:
                 for key, value in backend.urls.items():
                     pattern = re.compile(key)
                     botocore_stubber.register_response(method, pattern, value)
@@ -297,7 +297,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
 
         for method in RESPONSES_METHODS:
             # for backend in default_backends.values():
-            for backend in self.backends_for_urls.values():
+            for backend in self.backends_for_urls:
                 for key, value in backend.urls.items():
                     responses_mock.add(
                         CallbackResponse(

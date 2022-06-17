@@ -2,10 +2,13 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
+from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_create_without_enable_option():
-    backend = server.create_backend_app("guardduty")
+    backend = server.create_backend_app(
+        account_id=DEFAULT_ACCOUNT_ID, service="guardduty"
+    )
     test_client = backend.test_client()
 
     body = {"enable": "True"}
