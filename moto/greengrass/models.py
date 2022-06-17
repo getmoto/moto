@@ -1,6 +1,7 @@
 import uuid
 from collections import OrderedDict
 from datetime import datetime
+import re
 
 from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict, iso_8601_datetime_with_milliseconds
@@ -216,6 +217,55 @@ class FakeFunctionDefinitionVersion(BaseModel):
             ),
             "Definition": {"Functions": self.functions},
             "Id": self.function_definition_id,
+            "Version": self.version,
+        }
+
+
+class FakeSubscriptionDefinition(BaseModel):
+    def __init__(self, region_name, name, initial_version):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/subscriptions/{self.id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self):
+        return {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+            "Name": self.name,
+        }
+
+
+class FakeSubscriptionDefinitionVersion(BaseModel):
+    def __init__(self, region_name, subscription_definition_id, subscriptions):
+        self.region_name = region_name
+        self.subscription_definition_id = subscription_definition_id
+        self.subscriptions = subscriptions
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Definition": {"Subscriptions": self.subscriptions},
+            "Id": self.subscription_definition_id,
             "Version": self.version,
         }
 
@@ -593,6 +643,151 @@ class GreengrassBackend(BaseBackend):
 
         return self.function_definition_versions[function_definition_id][
             function_definition_version_id
+        ]
+
+    @staticmethod
+    def _is_valid_subscription_target_or_source(target_or_source):
+
+        if target_or_source in ["cloud", "GGShadowService"]:
+            return True
+
+        if re.match(
+            r"^arn:aws:iot:[a-zA-Z0-9-]+:[0-9]{12}:thing/[a-zA-Z0-9-]+$",
+            target_or_source,
+        ):
+            return True
+
+        if re.match(
+            r"^arn:aws:lambda:[a-zA-Z0-9-]+:[0-9]{12}:function:[a-zA-Z0-9-_]+:[a-zA-Z0-9-_]+$",
+            target_or_source,
+        ):
+            return True
+
+        return False
+
+    @staticmethod
+    def _validate_subscription_target_or_source(subscriptions):
+
+        target_errors = []
+        source_errors = []
+
+        for subscription in subscriptions:
+            subscription_id = subscription["Id"]
+            source = subscription["Source"]
+            target = subscription["Target"]
+
+            if not GreengrassBackend._is_valid_subscription_target_or_source(source):
+                target_errors.append(
+                    f"Subscription source is invalid. ID is '{subscription_id}' and Source is '{source}'"
+                )
+
+            if not GreengrassBackend._is_valid_subscription_target_or_source(target):
+                target_errors.append(
+                    f"Subscription target is invalid. ID is '{subscription_id}' and Target is '{target}'"
+                )
+
+        if source_errors:
+            error_msg = ", ".join(source_errors)
+            raise GreengrassClientError(
+                "400",
+                f"The subscriptions definition is invalid or corrupted. (ErrorDetails: [{error_msg}])",
+            )
+
+        if target_errors:
+            error_msg = ", ".join(target_errors)
+            raise GreengrassClientError(
+                "400",
+                f"The subscriptions definition is invalid or corrupted. (ErrorDetails: [{error_msg}])",
+            )
+
+    def create_subscription_definition(self, name, initial_version):
+
+        GreengrassBackend._validate_subscription_target_or_source(
+            initial_version["Subscriptions"]
+        )
+
+        sub_def = FakeSubscriptionDefinition(self.region_name, name, initial_version)
+        self.subscription_definitions[sub_def.id] = sub_def
+        init_ver = sub_def.initial_version
+        subscriptions = init_ver.get("Subscriptions", {})
+        sub_def_ver = self.create_subscription_definition_version(
+            sub_def.id, subscriptions
+        )
+
+        sub_def.latest_version = sub_def_ver.version
+        sub_def.latest_version_arn = sub_def_ver.arn
+        return sub_def
+
+    def list_subscription_definitions(self):
+        return self.subscription_definitions.values()
+
+    def get_subscription_definition(self, subscription_definition_id):
+
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException(
+                "That Subscription List Definition does not exist."
+            )
+        return self.subscription_definitions[subscription_definition_id]
+
+    def delete_subscription_definition(self, subscription_definition_id):
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+        del self.subscription_definitions[subscription_definition_id]
+        del self.subscription_definition_versions[subscription_definition_id]
+
+    def update_subscription_definition(self, subscription_definition_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+        self.subscription_definitions[subscription_definition_id].name = name
+
+    def create_subscription_definition_version(
+        self, subscription_definition_id, subscriptions
+    ):
+
+        GreengrassBackend._validate_subscription_target_or_source(subscriptions)
+
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions does not exist.")
+
+        sub_def_ver = FakeSubscriptionDefinitionVersion(
+            self.region_name, subscription_definition_id, subscriptions
+        )
+
+        sub_vers = self.subscription_definition_versions.get(
+            subscription_definition_id, {}
+        )
+        sub_vers[sub_def_ver.version] = sub_def_ver
+        self.subscription_definition_versions[subscription_definition_id] = sub_vers
+
+        return sub_def_ver
+
+    def list_subscription_definition_versions(self, subscription_definition_id):
+        if subscription_definition_id not in self.subscription_definition_versions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+        return self.subscription_definition_versions[subscription_definition_id]
+
+    def get_subscription_definition_version(
+        self, subscription_definition_id, subscription_definition_version_id
+    ):
+
+        if subscription_definition_id not in self.subscription_definitions:
+            raise IdNotFoundException("That subscriptions definition does not exist.")
+
+        if (
+            subscription_definition_version_id
+            not in self.subscription_definition_versions[subscription_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {subscription_definition_version_id} of Subscription List Definition {subscription_definition_id} does not exist."
+            )
+
+        return self.subscription_definition_versions[subscription_definition_id][
+            subscription_definition_version_id
         ]
 
 
