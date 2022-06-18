@@ -13,6 +13,7 @@ from .exceptions import (
     InvalidParameterException,
     ResourceExistsException,
     ResourceNotFoundException,
+    SecretStageVersionMismatchException,
     InvalidRequestException,
     ClientError,
 )
@@ -225,6 +226,14 @@ class SecretsManagerBackend(BaseBackend):
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
+
+        if version_id and version_stage:
+            versions_dict = self.secrets[secret_id].versions
+            if (
+                version_id in versions_dict
+                and version_stage not in versions_dict[version_id]["version_stages"]
+            ):
+                raise SecretStageVersionMismatchException()
 
         if not version_id and version_stage:
             # set version_id to match version_stage
