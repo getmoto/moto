@@ -1,4 +1,5 @@
 import ipaddress
+
 from moto.core import get_account_id, CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
@@ -7,6 +8,7 @@ from ..exceptions import (
     InvalidRouteTableIdError,
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
+    RouteAlreadyExistsError,
 )
 from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -323,11 +325,10 @@ class RouteBackend:
                 elif EC2_RESOURCE_TO_PREFIX["vpc-endpoint"] in gateway_id:
                     gateway = self.get_vpc_end_point(gateway_id)
 
-            try:
-                if destination_cidr_block:
-                    ipaddress.IPv4Network(str(destination_cidr_block), strict=False)
-            except ValueError:
-                raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
+            if destination_cidr_block:
+                self.__validate_destination_cidr_block(
+                    destination_cidr_block, route_table
+                )
 
             if nat_gateway_id is not None:
                 nat_gateway = self.nat_gateways.get(nat_gateway_id)
@@ -440,3 +441,25 @@ class RouteBackend:
         if not deleted:
             raise InvalidRouteError(route_table_id, cidr)
         return deleted
+
+    def __validate_destination_cidr_block(self, destination_cidr_block, route_table):
+        """
+        Utility function to check the destination CIDR block
+        Will validate the format and check for overlap with existing routes
+        """
+        try:
+            ip_v4_network = ipaddress.IPv4Network(
+                str(destination_cidr_block), strict=False
+            )
+        except ValueError:
+            raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
+
+        if not route_table.routes:
+            return
+        for route in route_table.routes.values():
+            if not route.destination_cidr_block:
+                continue
+            if not route.local and ip_v4_network.overlaps(
+                ipaddress.IPv4Network(str(route.destination_cidr_block))
+            ):
+                raise RouteAlreadyExistsError(destination_cidr_block)

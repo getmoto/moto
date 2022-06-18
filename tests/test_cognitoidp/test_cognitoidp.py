@@ -5,6 +5,7 @@ import os
 import random
 import re
 
+import mock
 import moto.cognitoidp.models
 import requests
 import hmac
@@ -504,6 +505,74 @@ def test_add_custom_attributes_existing_attribute():
         "custom:banana: Existing attribute already has name dev:custom:banana."
     )
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_cognitoidp
+def test_create_user_pool_default_id_strategy():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    first_pool = conn.create_user_pool(PoolName=str("default-pool"))
+    second_pool = conn.create_user_pool(PoolName=str("default-pool"))
+
+    first_pool["UserPool"]["Id"].should_not.equal(second_pool["UserPool"]["Id"])
+
+
+@mock_cognitoidp
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
+def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    first_pool = conn.create_user_pool(PoolName=str("default-pool"))
+    second_pool = conn.create_user_pool(PoolName=str("default-pool"))
+
+    first_pool["UserPool"]["Id"].should.equal(second_pool["UserPool"]["Id"])
+
+
+@mock_cognitoidp
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
+def test_create_user_pool_hash_id_strategy_with_different_pool_name():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    first_pool = conn.create_user_pool(PoolName=str("first-pool"))
+    second_pool = conn.create_user_pool(PoolName=str("second-pool"))
+
+    first_pool["UserPool"]["Id"].should_not.equal(second_pool["UserPool"]["Id"])
+
+
+@mock_cognitoidp
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
+def test_create_user_pool_hash_id_strategy_with_different_attributes():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    first_pool = conn.create_user_pool(
+        PoolName=str("default-pool"),
+        Schema=[
+            {
+                "Name": "first",
+                "AttributeDataType": "String",
+            }
+        ],
+    )
+    second_pool = conn.create_user_pool(
+        PoolName=str("default-pool"),
+        Schema=[
+            {
+                "Name": "second",
+                "AttributeDataType": "String",
+            }
+        ],
+    )
+
+    first_pool["UserPool"]["Id"].should_not.equal(second_pool["UserPool"]["Id"])
 
 
 @mock_cognitoidp

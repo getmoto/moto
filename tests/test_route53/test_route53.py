@@ -66,6 +66,39 @@ def test_delete_hosted_zone():
 
 
 @mock_route53
+def test_delete_hosted_zone_with_change_sets():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_id = conn.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]["Id"]
+
+    conn.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "foo.bar.testdns.aws.com",
+                        "Type": "A",
+                        "ResourceRecords": [{"Value": "1.2.3.4"}],
+                    },
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.delete_hosted_zone(Id=zone_id)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("HostedZoneNotEmpty")
+    err["Message"].should.equal(
+        "The hosted zone contains resource records that are not SOA or NS records."
+    )
+
+
+@mock_route53
 def test_get_hosted_zone_count_no_zones():
     conn = boto3.client("route53", region_name="us-east-1")
     zone_count = conn.get_hosted_zone_count()
@@ -473,11 +506,7 @@ def test_hosted_zone_private_zone_preserved():
     hosted_zone = conn.get_hosted_zone(Id=zone_id)
     hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
     hosted_zone.should.have.key("VPCs")
-    hosted_zone["VPCs"].should.have.length_of(1)
-    hosted_zone["VPCs"][0].should.have.key("VPCId")
-    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should.equal("")
-    hosted_zone["VPCs"][0]["VPCRegion"].should.equal("")
+    hosted_zone["VPCs"].should.have.length_of(0)
 
     hosted_zones = conn.list_hosted_zones()
     hosted_zones["HostedZones"].should.have.length_of(2)
@@ -723,13 +752,14 @@ def test_list_hosted_zones_by_vpc():
         HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
+    zone_id = zone_b["HostedZone"]["Id"].split("/")[2]
     response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
     response.should.have.key("ResponseMetadata")
     response.should.have.key("HostedZoneSummaries")
     response["HostedZoneSummaries"].should.have.length_of(1)
     response["HostedZoneSummaries"][0].should.have.key("HostedZoneId")
     retured_zone = response["HostedZoneSummaries"][0]
-    retured_zone["HostedZoneId"].should.equal(zone_b["HostedZone"]["Id"])
+    retured_zone["HostedZoneId"].should.equal(zone_id)
     retured_zone["Name"].should.equal(zone_b["HostedZone"]["Name"])
 
 
@@ -763,8 +793,9 @@ def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
     for summary in response["HostedZoneSummaries"]:
         # use the zone name as the index
         index = summary["Name"].split(".")[1]
+        zone_id = zones[index]["HostedZone"]["Id"].split("/")[2]
         summary.should.have.key("HostedZoneId")
-        summary["HostedZoneId"].should.equal(zones[index]["HostedZone"]["Id"])
+        summary["HostedZoneId"].should.equal(zone_id)
         summary.should.have.key("Name")
         summary["Name"].should.equal(zones[index]["HostedZone"]["Name"])
 
@@ -1234,6 +1265,51 @@ def test_change_resource_record_invalid():
         conn.change_resource_record_sets(
             HostedZoneId=hosted_zone_id, ChangeBatch=invalid_cname_record_payload
         )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
+
+
+@mock_route53
+def test_change_resource_record_invalid_action_value():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    invalid_a_record_payload = {
+        "Comment": "this should fail",
+        "Changes": [
+            {
+                "Action": "INVALID_ACTION",
+                "ResourceRecordSet": {
+                    "Name": "prod.scooby.doo",
+                    "Type": "A",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "127.0.0.1"}],
+                },
+            }
+        ],
+    }
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id, ChangeBatch=invalid_a_record_payload
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInput")
+    err["Message"].should.equal(
+        "Invalid XML ; cvc-enumeration-valid: Value 'INVALID_ACTION' is not facet-valid"
+        " with respect to enumeration '[CREATE, DELETE, UPSERT]'. It must be a value from the enumeration."
+    )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response["ResourceRecordSets"]).should.equal(1)

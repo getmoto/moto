@@ -239,6 +239,14 @@ class InvalidRouteError(EC2ClientError):
         )
 
 
+class RouteAlreadyExistsError(EC2ClientError):
+    def __init__(self, cidr):
+        super().__init__(
+            "RouteAlreadyExists",
+            "The route identified by {0} already exists".format(cidr),
+        )
+
+
 class InvalidInstanceIdError(EC2ClientError):
     def __init__(self, instance_id):
         if isinstance(instance_id, str):
@@ -458,6 +466,13 @@ class InvalidParameterValueError(EC2ClientError):
         super().__init__(
             "InvalidParameterValue",
             "Value {0} is invalid for parameter.".format(parameter_value),
+        )
+
+
+class EmptyTagSpecError(EC2ClientError):
+    def __init__(self):
+        super().__init__(
+            "InvalidParameterValue", "Tag specification must have at least one tag"
         )
 
 

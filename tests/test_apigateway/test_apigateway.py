@@ -520,6 +520,7 @@ def test_integrations():
         passthroughBehavior="WHEN_NO_TEMPLATES",
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
+        requestParameters={"integration.request.header.X-Custom": "'Custom'"},
     )
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
@@ -532,6 +533,7 @@ def test_integrations():
             "uri": "http://httpbin.org/robots.txt",
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "cacheKeyParameters": [],
+            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
         }
     )
 
@@ -549,6 +551,7 @@ def test_integrations():
             "uri": "http://httpbin.org/robots.txt",
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
             "cacheKeyParameters": [],
+            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
         }
     )
 
@@ -565,6 +568,7 @@ def test_integrations():
             "uri": "http://httpbin.org/robots.txt",
             "cacheKeyParameters": [],
             "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
         }
     )
 

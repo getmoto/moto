@@ -631,6 +631,78 @@ class EKSBackend(BaseBackend):
         cluster.nodegroup_count -= 1
         return result
 
+    def tag_resource(self, resource_arn, tags):
+        """
+        This function currently will tag an EKS cluster only.  It does not tag a managed node group
+        """
+
+        try:
+            cluster = next(
+                self.clusters[x]
+                for x in self.clusters
+                if self.clusters[x].arn == resource_arn
+            )
+        except StopIteration:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message="An error occurred (NotFoundException) when calling the TagResource operation: Resource was not found",
+            )
+        cluster.tags.update(tags)
+        return ""
+
+    def untag_resource(self, resource_arn, tag_keys):
+        """
+        This function currently will remove tags on an EKS cluster only.  It does not remove tags from a managed node group
+        """
+        if not isinstance(tag_keys, list):
+            tag_keys = [tag_keys]
+
+        try:
+            cluster = next(
+                self.clusters[x]
+                for x in self.clusters
+                if self.clusters[x].arn == resource_arn
+            )
+        except StopIteration:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message="An error occurred (NotFoundException) when calling the UntagResource operation: Resource was not found",
+            )
+        for name in tag_keys:
+            if name in cluster.tags:
+                del cluster.tags[name]
+        return ""
+
+    def list_tags_for_resource(self, resource_arn):
+        """
+        This function currently will list tags on an EKS cluster only.  It does not list tags from a managed node group
+        """
+
+        try:
+            cluster = next(
+                self.clusters[x]
+                for x in self.clusters
+                if self.clusters[x].arn == resource_arn
+            )
+        except StopIteration:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message="An error occurred (NotFoundException) when calling the ListTagsForResource operation: Resource was not found",
+            )
+        return cluster.tags
+
     def list_clusters(self, max_results, next_token):
         return paginated_list(self.clusters.keys(), max_results, next_token)
 

@@ -20,7 +20,7 @@ Note that you can mock multiple services at the same time:
 
 .. sourcecode:: python
 
-    @mock_all
+    @mock_all()
     def test_all_supported_services_at_the_same_time():
         ...
 

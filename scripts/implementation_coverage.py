@@ -31,7 +31,8 @@ def get_moto_implementation(service_name):
         return None, None
     backends = list(mock().backends.values())
     if backends:
-        return backends[0], mock_name
+        backend = backends[0]["us-east-1"] if "us-east-1" in backends[0] else backends[0]["global"]
+        return backend, mock_name
 
 
 def get_module_name(o):

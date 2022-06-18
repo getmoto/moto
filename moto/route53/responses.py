@@ -121,6 +121,14 @@ class Route53(BaseResponse):
         elif request.method == "DELETE":
             self.backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
+        elif request.method == "POST":
+            elements = xmltodict.parse(self.body)
+            comment = elements.get("UpdateHostedZoneCommentRequest", {}).get(
+                "Comment", None
+            )
+            zone = self.backend.update_hosted_zone_comment(zoneid, comment)
+            template = Template(UPDATE_HOSTED_ZONE_COMMENT_RESPONSE)
+            return 200, headers, template.render(zone=zone)
 
     def get_dnssec_response(self, request, full_url, headers):
         # returns static response
@@ -135,6 +143,43 @@ class Route53(BaseResponse):
         if method == "GET":
             self.backend.get_dnssec(zoneid)
             return 200, headers, GET_DNSSEC
+
+    def associate_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        elements = xmltodict.parse(self.body)
+        comment = vpc = elements.get("AssociateVPCWithHostedZoneRequest", {}).get(
+            "Comment", {}
+        )
+        vpc = elements.get("AssociateVPCWithHostedZoneRequest", {}).get("VPC", {})
+        vpcid = vpc.get("VPCId", None)
+        vpcregion = vpc.get("VPCRegion", None)
+
+        self.backend.associate_vpc(zoneid, vpcid, vpcregion)
+
+        template = Template(ASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(comment=comment)
+
+    def disassociate_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        elements = xmltodict.parse(self.body)
+        comment = vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get(
+            "Comment", {}
+        )
+        vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get("VPC", {})
+        vpcid = vpc.get("VPCId", None)
+
+        self.backend.disassociate_vpc(zoneid, vpcid)
+
+        template = Template(DISASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(comment=comment)
 
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -551,10 +596,12 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
    {% endif %}
    {% if zone.private_zone %}
    <VPCs>
+      {% for vpc in zone.vpcs %}
       <VPC>
-         <VPCId>{{zone.vpcid}}</VPCId>
-         <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+         <VPCId>{{vpc.vpc_id}}</VPCId>
+         <VPCRegion>{{vpc.vpc_region}}</VPCRegion>
       </VPC>
+      {% endfor %}
    </VPCs>
    {% endif %}
 </GetHostedZoneResponse>"""
@@ -764,4 +811,42 @@ GET_HEALTH_CHECK_RESPONSE = """<?xml version="1.0"?>
 <GetHealthCheckResponse>
     {{ health_check.to_xml() }}
 </GetHealthCheckResponse>
+"""
+
+UPDATE_HOSTED_ZONE_COMMENT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHostedZoneCommentResponse>
+   <HostedZone>
+      <Config>
+         {% if zone.comment %}
+         <Comment>{{ zone.comment }}</Comment>
+         {% endif %}
+         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+      </Config>
+      <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+   </HostedZone>
+</UpdateHostedZoneCommentResponse>
+"""
+
+ASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<AssociateVPCWithHostedZoneResponse>
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</AssociateVPCWithHostedZoneResponse>
+"""
+
+DISASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DisassociateVPCFromHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</DisassociateVPCFromHostedZoneResponse>
 """

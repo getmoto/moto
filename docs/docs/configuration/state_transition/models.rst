@@ -57,7 +57,7 @@ Advancement:
     Call `boto3.client("dax").describe_clusters(..)`.
 
 Service: S3 (Glacier Restoration)
----------------
+-----------------------------------
 
 **Model**: `s3::keyrestore`   :raw-html:`<br />`
 Available States:

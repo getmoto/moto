@@ -32,8 +32,8 @@ greengrass
 - [X] create_core_definition
 - [X] create_core_definition_version
 - [ ] create_deployment
-- [ ] create_device_definition
-- [ ] create_device_definition_version
+- [X] create_device_definition
+- [X] create_device_definition_version
 - [ ] create_function_definition
 - [ ] create_function_definition_version
 - [ ] create_group
@@ -47,8 +47,8 @@ greengrass
 - [ ] create_subscription_definition
 - [ ] create_subscription_definition_version
 - [ ] delete_connector_definition
-- [ ] delete_core_definition
-- [ ] delete_device_definition
+- [X] delete_core_definition
+- [X] delete_device_definition
 - [ ] delete_function_definition
 - [ ] delete_group
 - [ ] delete_logger_definition
@@ -61,11 +61,11 @@ greengrass
 - [ ] get_connectivity_info
 - [ ] get_connector_definition
 - [ ] get_connector_definition_version
-- [ ] get_core_definition
-- [ ] get_core_definition_version
+- [X] get_core_definition
+- [X] get_core_definition_version
 - [ ] get_deployment_status
-- [ ] get_device_definition
-- [ ] get_device_definition_version
+- [X] get_device_definition
+- [X] get_device_definition_version
 - [ ] get_function_definition
 - [ ] get_function_definition_version
 - [ ] get_group
@@ -84,11 +84,11 @@ greengrass
 - [ ] list_bulk_deployments
 - [ ] list_connector_definition_versions
 - [ ] list_connector_definitions
-- [ ] list_core_definition_versions
-- [ ] list_core_definitions
+- [X] list_core_definition_versions
+- [X] list_core_definitions
 - [ ] list_deployments
-- [ ] list_device_definition_versions
-- [ ] list_device_definitions
+- [X] list_device_definition_versions
+- [X] list_device_definitions
 - [ ] list_function_definition_versions
 - [ ] list_function_definitions
 - [ ] list_group_certificate_authorities
@@ -108,8 +108,8 @@ greengrass
 - [ ] untag_resource
 - [ ] update_connectivity_info
 - [ ] update_connector_definition
-- [ ] update_core_definition
-- [ ] update_device_definition
+- [X] update_core_definition
+- [X] update_device_definition
 - [ ] update_function_definition
 - [ ] update_group
 - [ ] update_group_certificate_configuration

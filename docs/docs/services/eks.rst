@@ -49,11 +49,11 @@ eks
 - [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
 - [X] list_nodegroups
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_updates
 - [ ] register_cluster
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_addon
 - [ ] update_cluster_config
 - [ ] update_cluster_version
