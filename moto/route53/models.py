@@ -66,23 +66,20 @@ class HealthCheck(CloudFormationModel):
         self.disabled = health_check_args.get("disabled") or False
         self.enable_sni = health_check_args.get("enable_sni") or True
         self.caller_reference = caller_reference
+        self.children = None
+        self.regions = None
 
-    def add_children(self, children):
+    def set_children(self, children):
         if children and isinstance(children, list):
             self.children = children
         elif children and isinstance(children, str):
             self.children = [children]
-        else:
-            self.children = None
-        return self.children
 
-    def add_regions(self, regions):
+    def set_regions(self, regions):
         if regions and isinstance(regions, list):
             self.regions = regions
         elif regions and isinstance(regions, str):
             self.regions = [regions]
-        else:
-            self.regions = None
 
     @property
     def physical_resource_id(self):
@@ -640,8 +637,8 @@ class Route53Backend(BaseBackend):
     def create_health_check(self, caller_reference, health_check_args):
         health_check_id = str(uuid.uuid4())
         health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
-        health_check.add_children(health_check_args.get("children"))
-        health_check.add_regions(health_check_args.get("regions"))
+        health_check.set_children(health_check_args.get("children"))
+        health_check.set_regions(health_check_args.get("regions"))
         self.health_checks[health_check_id] = health_check
         return health_check
 
@@ -672,8 +669,10 @@ class Route53Backend(BaseBackend):
             health_check.disabled = health_check_args.get("disabled")
         if health_check_args.get("enable_sni"):
             health_check.enable_sni = health_check_args.get("enable_sni")
-        health_check.add_children(health_check_args.get("children"))
-        health_check.add_regions(health_check_args.get("regions"))
+        if health_check_args.get("children"):
+            health_check.set_children(health_check_args.get("children"))
+        if health_check_args.get("regions"):
+            health_check.set_regions(health_check_args.get("regions"))
 
         return health_check
 
