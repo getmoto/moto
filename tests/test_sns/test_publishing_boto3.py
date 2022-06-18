@@ -287,7 +287,7 @@ def test_publish_sms():
 
     result.should.contain("MessageId")
     if not settings.TEST_SERVER_MODE:
-        sns_backend = sns_backends["us-east-1"]
+        sns_backend = sns_backends[ACCOUNT_ID]["us-east-1"]
         sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
             ("+15551234567", "my message")
         )
@@ -419,7 +419,7 @@ def test_publish_to_http():
     conn.publish(TopicArn=topic_arn, Message="my message", Subject="my subject")
 
     if not settings.TEST_SERVER_MODE:
-        sns_backend = sns_backends["us-east-1"]
+        sns_backend = sns_backends[ACCOUNT_ID]["us-east-1"]
         sns_backend.topics[topic_arn].sent_notifications.should.have.length_of(1)
         notification = sns_backend.topics[topic_arn].sent_notifications[0]
         _, msg, subject, _, _ = notification

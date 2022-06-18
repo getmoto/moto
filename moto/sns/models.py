@@ -132,10 +132,10 @@ class Topic(CloudFormationModel):
         region_name,
     ):
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, region_name
+            original_resource.name, cloudformation_json, account_id, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
@@ -232,7 +232,7 @@ class Subscription(BaseModel):
                         attr_type: type_value,
                     }
 
-                sqs_backends[region].send_message(
+                sqs_backends[self.account_id][region].send_message(
                     queue_name,
                     message,
                     message_attributes=raw_message_attributes,
@@ -263,7 +263,7 @@ class Subscription(BaseModel):
 
             from moto.awslambda import lambda_backends
 
-            lambda_backends[region].send_sns_message(
+            lambda_backends[self.account_id][region].send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
 

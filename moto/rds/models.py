@@ -341,6 +341,7 @@ class Database(CloudFormationModel):
         self.status = "available"
         self.is_replica = False
         self.replicas = []
+        self.account_id = kwargs.get("account_id")
         self.region_name = kwargs.get("region")
         self.engine = kwargs.get("engine")
         self.engine_version = kwargs.get("engine_version", None)
@@ -390,7 +391,7 @@ class Database(CloudFormationModel):
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
         if self.db_subnet_group_name:
-            self.db_subnet_group = rds_backends[
+            self.db_subnet_group = rds_backends[self.account_id][
                 self.region_name
             ].describe_subnet_groups(self.db_subnet_group_name)[0]
         else:
@@ -405,7 +406,7 @@ class Database(CloudFormationModel):
             self.db_parameter_group_name
             and not self.is_default_parameter_group(self.db_parameter_group_name)
             and self.db_parameter_group_name
-            not in rds_backends[self.region_name].db_parameter_groups
+            not in rds_backends[self.account_id][self.region_name].db_parameter_groups
         ):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
@@ -418,7 +419,7 @@ class Database(CloudFormationModel):
         if (
             self.option_group_name
             and self.option_group_name
-            not in rds_backends[self.region_name].option_groups
+            not in rds_backends[self.account_id][self.region_name].option_groups
         ):
             raise OptionGroupNotFoundFaultError(self.option_group_name)
         self.default_option_groups = {
@@ -470,12 +471,14 @@ class Database(CloudFormationModel):
         else:
             if (
                 self.db_parameter_group_name
-                not in rds_backends[self.region_name].db_parameter_groups
+                not in rds_backends[self.account_id][
+                    self.region_name
+                ].db_parameter_groups
             ):
                 raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
             return [
-                rds_backends[self.region_name].db_parameter_groups[
+                rds_backends[self.account_id][self.region_name].db_parameter_groups[
                     self.db_parameter_group_name
                 ]
             ]
@@ -732,6 +735,7 @@ class Database(CloudFormationModel):
             "port": properties.get("Port", 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
             "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
+            "account_id": account_id,
             "region": region_name,
             "security_groups": security_groups,
             "storage_encrypted": properties.get("StorageEncrypted"),
@@ -1432,7 +1436,7 @@ class RDSBackend(BaseBackend):
         if self.arn_regex.match(db_id):
             arn_breakdown = db_id.split(":")
             region = arn_breakdown[3]
-            backend = rds_backends[region]
+            backend = rds_backends[self.account_id][region]
             db_name = arn_breakdown[-1]
         else:
             backend = self
@@ -2207,7 +2211,7 @@ class DBParameterGroup(CloudFormationModel):
                 {"ParameterName": db_parameter, "ParameterValue": db_parameter_value}
             )
 
-        rds_backend = rds_backends[region_name]
+        rds_backend = rds_backends[account_id][region_name]
         db_parameter_group = rds_backend.create_db_parameter_group(
             db_parameter_group_kwargs
         )

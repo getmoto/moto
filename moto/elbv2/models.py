@@ -1551,7 +1551,7 @@ Member must satisfy regular expression pattern: {}".format(
         from moto.acm.models import AWSResourceNotFoundException
 
         try:
-            acm_backend = acm_backends[self.region_name]
+            acm_backend = acm_backends[self.account_id][self.region_name]
             acm_backend.get_certificate(certificate_arn)
             return True
         except AWSResourceNotFoundException:
@@ -1559,7 +1559,9 @@ Member must satisfy regular expression pattern: {}".format(
 
         from moto.iam import iam_backends
 
-        cert = iam_backends["global"].get_certificate_by_arn(certificate_arn)
+        cert = iam_backends[self.account_id]["global"].get_certificate_by_arn(
+            certificate_arn
+        )
         if cert is not None:
             return True
 

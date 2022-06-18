@@ -593,6 +593,7 @@ class InlinePolicy(CloudFormationModel):
 class Role(CloudFormationModel):
     def __init__(
         self,
+        account_id,
         role_id,
         name,
         assume_role_policy_document,
@@ -603,6 +604,7 @@ class Role(CloudFormationModel):
         max_session_duration,
         linked_service=None,
     ):
+        self.account_id = account_id
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -683,7 +685,9 @@ class Role(CloudFormationModel):
             _managed_policies.append(
                 {
                     "policyArn": key,
-                    "policyName": iam_backends["global"].managed_policies[key].name,
+                    "policyName": iam_backends[self.account_id]["global"]
+                    .managed_policies[key]
+                    .name,
                 }
             )
 
@@ -694,7 +698,9 @@ class Role(CloudFormationModel):
             )
 
         _instance_profiles = []
-        for key, instance_profile in iam_backends["global"].instance_profiles.items():
+        for key, instance_profile in iam_backends[self.account_id][
+            "global"
+        ].instance_profiles.items():
             for _ in instance_profile.roles:
                 _instance_profiles.append(instance_profile.to_embedded_config_dict())
                 break
@@ -1635,6 +1641,7 @@ class IAMBackend(BaseBackend):
         self.groups = {}
         self.users = {}
         self.credential_report = None
+        self.aws_managed_policies = self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
@@ -1648,8 +1655,7 @@ class IAMBackend(BaseBackend):
 
         self.tagger = TaggingService()
 
-    @property
-    def aws_managed_policies(self):
+    def _init_aws_policies(self):
         # AWS defines some of its own managed policies and we periodically
         # import them via `make aws_managed_policies`
         aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
@@ -1859,6 +1865,7 @@ class IAMBackend(BaseBackend):
 
         clean_tags = self._tag_verification(tags)
         role = Role(
+            self.account_id,
             role_id,
             role_name,
             assume_role_policy_document,
@@ -2727,6 +2734,9 @@ class IAMBackend(BaseBackend):
         if "AWSManagedPolicy" in policy_filter:
             returned_policies = self.aws_managed_policies
         if "LocalManagedPolicy" in policy_filter:
+            print(
+                f"{len(policies)}::{len(local_policies)}::{len(self.aws_managed_policies)}"
+            )
             returned_policies = returned_policies + list(local_policies)
 
         return {

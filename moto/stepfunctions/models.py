@@ -166,12 +166,12 @@ class StateMachine(CloudFormationModel):
         definition = properties.get("DefinitionString", "")
         role_arn = properties.get("RoleArn", "")
         tags = cfn_to_api_tags(properties.get("Tags", []))
-        sf_backend = stepfunction_backends[region_name]
+        sf_backend = stepfunction_backends[account_id][region_name]
         return sf_backend.create_state_machine(name, definition, role_arn, tags=tags)
 
     @classmethod
-    def delete_from_cloudformation_json(cls, resource_name, _, region_name):
-        sf_backend = stepfunction_backends[region_name]
+    def delete_from_cloudformation_json(cls, resource_name, _, account_id, region_name):
+        sf_backend = stepfunction_backends[account_id][region_name]
         sf_backend.delete_state_machine(resource_name)
 
     @classmethod
@@ -191,10 +191,10 @@ class StateMachine(CloudFormationModel):
             new_properties = original_resource.get_cfn_properties(properties)
             cloudformation_json["Properties"] = new_properties
             new_resource = cls.create_from_cloudformation_json(
-                name, cloudformation_json, region_name
+                name, cloudformation_json, account_id, region_name
             )
             cls.delete_from_cloudformation_json(
-                original_resource.arn, cloudformation_json, region_name
+                original_resource.arn, cloudformation_json, account_id, region_name
             )
             return new_resource
 
@@ -203,7 +203,7 @@ class StateMachine(CloudFormationModel):
             definition = properties.get("DefinitionString")
             role_arn = properties.get("RoleArn")
             tags = cfn_to_api_tags(properties.get("Tags", []))
-            sf_backend = stepfunction_backends[region_name]
+            sf_backend = stepfunction_backends[account_id][region_name]
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )

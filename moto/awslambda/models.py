@@ -479,7 +479,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         return json.dumps(self.get_configuration())
 
     def _get_layers_data(self, layers_versions_arns):
-        backend = lambda_backends[self.region]
+        backend = lambda_backends[self.account_id][self.region]
         layer_versions = [
             backend.layers_versions_by_arn(layer_version)
             for layer_version in layers_versions_arns
@@ -602,7 +602,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backends["global"].get_object(
+                key = s3_backends[self.account_id]["global"].get_object(
                     updated_spec["S3Bucket"], updated_spec["S3Key"]
                 )
             except MissingBucket:
@@ -1005,7 +1005,7 @@ class EventSourceMapping(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid
-        lambda_backend = lambda_backends[region_name]
+        lambda_backend = lambda_backends[account_id][region_name]
         return lambda_backend.update_event_source_mapping(event_source_uuid, properties)
 
     @classmethod

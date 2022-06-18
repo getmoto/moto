@@ -384,7 +384,7 @@ class ELBBackend(BaseBackend):
     def describe_instance_health(self, lb_name, instances):
         provided_ids = [i["InstanceId"] for i in instances]
         registered_ids = self.get_load_balancer(lb_name).instance_ids
-        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
         if len(provided_ids) == 0:
             provided_ids = registered_ids
         instances = []
@@ -577,7 +577,7 @@ class ELBBackend(BaseBackend):
     def _register_certificate(self, ssl_certificate_id, dns_name):
         from moto.acm.models import acm_backends, AWSResourceNotFoundException
 
-        acm_backend = acm_backends[self.region_name]
+        acm_backend = acm_backends[self.account_id][self.region_name]
         try:
             acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
         except AWSResourceNotFoundException:

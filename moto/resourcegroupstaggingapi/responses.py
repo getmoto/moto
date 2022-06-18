@@ -14,7 +14,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         :returns: Resource tagging api backend
         :rtype: moto.resourcegroupstaggingapi.models.ResourceGroupsTaggingAPIBackend
         """
-        return resourcegroupstaggingapi_backends[self.region]
+        return resourcegroupstaggingapi_backends[self.current_account][self.region]
 
     def get_resources(self):
         pagination_token = self._get_param("PaginationToken")

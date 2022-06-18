@@ -8,6 +8,7 @@ from moto.iam import iam_backends
 class RoleConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
         self,
+        account_id,
         resource_ids,
         resource_name,
         limit,
@@ -22,7 +23,7 @@ class RoleConfigQuery(ConfigQueryModel):
         # Stored in moto backend with the AWS-assigned random string like "AROA0BSVNSZKXVHS00SBJ"
 
         # Grab roles from backend; need the full values since names and id's are different
-        role_list = list(self.backends["global"].roles.values())
+        role_list = list(self.backends[account_id]["global"].roles.values())
 
         if not role_list:
             return [], None
@@ -126,10 +127,15 @@ class RoleConfigQuery(ConfigQueryModel):
         )
 
     def get_config_resource(
-        self, resource_id, resource_name=None, backend_region=None, resource_region=None
+        self,
+        account_id,
+        resource_id,
+        resource_name=None,
+        backend_region=None,
+        resource_region=None,
     ):
 
-        role = self.backends["global"].roles.get(resource_id, {})
+        role = self.backends[account_id]["global"].roles.get(resource_id, {})
 
         if not role:
             return
@@ -154,6 +160,7 @@ class RoleConfigQuery(ConfigQueryModel):
 class PolicyConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
         self,
+        account_id,
         resource_ids,
         resource_name,
         limit,
@@ -167,7 +174,9 @@ class PolicyConfigQuery(ConfigQueryModel):
         # The resource name is a user-assigned string like "my-development-policy"
         # Stored in moto backend with the arn like "arn:aws:iam::123456789012:policy/my-development-policy"
 
-        policy_list = list(self.backends["global"].managed_policies.values())
+        policy_list = list(
+            self.backends[account_id]["global"].managed_policies.values()
+        )
 
         # We don't want to include AWS Managed Policies. This technically needs to
         # respect the configuration recorder's 'includeGlobalResourceTypes' setting,
@@ -286,13 +295,18 @@ class PolicyConfigQuery(ConfigQueryModel):
         )
 
     def get_config_resource(
-        self, resource_id, resource_name=None, backend_region=None, resource_region=None
+        self,
+        account_id,
+        resource_id,
+        resource_name=None,
+        backend_region=None,
+        resource_region=None,
     ):
         # policies are listed in the backend as arns, but we have to accept the PolicyID as the resource_id
         # we'll make a really crude search for it
         policy = None
-        for arn in self.backends["global"].managed_policies.keys():
-            policy_candidate = self.backends["global"].managed_policies[arn]
+        for arn in self.backends[account_id]["global"].managed_policies.keys():
+            policy_candidate = self.backends[account_id]["global"].managed_policies[arn]
             if policy_candidate.id == resource_id:
                 policy = policy_candidate
                 break

@@ -58,7 +58,8 @@ class LogEvent(BaseModel):
 class LogStream(BaseModel):
     _log_ids = 0
 
-    def __init__(self, region, log_group, name):
+    def __init__(self, account_id, region, log_group, name):
+        self.account_id = account_id
         self.region = region
         self.arn = f"arn:aws:logs:{region}:{get_account_id()}:log-group:{log_group}:log-stream:{name}"
         self.creation_time = int(unix_time_millis())
@@ -134,7 +135,7 @@ class LogStream(BaseModel):
         if service == "lambda":
             from moto.awslambda import lambda_backends  # due to circular dependency
 
-            lambda_backends[self.region].send_log_event(
+            lambda_backends[self.account_id][self.region].send_log_event(
                 self.destination_arn,
                 self.filter_name,
                 log_group_name,
@@ -142,11 +143,9 @@ class LogStream(BaseModel):
                 formatted_log_events,
             )
         elif service == "firehose":
-            from moto.firehose import (  # pylint: disable=import-outside-toplevel
-                firehose_backends,
-            )
+            from moto.firehose import firehose_backends
 
-            firehose_backends[self.region].send_log_event(
+            firehose_backends[self.account_id][self.region].send_log_event(
                 self.destination_arn,
                 self.filter_name,
                 log_group_name,
@@ -258,8 +257,9 @@ class LogStream(BaseModel):
 
 
 class LogGroup(CloudFormationModel):
-    def __init__(self, region, name, tags, **kwargs):
+    def __init__(self, account_id, region, name, tags, **kwargs):
         self.name = name
+        self.account_id = account_id
         self.region = region
         self.arn = f"arn:aws:logs:{region}:{get_account_id()}:log-group:{name}"
         self.creation_time = int(unix_time_millis())
@@ -297,7 +297,7 @@ class LogGroup(CloudFormationModel):
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
             raise ResourceAlreadyExistsException()
-        stream = LogStream(self.region, self.name, log_stream_name)
+        stream = LogStream(self.account_id, self.region, self.name, log_stream_name)
         filters = self.describe_subscription_filters()
 
         if filters:
@@ -624,14 +624,16 @@ class LogsBackend(BaseBackend):
                 value=log_group_name,
             )
         self.groups[log_group_name] = LogGroup(
-            self.region_name, log_group_name, tags, **kwargs
+            self.account_id, self.region_name, log_group_name, tags, **kwargs
         )
         return self.groups[log_group_name]
 
     def ensure_log_group(self, log_group_name, tags):
         if log_group_name in self.groups:
             return
-        self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
+        self.groups[log_group_name] = LogGroup(
+            self.account_id, self.region_name, log_group_name, tags
+        )
 
     def delete_log_group(self, log_group_name):
         if log_group_name not in self.groups:
@@ -887,12 +889,12 @@ class LogsBackend(BaseBackend):
 
         service = destination_arn.split(":")[2]
         if service == "lambda":
-            from moto.awslambda import (  # pylint: disable=import-outside-toplevel
-                lambda_backends,
-            )
+            from moto.awslambda import lambda_backends
 
             try:
-                lambda_backends[self.region_name].get_function(destination_arn)
+                lambda_backends[self.account_id][self.region_name].get_function(
+                    destination_arn
+                )
             # no specific permission check implemented
             except Exception:
                 raise InvalidParameterException(
@@ -901,13 +903,11 @@ class LogsBackend(BaseBackend):
                     "function."
                 )
         elif service == "firehose":
-            from moto.firehose import (  # pylint: disable=import-outside-toplevel
-                firehose_backends,
-            )
+            from moto.firehose import firehose_backends
 
-            firehose = firehose_backends[self.region_name].lookup_name_from_arn(
-                destination_arn
-            )
+            firehose = firehose_backends[self.account_id][
+                self.region_name
+            ].lookup_name_from_arn(destination_arn)
             if not firehose:
                 raise InvalidParameterException(
                     "Could not deliver test message to specified Firehose "
@@ -944,7 +944,7 @@ class LogsBackend(BaseBackend):
         return query_id
 
     def create_export_task(self, log_group_name, destination):
-        s3_backends["global"].get_bucket(destination)
+        s3_backends[self.account_id]["global"].get_bucket(destination)
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         task_id = uuid.uuid4()

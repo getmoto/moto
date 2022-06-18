@@ -347,7 +347,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
-        sagemaker_backend = sagemaker_backends[region_name]
+        sagemaker_backend = sagemaker_backends[account_id][region_name]
 
         # Get required properties from provided CloudFormation template
         properties = cloudformation_json["Properties"]
@@ -371,10 +371,13 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
     ):
         # Changes to the Endpoint will not change resource name
         cls.delete_from_cloudformation_json(
-            original_resource.endpoint_arn, cloudformation_json, region_name
+            original_resource.endpoint_arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
-            original_resource.endpoint_name, cloudformation_json, region_name
+            original_resource.endpoint_name,
+            cloudformation_json,
+            account_id,
+            region_name,
         )
         return new_resource
 
@@ -568,10 +571,13 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
     ):
         # Most changes to the endpoint config will change resource name for EndpointConfigs
         cls.delete_from_cloudformation_json(
-            original_resource.endpoint_config_arn, cloudformation_json, region_name
+            original_resource.endpoint_config_arn,
+            cloudformation_json,
+            account_id,
+            region_name,
         )
         new_resource = cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
         return new_resource
 
@@ -689,10 +695,10 @@ class Model(BaseObject, CloudFormationModel):
     ):
         # Most changes to the model will change resource name for Models
         cls.delete_from_cloudformation_json(
-            original_resource.model_arn, cloudformation_json, region_name
+            original_resource.model_arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
         return new_resource
 
@@ -909,10 +915,13 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
     ):
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
-            original_resource.arn, cloudformation_json, region_name
+            original_resource.arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
-            original_resource.notebook_instance_name, cloudformation_json, region_name
+            original_resource.notebook_instance_name,
+            cloudformation_json,
+            account_id,
+            region_name,
         )
         return new_resource
 
@@ -1002,7 +1011,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
     ):
         properties = cloudformation_json["Properties"]
 
-        config = sagemaker_backends[
+        config = sagemaker_backends[account_id][
             region_name
         ].create_notebook_instance_lifecycle_config(
             notebook_instance_lifecycle_config_name=resource_name,
@@ -1024,11 +1033,13 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         cls.delete_from_cloudformation_json(
             original_resource.notebook_instance_lifecycle_config_arn,
             cloudformation_json,
+            account_id,
             region_name,
         )
         new_resource = cls.create_from_cloudformation_json(
             original_resource.notebook_instance_lifecycle_config_name,
             cloudformation_json,
+            account_id,
             region_name,
         )
         return new_resource

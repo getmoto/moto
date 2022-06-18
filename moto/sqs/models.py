@@ -447,7 +447,7 @@ class Queue(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         queue_name = original_resource.name
 
-        sqs_backend = sqs_backends[region_name]
+        sqs_backend = sqs_backends[account_id][region_name]
         queue = sqs_backend.get_queue(queue_name)
         if "VisibilityTimeout" in properties:
             queue.visibility_timeout = int(properties["VisibilityTimeout"])
@@ -544,7 +544,7 @@ class Queue(CloudFormationModel):
         self._messages.append(message)
 
         for arn, esm in self.lambda_event_source_mappings.items():
-            backend = sqs_backends[self.region]
+            backend = sqs_backends[self.account_id][self.region]
 
             """
             Lambda polls the queue and invokes your function synchronously with an event
@@ -561,7 +561,7 @@ class Queue(CloudFormationModel):
 
             from moto.awslambda import lambda_backends
 
-            result = lambda_backends[self.region].send_sqs_batch(
+            result = lambda_backends[self.account_id][self.region].send_sqs_batch(
                 arn, messages, self.queue_arn
             )
 

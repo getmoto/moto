@@ -327,7 +327,7 @@ class CloudWatchBackend(BaseBackend):
         providers = CloudWatchMetricProvider.__subclasses__()
         md = []
         for provider in providers:
-            md.extend(provider.get_cloudwatch_metrics())
+            md.extend(provider.get_cloudwatch_metrics(self.account_id))
         return md
 
     def put_metric_alarm(

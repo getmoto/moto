@@ -80,7 +80,7 @@ class CodePipelineBackend(BaseBackend):
 
     @property
     def iam_backend(self):
-        return iam_backends["global"]
+        return iam_backends[self.account_id]["global"]
 
     def create_pipeline(self, pipeline, tags):
         if pipeline["name"] in self.pipelines:

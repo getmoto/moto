@@ -1345,17 +1345,22 @@ class ConfigBackend(BaseBackend):
             backend_query_region = (
                 backend_region  # Always provide the backend this request arrived from.
             )
-            if RESOURCE_MAP[resource_type].backends.get("global"):
+            if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
                 backend_region = "global"
 
             # For non-aggregated queries, the we only care about the
             # backend_region. Need to verify that moto has implemented
             # the region for the given backend:
-            if RESOURCE_MAP[resource_type].backends.get(backend_region):
+            if (
+                RESOURCE_MAP[resource_type]
+                .backends[self.account_id]
+                .get(backend_region)
+            ):
                 # Fetch the resources for the backend's region:
                 identifiers, new_token = RESOURCE_MAP[
                     resource_type
                 ].list_config_service_resources(
+                    self.account_id,
                     resource_ids,
                     resource_name,
                     limit,
@@ -1420,6 +1425,7 @@ class ConfigBackend(BaseBackend):
             identifiers, new_token = RESOURCE_MAP[
                 resource_type
             ].list_config_service_resources(
+                self.account_id,
                 resource_id,
                 resource_name,
                 limit,
@@ -1477,7 +1483,7 @@ class ConfigBackend(BaseBackend):
 
         # Get the item:
         item = RESOURCE_MAP[resource_type].get_config_resource(
-            resource_id, backend_region=backend_query_region
+            self.account_id, resource_id, backend_region=backend_query_region
         )
         if not item:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
@@ -1512,18 +1518,26 @@ class ConfigBackend(BaseBackend):
             backend_query_region = (
                 backend_region  # Always provide the backend this request arrived from.
             )
-            if RESOURCE_MAP[resource["resourceType"]].backends.get("global"):
+            if (
+                RESOURCE_MAP[resource["resourceType"]]
+                .backends[self.account_id]
+                .get("global")
+            ):
                 config_backend_region = "global"
 
             # If the backend region isn't implemented then we won't find the item:
-            if not RESOURCE_MAP[resource["resourceType"]].backends.get(
-                config_backend_region
+            if (
+                not RESOURCE_MAP[resource["resourceType"]]
+                .backends[self.account_id]
+                .get(config_backend_region)
             ):
                 continue
 
             # Get the item:
             item = RESOURCE_MAP[resource["resourceType"]].get_config_resource(
-                resource["resourceId"], backend_region=backend_query_region
+                self.account_id,
+                resource["resourceId"],
+                backend_region=backend_query_region,
             )
             if not item:
                 continue
@@ -1576,6 +1590,7 @@ class ConfigBackend(BaseBackend):
 
             # Get the item:
             item = RESOURCE_MAP[resource_type].get_config_resource(
+                self.account_id,
                 resource_id,
                 resource_name=resource_name,
                 resource_region=resource_region,

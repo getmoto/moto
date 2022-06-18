@@ -868,8 +868,9 @@ class PublicAccessBlock(BaseModel):
 
 
 class FakeBucket(CloudFormationModel):
-    def __init__(self, name, region_name):
+    def __init__(self, name, account_id, region_name):
         self.name = name
+        self.account_id = account_id
         self.region_name = region_name
         self.keys = _VersionedKeyStore()
         self.multiparts = {}
@@ -1153,7 +1154,7 @@ class FakeBucket(CloudFormationModel):
                     raise InvalidNotificationDestination()
 
         # Send test events so the user can verify these notifications were set correctly
-        notifications.send_test_event(bucket=self)
+        notifications.send_test_event(account_id=self.account_id, bucket=self)
 
     def set_accelerate_configuration(self, accelerate_config):
         if self.accelerate_configuration is None and accelerate_config == "Suspended":
@@ -1237,7 +1238,7 @@ class FakeBucket(CloudFormationModel):
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backends["global"].put_bucket_encryption(
+            s3_backends[account_id]["global"].put_bucket_encryption(
                 bucket_name=resource_name, encryption=bucket_encryption
             )
 
@@ -1275,7 +1276,7 @@ class FakeBucket(CloudFormationModel):
                 bucket_encryption = cfn_to_api_encryption(
                     properties["BucketEncryption"]
                 )
-                s3_backends["global"].put_bucket_encryption(
+                s3_backends[account_id]["global"].put_bucket_encryption(
                     bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
@@ -1309,7 +1310,9 @@ class FakeBucket(CloudFormationModel):
             "resourceCreationTime": str(self.creation_date),
             "relatedEvents": [],
             "relationships": [],
-            "tags": s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn),
+            "tags": s3_backends[self.account_id][
+                "global"
+            ].tagger.get_tag_dict_for_resource(self.arn),
             "configuration": {
                 "name": self.name,
                 "owner": {"id": OWNER},
@@ -1458,9 +1461,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # metric_providers["S3"] = self
 
     @classmethod
-    def get_cloudwatch_metrics(cls):
+    def get_cloudwatch_metrics(cls, account_id):
         metrics = []
-        for name, bucket in s3_backends["global"].buckets.items():
+        for name, bucket in s3_backends[account_id]["global"].buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1498,7 +1501,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
-        new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
+        new_bucket = FakeBucket(
+            name=bucket_name, account_id=self.account_id, region_name=region_name
+        )
 
         self.buckets[bucket_name] = new_bucket
 
@@ -1721,7 +1726,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ] + [new_key]
         bucket.keys.setlist(key_name, keys)
 
-        notifications.send_event(notifications.S3_OBJECT_CREATE_PUT, bucket, new_key)
+        notifications.send_event(
+            self.account_id, notifications.S3_OBJECT_CREATE_PUT, bucket, new_key
+        )
 
         return new_key
 
@@ -2149,7 +2156,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         # Send notifications that an object was copied
         bucket = self.get_bucket(dest_bucket_name)
-        notifications.send_event(notifications.S3_OBJECT_CREATE_COPY, bucket, new_key)
+        notifications.send_event(
+            self.account_id, notifications.S3_OBJECT_CREATE_COPY, bucket, new_key
+        )
 
     def put_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)

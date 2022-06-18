@@ -74,6 +74,7 @@ class TrailStatus(object):
 class Trail(BaseModel):
     def __init__(
         self,
+        account_id,
         region_name,
         trail_name,
         bucket_name,
@@ -87,6 +88,7 @@ class Trail(BaseModel):
         cw_role_arn,
         kms_key_id,
     ):
+        self.account_id = account_id
         self.region_name = region_name
         self.trail_name = trail_name
         self.bucket_name = bucket_name
@@ -133,7 +135,7 @@ class Trail(BaseModel):
         from moto.s3.models import s3_backends
 
         try:
-            s3_backends["global"].get_bucket(self.bucket_name)
+            s3_backends[self.account_id]["global"].get_bucket(self.bucket_name)
         except Exception:
             raise S3BucketDoesNotExistException(
                 f"S3 bucket {self.bucket_name} does not exist!"
@@ -143,7 +145,7 @@ class Trail(BaseModel):
         if self.sns_topic_name:
             from moto.sns import sns_backends
 
-            sns_backend = sns_backends[self.region_name]
+            sns_backend = sns_backends[self.account_id][self.region_name]
             try:
                 sns_backend.get_topic(self.topic_arn)
             except Exception:
@@ -263,6 +265,7 @@ class CloudTrailBackend(BaseBackend):
         tags_list,
     ):
         trail = Trail(
+            self.account_id,
             self.region_name,
             name,
             bucket_name,

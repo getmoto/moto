@@ -46,11 +46,12 @@ from .exceptions import (
 
 
 class ParameterDict(defaultdict):
-    def __init__(self, region_name):
+    def __init__(self, account_id, region_name):
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         super().__init__(list)
         self.parameters_loaded = False
+        self.account_id = account_id
         self.region_name = region_name
 
     def _check_loading_status(self, key):
@@ -87,14 +88,15 @@ class ParameterDict(defaultdict):
         self.parameters_loaded = True
 
     def _get_secretsmanager_parameter(self, secret_name):
-        secret = secretsmanager_backends[self.region_name].describe_secret(secret_name)
+        secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
+        secret = secrets_backend.describe_secret(secret_name)
         version_id_to_stage = secret["VersionIdsToStages"]
         # Sort version ID's so that AWSCURRENT is last
         sorted_version_ids = [
             k for k in version_id_to_stage if "AWSCURRENT" not in version_id_to_stage[k]
         ] + [k for k in version_id_to_stage if "AWSCURRENT" in version_id_to_stage[k]]
         values = [
-            secretsmanager_backends[self.region_name].get_secret_value(
+            secrets_backend.get_secret_value(
                 secret_name,
                 version_id=version_id,
                 version_stage=None,
@@ -523,6 +525,7 @@ class Document(BaseModel):
 class Command(BaseModel):
     def __init__(
         self,
+        account_id,
         comment="",
         document_name="",
         timeout_seconds=MAX_TIMEOUT_SECONDS,
@@ -554,6 +557,7 @@ class Command(BaseModel):
         self.command_id = str(uuid.uuid4())
         self.status = "Success"
         self.status_details = "Details placeholder"
+        self.account_id = account_id
 
         self.requested_date_time = datetime.datetime.now()
         self.requested_date_time_iso = self.requested_date_time.isoformat()
@@ -598,7 +602,7 @@ class Command(BaseModel):
 
     def _get_instance_ids_from_targets(self):
         target_instance_ids = []
-        ec2_backend = ec2_backends[self.backend_region]
+        ec2_backend = ec2_backends[self.account_id][self.backend_region]
         ec2_filters = {target["Key"]: target["Values"] for target in self.targets}
         reservations = ec2_backend.all_reservations(filters=ec2_filters)
         for reservation in reservations:
@@ -840,7 +844,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self._parameters = ParameterDict(region_name)
+        self._parameters = ParameterDict(account_id, region_name)
 
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
@@ -1821,6 +1825,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def send_command(self, **kwargs):
         command = Command(
+            account_id=self.account_id,
             comment=kwargs.get("Comment", ""),
             document_name=kwargs.get("DocumentName"),
             timeout_seconds=kwargs.get("TimeoutSeconds", 3600),

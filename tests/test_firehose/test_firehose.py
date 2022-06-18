@@ -527,6 +527,8 @@ def test_lookup_name_from_arn():
         firehose_backends,
     )
 
-    delivery_stream = firehose_backends[TEST_REGION].lookup_name_from_arn(arn)
+    delivery_stream = firehose_backends[ACCOUNT_ID][TEST_REGION].lookup_name_from_arn(
+        arn
+    )
     assert delivery_stream.delivery_stream_arn == arn
     assert delivery_stream.delivery_stream_name == stream_name

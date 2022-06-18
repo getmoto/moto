@@ -860,7 +860,7 @@ class BatchBackend(BaseBackend):
         :return: ECS Backend
         :rtype: moto.ecs.models.EC2ContainerServiceBackend
         """
-        return ecs_backends[self.region_name]
+        return ecs_backends[self.account_id][self.region_name]
 
     @property
     def logs_backend(self):
@@ -868,7 +868,7 @@ class BatchBackend(BaseBackend):
         :return: ECS Backend
         :rtype: moto.logs.models.LogsBackend
         """
-        return logs_backends[self.region_name]
+        return logs_backends[self.account_id][self.region_name]
 
     def reset(self):
         for job in self._jobs.values():

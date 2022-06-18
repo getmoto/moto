@@ -252,7 +252,8 @@ class StreamRecord(BaseModel):
 
 
 class StreamShard(BaseModel):
-    def __init__(self, table):
+    def __init__(self, account_id, table):
+        self.account_id = account_id
         self.table = table
         self.id = "shardId-00000001541626099285-f35f62ef"
         self.starting_sequence_number = 1100000000017454423009
@@ -285,7 +286,7 @@ class StreamShard(BaseModel):
                 len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
             ]
 
-            result = lambda_backends[region].send_dynamodb_items(
+            result = lambda_backends[self.account_id][region].send_dynamodb_items(
                 arn, self.items, esm.event_source_arn
             )
 
@@ -411,6 +412,7 @@ class Table(CloudFormationModel):
         tags=None,
     ):
         self.name = table_name
+        self.account_id = account_id
         self.attr = attr
         self.schema = schema
         self.range_key_attr = None
@@ -573,7 +575,7 @@ class Table(CloudFormationModel):
         if streams and (streams.get("StreamEnabled") or streams.get("StreamViewType")):
             self.stream_specification["StreamEnabled"] = True
             self.latest_stream_label = datetime.datetime.utcnow().isoformat()
-            self.stream_shard = StreamShard(self)
+            self.stream_shard = StreamShard(self.account_id, self)
         else:
             self.stream_specification = {"StreamEnabled": False}
 

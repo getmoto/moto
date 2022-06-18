@@ -121,11 +121,11 @@ class IAMUserAccessKey:
 class AssumedRoleAccessKey(object):
     @property
     def backend(self):
-        return iam_backends["global"]
+        return iam_backends[self.account_id]["global"]
 
     def __init__(self, account_id, access_key_id, headers):
         self.account_id = account_id
-        for assumed_role in sts_backends["global"].assumed_roles:
+        for assumed_role in sts_backends[account_id]["global"].assumed_roles:
             if assumed_role.access_key_id == access_key_id:
                 self._access_key_id = access_key_id
                 self._secret_access_key = assumed_role.secret_access_key

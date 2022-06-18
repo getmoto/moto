@@ -12,7 +12,7 @@ class ResourceGroupsResponse(BaseResponse):
 
     @property
     def resourcegroups_backend(self):
-        return resourcegroups_backends[self.region]
+        return resourcegroups_backends[self.current_account][self.region]
 
     def create_group(self):
         name = self._get_param("Name")

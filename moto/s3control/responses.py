@@ -14,12 +14,11 @@ class S3ControlResponse(BaseResponse):
 
     @property
     def backend(self):
-        return s3control_backends["global"]
+        return s3control_backends[self.current_account]["global"]
 
     @amzn_request_id
-    def public_access_block(
-        self, request, full_url, headers
-    ):  # pylint: disable=unused-argument
+    def public_access_block(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         try:
             if request.method == "GET":
                 return self.get_public_access_block(request)
