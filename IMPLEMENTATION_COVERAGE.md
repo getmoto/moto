@@ -2114,7 +2114,7 @@
 
 ## eks
 <details>
-<summary>35% implemented</summary>
+<summary>44% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
@@ -2140,11 +2140,11 @@
 - [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
 - [X] list_nodegroups
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_updates
 - [ ] register_cluster
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_addon
 - [ ] update_cluster_config
 - [ ] update_cluster_version
@@ -2867,7 +2867,7 @@
 
 ## greengrass
 <details>
-<summary>17% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] associate_role_to_group
 - [ ] associate_service_role_to_account
@@ -2878,26 +2878,26 @@
 - [ ] create_deployment
 - [X] create_device_definition
 - [X] create_device_definition_version
-- [ ] create_function_definition
-- [ ] create_function_definition_version
+- [X] create_function_definition
+- [X] create_function_definition_version
 - [ ] create_group
 - [ ] create_group_certificate_authority
 - [ ] create_group_version
 - [ ] create_logger_definition
 - [ ] create_logger_definition_version
-- [ ] create_resource_definition
-- [ ] create_resource_definition_version
+- [X] create_resource_definition
+- [X] create_resource_definition_version
 - [ ] create_software_update_job
-- [ ] create_subscription_definition
-- [ ] create_subscription_definition_version
+- [X] create_subscription_definition
+- [X] create_subscription_definition_version
 - [ ] delete_connector_definition
 - [X] delete_core_definition
 - [X] delete_device_definition
-- [ ] delete_function_definition
+- [X] delete_function_definition
 - [ ] delete_group
 - [ ] delete_logger_definition
-- [ ] delete_resource_definition
-- [ ] delete_subscription_definition
+- [X] delete_resource_definition
+- [X] delete_subscription_definition
 - [ ] disassociate_role_from_group
 - [ ] disassociate_service_role_from_account
 - [ ] get_associated_role
@@ -2910,19 +2910,19 @@
 - [ ] get_deployment_status
 - [X] get_device_definition
 - [X] get_device_definition_version
-- [ ] get_function_definition
-- [ ] get_function_definition_version
+- [X] get_function_definition
+- [X] get_function_definition_version
 - [ ] get_group
 - [ ] get_group_certificate_authority
 - [ ] get_group_certificate_configuration
 - [ ] get_group_version
 - [ ] get_logger_definition
 - [ ] get_logger_definition_version
-- [ ] get_resource_definition
-- [ ] get_resource_definition_version
+- [X] get_resource_definition
+- [X] get_resource_definition_version
 - [ ] get_service_role_for_account
-- [ ] get_subscription_definition
-- [ ] get_subscription_definition_version
+- [X] get_subscription_definition
+- [X] get_subscription_definition_version
 - [ ] get_thing_runtime_configuration
 - [ ] list_bulk_deployment_detailed_reports
 - [ ] list_bulk_deployments
@@ -2933,17 +2933,17 @@
 - [ ] list_deployments
 - [X] list_device_definition_versions
 - [X] list_device_definitions
-- [ ] list_function_definition_versions
-- [ ] list_function_definitions
+- [X] list_function_definition_versions
+- [X] list_function_definitions
 - [ ] list_group_certificate_authorities
 - [ ] list_group_versions
 - [ ] list_groups
 - [ ] list_logger_definition_versions
 - [ ] list_logger_definitions
-- [ ] list_resource_definition_versions
-- [ ] list_resource_definitions
-- [ ] list_subscription_definition_versions
-- [ ] list_subscription_definitions
+- [X] list_resource_definition_versions
+- [X] list_resource_definitions
+- [X] list_subscription_definition_versions
+- [X] list_subscription_definitions
 - [ ] list_tags_for_resource
 - [ ] reset_deployments
 - [ ] start_bulk_deployment
@@ -2954,19 +2954,20 @@
 - [ ] update_connector_definition
 - [X] update_core_definition
 - [X] update_device_definition
-- [ ] update_function_definition
+- [X] update_function_definition
 - [ ] update_group
 - [ ] update_group_certificate_configuration
 - [ ] update_logger_definition
-- [ ] update_resource_definition
-- [ ] update_subscription_definition
+- [X] update_resource_definition
+- [X] update_subscription_definition
 - [ ] update_thing_runtime_configuration
 </details>
 
 ## guardduty
 <details>
-<summary>18% implemented</summary>
+<summary>17% implemented</summary>
 
+- [ ] accept_administrator_invitation
 - [ ] accept_invitation
 - [ ] archive_findings
 - [X] create_detector
@@ -2987,9 +2988,11 @@
 - [ ] describe_organization_configuration
 - [ ] describe_publishing_destination
 - [ ] disable_organization_admin_account
+- [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [X] enable_organization_admin_account
+- [ ] get_administrator_account
 - [X] get_detector
 - [X] get_filter
 - [ ] get_findings
@@ -2999,6 +3002,7 @@
 - [ ] get_master_account
 - [ ] get_member_detectors
 - [ ] get_members
+- [ ] get_remaining_free_trial_days
 - [ ] get_threat_intel_set
 - [ ] get_usage_statistics
 - [ ] invite_members
@@ -4733,10 +4737,10 @@
 
 ## route53
 <details>
-<summary>34% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] activate_key_signing_key
-- [ ] associate_vpc_with_hosted_zone
+- [X] associate_vpc_with_hosted_zone
 - [ ] change_cidr_collection
 - [X] change_resource_record_sets
 - [X] change_tags_for_resource
@@ -4761,7 +4765,7 @@
 - [ ] delete_traffic_policy_instance
 - [ ] delete_vpc_association_authorization
 - [ ] disable_hosted_zone_dnssec
-- [ ] disassociate_vpc_from_hosted_zone
+- [X] disassociate_vpc_from_hosted_zone
 - [ ] enable_hosted_zone_dnssec
 - [ ] get_account_limit
 - [ ] get_change
@@ -4801,8 +4805,8 @@
 - [ ] list_traffic_policy_versions
 - [ ] list_vpc_association_authorizations
 - [ ] test_dns_answer
-- [ ] update_health_check
-- [ ] update_hosted_zone_comment
+- [X] update_health_check
+- [X] update_hosted_zone_comment
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
 </details>
@@ -5998,6 +6002,7 @@
 - compute-optimizer
 - connect
 - connect-contact-lens
+- connectcampaigns
 - connectparticipant
 - cur
 - customer-profiles
@@ -6110,6 +6115,7 @@
 - qldb-session
 - rbin
 - rds-data
+- redshiftserverless
 - resiliencehub
 - robomaker
 - route53-recovery-cluster

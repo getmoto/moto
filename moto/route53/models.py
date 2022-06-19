@@ -470,14 +470,14 @@ class Route53Backend(BaseBackend):
         # check if hosted zone exists
         self.get_hosted_zone(zone_id)
 
-    def associate_vpc(self, zone_id, vpcid, vpcregion):
+    def associate_vpc_with_hosted_zone(self, zone_id, vpcid, vpcregion):
         zone = self.get_hosted_zone(zone_id)
         if not zone.private_zone:
             raise PublicZoneVPCAssociation()
         zone.add_vpc(vpcid, vpcregion)
         return zone
 
-    def disassociate_vpc(self, zone_id, vpcid):
+    def disassociate_vpc_from_hosted_zone(self, zone_id, vpcid):
         zone = self.get_hosted_zone(zone_id)
         if len(zone.vpcs) <= 1:
             raise LastVPCAssociation()

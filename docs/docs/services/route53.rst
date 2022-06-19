@@ -26,7 +26,7 @@ route53
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_key_signing_key
-- [ ] associate_vpc_with_hosted_zone
+- [X] associate_vpc_with_hosted_zone
 - [ ] change_cidr_collection
 - [X] change_resource_record_sets
 - [X] change_tags_for_resource
@@ -55,7 +55,7 @@ route53
 - [ ] delete_traffic_policy_instance
 - [ ] delete_vpc_association_authorization
 - [ ] disable_hosted_zone_dnssec
-- [ ] disassociate_vpc_from_hosted_zone
+- [X] disassociate_vpc_from_hosted_zone
 - [ ] enable_hosted_zone_dnssec
 - [ ] get_account_limit
 - [ ] get_change
@@ -111,8 +111,8 @@ route53
 - [ ] list_traffic_policy_versions
 - [ ] list_vpc_association_authorizations
 - [ ] test_dns_answer
-- [ ] update_health_check
-- [ ] update_hosted_zone_comment
+- [X] update_health_check
+- [X] update_hosted_zone_comment
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
 

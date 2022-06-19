@@ -151,7 +151,7 @@ class Route53(BaseResponse):
         vpcid = vpc.get("VPCId", None)
         vpcregion = vpc.get("VPCRegion", None)
 
-        route53_backend.associate_vpc(zoneid, vpcid, vpcregion)
+        route53_backend.associate_vpc_with_hosted_zone(zoneid, vpcid, vpcregion)
 
         template = Template(ASSOCIATE_VPC_RESPONSE)
         return 200, headers, template.render(comment=comment)
@@ -169,7 +169,7 @@ class Route53(BaseResponse):
         vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get("VPC", {})
         vpcid = vpc.get("VPCId", None)
 
-        route53_backend.disassociate_vpc(zoneid, vpcid)
+        route53_backend.disassociate_vpc_from_hosted_zone(zoneid, vpcid)
 
         template = Template(DISASSOCIATE_VPC_RESPONSE)
         return 200, headers, template.render(comment=comment)

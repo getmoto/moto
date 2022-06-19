@@ -1,6 +1,51 @@
 Moto Changelog
 ==============
 
+3.1.14
+-----
+Docker Digest for 3.1.14: <autopopulateddigest>
+
+    New Methods:
+        * Greengrass:
+            * create_function_definition()
+            * create_resource_definition()
+            * create_function_definition_version()
+            * create_resource_definition_version()
+            * create_subscription_definition()
+            * create_subscription_definition_version()
+            * delete_function_definition()
+            * delete_resource_definition()
+            * delete_subscription_definition()
+            * get_function_definition()
+            * get_function_definition_version()
+            * get_resource_definition()
+            * get_resource_definition_version()
+            * get_subscription_definition()
+            * get_subscription_definition_version()
+            * list_function_definitions()
+            * list_function_definition_versions()
+            * list_resource_definitions()
+            * list_resource_definition_versions()
+            * list_subscription_definitions()
+            * list_subscription_definition_versions()
+            * update_function_definition()
+            * update_resource_definition()
+            * update_subscription_definition()
+        * EKS:
+            * list_tags_for_resources()
+            * tag_resource()
+            * untag_resource()
+        * Route53:
+            * associate_vpc()
+            * disassociate_vpc_from_hosted_zone()
+            * update_health_check()
+            * update_hosted_zone_comment()
+
+    Miscellaneous:
+        * APIGateway:put_integration() now supports the requestParameters-parameter
+        * EC2:create_route() now validates whether a route already exists
+
+
 3.1.13
 -----
 Docker Digest for 3.1.13: _sha256:d7f6c779c79f03b686747ae26b52bdca26fd81a50c6a41a8a6cba50c96982abf_

@@ -261,7 +261,7 @@ def write_implementation_coverage_to_docs(coverage):
         file.write("        ...\n")
         file.write("\n\n")
         file.write(".. sourcecode:: python\n\n")
-        file.write("    @mock_all\n")
+        file.write("    @mock_all()\n")
         file.write("    def test_all_supported_services_at_the_same_time():\n")
         file.write("        ...\n")
         file.write("\n")
