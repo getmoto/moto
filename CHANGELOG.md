@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.14
 -----
-Docker Digest for 3.1.14: <autopopulateddigest>
+Docker Digest for 3.1.14: _sha256:a8ad7f54d7c469e34454f6774f743251c02093c6b2d7e9d7961a5de366783e11_
 
     New Methods:
         * Greengrass:
