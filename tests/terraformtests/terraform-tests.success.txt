@@ -179,6 +179,16 @@ route53:
   - TestAccRoute53ZoneDataSource_name
   - TestAccRoute53ZoneDataSource_tags
   - TestAccRoute53ZoneDataSource_vpc
+  - TestAccRoute53HealthCheck_basic
+  - TestAccRoute53HealthCheck_tags
+  - TestAccRoute53HealthCheck_withSearchString
+  - TestAccRoute53HealthCheck_withChildHealthChecks
+  - TestAccRoute53HealthCheck_withHealthCheckRegions
+  - TestAccRoute53HealthCheck_ip
+  - TestAccRoute53HealthCheck_ipv6
+  - TestAccRoute53HealthCheck_withSNI
+  - TestAccRoute53HealthCheck_disabled
+  - TestAccRoute53HealthCheck_disappears
 s3:
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock

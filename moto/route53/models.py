@@ -64,9 +64,22 @@ class HealthCheck(CloudFormationModel):
         self.measure_latency = health_check_args.get("measure_latency") or False
         self.inverted = health_check_args.get("inverted") or False
         self.disabled = health_check_args.get("disabled") or False
-        self.enable_sni = health_check_args.get("enable_sni") or False
-        self.children = health_check_args.get("children") or None
+        self.enable_sni = health_check_args.get("enable_sni") or True
         self.caller_reference = caller_reference
+        self.children = None
+        self.regions = None
+
+    def set_children(self, children):
+        if children and isinstance(children, list):
+            self.children = children
+        elif children and isinstance(children, str):
+            self.children = [children]
+
+    def set_regions(self, regions):
+        if regions and isinstance(regions, list):
+            self.regions = regions
+        elif regions and isinstance(regions, str):
+            self.regions = [regions]
 
     @property
     def physical_resource_id(self):
@@ -135,9 +148,16 @@ class HealthCheck(CloudFormationModel):
                 {% if health_check.children %}
                     <ChildHealthChecks>
                     {% for child in health_check.children %}
-                        <member>{{ child }}</member>
+                        <ChildHealthCheck>{{ child }}</ChildHealthCheck>
                     {% endfor %}
                     </ChildHealthChecks>
+                {% endif %}
+                {% if health_check.regions %}
+                    <Regions>
+                    {% for region in health_check.regions %}
+                        <Region>{{ region }}</Region>
+                    {% endfor %}
+                    </Regions>
                 {% endif %}
             </HealthCheckConfig>
             <HealthCheckVersion>1</HealthCheckVersion>
@@ -617,7 +637,43 @@ class Route53Backend(BaseBackend):
     def create_health_check(self, caller_reference, health_check_args):
         health_check_id = str(uuid.uuid4())
         health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
+        health_check.set_children(health_check_args.get("children"))
+        health_check.set_regions(health_check_args.get("regions"))
         self.health_checks[health_check_id] = health_check
+        return health_check
+
+    def update_health_check(self, health_check_id, health_check_args):
+        health_check = self.health_checks.get(health_check_id)
+        if not health_check:
+            raise NoSuchHealthCheck()
+
+        if health_check_args.get("ip_address"):
+            health_check.ip_address = health_check_args.get("ip_address")
+        if health_check_args.get("port"):
+            health_check.port = health_check_args.get("port")
+        if health_check_args.get("resource_path"):
+            health_check.resource_path = health_check_args.get("resource_path")
+        if health_check_args.get("fqdn"):
+            health_check.fqdn = health_check_args.get("fqdn")
+        if health_check_args.get("search_string"):
+            health_check.search_string = health_check_args.get("search_string")
+        if health_check_args.get("request_interval"):
+            health_check.request_interval = health_check_args.get("request_interval")
+        if health_check_args.get("failure_threshold"):
+            health_check.failure_threshold = health_check_args.get("failure_threshold")
+        if health_check_args.get("health_threshold"):
+            health_check.health_threshold = health_check_args.get("health_threshold")
+        if health_check_args.get("inverted"):
+            health_check.inverted = health_check_args.get("inverted")
+        if health_check_args.get("disabled"):
+            health_check.disabled = health_check_args.get("disabled")
+        if health_check_args.get("enable_sni"):
+            health_check.enable_sni = health_check_args.get("enable_sni")
+        if health_check_args.get("children"):
+            health_check.set_children(health_check_args.get("children"))
+        if health_check_args.get("regions"):
+            health_check.set_regions(health_check_args.get("regions"))
+
         return health_check
 
     def list_health_checks(self):
