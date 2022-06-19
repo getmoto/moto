@@ -34,26 +34,26 @@ greengrass
 - [ ] create_deployment
 - [X] create_device_definition
 - [X] create_device_definition_version
-- [ ] create_function_definition
-- [ ] create_function_definition_version
+- [X] create_function_definition
+- [X] create_function_definition_version
 - [ ] create_group
 - [ ] create_group_certificate_authority
 - [ ] create_group_version
 - [ ] create_logger_definition
 - [ ] create_logger_definition_version
-- [ ] create_resource_definition
-- [ ] create_resource_definition_version
+- [X] create_resource_definition
+- [X] create_resource_definition_version
 - [ ] create_software_update_job
-- [ ] create_subscription_definition
-- [ ] create_subscription_definition_version
+- [X] create_subscription_definition
+- [X] create_subscription_definition_version
 - [ ] delete_connector_definition
 - [X] delete_core_definition
 - [X] delete_device_definition
-- [ ] delete_function_definition
+- [X] delete_function_definition
 - [ ] delete_group
 - [ ] delete_logger_definition
-- [ ] delete_resource_definition
-- [ ] delete_subscription_definition
+- [X] delete_resource_definition
+- [X] delete_subscription_definition
 - [ ] disassociate_role_from_group
 - [ ] disassociate_service_role_from_account
 - [ ] get_associated_role
@@ -66,19 +66,19 @@ greengrass
 - [ ] get_deployment_status
 - [X] get_device_definition
 - [X] get_device_definition_version
-- [ ] get_function_definition
-- [ ] get_function_definition_version
+- [X] get_function_definition
+- [X] get_function_definition_version
 - [ ] get_group
 - [ ] get_group_certificate_authority
 - [ ] get_group_certificate_configuration
 - [ ] get_group_version
 - [ ] get_logger_definition
 - [ ] get_logger_definition_version
-- [ ] get_resource_definition
-- [ ] get_resource_definition_version
+- [X] get_resource_definition
+- [X] get_resource_definition_version
 - [ ] get_service_role_for_account
-- [ ] get_subscription_definition
-- [ ] get_subscription_definition_version
+- [X] get_subscription_definition
+- [X] get_subscription_definition_version
 - [ ] get_thing_runtime_configuration
 - [ ] list_bulk_deployment_detailed_reports
 - [ ] list_bulk_deployments
@@ -89,17 +89,17 @@ greengrass
 - [ ] list_deployments
 - [X] list_device_definition_versions
 - [X] list_device_definitions
-- [ ] list_function_definition_versions
-- [ ] list_function_definitions
+- [X] list_function_definition_versions
+- [X] list_function_definitions
 - [ ] list_group_certificate_authorities
 - [ ] list_group_versions
 - [ ] list_groups
 - [ ] list_logger_definition_versions
 - [ ] list_logger_definitions
-- [ ] list_resource_definition_versions
-- [ ] list_resource_definitions
-- [ ] list_subscription_definition_versions
-- [ ] list_subscription_definitions
+- [X] list_resource_definition_versions
+- [X] list_resource_definitions
+- [X] list_subscription_definition_versions
+- [X] list_subscription_definitions
 - [ ] list_tags_for_resource
 - [ ] reset_deployments
 - [ ] start_bulk_deployment
@@ -110,11 +110,11 @@ greengrass
 - [ ] update_connector_definition
 - [X] update_core_definition
 - [X] update_device_definition
-- [ ] update_function_definition
+- [X] update_function_definition
 - [ ] update_group
 - [ ] update_group_certificate_configuration
 - [ ] update_logger_definition
-- [ ] update_resource_definition
-- [ ] update_subscription_definition
+- [X] update_resource_definition
+- [X] update_subscription_definition
 - [ ] update_thing_runtime_configuration
 

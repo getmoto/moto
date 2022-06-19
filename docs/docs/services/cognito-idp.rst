@@ -12,6 +12,8 @@
 cognito-idp
 ===========
 
+.. autoclass:: moto.cognitoidp.models.CognitoIdpBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
@@ -145,10 +147,3 @@ cognito-idp
 
 - [ ] verify_user_attribute
 
-
-|start-h3| Stable Cognito User Pool Id |end-h3|
-
-In some cases, you need to have reproducible IDs for the user pool.
-For example, a single initialization before the start of integration tests.
-
-This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
