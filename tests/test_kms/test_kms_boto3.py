@@ -1148,8 +1148,13 @@ def test_sign_invalid_signing_algorithm():
     message = "My message"
     signing_algorithm = "INVALID"
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
+    )
 
 
 @mock_kms
@@ -1162,8 +1167,13 @@ def test_sign_invalid_key_usage():
     message = "My message"
     signing_algorithm = "RSASSA_PSS_SHA_256"
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"1 validation error detected: Value '{key_id}' at 'KeyId' failed to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
+    )
 
 
 @mock_kms
@@ -1176,8 +1186,13 @@ def test_sign_invalid_message():
     message = ""
     signing_algorithm = "RSASSA_PSS_SHA_256"
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    )
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
