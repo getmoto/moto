@@ -957,8 +957,8 @@ index 5ad62e86c0..68209e7fb8 100644
 -	SubnetAttributePropagationTimeout            = 5 * time.Minute
 -	SubnetIPv6CIDRBlockAssociationCreatedTimeout = 3 * time.Minute
 -	SubnetIPv6CIDRBlockAssociationDeletedTimeout = 3 * time.Minute
-+	SubnetPropagationTimeout                     = 2 * time.Second
-+	SubnetAttributePropagationTimeout            = 5 * time.Second
++	SubnetPropagationTimeout                     = 10 * time.Second
++	SubnetAttributePropagationTimeout            = 10 * time.Second
 +	SubnetIPv6CIDRBlockAssociationCreatedTimeout = 3 * time.Second
 +	SubnetIPv6CIDRBlockAssociationDeletedTimeout = 3 * time.Second
  )
