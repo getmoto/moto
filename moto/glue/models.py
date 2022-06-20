@@ -275,6 +275,7 @@ class FakeTable(BaseModel):
         self.database_name = database_name
         self.name = table_name
         self.partitions = OrderedDict()
+        self.created_time = datetime.utcnow()
         self.versions = []
         self.update(table_input)
 
@@ -295,7 +296,11 @@ class FakeTable(BaseModel):
             raise VersionNotFoundException()
 
     def as_dict(self, version=-1):
-        obj = {"DatabaseName": self.database_name, "Name": self.name}
+        obj = {
+            "DatabaseName": self.database_name,
+            "Name": self.name,
+            "CreateTime": self.created_time.isoformat(),
+        }
         obj.update(self.get_version(version))
         return obj
 
