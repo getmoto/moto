@@ -189,6 +189,7 @@ route53:
   - TestAccRoute53HealthCheck_withSNI
   - TestAccRoute53HealthCheck_disabled
   - TestAccRoute53HealthCheck_disappears
+  - TestAccRoute53ResolverEndpoint_basicInbound
 s3:
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock

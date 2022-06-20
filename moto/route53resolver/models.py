@@ -445,6 +445,13 @@ class Route53ResolverBackend(BaseBackend):
                 f"Account '{get_account_id()}' has exceeded 'max-endpoints'"
             )
 
+        for x in ip_addresses:
+            if not x.get("Ip"):
+                subnet_info = ec2_backends[region].get_all_subnets(
+                    subnet_ids=[x["SubnetId"]]
+                )[0]
+                x["Ip"] = subnet_info.get_available_subnet_ip(self)
+
         self._verify_subnet_ips(region, ip_addresses)
         self._verify_security_group_ids(region, security_group_ids)
         if creator_request_id in [
