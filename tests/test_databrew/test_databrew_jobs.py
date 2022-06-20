@@ -106,8 +106,8 @@ def test_create_recipe_job_with_invalid_encryption_mode():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.equal(
-        f"1 validation error detected: Value 'INVALID' at 'encryptionMode' failed to satisfy constraint: "
-        f"Member must satisfy enum value set: [SSE-S3, SSE-KMS]"
+        "1 validation error detected: Value 'INVALID' at 'encryptionMode' failed to satisfy constraint: "
+        "Member must satisfy enum value set: [SSE-S3, SSE-KMS]"
     )
     exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
@@ -121,8 +121,8 @@ def test_create_recipe_job_with_invalid_log_subscription_value():
     err = exc.value.response["Error"]
     err["Code"].should.equal("ValidationException")
     err["Message"].should.equal(
-        f"1 validation error detected: Value 'INVALID' at 'logSubscription' failed to satisfy constraint: "
-        f"Member must satisfy enum value set: [ENABLE, DISABLE]"
+        "1 validation error detected: Value 'INVALID' at 'logSubscription' failed to satisfy constraint: "
+        "Member must satisfy enum value set: [ENABLE, DISABLE]"
     )
     exc.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
