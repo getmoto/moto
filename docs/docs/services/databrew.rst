@@ -27,28 +27,28 @@ databrew
 
 - [ ] batch_delete_recipe_version
 - [X] create_dataset
-- [ ] create_profile_job
+- [X] create_profile_job
 - [ ] create_project
 - [X] create_recipe
-- [ ] create_recipe_job
+- [X] create_recipe_job
 - [X] create_ruleset
 - [ ] create_schedule
 - [X] delete_dataset
-- [ ] delete_job
+- [X] delete_job
 - [ ] delete_project
 - [X] delete_recipe_version
 - [X] delete_ruleset
 - [ ] delete_schedule
 - [X] describe_dataset
-- [ ] describe_job
+- [X] describe_job
 - [ ] describe_job_run
 - [ ] describe_project
-- [ ] describe_recipe
-- [ ] describe_ruleset
+- [X] describe_recipe
+- [X] describe_ruleset
 - [ ] describe_schedule
 - [X] list_datasets
 - [ ] list_job_runs
-- [ ] list_jobs
+- [X] list_jobs
 - [ ] list_projects
 - [X] list_recipe_versions
 - [X] list_recipes
@@ -63,10 +63,10 @@ databrew
 - [ ] tag_resource
 - [ ] untag_resource
 - [X] update_dataset
-- [ ] update_profile_job
+- [X] update_profile_job
 - [ ] update_project
 - [X] update_recipe
-- [ ] update_recipe_job
+- [X] update_recipe_job
 - [X] update_ruleset
 - [ ] update_schedule
 
