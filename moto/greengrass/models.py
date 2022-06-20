@@ -270,6 +270,97 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
         }
 
 
+class FakeGroup(BaseModel):
+    def __init__(self, region_name, name, initial_version):
+        self.region_name = region_name
+        self.group_id = str(uuid.uuid4())
+        self.name = name
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.last_updated_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+
+    def to_dict(self):
+        obj = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.group_id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.last_updated_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+            "Name": self.name,
+        }
+        return obj
+
+
+class FakeGroupVersion(BaseModel):
+    def __init__(
+        self,
+        region_name,
+        group_id,
+        core_definition_version_arn,
+        device_definition_version_arn,
+        function_definition_version_arn,
+        resource_definition_version_arn,
+        subscription_definition_version_arn,
+    ):
+        self.region_name = region_name
+        self.group_id = group_id
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+        self.core_definition_version_arn = core_definition_version_arn
+        self.device_definition_version_arn = device_definition_version_arn
+        self.function_definition_version_arn = function_definition_version_arn
+        self.resource_definition_version_arn = resource_definition_version_arn
+        self.subscription_definition_version_arn = subscription_definition_version_arn
+
+    def to_dict(self, include_detail=False):
+
+        definition = {}
+        if self.core_definition_version_arn:
+            definition["CoreDefinitionVersionArn"] = self.core_definition_version_arn
+
+        if self.device_definition_version_arn:
+            definition[
+                "DeviceDefinitionVersionArn"
+            ] = self.device_definition_version_arn
+
+        if self.function_definition_version_arn:
+            definition[
+                "FunctionDefinitionVersionArn"
+            ] = self.function_definition_version_arn
+
+        if self.resource_definition_version_arn:
+            definition[
+                "ResourceDefinitionVersionArn"
+            ] = self.resource_definition_version_arn
+
+        if self.subscription_definition_version_arn:
+            definition[
+                "SubscriptionDefinitionVersionArn"
+            ] = self.subscription_definition_version_arn
+
+        obj = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.group_id,
+            "Version": self.version,
+        }
+
+        if include_detail:
+            obj["Definition"] = definition
+
+        return obj
+
+
 class GreengrassBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
@@ -789,6 +880,62 @@ class GreengrassBackend(BaseBackend):
         return self.subscription_definition_versions[subscription_definition_id][
             subscription_definition_version_id
         ]
+
+    def create_group(self, name, initial_version):
+        group = FakeGroup(self.region_name, name)
+        self.groups[group.group_id] = group
+
+        definitions = initial_version or {}
+        core_definition_version_arn = definitions.get("CoreDefinitionVersionArn")
+        device_definition_version_arn = definitions.get(
+            "DeviceDefinitionVersionArn"
+        )
+        function_definition_version_arn = definitions.get(
+            "FunctionDefinitionVersionArn"
+        )
+        resource_definition_version_arn = definitions.get(
+            "ResourceDefinitionVersionArn"
+        )
+        subscription_definition_version_arn = definitions.get(
+            "SubscriptionDefinitionVersionArn"
+        )
+
+        self.create_group_version(
+            group.group_id,
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+
+        return group
+
+    def create_group_version(
+        self,
+        group_id,
+        core_definition_version_arn,
+        device_definition_version_arn,
+        function_definition_version_arn,
+        resource_definition_version_arn,
+        subscription_definition_version_arn,
+    ):
+
+        group_ver = FakeGroupVersion(
+            self.region_name,
+            group_id=group_id,
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+        group_vers = self.group_versions.get(group_ver.group_id, {})
+        group_vers[group_ver.version] = group_ver
+        self.group_versions[group_ver.group_id] = group_vers
+        self.groups[group_id].latest_version_arn = group_ver.arn
+        self.groups[group_id].latest_version = group_ver.version
+        return group_ver
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
