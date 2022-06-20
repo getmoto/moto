@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import re
+import warnings
 
 from moto.core import get_account_id
 from moto.core.responses import BaseResponse
@@ -611,6 +612,21 @@ class KmsResponse(BaseResponse):
 
         self._validate_key_id(key_id)
 
+        if grant_tokens:
+            warnings.warn(
+                "The GrantTokens-parameter is not yet implemented for client.sign()"
+            )
+
+        if message_type == "DIGEST":
+            warnings.warn(
+                "The MessageType-parameter DIGEST is not yet implemented for client.sign()"
+            )
+
+        if signing_algorithm != "RSASSA_PSS_SHA_256":
+            warnings.warn(
+                "The SigningAlgorithm-parameter is ignored hardcoded to RSASSA_PSS_SHA_256 for client.sign()"
+            )
+
         if isinstance(message, str):
             message = message.encode("utf-8")
 
@@ -651,6 +667,20 @@ class KmsResponse(BaseResponse):
 
         self._validate_key_id(key_id)
 
+        if grant_tokens:
+            warnings.warn(
+                "The GrantTokens-parameter is not yet implemented for client.verify()"
+            )
+
+        if message_type == "DIGEST":
+            warnings.warn(
+                "The MessageType-parameter DIGEST is not yet implemented for client.verify()"
+            )
+
+        if signing_algorithm != "RSASSA_PSS_SHA_256":
+            warnings.warn(
+                "The SigningAlgorithm-parameter is ignored hardcoded to RSASSA_PSS_SHA_256 for client.verify()"
+            )
         if not message_type:
             message_type = "RAW"
 

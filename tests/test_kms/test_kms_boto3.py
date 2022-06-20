@@ -1148,11 +1148,8 @@ def test_sign_invalid_signing_algorithm():
     message = "My message"
     signing_algorithm = "INVALID"
 
-    try:
+    with pytest.raises(ClientError):
         client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
-        assert False
-    except ClientError:
-        assert True
 
 
 @mock_kms
@@ -1165,11 +1162,8 @@ def test_sign_invalid_key_usage():
     message = "My message"
     signing_algorithm = "RSASSA_PSS_SHA_256"
 
-    try:
+    with pytest.raises(ClientError):
         client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
-        assert False
-    except ClientError:
-        assert True
 
 
 @mock_kms
@@ -1182,11 +1176,8 @@ def test_sign_invalid_message():
     message = ""
     signing_algorithm = "RSASSA_PSS_SHA_256"
 
-    try:
+    with pytest.raises(ClientError):
         client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
-        assert False
-    except ClientError:
-        assert True
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)

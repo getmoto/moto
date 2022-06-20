@@ -542,21 +542,16 @@ class KmsBackend(BaseBackend):
                 )
             )
 
-    def __ensure_implemented_sign_and_verify_args(self, grant_tokens, message_type):
-        if grant_tokens:
-            raise NotImplementedError(
-                "GrantTokens not supported by kms_verify mock yet"
-            )
-
-        if message_type == "DIGEST":
-            raise NotImplementedError(
-                "MessageType DIGEST not supported by kms_verify mock yet"
-            )
-
     def sign(self, key_id, message, message_type, grant_tokens, signing_algorithm):
+        """Sign message using generated private key.
+
+        NOTES:
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+        - message_type DIGEST is not implemented
+        - grant_tokens are not implemented
+        """
         key = self.describe_key(key_id)
 
-        self.__ensure_implemented_sign_and_verify_args(grant_tokens, message_type)
         self.__ensure_valid_sing_and_verify_key(key)
         self.__ensure_valid_signing_augorithm(key, signing_algorithm)
 
@@ -574,9 +569,15 @@ class KmsBackend(BaseBackend):
     def verify(
         self, key_id, message, message_type, signature, signing_algorithm, grant_tokens
     ):
+        """Verify message using public key from generated private key.
+
+        NOTES:
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+        - message_type DIGEST is not implemented
+        - grant_tokens are not implemented
+        """
         key = self.describe_key(key_id)
 
-        self.__ensure_implemented_sign_and_verify_args(grant_tokens, message_type)
         self.__ensure_valid_sing_and_verify_key(key)
         self.__ensure_valid_signing_augorithm(key, signing_algorithm)
 
