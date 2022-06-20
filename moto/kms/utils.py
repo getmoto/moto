@@ -60,7 +60,11 @@ def generate_master_key():
 
 
 def generate_private_key():
-    """Generate a private key to be used on asymmetric sign/verify."""
+    """Generate a private key to be used on asymmetric sign/verify.
+
+    NOTE: KeySpec is not taken into consideration and the key is always RSA_2048
+    this could be improved to support multiple key types
+    """
     return rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,

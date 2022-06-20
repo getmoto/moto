@@ -55,9 +55,7 @@ class Grant(BaseModel):
 
 
 class Key(CloudFormationModel):
-    def __init__(
-        self, policy, key_usage, customer_master_key_spec, description, region
-    ):
+    def __init__(self, policy, key_usage, key_spec, description, region):
         self.id = generate_key_id()
         self.creation_date = unix_time()
         self.policy = policy or self.generate_default_policy()
@@ -73,7 +71,7 @@ class Key(CloudFormationModel):
         self.private_key = generate_private_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
-        self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+        self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
 
         self.grants = dict()
 
@@ -146,7 +144,7 @@ class Key(CloudFormationModel):
     def encryption_algorithms(self):
         if self.key_usage == "SIGN_VERIFY":
             return None
-        elif self.customer_master_key_spec == "SYMMETRIC_DEFAULT":
+        elif self.key_spec == "SYMMETRIC_DEFAULT":
             return ["SYMMETRIC_DEFAULT"]
         else:
             return ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
@@ -155,11 +153,11 @@ class Key(CloudFormationModel):
     def signing_algorithms(self):
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None
-        elif self.customer_master_key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
+        elif self.key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
             return ["ECDSA_SHA_256"]
-        elif self.customer_master_key_spec == "ECC_NIST_P384":
+        elif self.key_spec == "ECC_NIST_P384":
             return ["ECDSA_SHA_384"]
-        elif self.customer_master_key_spec == "ECC_NIST_P521":
+        elif self.key_spec == "ECC_NIST_P521":
             return ["ECDSA_SHA_512"]
         else:
             return [
@@ -177,7 +175,8 @@ class Key(CloudFormationModel):
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
                 "CreationDate": self.creation_date,
-                "CustomerMasterKeySpec": self.customer_master_key_spec,
+                "CustomerMasterKeySpec": self.key_spec,
+                "KeySpec": self.key_spec,
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "EncryptionAlgorithms": self.encryption_algorithms,
@@ -215,7 +214,7 @@ class Key(CloudFormationModel):
         key = kms_backend.create_key(
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
-            customer_master_key_spec="SYMMETRIC_DEFAULT",
+            key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags", []),
             region=region_name,
@@ -265,10 +264,8 @@ class KmsBackend(BaseBackend):
             self.add_alias(key.id, alias_name)
             return key.id
 
-    def create_key(
-        self, policy, key_usage, customer_master_key_spec, description, tags, region
-    ):
-        key = Key(policy, key_usage, customer_master_key_spec, description, region)
+    def create_key(self, policy, key_usage, key_spec, description, tags, region):
+        key = Key(policy, key_usage, key_spec, description, region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
