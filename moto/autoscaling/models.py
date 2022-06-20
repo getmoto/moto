@@ -323,7 +323,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.load_balancers = load_balancers
         self.target_group_arns = target_group_arns
         self.placement_group = placement_group
-        self.termination_policies = termination_policies
+        self.termination_policies = termination_policies or ["Default"]
         self.new_instances_protected_from_scale_in = (
             new_instances_protected_from_scale_in
         )
@@ -332,6 +332,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.instance_states = []
         self.tags = tags or []
         self.set_desired_capacity(desired_capacity)
+
+        self.metrics = []
 
     @property
     def tags(self):
@@ -648,6 +650,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
         append = [x for x in target_group_arns if x not in self.target_group_arns]
         self.target_group_arns.extend(append)
 
+    def enable_metrics_collection(self, metrics):
+        self.metrics = metrics or []
+
 
 class AutoScalingBackend(BaseBackend):
     def __init__(self, region_name, account_id):
@@ -859,7 +864,7 @@ class AutoScalingBackend(BaseBackend):
         )
         return group
 
-    def describe_auto_scaling_groups(self, names):
+    def describe_auto_scaling_groups(self, names) -> [FakeAutoScalingGroup]:
         groups = self.autoscaling_groups.values()
         if names:
             return [group for group in groups if group.name in names]
@@ -1266,6 +1271,10 @@ class AutoScalingBackend(BaseBackend):
                     if t.get("propagate_at_launch", "").lower() in values
                 ]
         return tags
+
+    def enable_metrics_collection(self, group_name, metrics):
+        group = self.describe_auto_scaling_groups([group_name])[0]
+        group.enable_metrics_collection(metrics)
 
 
 autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")
