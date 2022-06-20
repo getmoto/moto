@@ -12,4 +12,10 @@ url_paths = {
     "{0}/rulesets/(?P<ruleset_name>[^/]+)$": DataBrewResponse().ruleset_response,
     "{0}/datasets$": DataBrewResponse.dispatch,
     "{0}/datasets/(?P<dataset_name>[^/]+)$": DataBrewResponse().dataset_response,
+    "{0}/jobs$": DataBrewResponse().list_jobs,
+    "{0}/jobs/(?P<job_name>[^/]+)$": DataBrewResponse().job_response,
+    "{0}/profileJobs$": DataBrewResponse.dispatch,
+    "{0}/recipeJobs$": DataBrewResponse.dispatch,
+    "{0}/profileJobs/(?P<job_name>[^/]+)$": DataBrewResponse().profile_job_response,
+    "{0}/recipeJobs/(?P<job_name>[^/]+)$": DataBrewResponse().recipe_job_response,
 }
