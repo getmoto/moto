@@ -542,7 +542,7 @@ class KmsBackend(BaseBackend):
                 )
             )
 
-    def sign(self, key_id, message, message_type, grant_tokens, signing_algorithm):
+    def sign(self, key_id, message, signing_algorithm):
         """Sign message using generated private key.
 
         NOTES:
@@ -566,9 +566,7 @@ class KmsBackend(BaseBackend):
 
         return key.arn, signature, signing_algorithm
 
-    def verify(
-        self, key_id, message, message_type, signature, signing_algorithm, grant_tokens
-    ):
+    def verify(self, key_id, message, signature, signing_algorithm):
         """Verify message using public key from generated private key.
 
         NOTES:

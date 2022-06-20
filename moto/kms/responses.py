@@ -641,8 +641,6 @@ class KmsResponse(BaseResponse):
         key_id, signature, signing_algorithm = self.kms_backend.sign(
             key_id=key_id,
             message=message,
-            message_type=message_type,
-            grant_tokens=grant_tokens,
             signing_algorithm=signing_algorithm,
         )
 
@@ -681,6 +679,7 @@ class KmsResponse(BaseResponse):
             warnings.warn(
                 "The SigningAlgorithm-parameter is ignored hardcoded to RSASSA_PSS_SHA_256 for client.verify()"
             )
+
         if not message_type:
             message_type = "RAW"
 
@@ -704,10 +703,8 @@ class KmsResponse(BaseResponse):
         key_arn, signature_valid, signing_algorithm = self.kms_backend.verify(
             key_id=key_id,
             message=message,
-            message_type=message_type,
             signature=signature,
             signing_algorithm=signing_algorithm,
-            grant_tokens=grant_tokens,
         )
 
         return json.dumps(
