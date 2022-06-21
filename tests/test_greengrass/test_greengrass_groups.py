@@ -319,3 +319,157 @@ def test_list_group_versions_with_invalid_id():
         "That group definition does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_group_version():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    init_core_ver = {
+        "Cores": [
+            {
+                "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+                "Id": "123456789",
+                "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+            }
+        ]
+    }
+
+    create_core_def_res = client.create_core_definition(
+        InitialVersion=init_core_ver, Name="TestCore"
+    )
+    core_def_ver_arn = create_core_def_res["LatestVersionArn"]
+
+    init_device_ver = {
+        "Devices": [
+            {
+                "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+                "Id": "123",
+                "SyncShadow": True,
+                "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+            }
+        ]
+    }
+
+    create_device_res = client.create_device_definition(
+        InitialVersion=init_device_ver, Name="TestDevice"
+    )
+    device_def_ver_arn = create_device_res["LatestVersionArn"]
+
+    init_func_ver = {
+        "Functions": [
+            {
+                "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:test-func:1",
+                "Id": "1234567890",
+                "FunctionConfiguration": {
+                    "MemorySize": 16384,
+                    "EncodingType": "binary",
+                    "Pinned": True,
+                    "Timeout": 3,
+                },
+            }
+        ]
+    }
+    create_func_res = client.create_function_definition(
+        InitialVersion=init_func_ver, Name="TestFunc"
+    )
+    func_def_ver_arn = create_func_res["LatestVersionArn"]
+
+    init_resource_ver = {
+        "Resources": [
+            {
+                "Id": "123",
+                "Name": "test_directory",
+                "ResourceDataContainer": {
+                    "LocalVolumeResourceData": {
+                        "DestinationPath": "/test_dir",
+                        "GroupOwnerSetting": {"AutoAddGroupOwner": True},
+                        "SourcePath": "/home/ggc_user/test_dir",
+                    }
+                },
+            }
+        ]
+    }
+
+    create_resource_res = client.create_resource_definition(
+        InitialVersion=init_resource_ver, Name="TestResource"
+    )
+    resource_def_ver_arn = create_resource_res["LatestVersionArn"]
+
+    init_subscription_ver = {
+        "Subscriptions": [
+            {
+                "Id": "123456",
+                "Source": "arn:aws:lambda:ap-northeast-1:123456789012:function:test_func:1",
+                "Subject": "foo/bar",
+                "Target": "cloud",
+            }
+        ]
+    }
+    create_subscription_res = client.create_subscription_definition(
+        InitialVersion=init_subscription_ver, Name="TestSubscription"
+    )
+    subscription_def_ver_arn = create_subscription_res["LatestVersionArn"]
+
+    definition = {
+        "CoreDefinitionVersionArn": core_def_ver_arn,
+        "DeviceDefinitionVersionArn": device_def_ver_arn,
+        "FunctionDefinitionVersionArn": func_def_ver_arn,
+        "ResourceDefinitionVersionArn": resource_def_ver_arn,
+        "SubscriptionDefinitionVersionArn": subscription_def_ver_arn,
+    }
+
+    grp_name = "TestGroup"
+    create_res = client.create_group(Name=grp_name, InitialVersion=definition)
+    group_id = create_res["Id"]
+    group_ver_id = create_res["LatestVersion"]
+
+    group_ver_res = client.get_group_version(
+        GroupId=group_id, GroupVersionId=group_ver_id
+    )
+
+    group_ver_res.should.have.key("Arn")
+    group_ver_res.should.have.key("CreationTimestamp")
+    group_ver_res.should.have.key("Definition").should.equal(definition)
+    group_ver_res.should.have.key("Id").equals(group_id)
+    group_ver_res.should.have.key("Version").should.equal(group_ver_id)
+
+    if not TEST_SERVER_MODE:
+        group_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+
+
+@mock_greengrass
+def test_get_group_version_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_group_version(
+            GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
+            GroupVersionId="7b0bdeae-54c7-47cf-9f93-561e672efd9c",
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        "That group definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
+@mock_greengrass
+def test_get_group_version_with_invalid_version_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    create_res = client.create_group(Name="TestGroup")
+
+    group_id = create_res["Id"]
+    invalid_group_ver_id = "7b0bdeae-54c7-47cf-9f93-561e672efd9c"
+
+    with pytest.raises(ClientError) as ex:
+        client.get_group_version(
+            GroupId=group_id,
+            GroupVersionId=invalid_group_ver_id,
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        f"Version {invalid_group_ver_id} of Group Definition {group_id} does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("VersionNotFoundException")

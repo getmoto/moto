@@ -981,6 +981,9 @@ class GreengrassBackend(BaseBackend):
     ):
         def _is_valid_def_ver_arn(definition_version_arn, kind="cores"):
 
+            if definition_version_arn is None:
+                return True
+
             if kind == "cores":
                 versions = self.core_definition_versions
             elif kind == "devices":
@@ -999,9 +1002,6 @@ class GreengrassBackend(BaseBackend):
                 + kind
                 + r"/[a-z0-9-]{36}/versions/[a-z0-9-]{36}$"
             )
-
-            if definition_version_arn is None:
-                return True
 
             if not re.match(arn_regex, definition_version_arn):
                 return False
@@ -1053,6 +1053,18 @@ class GreengrassBackend(BaseBackend):
         if group_id not in self.group_versions:
             raise IdNotFoundException("That group definition does not exist.")
         return self.group_versions[group_id].values()
+
+    def get_group_version(self, group_id, group_version_id):
+
+        if group_id not in self.group_versions:
+            raise IdNotFoundException("That group definition does not exist.")
+
+        if group_version_id not in self.group_versions[group_id]:
+            raise VersionNotFoundException(
+                f"Version {group_version_id} of Group Definition {group_id} does not exist."
+            )
+
+        return self.group_versions[group_id][group_version_id]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
