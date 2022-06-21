@@ -2,6 +2,11 @@ import json
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+
+from cryptography.hazmat.primitives.asymmetric import padding
+from moto.apigateway.exceptions import ValidationException
 
 from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex, unix_time, BackendDict
@@ -14,6 +19,7 @@ from .utils import (
     encrypt,
     generate_key_id,
     generate_master_key,
+    generate_private_key,
 )
 
 
@@ -49,9 +55,7 @@ class Grant(BaseModel):
 
 
 class Key(CloudFormationModel):
-    def __init__(
-        self, policy, key_usage, customer_master_key_spec, description, region
-    ):
+    def __init__(self, policy, key_usage, key_spec, description, region):
         self.id = generate_key_id()
         self.creation_date = unix_time()
         self.policy = policy or self.generate_default_policy()
@@ -64,9 +68,10 @@ class Key(CloudFormationModel):
         self.key_rotation_status = False
         self.deletion_date = None
         self.key_material = generate_master_key()
+        self.private_key = generate_private_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
-        self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+        self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
 
         self.grants = dict()
 
@@ -139,7 +144,7 @@ class Key(CloudFormationModel):
     def encryption_algorithms(self):
         if self.key_usage == "SIGN_VERIFY":
             return None
-        elif self.customer_master_key_spec == "SYMMETRIC_DEFAULT":
+        elif self.key_spec == "SYMMETRIC_DEFAULT":
             return ["SYMMETRIC_DEFAULT"]
         else:
             return ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
@@ -148,11 +153,11 @@ class Key(CloudFormationModel):
     def signing_algorithms(self):
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None
-        elif self.customer_master_key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
+        elif self.key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
             return ["ECDSA_SHA_256"]
-        elif self.customer_master_key_spec == "ECC_NIST_P384":
+        elif self.key_spec == "ECC_NIST_P384":
             return ["ECDSA_SHA_384"]
-        elif self.customer_master_key_spec == "ECC_NIST_P521":
+        elif self.key_spec == "ECC_NIST_P521":
             return ["ECDSA_SHA_512"]
         else:
             return [
@@ -170,7 +175,8 @@ class Key(CloudFormationModel):
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
                 "CreationDate": self.creation_date,
-                "CustomerMasterKeySpec": self.customer_master_key_spec,
+                "CustomerMasterKeySpec": self.key_spec,
+                "KeySpec": self.key_spec,
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "EncryptionAlgorithms": self.encryption_algorithms,
@@ -208,7 +214,7 @@ class Key(CloudFormationModel):
         key = kms_backend.create_key(
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
-            customer_master_key_spec="SYMMETRIC_DEFAULT",
+            key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags", []),
             region=region_name,
@@ -258,10 +264,8 @@ class KmsBackend(BaseBackend):
             self.add_alias(key.id, alias_name)
             return key.id
 
-    def create_key(
-        self, policy, key_usage, customer_master_key_spec, description, tags, region
-    ):
-        key = Key(policy, key_usage, customer_master_key_spec, description, region)
+    def create_key(self, policy, key_usage, key_spec, description, tags, region):
+        key = Key(policy, key_usage, key_spec, description, region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
@@ -515,6 +519,94 @@ class KmsBackend(BaseBackend):
         else:
             key = self.describe_key(key_id)
             key.retire_grant(grant_id)
+
+    def __ensure_valid_sign_and_verify_key(self, key: Key):
+        if key.key_usage != "SIGN_VERIFY":
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{key_id}' at 'KeyId' failed "
+                    "to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
+                ).format(key_id=key.id)
+            )
+
+    def __ensure_valid_signing_augorithm(self, key: Key, signing_algorithm):
+        if signing_algorithm not in key.signing_algorithms:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_sign_algorithms}"
+                ).format(
+                    signing_algorithm=signing_algorithm,
+                    valid_sign_algorithms=key.signing_algorithms,
+                )
+            )
+
+    def sign(self, key_id, message, signing_algorithm):
+        """Sign message using generated private key.
+
+        NOTES:
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+        - message_type DIGEST is not implemented
+        - grant_tokens are not implemented
+        """
+        key = self.describe_key(key_id)
+
+        self.__ensure_valid_sign_and_verify_key(key)
+        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+
+        # TODO: support more than one hardcoded algorithm based on KeySpec
+        signature = key.private_key.sign(
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+
+        return key.arn, signature, signing_algorithm
+
+    def verify(self, key_id, message, signature, signing_algorithm):
+        """Verify message using public key from generated private key.
+
+        NOTES:
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+        - message_type DIGEST is not implemented
+        - grant_tokens are not implemented
+        """
+        key = self.describe_key(key_id)
+
+        self.__ensure_valid_sign_and_verify_key(key)
+        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+
+        if signing_algorithm not in key.signing_algorithms:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_sign_algorithms}"
+                ).format(
+                    signing_algorithm=signing_algorithm,
+                    valid_sign_algorithms=key.signing_algorithms,
+                )
+            )
+
+        public_key = key.private_key.public_key()
+
+        try:
+            # TODO: support more than one hardcoded algorithm based on KeySpec
+            public_key.verify(
+                signature,
+                message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH,
+                ),
+                hashes.SHA256(),
+            )
+            return key.arn, True, signing_algorithm
+        except InvalidSignature:
+            return key.arn, False, signing_algorithm
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

@@ -3572,14 +3572,14 @@
 - [X] retire_grant
 - [X] revoke_grant
 - [X] schedule_key_deletion
-- [ ] sign
+- [X] sign
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_alias
 - [ ] update_custom_key_store
 - [X] update_key_description
 - [ ] update_primary_region
-- [ ] verify
+- [X] verify
 - [ ] verify_mac
 </details>
 
