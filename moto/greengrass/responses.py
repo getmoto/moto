@@ -624,6 +624,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_group_version()
 
+        if self.method == "GET":
+            return self.list_group_versions()
+
     def create_group_version(self):
 
         group_id = self.path.split("/")[-2]
@@ -649,3 +652,12 @@ class GreengrassResponse(BaseResponse):
             subscription_definition_version_arn=subscription_definition_version_arn,
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_group_versions(self):
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_group_versions(group_id=group_id)
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Versions": [group_ver.to_dict() for group_ver in res]}),
+        )

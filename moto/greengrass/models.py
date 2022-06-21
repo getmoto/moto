@@ -1049,5 +1049,10 @@ class GreengrassBackend(BaseBackend):
                 f"The group is invalid or corrupted. (ErrorDetails: [{error_details}])",
             )
 
+    def list_group_versions(self, group_id):
+        if group_id not in self.group_versions:
+            raise IdNotFoundException("That group definition does not exist.")
+        return self.group_versions[group_id].values()
+
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

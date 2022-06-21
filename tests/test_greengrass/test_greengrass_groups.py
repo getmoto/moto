@@ -285,3 +285,37 @@ def test_create_group_version_with_invalid_version_arn(
         f"The group is invalid or corrupted. (ErrorDetails: [{error_message}])"
     )
     ex.value.response["Error"]["Code"].should.equal("400")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_group_versions():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    create_res = client.create_group(Name="TestGroup")
+    group_id = create_res["Id"]
+
+    group_vers_res = client.list_group_versions(GroupId=group_id)
+
+    group_vers_res.should.have.key("Versions")
+    group_ver = group_vers_res["Versions"][0]
+    group_ver.should.have.key("Arn")
+    group_ver.should.have.key("CreationTimestamp")
+    group_ver.should.have.key("Id").equals(group_id)
+    group_ver.should.have.key("Version")
+
+    if not TEST_SERVER_MODE:
+        group_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
+
+
+@mock_greengrass
+def test_list_group_versions_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.list_group_versions(GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c")
+    ex.value.response["Error"]["Message"].should.equal(
+        "That group definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
