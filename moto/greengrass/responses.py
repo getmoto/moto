@@ -586,6 +586,19 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Groups": [group.to_dict() for group in res]}),
         )
 
+    def group(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_group()
+
+    def get_group(self):
+        group_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_group(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
     def group_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 

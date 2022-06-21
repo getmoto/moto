@@ -912,6 +912,11 @@ class GreengrassBackend(BaseBackend):
     def list_groups(self):
         return self.groups.values()
 
+    def get_group(self, group_id):
+        if group_id not in self.groups:
+            raise IdNotFoundException("That Group Definition does not exist.")
+        return self.groups.get(group_id)
+
     def create_group_version(
         self,
         group_id,

@@ -70,9 +70,47 @@ def test_list_groups():
     group.should.have.key("LatestVersionArn")
     if not TEST_SERVER_MODE:
         group.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        group.should.have.key("LastUpdatedTimestamp").equals(
+        group.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_group():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    grp_name = "TestGroup"
+    create_res = client.create_group(Name=grp_name)
+    group_id = create_res["Id"]
+    group_arn = create_res["Arn"]
+    latest_version = create_res["LatestVersion"]
+    latest_version_arn = create_res["LatestVersionArn"]
+
+    get_res = client.get_group(GroupId=group_id)
+
+    get_res.should.have.key("Name").equals(grp_name)
+    get_res.should.have.key("Arn").equals(group_arn)
+    get_res.should.have.key("Id").equals(group_id)
+    get_res.should.have.key("LatestVersion").equals(latest_version)
+    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+    get_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    if not TEST_SERVER_MODE:
+        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        get_res.should.have.key("LastUpdatedTimestamp").equals(
             "2022-06-01T12:00:00.000Z"
         )
+
+
+@mock_greengrass
+def test_get_group_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    with pytest.raises(ClientError) as ex:
+        client.get_group(GroupId="b552443b-1888-469b-81f8-0ebc5ca92949")
+    ex.value.response["Error"]["Message"].should.equal(
+        "That Group Definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
