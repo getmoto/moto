@@ -137,6 +137,52 @@ def test_delete_group_with_invalid_id():
     ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
 
 
+@mock_greengrass
+def test_update_group():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    create_res = client.create_group(Name="TestGroup")
+
+    group_id = create_res["Id"]
+    updated_group_name = "UpdatedGroup"
+    update_res = client.update_group(GroupId=group_id, Name=updated_group_name)
+    update_res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    get_res = client.get_group(GroupId=group_id)
+    get_res.should.have.key("Name").equals(updated_group_name)
+
+
+@mock_greengrass
+def test_update_group_with_empty_name():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    create_res = client.create_group(Name="TestGroup")
+
+    group_id = create_res["Id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_group(GroupId=group_id, Name="")
+    ex.value.response["Error"]["Message"].should.equal(
+        "Input does not contain any attributes to be updated"
+    )
+    ex.value.response["Error"]["Code"].should.equal(
+        "InvalidContainerDefinitionException"
+    )
+
+
+@mock_greengrass
+def test_update_group_with_invalid_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.update_group(GroupId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="123")
+    ex.value.response["Error"]["Message"].should.equal(
+        "That group definition does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+
+
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_group_version():

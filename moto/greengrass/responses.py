@@ -595,6 +595,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "DELETE":
             return self.delete_group()
 
+        if self.method == "PUT":
+            return self.update_group()
+
     def get_group(self):
         group_id = self.path.split("/")[-1]
         res = self.greengrass_backend.get_group(
@@ -607,6 +610,12 @@ class GreengrassResponse(BaseResponse):
         self.greengrass_backend.delete_group(
             group_id=group_id,
         )
+        return 200, {"status": 200}, json.dumps({})
+
+    def update_group(self):
+        group_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_group(group_id=group_id, name=name)
         return 200, {"status": 200}, json.dumps({})
 
     def group_versions(self, request, full_url, headers):

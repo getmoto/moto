@@ -924,6 +924,16 @@ class GreengrassBackend(BaseBackend):
         del self.groups[group_id]
         del self.group_versions[group_id]
 
+    def update_group(self, group_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if group_id not in self.groups:
+            raise IdNotFoundException("That group definition does not exist.")
+        self.groups[group_id].name = name
+
     def create_group_version(
         self,
         group_id,
