@@ -2678,7 +2678,7 @@
 
 ## glue
 <details>
-<summary>12% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2709,7 +2709,7 @@
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
-- [ ] create_registry
+- [X] create_registry
 - [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
@@ -2867,7 +2867,7 @@
 
 ## greengrass
 <details>
-<summary>43% implemented</summary>
+<summary>52% implemented</summary>
 
 - [ ] associate_role_to_group
 - [ ] associate_service_role_to_account
@@ -2880,9 +2880,9 @@
 - [X] create_device_definition_version
 - [X] create_function_definition
 - [X] create_function_definition_version
-- [ ] create_group
+- [X] create_group
 - [ ] create_group_certificate_authority
-- [ ] create_group_version
+- [X] create_group_version
 - [ ] create_logger_definition
 - [ ] create_logger_definition_version
 - [X] create_resource_definition
@@ -2894,7 +2894,7 @@
 - [X] delete_core_definition
 - [X] delete_device_definition
 - [X] delete_function_definition
-- [ ] delete_group
+- [X] delete_group
 - [ ] delete_logger_definition
 - [X] delete_resource_definition
 - [X] delete_subscription_definition
@@ -2912,10 +2912,10 @@
 - [X] get_device_definition_version
 - [X] get_function_definition
 - [X] get_function_definition_version
-- [ ] get_group
+- [X] get_group
 - [ ] get_group_certificate_authority
 - [ ] get_group_certificate_configuration
-- [ ] get_group_version
+- [X] get_group_version
 - [ ] get_logger_definition
 - [ ] get_logger_definition_version
 - [X] get_resource_definition
@@ -2936,8 +2936,8 @@
 - [X] list_function_definition_versions
 - [X] list_function_definitions
 - [ ] list_group_certificate_authorities
-- [ ] list_group_versions
-- [ ] list_groups
+- [X] list_group_versions
+- [X] list_groups
 - [ ] list_logger_definition_versions
 - [ ] list_logger_definitions
 - [X] list_resource_definition_versions
@@ -2955,7 +2955,7 @@
 - [X] update_core_definition
 - [X] update_device_definition
 - [X] update_function_definition
-- [ ] update_group
+- [X] update_group
 - [ ] update_group_certificate_configuration
 - [ ] update_logger_definition
 - [X] update_resource_definition
@@ -3529,7 +3529,7 @@
 
 ## kms
 <details>
-<summary>52% implemented</summary>
+<summary>56% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store

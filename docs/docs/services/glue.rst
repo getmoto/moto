@@ -54,7 +54,7 @@ glue
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
-- [ ] create_registry
+- [X] create_registry
 - [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
