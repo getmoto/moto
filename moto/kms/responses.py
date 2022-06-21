@@ -617,11 +617,6 @@ class KmsResponse(BaseResponse):
                 "The GrantTokens-parameter is not yet implemented for client.sign()"
             )
 
-        if message_type == "DIGEST":
-            warnings.warn(
-                "The MessageType-parameter DIGEST is not yet implemented for client.sign()"
-            )
-
         if signing_algorithm != "RSASSA_PSS_SHA_256":
             warnings.warn(
                 "The SigningAlgorithm-parameter is ignored hardcoded to RSASSA_PSS_SHA_256 for client.sign()"
