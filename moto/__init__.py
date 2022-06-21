@@ -62,6 +62,7 @@ mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail")
 mock_cloudwatch = lazy_load(".cloudwatch", "mock_cloudwatch")
 mock_codecommit = lazy_load(".codecommit", "mock_codecommit")
+mock_codebuild = lazy_load(".codebuild", "mock_codebuild")
 mock_codepipeline = lazy_load(".codepipeline", "mock_codepipeline")
 mock_cognitoidentity = lazy_load(
     ".cognitoidentity", "mock_cognitoidentity", boto3_name="cognito-identity"
