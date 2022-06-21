@@ -573,3 +573,35 @@ class GreengrassResponse(BaseResponse):
             name=name, initial_version=initial_version
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def group_versions(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_group_version()
+
+    def create_group_version(self):
+
+        group_id = self.path.split("/")[-2]
+
+        core_definition_version_arn = self._get_param("CoreDefinitionVersionArn")
+        device_definition_version_arn = self._get_param("DeviceDefinitionVersionArn")
+        function_definition_version_arn = self._get_param(
+            "FunctionDefinitionVersionArn"
+        )
+        resource_definition_version_arn = self._get_param(
+            "ResourceDefinitionVersionArn"
+        )
+        subscription_definition_version_arn = self._get_param(
+            "SubscriptionDefinitionVersionArn"
+        )
+
+        res = self.greengrass_backend.create_group_version(
+            group_id=group_id,
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())

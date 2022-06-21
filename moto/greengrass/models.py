@@ -271,7 +271,7 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
 
 
 class FakeGroup(BaseModel):
-    def __init__(self, region_name, name, initial_version):
+    def __init__(self, region_name, name):
         self.region_name = region_name
         self.group_id = str(uuid.uuid4())
         self.name = name
@@ -887,9 +887,7 @@ class GreengrassBackend(BaseBackend):
 
         definitions = initial_version or {}
         core_definition_version_arn = definitions.get("CoreDefinitionVersionArn")
-        device_definition_version_arn = definitions.get(
-            "DeviceDefinitionVersionArn"
-        )
+        device_definition_version_arn = definitions.get("DeviceDefinitionVersionArn")
         function_definition_version_arn = definitions.get(
             "FunctionDefinitionVersionArn"
         )
@@ -921,6 +919,17 @@ class GreengrassBackend(BaseBackend):
         subscription_definition_version_arn,
     ):
 
+        if group_id not in self.groups:
+            raise IdNotFoundException("That group does not exist.")
+
+        self._validate_group_version_definitions(
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+
         group_ver = FakeGroupVersion(
             self.region_name,
             group_id=group_id,
@@ -936,6 +945,84 @@ class GreengrassBackend(BaseBackend):
         self.groups[group_id].latest_version_arn = group_ver.arn
         self.groups[group_id].latest_version = group_ver.version
         return group_ver
+
+    def _validate_group_version_definitions(
+        self,
+        core_definition_version_arn=None,
+        device_definition_version_arn=None,
+        function_definition_version_arn=None,
+        resource_definition_version_arn=None,
+        subscription_definition_version_arn=None,
+    ):
+        def _is_valid_def_ver_arn(definition_version_arn, kind="cores"):
+
+            if kind == "cores":
+                versions = self.core_definition_versions
+            elif kind == "devices":
+                versions = self.device_definition_versions
+            elif kind == "functions":
+                versions = self.function_definition_versions
+            elif kind == "resources":
+                versions = self.resource_definition_versions
+            elif kind == "subscriptions":
+                versions = self.subscription_definition_versions
+            else:
+                raise Exception("invalid args")
+
+            arn_regex = (
+                r"^arn:aws:greengrass:[a-zA-Z0-9-]+:[0-9]{12}:greengrass/definition/"
+                + kind
+                + r"/[a-z0-9-]{36}/versions/[a-z0-9-]{36}$"
+            )
+
+            if definition_version_arn is None:
+                return True
+
+            if not re.match(arn_regex, definition_version_arn):
+                return False
+
+            definition_id = definition_version_arn.split("/")[-3]
+
+            if definition_id not in versions:
+                return False
+
+            definition_version_id = definition_version_arn.split("/")[-1]
+            if definition_version_id not in versions[definition_id]:
+                return False
+
+            if (
+                versions[definition_id][definition_version_id].arn
+                != definition_version_arn
+            ):
+                return False
+
+            return True
+
+        errors = []
+
+        if not _is_valid_def_ver_arn(core_definition_version_arn, kind="cores"):
+            errors.append("Cores definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(function_definition_version_arn, kind="functions"):
+            errors.append("Lambda definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(resource_definition_version_arn, kind="resources"):
+            errors.append("Resource definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(device_definition_version_arn, kind="devices"):
+            errors.append("Devices definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(
+            subscription_definition_version_arn, kind="subscriptions"
+        ):
+            errors.append("Subscription definition reference does not exist")
+
+        if errors:
+            error_details = ", ".join(errors)
+            raise GreengrassClientError(
+                "400",
+                f"The group is invalid or corrupted. (ErrorDetails: [{error_details}])",
+            )
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
