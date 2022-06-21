@@ -119,6 +119,7 @@ def test_create_key():
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_512"])
 
 
+@mock_kms
 def test_create_key_deprecated_master_custom_key_spec():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521")
