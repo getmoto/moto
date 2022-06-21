@@ -149,6 +149,10 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self.spot_price = spot_price
         self.ebs_optimized = ebs_optimized
         self.associate_public_ip_address = associate_public_ip_address
+        if isinstance(associate_public_ip_address, str):
+            self.associate_public_ip_address = (
+                associate_public_ip_address.lower() == "true"
+            )
         self.block_device_mapping_dict = block_device_mapping_dict
         self.metadata_options = metadata_options
         self.classic_link_vpc_id = classic_link_vpc_id
@@ -626,6 +630,17 @@ class FakeAutoScalingGroup(CloudFormationModel):
     def replace_autoscaling_group_instances(self, count_needed, propagated_tags):
         propagated_tags[ASG_NAME_TAG] = self.name
 
+        # VPCZoneIdentifier:
+        # A comma-separated list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created.
+        # We'll create all instances in a single subnet to make things easier
+        subnet_id = (
+            self.vpc_zone_identifier.split(",")[0] if self.vpc_zone_identifier else None
+        )
+        associate_public_ip = (
+            self.launch_config.associate_public_ip_address
+            if self.launch_config
+            else None
+        )
         reservation = self.autoscaling_backend.ec2_backend.add_instances(
             self.image_id,
             count_needed,
@@ -636,6 +651,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
             placement=random.choice(self.availability_zones),
             launch_config=self.launch_config,
             is_instance_type_default=False,
+            associate_public_ip=associate_public_ip,
+            subnet_id=subnet_id,
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self
