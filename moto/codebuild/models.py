@@ -2,7 +2,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from datetime import datetime
 from moto.core import get_account_id
-from .exceptions import InvalidInputException
+# from .exceptions import InvalidInputException
 
 
 class CodeBuild(BaseModel):
@@ -16,7 +16,7 @@ class CodeBuild(BaseModel):
             region, get_account_id(), self.codebuild_project_metadata["name"]
         )
         self.codebuild_project_metadata["encryptionKey"] = "arn:aws:kms:{0}:{1}:alias/aws/s3".format(
-             region, get_account_id()
+            region, get_account_id()
         )
         self.codebuild_project_metadata["serviceRole"] = "arn:aws:iam::{0}:role/service-role/{1}".format(
             get_account_id(), serviceRole
@@ -59,14 +59,13 @@ class CodeBuildBackend(BaseBackend):
 
         return self.codebuild_projects[project_name].codebuild_project_metadata
 
-
     def list_projects(self):
         projects = []
         for k,v in self.codebuild_projects.items():
             projects.append(k)
 
         return projects
- 
+
     def delete_project():
         pass
 
@@ -76,7 +75,7 @@ class CodeBuildBackend(BaseBackend):
     def list_builds_for_project(self, project_name):
         # validate some stuff
         self.code_build_projects[project_name] = CodeBuild(project_name)
-        # return the ids ; there must be a codebuild project and there must be a history to return anyything but [] 
+        # return the ids ; there must be a codebuild project and there must be a history to return anyything but []
         # create the code build project first
         return self.code_build_projects[project_name].ids
 
