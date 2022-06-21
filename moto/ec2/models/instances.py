@@ -62,6 +62,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         "groupSet",
         "ebsOptimized",
         "sriovNetSupport",
+        "disableApiStop",
     }
 
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
@@ -134,6 +135,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
         self.root_device_name = ami.root_device_name if ami else None
+        self.disable_api_stop = False
 
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
@@ -543,7 +545,7 @@ class InstanceBackend:
     def __init__(self):
         self.reservations = OrderedDict()
 
-    def get_instance(self, instance_id):
+    def get_instance(self, instance_id) -> Instance:
         for instance in self.all_instances():
             if instance.id == instance_id:
                 return instance
