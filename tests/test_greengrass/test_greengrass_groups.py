@@ -53,6 +53,30 @@ def test_create_group():
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
+def test_list_groups():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    grp_name = "TestGroup"
+    create_grp_res = client.create_group(Name=grp_name)
+    group_id = create_grp_res["Id"]
+
+    list_res = client.list_groups()
+
+    group = list_res["Groups"][0]
+    group.should.have.key("Name").equals(grp_name)
+    group.should.have.key("Arn")
+    group.should.have.key("Id").equals(group_id)
+    group.should.have.key("LatestVersion")
+    group.should.have.key("LatestVersionArn")
+    if not TEST_SERVER_MODE:
+        group.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
+        group.should.have.key("LastUpdatedTimestamp").equals(
+            "2022-06-01T12:00:00.000Z"
+        )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
 def test_create_group_version():
 
     client = boto3.client("greengrass", region_name="ap-northeast-1")

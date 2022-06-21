@@ -909,6 +909,9 @@ class GreengrassBackend(BaseBackend):
 
         return group
 
+    def list_groups(self):
+        return self.groups.values()
+
     def create_group_version(
         self,
         group_id,

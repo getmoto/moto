@@ -565,6 +565,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_group()
 
+        if self.method == "GET":
+            return self.list_groups()
+
     def create_group(self):
 
         initial_version = self._get_param("InitialVersion")
@@ -573,6 +576,15 @@ class GreengrassResponse(BaseResponse):
             name=name, initial_version=initial_version
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_groups(self):
+
+        res = self.greengrass_backend.list_groups()
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Groups": [group.to_dict() for group in res]}),
+        )
 
     def group_versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
