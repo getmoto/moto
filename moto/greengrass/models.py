@@ -101,7 +101,7 @@ class FakeDeviceDefinitionVersion(BaseModel):
         self.device_definition_id = device_definition_id
         self.devices = devices
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self, include_detail=False):
@@ -124,7 +124,7 @@ class FakeResourceDefinition(BaseModel):
     def __init__(self, region_name, name, initial_version):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/resources/{self.id}"
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/resources/{self.id}"
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -154,7 +154,7 @@ class FakeResourceDefinitionVersion(BaseModel):
         self.resource_definition_id = resource_definition_id
         self.resources = resources
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self):
@@ -173,7 +173,7 @@ class FakeFunctionDefinition(BaseModel):
     def __init__(self, region_name, name, initial_version):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/functions/{self.id}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/functions/{self.id}"
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -206,7 +206,7 @@ class FakeFunctionDefinitionVersion(BaseModel):
         self.functions = functions
         self.default_config = default_config
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self):
@@ -225,7 +225,7 @@ class FakeSubscriptionDefinition(BaseModel):
     def __init__(self, region_name, name, initial_version):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/subscriptions/{self.id}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/subscriptions/{self.id}"
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -255,7 +255,7 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
         self.subscription_definition_id = subscription_definition_id
         self.subscriptions = subscriptions
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self):
@@ -275,7 +275,7 @@ class FakeGroup(BaseModel):
         self.region_name = region_name
         self.group_id = str(uuid.uuid4())
         self.name = name
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/groups/{self.group_id}"
         self.created_at_datetime = datetime.utcnow()
         self.last_updated_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -312,7 +312,7 @@ class FakeGroupVersion(BaseModel):
         self.region_name = region_name
         self.group_id = group_id
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/groups/{self.group_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
         self.core_definition_version_arn = core_definition_version_arn
         self.device_definition_version_arn = device_definition_version_arn
