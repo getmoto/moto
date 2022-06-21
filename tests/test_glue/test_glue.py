@@ -484,7 +484,7 @@ def test_create_registry_valid_partial_input():
 def test_create_registry_invalid_input_registry_name_too_long():
     client = create_glue_client()
     registry_name = ""
-    for i in range(90):
+    for _ in range(90):
         registry_name = registry_name + "foobar"
 
     with pytest.raises(ClientError) as exc:
@@ -569,7 +569,7 @@ def test_create_registry_already_exists():
 def test_create_registry_invalid_description_too_long():
     client = create_glue_client()
     description = ""
-    for i in range(300):
+    for _ in range(300):
         description = description + "foobar, "
 
     with pytest.raises(ClientError) as exc:
