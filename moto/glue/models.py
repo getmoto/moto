@@ -21,8 +21,10 @@ from .exceptions import (
     JobNotFoundException,
     ConcurrentRunsExceededException,
     GSRAlreadyExistsException,
-    InvalidInputException,
     ResourceNumberLimitExceededException,
+    ResourceNameTooLongException,
+    ParamValueContainsInvalidCharactersException,
+    InvalidNumberOfTagsException,
 )
 from .utils import PartitionFilter
 from ..utilities.paginator import paginate
@@ -252,51 +254,58 @@ class GlueBackend(BaseBackend):
     def untag_resource(self, resource_arn, tag_keys):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-
-    #TODO: @Himani. Will Refactor validation logic as I find the common validation required for other APIs
+    # TODO: @Himani. Will Refactor validation logic as I find the common validation required for other APIs
     def create_registry(self, registry_name, description, tags):
+        operation_name = "CreateRegistry"
+
         registry_name_pattern = re.compile(r"^[a-zA-Z0-9-_$#.]+$")
-        registry_description_pattern = re.compile(r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*")
+        registry_description_pattern = re.compile(
+            r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*"
+        )
 
         max_registry_name_length = 255
         max_registries_allowed = 10
         max_description_length = 2048
         max_tags_allowed = 50
 
-        resource_length_message = "The resource name contains too many or too few characters."
-        illegal_resource_value_msg = "The parameter value contains one or more characters that are not valid."
-        max_registries_allowed_msg = "More registries cannot be created. The maximum limit has been reached."
-        registry_already_exists_msg = "Registry already exists. RegistryName: "
-        invalid_tag_params_msg = "Invalid Tag Parameters"
-        invalid_number_of_tags = "New Tags cannot be empty or more than 50"
-
         if len(self.registries) >= max_registries_allowed:
-            error_message = max_registries_allowed_msg
-            raise ResourceNumberLimitExceededException("CreateRegistry", error_message)
+            raise ResourceNumberLimitExceededException(
+                operation_name, resource="registries"
+            )
 
-        elif registry_name == "" or len(registry_name.encode('utf-8')) > max_registry_name_length:
-            error_message = resource_length_message + " Parameter Name: registryName"
-            raise InvalidInputException("CreateRegistry", error_message)
+        if (
+            registry_name == ""
+            or len(registry_name.encode("utf-8")) > max_registry_name_length
+        ):
+            param_name = "registryName"
+            raise ResourceNameTooLongException(operation_name, param_name)
 
-        elif re.match(registry_name_pattern, registry_name) is None:
-            error_message = illegal_resource_value_msg + " Parameter Name: registryName"
-            raise InvalidInputException("CreateRegistry", error_message)
+        if re.match(registry_name_pattern, registry_name) is None:
+            param_name = "registryName"
+            raise ParamValueContainsInvalidCharactersException(
+                operation_name, param_name
+            )
 
-        elif registry_name in self.registries:
-            error_message = registry_already_exists_msg + registry_name
-            raise GSRAlreadyExistsException("CreateRegistry", error_message)
+        if registry_name in self.registries:
+            raise GSRAlreadyExistsException(
+                operation_name,
+                resource="Registry",
+                param_name="RegistryName",
+                param_value=registry_name,
+            )
 
-        elif description and len(description.encode('utf-8')) > max_description_length:
-            error_message = resource_length_message + " Parameter Name: description"
-            raise InvalidInputException("CreateRegistry", error_message)
+        if description and len(description.encode("utf-8")) > max_description_length:
+            param_name = "description"
+            raise ResourceNameTooLongException(operation_name, param_name)
 
-        elif description and re.match(registry_description_pattern, description) is None:
-            error_message = illegal_resource_value_msg + " Parameter Name: description"
-            raise InvalidInputException("CreateRegistry", error_message)
+        if description and re.match(registry_description_pattern, description) is None:
+            param_name = "description"
+            raise ParamValueContainsInvalidCharactersException(
+                operation_name, param_name
+            )
 
-        elif tags and len(tags) > max_tags_allowed:
-            error_message = invalid_number_of_tags
-            raise InvalidInputException("CreateRegistry", error_message)
+        if tags and len(tags) > max_tags_allowed:
+            raise InvalidNumberOfTagsException(operation_name)
 
         registry = FakeRegistry(registry_name, description, tags)
         self.registries[registry_name] = registry
@@ -693,14 +702,16 @@ class FakeRegistry(BaseModel):
         self.tags = tags
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
-        self.registry_arn = "arn:aws:schemaregistry:us-west-2:123456789012:registry/" + registry_name
+        self.registry_arn = (
+            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.name}"
+        )
 
     def as_dict(self):
         return {
             "RegistryArn": self.registry_arn,
             "RegistryName": self.name,
             "Description": self.description,
-            "Tags": self.tags
+            "Tags": self.tags,
         }
 
 
