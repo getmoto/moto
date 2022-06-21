@@ -1,4 +1,5 @@
 import time
+import re
 from collections import OrderedDict
 from datetime import datetime
 
@@ -19,6 +20,11 @@ from .exceptions import (
     VersionNotFoundException,
     JobNotFoundException,
     ConcurrentRunsExceededException,
+    GSRAlreadyExistsException,
+    ResourceNumberLimitExceededException,
+    ResourceNameTooLongException,
+    ParamValueContainsInvalidCharactersException,
+    InvalidNumberOfTagsException,
 )
 from .utils import PartitionFilter
 from ..utilities.paginator import paginate
@@ -48,6 +54,7 @@ class GlueBackend(BaseBackend):
         self.jobs = OrderedDict()
         self.job_runs = OrderedDict()
         self.tagger = TaggingService()
+        self.registries = OrderedDict()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -246,6 +253,63 @@ class GlueBackend(BaseBackend):
 
     def untag_resource(self, resource_arn, tag_keys):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    # TODO: @Himani. Will Refactor validation logic as I find the common validation required for other APIs
+    def create_registry(self, registry_name, description, tags):
+        operation_name = "CreateRegistry"
+
+        registry_name_pattern = re.compile(r"^[a-zA-Z0-9-_$#.]+$")
+        registry_description_pattern = re.compile(
+            r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*"
+        )
+
+        max_registry_name_length = 255
+        max_registries_allowed = 10
+        max_description_length = 2048
+        max_tags_allowed = 50
+
+        if len(self.registries) >= max_registries_allowed:
+            raise ResourceNumberLimitExceededException(
+                operation_name, resource="registries"
+            )
+
+        if (
+            registry_name == ""
+            or len(registry_name.encode("utf-8")) > max_registry_name_length
+        ):
+            param_name = "registryName"
+            raise ResourceNameTooLongException(operation_name, param_name)
+
+        if re.match(registry_name_pattern, registry_name) is None:
+            param_name = "registryName"
+            raise ParamValueContainsInvalidCharactersException(
+                operation_name, param_name
+            )
+
+        if registry_name in self.registries:
+            raise GSRAlreadyExistsException(
+                operation_name,
+                resource="Registry",
+                param_name="RegistryName",
+                param_value=registry_name,
+            )
+
+        if description and len(description.encode("utf-8")) > max_description_length:
+            param_name = "description"
+            raise ResourceNameTooLongException(operation_name, param_name)
+
+        if description and re.match(registry_description_pattern, description) is None:
+            param_name = "description"
+            raise ParamValueContainsInvalidCharactersException(
+                operation_name, param_name
+            )
+
+        if tags and len(tags) > max_tags_allowed:
+            raise InvalidNumberOfTagsException(operation_name)
+
+        registry = FakeRegistry(registry_name, description, tags)
+        self.registries[registry_name] = registry
+        return registry
 
 
 class FakeDatabase(BaseModel):
@@ -628,6 +692,26 @@ class FakeJobRun:
             "LogGroupName": "test/log",
             "NotificationProperty": {"NotifyDelayAfter": 123},
             "GlueVersion": "0.9",
+        }
+
+
+class FakeRegistry(BaseModel):
+    def __init__(self, registry_name, description=None, tags=None):
+        self.name = registry_name
+        self.description = description
+        self.tags = tags
+        self.created_time = datetime.utcnow()
+        self.updated_time = datetime.utcnow()
+        self.registry_arn = (
+            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.name}"
+        )
+
+    def as_dict(self):
+        return {
+            "RegistryArn": self.registry_arn,
+            "RegistryName": self.name,
+            "Description": self.description,
+            "Tags": self.tags,
         }
 
 
