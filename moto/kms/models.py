@@ -520,7 +520,7 @@ class KmsBackend(BaseBackend):
             key = self.describe_key(key_id)
             key.retire_grant(grant_id)
 
-    def __ensure_valid_sing_and_verify_key(self, key: Key):
+    def __ensure_valid_sign_and_verify_key(self, key: Key):
         if key.key_usage != "SIGN_VERIFY":
             raise ValidationException(
                 (
@@ -552,7 +552,7 @@ class KmsBackend(BaseBackend):
         """
         key = self.describe_key(key_id)
 
-        self.__ensure_valid_sing_and_verify_key(key)
+        self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_augorithm(key, signing_algorithm)
 
         # TODO: support more than one hardcoded algorithm based on KeySpec
@@ -576,7 +576,7 @@ class KmsBackend(BaseBackend):
         """
         key = self.describe_key(key_id)
 
-        self.__ensure_valid_sing_and_verify_key(key)
+        self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_augorithm(key, signing_algorithm)
 
         if signing_algorithm not in key.signing_algorithms:
