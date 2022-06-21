@@ -917,6 +917,13 @@ class GreengrassBackend(BaseBackend):
             raise IdNotFoundException("That Group Definition does not exist.")
         return self.groups.get(group_id)
 
+    def delete_group(self, group_id):
+        if group_id not in self.groups:
+            # I don't know why, the error message is different between get_group and delete_group
+            raise IdNotFoundException("That group definition does not exist.")
+        del self.groups[group_id]
+        del self.group_versions[group_id]
+
     def create_group_version(
         self,
         group_id,
