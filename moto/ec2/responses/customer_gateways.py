@@ -3,9 +3,8 @@ from ._base_response import EC2BaseResponse
 
 class CustomerGateways(EC2BaseResponse):
     def create_customer_gateway(self):
-        # raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
         gateway_type = self._get_param("Type")
-        ip_address = self._get_param("IpAddress")
+        ip_address = self._get_param("IpAddress") or self._get_param("PublicIp")
         bgp_asn = self._get_param("BgpAsn")
         tags = self._get_multi_param("TagSpecification")
         tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
