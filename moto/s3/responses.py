@@ -1917,8 +1917,9 @@ class S3Response(BaseResponse):
             metadata = metadata_from_headers(request.headers)
             tagging = self._tagging_from_headers(request.headers)
             storage_type = request.headers.get("x-amz-storage-class", "STANDARD")
+            acl = self._acl_from_headers(request.headers)
             multipart_id = self.backend.create_multipart_upload(
-                bucket_name, key_name, metadata, storage_type, tagging
+                bucket_name, key_name, metadata, storage_type, tagging, acl
             )
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
@@ -1947,6 +1948,7 @@ class S3Response(BaseResponse):
             )
             key.set_metadata(multipart.metadata)
             self.backend.set_key_tags(key, multipart.tags)
+            self.backend.put_object_acl(bucket_name, key.name, multipart.acl)
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             headers = {}
