@@ -146,16 +146,16 @@ class TestDeleteApplication:
                 applicationId=self.application_ids[index]
             )
 
-        if type(expectation) == contextlib.nullcontext:
-            assert resp is not None
-            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-        else:
+        if exc:
             err = exc.value.response["Error"]
             assert err["Code"] == "ValidationException"
             assert (
                 err["Message"]
                 == f"Application {self.application_ids[index]} must be in one of the following statuses [CREATED, STOPPED]. Current status: {status}"
             )
+        else:
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     def test_invalid_application_id(self):
         with pytest.raises(ClientError) as exc:
@@ -415,16 +415,16 @@ class TestUpdateApplication:
                 applicationId=self.application_ids[index]
             )
 
-        if type(expectation) == contextlib.nullcontext:
-            assert resp is not None
-            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-        else:
+        if exc:
             err = exc.value.response["Error"]
             assert err["Code"] == "ValidationException"
             assert (
                 err["Message"]
                 == f"Application {self.application_ids[index]} must be in one of the following statuses [CREATED, STOPPED]. Current status: {status}"
             )
+        else:
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     @pytest.mark.parametrize(
         "update_configuration",
