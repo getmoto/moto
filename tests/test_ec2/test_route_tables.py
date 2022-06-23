@@ -521,6 +521,56 @@ def test_routes_replace():
 
 
 @mock_ec2
+def test_routes_already_exist():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    main_route_table_id = client.describe_route_tables(
+        Filters=[
+            {"Name": "vpc-id", "Values": [vpc.id]},
+            {"Name": "association.main", "Values": ["true"]},
+        ]
+    )["RouteTables"][0]["RouteTableId"]
+    main_route_table = ec2.RouteTable(main_route_table_id)
+    ROUTE_CIDR = "10.0.0.0/23"
+    ROUTE_SUB_CIDR = "10.0.0.0/24"
+    ROUTE_NO_CONFLICT_CIDR = "10.0.2.0/24"
+
+    # Various route targets
+    igw = ec2.create_internet_gateway()
+
+    # Create initial route
+    main_route_table.create_route(DestinationCidrBlock=ROUTE_CIDR, GatewayId=igw.id)
+    main_route_table.create_route(
+        DestinationCidrBlock=ROUTE_NO_CONFLICT_CIDR, GatewayId=igw.id
+    )
+
+    # Create
+    with pytest.raises(ClientError) as ex:
+        client.create_route(
+            RouteTableId=main_route_table.id,
+            DestinationCidrBlock=ROUTE_CIDR,
+            GatewayId=igw.id,
+        )
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("RouteAlreadyExists")
+
+    with pytest.raises(ClientError) as ex:
+        client.create_route(
+            RouteTableId=main_route_table.id,
+            DestinationCidrBlock=ROUTE_SUB_CIDR,
+            GatewayId=igw.id,
+        )
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("RouteAlreadyExists")
+
+
+@mock_ec2
 def test_routes_not_supported():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

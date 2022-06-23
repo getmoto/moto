@@ -15,9 +15,25 @@ class InvalidInput(Route53ClientError):
 
     code = 400
 
-    def __init__(self):
-        message = "The ARN for the CloudWatch Logs log group is invalid"
+    def __init__(self, message: str):
         super().__init__("InvalidInput", message)
+
+
+class InvalidCloudWatchArn(InvalidInput):
+    def __init__(
+        self,
+    ):
+        message = "The ARN for the CloudWatch Logs log group is invalid"
+        super().__init__(message)
+
+
+class InvalidActionValue(InvalidInput):
+    def __init__(self, value: str):
+        message = (
+            f"Invalid XML ; cvc-enumeration-valid: Value '{value}' is not facet-valid"
+            " with respect to enumeration '[CREATE, DELETE, UPSERT]'. It must be a value from the enumeration."
+        )
+        super().__init__(message)
 
 
 class InvalidPaginationToken(Route53ClientError):
@@ -86,6 +102,28 @@ class HostedZoneNotEmpty(Route53ClientError):
             "The hosted zone contains resource records that are not SOA or NS records."
         )
         super().__init__("HostedZoneNotEmpty", message)
+        self.content_type = "text/xml"
+
+
+class PublicZoneVPCAssociation(Route53ClientError):
+    """Public hosted zone can't be associated."""
+
+    code = 400
+
+    def __init__(self):
+        message = "You're trying to associate a VPC with a public hosted zone. Amazon Route 53 doesn't support associating a VPC with a public hosted zone."
+        super().__init__("PublicZoneVPCAssociation", message)
+        self.content_type = "text/xml"
+
+
+class LastVPCAssociation(Route53ClientError):
+    """Last VPC can't be disassociate."""
+
+    code = 400
+
+    def __init__(self):
+        message = "The VPC that you're trying to disassociate from the private hosted zone is the last VPC that is associated with the hosted zone. Amazon Route 53 doesn't support disassociating the last VPC from a hosted zone."
+        super().__init__("LastVPCAssociation", message)
         self.content_type = "text/xml"
 
 

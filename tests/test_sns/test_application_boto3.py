@@ -375,3 +375,26 @@ def test_get_sms_attributes_filtered():
     response["attributes"].should.contain("DefaultSMSType")
     response["attributes"].should_not.contain("test")
     response["attributes"]["DefaultSMSType"].should.equal("Transactional")
+
+
+@mock_sns
+def test_delete_endpoints_of_delete_app():
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    platform_app_arn = conn.create_platform_application(
+        Name="app-test-kevs", Platform="GCM", Attributes={"PlatformCredential": "test"}
+    )["PlatformApplicationArn"]
+
+    endpoint_arn = conn.create_platform_endpoint(
+        PlatformApplicationArn=platform_app_arn,
+        Token="test",
+    )["EndpointArn"]
+
+    conn.delete_platform_application(PlatformApplicationArn=platform_app_arn)
+
+    with pytest.raises(conn.exceptions.NotFoundException) as excinfo:
+        conn.get_endpoint_attributes(EndpointArn=endpoint_arn)
+    error = excinfo.value.response["Error"]
+    error["Type"].should.equal("Sender")
+    error["Code"].should.equal("NotFound")
+    error["Message"].should.equal("Endpoint does not exist")

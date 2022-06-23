@@ -25,6 +25,7 @@ guardduty
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_administrator_invitation
 - [ ] accept_invitation
 - [ ] archive_findings
 - [X] create_detector
@@ -45,9 +46,11 @@ guardduty
 - [ ] describe_organization_configuration
 - [ ] describe_publishing_destination
 - [ ] disable_organization_admin_account
+- [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [X] enable_organization_admin_account
+- [ ] get_administrator_account
 - [X] get_detector
 - [X] get_filter
 - [ ] get_findings
@@ -57,6 +60,7 @@ guardduty
 - [ ] get_master_account
 - [ ] get_member_detectors
 - [ ] get_members
+- [ ] get_remaining_free_trial_days
 - [ ] get_threat_intel_set
 - [ ] get_usage_statistics
 - [ ] invite_members

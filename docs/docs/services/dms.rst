@@ -30,6 +30,7 @@ dms
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_endpoint
 - [ ] create_event_subscription
+- [ ] create_fleet_advisor_collector
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
@@ -42,6 +43,8 @@ dms
 - [ ] delete_connection
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
+- [ ] delete_fleet_advisor_collector
+- [ ] delete_fleet_advisor_databases
 - [ ] delete_replication_instance
 - [ ] delete_replication_subnet_group
 - [X] delete_replication_task
@@ -56,6 +59,11 @@ dms
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
 - [ ] describe_events
+- [ ] describe_fleet_advisor_collectors
+- [ ] describe_fleet_advisor_databases
+- [ ] describe_fleet_advisor_lsa_analysis
+- [ ] describe_fleet_advisor_schema_object_summary
+- [ ] describe_fleet_advisor_schemas
 - [ ] describe_orderable_replication_instances
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_refresh_schemas_status
@@ -84,6 +92,7 @@ dms
 - [ ] refresh_schemas
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
+- [ ] run_fleet_advisor_lsa_analysis
 - [X] start_replication_task
   
         The following parameters have not yet been implemented:

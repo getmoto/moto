@@ -7,6 +7,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ParamValidationError
 from botocore.client import ClientError
+from moto.core import ACCOUNT_ID
 
 from moto import mock_glue
 
@@ -449,3 +450,158 @@ def test_untag_glue_crawler():
     resp = client.get_tags(ResourceArn=resource_arn)
 
     resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+
+
+@mock_glue
+def test_create_registry_valid_input():
+    client = create_glue_client()
+    registry_name = "TestRegistry"
+    response = client.create_registry(
+        RegistryName=registry_name,
+        Description="test_create_registry_description",
+        Tags={"key1": "value1", "key2": "value2"},
+    )
+    response.should.have.key("RegistryName").equals("TestRegistry")
+    response.should.have.key("Description").equals("test_create_registry_description")
+    response.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    response.should.have.key("RegistryArn").equals(
+        f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/" + registry_name
+    )
+
+
+@mock_glue
+def test_create_registry_valid_partial_input():
+    client = create_glue_client()
+    registry_name = "TestRegistry"
+    response = client.create_registry(RegistryName=registry_name)
+    response.should.have.key("RegistryName").equals("TestRegistry")
+    response.should.have.key("RegistryArn").equals(
+        f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/" + registry_name
+    )
+
+
+@mock_glue
+def test_create_registry_invalid_input_registry_name_too_long():
+    client = create_glue_client()
+    registry_name = ""
+    for _ in range(90):
+        registry_name = registry_name + "foobar"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_registry(
+            RegistryName=registry_name,
+            Description="test_create_registry_description",
+            Tags={"key1": "value1", "key2": "value2"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "An error occurred (InvalidInputException) when calling the CreateRegistry operation: The resource name contains too many or too few characters. Parameter Name: registryName"
+    )
+
+
+@mock_glue
+def test_create_registry_more_than_allowed():
+    client = create_glue_client()
+
+    for i in range(10):
+        registry_name = "TestRegistry" + str(i)
+        client.create_registry(
+            RegistryName=registry_name,
+            Description="test_create_registry_description",
+            Tags={"key1": "value1", "key2": "value2"},
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_registry(
+            RegistryName="TestRegistry10",
+            Description="test_create_registry_description10",
+            Tags={"key1": "value1", "key2": "value2"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNumberLimitExceededException")
+    err["Message"].should.equal(
+        "An error occurred (ResourceNumberLimitExceededException) when calling the CreateRegistry operation: More registries cannot be created. The maximum limit has been reached."
+    )
+
+
+@mock_glue
+def test_create_registry_invalid_registry_name():
+    client = create_glue_client()
+
+    with pytest.raises(ClientError) as exc:
+        client.create_registry(
+            RegistryName="A,B,C",
+            Description="test_create_registry_description",
+            Tags={"key1": "value1", "key2": "value2"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "An error occurred (InvalidInputException) when calling the CreateRegistry operation: The parameter value contains one or more characters that are not valid. Parameter Name: registryName"
+    )
+
+
+@mock_glue
+def test_create_registry_already_exists():
+    client = create_glue_client()
+
+    client.create_registry(
+        RegistryName="TestRegistry1",
+        Description="test_create_registry_description1",
+        Tags={"key1": "value1", "key2": "value2"},
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_registry(
+            RegistryName="TestRegistry1",
+            Description="test_create_registry_description1",
+            Tags={"key1": "value1", "key2": "value2"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("AlreadyExistsException")
+    err["Message"].should.equal(
+        "An error occurred (AlreadyExistsException) when calling the CreateRegistry operation: Registry already exists. RegistryName: TestRegistry1"
+    )
+
+
+@mock_glue
+def test_create_registry_invalid_description_too_long():
+    client = create_glue_client()
+    description = ""
+    for _ in range(300):
+        description = description + "foobar, "
+
+    with pytest.raises(ClientError) as exc:
+        client.create_registry(
+            RegistryName="TestRegistry1",
+            Description=description,
+            Tags={"key1": "value1", "key2": "value2"},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "An error occurred (InvalidInputException) when calling the CreateRegistry operation: The resource name contains too many or too few characters. Parameter Name: description"
+    )
+
+
+@mock_glue
+def test_create_registry_invalid_number_of_tags():
+    tags = {}
+    for i in range(51):
+        key = "k" + str(i)
+        val = "v" + str(i)
+        tags[key] = val
+
+    client = create_glue_client()
+    with pytest.raises(ClientError) as exc:
+        client.create_registry(
+            RegistryName="TestRegistry1",
+            Description="test_create_registry_description",
+            Tags=tags,
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInputException")
+    err["Message"].should.equal(
+        "An error occurred (InvalidInputException) when calling the CreateRegistry operation: New Tags cannot be empty or more than 50"
+    )

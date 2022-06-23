@@ -125,3 +125,7 @@ def get_docker_host():
         )
         print(f"{type(e)}::{e}")
         return "http://host.docker.internal"
+
+
+def get_cognito_idp_user_pool_id_strategy():
+    return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")

@@ -5,6 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_databrew
+from moto.core import ACCOUNT_ID
 
 
 def _create_databrew_client():
@@ -109,6 +110,7 @@ def test_list_datasets_with_max_results():
     _create_test_datasets(client, 4)
     response = client.list_datasets(MaxResults=2)
     response["Datasets"].should.have.length_of(2)
+    response["Datasets"][0].should.have.key("ResourceArn")
     response.should.have.key("NextToken")
 
 
@@ -137,6 +139,9 @@ def test_describe_dataset():
     response = _create_test_dataset(client)
     dataset = client.describe_dataset(Name=response["Name"])
     dataset["Name"].should.equal(response["Name"])
+    dataset.should.have.key("ResourceArn").equal(
+        f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
+    )
     # endregion
 
     # region JSON test
@@ -232,6 +237,9 @@ def test_update_dataset():
     dataset = client.describe_dataset(Name=response["Name"])
     dataset["Name"].should.equal(response["Name"])
     dataset["Format"].should.equal("TEST")
+    dataset.should.have.key("ResourceArn").equal(
+        f"arn:aws:databrew:us-west-1:{ACCOUNT_ID}:dataset/{response['Name']}"
+    )
 
 
 @mock_databrew

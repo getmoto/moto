@@ -111,6 +111,7 @@ redshift
 - [ ] enable_logging
 - [X] enable_snapshot_copy
 - [X] get_cluster_credentials
+- [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] modify_aqua_configuration

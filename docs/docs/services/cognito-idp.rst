@@ -12,6 +12,8 @@
 cognito-idp
 ===========
 
+.. autoclass:: moto.cognitoidp.models.CognitoIdpBackend
+
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python

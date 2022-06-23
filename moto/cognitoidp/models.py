@@ -24,6 +24,7 @@ from .exceptions import (
 from .utils import (
     create_id,
     check_secret_hash,
+    generate_id,
     validate_username_format,
     flatten_attrs,
     expand_attrs,
@@ -31,6 +32,7 @@ from .utils import (
 )
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
+from ..settings import get_cognito_idp_user_pool_id_strategy
 
 
 class UserStatus(str, enum.Enum):
@@ -366,12 +368,20 @@ DEFAULT_USER_POOL_CONFIG = {
 
 
 class CognitoIdpUserPool(BaseModel):
+
+    MAX_ID_LENGTH = 56
+
     def __init__(self, region, name, extended_config):
         self.region = region
-        self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
+
+        user_pool_id = generate_id(
+            get_cognito_idp_user_pool_id_strategy(), region, name, extended_config
+        )
+        self.id = "{}_{}".format(self.region, user_pool_id)[: self.MAX_ID_LENGTH]
         self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
             self.region, get_account_id(), self.id
         )
+
         self.name = name
         self.status = None
 
@@ -821,6 +831,13 @@ class CognitoResourceServer(BaseModel):
 
 
 class CognitoIdpBackend(BaseBackend):
+    """
+    In some cases, you need to have reproducible IDs for the user pool.
+    For example, a single initialization before the start of integration tests.
+
+    This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
+    """
+
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.user_pools = OrderedDict()
