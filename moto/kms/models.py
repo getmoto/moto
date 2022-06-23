@@ -548,8 +548,6 @@ class KmsBackend(BaseBackend):
 
         - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
 
-        - message_type DIGEST is not implemented
-
         - grant_tokens are not implemented
         """
         key = self.describe_key(key_id)
@@ -573,8 +571,6 @@ class KmsBackend(BaseBackend):
         Verify message using public key from generated private key.
 
         - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
-
-        - message_type DIGEST is not implemented
 
         - grant_tokens are not implemented
         """
