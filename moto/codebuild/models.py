@@ -3,6 +3,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from datetime import datetime
 from moto.core import get_account_id
+from collections import defaultdict
 import uuid
 # from .exceptions import InvalidInputException
 
@@ -10,7 +11,8 @@ import uuid
 class CodeBuildProjectHistory(BaseModel):
 
     def __init__(self):
-        self.history = list()
+        self.build_history = list()
+        self.metadata_history = defaultdict(list)
 
 class CodeBuildProjectMetadata(BaseModel):
 
@@ -108,7 +110,7 @@ class CodeBuildBackend(BaseBackend):
         self.codebuild_projects = dict()
         self.build_history = dict()
         self.build_metadata = dict()
-        self.build_metadata_history = dict()
+        #self.build_metadata_history = dict()
         self.project_name = ""
 
     # @staticmethod
@@ -131,12 +133,13 @@ class CodeBuildBackend(BaseBackend):
             self.region_name, project_name, project_source, artifacts, environment, role
         )
 
-        # empty build history
+        # empty build history that can be queried
         self.build_history[project_name] = CodeBuildProjectHistory()
 
         return self.codebuild_projects[project_name].project_metadata
 
     def list_projects(self):
+        # can this be done better
         projects = []
         for k,v in self.codebuild_projects.items():
             projects.append(k)
@@ -147,30 +150,30 @@ class CodeBuildBackend(BaseBackend):
 
         build_id = "{0}:{1}".format(project_name, uuid.uuid4())
 
-        # update build history by id
-        self.build_history[project_name].history.append(build_id)
-
-        # construct new build metadata
+        # construct a new build
         self.build_metadata[project_name] = CodeBuildProjectMetadata(
             project_name, source_version, artifact_override, build_id
         )
 
-        # record build metadata history
-        self.build_metadata_history[project_name] = []
-        self.build_metadata_history[project_name].append(self.build_metadata[project_name].build_metadata)
-        
+        # update build history with id
+        self.build_history[project_name].build_history.append(build_id)
+
+        # update build histroy with metadata
+        #print(self.build_history[project_name].metadata_history)
+        self.build_history[project_name].metadata_history[project_name].append(self.build_metadata[project_name].build_metadata)
+
         # return current build
         return self.build_metadata[project_name].build_metadata
 
     def batch_get_builds(self, ids):
         print(f"my passed in ids are {ids}")
         # returns the project metadata for a given id of an instance of a build
-        return self.build_metadata_history[self.project_name]
+        return self.build_history[self.project_name].metadata_history[self.project_name]
 
 
     def list_builds_for_project(self, project_name):
         # validate stuff
-        return self.build_history[project_name].history
+        return self.build_history[project_name].build_history
 
     def delete_project():
         pass
