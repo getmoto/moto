@@ -17,7 +17,6 @@ def _validate_source(source):
 
 
 def _validate_service_role(service_role):
-    print(get_account_id())
     try:
         assert "arn:aws:iam::{0}:role/service-role/".format(get_account_id()) in service_role
     except AssertionError:
@@ -31,29 +30,29 @@ class CodeBuildResponse(BaseResponse):
     def codebuild_backend(self):
         return codebuild_backends[self.region]
 
-    # call model function and stores response expects [] to be returned
-    def list_builds_for_project(self):
 
-        # if project name not valid raise custom exception for list_builds_for_project function
-        # project needs to exist?
+    def list_builds_for_project(self):
+        # VALIDATE PROJECT EXISTS
+        # get param pulling function signatures params from .ipynb
 
         ids = self.codebuild_backend.list_builds_for_project(
-            self._get_params("project_name")
+            self._get_param("projectName")
         )
 
-        # does this just need to run ids, or should it be build here? probably built here?
         return json.dumps({"ids": ids})
+
 
     def create_project(self):
         _validate_source(self._get_param("source"))
         _validate_service_role(self._get_param("serviceRole"))
 
-        codebuild_project_metadata = self.codebuild_backend.create_project(
+        project_metadata = self.codebuild_backend.create_project(
             self._get_param("name"), self._get_param("source"), self._get_param("artifacts"), self._get_param("environment"), self._get_param("serviceRole")
         )
 
-        return json.dumps({"project": codebuild_project_metadata})
+        return json.dumps({"project": project_metadata})
+
 
     def list_projects(self):
-        codebuild_project_metadata = self.codebuild_backend.list_projects()
-        return json.dumps({"projects": codebuild_project_metadata})
+        project_metadata = self.codebuild_backend.list_projects()
+        return json.dumps({"projects": project_metadata})
