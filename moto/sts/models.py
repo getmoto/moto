@@ -1,5 +1,6 @@
 from base64 import b64decode
 import datetime
+import re
 import xmltodict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
@@ -81,14 +82,20 @@ class STSBackend(BaseBackend):
         return token
 
     def assume_role(self, role_session_name, role_arn, policy, duration, external_id):
-        # TODO
+        """
+        Assume an IAM Role. Note that the role does not need to exist. The ARN can point to another account, providing an opportunity to switch accounts.
+        """
         # Access Keys are created against a user
         # What user are we creating this against? Root user? System user?
         # Maybe check against AWS how these roles/access keys are created
         # They could be invisible, i.e. special type of access creds that cannot be seen by the user
-        access_key = iam_backends[self.account_id]["global"].create_access_key(
-            role_session_name, prefix="ASIA"
-        )
+        account_id_match = re.search(r"arn:aws:iam::([0-9]+).+", role_arn)
+        if account_id_match:
+            account_id = account_id_match.group(1)
+        else:
+            account_id = self.account_id
+        iam_backend = iam_backends[account_id]["global"]
+        access_key = iam_backend.create_temp_access_key()
         role = AssumedRole(
             access_key, role_session_name, role_arn, policy, duration, external_id
         )

@@ -43,6 +43,7 @@ class Rule(CloudFormationModel):
     def __init__(
         self,
         name,
+        account_id,
         region_name,
         description,
         event_pattern,
@@ -54,6 +55,7 @@ class Rule(CloudFormationModel):
         targets=None,
     ):
         self.name = name
+        self.account_id = account_id
         self.region_name = region_name
         self.description = description
         self.event_pattern = EventPattern.load(event_pattern)
@@ -76,7 +78,7 @@ class Rule(CloudFormationModel):
         return (
             "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
                 region=self.region_name,
-                account_id=get_account_id(),
+                account_id=self.account_id,
                 event_bus_name=event_bus_name,
                 name=self.name,
             )
@@ -189,14 +191,15 @@ class Rule(CloudFormationModel):
             }
         ]
 
-        logs_backends[self.region_name].create_log_stream(name, log_stream_name)
-        logs_backends[self.region_name].put_log_events(
-            name, log_stream_name, log_events
-        )
+        log_backend = logs_backends[self.account_id][self.region_name]
+        log_backend.create_log_stream(name, log_stream_name)
+        log_backend.put_log_events(name, log_stream_name, log_events)
 
     def _send_to_events_archive(self, resource_id, event):
         archive_name, archive_uuid = resource_id.split(":")
-        archive = events_backends[self.region_name].archives.get(archive_name)
+        archive = events_backends[self.account_id][self.region_name].archives.get(
+            archive_name
+        )
         if archive.uuid == archive_uuid:
             archive.events.append(event)
 
@@ -209,7 +212,9 @@ class Rule(CloudFormationModel):
         )
 
         if group_id:
-            queue_attr = sqs_backends[self.region_name].get_queue_attributes(
+            queue_attr = sqs_backends[self.account_id][
+                self.region_name
+            ].get_queue_attributes(
                 queue_name=resource_id, attribute_names=["ContentBasedDeduplication"]
             )
             if queue_attr["ContentBasedDeduplication"] == "false":
@@ -219,7 +224,7 @@ class Rule(CloudFormationModel):
                 )
                 return
 
-        sqs_backends[self.region_name].send_message(
+        sqs_backends[self.account_id][self.region_name].send_message(
             queue_name=resource_id,
             message_body=json.dumps(event_copy),
             group_id=group_id,
@@ -635,6 +640,7 @@ class ReplayState(Enum):
 class Replay(BaseModel):
     def __init__(
         self,
+        account_id,
         region_name,
         name,
         description,
@@ -643,6 +649,7 @@ class Replay(BaseModel):
         end_time,
         destination,
     ):
+        self.account_id = account_id
         self.region = region_name
         self.name = name
         self.description = description
@@ -687,7 +694,8 @@ class Replay(BaseModel):
         event_bus_name = self.destination["Arn"].split("/")[-1]
 
         for event in archive.events:
-            for rule in events_backends[self.region].rules.values():
+            event_backend = events_backends[self.account_id][self.region]
+            for rule in event_backend.rules.values():
                 rule.send_to_targets(
                     event_bus_name,
                     dict(event, **{"id": str(uuid4()), "replay-name": self.name}),
@@ -1052,6 +1060,7 @@ class EventsBackend(BaseBackend):
         targets = existing_rule.targets if existing_rule else list()
         rule = Rule(
             name,
+            self.account_id,
             self.region_name,
             description,
             event_pattern,
@@ -1558,7 +1567,7 @@ class EventsBackend(BaseBackend):
         if not archive:
             raise ResourceNotFoundException("Archive {} does not exist.".format(name))
 
-        archive.delete(self.region_name)
+        archive.delete(self.account_id, self.region_name)
 
     def start_replay(
         self, name, description, source_arn, start_time, end_time, destination
@@ -1599,6 +1608,7 @@ class EventsBackend(BaseBackend):
             )
 
         replay = Replay(
+            self.account_id,
             self.region_name,
             name,
             description,
