@@ -56,3 +56,20 @@ class CodeBuildResponse(BaseResponse):
     def list_projects(self):
         project_metadata = self.codebuild_backend.list_projects()
         return json.dumps({"projects": project_metadata})
+
+
+    def start_build(self):
+  
+        metadata = self.codebuild_backend.start_build(
+            self._get_param("projectName"), self._get_param("sourceVersion"), self._get_param("artifactsOverride")
+        )
+
+        return json.dumps({"build": metadata})
+
+    def batch_get_builds(self):
+
+        metadata = self.codebuild_backend.batch_get_builds(
+            self._get_param("ids")
+        )
+
+        return json.dumps({"builds": metadata})
