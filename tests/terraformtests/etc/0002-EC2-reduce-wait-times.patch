@@ -1009,7 +1009,7 @@ index 5ad62e86c0..68209e7fb8 100644
 -	vpcAttributePropagationTimeout = 5 * time.Minute
 -	vpcCreatedTimeout              = 10 * time.Minute
 -	vpcDeletedTimeout              = 5 * time.Minute
-+	vpcAttributePropagationTimeout = 5 * time.Second
++	vpcAttributePropagationTimeout = 10 * time.Second
 +	vpcCreatedTimeout              = 10 * time.Second
 +	vpcDeletedTimeout              = 5 * time.Second
  )
