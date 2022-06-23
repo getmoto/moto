@@ -31,7 +31,8 @@ def get_moto_implementation(service_name):
         return None, None
     backends = list(mock().backends.values())
     if backends:
-        return backends[0], mock_name
+        backend = backends[0]["us-east-1"] if "us-east-1" in backends[0] else backends[0]["global"]
+        return backend, mock_name
 
 
 def get_module_name(o):
@@ -260,7 +261,7 @@ def write_implementation_coverage_to_docs(coverage):
         file.write("        ...\n")
         file.write("\n\n")
         file.write(".. sourcecode:: python\n\n")
-        file.write("    @mock_all\n")
+        file.write("    @mock_all()\n")
         file.write("    def test_all_supported_services_at_the_same_time():\n")
         file.write("        ...\n")
         file.write("\n")

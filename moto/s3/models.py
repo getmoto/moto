@@ -351,11 +351,12 @@ class FakeKey(BaseModel, ManagedState):
 
 
 class FakeMultipart(BaseModel):
-    def __init__(self, key_name, metadata, storage=None, tags=None):
+    def __init__(self, key_name, metadata, storage=None, tags=None, acl=None):
         self.key_name = key_name
         self.metadata = metadata
         self.storage = storage
         self.tags = tags
+        self.acl = acl
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
@@ -1881,13 +1882,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             pub_block_config.get("RestrictPublicBuckets"),
         )
 
-    def initiate_multipart(self, bucket_name, key_name, metadata):
-        bucket = self.get_bucket(bucket_name)
-        new_multipart = FakeMultipart(key_name, metadata)
-        bucket.multiparts[new_multipart.id] = new_multipart
-
-        return new_multipart
-
     def complete_multipart(self, bucket_name, multipart_id, body):
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
@@ -1924,9 +1918,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return len(bucket.multiparts[multipart_id].parts) > next_part_number_marker
 
     def create_multipart_upload(
-        self, bucket_name, key_name, metadata, storage_type, tags
+        self, bucket_name, key_name, metadata, storage_type, tags, acl
     ):
-        multipart = FakeMultipart(key_name, metadata, storage=storage_type, tags=tags)
+        multipart = FakeMultipart(
+            key_name, metadata, storage=storage_type, tags=tags, acl=acl
+        )
 
         bucket = self.get_bucket(bucket_name)
         bucket.multiparts[multipart.id] = multipart

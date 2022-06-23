@@ -186,6 +186,8 @@ def NodegroupBuilder(ClusterBuilder):
 # in the list at initialization, which means the mock
 # decorator must be used manually in this one case.
 ###
+
+
 @mock_eks
 def test_list_clusters_returns_empty_by_default():
     client = boto3.client(SERVICE, region_name=REGION)
@@ -193,6 +195,35 @@ def test_list_clusters_returns_empty_by_default():
     result = client.list_clusters()[ResponseAttributes.CLUSTERS]
 
     result.should.equal([])
+
+
+@mock_eks
+def test_list_tags_returns_empty_by_default(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_arn = generated_test_data.cluster_describe_output[ClusterAttributes.ARN]
+    result = client.list_tags_for_resource(resourceArn=cluster_arn)
+    assert len(result["tags"]) == 0
+
+
+@mock_eks
+def test_list_tags_returns_all(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_arn = generated_test_data.cluster_describe_output[ClusterAttributes.ARN]
+    client.tag_resource(resourceArn=cluster_arn, tags={"key1": "val1", "key2": "val2"})
+    result = client.list_tags_for_resource(resourceArn=cluster_arn)
+    assert len(result["tags"]) == 2
+    result.should.have.key("tags").equals({"key1": "val1", "key2": "val2"})
+
+
+@mock_eks
+def test_list_tags_returns_all_after_delete(ClusterBuilder):
+    client, generated_test_data = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_arn = generated_test_data.cluster_describe_output[ClusterAttributes.ARN]
+    client.tag_resource(resourceArn=cluster_arn, tags={"key1": "val1", "key2": "val2"})
+    client.untag_resource(resourceArn=cluster_arn, tagKeys=["key1"])
+    result = client.list_tags_for_resource(resourceArn=cluster_arn)
+    assert len(result["tags"]) == 1
+    result.should.have.key("tags").equals({"key2": "val2"})
 
 
 @mock_eks

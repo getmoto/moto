@@ -410,7 +410,7 @@ class EBSBackend:
             key = kms.create_key(
                 policy="",
                 key_usage="ENCRYPT_DECRYPT",
-                customer_master_key_spec="SYMMETRIC_DEFAULT",
+                key_spec="SYMMETRIC_DEFAULT",
                 description="Default master key that protects my EBS volumes when no other key is defined",
                 tags=None,
                 region=self.region_name,

@@ -1,13 +1,15 @@
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
+import sys
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2
+from unittest import SkipTest
 
 
 @mock_ec2
-def test_create_customer_gateways_boto3():
+def test_create_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     customer_gateway = create_customer_gateway(ec2)
@@ -15,6 +17,26 @@ def test_create_customer_gateways_boto3():
     customer_gateway.should.have.key("Type").equal("ipsec.1")
     customer_gateway.should.have.key("BgpAsn").equal("65534")
     customer_gateway.should.have.key("IpAddress").equal("205.251.242.54")
+
+
+@mock_ec2
+def test_create_customer_gateways_using_publicip_argument():
+    version_info = sys.version_info
+    if version_info.major == 3 and version_info.minor <= 6:
+        raise SkipTest(
+            "Py 3.6 has an older versions of botocore, and does not support the IpAddress-argument"
+        )
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    # The PublicIp-argument is deprecated, but should still be supported by Moto
+    # https://github.com/boto/botocore/commit/86202c8698cf77fb6ecccfdbc05bbc218e861d14#diff-c51449716bfc26c1eac92ec403b470827d2dcba1126cf303567074b872d5c592
+    customer_gateway = ec2.create_customer_gateway(
+        Type="ipsec.1", IpAddress="205.251.242.53", BgpAsn=65534
+    )["CustomerGateway"]
+    customer_gateway.should.have.key("CustomerGatewayId").match(r"cgw-\w+")
+    customer_gateway.should.have.key("Type").equal("ipsec.1")
+    customer_gateway.should.have.key("BgpAsn").equal("65534")
+    customer_gateway.should.have.key("IpAddress").equal("205.251.242.53")
 
 
 @mock_ec2
@@ -31,7 +53,7 @@ def test_describe_customer_gateways_dryrun():
 
 
 @mock_ec2
-def test_describe_customer_gateways_boto3():
+def test_describe_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     customer_gateway = create_customer_gateway(ec2)
@@ -57,7 +79,7 @@ def test_describe_customer_gateways_boto3():
 
 
 @mock_ec2
-def test_delete_customer_gateways_boto3():
+def test_delete_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     customer_gateway = create_customer_gateway(ec2)
@@ -79,7 +101,7 @@ def test_delete_customer_gateways_boto3():
 
 
 @mock_ec2
-def test_delete_customer_gateways_bad_id_boto3():
+def test_delete_customer_gateways_bad_id():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.delete_customer_gateway(CustomerGatewayId="cgw-0123abcd")

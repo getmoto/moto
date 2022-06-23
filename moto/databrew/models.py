@@ -1,3 +1,6 @@
+from abc import ABCMeta
+from abc import abstractmethod
+
 from collections import OrderedDict
 from copy import deepcopy
 import math
@@ -5,6 +8,9 @@ from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.core.utils import underscores_to_camelcase
+from moto.core.utils import camelcase_to_pascal
+
 from moto.utilities.paginator import paginate
 
 from .exceptions import (
@@ -43,6 +49,12 @@ class DataBrewBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "list_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name, account_id):
@@ -50,6 +62,7 @@ class DataBrewBackend(BaseBackend):
         self.recipes = OrderedDict()
         self.rulesets = OrderedDict()
         self.datasets = OrderedDict()
+        self.jobs = OrderedDict()
 
     @staticmethod
     def validate_length(param, param_name, max_length):
@@ -145,7 +158,7 @@ class DataBrewBackend(BaseBackend):
         ]
         return [r for r in recipe_versions if r is not None]
 
-    def get_recipe(self, recipe_name, recipe_version=None):
+    def describe_recipe(self, recipe_name, recipe_version=None):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
         self.validate_length(recipe_name, "name", 255)
 
@@ -211,7 +224,7 @@ class DataBrewBackend(BaseBackend):
 
         return ruleset
 
-    def get_ruleset(self, ruleset_name):
+    def describe_ruleset(self, ruleset_name):
         if ruleset_name not in self.rulesets:
             raise RulesetNotFoundException(ruleset_name)
         return self.rulesets[ruleset_name]
@@ -240,6 +253,7 @@ class DataBrewBackend(BaseBackend):
 
         dataset = FakeDataset(
             self.region_name,
+            self.account_id,
             dataset_name,
             dataset_format,
             dataset_format_options,
@@ -293,6 +307,99 @@ class DataBrewBackend(BaseBackend):
             raise ResourceNotFoundException("One or more resources can't be found.")
 
         return self.datasets[dataset_name]
+
+    def describe_job(self, job_name):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeJob.html
+        self.validate_length(job_name, "name", 240)
+
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"Job {job_name} wasn't found.")
+
+        return self.jobs[job_name]
+
+    def delete_job(self, job_name):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_DeleteJob.html
+        self.validate_length(job_name, "name", 240)
+
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"The job {job_name} wasn't found.")
+
+        del self.jobs[job_name]
+
+    def create_profile_job(self, **kwargs):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateProfileJob.html
+        job_name = kwargs["name"]
+        self.validate_length(job_name, "name", 240)
+
+        if job_name in self.jobs:
+            raise ConflictException(
+                f"The job {job_name} {self.jobs[job_name].job_type.lower()} job already exists."
+            )
+
+        job = FakeProfileJob(
+            account_id=self.account_id, region_name=self.region_name, **kwargs
+        )
+
+        self.jobs[job_name] = job
+        return job
+
+    def create_recipe_job(self, **kwargs):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipeJob.html
+        job_name = kwargs["name"]
+        self.validate_length(job_name, "name", 240)
+
+        if job_name in self.jobs:
+            raise ConflictException(
+                f"The job {job_name} {self.jobs[job_name].job_type.lower()} job already exists."
+            )
+
+        job = FakeRecipeJob(
+            account_id=self.account_id, region_name=self.region_name, **kwargs
+        )
+
+        self.jobs[job_name] = job
+        return job
+
+    def update_job(self, **kwargs):
+        job_name = kwargs["name"]
+        self.validate_length(job_name, "name", 240)
+
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"The job {job_name} wasn't found")
+
+        job = self.jobs[job_name]
+
+        for param, value in kwargs.items():
+            setattr(job, param, value)
+        return job
+
+    def update_recipe_job(self, **kwargs):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_UpdateRecipeJob.html
+        return self.update_job(**kwargs)
+
+    def update_profile_job(self, **kwargs):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_UpdateProfileJob.html
+        return self.update_job(**kwargs)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_jobs(self, dataset_name=None, project_name=None):
+        # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
+        if dataset_name is not None:
+            self.validate_length(dataset_name, "datasetName", 255)
+        if project_name is not None:
+            self.validate_length(project_name, "projectName", 255)
+
+        def filter_jobs(job):
+            if dataset_name is not None and job.dataset_name != dataset_name:
+                return False
+            if (
+                project_name is not None
+                and getattr(job, "project_name", None) != project_name
+            ):
+                return False
+            return True
+
+        return list(filter(filter_jobs, self.jobs.values()))
 
 
 class FakeRecipe(BaseModel):
@@ -423,7 +530,7 @@ class FakeRuleset(BaseModel):
             "Rules": self.rules,
             "Description": self.description,
             "TargetArn": self.target_arn,
-            "CreateTime": self.created_time.isoformat(),
+            "CreateDate": "%.3f" % self.created_time.timestamp(),
             "Tags": self.tags or dict(),
         }
 
@@ -432,6 +539,7 @@ class FakeDataset(BaseModel):
     def __init__(
         self,
         region_name,
+        account_id,
         dataset_name,
         dataset_format,
         dataset_format_options,
@@ -440,6 +548,7 @@ class FakeDataset(BaseModel):
         tags,
     ):
         self.region_name = region_name
+        self.account_id = account_id
         self.name = dataset_name
         self.format = dataset_format
         self.format_options = dataset_format_options
@@ -448,6 +557,12 @@ class FakeDataset(BaseModel):
         self.created_time = datetime.now()
         self.tags = tags
 
+    @property
+    def resource_arn(self):
+        return (
+            f"arn:aws:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
+        )
+
     def as_dict(self):
         return {
             "Name": self.name,
@@ -455,9 +570,106 @@ class FakeDataset(BaseModel):
             "FormatOptions": self.format_options,
             "Input": self.input,
             "PathOptions": self.path_options,
-            "CreateTime": self.created_time.isoformat(),
+            "CreateDate": "%.3f" % self.created_time.timestamp(),
             "Tags": self.tags or dict(),
+            "ResourceArn": self.resource_arn,
         }
+
+
+class BaseModelABCMeta(ABCMeta, type(BaseModel)):
+    pass
+
+
+class FakeJob(BaseModel, metaclass=BaseModelABCMeta):
+
+    ENCRYPTION_MODES = ("SSE-S3", "SSE-KMS")
+    LOG_SUBSCRIPTION_VALUES = ("ENABLE", "DISABLE")
+
+    @property
+    @abstractmethod
+    def local_attrs(self) -> tuple:
+        raise NotImplementedError
+
+    def __init__(self, account_id, region_name, **kwargs):
+        self.account_id = account_id
+        self.region_name = region_name
+        self.name = kwargs.get("name")
+        self.created_time = datetime.now()
+        self.dataset_name = kwargs.get("dataset_name")
+        self.encryption_mode = kwargs.get("encryption_mode")
+        self.log_subscription = kwargs.get("log_subscription")
+        self.max_capacity = kwargs.get("max_capacity")
+        self.max_retries = kwargs.get("max_retries")
+        self.role_arn = kwargs.get("role_arn")
+        self.tags = kwargs.get("tags")
+        self.validate()
+        # Set attributes specific to subclass
+        for k in self.local_attrs:
+            setattr(self, k, kwargs.get(k))
+
+    def validate(self):
+        if self.encryption_mode is not None:
+            if self.encryption_mode not in FakeJob.ENCRYPTION_MODES:
+                raise ValidationException(
+                    f"1 validation error detected: Value '{self.encryption_mode}' at 'encryptionMode' failed to satisfy constraint: Member must satisfy enum value set: [{', '.join(self.ENCRYPTION_MODES)}]"
+                )
+        if self.log_subscription is not None:
+            if self.log_subscription not in FakeJob.LOG_SUBSCRIPTION_VALUES:
+                raise ValidationException(
+                    f"1 validation error detected: Value '{self.log_subscription}' at 'logSubscription' failed to satisfy constraint: Member must satisfy enum value set: [{', '.join(self.LOG_SUBSCRIPTION_VALUES)}]"
+                )
+
+    @property
+    @abstractmethod
+    def job_type(self) -> str:
+        pass
+
+    @property
+    def resource_arn(self):
+        return f"arn:aws:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
+
+    def as_dict(self):
+        rtn_dict = {
+            "Name": self.name,
+            "AccountId": self.account_id,
+            "CreateDate": "%.3f" % self.created_time.timestamp(),
+            "DatasetName": self.dataset_name,
+            "EncryptionMode": self.encryption_mode,
+            "Tags": self.tags or dict(),
+            "LogSubscription": self.log_subscription,
+            "MaxCapacity": self.max_capacity,
+            "MaxRetries": self.max_retries,
+            "ResourceArn": self.resource_arn,
+            "RoleArn": self.role_arn,
+            "Type": self.job_type,
+        }
+
+        # Add in subclass attributes
+        for k in self.local_attrs:
+            rtn_dict[camelcase_to_pascal(underscores_to_camelcase(k))] = getattr(
+                self, k
+            )
+
+        # Remove items that have a value of None
+        rtn_dict = {k: v for k, v in rtn_dict.items() if v is not None}
+
+        return rtn_dict
+
+
+class FakeProfileJob(FakeJob):
+    job_type = "PROFILE"
+    local_attrs = ("output_location", "configuration", "validation_configurations")
+
+
+class FakeRecipeJob(FakeJob):
+    local_attrs = (
+        "database_outputs",
+        "data_catalog_outputs",
+        "outputs",
+        "project_name",
+        "recipe_reference",
+    )
+    job_type = "RECIPE"
 
 
 databrew_backends = BackendDict(DataBrewBackend, "databrew")

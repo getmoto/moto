@@ -81,7 +81,7 @@ ec2
 - [ ] create_client_vpn_route
 - [X] create_customer_gateway
 - [ ] create_default_subnet
-- [ ] create_default_vpc
+- [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
 - [ ] create_fleet

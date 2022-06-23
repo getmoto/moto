@@ -452,3 +452,10 @@ class GlueResponse(BaseResponse):
             if glue_resource_tags[key] == tags[key]:
                 return True
         return False
+
+    def create_registry(self):
+        registry_name = self._get_param("RegistryName")
+        description = self._get_param("Description")
+        tags = self._get_param("Tags")
+        registry = self.glue_backend.create_registry(registry_name, description, tags)
+        return json.dumps(registry.as_dict())

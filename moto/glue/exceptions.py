@@ -97,3 +97,49 @@ class InvalidInputException(_InvalidOperationException):
 class InvalidStateException(_InvalidOperationException):
     def __init__(self, op, msg):
         super().__init__("InvalidStateException", op, msg)
+
+
+class ResourceNumberLimitExceededException(_InvalidOperationException):
+    def __init__(self, op, resource):
+        super().__init__(
+            "ResourceNumberLimitExceededException",
+            op,
+            "More "
+            + resource
+            + " cannot be created. The maximum limit has been reached.",
+        )
+
+
+class GSRAlreadyExistsException(_InvalidOperationException):
+    def __init__(self, op, resource, param_name, param_value):
+        super().__init__(
+            "AlreadyExistsException",
+            op,
+            resource + " already exists. " + param_name + ": " + param_value,
+        )
+
+
+class ResourceNameTooLongException(InvalidInputException):
+    def __init__(self, op, param_name):
+        super().__init__(
+            op,
+            "The resource name contains too many or too few characters. Parameter Name: "
+            + param_name,
+        )
+
+
+class ParamValueContainsInvalidCharactersException(InvalidInputException):
+    def __init__(self, op, param_name):
+        super().__init__(
+            op,
+            "The parameter value contains one or more characters that are not valid. Parameter Name: "
+            + param_name,
+        )
+
+
+class InvalidNumberOfTagsException(InvalidInputException):
+    def __init__(self, op):
+        super().__init__(
+            op,
+            "New Tags cannot be empty or more than 50",
+        )

@@ -3364,3 +3364,26 @@ def test_head_versioned_key_in_not_versioned_bucket():
 
     response = ex.value.response
     assert response["Error"]["Code"] == "400"
+
+
+@mock_s3
+def test_prefix_encoding():
+    bucket_name = "encoding-bucket"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+
+    client.put_object(Bucket=bucket_name, Key="foo%2Fbar/data", Body=b"")
+
+    data = client.list_objects_v2(Bucket=bucket_name, Prefix="foo%2Fbar")
+    assert data["Contents"][0]["Key"].startswith(data["Prefix"])
+
+    data = client.list_objects_v2(Bucket=bucket_name, Prefix="foo%2Fbar", Delimiter="/")
+    assert data["CommonPrefixes"] == [{"Prefix": "foo%2Fbar/"}]
+
+    client.put_object(Bucket=bucket_name, Key="foo/bar/data", Body=b"")
+
+    data = client.list_objects_v2(Bucket=bucket_name, Delimiter="/")
+    folders = list(
+        map(lambda common_prefix: common_prefix["Prefix"], data["CommonPrefixes"])
+    )
+    assert ["foo%2Fbar/", "foo/"] == folders
