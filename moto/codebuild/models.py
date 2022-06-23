@@ -92,7 +92,7 @@ class CodeBuild(BaseModel):
         self.project_metadata["lastModifiedDate"] = current_date
         self.project_metadata["created"] = current_date
         self.project_metadata["badge"] = dict()
-        self.project_metadata["badge"]["badgeEnabled"] = False         # this false needs to be a json false not a python false
+        self.project_metadata["badge"]["badgeEnabled"] = False  # this false needs to be a json false not a python false
         self.project_metadata["environment"] = environment
         self.project_metadata["artifacts"] = artifacts
         self.project_metadata["source"] = project_source
@@ -110,36 +110,26 @@ class CodeBuildBackend(BaseBackend):
         self.codebuild_projects = dict()
         self.build_history = dict()
         self.build_metadata = dict()
-        #self.build_metadata_history = dict()
         self.project_name = ""
 
-    # @staticmethod
-    # def default_vpc_endpoint_service(service_region, zones):
-    #     """Default VPC endpoint service."""
-    #     return BaseBackend.default_vpc_endpoint_service_factory(
-    #         service_region, zones, "codebuild"
-    #     )
-
-    # as long as you create a project, codebuild_projects is a dict of objects you create
-    # in here link up this build history and build history metadata to the created project
     def create_project(self, project_name, project_source, artifacts, environment, role):
         #project = self.codebuild_projects.get(project_name)
         # if project:
         #     raise SomeException(project_name)         # this needs to be a project name exists
-
-        self.project_name = project_name
         
+        self.project_name = project_name
+
         self.codebuild_projects[project_name] = CodeBuild(
             self.region_name, project_name, project_source, artifacts, environment, role
         )
 
-        # empty build history that can be queried
+        # empty build history
         self.build_history[project_name] = CodeBuildProjectHistory()
 
         return self.codebuild_projects[project_name].project_metadata
 
     def list_projects(self):
-        # can this be done better
+
         projects = []
         for project,_ in self.codebuild_projects.items():
             projects.append(project)
@@ -159,12 +149,13 @@ class CodeBuildBackend(BaseBackend):
         self.build_history[project_name].build_history.append(build_id)
         # update build histroy with metadata
         self.build_history[project_name].metadata_history[project_name].append(self.build_metadata[project_name].build_metadata)
+
         # return current build
         return self.build_metadata[project_name].build_metadata
 
     def batch_get_builds(self, ids):
-        print(f"my passed in ids are {ids}")
         # returns the project metadata for a given id of an instance of a build
+        # filter by ids 
         return self.build_history[self.project_name].metadata_history[self.project_name]
 
 
@@ -179,11 +170,15 @@ class CodeBuildBackend(BaseBackend):
             ids.append(history.build_history[0])
         return ids
 
-    def delete_project():
-        pass
+
+    def delete_project(self, project_name):
+
+        self.build_history.pop(project_name, None)
+        self.build_metadata.pop(project_name, None)
 
 
     def stop_build():
         pass
+
 
 codebuild_backends = BackendDict(CodeBuildBackend, "codebuild")

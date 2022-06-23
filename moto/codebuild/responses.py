@@ -81,3 +81,11 @@ class CodeBuildResponse(BaseResponse):
         ids = self.codebuild_backend.list_builds()
 
         return json.dumps({"ids": ids})
+
+    def delete_project(self):
+
+        self.codebuild_backend.delete_project(
+            self._get_param("name")
+        )
+
+        return
