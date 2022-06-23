@@ -73,3 +73,11 @@ class CodeBuildResponse(BaseResponse):
         )
 
         return json.dumps({"builds": metadata})
+
+    def list_builds(self):
+        # VALIDATE PROJECT EXISTS
+        # get param pulling function signatures params from .ipynb
+
+        ids = self.codebuild_backend.list_builds()
+
+        return json.dumps({"ids": ids})

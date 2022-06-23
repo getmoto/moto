@@ -141,8 +141,8 @@ class CodeBuildBackend(BaseBackend):
     def list_projects(self):
         # can this be done better
         projects = []
-        for k,v in self.codebuild_projects.items():
-            projects.append(k)
+        for project,_ in self.codebuild_projects.items():
+            projects.append(project)
 
         return projects
 
@@ -157,11 +157,8 @@ class CodeBuildBackend(BaseBackend):
 
         # update build history with id
         self.build_history[project_name].build_history.append(build_id)
-
         # update build histroy with metadata
-        #print(self.build_history[project_name].metadata_history)
         self.build_history[project_name].metadata_history[project_name].append(self.build_metadata[project_name].build_metadata)
-
         # return current build
         return self.build_metadata[project_name].build_metadata
 
@@ -175,11 +172,16 @@ class CodeBuildBackend(BaseBackend):
         # validate stuff
         return self.build_history[project_name].build_history
 
+
+    def list_builds(self):
+        ids = []
+        for _,history in self.build_history.items():
+            ids.append(history.build_history[0])
+        return ids
+
     def delete_project():
         pass
 
-    def list_builds():
-        pass
 
     def stop_build():
         pass
