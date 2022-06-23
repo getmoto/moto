@@ -4,29 +4,25 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from datetime import datetime
 from moto.core import get_account_id
 from collections import defaultdict
+from random import randint
 import uuid
 # from .exceptions import InvalidInputException
-
-
-class CodeBuildProjectHistory(BaseModel):
-
-    def __init__(self):
-        self.build_history = list()
-        self.metadata_history = defaultdict(list)
 
 class CodeBuildProjectMetadata(BaseModel):
 
     def __init__(self, project_name, source_version, artifacts, build_id):
         current_date = iso_8601_datetime_with_milliseconds(datetime.utcnow())
         self.build_metadata = dict()
+        self.build_id_history = list()
+
+        self.build_metadata_history = defaultdict(list)
 
         self.build_metadata["id"] = build_id
         self.build_metadata["arn"] = "arn:aws:codebuild:eu-west-2:{0}:build/{1}".format(
             get_account_id(), build_id
         )
 
-        # should depend on the number of builds in build history
-        self.build_metadata["buildNumber"] = 1 # will have to increment per build entry
+        self.build_metadata["buildNumber"] = randint(1,100)
         self.build_metadata["startTime"] = current_date
         self.build_metadata["currentPhase"] = "QUEUED"
         self.build_metadata["buildStatus"] = "IN_PROGRESS"
@@ -113,6 +109,7 @@ class CodeBuildBackend(BaseBackend):
         self.project_name = ""
 
     def create_project(self, project_name, project_source, artifacts, environment, role):
+        # if exists exit with proper response
         #project = self.codebuild_projects.get(project_name)
         # if project:
         #     raise SomeException(project_name)         # this needs to be a project name exists
@@ -124,7 +121,7 @@ class CodeBuildBackend(BaseBackend):
         )
 
         # empty build history
-        self.build_history[project_name] = CodeBuildProjectHistory()
+        self.build_history[project_name] = []
 
         return self.codebuild_projects[project_name].project_metadata
 
@@ -146,34 +143,47 @@ class CodeBuildBackend(BaseBackend):
         )
 
         # update build history with id
-        self.build_history[project_name].build_history.append(build_id)
+        self.build_metadata[project_name].build_id_history.append(build_id)
+
         # update build histroy with metadata
-        self.build_history[project_name].metadata_history[project_name].append(self.build_metadata[project_name].build_metadata)
+        self.build_metadata[project_name].build_metadata_history[project_name].append(
+            self.build_metadata[project_name].build_metadata
+        )
 
         # return current build
         return self.build_metadata[project_name].build_metadata
 
     def batch_get_builds(self, ids):
-        # returns the project metadata for a given id of an instance of a build
-        # filter by ids 
-        return self.build_history[self.project_name].metadata_history[self.project_name]
+
+        metadata_by_id = []
+
+        for project_name, metadata in self.build_metadata.items():
+            for entry in metadata.build_metadata_history[project_name]:
+                for id in ids:
+                    if entry["id"] == id:
+                        metadata_by_id.append(entry)
+
+        return metadata_by_id
 
 
     def list_builds_for_project(self, project_name):
         # validate stuff
-        return self.build_history[project_name].build_history
+        try:
+            return self.build_metadata[project_name].build_id_history
+        except KeyError:
+            return list()
 
 
     def list_builds(self):
         ids = []
-        for _,history in self.build_history.items():
-            ids.append(history.build_history[0])
+        for _,history in self.build_metadata.items():
+            ids.append(history.build_id_history[0])
         return ids
 
 
     def delete_project(self, project_name):
 
-        self.build_history.pop(project_name, None)
+        self.build_metadata.pop(project_name, None)
         self.build_metadata.pop(project_name, None)
 
 
