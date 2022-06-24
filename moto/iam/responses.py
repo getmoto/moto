@@ -530,7 +530,7 @@ class IamResponse(BaseResponse):
             access_key_id = self.get_access_key()
             user = self.backend.get_user_from_access_key_id(access_key_id)
             if user is None:
-                user = User("default_user")
+                user = User(self.current_account, "default_user")
         else:
             user = self.backend.get_user(user_name)
         tags = self.backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])

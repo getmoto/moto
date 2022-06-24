@@ -77,10 +77,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
             service_region, zones, "application-autoscaling"
         )
 
-    @property
-    def applicationautoscaling_backend(self):
-        return applicationautoscaling_backends[self.region_name]
-
     def describe_scalable_targets(self, namespace, r_ids=None, dimension=None):
         """Describe scalable targets."""
         if r_ids is None:

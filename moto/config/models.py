@@ -602,7 +602,9 @@ class Source(ConfigEmptyDictable):
 
     OWNERS = {"AWS", "CUSTOM_LAMBDA"}
 
-    def __init__(self, region, owner, source_identifier, source_details=None):
+    def __init__(
+        self, account_id, region, owner, source_identifier, source_details=None
+    ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
         if owner not in Source.OWNERS:
             raise ValidationException(
@@ -644,7 +646,7 @@ class Source(ConfigEmptyDictable):
         from moto.awslambda import lambda_backends
 
         try:
-            lambda_backends[region].get_function(source_identifier)
+            lambda_backends[account_id][region].get_function(source_identifier)
         except Exception:
             raise InsufficientPermissionsException(
                 f"The AWS Lambda function {source_identifier} cannot be "
@@ -680,8 +682,9 @@ class ConfigRule(ConfigEmptyDictable):
     MAX_RULES = 150
     RULE_STATES = {"ACTIVE", "DELETING", "DELETING_RESULTS", "EVALUATING"}
 
-    def __init__(self, region, config_rule, tags):
+    def __init__(self, account_id, region, config_rule, tags):
         super().__init__(capitalize_start=True, capitalize_arn=False)
+        self.account_id = account_id
         self.config_rule_name = config_rule.get("ConfigRuleName")
         if config_rule.get("ConfigRuleArn") or config_rule.get("ConfigRuleId"):
             raise InvalidParameterValueException(
@@ -721,7 +724,7 @@ class ConfigRule(ConfigEmptyDictable):
             self.scope = Scope(**scope_dict)
 
         source_dict = convert_to_class_args(config_rule["Source"])
-        self.source = Source(region, **source_dict)
+        self.source = Source(self.account_id, region, **source_dict)
 
         self.input_parameters = config_rule.get("InputParameters")
         self.input_parameters_dict = {}
@@ -1474,11 +1477,15 @@ class ConfigBackend(BaseBackend):
         backend_query_region = (
             backend_region  # Always provide the backend this request arrived from.
         )
-        if RESOURCE_MAP[resource_type].backends.get("global"):
+        if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
             backend_region = "global"
 
         # If the backend region isn't implemented then we won't find the item:
-        if not RESOURCE_MAP[resource_type].backends.get(backend_region):
+        if (
+            not RESOURCE_MAP[resource_type]
+            .backends[self.account_id]
+            .get(backend_region)
+        ):
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
         # Get the item:
@@ -1892,7 +1899,7 @@ class ConfigBackend(BaseBackend):
                 raise MaxNumberOfConfigRulesExceededException(
                     rule_name, ConfigRule.MAX_RULES
                 )
-            rule = ConfigRule(self.region_name, config_rule, tags)
+            rule = ConfigRule(self.account_id, self.region_name, config_rule, tags)
             self.config_rules[rule_name] = rule
         return ""
 

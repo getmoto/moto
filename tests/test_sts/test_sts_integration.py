@@ -11,7 +11,7 @@ class TestStsAssumeRole(unittest.TestCase):
         # assume role to another aws account
         account_b = "111111111111"
         role_name = f"arn:aws:iam::{account_b}:role/my-role"
-        sts = boto3.client("sts")
+        sts = boto3.client("sts", region_name="us-east-1")
         response = sts.assume_role(
             RoleArn=role_name,
             RoleSessionName="test-session-name",

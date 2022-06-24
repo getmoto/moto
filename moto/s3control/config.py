@@ -103,7 +103,8 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
     ):
 
         # Do we even have this defined?
-        if not self.backends[account_id]["global"].public_access_block:
+        backend = self.backends[account_id]["global"]
+        if not backend.public_access_block:
             return None
 
         # Resource name can only ever be "" if it's supplied:
@@ -141,9 +142,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
             "resourceId": account_id,
             "awsRegion": pab_region,
             "availabilityZone": "Not Applicable",
-            "configuration": self.backends[
-                "global"
-            ].public_access_block.to_config_dict(),
+            "configuration": backend.public_access_block.to_config_dict(),
             "supplementaryConfiguration": {},
         }
 

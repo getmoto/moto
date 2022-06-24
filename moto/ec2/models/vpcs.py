@@ -631,19 +631,15 @@ class VPCBackend:
 
         from moto import backends  # pylint: disable=import-outside-toplevel
 
-        for _backends in backends.unique_backends():
-            if account_id not in _backends:
-                continue
+        for _backends in backends.service_backends():
             _backends = _backends[account_id]
             if region in _backends:
-                service = _backends[account_id][region].default_vpc_endpoint_service(
-                    region, zones
-                )
+                service = _backends[region].default_vpc_endpoint_service(region, zones)
                 if service:
                     DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
 
             if "global" in _backends:
-                service = _backends[account_id]["global"].default_vpc_endpoint_service(
+                service = _backends["global"].default_vpc_endpoint_service(
                     region, zones
                 )
                 if service:

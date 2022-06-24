@@ -1798,6 +1798,7 @@ def test_get_access_key_last_used_when_used():
 
     access_key_client = boto3.client(
         "iam",
+        region_name="us-east-1",
         aws_access_key_id=create_key_response["AccessKeyId"],
         aws_secret_access_key=create_key_response["SecretAccessKey"],
     )
