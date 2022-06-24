@@ -1103,6 +1103,13 @@ class IoTBackend(BaseBackend):
                 raise ResourceNotFoundException()
             principal = certs[0]
             return principal
+        if ":thinggroup/" in principal_arn:
+            try:
+                return self.thing_groups[principal_arn]
+            except KeyError:
+                raise ResourceNotFoundException(
+                    f"No thing group with ARN {principal_arn} exists"
+                )
         from moto.cognitoidentity import cognitoidentity_backends
 
         cognito = cognitoidentity_backends[self.region_name]
