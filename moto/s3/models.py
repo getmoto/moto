@@ -163,7 +163,7 @@ class FakeKey(BaseModel, ManagedState):
 
     def safe_name(self, encoding_type=None):
         if encoding_type == "url":
-            return urllib.parse.quote(self.name, safe="")
+            return urllib.parse.quote(self.name)
         return self.name
 
     @property
