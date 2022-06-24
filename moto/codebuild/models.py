@@ -10,7 +10,7 @@ import uuid
 
 class CodeBuildProjectMetadata(BaseModel):
 
-    def __init__(self, project_name, source_version, artifacts, build_id):
+    def __init__(self, project_name, source_version, artifacts, build_id, service_role):
         current_date = iso_8601_datetime_with_milliseconds(datetime.utcnow())
         self.build_metadata = dict()
         self.build_id_history = list()
@@ -57,6 +57,8 @@ class CodeBuildProjectMetadata(BaseModel):
             "privilegedMode": False,
             "imagePullCredentialsType": "CODEBUILD"}
 
+        self.build_metadata["serviceRole"] = service_role
+        
         self.build_metadata["logs"] = {"deepLink": "https://console.aws.amazon.com/cloudwatch/home?region=eu-west-2#logEvent:group=null;stream=null",
             "cloudWatchLogsArn": "arn:aws:logs:eu-west-2:{0}:log-group:null:log-stream:null".format(get_account_id()),
             "cloudWatchLogs": {"status": "ENABLED"},
@@ -108,16 +110,17 @@ class CodeBuildBackend(BaseBackend):
         self.build_metadata = dict()
         self.project_name = ""
 
-    def create_project(self, project_name, project_source, artifacts, environment, role):
+    def create_project(self, project_name, project_source, artifacts, environment, service_role):
         # if exists exit with proper response
         #project = self.codebuild_projects.get(project_name)
         # if project:
         #     raise SomeException(project_name)         # this needs to be a project name exists
         
         self.project_name = project_name
+        self.service_role = service_role
 
         self.codebuild_projects[project_name] = CodeBuild(
-            self.region_name, project_name, project_source, artifacts, environment, role
+            self.region_name, project_name, project_source, artifacts, environment, service_role
         )
 
         # empty build history
@@ -139,7 +142,7 @@ class CodeBuildBackend(BaseBackend):
 
         # construct a new build
         self.build_metadata[project_name] = CodeBuildProjectMetadata(
-            project_name, source_version, artifact_override, build_id
+            project_name, source_version, artifact_override, build_id, self.service_role
         )
 
         # update build history with id
