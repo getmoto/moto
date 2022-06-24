@@ -194,10 +194,10 @@ class FakeLoadBalancer(CloudFormationModel):
         region_name,
     ):
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, region_name
+            original_resource.name, cloudformation_json, account_id, region_name
         )
         return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
+            new_resource_name, cloudformation_json, account_id, region_name
         )
 
     @classmethod
@@ -428,7 +428,7 @@ class ELBBackend(BaseBackend):
         self, load_balancer_name, security_group_ids
     ):
         load_balancer = self.load_balancers.get(load_balancer_name)
-        ec2_backend = ec2_backends[self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
         for security_group_id in security_group_ids:
             if ec2_backend.get_security_group_from_id(security_group_id) is None:
                 raise InvalidSecurityGroupError()

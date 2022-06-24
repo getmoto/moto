@@ -533,7 +533,7 @@ class SecretsManagerBackend(BaseBackend):
         if secret.rotation_lambda_arn:
             from moto.awslambda.models import lambda_backends
 
-            lambda_backend = lambda_backends[self.region_name]
+            lambda_backend = lambda_backends[self.account_id][self.region_name]
 
             request_headers = {}
             response_headers = {}

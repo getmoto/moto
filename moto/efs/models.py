@@ -34,9 +34,9 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import md5_hash
 
 
-def _lookup_az_id(az_name):
+def _lookup_az_id(account_id, az_name):
     """Find the Availability zone ID given the AZ name."""
-    ec2 = ec2_backends[az_name[:-1]]
+    ec2 = ec2_backends[account_id][az_name[:-1]]
     for zone in ec2.describe_availability_zones():
         if zone.name == az_name:
             return zone.zone_id
@@ -91,6 +91,7 @@ class FileSystem(CloudFormationModel):
 
     def __init__(
         self,
+        account_id,
         region_name,
         creation_token,
         file_system_id,
@@ -120,7 +121,7 @@ class FileSystem(CloudFormationModel):
         self.availability_zone_name = availability_zone_name
         self.availability_zone_id = None
         if self.availability_zone_name:
-            self.availability_zone_id = _lookup_az_id(self.availability_zone_name)
+            self.availability_zone_id = _lookup_az_id(account_id, self.availability_zone_name)
         self._backup = backup
         self.lifecycle_policies = lifecycle_policies or []
         self.file_system_policy = file_system_policy
@@ -427,6 +428,7 @@ class EFSBackend(BaseBackend):
         while fsid in self.file_systems_by_id:
             fsid = make_id()
         self.file_systems_by_id[fsid] = FileSystem(
+            self.account_id,
             self.region_name,
             creation_token,
             fsid,

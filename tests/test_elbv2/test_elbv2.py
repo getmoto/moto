@@ -1377,7 +1377,7 @@ def test_modify_listener_http_to_https():
     # Check default cert, can't do this in server mode
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
         listener = (
-            elbv2_backends["eu-central-1"]
+            elbv2_backends[ACCOUNT_ID]["eu-central-1"]
             .load_balancers[load_balancer_arn]
             .listeners[listener_arn]
         )

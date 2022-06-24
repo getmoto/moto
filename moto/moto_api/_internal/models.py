@@ -1,5 +1,4 @@
 from moto.core import BaseBackend
-from moto.core.utils import BackendDict
 
 
 class MotoAPIBackend(BaseBackend):
@@ -32,6 +31,4 @@ class MotoAPIBackend(BaseBackend):
         state_manager.unset_transition(model_name)
 
 
-moto_api_backends = BackendDict(
-    MotoAPIBackend, "moto_api", use_boto3_regions=False, additional_regions=["global"]
-)
+moto_api_backend = MotoAPIBackend(region_name="global")

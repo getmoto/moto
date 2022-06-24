@@ -1105,7 +1105,7 @@ class IoTBackend(BaseBackend):
             return principal
         from moto.cognitoidentity import cognitoidentity_backends
 
-        cognito = cognitoidentity_backends[self.region_name]
+        cognito = cognitoidentity_backends[self.account_id][self.region_name]
         identities = []
         for identity_pool in cognito.identity_pools:
             pool_identities = cognito.pools_identities.get(identity_pool, None)

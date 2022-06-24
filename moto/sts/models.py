@@ -89,13 +89,7 @@ class STSBackend(BaseBackend):
         # What user are we creating this against? Root user? System user?
         # Maybe check against AWS how these roles/access keys are created
         # They could be invisible, i.e. special type of access creds that cannot be seen by the user
-        account_id_match = re.search(r"arn:aws:iam::([0-9]+).+", role_arn)
-        if account_id_match:
-            account_id = account_id_match.group(1)
-        else:
-            account_id = self.account_id
-        iam_backend = iam_backends[account_id]["global"]
-        access_key = iam_backend.create_temp_access_key()
+        access_key = self._create_access_key(role=role_arn)
         role = AssumedRole(
             access_key, role_session_name, role_arn, policy, duration, external_id
         )
@@ -146,6 +140,9 @@ class STSBackend(BaseBackend):
         if "duration" not in kwargs:
             kwargs["duration"] = DEFAULT_STS_SESSION_DURATION
 
+        access_key = self._create_access_key(role=kwargs.get("role_session_name", ""))
+        kwargs["access_key"] = access_key
+
         kwargs["external_id"] = None
         kwargs["policy"] = None
         role = AssumedRole(**kwargs)
@@ -156,6 +153,15 @@ class STSBackend(BaseBackend):
         # Logic resides in responses.py
         # Fake method here to make implementation coverage script aware that this method is implemented
         pass
+
+    def _create_access_key(self, role):
+        account_id_match = re.search(r"arn:aws:iam::([0-9]+).+", role)
+        if account_id_match:
+            account_id = account_id_match.group(1)
+        else:
+            account_id = self.account_id
+        iam_backend = iam_backends[account_id]["global"]
+        return iam_backend.create_temp_access_key()
 
 
 sts_backends: Mapping[str, STSBackend] = BackendDict(

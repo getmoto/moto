@@ -9,7 +9,7 @@ from flask_cors import CORS
 import moto.backends as backends
 import moto.backend_index as backend_index
 from moto.core import get_account_id
-from moto.core.utils import convert_to_flask_response
+from moto.core.utils import convert_to_flask_response, BackendDict
 
 from .utilities import AWSTestHelper, RegexConverter
 
@@ -271,10 +271,13 @@ def create_backend_app(account_id, service):
     backend_app.url_map.converters["regex"] = RegexConverter
 
     backend_dict = backends.get_backend(service)
-    if "us-east-1" in backend_dict[account_id]:
-        backend = backend_dict[account_id]["us-east-1"]
+    if isinstance(backend_dict, BackendDict):
+        if "us-east-1" in backend_dict[account_id]:
+            backend = backend_dict[account_id]["us-east-1"]
+        else:
+            backend = backend_dict[account_id]["global"]
     else:
-        backend = backend_dict[account_id]["global"]
+        backend = backend_dict["global"]
 
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_to_flask_response(handler)

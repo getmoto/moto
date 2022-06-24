@@ -5,17 +5,14 @@ from moto.core.responses import ActionAuthenticatorMixin, BaseResponse
 
 
 class MotoAPIResponse(BaseResponse):
-    def backends(self):
-        pass
 
     def reset_response(
         self, request, full_url, headers
     ):  # pylint: disable=unused-argument
         if request.method == "POST":
-            from .models import moto_api_backends
+            from .models import moto_api_backend
 
-            for account_backend in moto_api_backends.values():
-                account_backend.reset()
+            moto_api_backend.reset()
             return 200, {}, json.dumps({"status": "ok"})
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
 

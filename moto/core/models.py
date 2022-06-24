@@ -43,7 +43,7 @@ class BaseMockAWS:
 
     def __init__(self, backends):
         from moto.instance_metadata import instance_metadata_backends
-        from moto.moto_api._internal.models import moto_api_backends
+        from moto.moto_api._internal.models import moto_api_backend
 
         self.backends = backends
 
@@ -51,7 +51,7 @@ class BaseMockAWS:
         default_account_id = get_account_id()
         default_backends = [
             instance_metadata_backends[default_account_id]["global"],
-            moto_api_backends[default_account_id]["global"],
+            moto_api_backend,
         ]
         backend_default_account = self.backends[default_account_id]
         if "us-east-1" in backend_default_account:
