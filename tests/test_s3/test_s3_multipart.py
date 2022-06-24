@@ -193,29 +193,48 @@ def test_multipart_upload_out_of_order():
 def test_multipart_upload_with_headers():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
+    bucket_name = "fancymultiparttest"
+    key_name = "the-key"
+    s3.create_bucket(Bucket=bucket_name)
 
     part1 = b"0" * REDUCED_PART_SIZE
     mp = client.create_multipart_upload(
-        Bucket="foobar", Key="the-key", Metadata={"meta": "data"}
+        Bucket=bucket_name,
+        Key=key_name,
+        Metadata={"meta": "data"},
+        StorageClass="STANDARD_IA",
+        ACL="authenticated-read",
     )
     up1 = client.upload_part(
         Body=BytesIO(part1),
         PartNumber=1,
-        Bucket="foobar",
-        Key="the-key",
+        Bucket=bucket_name,
+        Key=key_name,
         UploadId=mp["UploadId"],
     )
 
     client.complete_multipart_upload(
-        Bucket="foobar",
-        Key="the-key",
+        Bucket=bucket_name,
+        Key=key_name,
         MultipartUpload={"Parts": [{"ETag": up1["ETag"], "PartNumber": 1}]},
         UploadId=mp["UploadId"],
     )
     # we should get both parts as the key contents
-    response = client.get_object(Bucket="foobar", Key="the-key")
+    response = client.get_object(Bucket=bucket_name, Key=key_name)
     response["Metadata"].should.equal({"meta": "data"})
+    response["StorageClass"].should.equal("STANDARD_IA")
+
+    grants = client.get_object_acl(Bucket=bucket_name, Key=key_name)["Grants"]
+    grants.should.have.length_of(2)
+    grants.should.contain(
+        {
+            "Grantee": {
+                "Type": "Group",
+                "URI": "http://acs.amazonaws.com/groups/global/AuthenticatedUsers",
+            },
+            "Permission": "READ",
+        }
+    )
 
 
 @pytest.mark.parametrize(

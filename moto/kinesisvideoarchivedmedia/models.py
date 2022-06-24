@@ -5,7 +5,6 @@ from moto.sts.utils import random_session_token
 
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):
-
     @property
     def backend(self):
         return kinesisvideo_backends[self.account_id][self.region_name]

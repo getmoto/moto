@@ -121,7 +121,9 @@ class FileSystem(CloudFormationModel):
         self.availability_zone_name = availability_zone_name
         self.availability_zone_id = None
         if self.availability_zone_name:
-            self.availability_zone_id = _lookup_az_id(account_id, self.availability_zone_name)
+            self.availability_zone_id = _lookup_az_id(
+                account_id, self.availability_zone_name
+            )
         self._backup = backup
         self.lifecycle_policies = lifecycle_policies or []
         self.file_system_policy = file_system_policy

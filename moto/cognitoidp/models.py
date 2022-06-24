@@ -831,6 +831,13 @@ class CognitoResourceServer(BaseModel):
 
 
 class CognitoIdpBackend(BaseBackend):
+    """
+    In some cases, you need to have reproducible IDs for the user pool.
+    For example, a single initialization before the start of integration tests.
+
+    This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
+    """
+
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.user_pools = OrderedDict()
