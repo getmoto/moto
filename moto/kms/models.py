@@ -545,8 +545,8 @@ class KmsBackend(BaseBackend):
     def sign(self, key_id, message, signing_algorithm):
         """Sign message using generated private key.
 
-        NOTES:
         - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
         - grant_tokens are not implemented
         """
         key = self.describe_key(key_id)
@@ -568,8 +568,8 @@ class KmsBackend(BaseBackend):
     def verify(self, key_id, message, signature, signing_algorithm):
         """Verify message using public key from generated private key.
 
-        NOTES:
         - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
         - grant_tokens are not implemented
         """
         key = self.describe_key(key_id)

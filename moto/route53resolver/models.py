@@ -351,7 +351,6 @@ class Route53ResolverBackend(BaseBackend):
         )
 
     def associate_resolver_rule(self, region, resolver_rule_id, name, vpc_id):
-        """Return description for a newly created resolver rule association."""
         validate_args(
             [("resolverRuleId", resolver_rule_id), ("name", name), ("vPCId", vpc_id)]
         )
@@ -460,7 +459,8 @@ class Route53ResolverBackend(BaseBackend):
         ip_addresses,
         tags,
     ):  # pylint: disable=too-many-arguments
-        """Return description for a newly created resolver endpoint.
+        """
+        Return description for a newly created resolver endpoint.
 
         NOTE:  IPv6 IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
@@ -624,7 +624,6 @@ class Route53ResolverBackend(BaseBackend):
             )
 
     def delete_resolver_endpoint(self, resolver_endpoint_id):
-        """Delete a resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
 
         # Can't delete an endpoint if there are rules associated with it.
@@ -658,7 +657,6 @@ class Route53ResolverBackend(BaseBackend):
             )
 
     def delete_resolver_rule(self, resolver_rule_id):
-        """Delete a resolver rule."""
         self._validate_resolver_rule_id(resolver_rule_id)
 
         # Can't delete an rule unless VPC's are disassociated.
@@ -682,7 +680,6 @@ class Route53ResolverBackend(BaseBackend):
         return resolver_rule
 
     def disassociate_resolver_rule(self, resolver_rule_id, vpc_id):
-        """Removes association between a resolver rule and a VPC."""
         validate_args([("resolverRuleId", resolver_rule_id), ("vPCId", vpc_id)])
 
         # Non-existent rule or vpc ids?
@@ -712,7 +709,6 @@ class Route53ResolverBackend(BaseBackend):
         return rule_association
 
     def get_resolver_endpoint(self, resolver_endpoint_id):
-        """Return info for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         return self.resolver_endpoints[resolver_endpoint_id]
 
@@ -722,7 +718,6 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_rules[resolver_rule_id]
 
     def get_resolver_rule_association(self, resolver_rule_association_id):
-        """Return info for specified resolver rule association."""
         validate_args([("resolverRuleAssociationId", resolver_rule_association_id)])
         if resolver_rule_association_id not in self.resolver_rule_associations:
             raise ResourceNotFoundException(
@@ -732,7 +727,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoint_ip_addresses(self, resolver_endpoint_id):
-        """List IP endresses for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
         return endpoint.ip_descriptions()
@@ -792,7 +786,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoints(self, filters):
-        """List all resolver endpoints, using filters if specified."""
         if not filters:
             filters = []
 
@@ -807,7 +800,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rules(self, filters):
-        """List all resolver rules, using filters if specified."""
         if not filters:
             filters = []
 
@@ -822,7 +814,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rule_associations(self, filters):
-        """List all resolver rule associations, using filters if specified."""
         if not filters:
             filters = []
 
@@ -851,12 +842,10 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(self, resource_arn):
-        """List all tags for the given resource."""
         self._matched_arn(resource_arn)
         return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 
     def tag_resource(self, resource_arn, tags):
-        """Add or overwrite one or more tags for specified resource."""
         self._matched_arn(resource_arn)
         errmsg = self.tagger.validate_tags(
             tags, limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT
@@ -866,12 +855,10 @@ class Route53ResolverBackend(BaseBackend):
         self.tagger.tag_resource(resource_arn, tags)
 
     def untag_resource(self, resource_arn, tag_keys):
-        """Removes tags from a resource."""
         self._matched_arn(resource_arn)
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def update_resolver_endpoint(self, resolver_endpoint_id, name):
-        """Update name of Resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         validate_args([("name", name)])
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
@@ -881,7 +868,6 @@ class Route53ResolverBackend(BaseBackend):
     def associate_resolver_endpoint_ip_address(
         self, region, resolver_endpoint_id, ip_address
     ):
-        """associate resolver endpoint ip address."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 
@@ -898,7 +884,6 @@ class Route53ResolverBackend(BaseBackend):
     def disassociate_resolver_endpoint_ip_address(
         self, resolver_endpoint_id, ip_address
     ):
-        """disassociate resolver endpoint ip address."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 

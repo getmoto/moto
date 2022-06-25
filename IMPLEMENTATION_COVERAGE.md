@@ -1289,7 +1289,7 @@
 
 ## ds
 <details>
-<summary>19% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -1320,6 +1320,7 @@
 - [ ] describe_event_topics
 - [ ] describe_ldaps_settings
 - [ ] describe_regions
+- [ ] describe_settings
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
 - [ ] describe_trusts
@@ -1352,6 +1353,7 @@
 - [ ] update_conditional_forwarder
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
+- [ ] update_settings
 - [ ] update_trust
 - [ ] verify_trust
 </details>
@@ -2678,7 +2680,7 @@
 
 ## glue
 <details>
-<summary>12% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_create_partition
 - [ ] batch_delete_connection
@@ -2709,7 +2711,7 @@
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
-- [ ] create_registry
+- [X] create_registry
 - [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
@@ -2806,6 +2808,7 @@
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [X] list_crawlers
+- [ ] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
@@ -2867,7 +2870,7 @@
 
 ## greengrass
 <details>
-<summary>43% implemented</summary>
+<summary>52% implemented</summary>
 
 - [ ] associate_role_to_group
 - [ ] associate_service_role_to_account
@@ -2880,9 +2883,9 @@
 - [X] create_device_definition_version
 - [X] create_function_definition
 - [X] create_function_definition_version
-- [ ] create_group
+- [X] create_group
 - [ ] create_group_certificate_authority
-- [ ] create_group_version
+- [X] create_group_version
 - [ ] create_logger_definition
 - [ ] create_logger_definition_version
 - [X] create_resource_definition
@@ -2894,7 +2897,7 @@
 - [X] delete_core_definition
 - [X] delete_device_definition
 - [X] delete_function_definition
-- [ ] delete_group
+- [X] delete_group
 - [ ] delete_logger_definition
 - [X] delete_resource_definition
 - [X] delete_subscription_definition
@@ -2912,10 +2915,10 @@
 - [X] get_device_definition_version
 - [X] get_function_definition
 - [X] get_function_definition_version
-- [ ] get_group
+- [X] get_group
 - [ ] get_group_certificate_authority
 - [ ] get_group_certificate_configuration
-- [ ] get_group_version
+- [X] get_group_version
 - [ ] get_logger_definition
 - [ ] get_logger_definition_version
 - [X] get_resource_definition
@@ -2936,8 +2939,8 @@
 - [X] list_function_definition_versions
 - [X] list_function_definitions
 - [ ] list_group_certificate_authorities
-- [ ] list_group_versions
-- [ ] list_groups
+- [X] list_group_versions
+- [X] list_groups
 - [ ] list_logger_definition_versions
 - [ ] list_logger_definitions
 - [X] list_resource_definition_versions
@@ -2955,7 +2958,7 @@
 - [X] update_core_definition
 - [X] update_device_definition
 - [X] update_function_definition
-- [ ] update_group
+- [X] update_group
 - [ ] update_group_certificate_configuration
 - [ ] update_logger_definition
 - [X] update_resource_definition
@@ -3529,7 +3532,7 @@
 
 ## kms
 <details>
-<summary>52% implemented</summary>
+<summary>56% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -4813,10 +4816,10 @@
 
 ## route53resolver
 <details>
-<summary>26% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] associate_firewall_rule_group
-- [ ] associate_resolver_endpoint_ip_address
+- [X] associate_resolver_endpoint_ip_address
 - [ ] associate_resolver_query_log_config
 - [X] associate_resolver_rule
 - [ ] create_firewall_domain_list
@@ -4832,7 +4835,7 @@
 - [ ] delete_resolver_query_log_config
 - [X] delete_resolver_rule
 - [ ] disassociate_firewall_rule_group
-- [ ] disassociate_resolver_endpoint_ip_address
+- [X] disassociate_resolver_endpoint_ip_address
 - [ ] disassociate_resolver_query_log_config
 - [X] disassociate_resolver_rule
 - [ ] get_firewall_config
@@ -6115,7 +6118,6 @@
 - qldb-session
 - rbin
 - rds-data
-- redshiftserverless
 - resiliencehub
 - robomaker
 - route53-recovery-cluster
