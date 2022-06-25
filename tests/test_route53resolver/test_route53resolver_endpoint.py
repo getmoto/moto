@@ -843,3 +843,134 @@ def test_route53resolver_bad_list_resolver_endpoints():
         "Value '250' at 'maxResults' failed to satisfy constraint: Member "
         "must have length less than or equal to 100"
     ) in err["Message"]
+
+
+@mock_ec2
+@mock_route53resolver
+def test_associate_resolver_endpoint_ip_address():
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    # create subnet
+    vpc_id = create_vpc(ec2_client)
+    subnet = ec2_client.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
+    )["Subnet"]
+    # create resolver
+    random_num = get_random_hex(10)
+    resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    resolver.should.have.key("IpAddressCount").equals(2)
+    # associate
+    resp = client.associate_resolver_endpoint_ip_address(
+        IpAddress={"Ip": "10.0.2.126", "SubnetId": subnet["SubnetId"]},
+        ResolverEndpointId=resolver["Id"],
+    )["ResolverEndpoint"]
+    resp.should.have.key("Id").equals(resolver["Id"])
+    resp.should.have.key("IpAddressCount").equals(3)
+    resp.should.have.key("SecurityGroupIds").should.have.length_of(1)
+    # verify ENI was created
+    enis = ec2_client.describe_network_interfaces()["NetworkInterfaces"]
+
+    ip_addresses = [eni["PrivateIpAddress"] for eni in enis]
+    ip_addresses.should.contain("10.0.2.126")
+
+
+@mock_route53resolver
+def test_associate_resolver_endpoint_ip_address__invalid_resolver():
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    with pytest.raises(ClientError) as exc:
+        client.associate_resolver_endpoint_ip_address(
+            IpAddress={"Ip": "notapplicable"}, ResolverEndpointId="unknown"
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNotFoundException")
+    err["Message"].should.equal("Resolver endpoint with ID 'unknown' does not exist")
+
+
+@mock_ec2
+@mock_route53resolver
+def test_disassociate_resolver_endpoint_ip_address__using_ip():
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    # create subnet
+    vpc_id = create_vpc(ec2_client)
+    subnet_id = ec2_client.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
+    )["Subnet"]["SubnetId"]
+    # create resolver
+    random_num = get_random_hex(10)
+    resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    # associate
+    client.associate_resolver_endpoint_ip_address(
+        IpAddress={"Ip": "10.0.2.126", "SubnetId": subnet_id},
+        ResolverEndpointId=resolver["Id"],
+    )
+    enis_before = ec2_client.describe_network_interfaces()["NetworkInterfaces"]
+    # disassociate
+    client.disassociate_resolver_endpoint_ip_address(
+        ResolverEndpointId=resolver["Id"],
+        IpAddress={"SubnetId": subnet_id, "Ip": "10.0.2.126"},
+    )
+    # One ENI was deleted
+    enis_after = ec2_client.describe_network_interfaces()["NetworkInterfaces"]
+    (len(enis_after) + 1).should.equal(len(enis_before))
+
+
+@mock_ec2
+@mock_route53resolver
+def test_disassociate_resolver_endpoint_ip_address__using_ipid_and_subnet():
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    # create subnet
+    vpc_id = create_vpc(ec2_client)
+    subnet_id = ec2_client.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
+    )["Subnet"]["SubnetId"]
+    # create resolver
+    random_num = get_random_hex(10)
+    resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    # associate
+    client.associate_resolver_endpoint_ip_address(
+        IpAddress={"Ip": "10.0.2.126", "SubnetId": subnet_id},
+        ResolverEndpointId=resolver["Id"],
+    )
+
+    ip_addresses = client.list_resolver_endpoint_ip_addresses(
+        ResolverEndpointId=resolver["Id"]
+    )["IpAddresses"]
+    ip_id = [ip["IpId"] for ip in ip_addresses if ip["Ip"] == "10.0.2.126"][0]
+    # disassociate
+    resp = client.disassociate_resolver_endpoint_ip_address(
+        ResolverEndpointId=resolver["Id"],
+        IpAddress={"SubnetId": subnet_id, "IpId": ip_id},
+    )["ResolverEndpoint"]
+    resp.should.have.key("IpAddressCount").equals(2)
+
+
+@mock_ec2
+@mock_route53resolver
+def test_disassociate_resolver_endpoint_ip_address__using_subnet_alone():
+    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    # create subnet
+    vpc_id = create_vpc(ec2_client)
+    subnet_id = ec2_client.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.2.0/24", AvailabilityZone=f"{TEST_REGION}a"
+    )["Subnet"]["SubnetId"]
+    # create resolver
+    random_num = get_random_hex(10)
+    resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
+    # associate
+    client.associate_resolver_endpoint_ip_address(
+        IpAddress={"Ip": "10.0.2.126", "SubnetId": subnet_id},
+        ResolverEndpointId=resolver["Id"],
+    )
+    # disassociate without specifying IP
+    with pytest.raises(ClientError) as exc:
+        client.disassociate_resolver_endpoint_ip_address(
+            ResolverEndpointId=resolver["Id"], IpAddress={"SubnetId": subnet_id}
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidRequestException")
+    err["Message"].should.equal(
+        "[RSLVR-00503] Need to specify either the IP ID or both subnet and IP address in order to remove IP address."
+    )
