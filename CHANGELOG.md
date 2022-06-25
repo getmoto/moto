@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.15
 -----
-Docker Digest for 3.1.15: <autopopulateddigest>
+Docker Digest for 3.1.15: _sha256:fad9fc39322cbabf4440ac5f6a3a158ee759dcd963995fea9672136c50bd2fc3_
 
     New Methods:
         * Databrew:
