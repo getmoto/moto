@@ -1,17 +1,18 @@
 from pydoc import source_synopsis
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
-from datetime import datetime
 from moto.core import get_account_id
 from collections import defaultdict
 from random import randint
+from dateutil import parser
+import datetime
 import uuid
 # from .exceptions import InvalidInputException
 
 class CodeBuildProjectMetadata(BaseModel):
 
     def __init__(self, project_name, source_version, artifacts, build_id, service_role):
-        current_date = iso_8601_datetime_with_milliseconds(datetime.utcnow())
+        current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         self.build_metadata = dict()
         self.build_id_history = list()
 
@@ -58,7 +59,7 @@ class CodeBuildProjectMetadata(BaseModel):
             "imagePullCredentialsType": "CODEBUILD"}
 
         self.build_metadata["serviceRole"] = service_role
-        
+
         self.build_metadata["logs"] = {"deepLink": "https://console.aws.amazon.com/cloudwatch/home?region=eu-west-2#logEvent:group=null;stream=null",
             "cloudWatchLogsArn": "arn:aws:logs:eu-west-2:{0}:log-group:null:log-stream:null".format(get_account_id()),
             "cloudWatchLogs": {"status": "ENABLED"},
@@ -70,10 +71,11 @@ class CodeBuildProjectMetadata(BaseModel):
         self.build_metadata["initiator"] = "rootme"
         self.build_metadata["encryptionKey"] = "arn:aws:kms:eu-west-2:{0}:alias/aws/s3".format(get_account_id())
 
+
 class CodeBuild(BaseModel):
 
     def __init__(self, region, project_name, project_source=dict(), artifacts=dict(), environment=dict(), serviceRole="some_role"):
-        current_date = iso_8601_datetime_with_milliseconds(datetime.utcnow())
+        current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         # remove codebuild from these names
         self.project_metadata = dict()
 
@@ -156,14 +158,59 @@ class CodeBuildBackend(BaseBackend):
         # return current build
         return self.build_metadata[project_name].build_metadata
 
-    def batch_get_builds(self, ids):
 
+    def _set_completed_phases(self, phases):
+        current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
+        statuses = [
+            "PROVISIONING",
+            "DOWNLOAD_SOURCE",
+            "INSTALL",
+            "PRE_BUILD",
+            "BUILD",
+            "POST_BUILD",
+            "UPLOAD_ARTIFACTS",
+            "FINALIZING",
+            "COMPLETED"
+        ]
+
+        for existing_phase in phases:
+            if existing_phase["phaseType"] == "QUEUED":
+                existing_phase["phaseStatus"] = "SUCCEEDED"
+        
+        phase = {
+                "phaseType": None,
+                "phaseType": "SUCCEEDED",
+                "startTime": current_date,
+                "endTime": current_date,
+                "durationInSeconds": None
+            }
+
+        for status in statuses:
+            new_phase = phase.copy()
+            new_phase["phaseType"] = status
+            new_phase["durationInSeconds"] = randint(10,100)
+            phases.append(new_phase)
+        
+        return phases
+
+
+
+    def batch_get_builds(self, ids):
         metadata_by_id = []
 
         for project_name, metadata in self.build_metadata.items():
             for entry in metadata.build_metadata_history[project_name]:
                 for id in ids:
                     if entry["id"] == id:
+                        
+                        # set completion properties with variable completion time
+                        entry["phases"] = self._set_completed_phases(entry["phases"])
+                        entry["endTime"] = iso_8601_datetime_with_milliseconds(
+                            parser.parse(entry["startTime"]) + datetime.timedelta(minutes=randint(1,5))
+                        )
+                        entry["currentPhase"] = "COMPLETED"
+                        entry["buildStatus"] = "SUCCEEDED"
+
                         metadata_by_id.append(entry)
 
         return metadata_by_id
