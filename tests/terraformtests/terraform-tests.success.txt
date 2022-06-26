@@ -130,7 +130,8 @@ lambda:
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
-  - TestAccMQBroker
+  - TestAccMQBrokerDataSource
+  - TestAccMQBroker_
 quicksight:
   - TestAccQuickSightUser
 redshift:

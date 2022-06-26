@@ -439,6 +439,13 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
         return template.render(tags=tags, next_token=None)
 
+    def enable_metrics_collection(self):
+        group_name = self._get_param("AutoScalingGroupName")
+        metrics = self._get_params().get("Metrics")
+        self.autoscaling_backend.enable_metrics_collection(group_name, metrics)
+        template = self.response_template(ENABLE_METRICS_COLLECTION_TEMPLATE)
+        return template.render()
+
 
 CREATE_LAUNCH_CONFIGURATION_TEMPLATE = """<CreateLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
@@ -666,7 +673,6 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
-        <EnabledMetrics/>
         {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
         {% elif group.launch_template %}
@@ -744,6 +750,16 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <PlacementGroup>{{ group.placement_group }}</PlacementGroup>
         {% endif %}
         <NewInstancesProtectedFromScaleIn>{{ group.new_instances_protected_from_scale_in|string|lower }}</NewInstancesProtectedFromScaleIn>
+        {% if group.metrics %}
+        <EnabledMetrics>
+          {% for met in group.metrics %}
+          <member>
+          <Metric>{{ met }}</Metric>
+          <Granularity>1Minute</Granularity>
+          </member>
+          {% endfor %}
+        </EnabledMetrics>
+        {% endif %}
       </member>
       {% endfor %}
     </AutoScalingGroups>
@@ -1219,3 +1235,10 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://autoscaling.amaz
     {% endif %}
   </DescribeTagsResult>
 </DescribeTagsResponse>"""
+
+
+ENABLE_METRICS_COLLECTION_TEMPLATE = """<EnableMetricsCollectionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId></RequestId>
+</ResponseMetadata>
+</EnableMetricsCollectionResponse>"""
