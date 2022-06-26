@@ -6,13 +6,13 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 
 from cryptography.hazmat.primitives.asymmetric import padding
-from moto.apigateway.exceptions import ValidationException
 
 from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex, unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
+from .exceptions import ValidationException
 from .utils import (
     RESERVED_ALIASES,
     decrypt,

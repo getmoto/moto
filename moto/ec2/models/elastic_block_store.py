@@ -1,5 +1,4 @@
 from moto.core import get_account_id, CloudFormationModel
-from moto.kms import kms_backends
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,
@@ -404,6 +403,8 @@ class EBSBackend:
         # https://aws.amazon.com/kms/features/#AWS_Service_Integration
         # An AWS managed CMK is created automatically when you first create
         # an encrypted resource using an AWS service integrated with KMS.
+        from moto.kms import kms_backends
+
         kms = kms_backends[self.region_name]
         ebs_alias = "alias/aws/ebs"
         if not kms.alias_exists(ebs_alias):
