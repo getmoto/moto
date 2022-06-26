@@ -147,20 +147,21 @@ class CodeBuildBackend(BaseBackend):
             project_name, source_version, artifact_override, build_id, self.service_role
         )
 
-        # update build history with id
+        # update build history with build id
         self.build_metadata[project_name].build_id_history.append(build_id)
 
-        # update build histroy with metadata
+        # update build histroy with metadata for build id
         self.build_metadata[project_name].build_metadata_history[project_name].append(
             self.build_metadata[project_name].build_metadata
         )
 
-        # return current build
         return self.build_metadata[project_name].build_metadata
 
 
-    def _set_completed_phases(self, phases):
+    def _set_phases(self, phases):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
+        print(current_date)
+
         statuses = [
             "PROVISIONING",
             "DOWNLOAD_SOURCE",
@@ -177,41 +178,33 @@ class CodeBuildBackend(BaseBackend):
             if existing_phase["phaseType"] == "QUEUED":
                 existing_phase["phaseStatus"] = "SUCCEEDED"
         
-        phase = {
-                "phaseType": None,
-                "phaseType": "SUCCEEDED",
-                "startTime": current_date,
-                "endTime": current_date,
-                "durationInSeconds": None
-            }
-
         for status in statuses:
-            new_phase = phase.copy()
-            new_phase["phaseType"] = status
-            new_phase["durationInSeconds"] = randint(10,100)
-            phases.append(new_phase)
+            phase = dict()
+            phase["phaseType"] = status
+            phase["phaseStatus"] = "SUCCEEDED"
+            phase["startTime"] = current_date
+            phase["endTime"] = current_date
+            phase["durationInSeconds"] = randint(10,100)
+            phases.append(phase)
         
         return phases
-
-
 
     def batch_get_builds(self, ids):
         metadata_by_id = []
 
         for project_name, metadata in self.build_metadata.items():
-            for entry in metadata.build_metadata_history[project_name]:
+            for build in metadata.build_metadata_history[project_name]:
                 for id in ids:
-                    if entry["id"] == id:
-                        
+                    if build["id"] == id:
                         # set completion properties with variable completion time
-                        entry["phases"] = self._set_completed_phases(entry["phases"])
-                        entry["endTime"] = iso_8601_datetime_with_milliseconds(
-                            parser.parse(entry["startTime"]) + datetime.timedelta(minutes=randint(1,5))
+                        build["phases"] = self._set_phases(build["phases"])
+                        build["endTime"] = iso_8601_datetime_with_milliseconds(
+                            parser.parse(build["startTime"]) + datetime.timedelta(minutes=randint(1,5))
                         )
-                        entry["currentPhase"] = "COMPLETED"
-                        entry["buildStatus"] = "SUCCEEDED"
+                        build["currentPhase"] = "COMPLETED"
+                        build["buildStatus"] = "SUCCEEDED"
 
-                        metadata_by_id.append(entry)
+                        metadata_by_id.append(build)
 
         return metadata_by_id
 
@@ -232,13 +225,25 @@ class CodeBuildBackend(BaseBackend):
 
 
     def delete_project(self, project_name):
-
         self.build_metadata.pop(project_name, None)
         self.build_metadata.pop(project_name, None)
 
 
-    def stop_build():
-        pass
+    def stop_build(self, id):
+
+        for project_name, metadata in self.build_metadata.items():
+            for build in metadata.build_metadata_history[project_name]:
+                if build["id"] == id:
+                        
+                    # set completion properties with variable completion time
+                    build["phases"] = self._set_phases(build["phases"])
+                    build["endTime"] = iso_8601_datetime_with_milliseconds(
+                        parser.parse(build["startTime"]) + datetime.timedelta(minutes=randint(1,5))
+                    )
+                    build["currentPhase"] = "COMPLETED"
+                    build["buildStatus"] = "STOPPED"
+
+                    return build
 
 
 codebuild_backends = BackendDict(CodeBuildBackend, "codebuild")

@@ -89,3 +89,11 @@ class CodeBuildResponse(BaseResponse):
         )
 
         return
+
+    def stop_build(self):
+
+        metadata = self.codebuild_backend.stop_build(
+            self._get_param("id")
+        )
+
+        return json.dumps({"build": metadata})
