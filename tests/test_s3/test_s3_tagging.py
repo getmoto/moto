@@ -1,4 +1,5 @@
 import boto3
+import requests
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 
@@ -455,3 +456,18 @@ def test_objects_tagging_with_same_key_name():
 
     assert variable1 == "one"
     assert variable2 == "two"
+
+
+@mock_s3
+def test_generate_url_for_tagged_object():
+    s3 = boto3.client("s3")
+    s3.create_bucket(Bucket="my-bucket")
+    s3.put_object(
+        Bucket="my-bucket", Key="test.txt", Body=b"abc", Tagging="MyTag=value"
+    )
+    url = s3.generate_presigned_url(
+        "get_object", Params={"Bucket": "my-bucket", "Key": "test.txt"}
+    )
+    response = requests.get(url)
+    response.content.should.equal(b"abc")
+    response.headers["x-amz-tagging-count"].should.equal("1")

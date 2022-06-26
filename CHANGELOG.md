@@ -1,6 +1,37 @@
 Moto Changelog
 ==============
 
+3.1.15
+-----
+Docker Digest for 3.1.15: _sha256:fad9fc39322cbabf4440ac5f6a3a158ee759dcd963995fea9672136c50bd2fc3_
+
+    New Methods:
+        * Databrew:
+            * create_profile_job()
+            * create_recipe_job()
+            * delete_job()
+            * describe_job()
+            * list_jobs()
+            * update_profile_job()
+            * update_recipe_job()
+        * Glue:
+            * create_registry()
+        * Greengrass:
+            * create_group()
+            * create_group_version()
+            * delete_group()
+            * get_group()
+            * get_group_version()
+            * list_groups()
+            * list_group_versions()
+            * update_group()
+        * KMS:
+            * sign()
+            * verify()
+        * Route53Resolver:
+            * associate_resolver_endpoint_ip_address()
+            * disassociate_resolver_endpoint_ip_address()
+
 3.1.14
 -----
 Docker Digest for 3.1.14: _sha256:a8ad7f54d7c469e34454f6774f743251c02093c6b2d7e9d7961a5de366783e11_

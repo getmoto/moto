@@ -333,16 +333,23 @@ MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
+
+    RESET_IN_PROGRESS = False
+
     def __init__(self, *args, **kwargs):
         self.test_server_mode_endpoint = settings.test_server_mode_endpoint()
         super().__init__(*args, **kwargs)
 
     def reset(self):
         call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
-        if not call_reset_api or call_reset_api.lower() != "false":
-            import requests
+        call_reset_api = not call_reset_api or call_reset_api.lower() != "false"
+        if call_reset_api:
+            if not ServerModeMockAWS.RESET_IN_PROGRESS:
+                ServerModeMockAWS.RESET_IN_PROGRESS = True
+                import requests
 
-            requests.post(f"{self.test_server_mode_endpoint}/moto-api/reset")
+                requests.post(f"{self.test_server_mode_endpoint}/moto-api/reset")
+                ServerModeMockAWS.RESET_IN_PROGRESS = False
 
     def enable_patching(self, reset=True):
         if self.__class__.nested_count == 1 and reset:

@@ -163,7 +163,7 @@ class FakeKey(BaseModel, ManagedState):
 
     def safe_name(self, encoding_type=None):
         if encoding_type == "url":
-            return urllib.parse.quote(self.name, safe="")
+            return urllib.parse.quote(self.name)
         return self.name
 
     @property
@@ -291,7 +291,7 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-object-lock-mode"] = self.lock_mode
         tags = s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn)
         if tags:
-            res["x-amz-tagging-count"] = len(tags.keys())
+            res["x-amz-tagging-count"] = str(len(tags.keys()))
 
         return res
 
