@@ -197,6 +197,12 @@ s3:
   - TestAccS3ObjectCopy
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
+servicediscovery:
+  - TestAccServiceDiscoveryDNSNamespaceDataSource
+  - TestAccServiceDiscoveryHTTPNamespace
+  - TestAccServiceDiscoveryPrivateDNSNamespace
+  - TestAccServiceDiscoveryPublicDNSNamespace
+  - TestAccServiceDiscoveryService
 sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource
