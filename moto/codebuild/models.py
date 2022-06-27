@@ -160,7 +160,10 @@ class CodeBuildBackend(BaseBackend):
 
     def _set_phases(self, phases):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
-        print(current_date)
+        # No phaseStatus for QUEUED on first start
+        for existing_phase in phases:
+            if existing_phase["phaseType"] == "QUEUED":
+                existing_phase["phaseStatus"] = "SUCCEEDED"
 
         statuses = [
             "PROVISIONING",
@@ -174,10 +177,6 @@ class CodeBuildBackend(BaseBackend):
             "COMPLETED"
         ]
 
-        for existing_phase in phases:
-            if existing_phase["phaseType"] == "QUEUED":
-                existing_phase["phaseStatus"] = "SUCCEEDED"
-        
         for status in statuses:
             phase = dict()
             phase["phaseType"] = status

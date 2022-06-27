@@ -7,16 +7,24 @@ from .exceptions import InvalidInputException
 from moto.core import get_account_id
 
 
-def _validate_source(source):
+def _validate_required_params_source(source):
     try:
         assert source["type"] in ["BITBUCKET", "CODECOMMIT", "CODEPIPELINE", "GITHUB", "GITHUB_ENTERPRISE", "NO_SOURCE", "S3"]
     except AssertionError:
         raise InvalidInputException(
             "Invalid type provided: Project source type"
         )
+    # if type CODECOMMIT ensure https://git-codecommit.<region>.amazonaws.com in location value
+    # if type S3 ensure valid bucket name or use mock_s3
+    try:
+        assert source["location"]
+        assert source["location"] != ""
+    except (KeyError, AssertionError):
+        raise InvalidInputException(
+            "Project source location is required"
+        )
 
-
-def _validate_service_role(service_role):
+def _validate_required_params_service_role(service_role):
     try:
         assert "arn:aws:iam::{0}:role/service-role/".format(get_account_id()) in service_role
     except AssertionError:
@@ -24,6 +32,42 @@ def _validate_service_role(service_role):
             "Invalid service role: Service role account ID does not match caller's account"
         )
 
+def _validate_required_params_artifacts(artifacts):
+    try:
+        assert artifacts["type"] in ["CODEPIPELINE", "S3", "NO_ARTIFACTS"]
+    except AssertionError:
+        raise InvalidInputException(
+            "Invalid type provided: Artifact type"
+        )
+    try:
+        if artifacts["type"] == "NO_ARTIFACTS":
+            try:
+                assert "location" not in artifacts
+            except AssertionError:
+                raise InvalidInputException(
+                    "Invalid artifacts: artifact type NO_ARTIFACTS should have null location"
+                )
+        else:
+            assert artifacts["location"]
+            assert artifacts["location"] != ""
+    except (KeyError, AssertionError):
+        raise InvalidInputException(
+            "Project source location is required"
+        )
+
+def _validate_required_params_environment(environment):
+    try:
+        assert environment["type"] in ["WINDOWS_CONTAINER", "LINUX_CONTAINER", "LINUX_GPU_CONTAINER", "ARM_CONTAINER"]
+    except AssertionError:
+        raise InvalidInputException(
+            "Invalid type provided: {0}".format(environment["type"])
+        )
+    try:
+        assert environment["computeType"] in ["BUILD_GENERAL1_SMALL", "BUILD_GENERAL1_MEDIUM", "BUILD_GENERAL1_LARGE", "BUILD_GENERAL1_2XLARGE"]
+    except AssertionError:
+        raise InvalidInputException(
+            "Invalid compute type provided: {0}".format(environment["computeType"])
+        )
 
 class CodeBuildResponse(BaseResponse):
     @property
@@ -43,8 +87,10 @@ class CodeBuildResponse(BaseResponse):
 
 
     def create_project(self):
-        _validate_source(self._get_param("source"))
-        _validate_service_role(self._get_param("serviceRole"))
+        _validate_required_params_source(self._get_param("source"))
+        _validate_required_params_service_role(self._get_param("serviceRole"))
+        _validate_required_params_artifacts(self._get_param("artifacts"))
+        _validate_required_params_environment(self._get_param("environment"))
 
         project_metadata = self.codebuild_backend.create_project(
             self._get_param("name"), self._get_param("source"), self._get_param("artifacts"), self._get_param("environment"), self._get_param("serviceRole")
