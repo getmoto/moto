@@ -3,7 +3,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from .models import codebuild_backends
-from .exceptions import InvalidInputException
+from .exceptions import InvalidInputException, ResourceAlreadyExistsException, ResourceNotFoundException
 from moto.core import get_account_id
 
 
@@ -92,6 +92,16 @@ class CodeBuildResponse(BaseResponse):
         _validate_required_params_artifacts(self._get_param("artifacts"))
         _validate_required_params_environment(self._get_param("environment"))
 
+
+        try:
+            assert self._get_param("name") not in self.codebuild_backend.codebuild_projects.keys()
+            print(self.codebuild_backend.codebuild_projects.keys())
+        except AssertionError:
+            raise ResourceAlreadyExistsException(
+                "Project already exists: arn:aws:codebuild:{0}:{1}:project/{2}".format(
+                    self.region, get_account_id(), self._get_param("name"))
+            )
+
         project_metadata = self.codebuild_backend.create_project(
             self._get_param("name"), self._get_param("source"), self._get_param("artifacts"), self._get_param("environment"), self._get_param("serviceRole")
         )
@@ -108,8 +118,9 @@ class CodeBuildResponse(BaseResponse):
         try:
             assert self._get_param("projectName") in self.codebuild_backend.codebuild_projects.keys()
         except AssertionError:
-            raise InvalidInputException(
-                "Project cannot be found: {0}".format(self._get_param("projectName"))
+            raise ResourceNotFoundException(
+                "Project cannot be found: arn:aws:codebuild:{0}:{1}:project/{2}".format(
+                    self.region, get_account_id(), self._get_param("projectName"))
             )
 
         metadata = self.codebuild_backend.start_build(
