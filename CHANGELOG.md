@@ -3,7 +3,7 @@ Moto Changelog
 
 3.1.16
 -----
-Docker Digest for 3.1.16: <autopopulateddigest>
+Docker Digest for 3.1.16: _sha256:e7d79262fac1553966fb8c894dc81a750c4a18745977da6a15dffc35c596f8c4_
 
     New Methods:
         * Autoscaling:
