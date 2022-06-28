@@ -552,8 +552,8 @@ index 01e170d231..10bc05b4b6 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(2 * time.Minute),
 -			Update: schema.DefaultTimeout(2 * time.Minute),
-+			Create: schema.DefaultTimeout(2 * time.Second),
-+			Update: schema.DefaultTimeout(2 * time.Second),
++			Create: schema.DefaultTimeout(20 * time.Second),
++			Update: schema.DefaultTimeout(20 * time.Second),
  		},
 
  		//
@@ -567,7 +567,7 @@ index 9a0a8151e2..8bcd1eb537 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(20 * time.Minute),
-+			Create: schema.DefaultTimeout(10 * time.Second),
++			Create: schema.DefaultTimeout(20 * time.Second),
 +			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
 
@@ -581,7 +581,7 @@ index bc03d302e0..76ae4c7554 100644
  const (
  	// Maximum amount of time to wait for VPC Endpoint creation
 -	VPCEndpointCreationTimeout = 10 * time.Minute
-+	VPCEndpointCreationTimeout = 10 * time.Second
++	VPCEndpointCreationTimeout = 20 * time.Second
  )
 
  func ResourceVPCEndpoint() *schema.Resource {
@@ -591,8 +591,8 @@ index bc03d302e0..76ae4c7554 100644
  			Create: schema.DefaultTimeout(VPCEndpointCreationTimeout),
 -			Update: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(10 * time.Minute),
-+			Update: schema.DefaultTimeout(10 * time.Second),
-+			Delete: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(20 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
 
  		CustomizeDiff: verify.SetTagsDiff,
@@ -606,8 +606,8 @@ index 98ba994861..f653423ae1 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(10 * time.Minute),
 -			Delete: schema.DefaultTimeout(10 * time.Minute),
-+			Create: schema.DefaultTimeout(10 * time.Second),
-+			Delete: schema.DefaultTimeout(10 * time.Second),
++			Create: schema.DefaultTimeout(20 * time.Second),
++			Delete: schema.DefaultTimeout(20 * time.Second),
  		},
  	}
  }
@@ -620,7 +620,7 @@ index 5e38bebaca..cf4e397598 100644
  		Target:     []string{ec2.ServiceStateAvailable},
  		Refresh:    vpcEndpointServiceStateRefresh(conn, d.Id()),
 -		Timeout:    10 * time.Minute,
-+		Timeout:    10 * time.Second,
++		Timeout:    20 * time.Second,
  		Delay:      5 * time.Second,
  		MinTimeout: 5 * time.Second,
  	}
@@ -629,7 +629,7 @@ index 5e38bebaca..cf4e397598 100644
  		Target:     []string{ec2.ServiceStateDeleted},
  		Refresh:    vpcEndpointServiceStateRefresh(conn, serviceID),
 -		Timeout:    10 * time.Minute,
-+		Timeout:    10 * time.Second,
++		Timeout:    20 * time.Second,
  		Delay:      5 * time.Second,
  		MinTimeout: 5 * time.Second,
  	}
@@ -655,7 +655,7 @@ index 793eea6ef2..b9b5b062d1 100644
 -		Delay:   1 * time.Minute,
 -		Timeout: 3 * time.Minute,
 +		Delay:   1 * time.Second,
-+		Timeout: 3 * time.Second,
++		Timeout: 10 * time.Second,
  		Target:  []string{"ok"},
  		Refresh: func() (interface{}, string, error) {
  			output, err := conn.ModifyVpcEndpoint(input)
@@ -700,9 +700,9 @@ index 7ed8ec448c..d74eef1bc9 100644
 -			Create: schema.DefaultTimeout(1 * time.Minute),
 -			Update: schema.DefaultTimeout(1 * time.Minute),
 -			Delete: schema.DefaultTimeout(1 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Second),
-+			Update: schema.DefaultTimeout(1 * time.Second),
-+			Delete: schema.DefaultTimeout(1 * time.Second),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
++			Delete: schema.DefaultTimeout(10 * time.Second),
  		},
 
  		// Keep in sync with aws_vpc_peering_connection_accepter's schema.
@@ -716,8 +716,8 @@ index 5fb1bcb194..2b00ab82d0 100644
  		Timeouts: &schema.ResourceTimeout{
 -			Create: schema.DefaultTimeout(1 * time.Minute),
 -			Update: schema.DefaultTimeout(1 * time.Minute),
-+			Create: schema.DefaultTimeout(1 * time.Second),
-+			Update: schema.DefaultTimeout(1 * time.Second),
++			Create: schema.DefaultTimeout(10 * time.Second),
++			Update: schema.DefaultTimeout(10 * time.Second),
  		},
 
  		Importer: &schema.ResourceImporter{
@@ -733,7 +733,7 @@ index b81c585ac3..5b5eebd83b 100644
 -			Update: schema.DefaultTimeout(2 * time.Minute),
 -			Delete: schema.DefaultTimeout(5 * time.Minute),
 +			Create: schema.DefaultTimeout(5 * time.Second),
-+			Update: schema.DefaultTimeout(2 * time.Second),
++			Update: schema.DefaultTimeout(5 * time.Second),
 +			Delete: schema.DefaultTimeout(5 * time.Second),
  		},
 
@@ -750,7 +750,7 @@ index 5a7b5d36ac..e228b3da4a 100644
 -			Update: schema.DefaultTimeout(2 * time.Minute),
 -			Delete: schema.DefaultTimeout(5 * time.Minute),
 +			Create: schema.DefaultTimeout(5 * time.Second),
-+			Update: schema.DefaultTimeout(2 * time.Second),
++			Update: schema.DefaultTimeout(5 * time.Second),
 +			Delete: schema.DefaultTimeout(5 * time.Second),
  		},
 
