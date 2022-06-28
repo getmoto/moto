@@ -57,6 +57,7 @@ mock_batch_simple = lazy_load(
     backend="batch_simple_backends",
 )
 mock_budgets = lazy_load(".budgets", "mock_budgets")
+mock_ce = lazy_load(".ce", "mock_ce")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail")
