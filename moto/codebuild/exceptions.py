@@ -9,11 +9,13 @@ class InvalidInputException(JsonRESTError):
     def __init__(self, message):
         super().__init__("InvalidInputException", message)
 
+
 class ResourceNotFoundException(JsonRESTError):
     code = 400
 
     def __init__(self, message):
         super().__init__("ResourceNotFoundException", message)
+
 
 class ResourceAlreadyExistsException(JsonRESTError):
     code = 400
