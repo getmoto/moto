@@ -1,4 +1,3 @@
-from pydoc import source_synopsis
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from moto.core import get_account_id
@@ -9,14 +8,14 @@ import datetime
 import uuid
 # from .exceptions import InvalidInputException
 
+
 class CodeBuildProjectMetadata(BaseModel):
 
     def __init__(self, project_name, source_version, artifacts, build_id, service_role):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         self.build_metadata = dict()
-        self.build_id_history = list()
-
-        self.build_metadata_history = defaultdict(list)
+        #self.build_id_history = list()
+        #self.build_metadata_history = defaultdict(list)
 
         self.build_metadata["id"] = build_id
         self.build_metadata["arn"] = "arn:aws:codebuild:eu-west-2:{0}:build/{1}".format(
@@ -38,11 +37,11 @@ class CodeBuildProjectMetadata(BaseModel):
         {"phaseType": "QUEUED",
             "startTime": current_date}]
 
-        self.build_metadata["source"] = {"type": "CODECOMMIT", # should be different based on what you pass in 
+        self.build_metadata["source"] = {"type": "CODECOMMIT",  # should be different based on what you pass in
             "location": "https://git-codecommit.eu-west-2.amazonaws.com/v1/repos/testing",
             "gitCloneDepth": 1,
             "gitSubmodulesConfig": {"fetchSubmodules": False},
-            "buildspec": "buildspec/stuff.yaml", # should present in the codebuild project somewhere
+            "buildspec": "buildspec/stuff.yaml",  # should present in the codebuild project somewhere
             "insecureSsl": False}
 
         self.build_metadata["secondarySources"] = []
@@ -110,9 +109,10 @@ class CodeBuildBackend(BaseBackend):
         self.codebuild_projects = dict()
         self.build_history = dict()
         self.build_metadata = dict()
+        self.build_metadata_history = defaultdict(list)
 
     def create_project(self, project_name, project_source, artifacts, environment, service_role):
-        # required in other functions that don't 
+        # required in other functions that don't
         self.project_name = project_name
         self.service_role = service_role
 
@@ -121,7 +121,7 @@ class CodeBuildBackend(BaseBackend):
         )
 
         # empty build history
-        self.build_history[project_name] = []
+        self.build_history[project_name] = list()
 
         return self.codebuild_projects[project_name].project_metadata
 
@@ -142,16 +142,14 @@ class CodeBuildBackend(BaseBackend):
             project_name, source_version, artifact_override, build_id, self.service_role
         )
 
-        # update build history with build id
-        self.build_metadata[project_name].build_id_history.append(build_id)
+        self.build_history[project_name].append(build_id)
 
         # update build histroy with metadata for build id
-        self.build_metadata[project_name].build_metadata_history[project_name].append(
+        self.build_metadata_history[project_name].append(
             self.build_metadata[project_name].build_metadata
         )
 
         return self.build_metadata[project_name].build_metadata
-
 
     def _set_phases(self, phases):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
@@ -180,55 +178,48 @@ class CodeBuildBackend(BaseBackend):
             phase["endTime"] = current_date
             phase["durationInSeconds"] = randint(10,100)
             phases.append(phase)
-        
+
         return phases
 
     def batch_get_builds(self, ids):
-        metadata_by_id = []
+        batch_build_metadata = []
 
-        for project_name, metadata in self.build_metadata.items():
-            for build in metadata.build_metadata_history[project_name]:
-                for id in ids:
-                    if build["id"] == id:
-                        # set completion properties with variable completion time
-                        build["phases"] = self._set_phases(build["phases"])
-                        build["endTime"] = iso_8601_datetime_with_milliseconds(
-                            parser.parse(build["startTime"]) + datetime.timedelta(minutes=randint(1,5))
-                        )
-                        build["currentPhase"] = "COMPLETED"
-                        build["buildStatus"] = "SUCCEEDED"
+        for metadata in self.build_metadata_history.values():
+            for build in metadata:
+                if build["id"] in ids:
+                    build["phases"] = self._set_phases(build["phases"])
+                    build["endTime"] = iso_8601_datetime_with_milliseconds(
+                        parser.parse(build["startTime"]) + datetime.timedelta(minutes=randint(1,5))
+                    )
+                    build["currentPhase"] = "COMPLETED"
+                    build["buildStatus"] = "SUCCEEDED"
 
-                        metadata_by_id.append(build)
+                    batch_build_metadata.append(build)
 
-        return metadata_by_id
-
+        return batch_build_metadata
 
     def list_builds_for_project(self, project_name):
-        # validate stuff
         try:
-            return self.build_metadata[project_name].build_id_history
+            return self.build_history[project_name]
         except KeyError:
             return list()
 
-
     def list_builds(self):
         ids = []
-        for _,history in self.build_metadata.items():
-            ids.append(history.build_id_history[0])
-        return ids
 
+        for build_ids in self.build_history.values():
+            ids += build_ids
+        return ids
 
     def delete_project(self, project_name):
         self.build_metadata.pop(project_name, None)
         self.build_metadata.pop(project_name, None)
 
-
     def stop_build(self, id):
 
-        for project_name, metadata in self.build_metadata.items():
-            for build in metadata.build_metadata_history[project_name]:
+        for metadata in self.build_metadata_history.values():
+            for build in metadata:
                 if build["id"] == id:
-                        
                     # set completion properties with variable completion time
                     build["phases"] = self._set_phases(build["phases"])
                     build["endTime"] = iso_8601_datetime_with_milliseconds(

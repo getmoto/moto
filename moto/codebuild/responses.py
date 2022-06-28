@@ -24,6 +24,7 @@ def _validate_required_params_source(source):
             "Project source location is required"
         )
 
+
 def _validate_required_params_service_role(service_role):
     try:
         assert "arn:aws:iam::{0}:role/service-role/".format(get_account_id()) in service_role
@@ -31,6 +32,7 @@ def _validate_required_params_service_role(service_role):
         raise InvalidInputException(
             "Invalid service role: Service role account ID does not match caller's account"
         )
+
 
 def _validate_required_params_artifacts(artifacts):
     try:
@@ -55,6 +57,7 @@ def _validate_required_params_artifacts(artifacts):
             "Project source location is required"
         )
 
+
 def _validate_required_params_environment(environment):
     try:
         assert environment["type"] in ["WINDOWS_CONTAINER", "LINUX_CONTAINER", "LINUX_GPU_CONTAINER", "ARM_CONTAINER"]
@@ -69,6 +72,7 @@ def _validate_required_params_environment(environment):
             "Invalid compute type provided: {0}".format(environment["computeType"])
         )
 
+
 def _validate_required_params_project_name(name):
     try:
         # isalnum with dashes or underscores
@@ -78,11 +82,12 @@ def _validate_required_params_project_name(name):
             "Only alphanumeric characters, dash, and underscore are supported"
         )
 
+
 class CodeBuildResponse(BaseResponse):
+
     @property
     def codebuild_backend(self):
         return codebuild_backends[self.region]
-
 
     def list_builds_for_project(self):
         _validate_required_params_project_name(self._get_param("projectName"))
@@ -123,11 +128,9 @@ class CodeBuildResponse(BaseResponse):
 
         return json.dumps({"project": project_metadata})
 
-
     def list_projects(self): # no checks needed here
         project_metadata = self.codebuild_backend.list_projects()
         return json.dumps({"projects": project_metadata})
-
 
     def start_build(self):
         _validate_required_params_project_name(self._get_param("projectName"))
