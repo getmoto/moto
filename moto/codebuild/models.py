@@ -125,7 +125,8 @@ class CodeBuildBackend(BaseBackend):
     def list_projects(self):
 
         projects = []
-        for project,_ in self.codebuild_projects.items():
+
+        for project in self.codebuild_projects.keys():
             projects.append(project)
 
         return projects
@@ -210,7 +211,7 @@ class CodeBuildBackend(BaseBackend):
 
     def delete_project(self, project_name):
         self.build_metadata.pop(project_name, None)
-        self.build_metadata.pop(project_name, None)
+        self.codebuild_projects.pop(project_name, None)
 
     def stop_build(self, id):
 
