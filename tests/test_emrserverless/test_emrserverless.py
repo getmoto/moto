@@ -136,12 +136,12 @@ class TestDeleteApplication:
             ]
             if settings.TEST_SERVER_MODE
             else [
-                (0, "CREATING", pytest.raises(ClientError)),
-                (1, "CREATED", does_not_raise()),
-                (2, "STARTING", pytest.raises(ClientError)),
-                (3, "STARTED", pytest.raises(ClientError)),
-                (4, "STOPPING", pytest.raises(ClientError)),
-                (5, "STOPPED", does_not_raise()),
+                (0, "STARTED", pytest.raises(ClientError)),
+                (1, "STOPPED", does_not_raise()),
+                (2, "CREATING", pytest.raises(ClientError)),
+                (3, "CREATED", does_not_raise()),
+                (4, "STARTING", pytest.raises(ClientError)),
+                (5, "STOPPING", pytest.raises(ClientError)),
                 (6, "TERMINATED", pytest.raises(ClientError)),
             ]
         ),
@@ -307,7 +307,11 @@ class TestListApplication:
             ),
         }
 
-        assert resp["applications"][0] == expected_resp
+        actual_resp = [
+            app for app in resp["applications"] if app["id"] == expected_resp["id"]
+        ][0]
+
+        assert actual_resp == expected_resp
 
     @pytest.mark.parametrize(
         "list_applications_args,job_count",
@@ -398,11 +402,11 @@ class TestUpdateApplication:
     def get_expected_resp(application_id, extra_configuration):
         response = {
             "applicationId": application_id,
-            "name": "test-emr-serverless-application",
+            "name": "test-emr-serverless-application-STOPPED",
             "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{application_id}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
-            "state": "CREATED",
+            "state": "STOPPED",
             "stateDetails": "",
             "autoStartConfiguration": {"enabled": True},
             "autoStopConfiguration": {"enabled": True, "idleTimeoutMinutes": 15},
@@ -429,12 +433,12 @@ class TestUpdateApplication:
             ]
             if settings.TEST_SERVER_MODE
             else [
-                (0, "CREATING", pytest.raises(ClientError)),
-                (1, "CREATED", does_not_raise()),
-                (2, "STARTING", pytest.raises(ClientError)),
-                (3, "STARTED", pytest.raises(ClientError)),
-                (4, "STOPPING", pytest.raises(ClientError)),
-                (5, "STOPPED", does_not_raise()),
+                (0, "STARTED", pytest.raises(ClientError)),
+                (1, "STOPPED", does_not_raise()),
+                (2, "CREATING", pytest.raises(ClientError)),
+                (3, "CREATED", does_not_raise()),
+                (4, "STARTING", pytest.raises(ClientError)),
+                (5, "STOPPING", pytest.raises(ClientError)),
                 (6, "TERMINATED", pytest.raises(ClientError)),
             ]
         ),
@@ -520,11 +524,13 @@ class TestUpdateApplication:
             },
         ],
     )
-    def test_valid_update(self, base_application, update_configuration):
-        expected_resp = self.get_expected_resp(base_application, update_configuration)
+    def test_valid_update(self, update_configuration):
+        expected_resp = self.get_expected_resp(
+            self.application_ids[1], update_configuration
+        )
 
         actual_resp = self.client.update_application(
-            applicationId=base_application, **update_configuration
+            applicationId=self.application_ids[1], **update_configuration
         )["application"]
 
         assert actual_resp == expected_resp
