@@ -1,10 +1,9 @@
-import json
-import re
-
 from moto.core.responses import BaseResponse
 from .models import codebuild_backends
 from .exceptions import InvalidInputException, ResourceAlreadyExistsException, ResourceNotFoundException
 from moto.core import get_account_id
+import json
+import re
 
 
 def _validate_required_params_source(source):
@@ -107,7 +106,7 @@ class CodeBuildResponse(BaseResponse):
         return json.dumps({"ids": ids})
 
 
-    def create_project(self): # checks completed here
+    def create_project(self):
         _validate_required_params_source(self._get_param("source"))
         _validate_required_params_service_role(self._get_param("serviceRole"))
         _validate_required_params_artifacts(self._get_param("artifacts"))
@@ -128,7 +127,7 @@ class CodeBuildResponse(BaseResponse):
 
         return json.dumps({"project": project_metadata})
 
-    def list_projects(self): # no checks needed here
+    def list_projects(self):
         project_metadata = self.codebuild_backend.list_projects()
         return json.dumps({"projects": project_metadata})
 
@@ -163,7 +162,7 @@ class CodeBuildResponse(BaseResponse):
         )
         return json.dumps({"builds": metadata})
 
-    def list_builds(self): # no checks needed here
+    def list_builds(self):
         ids = self.codebuild_backend.list_builds()
         return json.dumps({"ids": ids})
 

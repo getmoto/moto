@@ -14,8 +14,6 @@ class CodeBuildProjectMetadata(BaseModel):
     def __init__(self, project_name, source_version, artifacts, build_id, service_role):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         self.build_metadata = dict()
-        #self.build_id_history = list()
-        #self.build_metadata_history = defaultdict(list)
 
         self.build_metadata["id"] = build_id
         self.build_metadata["arn"] = "arn:aws:codebuild:eu-west-2:{0}:build/{1}".format(
@@ -75,7 +73,6 @@ class CodeBuild(BaseModel):
 
     def __init__(self, region, project_name, project_source=dict(), artifacts=dict(), environment=dict(), serviceRole="some_role"):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
-        # remove codebuild from these names
         self.project_metadata = dict()
 
         self.project_metadata["name"] = project_name
