@@ -101,7 +101,7 @@ class FakeDeviceDefinitionVersion(BaseModel):
         self.device_definition_id = device_definition_id
         self.devices = devices
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self, include_detail=False):
@@ -124,7 +124,7 @@ class FakeResourceDefinition(BaseModel):
     def __init__(self, region_name, name, initial_version):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/resources/{self.id}"
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/resources/{self.id}"
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -154,7 +154,7 @@ class FakeResourceDefinitionVersion(BaseModel):
         self.resource_definition_id = resource_definition_id
         self.resources = resources
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:/greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{region_name}:{get_account_id()}:greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self):
@@ -173,7 +173,7 @@ class FakeFunctionDefinition(BaseModel):
     def __init__(self, region_name, name, initial_version):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/functions/{self.id}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/functions/{self.id}"
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -206,7 +206,7 @@ class FakeFunctionDefinitionVersion(BaseModel):
         self.functions = functions
         self.default_config = default_config
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self):
@@ -225,7 +225,7 @@ class FakeSubscriptionDefinition(BaseModel):
     def __init__(self, region_name, name, initial_version):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/subscriptions/{self.id}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/subscriptions/{self.id}"
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.latest_version = ""
@@ -255,7 +255,7 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
         self.subscription_definition_id = subscription_definition_id
         self.subscriptions = subscriptions
         self.version = str(uuid.uuid4())
-        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
         self.created_at_datetime = datetime.utcnow()
 
     def to_dict(self):
@@ -268,6 +268,97 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
             "Id": self.subscription_definition_id,
             "Version": self.version,
         }
+
+
+class FakeGroup(BaseModel):
+    def __init__(self, region_name, name):
+        self.region_name = region_name
+        self.group_id = str(uuid.uuid4())
+        self.name = name
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/groups/{self.group_id}"
+        self.created_at_datetime = datetime.utcnow()
+        self.last_updated_datetime = datetime.utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+
+    def to_dict(self):
+        obj = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.group_id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.last_updated_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+            "Name": self.name,
+        }
+        return obj
+
+
+class FakeGroupVersion(BaseModel):
+    def __init__(
+        self,
+        region_name,
+        group_id,
+        core_definition_version_arn,
+        device_definition_version_arn,
+        function_definition_version_arn,
+        resource_definition_version_arn,
+        subscription_definition_version_arn,
+    ):
+        self.region_name = region_name
+        self.group_id = group_id
+        self.version = str(uuid.uuid4())
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:greengrass/groups/{self.group_id}/versions/{self.version}"
+        self.created_at_datetime = datetime.utcnow()
+        self.core_definition_version_arn = core_definition_version_arn
+        self.device_definition_version_arn = device_definition_version_arn
+        self.function_definition_version_arn = function_definition_version_arn
+        self.resource_definition_version_arn = resource_definition_version_arn
+        self.subscription_definition_version_arn = subscription_definition_version_arn
+
+    def to_dict(self, include_detail=False):
+
+        definition = {}
+        if self.core_definition_version_arn:
+            definition["CoreDefinitionVersionArn"] = self.core_definition_version_arn
+
+        if self.device_definition_version_arn:
+            definition[
+                "DeviceDefinitionVersionArn"
+            ] = self.device_definition_version_arn
+
+        if self.function_definition_version_arn:
+            definition[
+                "FunctionDefinitionVersionArn"
+            ] = self.function_definition_version_arn
+
+        if self.resource_definition_version_arn:
+            definition[
+                "ResourceDefinitionVersionArn"
+            ] = self.resource_definition_version_arn
+
+        if self.subscription_definition_version_arn:
+            definition[
+                "SubscriptionDefinitionVersionArn"
+            ] = self.subscription_definition_version_arn
+
+        obj = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.group_id,
+            "Version": self.version,
+        }
+
+        if include_detail:
+            obj["Definition"] = definition
+
+        return obj
 
 
 class GreengrassBackend(BaseBackend):
@@ -789,6 +880,191 @@ class GreengrassBackend(BaseBackend):
         return self.subscription_definition_versions[subscription_definition_id][
             subscription_definition_version_id
         ]
+
+    def create_group(self, name, initial_version):
+        group = FakeGroup(self.region_name, name)
+        self.groups[group.group_id] = group
+
+        definitions = initial_version or {}
+        core_definition_version_arn = definitions.get("CoreDefinitionVersionArn")
+        device_definition_version_arn = definitions.get("DeviceDefinitionVersionArn")
+        function_definition_version_arn = definitions.get(
+            "FunctionDefinitionVersionArn"
+        )
+        resource_definition_version_arn = definitions.get(
+            "ResourceDefinitionVersionArn"
+        )
+        subscription_definition_version_arn = definitions.get(
+            "SubscriptionDefinitionVersionArn"
+        )
+
+        self.create_group_version(
+            group.group_id,
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+
+        return group
+
+    def list_groups(self):
+        return self.groups.values()
+
+    def get_group(self, group_id):
+        if group_id not in self.groups:
+            raise IdNotFoundException("That Group Definition does not exist.")
+        return self.groups.get(group_id)
+
+    def delete_group(self, group_id):
+        if group_id not in self.groups:
+            # I don't know why, the error message is different between get_group and delete_group
+            raise IdNotFoundException("That group definition does not exist.")
+        del self.groups[group_id]
+        del self.group_versions[group_id]
+
+    def update_group(self, group_id, name):
+
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if group_id not in self.groups:
+            raise IdNotFoundException("That group definition does not exist.")
+        self.groups[group_id].name = name
+
+    def create_group_version(
+        self,
+        group_id,
+        core_definition_version_arn,
+        device_definition_version_arn,
+        function_definition_version_arn,
+        resource_definition_version_arn,
+        subscription_definition_version_arn,
+    ):
+
+        if group_id not in self.groups:
+            raise IdNotFoundException("That group does not exist.")
+
+        self._validate_group_version_definitions(
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+
+        group_ver = FakeGroupVersion(
+            self.region_name,
+            group_id=group_id,
+            core_definition_version_arn=core_definition_version_arn,
+            device_definition_version_arn=device_definition_version_arn,
+            function_definition_version_arn=function_definition_version_arn,
+            resource_definition_version_arn=resource_definition_version_arn,
+            subscription_definition_version_arn=subscription_definition_version_arn,
+        )
+        group_vers = self.group_versions.get(group_ver.group_id, {})
+        group_vers[group_ver.version] = group_ver
+        self.group_versions[group_ver.group_id] = group_vers
+        self.groups[group_id].latest_version_arn = group_ver.arn
+        self.groups[group_id].latest_version = group_ver.version
+        return group_ver
+
+    def _validate_group_version_definitions(
+        self,
+        core_definition_version_arn=None,
+        device_definition_version_arn=None,
+        function_definition_version_arn=None,
+        resource_definition_version_arn=None,
+        subscription_definition_version_arn=None,
+    ):
+        def _is_valid_def_ver_arn(definition_version_arn, kind="cores"):
+
+            if definition_version_arn is None:
+                return True
+
+            if kind == "cores":
+                versions = self.core_definition_versions
+            elif kind == "devices":
+                versions = self.device_definition_versions
+            elif kind == "functions":
+                versions = self.function_definition_versions
+            elif kind == "resources":
+                versions = self.resource_definition_versions
+            elif kind == "subscriptions":
+                versions = self.subscription_definition_versions
+            else:
+                raise Exception("invalid args")
+
+            arn_regex = (
+                r"^arn:aws:greengrass:[a-zA-Z0-9-]+:[0-9]{12}:greengrass/definition/"
+                + kind
+                + r"/[a-z0-9-]{36}/versions/[a-z0-9-]{36}$"
+            )
+
+            if not re.match(arn_regex, definition_version_arn):
+                return False
+
+            definition_id = definition_version_arn.split("/")[-3]
+
+            if definition_id not in versions:
+                return False
+
+            definition_version_id = definition_version_arn.split("/")[-1]
+            if definition_version_id not in versions[definition_id]:
+                return False
+
+            if (
+                versions[definition_id][definition_version_id].arn
+                != definition_version_arn
+            ):
+                return False
+
+            return True
+
+        errors = []
+
+        if not _is_valid_def_ver_arn(core_definition_version_arn, kind="cores"):
+            errors.append("Cores definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(function_definition_version_arn, kind="functions"):
+            errors.append("Lambda definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(resource_definition_version_arn, kind="resources"):
+            errors.append("Resource definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(device_definition_version_arn, kind="devices"):
+            errors.append("Devices definition reference does not exist")
+
+        if not _is_valid_def_ver_arn(
+            subscription_definition_version_arn, kind="subscriptions"
+        ):
+            errors.append("Subscription definition reference does not exist")
+
+        if errors:
+            error_details = ", ".join(errors)
+            raise GreengrassClientError(
+                "400",
+                f"The group is invalid or corrupted. (ErrorDetails: [{error_details}])",
+            )
+
+    def list_group_versions(self, group_id):
+        if group_id not in self.group_versions:
+            raise IdNotFoundException("That group definition does not exist.")
+        return self.group_versions[group_id].values()
+
+    def get_group_version(self, group_id, group_version_id):
+
+        if group_id not in self.group_versions:
+            raise IdNotFoundException("That group definition does not exist.")
+
+        if group_version_id not in self.group_versions[group_id]:
+            raise VersionNotFoundException(
+                f"Version {group_version_id} of Group Definition {group_id} does not exist."
+            )
+
+        return self.group_versions[group_id][group_version_id]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

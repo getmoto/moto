@@ -15,6 +15,8 @@ autoscaling:
   - TestAccAutoScalingLaunchConfiguration_
 batch:
   - TestAccBatchJobDefinition
+ce:
+  - TestAccCECostCategory
 cloudtrail:
   - TestAccCloudTrailServiceAccount
 cloudwatch:
@@ -130,7 +132,8 @@ lambda:
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
-  - TestAccMQBroker
+  - TestAccMQBrokerDataSource
+  - TestAccMQBroker_
 quicksight:
   - TestAccQuickSightUser
 redshift:
@@ -189,12 +192,19 @@ route53:
   - TestAccRoute53HealthCheck_withSNI
   - TestAccRoute53HealthCheck_disabled
   - TestAccRoute53HealthCheck_disappears
+  - TestAccRoute53ResolverEndpoint
 s3:
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock
   - TestAccS3ObjectCopy
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
+servicediscovery:
+  - TestAccServiceDiscoveryDNSNamespaceDataSource
+  - TestAccServiceDiscoveryHTTPNamespace
+  - TestAccServiceDiscoveryPrivateDNSNamespace
+  - TestAccServiceDiscoveryPublicDNSNamespace
+  - TestAccServiceDiscoveryService
 sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource

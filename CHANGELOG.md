@@ -1,6 +1,51 @@
 Moto Changelog
 ==============
 
+3.1.16
+-----
+Docker Digest for 3.1.16: _sha256:e7d79262fac1553966fb8c894dc81a750c4a18745977da6a15dffc35c596f8c4_
+
+    New Methods:
+        * Autoscaling:
+            * enable_metrics_collection()
+
+    Miscellaneous:
+        * Fixes a dependency-error that popped up in 3.1.15.
+
+3.1.15
+-----
+Docker Digest for 3.1.15: _sha256:fad9fc39322cbabf4440ac5f6a3a158ee759dcd963995fea9672136c50bd2fc3_
+
+    Known bugs:
+        * Some services will throw an error: Missing module 'openapi_spec_validator'. This is fixed in 3.1.16.
+
+    New Methods:
+        * Databrew:
+            * create_profile_job()
+            * create_recipe_job()
+            * delete_job()
+            * describe_job()
+            * list_jobs()
+            * update_profile_job()
+            * update_recipe_job()
+        * Glue:
+            * create_registry()
+        * Greengrass:
+            * create_group()
+            * create_group_version()
+            * delete_group()
+            * get_group()
+            * get_group_version()
+            * list_groups()
+            * list_group_versions()
+            * update_group()
+        * KMS:
+            * sign()
+            * verify()
+        * Route53Resolver:
+            * associate_resolver_endpoint_ip_address()
+            * disassociate_resolver_endpoint_ip_address()
+
 3.1.14
 -----
 Docker Digest for 3.1.14: _sha256:a8ad7f54d7c469e34454f6774f743251c02093c6b2d7e9d7961a5de366783e11_
@@ -36,7 +81,7 @@ Docker Digest for 3.1.14: _sha256:a8ad7f54d7c469e34454f6774f743251c02093c6b2d7e9
             * tag_resource()
             * untag_resource()
         * Route53:
-            * associate_vpc()
+            * associate_vpc_with_hosted_zone()
             * disassociate_vpc_from_hosted_zone()
             * update_health_check()
             * update_hosted_zone_comment()

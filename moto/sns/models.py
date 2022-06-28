@@ -662,6 +662,9 @@ class SNSBackend(BaseBackend):
 
     def delete_platform_application(self, platform_arn):
         self.applications.pop(platform_arn)
+        endpoints = self.list_endpoints_by_platform_application(platform_arn)
+        for endpoint in endpoints:
+            self.platform_endpoints.pop(endpoint.arn)
 
     def create_platform_endpoint(
         self, region, application, custom_user_data, token, attributes

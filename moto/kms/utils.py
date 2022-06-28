@@ -6,6 +6,7 @@ import uuid
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from .exceptions import (
     InvalidCiphertextException,
@@ -56,6 +57,18 @@ def generate_data_key(number_of_bytes):
 def generate_master_key():
     """Generate a master key."""
     return generate_data_key(MASTER_KEY_LEN)
+
+
+def generate_private_key():
+    """Generate a private key to be used on asymmetric sign/verify.
+
+    NOTE: KeySpec is not taken into consideration and the key is always RSA_2048
+    this could be improved to support multiple key types
+    """
+    return rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
 
 
 def _serialize_ciphertext_blob(ciphertext):

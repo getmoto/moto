@@ -57,6 +57,7 @@ mock_batch_simple = lazy_load(
     backend="batch_simple_backends",
 )
 mock_budgets = lazy_load(".budgets", "mock_budgets")
+mock_ce = lazy_load(".ce", "mock_ce")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail")
@@ -180,6 +181,9 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
+mock_emrserverless = lazy_load(
+    ".emrserverless", "mock_emrserverless", boto3_name="emr-serverless"
+)
 
 
 class MockAll(ContextDecorator):
@@ -208,7 +212,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "3.1.15.dev"
+__version__ = "3.1.17.dev"
 
 
 try:

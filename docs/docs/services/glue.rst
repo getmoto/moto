@@ -54,7 +54,7 @@ glue
 - [ ] create_ml_transform
 - [ ] create_partition
 - [ ] create_partition_index
-- [ ] create_registry
+- [X] create_registry
 - [ ] create_schema
 - [ ] create_script
 - [ ] create_security_configuration
@@ -151,6 +151,7 @@ glue
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [X] list_crawlers
+- [ ] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs

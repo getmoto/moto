@@ -152,6 +152,14 @@ def test_key_name_encoding_in_listing():
     key_received = client.list_objects_v2(Bucket="foobar")["Contents"][0]["Key"]
     key_received.should.equal(name)
 
+    name = "example/file.text"
+    client.put_object(Bucket="foobar", Key=name, Body=b"")
+
+    key_received = client.list_objects(
+        Bucket="foobar", Prefix="example/", Delimiter="/", MaxKeys=1, EncodingType="url"
+    )["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
 
 @mock_s3
 def test_empty_key_set_on_existing_key():

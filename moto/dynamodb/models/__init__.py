@@ -482,7 +482,7 @@ class Table(CloudFormationModel):
             key = kms.create_key(
                 policy="",
                 key_usage="ENCRYPT_DECRYPT",
-                customer_master_key_spec="SYMMETRIC_DEFAULT",
+                key_spec="SYMMETRIC_DEFAULT",
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
                 region=region,
