@@ -28,46 +28,46 @@ def client():
 
 @pytest.fixture(scope="function")
 def application_factory(client):
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
-
-    application_state = [
-        "CREATING",
-        "CREATED",
-        "STARTING",
-        "STARTED",
-        "STOPPING",
-        "STOPPED",
-        "TERMINATED",
-    ]
-
     application_list = []
-    for state in application_state:
-        with patch("moto.emrserverless.models.APPLICATION_STATUS", state):
-            resp = client.create_application(
-                name=f"test-emr-serverless-application-{state}",
-                type="SPARK",
-                releaseLabel=DEFAULT_RELEASE_LABEL,
-            )
 
-            application_list.append(resp["applicationId"])
-
-    yield application_list
-
-
-@pytest.fixture(scope="function")
-def base_application(client):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
-
-    with patch("moto.emrserverless.models.APPLICATION_STATUS", "CREATED"):
         resp = client.create_application(
-            name="test-emr-serverless-application",
+            name=f"test-emr-serverless-application-STARTED",
             type="SPARK",
             releaseLabel=DEFAULT_RELEASE_LABEL,
         )
+        application_list.append(resp["applicationId"])
 
-    yield resp["applicationId"]
+        resp = client.create_application(
+            name=f"test-emr-serverless-application-STOPPED",
+            type="SPARK",
+            releaseLabel=DEFAULT_RELEASE_LABEL,
+        )
+        client.stop_application(applicationId=resp["applicationId"])
+        application_list.append(resp["applicationId"])
+
+    else:
+        application_state = [
+            "STARTED",
+            "STOPPED",
+            "CREATING",
+            "CREATED",
+            "STARTING",
+            "STOPPING",
+            "TERMINATED",
+        ]
+
+        for state in application_state:
+            with patch("moto.emrserverless.models.APPLICATION_STATUS", state):
+                resp = client.create_application(
+                    name=f"test-emr-serverless-application-{state}",
+                    type="SPARK",
+                    releaseLabel=DEFAULT_RELEASE_LABEL,
+                )
+
+                application_list.append(resp["applicationId"])
+
+    yield application_list
 
 
 class TestCreateApplication:
@@ -129,15 +129,22 @@ class TestDeleteApplication:
 
     @pytest.mark.parametrize(
         "index,status,expectation",
-        [
-            (0, "CREATING", pytest.raises(ClientError)),
-            (1, "CREATED", does_not_raise()),
-            (2, "STARTING", pytest.raises(ClientError)),
-            (3, "STARTED", pytest.raises(ClientError)),
-            (4, "STOPPING", pytest.raises(ClientError)),
-            (5, "STOPPED", does_not_raise()),
-            (6, "TERMINATED", pytest.raises(ClientError)),
-        ],
+        argvalues=(
+            [
+                (0, "STARTED", pytest.raises(ClientError)),
+                (1, "STOPPED", does_not_raise()),
+            ]
+            if settings.TEST_SERVER_MODE
+            else [
+                (0, "CREATING", pytest.raises(ClientError)),
+                (1, "CREATED", does_not_raise()),
+                (2, "STARTING", pytest.raises(ClientError)),
+                (3, "STARTED", pytest.raises(ClientError)),
+                (4, "STOPPING", pytest.raises(ClientError)),
+                (5, "STOPPED", does_not_raise()),
+                (6, "TERMINATED", pytest.raises(ClientError)),
+            ]
+        ),
     )
     def test_valid_application_id(self, index, status, expectation):
         with expectation as exc:
@@ -281,12 +288,12 @@ class TestListApplication:
     def test_response_context(self):
         resp = self.client.list_applications()
         expected_resp = {
-            "id": self.application_ids[1],
-            "name": "test-emr-serverless-application-CREATED",
-            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[1]}",
+            "id": self.application_ids[0],
+            "name": "test-emr-serverless-application-STARTED",
+            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[0]}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
-            "state": "CREATED",
+            "state": "STARTED",
             "stateDetails": "",
             "createdAt": (
                 datetime.today()
@@ -304,24 +311,41 @@ class TestListApplication:
 
     @pytest.mark.parametrize(
         "list_applications_args,job_count",
-        [
-            ({}, 7),
-            ({"states": ["CREATED"]}, 1),
-            ({"states": ["CREATED", "STARTING"]}, 2),
-            ({"states": ["FOOBAA"]}, 0),
-            ({"maxResults": 1}, 1),
-        ],
+        argvalues=(
+            [
+                ({}, 2),
+                ({"states": ["STARTED"]}, 1),
+                ({"states": ["STARTED", "STOPPED"]}, 2),
+                ({"states": ["FOOBAA"]}, 0),
+                ({"maxResults": 1}, 1),
+            ]
+            if settings.TEST_SERVER_MODE
+            else [
+                ({}, 7),
+                ({"states": ["CREATED"]}, 1),
+                ({"states": ["CREATED", "STARTING"]}, 2),
+                ({"states": ["FOOBAA"]}, 0),
+                ({"maxResults": 1}, 1),
+            ]
+        ),
     )
     def test_filtering(self, list_applications_args, job_count):
         resp = self.client.list_applications(**list_applications_args)
         assert len(resp["applications"]) == job_count
 
     def test_next_token(self):
-        resp = self.client.list_applications(maxResults=2)
-        assert len(resp["applications"]) == 2
+        if settings.TEST_SERVER_MODE:
+            resp = self.client.list_applications(maxResults=1)
+            assert len(resp["applications"]) == 1
 
-        resp = self.client.list_applications(nextToken=resp["nextToken"])
-        assert len(resp["applications"]) == 5
+            resp = self.client.list_applications(nextToken=resp["nextToken"])
+            assert len(resp["applications"]) == 1
+        else:
+            resp = self.client.list_applications(maxResults=2)
+            assert len(resp["applications"]) == 2
+
+            resp = self.client.list_applications(nextToken=resp["nextToken"])
+            assert len(resp["applications"]) == 5
 
 
 class TestStartApplication:
@@ -398,15 +422,22 @@ class TestUpdateApplication:
 
     @pytest.mark.parametrize(
         "index,status,expectation",
-        [
-            (0, "CREATING", pytest.raises(ClientError)),
-            (1, "CREATED", does_not_raise()),
-            (2, "STARTING", pytest.raises(ClientError)),
-            (3, "STARTED", pytest.raises(ClientError)),
-            (4, "STOPPING", pytest.raises(ClientError)),
-            (5, "STOPPED", does_not_raise()),
-            (6, "TERMINATED", pytest.raises(ClientError)),
-        ],
+        argvalues=(
+            [
+                (0, "STARTED", pytest.raises(ClientError)),
+                (1, "STOPPED", does_not_raise()),
+            ]
+            if settings.TEST_SERVER_MODE
+            else [
+                (0, "CREATING", pytest.raises(ClientError)),
+                (1, "CREATED", does_not_raise()),
+                (2, "STARTING", pytest.raises(ClientError)),
+                (3, "STARTED", pytest.raises(ClientError)),
+                (4, "STOPPING", pytest.raises(ClientError)),
+                (5, "STOPPED", does_not_raise()),
+                (6, "TERMINATED", pytest.raises(ClientError)),
+            ]
+        ),
     )
     def test_application_status(self, index, status, expectation):
         with expectation as exc:
