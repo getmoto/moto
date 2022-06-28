@@ -2455,6 +2455,26 @@
 - [ ] untag_resource
 </details>
 
+## emr-serverless
+<details>
+<summary>71% implemented</summary>
+
+- [ ] cancel_job_run
+- [X] create_application
+- [X] delete_application
+- [X] get_application
+- [ ] get_job_run
+- [X] list_applications
+- [ ] list_job_runs
+- [ ] list_tags_for_resource
+- [X] start_application
+- [X] start_job_run
+- [X] stop_application
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_application
+</details>
+
 ## es
 <details>
 <summary>9% implemented</summary>

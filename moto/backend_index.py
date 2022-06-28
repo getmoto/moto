@@ -64,6 +64,7 @@ backend_url_patterns = [
     ("emr", re.compile("https?://(.+)\\.elasticmapreduce\\.amazonaws.com")),
     ("emr", re.compile("https?://elasticmapreduce\\.(.+)\\.amazonaws.com")),
     ("emr-containers", re.compile("https?://emr-containers\\.(.+)\\.amazonaws\\.com")),
+    ("emr-serverless", re.compile("https?://emr-serverless\\.(.+)\\.amazonaws\\.com")),
     ("es", re.compile("https?://es\\.(.+)\\.amazonaws\\.com")),
     ("events", re.compile("https?://events\\.(.+)\\.amazonaws\\.com")),
     ("firehose", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
