@@ -110,14 +110,9 @@ class CodeBuildBackend(BaseBackend):
         self.codebuild_projects = dict()
         self.build_history = dict()
         self.build_metadata = dict()
-        self.project_name = ""
 
     def create_project(self, project_name, project_source, artifacts, environment, service_role):
-        # if exists exit with proper response
-        #project = self.codebuild_projects.get(project_name)
-        # if project:
-        #     raise SomeException(project_name)         # this needs to be a project name exists
-        
+        # required in other functions that don't 
         self.project_name = project_name
         self.service_role = service_role
 
