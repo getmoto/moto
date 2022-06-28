@@ -1,7 +1,6 @@
 """Unit tests for emrserverless-supported APIs."""
 import re
 from datetime import datetime, timezone
-from unittest import SkipTest
 from contextlib import contextmanager
 
 import boto3
@@ -32,14 +31,14 @@ def application_factory(client):
 
     if settings.TEST_SERVER_MODE:
         resp = client.create_application(
-            name=f"test-emr-serverless-application-STARTED",
+            name="test-emr-serverless-application-STARTED",
             type="SPARK",
             releaseLabel=DEFAULT_RELEASE_LABEL,
         )
         application_list.append(resp["applicationId"])
 
         resp = client.create_application(
-            name=f"test-emr-serverless-application-STOPPED",
+            name="test-emr-serverless-application-STOPPED",
             type="SPARK",
             releaseLabel=DEFAULT_RELEASE_LABEL,
         )
