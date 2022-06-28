@@ -69,6 +69,15 @@ def _validate_required_params_environment(environment):
             "Invalid compute type provided: {0}".format(environment["computeType"])
         )
 
+def _validate_required_params_project_name(name):
+    try:
+        # isalnum with dashes or underscores
+        assert re.match(r"^[A-Za-z0-9_-]+$", name)
+    except AssertionError:
+        raise InvalidInputException(
+            "Only alphanumeric characters, dash, and underscore are supported"
+        )
+
 class CodeBuildResponse(BaseResponse):
     @property
     def codebuild_backend(self):
@@ -76,8 +85,15 @@ class CodeBuildResponse(BaseResponse):
 
 
     def list_builds_for_project(self):
-        # VALIDATE PROJECT EXISTS
-        # get param pulling function signatures params from .ipynb
+        _validate_required_params_project_name(self._get_param("projectName"))
+
+        try:
+            assert self._get_param("projectName") in self.codebuild_backend.codebuild_projects.keys()
+        except AssertionError:
+            raise ResourceNotFoundException(
+             "The provided project arn:aws:codebuild:{0}:{1}:project/{2} does not exist".format(
+                    self.region, get_account_id(), self._get_param("projectName"))
+            )
 
         ids = self.codebuild_backend.list_builds_for_project(
             self._get_param("projectName")
@@ -91,6 +107,7 @@ class CodeBuildResponse(BaseResponse):
         _validate_required_params_service_role(self._get_param("serviceRole"))
         _validate_required_params_artifacts(self._get_param("artifacts"))
         _validate_required_params_environment(self._get_param("environment"))
+        _validate_required_params_project_name(self._get_param("name"))
 
         try:
             assert self._get_param("name") not in self.codebuild_backend.codebuild_projects.keys()
@@ -113,6 +130,8 @@ class CodeBuildResponse(BaseResponse):
 
 
     def start_build(self):
+        _validate_required_params_project_name(self._get_param("projectName"))
+
         try:
             assert self._get_param("projectName") in self.codebuild_backend.codebuild_projects.keys()
         except AssertionError:
@@ -146,12 +165,22 @@ class CodeBuildResponse(BaseResponse):
         return json.dumps({"ids": ids})
 
     def delete_project(self):
+        _validate_required_params_project_name(self._get_param("name"))
+
         self.codebuild_backend.delete_project(
             self._get_param("name")
         )
         return
 
     def stop_build(self):
+
+        try:
+            assert ":" in self._get_param("id")
+        except AssertionError:
+            raise InvalidInputException(
+                "Invalid build ID provided"
+            )
+
         metadata = self.codebuild_backend.stop_build(
             self._get_param("id")
         )
