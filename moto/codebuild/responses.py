@@ -92,10 +92,8 @@ class CodeBuildResponse(BaseResponse):
         _validate_required_params_artifacts(self._get_param("artifacts"))
         _validate_required_params_environment(self._get_param("environment"))
 
-
         try:
             assert self._get_param("name") not in self.codebuild_backend.codebuild_projects.keys()
-            print(self.codebuild_backend.codebuild_projects.keys())
         except AssertionError:
             raise ResourceAlreadyExistsException(
                 "Project already exists: arn:aws:codebuild:{0}:{1}:project/{2}".format(
@@ -129,6 +127,15 @@ class CodeBuildResponse(BaseResponse):
         return json.dumps({"build": metadata})
 
     def batch_get_builds(self):
+
+        try:
+            for id in self._get_param("ids"):
+                assert ":" in id
+        except AssertionError:
+            raise InvalidInputException(
+                "Invalid build ID provided"
+            )
+    
         metadata = self.codebuild_backend.batch_get_builds(
             self._get_param("ids")
         )
