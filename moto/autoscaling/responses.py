@@ -102,6 +102,7 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
+<<<<<<< HEAD
     def put_scheduled_update_group_action(self):
         self.autoscaling_backend.put_scheduled_update_group_action(
             name=self._get_param("AutoScalingGroupName"),
@@ -114,6 +115,20 @@ class AutoScalingResponse(BaseResponse):
             recurrence=self._get_param("Recurrence"),
         )
         template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
+=======
+    def create_auto_scaling_scheduled_action(self):
+        self.autoscaling_backend.create_auto_scaling_scheduled_action(
+            asg_name=self._get_param("AutoScalingGroupName"),
+            desired_capacity=self._get_int_param("DesiredCapacity"),
+            max_size=self._get_int_param("MaxSize"),
+            min_size=self._get_int_param("MinSize"),
+            scheduled_action_name="SAHIL",
+            start_time=start_time=self._get_param("StartTime"),
+            end_time=end_time=self._get_param("EndTime"),
+            recurrence=self._get_param("Recurrence")
+        )
+        template = self.response_template(CREATE_AUTOSCALING_SCHEDULED_ACTION_TEMPLATE)
+>>>>>>> Add it
         return template.render()
 
     @amz_crc32
@@ -326,6 +341,7 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
+    def describe_
     @amz_crc32
     @amzn_request_id
     def attach_load_balancers(self):
@@ -594,11 +610,20 @@ CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="ht
 </ResponseMetadata>
 </CreateAutoScalingGroupResponse>"""
 
+<<<<<<< HEAD
 PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
 <RequestId></RequestId>
 </ResponseMetadata>
 </PutScheduledUpdateGroupActionResponse>"""
+=======
+
+CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+</ResponseMetadata>
+</CreateAutoScalingGroupResponse>"""
+>>>>>>> Add it
 
 ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancerTargetGroupsResult>
