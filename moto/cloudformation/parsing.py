@@ -709,6 +709,8 @@ class ResourceMap(collections_abc.Mapping):
         for logical_name in resource_names_by_action["Remove"]:
             resource_json = self._resource_json_map[logical_name]
             resource = self._parsed_resources[logical_name]
+            print(f"\n resource_json: {resource_json}")
+            print(f"\n resource: {resource}")
             # ToDo: Standardize this.
             if hasattr(resource, "physical_resource_id"):
                 resource_name = self._parsed_resources[
