@@ -4,7 +4,6 @@ from moto import mock_codebuild
 from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
 import pytest
-from pprint import pprint as pp
 
 
 @mock_codebuild
@@ -25,9 +24,19 @@ def test_codebuild_create_project_s3_artifacts():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    response = client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    response = client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
 
     response.should_not.be.none
     response["project"].should_not.be.none
@@ -35,20 +44,22 @@ def test_codebuild_create_project_s3_artifacts():
     response["project"]["name"].should_not.be.none
 
     response["project"]["environment"].should.equal(
-        {"computeType": "BUILD_GENERAL1_SMALL",
-        "image": "contents_not_validated",
-        "type": "LINUX_CONTAINER"}
-        )
+        {
+            "computeType": "BUILD_GENERAL1_SMALL",
+            "image": "contents_not_validated",
+            "type": "LINUX_CONTAINER",
+        }
+    )
 
     response["project"]["source"].should.equal(
-         {"location": "bucketname/path/file.zip", "type": "S3"}
-        )
+        {"location": "bucketname/path/file.zip", "type": "S3"}
+    )
 
     response["project"]["artifacts"].should.equal(
         {"location": "bucketname", "type": "S3"}
     )
 
-    
+
 @mock_codebuild
 def test_codebuild_create_project_no_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
@@ -65,9 +76,19 @@ def test_codebuild_create_project_no_artifacts():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    response = client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    response = client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
 
     response.should_not.be.none
     response["project"].should_not.be.none
@@ -75,18 +96,19 @@ def test_codebuild_create_project_no_artifacts():
     response["project"]["name"].should_not.be.none
 
     response["project"]["environment"].should.equal(
-        {"computeType": "BUILD_GENERAL1_SMALL",
-        "image": "contents_not_validated",
-        "type": "LINUX_CONTAINER"}
+        {
+            "computeType": "BUILD_GENERAL1_SMALL",
+            "image": "contents_not_validated",
+            "type": "LINUX_CONTAINER",
+        }
     )
 
     response["project"]["source"].should.equal(
-         {"location": "bucketname/path/file.zip", "type": "S3"}
-        )
-
-    response["project"]["artifacts"].should.equal(
-        {"type": "NO_ARTIFACTS"}
+        {"location": "bucketname/path/file.zip", "type": "S3"}
     )
+
+    response["project"]["artifacts"].should.equal({"type": "NO_ARTIFACTS"})
+
 
 @mock_codebuild
 def test_codebuild_create_project_when_exists():
@@ -103,13 +125,30 @@ def test_codebuild_create_project_when_exists():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
-    
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
+
     with pytest.raises(ClientError) as err:
-        client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+        client.create_project(
+            name=name,
+            source=source,
+            artifacts=artifacts,
+            environment=environment,
+            serviceRole=service_role,
+        )
         err.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
+
 
 @mock_codebuild
 def test_codebuild_list_projects():
@@ -128,15 +167,31 @@ def test_codebuild_list_projects():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name="project1", source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
-    client.create_project(name="project2", source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
-    
+    client.create_project(
+        name="project1",
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
+    client.create_project(
+        name="project2",
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
+
     projects = client.list_projects()
 
     projects["projects"].should_not.be.none
-    projects["projects"].should.equal(['project1', 'project2'])
+    projects["projects"].should.equal(["project1", "project2"])
 
 
 @mock_codebuild
@@ -154,14 +209,24 @@ def test_codebuild_list_builds_for_project_no_history():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     history = client.list_builds_for_project(projectName=name)
 
     # no build history if it's never started
     history["ids"].should.be.empty
-    
+
 
 @mock_codebuild
 def test_codebuild_list_builds_for_project_with_history():
@@ -178,17 +243,28 @@ def test_codebuild_list_builds_for_project_with_history():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     client.start_build(projectName=name)
     response = client.list_builds_for_project(projectName=name)
 
     response["ids"].should_not.be.empty
 
+
 # project never started
 @mock_codebuild
-def test_codebuild_list_builds_for_project_no_history():
+def test_codebuild_get_batch_builds_for_project_no_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
     name = "some_project"
@@ -202,9 +278,19 @@ def test_codebuild_list_builds_for_project_no_history():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
-  
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
+
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
 
     response = client.list_builds_for_project(projectName=name)
     response.should_not.be.none
@@ -220,7 +306,7 @@ def test_codebuild_list_builds_for_project_no_history():
 def test_codebuild_start_build_no_overrides():
 
     client = boto3.client("codebuild", region_name="eu-central-1")
-    
+
     name = "some_project"
     source = dict()
     source["type"] = "S3"
@@ -232,15 +318,26 @@ def test_codebuild_start_build_no_overrides():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     response = client.start_build(projectName=name)
 
     response.should_not.be.none
     response["build"].should_not.be.none
     response["build"]["sourceVersion"].should.equal("refs/heads/main")
-    # must test for default artifacts here 
+    # must test for default artifacts here
+
 
 @mock_codebuild
 def test_codebuild_start_build_multiple_times():
@@ -257,9 +354,19 @@ def test_codebuild_start_build_multiple_times():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
 
     client.start_build(projectName=name)
     client.start_build(projectName=name)
@@ -267,11 +374,12 @@ def test_codebuild_start_build_multiple_times():
 
     len(client.list_builds()["ids"]).should.equal(3)
 
+
 @mock_codebuild
 def test_codebuild_start_build_with_overrides():
 
     client = boto3.client("codebuild", region_name="eu-central-1")
-    
+
     name = "some_project"
     source = dict()
     source["type"] = "S3"
@@ -283,20 +391,35 @@ def test_codebuild_start_build_with_overrides():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
     branch_override = "fix/testing"
     artifacts_override = {"type": "NO_ARTIFACTS"}
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
-    response = client.start_build(projectName=name, sourceVersion=branch_override, artifactsOverride=artifacts_override)
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
+    response = client.start_build(
+        projectName=name,
+        sourceVersion=branch_override,
+        artifactsOverride=artifacts_override,
+    )
 
     response.should_not.be.none
     response["build"].should_not.be.none
     response["build"]["sourceVersion"].should.equal("fix/testing")
 
     # this is not overriding the artifacts, this must be fixed
-    #response["build"]["artifacts"].should.equal({"type": "NO_ARTIFACTS"})
+    # response["build"]["artifacts"].should.equal({"type": "NO_ARTIFACTS"})
+
 
 @mock_codebuild
 def test_codebuild_batch_get_builds_1_project():
@@ -313,9 +436,19 @@ def test_codebuild_batch_get_builds_1_project():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
-    
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
+
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     client.start_build(projectName=name)
 
     history = client.list_builds_for_project(projectName=name)
@@ -327,6 +460,7 @@ def test_codebuild_batch_get_builds_1_project():
     response["builds"][0]["buildNumber"].should.be.a(int)
     response["builds"][0]["phases"].should_not.be.none
     len(response["builds"][0]["phases"]).should.equal(11)
+
 
 @mock_codebuild
 def test_codebuild_batch_get_builds_2_projects():
@@ -342,12 +476,28 @@ def test_codebuild_batch_get_builds_2_projects():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name="project-1", source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name="project-1",
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     client.start_build(projectName="project-1")
 
-    client.create_project(name="project-2", source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name="project-2",
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     client.start_build(projectName="project-2")
 
     response = client.list_builds()
@@ -382,9 +532,19 @@ def test_codebuild_delete_project():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
 
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     client.start_build(projectName=name)
 
     response = client.list_builds_for_project(projectName=name)
@@ -412,9 +572,19 @@ def test_codebuild_stop_build():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = "arn:aws:iam::123456789012:role/service-role/my-codebuild-service-role"
-    
-    client.create_project(name=name, source=source, artifacts=artifacts, environment=environment, serviceRole=service_role)
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
+
+    client.create_project(
+        name=name,
+        source=source,
+        artifacts=artifacts,
+        environment=environment,
+        serviceRole=service_role,
+    )
     client.start_build(projectName=name)
 
     builds = client.list_builds()
