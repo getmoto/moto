@@ -1,12 +1,12 @@
-From 64093955e96cff42a797880b4a6921663af6040d Mon Sep 17 00:00:00 2001
+From 91f2d9c33f241cb9dfb3700eaa739a46a06a29bc Mon Sep 17 00:00:00 2001
 From: Bert Blommers <info@bertblommers.nl>
-Date: Sun, 19 Jun 2022 19:32:26 +0000
+Date: Wed, 29 Jun 2022 16:24:04 +0000
 Subject: [PATCH] Patch: Hardcode endpoints
 
 ---
  internal/conns/config.go      | 15 +++++++++++++++
- internal/provider/provider.go |  2 +-
- 2 files changed, 16 insertions(+), 1 deletion(-)
+ internal/provider/provider.go |  4 ++--
+ 2 files changed, 17 insertions(+), 2 deletions(-)
 
 diff --git a/internal/conns/config.go b/internal/conns/config.go
 index 7bfd3100fd..b59083068a 100644
@@ -37,10 +37,10 @@ index 7bfd3100fd..b59083068a 100644
  		AccessKey:                     c.AccessKey,
  		APNInfo:                       StdUserAgentProducts(c.TerraformVersion),
 diff --git a/internal/provider/provider.go b/internal/provider/provider.go
-index 7e6200d9ac..7005caccd3 100644
+index 7e6200d9ac..98d8c4fccc 100644
 --- a/internal/provider/provider.go
 +++ b/internal/provider/provider.go
-@@ -2082,7 +2082,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
+@@ -2082,14 +2082,14 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData, terraformVer
  		CustomCABundle:                 d.Get("custom_ca_bundle").(string),
  		EC2MetadataServiceEndpoint:     d.Get("ec2_metadata_service_endpoint").(string),
  		EC2MetadataServiceEndpointMode: d.Get("ec2_metadata_service_endpoint_mode").(string),
@@ -49,6 +49,14 @@ index 7e6200d9ac..7005caccd3 100644
  		HTTPProxy:                      d.Get("http_proxy").(string),
  		IgnoreTagsConfig:               expandProviderIgnoreTags(d.Get("ignore_tags").([]interface{})),
  		Insecure:                       d.Get("insecure").(bool),
+ 		MaxRetries:                     d.Get("max_retries").(int),
+ 		Profile:                        d.Get("profile").(string),
+ 		Region:                         d.Get("region").(string),
+-		S3UsePathStyle:                 d.Get("s3_use_path_style").(bool) || d.Get("s3_force_path_style").(bool),
++		S3UsePathStyle:                 true,
+ 		SecretKey:                      d.Get("secret_key").(string),
+ 		SkipCredsValidation:            d.Get("skip_credentials_validation").(bool),
+ 		SkipGetEC2Platforms:            d.Get("skip_get_ec2_platforms").(bool),
 -- 
 2.25.1
 
