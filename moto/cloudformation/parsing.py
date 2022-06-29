@@ -704,6 +704,7 @@ class ResourceMap(collections_abc.Mapping):
 
     def update(self, template, parameters=None):
 
+        print("HEYYYYYYYYYYYYY"))
         resource_names_by_action = self.build_resource_diff(template)
 
         for logical_name in resource_names_by_action["Remove"]:
