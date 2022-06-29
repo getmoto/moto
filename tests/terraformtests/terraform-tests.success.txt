@@ -17,6 +17,9 @@ batch:
   - TestAccBatchJobDefinition
 ce:
   - TestAccCECostCategory
+cloudfront:
+  - TestAccCloudFrontDistributionDataSource_basic
+  - TestAccCloudFrontDistribution_isIPV6Enabled
 cloudtrail:
   - TestAccCloudTrailServiceAccount
 cloudwatch:
