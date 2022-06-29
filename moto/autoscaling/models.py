@@ -321,11 +321,25 @@ class FakeScheduledAction(CloudFormationModel):
         #       in the cloudformation_json
         # TODO: This should validate the allowed cloudformation "Properties"
 
-        kwargs = {}
-
+        print(f"\n RESOURCE_NAME: {}")
         properties = cloudformation_json["Properties"]
 
-        if "StartTime" in properties:
+        backend = autoscaling_backends[region_name]
+        group = backend.put_scheduled_update_group_action(
+            asg_name=properties.get("AutoScalingGroupName"),
+            desired_capacity=desired_capacity.get("DesiredCapacity"),
+            max_size=max_size.get("MaxSize"),
+            min_size=min_size.get("MinSize"),
+            scheduled_action_name=scheduled_action_name = resource_name
+            start_time=start_time.get("StartTime"),
+            end_time=end_time.get("EndTime"),
+            recurrence=recurrence.get("Recurrence"),
+        )
+        return group
+        kwargs = {}
+
+
+        """if "StartTime" in properties:
 
             kwargs.update({"start_time": properties["StartTime"]})
 
@@ -343,7 +357,38 @@ class FakeScheduledAction(CloudFormationModel):
             cloudformation_json["Properties"]["MaxSize"],
             cloudformation_json["Properties"]["MinSize"],
             **kwargs
+        )"""
+
+    def put_scheduled_update_group_action(
+        asg_name,
+        desired_capacity,
+        max_size,
+        min_size,
+        scheduled_action_name=None,
+        start_time=None,
+        end_time=None,
+        recurrence=None
+    ):
+        def make_int(value):
+            return int(value) if value is not None else value
+
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
+
+        group = FakeScheduledAction(
+            asg_name=asg_name,
+            desired_capacity=desired_capacity,
+            max_size=max_size,
+            min_size=min_size,
+            scheduled_action_name=scheduled_action_name,
+            start_time=start_time=None,
+            end_time=end_time=None,
+            recurrence=recurrence=None
         )
+        self.autoscaling_groups[name] = group
+
+        return group
 
     @classmethod
     def update_from_cloudformation_json(

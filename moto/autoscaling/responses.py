@@ -102,6 +102,20 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
+    def create_auto_scaling_scheduled_action(self):
+        self.autoscaling_backend.create_auto_scaling_scheduled_action(
+            asg_name=self._get_param("AutoScalingGroupName"),
+            desired_capacity=self._get_int_param("DesiredCapacity"),
+            max_size=self._get_int_param("MaxSize"),
+            min_size=self._get_int_param("MinSize"),
+            scheduled_action_name="SAHIL",
+            start_time=start_time=self._get_param("StartTime"),
+            end_time=end_time=self._get_param("EndTime"),
+            recurrence=self._get_param("Recurrence")
+        )
+        template = self.response_template(CREATE_AUTOSCALING_SCHEDULED_ACTION_TEMPLATE)
+        return template.render()
+
     @amz_crc32
     @amzn_request_id
     def attach_instances(self):
@@ -312,6 +326,7 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
+    def describe_
     @amz_crc32
     @amzn_request_id
     def attach_load_balancers(self):
@@ -566,6 +581,13 @@ DELETE_LAUNCH_CONFIGURATION_TEMPLATE = """<DeleteLaunchConfigurationResponse xml
     <RequestId>7347261f-97df-11e2-8756-35eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteLaunchConfigurationResponse>"""
+
+CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
+</ResponseMetadata>
+</CreateAutoScalingGroupResponse>"""
+
 
 CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
