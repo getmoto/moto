@@ -1099,5 +1099,10 @@ class GreengrassBackend(BaseBackend):
 
         return self.group_role_associations[group_id]
 
+    def disassociate_role_from_group(self, group_id):
+        if group_id not in self.group_role_associations:
+            return
+        del self.group_role_associations[group_id]
+
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

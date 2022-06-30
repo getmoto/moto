@@ -1,5 +1,7 @@
+from datetime import datetime
 import json
 
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core.responses import BaseResponse
 from .models import greengrass_backends
 
@@ -687,6 +689,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "GET":
             return self.get_associated_role()
 
+        if self.method == "DELETE":
+            return self.disassociate_role_from_group()
+
     def associate_role_to_group(self):
 
         group_id = self.path.split("/")[-2]
@@ -704,3 +709,20 @@ class GreengrassResponse(BaseResponse):
             group_id=group_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def disassociate_role_from_group(self):
+        group_id = self.path.split("/")[-2]
+        self.greengrass_backend.disassociate_role_from_group(
+            group_id=group_id,
+        )
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {
+                    "DisassociatedAt": iso_8601_datetime_with_milliseconds(
+                        datetime.utcnow()
+                    )
+                }
+            ),
+        )

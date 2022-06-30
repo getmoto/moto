@@ -518,3 +518,43 @@ def test_get_associated_role_with_invalid_id():
         "You need to attach an IAM role to this deployment group."
     )
     ex.value.response["Error"]["Code"].should.equal("404")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_disassociate_role_from_group():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    group_id = "abc002c8-1093-485e-9324-3baadf38e582"
+    role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/greengrass-role"
+    client.associate_role_to_group(GroupId=group_id, RoleArn=role_arn)
+    client.get_associated_role(GroupId=group_id)
+
+    res = client.disassociate_role_from_group(GroupId=group_id)
+    res.should.have.key("DisassociatedAt")
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    if not TEST_SERVER_MODE:
+        res["DisassociatedAt"].should.equal("2022-06-01T12:00:00.000Z")
+
+    with pytest.raises(ClientError) as ex:
+        client.get_associated_role(GroupId=group_id)
+
+    ex.value.response["Error"]["Message"].should.equal(
+        "You need to attach an IAM role to this deployment group."
+    )
+    ex.value.response["Error"]["Code"].should.equal("404")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_disassociate_role_from_group_with_none_exists_group_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    group_id = "abc002c8-1093-485e-9324-3baadf38e582"
+    res = client.disassociate_role_from_group(GroupId=group_id)
+    res.should.have.key("DisassociatedAt")
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    if not TEST_SERVER_MODE:
+        res["DisassociatedAt"].should.equal("2022-06-01T12:00:00.000Z")
