@@ -341,62 +341,6 @@ class FakeScheduledAction(CloudFormationModel):
         return scheduled_action
 
 
-    def put_scheduled_update_group_action(
-        asg_name,
-        desired_capacity,
-        max_size,
-        min_size,
-        scheduled_action_name=None,
-        start_time=None,
-        end_time=None,
-        recurrence=None
-    ):
-        def make_int(value):
-            return int(value) if value is not None else value
-
-        max_size = make_int(max_size)
-        min_size = make_int(min_size)
-        desired_capacity = make_int(desired_capacity)
-
-        group = FakeScheduledAction(
-            asg_name=asg_name,
-            desired_capacity=desired_capacity,
-            max_size=max_size,
-            min_size=min_size,
-            scheduled_action_name=scheduled_action_name,
-            start_time=start_time=None,
-            end_time=end_time=None,
-            recurrence=recurrence=None
-        )
-        self.autoscaling_groups[name] = group
-
-        return group
-
-    @classmethod
-    def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
-    ):
->>>>>>> Add it
-
-        scheduled_action_name = (
-            kwargs["LogicalId"]
-            if kwargs.get("LogicalId")
-            else "ScheduledScalingAction-{random.randint(0,100)}"
-        )
-
-        scheduled_action = backend.put_scheduled_update_group_action(
-            name=properties.get("AutoScalingGroupName"),
-            desired_capacity=properties.get("DesiredCapacity"),
-            max_size=properties.get("MaxSize"),
-            min_size=properties.get("MinSize"),
-            scheduled_action_name=scheduled_action_name,
-            start_time=properties.get("StartTime"),
-            end_time=properties.get("EndTime"),
-            recurrence=properties.get("Recurrence"),
-        )
-        return scheduled_action
-
-
 class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
         self,
