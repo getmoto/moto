@@ -108,9 +108,9 @@ class AutoScalingResponse(BaseResponse):
             desired_capacity=self._get_int_param("DesiredCapacity"),
             max_size=self._get_int_param("MaxSize"),
             min_size=self._get_int_param("MinSize"),
-            scheduled_action_name="SAHIL",
-            start_time=start_time=self._get_param("StartTime"),
-            end_time=end_time=self._get_param("EndTime"),
+            scheduled_action_name=None,
+            start_time=self._get_param("StartTime"),
+            end_time=self._get_param("EndTime"),
             recurrence=self._get_param("Recurrence")
         )
         template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
@@ -326,7 +326,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
-    def describe_
     @amz_crc32
     @amzn_request_id
     def attach_load_balancers(self):
