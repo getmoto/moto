@@ -1,27 +1,23 @@
-import functools
-from collections import defaultdict
+import copy
 import datetime
+import functools
+import importlib
 import json
 import logging
 import re
-import requests
-
-import pytz
-
-from moto.core.exceptions import DryRunClientError
-
-from jinja2 import Environment, DictLoader, TemplateNotFound
-
+from collections import OrderedDict, defaultdict
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
-import xmltodict
-from werkzeug.exceptions import HTTPException
-
 import boto3
-from collections import OrderedDict
+import pytz
+import requests
+import xmltodict
+from jinja2 import DictLoader, Environment, TemplateNotFound
+from moto import settings
+from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from moto import settings
+from werkzeug.exceptions import HTTPException
 
 log = logging.getLogger(__name__)
 
@@ -388,6 +384,59 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._get_action_from_method_and_request_uri(self.method, self.path)
         return action
 
+    def record_method_to_file(self, querystring, kwargs):
+        filepath = "methods_recorded"
+        with open(filepath, "a+") as file:
+
+            file.write(
+                json.dumps(
+                    {
+                        "querystring": copy.deepcopy(querystring),
+                        **kwargs,
+                    }
+                )
+            )
+            file.write("\n")
+
+    def reset_methods_record(self, request, full_url, headers):
+        filepath = "methods_recorded"
+        with open(filepath, "w"):
+            pass
+        return 200, {}, ""
+
+    def start_recording(self, request, full_url, headers):
+        settings.ENABLE_RECORDING = True
+        return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
+
+    def stop_recording(self, request, full_url, headers):
+        settings.ENABLE_RECORDING = False
+        return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
+
+    def enable_set_seed_for_ids(self, request, full_url, headers):
+        settings.ENABLE_SET_SEED_FOR_IDS = True
+        return 200, {}, "Enable set seed is {0}".format(settings.ENABLE_SET_SEED_FOR_IDS)
+
+    def replay_methods_from_record(self, request, full_url, headers):
+        old_querystring = copy.deepcopy(getattr(self, "querystring", {}))
+        filepath = "methods_recorded"
+        with open(filepath, "r") as file:
+            methods_list = file.readlines()
+
+        for row in methods_list:
+            row_loaded = json.loads(row)
+            response_class = getattr(
+                importlib.import_module(row_loaded.pop("module")),
+                row_loaded.pop("response_type"),
+            )
+            response = response_class()
+            for attr in list(row_loaded):
+                setattr(response, attr, row_loaded.pop(attr))
+            response.call_action()
+
+        self.querystring = copy.deepcopy(old_querystring)
+
+        return 200, {}, ""
+
     def call_action(self):
         headers = self.response_headers
 
@@ -407,6 +456,19 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response_headers = dict(http_error.get_headers() or [])
                 response_headers["status"] = http_error.code
                 response = http_error.description, response_headers
+
+            if settings.ENABLE_RECORDING and not action.lower().startswith("describe"):
+                self.record_method_to_file(
+                    self.querystring,
+                    {
+                        "module": self.__module__,
+                        "response_type": self.__class__.__name__,
+                        "response_headers": headers,
+                        "region": self.region,
+                        "body": getattr(self, "body"),
+                        "uri_match": self.uri_match,
+                    },
+                )
 
             if isinstance(response, str):
                 return 200, headers, response

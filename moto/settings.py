@@ -28,6 +28,9 @@ ENABLE_KEYPAIR_VALIDATION = bool(
 
 ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
 
+ENABLE_RECORDING = False
+ENABLE_SET_SEED_FOR_IDS = False
+
 
 def get_sf_execution_history_type():
     """

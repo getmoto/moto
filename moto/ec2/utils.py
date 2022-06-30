@@ -9,6 +9,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
+from moto import settings
 
 from moto.core import get_account_id
 from moto.iam import iam_backends
@@ -59,6 +60,11 @@ EC2_RESOURCE_TO_PREFIX = {
 
 EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
 HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
+
+### For purpose of recording and replaying server state
+### this is to ensure that replayed objects have same ids as recorded ones
+if settings.ENABLE_SET_SEED_FOR_IDS:
+    random.seed(42)
 
 
 def random_resource_id(size=8):
