@@ -677,3 +677,24 @@ class GreengrassResponse(BaseResponse):
             group_version_id=group_version_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def deployments(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_deployment()
+
+    def create_deployment(self):
+
+        group_id = self.path.split("/")[-2]
+        group_version_id = self._get_param("GroupVersionId")
+        deployment_type = self._get_param("DeploymentType")
+        deployment_id = self._get_param("DeploymentId")
+
+        res = self.greengrass_backend.create_deployment(
+            group_id=group_id,
+            group_version_id=group_version_id,
+            deployment_type=deployment_type,
+            deployment_id=deployment_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())

@@ -1,3 +1,4 @@
+import json
 import uuid
 from collections import OrderedDict
 from datetime import datetime
@@ -10,6 +11,8 @@ from .exceptions import (
     IdNotFoundException,
     InvalidInputException,
     InvalidContainerDefinitionException,
+    MissingCoreException,
+    ResourceNotFoundException,
     VersionNotFoundException,
 )
 
@@ -359,6 +362,22 @@ class FakeGroupVersion(BaseModel):
             obj["Definition"] = definition
 
         return obj
+
+
+class FakeDeployment(BaseModel):
+    def __init__(self, region_name, group_id, group_version_id, deployment_type):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.group_id = group_id
+        self.group_version_id = group_version_id
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.deployment_status = "InProgress"
+        self.deployment_type = deployment_type
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}/deployments/{self.id}"
+
+    def to_dict(self):
+        return {"DeploymentId": self.id, "DeploymentArn": self.arn}
 
 
 class GreengrassBackend(BaseBackend):
@@ -1065,6 +1084,60 @@ class GreengrassBackend(BaseBackend):
             )
 
         return self.group_versions[group_id][group_version_id]
+
+    def create_deployment(
+        self, group_id, group_version_id, deployment_type, deployment_id=None
+    ):
+
+        deployment_types = (
+            "NewDeployment",
+            "Redeployment",
+            "ResetDeployment",
+            "ForceResetDeployment",
+        )
+        if deployment_type not in deployment_types:
+            raise InvalidInputException(
+                f"That deployment type is not valid.  Please specify one of the following types: {{{','.join(deployment_types)}}}."
+            )
+        if deployment_type == "Redeployment":
+            if deployment_id is None:
+                raise InvalidInputException(
+                    "Your request is missing the following required parameter(s): {DeploymentId}."
+                )
+            if deployment_id not in self.deployments:
+                raise InvalidInputException(
+                    f"Deployment ID '{deployment_id}' is invalid."
+                )
+
+        if group_id not in self.groups:
+            raise ResourceNotFoundException("That group definition does not exist.")
+
+        if group_version_id not in self.group_versions[group_id]:
+            raise ResourceNotFoundException(
+                f"Version {group_version_id} of Group Definition {group_id} does not exist."
+            )
+
+        if (
+            self.group_versions[group_id][group_version_id].core_definition_version_arn
+            is None
+        ):
+
+            err = {
+                "ErrorDetails": [
+                    {
+                        "DetailedErrorCode": "GG-303",
+                        "DetailedErrorMessage": "You need a Greengrass Core in this Group before you can deploy.",
+                    }
+                ]
+            }
+
+            raise MissingCoreException(json.dumps(err))
+
+        deployment = FakeDeployment(
+            self.region_name, group_id, group_version_id, deployment_type
+        )
+        self.deployments[deployment.id] = deployment
+        return deployment
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
