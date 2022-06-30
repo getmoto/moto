@@ -473,3 +473,20 @@ def test_get_group_version_with_invalid_version_id():
         f"Version {invalid_group_ver_id} of Group Definition {group_id} does not exist."
     )
     ex.value.response["Error"]["Code"].should.equal("VersionNotFoundException")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_associate_role_to_group():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    res = client.associate_role_to_group(
+        GroupId="abc002c8-1093-485e-9324-3baadf38e582",
+        RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/greengrass-role",
+    )
+
+    res.should.have.key("AssociatedAt")
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    if not TEST_SERVER_MODE:
+        res["AssociatedAt"].should.equal("2022-06-01T12:00:00.000Z")

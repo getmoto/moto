@@ -361,10 +361,20 @@ class FakeGroupVersion(BaseModel):
         return obj
 
 
+class FakeAssociatedRole(BaseModel):
+    def __init__(self, role_arn):
+        self.role_arn = role_arn
+        self.associated_at = datetime.utcnow()
+
+    def to_dict(self):
+        return {"AssociatedAt": iso_8601_datetime_with_milliseconds(self.associated_at)}
+
+
 class GreengrassBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.groups = OrderedDict()
+        self.group_role_associations = OrderedDict()
         self.group_versions = OrderedDict()
         self.core_definitions = OrderedDict()
         self.core_definition_versions = OrderedDict()
@@ -1065,6 +1075,15 @@ class GreengrassBackend(BaseBackend):
             )
 
         return self.group_versions[group_id][group_version_id]
+
+    def associate_role_to_group(self, group_id, role_arn):
+
+        # I don't know why, AssociateRoleToGroup does not check specified group is exists
+        # So, this API allows any group id such as "a"
+
+        associated_role = FakeAssociatedRole(role_arn)
+        self.group_role_associations[group_id] = associated_role
+        return associated_role
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

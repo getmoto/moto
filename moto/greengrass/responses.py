@@ -677,3 +677,19 @@ class GreengrassResponse(BaseResponse):
             group_version_id=group_version_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def role(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "PUT":
+            return self.associate_role_to_group()
+
+    def associate_role_to_group(self):
+
+        group_id = self.path.split("/")[-2]
+        role_arn = self._get_param("RoleArn")
+        res = self.greengrass_backend.associate_role_to_group(
+            group_id=group_id,
+            role_arn=role_arn,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
