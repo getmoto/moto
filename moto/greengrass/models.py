@@ -366,8 +366,13 @@ class FakeAssociatedRole(BaseModel):
         self.role_arn = role_arn
         self.associated_at = datetime.utcnow()
 
-    def to_dict(self):
-        return {"AssociatedAt": iso_8601_datetime_with_milliseconds(self.associated_at)}
+    def to_dict(self, include_detail=False):
+
+        obj = {"AssociatedAt": iso_8601_datetime_with_milliseconds(self.associated_at)}
+        if include_detail:
+            obj["RoleArn"] = self.role_arn
+
+        return obj
 
 
 class GreengrassBackend(BaseBackend):
@@ -1084,6 +1089,15 @@ class GreengrassBackend(BaseBackend):
         associated_role = FakeAssociatedRole(role_arn)
         self.group_role_associations[group_id] = associated_role
         return associated_role
+
+    def get_associated_role(self, group_id):
+
+        if group_id not in self.group_role_associations:
+            raise GreengrassClientError(
+                "404", "You need to attach an IAM role to this deployment group."
+            )
+
+        return self.group_role_associations[group_id]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

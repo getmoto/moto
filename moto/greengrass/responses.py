@@ -684,6 +684,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "PUT":
             return self.associate_role_to_group()
 
+        if self.method == "GET":
+            return self.get_associated_role()
+
     def associate_role_to_group(self):
 
         group_id = self.path.split("/")[-2]
@@ -693,3 +696,11 @@ class GreengrassResponse(BaseResponse):
             role_arn=role_arn,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def get_associated_role(self):
+
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.get_associated_role(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
