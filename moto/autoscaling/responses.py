@@ -344,7 +344,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
-    def describe_
     @amz_crc32
     @amzn_request_id
     def attach_load_balancers(self):

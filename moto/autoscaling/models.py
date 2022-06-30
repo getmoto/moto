@@ -302,6 +302,11 @@ class FakeScheduledAction(CloudFormationModel):
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
 
+<<<<<<< HEAD
+=======
+        #self.scheduled_action_name = scheduled_action_name if scheduled_action_name else "autoscaling-scheduled-action"
+
+>>>>>>> Save point
     @staticmethod
     def cloudformation_name_type():
 
@@ -318,6 +323,7 @@ class FakeScheduledAction(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
 
+<<<<<<< HEAD
         properties = cloudformation_json["Properties"]
 
         backend = autoscaling_backends[region_name]
@@ -337,6 +343,62 @@ class FakeScheduledAction(CloudFormationModel):
             start_time=properties.get("StartTime"),
             end_time=properties.get("EndTime"),
             recurrence=properties.get("Recurrence"),
+=======
+        # TODO: This should create the scheduled action on the ASG passed
+        #       in the cloudformation_json
+        # TODO: This should validate the allowed cloudformation "Properties"
+
+        print(f"\n RESOURCE_NAME: {resource_name}")
+        properties = cloudformation_json["Properties"]
+
+        backend = autoscaling_backends[region_name]
+
+        group = backend.put_scheduled_update_group_action(
+            asg_name=properties.get("AutoScalingGroupName"),
+            desired_capacity=properties.get("DesiredCapacity"),
+            max_size=properties.get("MaxSize"),
+            min_size=properties.get("MinSize"),
+            scheduled_action_name = kwargs["LogicalId"],
+            start_time.properties("StartTime"),
+            end_time.properties("EndTime"),
+            recurrence.properties("Recurrence"),
+        )
+        return group
+
+        """kwargs = {}
+
+        if "StartTime" in properties:
+
+            kwargs.update({"start_time": properties["StartTime"]})
+
+        if "EndTime" in properties:
+
+            kwargs.update({"end_time": properties["EndTime"]})
+
+        if "Recurrence" in properties:
+
+            kwargs.update({"recurrence": properties["Recurrence"]})
+
+        return cls(
+            cloudformation_json["Properties"]["AutoScalingGroupName"],
+            cloudformation_json["Properties"]["DesiredCapacity"],
+            cloudformation_json["Properties"]["MaxSize"],
+            cloudformation_json["Properties"]["MinSize"],
+            **kwargs
+        )"""
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+>>>>>>> Save point
         )
         return scheduled_action
 
@@ -822,18 +884,25 @@ class AutoScalingBackend(BaseBackend):
     def delete_launch_configuration(self, launch_configuration_name):
         self.launch_configurations.pop(launch_configuration_name, None)
 
+<<<<<<< HEAD
     def make_int(self, value):
         return int(value) if value is not None else value
 
     def put_scheduled_update_group_action(
         self,
         name,
+=======
+    def put_scheduled_update_group_action(
+        self,
+        asg_name,
+>>>>>>> Save point
         desired_capacity,
         max_size,
         min_size,
         scheduled_action_name=None,
         start_time=None,
         end_time=None,
+<<<<<<< HEAD
         recurrence=None,
     ):
         # TODO: Add validations for parameters
@@ -843,10 +912,24 @@ class AutoScalingBackend(BaseBackend):
 
         scheduled_action = FakeScheduledAction(
             name=name,
+=======
+        recurrence=None
+    ):
+        def make_int(value):
+            return int(value) if value is not None else value
+
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
+
+        group = FakeScheduledAction(
+            asg_name=asg_name,
+>>>>>>> Save point
             desired_capacity=desired_capacity,
             max_size=max_size,
             min_size=min_size,
             scheduled_action_name=scheduled_action_name,
+<<<<<<< HEAD
             start_time=start_time,
             end_time=end_time,
             recurrence=recurrence,
@@ -854,6 +937,15 @@ class AutoScalingBackend(BaseBackend):
 
         self.scheduled_actions[scheduled_action_name] = scheduled_action
         return scheduled_action
+=======
+            start_time=None,
+            end_time=None,
+            recurrence=None
+        )
+        self.autoscaling_groups[asg_name] = group
+
+        return group
+>>>>>>> Save point
 
     def create_auto_scaling_group(
         self,
