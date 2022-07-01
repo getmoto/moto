@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from cryptography.hazmat.primitives import hashes
 from dateutil.tz import tzutc
 import base64
 import os
@@ -62,7 +63,6 @@ def test_create_key():
         KeyUsage="ENCRYPT_DECRYPT",
         Tags=[{"TagKey": "project", "TagValue": "moto"}],
     )
-    print(key["KeyMetadata"])
 
     key["KeyMetadata"]["Arn"].should.equal(
         "arn:aws:kms:us-east-1:{}:key/{}".format(
@@ -72,6 +72,7 @@ def test_create_key():
     key["KeyMetadata"]["AWSAccountId"].should.equal(ACCOUNT_ID)
     key["KeyMetadata"]["CreationDate"].should.be.a(datetime)
     key["KeyMetadata"]["CustomerMasterKeySpec"].should.equal("SYMMETRIC_DEFAULT")
+    key["KeyMetadata"]["KeySpec"].should.equal("SYMMETRIC_DEFAULT")
     key["KeyMetadata"]["Description"].should.equal("my key")
     key["KeyMetadata"]["Enabled"].should.equal(True)
     key["KeyMetadata"]["EncryptionAlgorithms"].should.equal(["SYMMETRIC_DEFAULT"])
@@ -82,14 +83,14 @@ def test_create_key():
     key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048")
+    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", KeySpec="RSA_2048")
 
     sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
         ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
     )
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048")
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
@@ -103,22 +104,32 @@ def test_create_key():
         ]
     )
 
-    key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_SECG_P256K1"
-    )
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", KeySpec="ECC_SECG_P256K1")
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_256"])
 
-    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P384")
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", KeySpec="ECC_NIST_P384")
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_384"])
 
+    key = conn.create_key(KeyUsage="SIGN_VERIFY", KeySpec="ECC_NIST_P521")
+
+    key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
+    key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_512"])
+
+
+@mock_kms
+def test_create_key_deprecated_master_custom_key_spec():
+    conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521")
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_512"])
+
+    key["KeyMetadata"]["CustomerMasterKeySpec"].should.equal("ECC_NIST_P521")
+    key["KeyMetadata"]["KeySpec"].should.equal("ECC_NIST_P521")
 
 
 @pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
@@ -133,6 +144,7 @@ def test_describe_key(id_or_arn):
     response["KeyMetadata"]["AWSAccountId"].should.equal("123456789012")
     response["KeyMetadata"]["CreationDate"].should.be.a(datetime)
     response["KeyMetadata"]["CustomerMasterKeySpec"].should.equal("SYMMETRIC_DEFAULT")
+    response["KeyMetadata"]["KeySpec"].should.equal("SYMMETRIC_DEFAULT")
     response["KeyMetadata"]["Description"].should.equal("my key")
     response["KeyMetadata"]["Enabled"].should.equal(True)
     response["KeyMetadata"]["EncryptionAlgorithms"].should.equal(["SYMMETRIC_DEFAULT"])
@@ -648,7 +660,10 @@ def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
     if append_key_id:
         target_id += key_id
 
-    client.generate_data_key(KeyId=key_id, NumberOfBytes=32)
+    resp = client.generate_data_key(KeyId=target_id, NumberOfBytes=32)
+    resp.should.have.key("KeyId").equals(
+        f"arn:aws:kms:us-east-1:123456789012:key/{key_id}"
+    )
 
 
 @mock_kms
@@ -1107,3 +1122,261 @@ def test_key_tag_added_arn_based_happy():
     ]
     client.tag_resource(KeyId=key_id, Tags=tags)
     _check_tags(key_id, tags, client)
+
+
+@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
+@mock_kms
+def test_sign_happy(plaintext):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    sign_response = client.sign(
+        KeyId=key_id, Message=plaintext, SigningAlgorithm=signing_algorithm
+    )
+
+    sign_response["Signature"].should_not.equal(plaintext)
+    sign_response["SigningAlgorithm"].should.equal(signing_algorithm)
+    sign_response["KeyId"].should.equal(key_arn)
+
+
+@mock_kms
+def test_sign_invalid_signing_algorithm():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signing_algorithm = "INVALID"
+
+    with pytest.raises(ClientError) as ex:
+        client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
+    )
+
+
+@mock_kms
+def test_sign_and_verify_ignoring_grant_tokens():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        GrantTokens=["my-ignored-grant-token"],
+    )
+
+    sign_response["Signature"].should_not.equal(message)
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+        GrantTokens=["my-ignored-grant-token"],
+    )
+
+    verify_response["SignatureValid"].should.equal(True)
+
+
+@mock_kms
+def test_sign_and_verify_digest_message_type_256():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    message = digest.finalize()
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    verify_response["SignatureValid"].should.equal(True)
+
+
+@mock_kms
+def test_sign_invalid_key_usage():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="ENCRYPT_DECRYPT")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    with pytest.raises(ClientError) as ex:
+        client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        f"1 validation error detected: Value '{key_id}' at 'KeyId' failed to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
+    )
+
+
+@mock_kms
+def test_sign_invalid_message():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = ""
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    with pytest.raises(ClientError) as ex:
+        client.sign(KeyId=key_id, Message=message, SigningAlgorithm=signing_algorithm)
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    )
+
+
+@pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
+@mock_kms
+def test_verify_happy(plaintext):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    sign_response = client.sign(
+        KeyId=key_id, Message=plaintext, SigningAlgorithm=signing_algorithm
+    )
+
+    signature = sign_response["Signature"]
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=plaintext,
+        Signature=signature,
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    verify_response["SigningAlgorithm"].should.equal(signing_algorithm)
+    verify_response["KeyId"].should.equal(key_arn)
+    verify_response["SignatureValid"].should.equal(True)
+
+
+@mock_kms
+def test_verify_happy_with_invalid_signature():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+    key_arn = key["KeyMetadata"]["Arn"]
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message="my test",
+        Signature="invalid signature",
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    verify_response["SigningAlgorithm"].should.equal(signing_algorithm)
+    verify_response["KeyId"].should.equal(key_arn)
+    verify_response["SignatureValid"].should.equal(False)
+
+
+@mock_kms
+def test_verify_invalid_signing_algorithm():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signature = "any"
+    signing_algorithm = "INVALID"
+
+    with pytest.raises(ClientError) as ex:
+        client.verify(
+            KeyId=key_id,
+            Message=message,
+            Signature=signature,
+            SigningAlgorithm=signing_algorithm,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
+    )
+
+
+@mock_kms
+def test_verify_invalid_message():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+
+    with pytest.raises(ClientError) as ex:
+        client.verify(
+            KeyId=key_id,
+            Message="",
+            Signature="a signature",
+            SigningAlgorithm=signing_algorithm,
+        )
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    )
+
+
+@mock_kms
+def test_verify_empty_signature():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    message = "My message"
+    signing_algorithm = "RSASSA_PSS_SHA_256"
+    signature = ""
+
+    with pytest.raises(ClientError) as ex:
+        client.verify(
+            KeyId=key_id,
+            Message=message,
+            Signature=signature,
+            SigningAlgorithm=signing_algorithm,
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    )

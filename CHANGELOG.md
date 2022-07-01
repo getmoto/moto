@@ -1,6 +1,271 @@
 Moto Changelog
 ==============
 
+3.1.16
+-----
+Docker Digest for 3.1.16: _sha256:e7d79262fac1553966fb8c894dc81a750c4a18745977da6a15dffc35c596f8c4_
+
+    New Methods:
+        * Autoscaling:
+            * enable_metrics_collection()
+
+    Miscellaneous:
+        * Fixes a dependency-error that popped up in 3.1.15.
+
+3.1.15
+-----
+Docker Digest for 3.1.15: _sha256:fad9fc39322cbabf4440ac5f6a3a158ee759dcd963995fea9672136c50bd2fc3_
+
+    Known bugs:
+        * Some services will throw an error: Missing module 'openapi_spec_validator'. This is fixed in 3.1.16.
+
+    New Methods:
+        * Databrew:
+            * create_profile_job()
+            * create_recipe_job()
+            * delete_job()
+            * describe_job()
+            * list_jobs()
+            * update_profile_job()
+            * update_recipe_job()
+        * Glue:
+            * create_registry()
+        * Greengrass:
+            * create_group()
+            * create_group_version()
+            * delete_group()
+            * get_group()
+            * get_group_version()
+            * list_groups()
+            * list_group_versions()
+            * update_group()
+        * KMS:
+            * sign()
+            * verify()
+        * Route53Resolver:
+            * associate_resolver_endpoint_ip_address()
+            * disassociate_resolver_endpoint_ip_address()
+
+3.1.14
+-----
+Docker Digest for 3.1.14: _sha256:a8ad7f54d7c469e34454f6774f743251c02093c6b2d7e9d7961a5de366783e11_
+
+    New Methods:
+        * Greengrass:
+            * create_function_definition()
+            * create_resource_definition()
+            * create_function_definition_version()
+            * create_resource_definition_version()
+            * create_subscription_definition()
+            * create_subscription_definition_version()
+            * delete_function_definition()
+            * delete_resource_definition()
+            * delete_subscription_definition()
+            * get_function_definition()
+            * get_function_definition_version()
+            * get_resource_definition()
+            * get_resource_definition_version()
+            * get_subscription_definition()
+            * get_subscription_definition_version()
+            * list_function_definitions()
+            * list_function_definition_versions()
+            * list_resource_definitions()
+            * list_resource_definition_versions()
+            * list_subscription_definitions()
+            * list_subscription_definition_versions()
+            * update_function_definition()
+            * update_resource_definition()
+            * update_subscription_definition()
+        * EKS:
+            * list_tags_for_resources()
+            * tag_resource()
+            * untag_resource()
+        * Route53:
+            * associate_vpc_with_hosted_zone()
+            * disassociate_vpc_from_hosted_zone()
+            * update_health_check()
+            * update_hosted_zone_comment()
+
+    Miscellaneous:
+        * APIGateway:put_integration() now supports the requestParameters-parameter
+        * EC2:create_route() now validates whether a route already exists
+
+
+3.1.13
+-----
+Docker Digest for 3.1.13: _sha256:d7f6c779c79f03b686747ae26b52bdca26fd81a50c6a41a8a6cba50c96982abf_
+
+    New Methods:
+        * EC2:
+            * create_default_vpc()
+
+        * Greengrass:
+            * create_device_definition()
+            * create_device_definition_version()
+            * delete_core_definition()
+            * delete_device_definition()
+            * get_core_definition()
+            * get_core_definition_version()
+            * get_device_definition()
+            * get_device_definition_version()
+            * list_core_definitions()
+            * list_core_definition_versions()
+            * list_device_definitions()
+            * list_device_definition_versions()
+            * update_core_definition()
+            * update_device_definition()
+
+        * SSO Admin:
+            * create_permission_set()
+            * delete_permission_set()
+            * describe_permission_set()
+            * list_permission_sets()
+            * update_permission_set()
+
+        * Route53:
+            * get_dnssec()
+            * get_health_check()
+
+    * Miscellaneous:
+        * StateManager now supports `s3::keyrestore`, managing how long it takes to restore S3 objects from Glacier.
+
+
+3.1.12
+-----
+Docker Digest for 3.1.12: _sha256:64dcfb63b252b3413481683b90f105d01644b6bec150b60e6f612a2569ee630c_
+
+    New Services:
+        * Greengrass:
+            * create_core_definition()
+            * create_core_definition_version()
+
+    Internal Changes:
+        * The data structure containing all of Moto's state has been updated to support multiple accounts
+
+
+3.1.11
+-----
+Docker Digest for 3.1.11: _sha256:bb359c5e57e38534eb8e934757354277fff30598ca305d0f18f68ddfe4ce6359_
+
+    New Methods:
+        * GuardDuty:
+            * create_filter()
+            * delete_detector()
+            * delete_filter()
+            * enable_organization_admin_account()
+            * get_detector()
+            * get_filter()
+            * list_organization_admin_accounts()
+            * update_detector()
+            * update_filter()
+        * KMS:
+            * create_grant()
+            * list_grants()
+            * list_retirable_grants()
+            * retire_grant()
+            * revoke_grant()
+
+    Miscellaneous:
+        * EC2:describe_network_acls() now supports the `entry.egress`-filter
+        * EC2:run_instances() now supports validation for the KeyPair-parameter. This is disabled by default - set MOTO_ENABLE_KEYPAIR_VALIDATION to true to enable this.
+        * EC2:run_instances() now supports validation for the ImageId-parameter. This is disabled by default - set MOTO_ENABLE_AMI_VALIDATION to true to enable this.
+
+
+3.1.10
+-----
+Docker Digest for 3.1.10: _sha256:18c6367dbb843850a5b52bc2b74cde9fd2a03719da667aa01b7c80de26849fb6_
+
+    New Methods:
+        * APIGateway:
+            * import_rest_api()
+            * put_rest_api()
+        * Glue:
+            * get_tags()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * APIGateway:put_integration() now supports the passthroughBehavior-parameter
+        * APIGatewayV2:create_authorizer() now supports the AuthorizerPayloadFormatVersion-parameter
+        * AWSLamba:publish_layer_version() now supports the CompatibleArchitectures-parameter
+        * DAX:create_cluster() now supports the ClusterEndpointEncryptionType-parameter
+        * EC2:describe_route_tables() now supports the filter `route.gateway-id`
+        * EC2:run_instances() now validates whether the Placement-parameter has a valid availabilty zone
+        * ECS:list_services() now supports the launchType-parameter
+        * ELB:describe_instance_health() now returns the OutOfService-status when appropriate
+        * Organizations:list_accounts_for_parent() now supports pagination
+        * Organizations:list_organizational_units_for_parent() now supports pagination
+
+
+3.1.9
+-----
+Docker Digest for 3.1.9: _sha256:eea31d2f99b2fef16cffb3ea86d21dd911647835a3182bedd8918074292ce552_
+
+    New Services:
+        * EBS:
+            * complete_snapshot()
+            * get_snapshot_block()
+            * list_changed_blocks()
+            * list_snapshot_blocks()
+            * put_snapshot_block()
+            * start_snapshot()
+
+    New Methods:
+        * CloudFront:
+            * update_distribution()
+        * Datasets:
+            * create_dataset()
+            * delete_dataset()
+            * describe_dataset()
+            * list_datasets()
+            * update_dataset()
+        * Glue:
+            * list_crawlers()
+        * Rekognition:
+            * get_face_search()
+            * start_face_seach()
+
+    Miscellaneous:
+        * EC2:describe_vpc_endpoints() now supports the `vpc-endpoint-type`-filter
+        * RDS:create_db_cluster() now supports the EnableCloudwatchLogsExports-parameter
+        * RDS:create_db_instance() now supports the EnableCloudwatchLogsExports-parameter
+        * SSM now integrates with SecretsManager
+
+3.1.8
+-----
+Docker Digest for 3.1.8: _sha256:a7d8c55eec8d75d75dd2532a6a0a9647935238236a54e4de7bb3f72bc28b7bf8_
+
+    General:
+        * Moto now supports a way to delay state transitions. 
+          See http://docs.getmoto.org/en/latest/docs/configuration/state_transition/index.html
+        * Moto now supports `@mock_batch_simple`, a way to mock the Batch-service without invoking Docker.
+
+    New Methods:
+        * CognitoIDP:
+            * global_sign_out()
+            * update_group()
+            * update_user_attributes()
+        * DataBrew:
+            * delete_recipe_version()
+            * list_recipe_versions()
+            * publish_recipe()
+        * IAM:
+            * create_service_linked_role()
+            * delete_service_linked_role()
+            * get_service_linked_role_deletion_status()
+        * Sagemaker:
+            * update_endpoint_weights_and_capacities()
+
+    Miscellaneous:
+        * EC2: request_spot_fleet() now supports the parameters LaunchTemplateConfigs, InstanceInterruptionBehavior
+        * EC2: request_spot_instances() now supports the InstanceInterruptionBehavior-parameter
+        * EC2: The status of a SpotInstances request now automatically transitions to 'Active/Fulfilled'
+        * EC2: Tags specified into create_launch_template() are now passed through when calling `run_instances()` with this template
+        * RDS: describe_db_instances() now supports the filter `db-cluster-id`
+        * TimestreamWrite: create_table() now supports the MagneticStoreWriteProps-parameter
+        * TimestreamWrite: update_table() now supports the MagneticStoreWriteProps-parameter 
+
+
 3.1.7
 -----
 Docker Digest for 3.1.7: _sha256:d9661c13c2f790cbe9ed6531cefec132494fc0e8c37fcceca1f709292ef0880f_

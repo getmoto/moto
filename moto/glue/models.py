@@ -1,8 +1,11 @@
 import time
+import re
 from collections import OrderedDict
 from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.models import get_account_id
+from moto.core.utils import BackendDict
 from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
 from .exceptions import (
     JsonRESTError,
@@ -17,13 +20,25 @@ from .exceptions import (
     VersionNotFoundException,
     JobNotFoundException,
     ConcurrentRunsExceededException,
+    GSRAlreadyExistsException,
+    ResourceNumberLimitExceededException,
+    ResourceNameTooLongException,
+    ParamValueContainsInvalidCharactersException,
+    InvalidNumberOfTagsException,
 )
 from .utils import PartitionFilter
 from ..utilities.paginator import paginate
+from ..utilities.tagging_service import TaggingService
 
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "list_crawlers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "list_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -32,11 +47,14 @@ class GlueBackend(BaseBackend):
         },
     }
 
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.databases = OrderedDict()
         self.crawlers = OrderedDict()
         self.jobs = OrderedDict()
         self.job_runs = OrderedDict()
+        self.tagger = TaggingService()
+        self.registries = OrderedDict()
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -131,6 +149,7 @@ class GlueBackend(BaseBackend):
             configuration=configuration,
             crawler_security_configuration=crawler_security_configuration,
             tags=tags,
+            backend=self,
         )
         self.crawlers[name] = crawler
 
@@ -142,6 +161,10 @@ class GlueBackend(BaseBackend):
 
     def get_crawlers(self):
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawlers(self):
+        return [crawler for _, crawler in self.crawlers.items()]
 
     def start_crawler(self, name):
         crawler = self.get_crawler(name)
@@ -199,6 +222,7 @@ class GlueBackend(BaseBackend):
             glue_version,
             number_of_workers,
             worker_type,
+            backend=self,
         )
         return name
 
@@ -219,6 +243,73 @@ class GlueBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self):
         return [job for _, job in self.jobs.items()]
+
+    def get_tags(self, resource_id):
+        return self.tagger.get_tag_dict_for_resource(resource_id)
+
+    def tag_resource(self, resource_arn, tags):
+        tags = TaggingService.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn, tag_keys):
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    # TODO: @Himani. Will Refactor validation logic as I find the common validation required for other APIs
+    def create_registry(self, registry_name, description, tags):
+        operation_name = "CreateRegistry"
+
+        registry_name_pattern = re.compile(r"^[a-zA-Z0-9-_$#.]+$")
+        registry_description_pattern = re.compile(
+            r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*"
+        )
+
+        max_registry_name_length = 255
+        max_registries_allowed = 10
+        max_description_length = 2048
+        max_tags_allowed = 50
+
+        if len(self.registries) >= max_registries_allowed:
+            raise ResourceNumberLimitExceededException(
+                operation_name, resource="registries"
+            )
+
+        if (
+            registry_name == ""
+            or len(registry_name.encode("utf-8")) > max_registry_name_length
+        ):
+            param_name = "registryName"
+            raise ResourceNameTooLongException(operation_name, param_name)
+
+        if re.match(registry_name_pattern, registry_name) is None:
+            param_name = "registryName"
+            raise ParamValueContainsInvalidCharactersException(
+                operation_name, param_name
+            )
+
+        if registry_name in self.registries:
+            raise GSRAlreadyExistsException(
+                operation_name,
+                resource="Registry",
+                param_name="RegistryName",
+                param_value=registry_name,
+            )
+
+        if description and len(description.encode("utf-8")) > max_description_length:
+            param_name = "description"
+            raise ResourceNameTooLongException(operation_name, param_name)
+
+        if description and re.match(registry_description_pattern, description) is None:
+            param_name = "description"
+            raise ParamValueContainsInvalidCharactersException(
+                operation_name, param_name
+            )
+
+        if tags and len(tags) > max_tags_allowed:
+            raise InvalidNumberOfTagsException(operation_name)
+
+        registry = FakeRegistry(registry_name, description, tags)
+        self.registries[registry_name] = registry
+        return registry
 
 
 class FakeDatabase(BaseModel):
@@ -248,6 +339,7 @@ class FakeTable(BaseModel):
         self.database_name = database_name
         self.name = table_name
         self.partitions = OrderedDict()
+        self.created_time = datetime.utcnow()
         self.versions = []
         self.update(table_input)
 
@@ -268,7 +360,11 @@ class FakeTable(BaseModel):
             raise VersionNotFoundException()
 
     def as_dict(self, version=-1):
-        obj = {"DatabaseName": self.database_name, "Name": self.name}
+        obj = {
+            "DatabaseName": self.database_name,
+            "Name": self.name,
+            "CreateTime": self.created_time.isoformat(),
+        }
         obj.update(self.get_version(version))
         return obj
 
@@ -358,6 +454,7 @@ class FakeCrawler(BaseModel):
         configuration,
         crawler_security_configuration,
         tags,
+        backend,
     ):
         self.name = name
         self.role = role
@@ -372,13 +469,18 @@ class FakeCrawler(BaseModel):
         self.lineage_configuration = lineage_configuration
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
-        self.tags = tags
         self.state = "READY"
         self.creation_time = datetime.utcnow()
         self.last_updated = self.creation_time
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
+        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:crawler/{self.name}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+
+    def get_name(self):
+        return self.name
 
     def as_dict(self):
         last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None
@@ -473,6 +575,7 @@ class FakeJob:
         glue_version=None,
         number_of_workers=None,
         worker_type=None,
+        backend=None,
     ):
         self.name = name
         self.description = description
@@ -489,13 +592,15 @@ class FakeJob:
         self.state = "READY"
         self.max_capacity = max_capacity
         self.security_configuration = security_configuration
-        self.tags = tags
         self.notification_property = notification_property
         self.glue_version = glue_version
         self.number_of_workers = number_of_workers
         self.worker_type = worker_type
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
+        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:job/{self.name}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
 
     def get_name(self):
         return self.name
@@ -590,4 +695,27 @@ class FakeJobRun:
         }
 
 
-glue_backend = GlueBackend()
+class FakeRegistry(BaseModel):
+    def __init__(self, registry_name, description=None, tags=None):
+        self.name = registry_name
+        self.description = description
+        self.tags = tags
+        self.created_time = datetime.utcnow()
+        self.updated_time = datetime.utcnow()
+        self.registry_arn = (
+            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.name}"
+        )
+
+    def as_dict(self):
+        return {
+            "RegistryArn": self.registry_arn,
+            "RegistryName": self.name,
+            "Description": self.description,
+            "Tags": self.tags,
+        }
+
+
+glue_backends = BackendDict(
+    GlueBackend, "glue", use_boto3_regions=False, additional_regions=["global"]
+)
+glue_backend = glue_backends["global"]

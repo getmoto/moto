@@ -4,7 +4,7 @@ from moto.ec2.exceptions import (
     InvalidParameterCombination,
     InvalidRequest,
 )
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 from copy import deepcopy
 
@@ -49,6 +49,7 @@ class InstanceResponse(EC2BaseResponse):
         security_group_names = self._get_multi_param("SecurityGroup")
         kwargs = {
             "instance_type": self._get_param("InstanceType", if_none="m1.small"),
+            "is_instance_type_default": not self._get_param("InstanceType"),
             "placement": self._get_param("Placement.AvailabilityZone"),
             "region_name": self.region,
             "subnet_id": self._get_param("SubnetId"),
@@ -384,7 +385,7 @@ EC2_RUN_INSTANCES = (
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <reservationId>{{ reservation.id }}</reservationId>
   <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
   <groupSet>
     <item>
@@ -471,7 +472,7 @@ EC2_RUN_INSTANCES = (
                 {% endif %}
                 <description>Primary network interface</description>
                 <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
@@ -496,7 +497,7 @@ EC2_RUN_INSTANCES = (
                   <association>
                     <publicIp>{{ nic.public_ip }}</publicIp>
                     <ipOwnerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ipOwnerId>
                   </association>
                 {% endif %}
@@ -508,7 +509,7 @@ EC2_RUN_INSTANCES = (
                       <association>
                         <publicIp>{{ nic.public_ip }}</publicIp>
                         <ipOwnerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ipOwnerId>
                       </association>
                     {% endif %}
@@ -531,7 +532,7 @@ EC2_DESCRIBE_INSTANCES = (
           <item>
             <reservationId>{{ reservation.id }}</reservationId>
             <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
             <groupSet>
               {% for group in reservation.dynamic_group_list %}
@@ -629,7 +630,7 @@ EC2_DESCRIBE_INSTANCES = (
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """3</clientToken>
                     {% if instance.get_tags() %}
                     <tagSet>
@@ -654,7 +655,7 @@ EC2_DESCRIBE_INSTANCES = (
                           {% endif %}
                           <description>Primary network interface</description>
                           <ownerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ownerId>
                           <status>in-use</status>
                           <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
@@ -683,7 +684,7 @@ EC2_DESCRIBE_INSTANCES = (
                             <association>
                               <publicIp>{{ nic.public_ip }}</publicIp>
                               <ipOwnerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ipOwnerId>
                             </association>
                           {% endif %}
@@ -695,7 +696,7 @@ EC2_DESCRIBE_INSTANCES = (
                                 <association>
                                   <publicIp>{{ nic.public_ip }}</publicIp>
                                   <ipOwnerId>"""
-    + ACCOUNT_ID
+    + get_account_id()
     + """</ipOwnerId>
                                 </association>
                               {% endif %}

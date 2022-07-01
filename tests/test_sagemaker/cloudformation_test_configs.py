@@ -1,7 +1,7 @@
 import json
 from abc import ABCMeta, abstractmethod
 
-from moto.sts.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 class TestConfig(metaclass=ABCMeta):

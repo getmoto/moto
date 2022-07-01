@@ -18,7 +18,7 @@ class EBResponse(BaseResponse):
         )
 
         template = self.response_template(EB_CREATE_APPLICATION)
-        return template.render(region_name=self.backend.region, application=app)
+        return template.render(region_name=self.backend.region_name, application=app)
 
     def describe_applications(self):
         template = self.response_template(EB_DESCRIBE_APPLICATIONS)
@@ -42,7 +42,7 @@ class EBResponse(BaseResponse):
         )
 
         template = self.response_template(EB_CREATE_ENVIRONMENT)
-        return template.render(environment=env, region=self.backend.region)
+        return template.render(environment=env, region=self.backend.region_name)
 
     def describe_environments(self):
         envs = self.backend.describe_environments()

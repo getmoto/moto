@@ -7,10 +7,10 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_sns, mock_sqs
+from moto.core import ACCOUNT_ID
 from moto.sns.models import (
     DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
-    DEFAULT_ACCOUNT_ID,
 )
 
 
@@ -223,7 +223,7 @@ def test_subscribe_attributes():
     attributes["TopicArn"].should.equal(arn)
     attributes["Protocol"].should.equal("http")
     attributes["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
-    attributes["Owner"].should.equal(str(DEFAULT_ACCOUNT_ID))
+    attributes["Owner"].should.equal(str(ACCOUNT_ID))
     attributes["RawMessageDelivery"].should.equal("false")
     json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
         DEFAULT_EFFECTIVE_DELIVERY_POLICY
@@ -545,7 +545,7 @@ def test_confirm_subscription():
 def test_get_subscription_attributes_error_not_exists():
     # given
     client = boto3.client("sns", region_name="us-east-1")
-    sub_arn = f"arn:aws:sqs:us-east-1:{DEFAULT_ACCOUNT_ID}:test-queue:66d97e76-31e5-444f-8fa7-b60b680d0d39"
+    sub_arn = f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue:66d97e76-31e5-444f-8fa7-b60b680d0d39"
 
     # when
     with pytest.raises(ClientError) as e:

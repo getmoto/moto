@@ -4,27 +4,23 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 import os
 import pytz
-
-import boto3
-from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
-
 import pytest
 from unittest import SkipTest
-
+import boto3
+from botocore.exceptions import ClientError
 from moto import (
     mock_cloudformation,
     mock_dynamodb,
-    mock_s3,
-    mock_sns,
-    mock_sqs,
     mock_ec2,
     mock_iam,
     mock_lambda,
+    mock_s3,
+    mock_sns,
+    mock_sqs,
+    settings,
 )
-from moto import settings
-from moto.core import ACCOUNT_ID
 from moto.cloudformation import cloudformation_backends
+from moto.core import ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID
 
@@ -1179,8 +1175,43 @@ def test_update_stack_fail_missing_new_parameter():
         )
 
 
-@mock_cloudformation
 def test_boto3_update_stack_deleted_resources_can_reference_deleted_parameters():
+
+    name = "update_stack_with_previous_value"
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    params = [
+        {"ParameterKey": "TagName", "ParameterValue": "foo"},
+        {"ParameterKey": "TagDescription", "ParameterValue": "bar"},
+    ]
+
+    cf_conn.create_stack(
+        StackName=name, TemplateBody=dummy_template_yaml_with_ref, Parameters=params
+    )
+
+    with pytest.raises(ClientError) as exp:
+        cf_conn.update_stack(
+            StackName=name, TemplateBody=dummy_template_yaml_with_ref, Parameters=params
+        )
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
+
+    exp_err.get("Code").should.equal("ValidationError")
+    exp_err.get("Message").should.equal(f"Stack [{name}] already exists")
+    exp_metadata.get("HTTPStatusCode").should.equal(400)
+
+    cf_conn.update_stack(
+        StackName=name,
+        TemplateBody=dummy_template_yaml_with_ref,
+        Parameters=[
+            {"ParameterKey": "TagName", "ParameterValue": "new_foo"},
+            {"ParameterKey": "TagDescription", "ParameterValue": "new_bar"},
+        ],
+    )
+
+
+@mock_cloudformation
+def test_update_stack_deleted_resources_can_reference_deleted_parameters():
+>>>>>>> 01d0141da894a6cec319b9c3d9a812a7d70a0c3d
 
     name = "update_stack_deleted_resources_can_reference_deleted_parameters"
 

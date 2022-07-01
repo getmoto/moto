@@ -32,7 +32,7 @@ install_requires = [
     "cryptography>=3.3.1",
     "requests>=2.5",
     "xmltodict",
-    "werkzeug",
+    "werkzeug>=0.5",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "responses>=0.9.0",
@@ -54,7 +54,8 @@ _dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
 _dep_idna = "idna<4,>=2.5"
 _dep_cfn_lint = "cfn-lint>=0.4.0"
 _dep_sshpubkeys = "sshpubkeys>=3.1.0"
-_dep_pyparsing = "pyparsing>=3.0.0"
+_dep_openapi = "openapi-spec-validator>=0.2.8"
+_dep_pyparsing = "pyparsing>=3.0.7"
 _setuptools = "setuptools"
 
 all_extra_deps = [
@@ -69,6 +70,7 @@ all_extra_deps = [
     _dep_cfn_lint,
     _dep_sshpubkeys,
     _dep_pyparsing,
+    _dep_openapi,
     _setuptools,
 ]
 all_server_deps = all_extra_deps + ["flask", "flask-cors"]
@@ -82,12 +84,11 @@ for service_name in [
     extras_per_service[service_name] = []
 extras_per_service.update(
     {
-        "apigateway": [_dep_PyYAML, _dep_python_jose, _dep_python_jose_ecdsa_pin],
+        "apigateway": [_dep_PyYAML, _dep_python_jose, _dep_python_jose_ecdsa_pin, _dep_openapi],
         "apigatewayv2": [_dep_PyYAML],
         "appsync": [_dep_graphql],
         "awslambda": [_dep_docker],
         "batch": [_dep_docker],
-        "cloudformation": [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
         "cognitoidp": [_dep_python_jose, _dep_python_jose_ecdsa_pin],
         "ec2": [_dep_sshpubkeys],
         "glue": [_dep_pyparsing],
@@ -108,11 +109,15 @@ extras_per_service.update(
 extras_per_service["dynamodb"] = extras_per_service["awslambda"]
 extras_per_service["dynamodb2"] = extras_per_service["dynamodb"]
 extras_per_service["dynamodbstreams"] = extras_per_service["awslambda"]
+# EBS depends on EC2 to create snapshots
+extras_per_service["ebs"] = extras_per_service["ec2"]
 # EFS depends on EC2 to find subnets etc
 extras_per_service["efs"] = extras_per_service["ec2"]
 # DirectoryService needs EC2 to verify VPCs and subnets.
 extras_per_service["ds"] = extras_per_service["ec2"]
 extras_per_service["route53resolver"] = extras_per_service["ec2"]
+# CloudFormation imports everything, so install everything
+extras_per_service["cloudformation"] = all_extra_deps
 extras_require = {
     "all": all_extra_deps,
     "server": all_server_deps,

@@ -51,6 +51,7 @@ def test_create_authorizer():
         {"Audience": ["a1"], "Issuer": "moto.com"}
     )
     resp.should.have.key("Name").equals("auth1")
+    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
 
 
 @mock_apigatewayv2
@@ -67,6 +68,7 @@ def test_get_authorizer():
     resp.should.have.key("AuthorizerId")
     resp.should.have.key("AuthorizerType").equals("REQUEST")
     resp.should.have.key("Name").equals("auth1")
+    resp.should.have.key("AuthorizerPayloadFormatVersion").equals("2.0")
 
 
 @mock_apigatewayv2

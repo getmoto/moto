@@ -9,7 +9,7 @@ from moto.packages.boto.ec2.blockdevicemapping import (
 from moto.ec2.exceptions import InvalidInstanceIdError
 
 from collections import OrderedDict
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, BackendDict
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
@@ -97,7 +97,7 @@ class FakeScalingPolicy(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:autoscaling:{self.autoscaling_backend.region}:{ACCOUNT_ID}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
+        return f"arn:aws:autoscaling:{self.autoscaling_backend.region_name}:{get_account_id()}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
 
     def execute(self):
         if self.adjustment_type == "ExactCapacity":
@@ -149,11 +149,15 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self.spot_price = spot_price
         self.ebs_optimized = ebs_optimized
         self.associate_public_ip_address = associate_public_ip_address
+        if isinstance(associate_public_ip_address, str):
+            self.associate_public_ip_address = (
+                associate_public_ip_address.lower() == "true"
+            )
         self.block_device_mapping_dict = block_device_mapping_dict
         self.metadata_options = metadata_options
         self.classic_link_vpc_id = classic_link_vpc_id
         self.classic_link_vpc_security_groups = classic_link_vpc_security_groups
-        self.arn = f"arn:aws:autoscaling:{region_name}:{ACCOUNT_ID}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
+        self.arn = f"arn:aws:autoscaling:{region_name}:{get_account_id()}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
 
     @classmethod
     def create_from_instance(cls, name, instance, backend):
@@ -303,7 +307,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.name = name
         self._id = str(uuid4())
-        self.region = self.autoscaling_backend.region
+        self.region = self.autoscaling_backend.region_name
 
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
@@ -323,7 +327,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.load_balancers = load_balancers
         self.target_group_arns = target_group_arns
         self.placement_group = placement_group
-        self.termination_policies = termination_policies
+        self.termination_policies = termination_policies or ["Default"]
         self.new_instances_protected_from_scale_in = (
             new_instances_protected_from_scale_in
         )
@@ -332,6 +336,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.instance_states = []
         self.tags = tags or []
         self.set_desired_capacity(desired_capacity)
+
+        self.metrics = []
 
     @property
     def tags(self):
@@ -348,7 +354,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @property
     def arn(self):
-        return f"arn:aws:autoscaling:{self.region}:{ACCOUNT_ID}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
+        return f"arn:aws:autoscaling:{self.region}:{get_account_id()}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
 
     def active_instances(self):
         return [x for x in self.instance_states if x.lifecycle_state == "InService"]
@@ -624,6 +630,17 @@ class FakeAutoScalingGroup(CloudFormationModel):
     def replace_autoscaling_group_instances(self, count_needed, propagated_tags):
         propagated_tags[ASG_NAME_TAG] = self.name
 
+        # VPCZoneIdentifier:
+        # A comma-separated list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created.
+        # We'll create all instances in a single subnet to make things easier
+        subnet_id = (
+            self.vpc_zone_identifier.split(",")[0] if self.vpc_zone_identifier else None
+        )
+        associate_public_ip = (
+            self.launch_config.associate_public_ip_address
+            if self.launch_config
+            else None
+        )
         reservation = self.autoscaling_backend.ec2_backend.add_instances(
             self.image_id,
             count_needed,
@@ -633,6 +650,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
             launch_config=self.launch_config,
+            is_instance_type_default=False,
+            associate_public_ip=associate_public_ip,
+            subnet_id=subnet_id,
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self
@@ -647,9 +667,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
         append = [x for x in target_group_arns if x not in self.target_group_arns]
         self.target_group_arns.extend(append)
 
+    def enable_metrics_collection(self, metrics):
+        self.metrics = metrics or []
+
 
 class AutoScalingBackend(BaseBackend):
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
         self.policies = {}
@@ -657,12 +681,6 @@ class AutoScalingBackend(BaseBackend):
         self.ec2_backend = ec2_backends[region_name]
         self.elb_backend = elb_backends[region_name]
         self.elbv2_backend = elbv2_backends[region_name]
-        self.region = region_name
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -720,7 +738,7 @@ class AutoScalingBackend(BaseBackend):
             ebs_optimized=ebs_optimized,
             associate_public_ip_address=associate_public_ip_address,
             block_device_mapping_dict=block_device_mappings,
-            region_name=self.region,
+            region_name=self.region_name,
             metadata_options=metadata_options,
             classic_link_vpc_id=classic_link_vpc_id,
             classic_link_vpc_security_groups=classic_link_vpc_security_groups,
@@ -863,7 +881,7 @@ class AutoScalingBackend(BaseBackend):
         )
         return group
 
-    def describe_auto_scaling_groups(self, names):
+    def describe_auto_scaling_groups(self, names) -> [FakeAutoScalingGroup]:
         groups = self.autoscaling_groups.values()
         if names:
             return [group for group in groups if group.name in names]
@@ -1271,5 +1289,9 @@ class AutoScalingBackend(BaseBackend):
                 ]
         return tags
 
+    def enable_metrics_collection(self, group_name, metrics):
+        group = self.describe_auto_scaling_groups([group_name])[0]
+        group.enable_metrics_collection(metrics)
 
-autoscaling_backends = BackendDict(AutoScalingBackend, "ec2")
+
+autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")

@@ -15,6 +15,7 @@ from botocore.handlers import disable_signing
 from freezegun import freeze_time
 import requests
 
+from moto.moto_api import state_manager
 from moto.s3.responses import DEFAULT_REGION_NAME
 from unittest import SkipTest
 import pytest
@@ -132,6 +133,32 @@ def test_empty_key():
     resp = client.get_object(Bucket="foobar", Key="the-key")
     resp.should.have.key("ContentLength").equal(0)
     resp["Body"].read().should.equal(b"")
+
+
+@mock_s3
+def test_key_name_encoding_in_listing():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="foobar")
+
+    name = "6T7\x159\x12\r\x08.txt"
+
+    key = s3.Object("foobar", name)
+    key.put(Body=b"")
+
+    key_received = client.list_objects(Bucket="foobar")["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
+    key_received = client.list_objects_v2(Bucket="foobar")["Contents"][0]["Key"]
+    key_received.should.equal(name)
+
+    name = "example/file.text"
+    client.put_object(Bucket="foobar", Key=name, Body=b"")
+
+    key_received = client.list_objects(
+        Bucket="foobar", Prefix="example/", Delimiter="/", MaxKeys=1, EncodingType="url"
+    )["Contents"][0]["Key"]
+    key_received.should.equal(name)
 
 
 @mock_s3
@@ -529,6 +556,38 @@ def test_restore_key():
         key.restore.should.equal(
             'ongoing-request="false", expiry-date="Tue, 03 Jan 2012 12:00:00 GMT"'
         )
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_s3
+def test_restore_key_transition():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    state_manager.set_transition(
+        model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
+    )
+
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3.Bucket("foobar")
+    bucket.create()
+
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
+    key.restore.should.equal(None)
+    key.restore_object(RestoreRequest={"Days": 1})
+
+    # first call: there should be an ongoing request
+    key.restore.should.contain('ongoing-request="true"')
+
+    # second call: request should be done
+    key.load()
+    key.restore.should.contain('ongoing-request="false"')
+
+    # third call: request should still be done
+    key.load()
+    key.restore.should.contain('ongoing-request="false"')
+
+    state_manager.unset_transition(model_name="s3::keyrestore")
 
 
 @mock_s3
@@ -3313,3 +3372,26 @@ def test_head_versioned_key_in_not_versioned_bucket():
 
     response = ex.value.response
     assert response["Error"]["Code"] == "400"
+
+
+@mock_s3
+def test_prefix_encoding():
+    bucket_name = "encoding-bucket"
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket=bucket_name)
+
+    client.put_object(Bucket=bucket_name, Key="foo%2Fbar/data", Body=b"")
+
+    data = client.list_objects_v2(Bucket=bucket_name, Prefix="foo%2Fbar")
+    assert data["Contents"][0]["Key"].startswith(data["Prefix"])
+
+    data = client.list_objects_v2(Bucket=bucket_name, Prefix="foo%2Fbar", Delimiter="/")
+    assert data["CommonPrefixes"] == [{"Prefix": "foo%2Fbar/"}]
+
+    client.put_object(Bucket=bucket_name, Key="foo/bar/data", Body=b"")
+
+    data = client.list_objects_v2(Bucket=bucket_name, Delimiter="/")
+    folders = list(
+        map(lambda common_prefix: common_prefix["Prefix"], data["CommonPrefixes"])
+    )
+    assert ["foo%2Fbar/", "foo/"] == folders

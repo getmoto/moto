@@ -524,7 +524,7 @@ class InvalidContinuationToken(S3ClientError):
 
 
 class InvalidObjectState(BucketError):
-    code = 400
+    code = 403
 
     def __init__(self, storage_class, **kwargs):
         kwargs.setdefault("template", "storage_error")

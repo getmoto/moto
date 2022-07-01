@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from uuid import uuid4
 from .exceptions import (
@@ -442,10 +442,10 @@ class StepFunctionBackend(BaseBackend):
         "arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
     )
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.state_machines = []
         self.executions = []
-        self.region_name = region_name
         self._account_id = None
 
     def create_state_machine(self, name, definition, roleArn, tags=None):
@@ -567,11 +567,6 @@ class StepFunctionBackend(BaseBackend):
         except StateMachineDoesNotExist:
             raise ResourceNotFound(resource_arn)
 
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
     def _validate_name(self, name):
         if any(invalid_char in name for invalid_char in self.invalid_chars_for_name):
             raise InvalidName("Invalid Name: '" + name + "'")
@@ -619,7 +614,7 @@ class StepFunctionBackend(BaseBackend):
         return self.describe_state_machine(state_machine_arn)
 
     def _get_account_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
 
 stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

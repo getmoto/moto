@@ -7,14 +7,14 @@ class RDSClientError(BadRequest):
         super().__init__()
         template = Template(
             """
-        <RDSClientError>
+        <ErrorResponse>
             <Error>
               <Code>{{ code }}</Code>
               <Message>{{ message }}</Message>
               <Type>Sender</Type>
             </Error>
             <RequestId>6876f774-7273-11e4-85dc-39e55ca848d1</RequestId>
-        </RDSClientError>"""
+        </ErrorResponse>"""
         )
         self.description = template.render(code=code, message=message)
 

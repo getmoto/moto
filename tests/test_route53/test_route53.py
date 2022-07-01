@@ -19,7 +19,7 @@ def test_create_hosted_zone():
     firstzone.should.have.key("Id").match(r"/hostedzone/[A-Z0-9]+")
     firstzone.should.have.key("Name").equal("testdns.aws.com.")
     firstzone.should.have.key("Config").equal({"PrivateZone": False})
-    firstzone.should.have.key("ResourceRecordSetCount").equal(0)
+    firstzone.should.have.key("ResourceRecordSetCount").equal(1)
 
     delegation = response["DelegationSet"]
     delegation.should.have.key("NameServers").length_of(4)
@@ -63,6 +63,39 @@ def test_delete_hosted_zone():
 
     res = conn.list_hosted_zones()["HostedZones"]
     res.should.have.length_of(1)
+
+
+@mock_route53
+def test_delete_hosted_zone_with_change_sets():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_id = conn.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]["Id"]
+
+    conn.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "foo.bar.testdns.aws.com",
+                        "Type": "A",
+                        "ResourceRecords": [{"Value": "1.2.3.4"}],
+                    },
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.delete_hosted_zone(Id=zone_id)
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("HostedZoneNotEmpty")
+    err["Message"].should.equal(
+        "The hosted zone contains resource records that are not SOA or NS records."
+    )
 
 
 @mock_route53
@@ -129,6 +162,20 @@ def test_get_unknown_hosted_zone():
 
 
 @mock_route53
+def test_update_hosted_zone_comment():
+    conn = boto3.client("route53", region_name="us-east-1")
+    response = conn.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )
+    zone_id = response["HostedZone"]["Id"].split("/")[-1]
+
+    conn.update_hosted_zone_comment(Id=zone_id, Comment="yolo")
+
+    resp = conn.get_hosted_zone(Id=zone_id)["HostedZone"]
+    resp["Config"].should.have.key("Comment").equals("yolo")
+
+
+@mock_route53
 def test_list_resource_record_set_unknown_zone():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -153,90 +200,6 @@ def test_list_resource_record_set_unknown_type():
     err = ex.value.response["Error"]
     err["Code"].should.equal("400")
     err["Message"].should.equal("Bad Request")
-
-
-@mock_route53
-def test_create_health_check():
-    conn = boto3.client("route53", region_name="us-east-1")
-
-    check = conn.create_health_check(
-        CallerReference="?",
-        HealthCheckConfig={
-            "IPAddress": "10.0.0.25",
-            "Port": 80,
-            "Type": "HTTP",
-            "ResourcePath": "/",
-            "FullyQualifiedDomainName": "example.com",
-            "SearchString": "a good response",
-            "RequestInterval": 10,
-            "FailureThreshold": 2,
-        },
-    )["HealthCheck"]
-    check.should.have.key("Id").match("[a-z0-9-]+")
-    check.should.have.key("CallerReference")
-    check.should.have.key("HealthCheckConfig")
-    check["HealthCheckConfig"].should.have.key("IPAddress").equal("10.0.0.25")
-    check["HealthCheckConfig"].should.have.key("Port").equal(80)
-    check["HealthCheckConfig"].should.have.key("Type").equal("HTTP")
-    check["HealthCheckConfig"].should.have.key("ResourcePath").equal("/")
-    check["HealthCheckConfig"].should.have.key("FullyQualifiedDomainName").equal(
-        "example.com"
-    )
-    check["HealthCheckConfig"].should.have.key("SearchString").equal("a good response")
-    check["HealthCheckConfig"].should.have.key("RequestInterval").equal(10)
-    check["HealthCheckConfig"].should.have.key("FailureThreshold").equal(2)
-    check.should.have.key("HealthCheckVersion").equal(1)
-
-
-@mock_route53
-def test_list_health_checks():
-    conn = boto3.client("route53", region_name="us-east-1")
-
-    conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
-
-    check = conn.create_health_check(
-        CallerReference="?",
-        HealthCheckConfig={
-            "IPAddress": "10.0.0.25",
-            "Port": 80,
-            "Type": "HTTP",
-            "ResourcePath": "/",
-            "FullyQualifiedDomainName": "example.com",
-            "SearchString": "a good response",
-            "RequestInterval": 10,
-            "FailureThreshold": 2,
-        },
-    )["HealthCheck"]
-
-    checks = conn.list_health_checks()["HealthChecks"]
-    checks.should.have.length_of(1)
-    checks.should.contain(check)
-
-
-@mock_route53
-def test_delete_health_checks():
-    conn = boto3.client("route53", region_name="us-east-1")
-
-    conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
-
-    check = conn.create_health_check(
-        CallerReference="?",
-        HealthCheckConfig={
-            "IPAddress": "10.0.0.25",
-            "Port": 80,
-            "Type": "HTTP",
-            "ResourcePath": "/",
-            "FullyQualifiedDomainName": "example.com",
-            "SearchString": "a good response",
-            "RequestInterval": 10,
-            "FailureThreshold": 2,
-        },
-    )["HealthCheck"]
-
-    conn.delete_health_check(HealthCheckId=check["Id"])
-
-    checks = conn.list_health_checks()["HealthChecks"]
-    checks.should.have.length_of(0)
 
 
 @mock_route53
@@ -281,8 +244,8 @@ def test_use_health_check_in_resource_record_set():
     record_sets = conn.list_resource_record_sets(HostedZoneId=zone_id)[
         "ResourceRecordSets"
     ]
-    record_sets[0]["Name"].should.equal("foo.bar.testdns.aws.com.")
-    record_sets[0]["HealthCheckId"].should.equal(check_id)
+    record_sets[1]["Name"].should.equal("foo.bar.testdns.aws.com.")
+    record_sets[1]["HealthCheckId"].should.equal(check_id)
 
 
 @mock_route53
@@ -333,7 +296,7 @@ def test_deleting_weighted_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(2)
+    cnames.should.have.length_of(3)
 
     conn.change_resource_record_sets(
         HostedZoneId=zone_id,
@@ -354,9 +317,9 @@ def test_deleting_weighted_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(1)
-    cnames[0]["Name"].should.equal("cname.testdns.aws.com.")
-    cnames[0]["SetIdentifier"].should.equal("success-test-bar")
+    cnames.should.have.length_of(2)
+    cnames[1]["Name"].should.equal("cname.testdns.aws.com.")
+    cnames[1]["SetIdentifier"].should.equal("success-test-bar")
 
 
 @mock_route53
@@ -393,9 +356,11 @@ def test_deleting_latency_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(2)
+    cnames.should.have.length_of(3)
     foo_cname = [
-        cname for cname in cnames if cname["SetIdentifier"] == "success-test-foo"
+        cname
+        for cname in cnames
+        if cname.get("SetIdentifier") and cname["SetIdentifier"] == "success-test-foo"
     ][0]
     foo_cname["Region"].should.equal("us-west-2")
 
@@ -417,77 +382,9 @@ def test_deleting_latency_route():
     cnames = conn.list_resource_record_sets(
         HostedZoneId=zone_id, StartRecordName="cname", StartRecordType="CNAME"
     )["ResourceRecordSets"]
-    cnames.should.have.length_of(1)
-    cnames[0]["SetIdentifier"].should.equal("success-test-bar")
-    cnames[0]["Region"].should.equal("us-west-1")
-
-
-@mock_ec2
-@mock_route53
-def test_hosted_zone_private_zone_preserved():
-    # Create mock VPC so we can get a VPC ID
-    region = "us-east-1"
-    ec2c = boto3.client("ec2", region_name=region)
-    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
-
-    # Create hosted_zone as a Private VPC Hosted Zone
-    conn = boto3.client("route53", region_name=region)
-    new_zone = conn.create_hosted_zone(
-        Name="testdns.aws.com.",
-        CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="Test"),
-        VPC={"VPCRegion": region, "VPCId": vpc_id},
-    )
-
-    zone_id = new_zone["HostedZone"]["Id"].split("/")[-1]
-    hosted_zone = conn.get_hosted_zone(Id=zone_id)
-    hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zone.should.have.key("VPCs")
-    hosted_zone["VPCs"].should.have.length_of(1)
-    hosted_zone["VPCs"][0].should.have.key("VPCId")
-    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should_not.equal(None)
-    hosted_zone["VPCs"][0]["VPCRegion"].should_not.equal(None)
-    hosted_zone["VPCs"][0]["VPCId"].should.be.equal(vpc_id)
-    hosted_zone["VPCs"][0]["VPCRegion"].should.be.equal(region)
-
-    hosted_zones = conn.list_hosted_zones()
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
-
-    hosted_zones = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
-    hosted_zones["HostedZones"].should.have.length_of(1)
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
-
-    # create_hosted_zone statements with  PrivateZone=True,
-    # but without a _valid_ vpc-id should NOT fail.
-    zone2_name = "testdns2.aws.com."
-    no_vpc_zone = conn.create_hosted_zone(
-        Name=zone2_name,
-        CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="Test without VPC"),
-    )
-
-    zone_id = no_vpc_zone["HostedZone"]["Id"].split("/")[-1]
-    hosted_zone = conn.get_hosted_zone(Id=zone_id)
-    hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zone.should.have.key("VPCs")
-    hosted_zone["VPCs"].should.have.length_of(1)
-    hosted_zone["VPCs"][0].should.have.key("VPCId")
-    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should.equal("")
-    hosted_zone["VPCs"][0]["VPCRegion"].should.equal("")
-
-    hosted_zones = conn.list_hosted_zones()
-    hosted_zones["HostedZones"].should.have.length_of(2)
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zones["HostedZones"][1]["Config"]["PrivateZone"].should.equal(True)
-
-    hosted_zones = conn.list_hosted_zones_by_name(DNSName=zone2_name)
-    hosted_zones["HostedZones"].should.have.length_of(1)
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zones["HostedZones"][0]["Name"].should.equal(zone2_name)
-
-    return
+    cnames.should.have.length_of(2)
+    cnames[1]["SetIdentifier"].should.equal("success-test-bar")
+    cnames[1]["Region"].should.equal("us-west-1")
 
 
 @mock_route53
@@ -706,67 +603,6 @@ def test_list_hosted_zones_by_dns_name():
     zones["HostedZones"][3]["Name"].should.equal("test.a.org.")
 
 
-@mock_ec2
-@mock_route53
-def test_list_hosted_zones_by_vpc():
-    # Create mock VPC so we can get a VPC ID
-    ec2c = boto3.client("ec2", region_name="us-east-1")
-    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
-    region = "us-east-1"
-
-    conn = boto3.client("route53", region_name=region)
-    zone_b = conn.create_hosted_zone(
-        Name="test.b.com.",
-        CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
-        VPC={"VPCRegion": region, "VPCId": vpc_id},
-    )
-    response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
-    response.should.have.key("ResponseMetadata")
-    response.should.have.key("HostedZoneSummaries")
-    response["HostedZoneSummaries"].should.have.length_of(1)
-    response["HostedZoneSummaries"][0].should.have.key("HostedZoneId")
-    retured_zone = response["HostedZoneSummaries"][0]
-    retured_zone["HostedZoneId"].should.equal(zone_b["HostedZone"]["Id"])
-    retured_zone["Name"].should.equal(zone_b["HostedZone"]["Name"])
-
-
-@mock_ec2
-@mock_route53
-def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
-    # Create mock VPC so we can get a VPC ID
-    ec2c = boto3.client("ec2", region_name="us-east-1")
-    vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
-    region = "us-east-1"
-
-    # Create 3 Zones associate with the VPC.
-    zones = {}
-    conn = boto3.client("route53", region_name=region)
-    for zone in ["a", "b", "c"]:
-        zone_name = f"test.{zone}.com."
-        zones[zone] = conn.create_hosted_zone(
-            Name=zone_name,
-            CallerReference=str(hash("foo")),
-            HostedZoneConfig=dict(PrivateZone=True, Comment=f"test {zone} com"),
-            VPC={"VPCRegion": region, "VPCId": vpc_id},
-        )
-
-    # List the zones associated with this vpc
-    response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
-    response.should.have.key("ResponseMetadata")
-    response.should.have.key("HostedZoneSummaries")
-    response["HostedZoneSummaries"].should.have.length_of(3)
-
-    # Loop through all zone summaries and verify they match what was created
-    for summary in response["HostedZoneSummaries"]:
-        # use the zone name as the index
-        index = summary["Name"].split(".")[1]
-        summary.should.have.key("HostedZoneId")
-        summary["HostedZoneId"].should.equal(zones[index]["HostedZone"]["Id"])
-        summary.should.have.key("Name")
-        summary["Name"].should.equal(zones[index]["HostedZone"]["Name"])
-
-
 @mock_route53
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")
@@ -801,8 +637,8 @@ def test_change_resource_record_sets_crud_valid():
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(1)
-    a_record_detail = response["ResourceRecordSets"][0]
+    len(response["ResourceRecordSets"]).should.equal(2)
+    a_record_detail = response["ResourceRecordSets"][1]
     a_record_detail["Name"].should.equal("prod.redis.db.")
     a_record_detail["Type"].should.equal("A")
     a_record_detail["TTL"].should.equal(10)
@@ -828,8 +664,8 @@ def test_change_resource_record_sets_crud_valid():
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(1)
-    cname_record_detail = response["ResourceRecordSets"][0]
+    len(response["ResourceRecordSets"]).should.equal(2)
+    cname_record_detail = response["ResourceRecordSets"][1]
     cname_record_detail["Name"].should.equal("prod.redis.db.")
     cname_record_detail["Type"].should.equal("A")
     cname_record_detail["TTL"].should.equal(60)
@@ -859,7 +695,7 @@ def test_change_resource_record_sets_crud_valid():
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    cname_alias_record_detail = response["ResourceRecordSets"][0]
+    cname_alias_record_detail = response["ResourceRecordSets"][1]
     cname_alias_record_detail["Name"].should.equal("prod.redis.db.")
     cname_alias_record_detail["Type"].should.equal("A")
     cname_alias_record_detail["TTL"].should.equal(60)
@@ -886,7 +722,7 @@ def test_change_resource_record_sets_crud_valid():
         HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload
     )
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(1)
+    len(response["ResourceRecordSets"]).should.equal(2)
 
     # Delete record.
     delete_payload = {
@@ -902,7 +738,7 @@ def test_change_resource_record_sets_crud_valid():
         HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload
     )
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(0)
+    len(response["ResourceRecordSets"]).should.equal(1)
 
 
 @mock_route53
@@ -939,8 +775,8 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(1)
-    a_record_detail = response["ResourceRecordSets"][0]
+    len(response["ResourceRecordSets"]).should.equal(2)
+    a_record_detail = response["ResourceRecordSets"][1]
     a_record_detail["Name"].should.equal("prod.redis.db.")
     a_record_detail["Type"].should.equal("TXT")
     a_record_detail["TTL"].should.equal(10)
@@ -967,8 +803,8 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(1)
-    cname_record_detail = response["ResourceRecordSets"][0]
+    len(response["ResourceRecordSets"]).should.equal(2)
+    cname_record_detail = response["ResourceRecordSets"][1]
     cname_record_detail["Name"].should.equal("prod.redis.db.")
     cname_record_detail["Type"].should.equal("TXT")
     cname_record_detail["TTL"].should.equal(60)
@@ -990,7 +826,7 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
         HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload
     )
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(0)
+    len(response["ResourceRecordSets"]).should.equal(1)
 
 
 @mock_route53
@@ -1096,10 +932,11 @@ def test_change_weighted_resource_record_sets():
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     for record in response["ResourceRecordSets"]:
-        if record["SetIdentifier"] == "test1":
-            record["Weight"].should.equal(90)
-        if record["SetIdentifier"] == "test2":
-            record["Weight"].should.equal(10)
+        if record.get("SetIdentifier"):
+            if record["SetIdentifier"] == "test1":
+                record["Weight"].should.equal(90)
+            if record["SetIdentifier"] == "test2":
+                record["Weight"].should.equal(10)
 
 
 @mock_route53
@@ -1129,7 +966,7 @@ def test_failover_record_sets():
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    record = response["ResourceRecordSets"][0]
+    record = response["ResourceRecordSets"][1]
     record["Failover"].should.equal("PRIMARY")
 
 
@@ -1171,8 +1008,8 @@ def test_geolocation_record_sets():
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     rrs = response["ResourceRecordSets"]
-    rrs[0]["GeoLocation"].should.equal({"ContinentCode": "EU"})
-    rrs[1]["GeoLocation"].should.equal({"CountryCode": "US", "SubdivisionCode": "NY"})
+    rrs[1]["GeoLocation"].should.equal({"ContinentCode": "EU"})
+    rrs[2]["GeoLocation"].should.equal({"CountryCode": "US", "SubdivisionCode": "NY"})
 
 
 @mock_route53
@@ -1210,7 +1047,7 @@ def test_change_resource_record_invalid():
         )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(0)
+    len(response["ResourceRecordSets"]).should.equal(1)
 
     invalid_cname_record_payload = {
         "Comment": "this should also fail",
@@ -1233,7 +1070,52 @@ def test_change_resource_record_invalid():
         )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
-    len(response["ResourceRecordSets"]).should.equal(0)
+    len(response["ResourceRecordSets"]).should.equal(1)
+
+
+@mock_route53
+def test_change_resource_record_invalid_action_value():
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name="db.",
+        CallerReference=str(hash("foo")),
+        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+    )
+
+    zones = conn.list_hosted_zones_by_name(DNSName="db.")
+    len(zones["HostedZones"]).should.equal(1)
+    zones["HostedZones"][0]["Name"].should.equal("db.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    invalid_a_record_payload = {
+        "Comment": "this should fail",
+        "Changes": [
+            {
+                "Action": "INVALID_ACTION",
+                "ResourceRecordSet": {
+                    "Name": "prod.scooby.doo",
+                    "Type": "A",
+                    "TTL": 10,
+                    "ResourceRecords": [{"Value": "127.0.0.1"}],
+                },
+            }
+        ],
+    }
+
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id, ChangeBatch=invalid_a_record_payload
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("InvalidInput")
+    err["Message"].should.equal(
+        "Invalid XML ; cvc-enumeration-valid: Value 'INVALID_ACTION' is not facet-valid"
+        " with respect to enumeration '[CREATE, DELETE, UPSERT]'. It must be a value from the enumeration."
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response["ResourceRecordSets"]).should.equal(1)
 
 
 @mock_route53
@@ -1465,7 +1347,7 @@ def test_list_resource_recordset_pagination():
     response.should.have.key("ResourceRecordSets").length_of(100)
     response.should.have.key("IsTruncated").equals(True)
     response.should.have.key("MaxItems").equals("100")
-    response.should.have.key("NextRecordName").equals("env189.redis.db.")
+    response.should.have.key("NextRecordName").equals("env188.redis.db.")
     response.should.have.key("NextRecordType").equals("A")
 
     response = conn.list_resource_record_sets(
@@ -1476,7 +1358,7 @@ def test_list_resource_recordset_pagination():
     response.should.have.key("ResourceRecordSets").length_of(300)
     response.should.have.key("IsTruncated").equals(True)
     response.should.have.key("MaxItems").equals("300")
-    response.should.have.key("NextRecordName").equals("env459.redis.db.")
+    response.should.have.key("NextRecordName").equals("env458.redis.db.")
     response.should.have.key("NextRecordType").equals("A")
 
     response = conn.list_resource_record_sets(
@@ -1484,8 +1366,19 @@ def test_list_resource_recordset_pagination():
         StartRecordName=response["NextRecordName"],
         StartRecordType=response["NextRecordType"],
     )
-    response.should.have.key("ResourceRecordSets").length_of(100)
+    response.should.have.key("ResourceRecordSets").length_of(101)
     response.should.have.key("IsTruncated").equals(False)
     response.should.have.key("MaxItems").equals("300")
     response.shouldnt.have.key("NextRecordName")
     response.shouldnt.have.key("NextRecordType")
+
+
+@mock_route53
+def test_get_dns_sec():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    hosted_zone_id = client.create_hosted_zone(
+        Name="testdns.aws.com.", CallerReference=str(hash("foo"))
+    )["HostedZone"]["Id"]
+    dns_sec = client.get_dnssec(HostedZoneId=hosted_zone_id)
+    dns_sec.should.have.key("Status").equals({"ServeSignature": "NOT_SIGNING"})

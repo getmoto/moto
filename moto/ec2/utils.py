@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import fnmatch
 import random
 import re
@@ -10,8 +9,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.iam import iam_backends
+from moto.utilities.utils import md5_hash
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -326,7 +326,7 @@ def get_object_value(obj, attr):
     val = obj
     for key in keys:
         if key == "owner_id":
-            return ACCOUNT_ID
+            return get_account_id()
         elif hasattr(val, key):
             val = getattr(val, key)
         elif isinstance(val, dict):
@@ -651,7 +651,7 @@ def rsa_public_key_fingerprint(rsa_public_key):
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint_hex = hashlib.md5(key_data).hexdigest()
+    fingerprint_hex = md5_hash(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
 

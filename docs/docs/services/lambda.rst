@@ -60,6 +60,10 @@ lambda
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [X] invoke
+  
+        Invoking a Function with PackageType=Image is not yet supported.
+        
+
 - [ ] invoke_async
 - [ ] list_aliases
 - [ ] list_code_signing_configs

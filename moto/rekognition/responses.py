@@ -13,6 +13,27 @@ class RekognitionResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return rekognition_backends[self.region]
 
+    def get_face_search(self):
+        (
+            job_status,
+            status_message,
+            video_metadata,
+            persons,
+            next_token,
+            text_model_version,
+        ) = self.rekognition_backend.get_face_search()
+
+        return json.dumps(
+            dict(
+                JobStatus=job_status,
+                StatusMessage=status_message,
+                VideoMetadata=video_metadata,
+                Persons=persons,
+                NextToken=next_token,
+                TextModelVersion=text_model_version,
+            )
+        )
+
     def get_text_detection(self):
         (
             job_status,
@@ -33,6 +54,13 @@ class RekognitionResponse(BaseResponse):
                 TextModelVersion=text_model_version,
             )
         )
+
+    def start_face_search(self):
+        headers = {"Content-Type": "application/x-amz-json-1.1"}
+        job_id = self.rekognition_backend.start_face_search()
+        response = ('{"JobId":"' + job_id + '"}').encode()
+
+        return 200, headers, response
 
     def start_text_detection(self):
         headers = {"Content-Type": "application/x-amz-json-1.1"}

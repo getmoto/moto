@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from .utils import PAGINATION_MODEL
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.utils import random_string
 from moto.utilities.paginator import paginate
@@ -37,7 +37,7 @@ class FakeThing(BaseModel):
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:thing/{thing_name}"
+        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:thing/{thing_name}"
         self.version = 1
         # TODO: we need to handle "version"?
 
@@ -153,11 +153,13 @@ class FakeCertificate(BaseModel):
         m = hashlib.sha256()
         m.update(certificate_pem.encode("utf-8"))
         self.certificate_id = m.hexdigest()
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:cert/{self.certificate_id}"
+        self.arn = (
+            f"arn:aws:iot:{region_name}:{get_account_id()}:cert/{self.certificate_id}"
+        )
         self.certificate_pem = certificate_pem
         self.status = status
 
-        self.owner = ACCOUNT_ID
+        self.owner = get_account_id()
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
@@ -211,7 +213,7 @@ class FakePolicy(BaseModel):
     def __init__(self, name, document, region_name, default_version_id="1"):
         self.name = name
         self.document = document
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:policy/{name}"
+        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
 
@@ -238,7 +240,7 @@ class FakePolicy(BaseModel):
 class FakePolicyVersion(object):
     def __init__(self, policy_name, document, is_default, region_name):
         self.name = policy_name
-        self.arn = f"arn:aws:iot:{region_name}:{ACCOUNT_ID}:policy/{policy_name}"
+        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
         self.version_id = "1"
@@ -562,9 +564,8 @@ class FakeDomainConfiguration(BaseModel):
 
 
 class IoTBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.things = OrderedDict()
         self.jobs = OrderedDict()
         self.job_executions = OrderedDict()
@@ -578,11 +579,6 @@ class IoTBackend(BaseBackend):
         self.rules = OrderedDict()
         self.endpoint = None
         self.domain_configurations = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1107,6 +1103,13 @@ class IoTBackend(BaseBackend):
                 raise ResourceNotFoundException()
             principal = certs[0]
             return principal
+        if ":thinggroup/" in principal_arn:
+            try:
+                return self.thing_groups[principal_arn]
+            except KeyError:
+                raise ResourceNotFoundException(
+                    f"No thing group with ARN {principal_arn} exists"
+                )
         from moto.cognitoidentity import cognitoidentity_backends
 
         cognito = cognitoidentity_backends[self.region_name]

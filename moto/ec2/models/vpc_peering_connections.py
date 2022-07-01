@@ -1,6 +1,6 @@
 import weakref
 from collections import defaultdict
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from ..exceptions import (
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
@@ -84,14 +84,13 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         return self.id
 
 
-class VPCPeeringConnectionBackend(object):
+class VPCPeeringConnectionBackend:
     # for cross region vpc reference
     vpc_pcx_refs = defaultdict(set)
 
     def __init__(self):
         self.vpc_pcxs = {}
         self.vpc_pcx_refs[self.__class__].add(weakref.ref(self))
-        super().__init__()
 
     @classmethod
     def get_vpc_pcx_refs(cls):

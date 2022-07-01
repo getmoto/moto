@@ -1,5 +1,5 @@
 """DAXBackend class with methods for supported APIs."""
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, get_random_hex, unix_time
 from moto.moto_api import state_manager
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -75,6 +75,7 @@ class DaxCluster(BaseModel, ManagedState):
         replication_factor,
         iam_role_arn,
         sse_specification,
+        encryption_type,
     ):
         # Configure ManagedState
         super().__init__(
@@ -84,7 +85,7 @@ class DaxCluster(BaseModel, ManagedState):
         # Set internal properties
         self.name = name
         self.description = description
-        self.arn = f"arn:aws:dax:{region}:{ACCOUNT_ID}:cache/{self.name}"
+        self.arn = f"arn:aws:dax:{region}:{get_account_id()}:cache/{self.name}"
         self.node_type = node_type
         self.replication_factor = replication_factor
         self.cluster_hex = get_random_hex(6)
@@ -100,6 +101,7 @@ class DaxCluster(BaseModel, ManagedState):
             {"SecurityGroupIdentifier": f"sg-{get_random_hex(10)}", "Status": "active"}
         ]
         self.sse_specification = sse_specification
+        self.encryption_type = encryption_type
 
     def _create_new_node(self, idx):
         return DaxNode(endpoint=self.endpoint, name=self.name, index=idx)
@@ -142,7 +144,7 @@ class DaxCluster(BaseModel, ManagedState):
                 if self.sse_specification.get("Enabled") is True
                 else "DISABLED"
             },
-            "ClusterEndpointEncryptionType": "NONE",
+            "ClusterEndpointEncryptionType": self.encryption_type,
             "SecurityGroups": self.security_groups,
         }
         if use_full_repr:
@@ -151,8 +153,8 @@ class DaxCluster(BaseModel, ManagedState):
 
 
 class DAXBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._clusters = dict()
         self._tagger = TaggingService()
 
@@ -169,11 +171,6 @@ class DAXBackend(BaseBackend):
         }
         return self._clusters
 
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
     def create_cluster(
         self,
         cluster_name,
@@ -183,10 +180,11 @@ class DAXBackend(BaseBackend):
         iam_role_arn,
         tags,
         sse_specification,
+        encryption_type,
     ):
         """
         The following parameters are not yet processed:
-        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName, ClusterEndpointEncryptionType
+        AvailabilityZones, SubnetGroupNames, SecurityGroups, PreferredMaintenanceWindow, NotificationTopicArn, ParameterGroupName
         """
         cluster = DaxCluster(
             region=self.region_name,
@@ -196,6 +194,7 @@ class DAXBackend(BaseBackend):
             replication_factor=replication_factor,
             iam_role_arn=iam_role_arn,
             sse_specification=sse_specification,
+            encryption_type=encryption_type,
         )
         self.clusters[cluster_name] = cluster
         self._tagger.tag_resource(cluster.arn, tags)

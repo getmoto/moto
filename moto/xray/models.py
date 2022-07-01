@@ -230,8 +230,8 @@ class SegmentCollection(object):
 
 
 class XRayBackend(BaseBackend):
-    def __init__(self, region=None):
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._telemetry_records = []
         self._segment_collection = SegmentCollection()
 

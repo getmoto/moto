@@ -618,7 +618,7 @@ def test_put_secret_value_can_get_first_version_if_put_twice():
         data={
             "SecretId": DEFAULT_SECRET_NAME,
             "VersionId": first_secret_version_id,
-            "VersionStage": "AWSCURRENT",
+            "VersionStage": "AWSPREVIOUS",
         },
         headers={"X-Amz-Target": "secretsmanager.GetSecretValue"},
     )

@@ -86,6 +86,7 @@ def test_describe_ruleset():
 
     ruleset["Name"].should.equal(response["Name"])
     ruleset["Rules"].should.have.length_of(1)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_databrew
@@ -116,28 +117,31 @@ def test_create_ruleset_that_already_exists():
 def test_delete_ruleset():
     client = _create_databrew_client()
     response = _create_test_ruleset(client)
+    ruleset_name = response["Name"]
 
     # Check ruleset exists
-    ruleset = client.describe_ruleset(Name=response["Name"])
+    ruleset = client.describe_ruleset(Name=ruleset_name)
     ruleset["Name"].should.equal(response["Name"])
 
     # Delete the ruleset
-    client.delete_ruleset(Name=response["Name"])
+    response = client.delete_ruleset(Name=ruleset_name)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["Name"].should.equal(ruleset_name)
 
     # Check it does not exist anymore
     with pytest.raises(ClientError) as exc:
-        client.describe_ruleset(Name=response["Name"])
+        client.describe_ruleset(Name=ruleset_name)
 
     err = exc.value.response["Error"]
     err["Code"].should.equal("EntityNotFoundException")
-    err["Message"].should.equal(f"Ruleset {response['Name']} not found.")
+    err["Message"].should.equal(f"Ruleset {ruleset_name} not found.")
 
     # Check that a ruleset that does not exist errors
     with pytest.raises(ClientError) as exc:
-        client.delete_ruleset(Name=response["Name"])
+        client.delete_ruleset(Name=ruleset_name)
     err = exc.value.response["Error"]
     err["Code"].should.equal("EntityNotFoundException")
-    err["Message"].should.equal(f"Ruleset {response['Name']} not found.")
+    err["Message"].should.equal(f"Ruleset {ruleset_name} not found.")
 
 
 @mock_databrew

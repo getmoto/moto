@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
@@ -121,7 +121,7 @@ class FakeProcessingJob(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":processing-job/"
             + endpoint_name
         )
@@ -230,7 +230,7 @@ class FakeTrainingJob(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":training-job/"
             + endpoint_name
         )
@@ -313,7 +313,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":endpoint/"
             + endpoint_name
         )
@@ -503,7 +503,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":endpoint-config/"
             + model_name
         )
@@ -615,7 +615,7 @@ class Model(BaseObject, CloudFormationModel):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":model/"
             + model_name
         )
@@ -819,7 +819,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
             "arn:aws:sagemaker:"
             + self.region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":notebook-instance/"
             + self.notebook_instance_name
         )
@@ -933,7 +933,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":notebook-instance-lifecycle-configuration/"
             + notebook_instance_lifecycle_config_name
         )
@@ -1020,7 +1020,8 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
 
 
 class SageMakerModelBackend(BaseBackend):
-    def __init__(self, region_name=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._models = {}
         self.notebook_instances = {}
         self.endpoint_configs = {}
@@ -1031,12 +1032,6 @@ class SageMakerModelBackend(BaseBackend):
         self.trial_components = {}
         self.training_jobs = {}
         self.notebook_instance_lifecycle_configurations = {}
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1412,7 +1407,7 @@ class SageMakerModelBackend(BaseBackend):
             self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
             raise ResourceNotFound(
-                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}' does not exist."
+                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{get_account_id()}:experiment-trial/{trial_name}' does not exist."
             )
 
         if trial_component_name in self.trial_components.keys():
@@ -1441,8 +1436,8 @@ class SageMakerModelBackend(BaseBackend):
             )
 
         return {
-            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}",
-            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{ACCOUNT_ID}:experiment-trial/{trial_name}",
+            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{get_account_id()}:experiment-trial-component/{trial_component_name}",
+            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{get_account_id()}:experiment-trial/{trial_name}",
         }
 
     def create_notebook_instance(
@@ -2003,7 +1998,7 @@ class FakeExperiment(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":experiment/"
             + experiment_arn
         )
@@ -2039,7 +2034,7 @@ class FakeTrial(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":experiment-trial/"
             + trial_name
         )
@@ -2073,7 +2068,7 @@ class FakeTrialComponent(BaseObject):
             "arn:aws:sagemaker:"
             + region_name
             + ":"
-            + str(ACCOUNT_ID)
+            + str(get_account_id())
             + ":experiment-trial-component/"
             + trial_component_name
         )

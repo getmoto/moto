@@ -2,7 +2,7 @@
 import re
 from datetime import datetime
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from .utils import random_cluster_id, random_job_id, get_partition, paginated_list
@@ -12,13 +12,13 @@ from ..config.exceptions import ValidationException
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":/virtualclusters/{virtual_cluster_id}"
 )
 
 JOB_ARN_TEMPLATE = (
     "arn:{partition}:emr-containers:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":/virtualclusters/{virtual_cluster_id}/jobruns/{job_id}"
 )
 
@@ -159,20 +159,13 @@ class FakeJob(BaseModel):
 class EMRContainersBackend(BaseBackend):
     """Implementation of EMRContainers APIs."""
 
-    def __init__(self, region_name=None):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.virtual_clusters = dict()
         self.virtual_cluster_count = 0
         self.jobs = dict()
         self.job_count = 0
-        self.region_name = region_name
         self.partition = get_partition(region_name)
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_virtual_cluster(self, name, container_provider, client_token, tags=None):
         occupied_namespaces = [

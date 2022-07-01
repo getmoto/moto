@@ -68,16 +68,10 @@ class OriginEndpoint(BaseModel):
 
 
 class MediaPackageBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._channels = OrderedDict()
         self._origin_endpoints = OrderedDict()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_channel(self, description, channel_id, tags):
         arn = "arn:aws:mediapackage:channel:{}".format(channel_id)

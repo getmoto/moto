@@ -114,6 +114,65 @@ class Route53(BaseResponse):
         elif request.method == "DELETE":
             route53_backend.delete_hosted_zone(zoneid)
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
+        elif request.method == "POST":
+            elements = xmltodict.parse(self.body)
+            comment = elements.get("UpdateHostedZoneCommentRequest", {}).get(
+                "Comment", None
+            )
+            zone = route53_backend.update_hosted_zone_comment(zoneid, comment)
+            template = Template(UPDATE_HOSTED_ZONE_COMMENT_RESPONSE)
+            return 200, headers, template.render(zone=zone)
+
+    def get_dnssec_response(self, request, full_url, headers):
+        # returns static response
+        # TODO: implement enable/disable dnssec apis
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        if method == "GET":
+            route53_backend.get_dnssec(zoneid)
+            return 200, headers, GET_DNSSEC
+
+    def associate_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        elements = xmltodict.parse(self.body)
+        comment = vpc = elements.get("AssociateVPCWithHostedZoneRequest", {}).get(
+            "Comment", {}
+        )
+        vpc = elements.get("AssociateVPCWithHostedZoneRequest", {}).get("VPC", {})
+        vpcid = vpc.get("VPCId", None)
+        vpcregion = vpc.get("VPCRegion", None)
+
+        route53_backend.associate_vpc_with_hosted_zone(zoneid, vpcid, vpcregion)
+
+        template = Template(ASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(comment=comment)
+
+    def disassociate_vpc_response(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+
+        elements = xmltodict.parse(self.body)
+        comment = vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get(
+            "Comment", {}
+        )
+        vpc = elements.get("DisassociateVPCFromHostedZoneRequest", {}).get("VPC", {})
+        vpcid = vpc.get("VPCId", None)
+
+        route53_backend.disassociate_vpc_from_hosted_zone(zoneid, vpcid)
+
+        template = Template(DISASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(comment=comment)
 
     def rrset_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -189,7 +248,7 @@ class Route53(BaseResponse):
             )
             return 200, headers, template
 
-    def health_check_response(self, request, full_url, headers):
+    def health_check_response1(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
@@ -214,6 +273,7 @@ class Route53(BaseResponse):
                 "disabled": config.get("Disabled"),
                 "enable_sni": config.get("EnableSNI"),
                 "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
+                "regions": config.get("Regions", {}).get("Region"),
             }
             health_check = route53_backend.create_health_check(
                 caller_reference, health_check_args
@@ -233,6 +293,43 @@ class Route53(BaseResponse):
                 headers,
                 template.render(health_checks=health_checks, xmlns=XMLNS),
             )
+
+    def health_check_response2(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+        health_check_id = parsed_url.path.split("/")[-1]
+
+        if method == "GET":
+            health_check = route53_backend.get_health_check(health_check_id)
+            template = Template(GET_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(health_check=health_check)
+        elif method == "DELETE":
+            route53_backend.delete_health_check(health_check_id)
+            template = Template(DELETE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(xmlns=XMLNS)
+        elif method == "POST":
+            config = xmltodict.parse(self.body)["UpdateHealthCheckRequest"]
+            health_check_args = {
+                "ip_address": config.get("IPAddress"),
+                "port": config.get("Port"),
+                "resource_path": config.get("ResourcePath"),
+                "fqdn": config.get("FullyQualifiedDomainName"),
+                "search_string": config.get("SearchString"),
+                "failure_threshold": config.get("FailureThreshold"),
+                "health_threshold": config.get("HealthThreshold"),
+                "inverted": config.get("Inverted"),
+                "disabled": config.get("Disabled"),
+                "enable_sni": config.get("EnableSNI"),
+                "children": config.get("ChildHealthChecks", {}).get("ChildHealthCheck"),
+                "regions": config.get("Regions", {}).get("Region"),
+            }
+            health_check = route53_backend.update_health_check(
+                health_check_id, health_check_args
+            )
+            template = Template(UPDATE_HEALTH_CHECK_RESPONSE)
+            return 200, headers, template.render(health_check=health_check)
 
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -479,7 +576,10 @@ CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://rout
 </ChangeResourceRecordSetsResponse>"""
 
 DELETE_HOSTED_ZONE_RESPONSE = """<DeleteHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
-   <ChangeInfo>
+    <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
    </ChangeInfo>
 </DeleteHostedZoneResponse>"""
 
@@ -500,26 +600,37 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
+   {% if not zone.private_zone %}
    <DelegationSet>
       <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
         {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
+   {% endif %}
+   {% if zone.private_zone %}
    <VPCs>
+      {% for vpc in zone.vpcs %}
       <VPC>
-         <VPCId>{{zone.vpcid}}</VPCId>
-         <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+         <VPCId>{{vpc.vpc_id}}</VPCId>
+         <VPCRegion>{{vpc.vpc_region}}</VPCRegion>
       </VPC>
+      {% endfor %}
    </VPCs>
-
+   {% endif %}
 </GetHostedZoneResponse>"""
 
 CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+    {% if zone.private_zone %}
+    <VPC>
+      <VPCId>{{zone.vpcid}}</VPCId>
+      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+    </VPC>
+    {% endif %}
    <HostedZone>
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
-      <ResourceRecordSetCount>0</ResourceRecordSetCount>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         {% if zone.comment %}
             <Comment>{{ zone.comment }}</Comment>
@@ -527,16 +638,19 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
       </Config>
    </HostedZone>
+   {% if not zone.private_zone %}
    <DelegationSet>
       <Id>{{ zone.delegation_set.id }}</Id>
       <NameServers>
          {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
       </NameServers>
    </DelegationSet>
-   <VPC>
-      <VPCId>{{zone.vpcid}}</VPCId>
-      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
-   </VPC>
+   {% endif %}
+   <ChangeInfo>
+      <Id>/change/C1PA6795UKMFR9</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-15T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
 </CreateHostedZoneResponse>"""
 
 LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
@@ -603,6 +717,12 @@ CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <CreateHealthCheckResponse xmlns="{{ xmlns }}">
   {{ health_check.to_xml() }}
 </CreateHealthCheckResponse>"""
+
+UPDATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHealthCheckResponse>
+  {{ health_check.to_xml() }}
+</UpdateHealthCheckResponse>
+"""
 
 LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListHealthChecksResponse xmlns="{{ xmlns }}">
@@ -696,4 +816,57 @@ GET_REUSABLE_DELEGATION_SET_TEMPLATE = """<GetReusableDelegationSetResponse>
   </NameServers>
 </DelegationSet>
 </GetReusableDelegationSetResponse>
+"""
+
+GET_DNSSEC = """<?xml version="1.0"?>
+<GetDNSSECResponse>
+    <Status>
+        <ServeSignature>NOT_SIGNING</ServeSignature>
+    </Status>
+    <KeySigningKeys/>
+</GetDNSSECResponse>
+"""
+
+GET_HEALTH_CHECK_RESPONSE = """<?xml version="1.0"?>
+<GetHealthCheckResponse>
+    {{ health_check.to_xml() }}
+</GetHealthCheckResponse>
+"""
+
+UPDATE_HOSTED_ZONE_COMMENT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHostedZoneCommentResponse>
+   <HostedZone>
+      <Config>
+         {% if zone.comment %}
+         <Comment>{{ zone.comment }}</Comment>
+         {% endif %}
+         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+      </Config>
+      <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+   </HostedZone>
+</UpdateHostedZoneCommentResponse>
+"""
+
+ASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<AssociateVPCWithHostedZoneResponse>
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</AssociateVPCWithHostedZoneResponse>
+"""
+
+DISASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DisassociateVPCFromHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</DisassociateVPCFromHostedZoneResponse>
 """

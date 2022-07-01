@@ -1,9 +1,11 @@
 import boto3
+import botocore
 import pytest
 import sure  # noqa # pylint: disable=unused-import
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-from moto import mock_dynamodb
+from unittest import SkipTest
+from moto import mock_dynamodb, settings
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -547,3 +549,79 @@ def test_update_item_non_existent_table():
     err = exc.value.response["Error"]
     assert err["Code"].should.equal("ResourceNotFoundException")
     assert err["Message"].should.equal("Requested resource not found")
+
+
+@mock_dynamodb
+def test_put_item_wrong_datatype():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Unable to mock a session with Config in ServerMode")
+    session = botocore.session.Session()
+    config = botocore.client.Config(parameter_validation=False)
+    client = session.create_client("dynamodb", region_name="us-east-1", config=config)
+    client.create_table(
+        TableName="test2",
+        KeySchema=[{"AttributeName": "mykey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "mykey", "AttributeType": "N"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.put_item(TableName="test2", Item={"mykey": {"N": 123}})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("SerializationException")
+    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+
+    # Same thing - but with a non-key, and nested
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName="test2",
+            Item={"mykey": {"N": "123"}, "nested": {"M": {"sth": {"N": 5}}}},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("SerializationException")
+    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+
+
+@mock_dynamodb
+def test_put_item_empty_set():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "Key", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "Key", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = dynamodb.Table("test-table")
+    with pytest.raises(ClientError) as exc:
+        table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        "One or more parameter values were invalid: An number set  may not be empty"
+    )
+
+
+@mock_dynamodb
+def test_update_expression_with_trailing_comma():
+    resource = boto3.resource(service_name="dynamodb", region_name="us-east-1")
+    table = resource.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table.put_item(Item={"pk": "key", "attr2": 2})
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "key", "sk": "sk"},
+            # Trailing comma should be invalid
+            UpdateExpression="SET #attr1 = :val1, #attr2 = :val2,",
+            ExpressionAttributeNames={"#attr1": "attr1", "#attr2": "attr2"},
+            ExpressionAttributeValues={":val1": 3, ":val2": 4},
+        )
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ValidationException")
+    err["Message"].should.equal(
+        'Invalid UpdateExpression: Syntax error; token: "<EOF>", near: ","'
+    )

@@ -6,8 +6,10 @@ from email.mime.base import MIMEBase
 from email.utils import parseaddr
 from email.mime.multipart import MIMEMultipart
 from email.encoders import encode_7or8bit
+from typing import Mapping
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import BackendDict
 from moto.sns.models import sns_backends
 from .exceptions import (
     MessageRejectedError,
@@ -106,7 +108,8 @@ def are_all_variables_present(template, template_data):
 
 
 class SESBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.addresses = []
         self.email_addresses = []
         self.domains = []
@@ -535,4 +538,6 @@ class SESBackend(BaseBackend):
         return attributes_by_identity
 
 
-ses_backend = SESBackend()
+ses_backends: Mapping[str, SESBackend] = BackendDict(
+    SESBackend, "ses", use_boto3_regions=False, additional_regions=["global"]
+)

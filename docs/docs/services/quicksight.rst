@@ -154,6 +154,7 @@ quicksight
 - [X] update_group
 - [ ] update_iam_policy_assignment
 - [ ] update_ip_restriction
+- [ ] update_public_sharing_settings
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions

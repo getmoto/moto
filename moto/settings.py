@@ -18,6 +18,16 @@ S3_IGNORE_SUBDOMAIN_BUCKETNAME = os.environ.get(
 # How many seconds to wait before we "validate" a new certificate in ACM.
 ACM_VALIDATION_WAIT = int(os.environ.get("MOTO_ACM_VALIDATION_WAIT", "60"))
 
+EC2_ENABLE_INSTANCE_TYPE_VALIDATION = bool(
+    os.environ.get("MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION", False)
+)
+
+ENABLE_KEYPAIR_VALIDATION = bool(
+    os.environ.get("MOTO_ENABLE_KEYPAIR_VALIDATION", False)
+)
+
+ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
+
 
 def get_sf_execution_history_type():
     """
@@ -115,3 +125,7 @@ def get_docker_host():
         )
         print(f"{type(e)}::{e}")
         return "http://host.docker.internal"
+
+
+def get_cognito_idp_user_pool_id_strategy():
+    return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")

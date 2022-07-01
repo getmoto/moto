@@ -1,7 +1,7 @@
 import base64
 import xmltodict
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, get_random_hex, unix_time
 from moto.utilities.tagging_service import TaggingService
 
@@ -59,7 +59,7 @@ class ConfigurationRevision(BaseModel):
 class Configuration(BaseModel):
     def __init__(self, region, name, engine_type, engine_version):
         self.id = f"c-{get_random_hex(6)}"
-        self.arn = f"arn:aws:mq:{region}:{ACCOUNT_ID}:configuration:{self.id}"
+        self.arn = f"arn:aws:mq:{region}:{get_account_id()}:configuration:{self.id}"
         self.created = unix_time()
 
         self.name = name
@@ -160,7 +160,7 @@ class Broker(BaseModel):
     ):
         self.name = name
         self.id = get_random_hex(6)
-        self.arn = f"arn:aws:mq:{region}:{ACCOUNT_ID}:broker:{self.id}"
+        self.arn = f"arn:aws:mq:{region}:{get_account_id()}:broker:{self.id}"
         self.state = "RUNNING"
         self.created = unix_time()
 
@@ -350,17 +350,11 @@ class MQBackend(BaseBackend):
     No EC2 integration exists yet - subnet ID's and security group values are not validated. Default values may not exist.
     """
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.brokers = dict()
         self.configs = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_broker(
         self,

@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
 from ._base_response import EC2BaseResponse
@@ -11,6 +11,12 @@ class VPCs(EC2BaseResponse):
             if "Boto/" in self.headers.get("user-agent", "")
             else "2016-11-15"
         )
+
+    def create_default_vpc(self):
+        vpc = self.ec2_backend.create_default_vpc()
+        doc_date = self._get_doc_date()
+        template = self.response_template(CREATE_VPC_RESPONSE)
+        return template.render(vpc=vpc, doc_date=doc_date)
 
     def create_vpc(self):
         cidr_block = self._get_param("CidrBlock")
@@ -224,7 +230,9 @@ class VPCs(EC2BaseResponse):
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
-        return template.render(vpc_end_points=vpc_end_points, account_id=ACCOUNT_ID)
+        return template.render(
+            vpc_end_points=vpc_end_points, account_id=get_account_id()
+        )
 
     def delete_vpc_endpoints(self):
         vpc_end_points_ids = self._get_multi_param("VpcEndpointId")

@@ -1,7 +1,7 @@
 import json
 import re
 from os import environ
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.utilities.utils import load_resource
 from ..exceptions import (
     InvalidAMIIdError,
@@ -34,7 +34,7 @@ class Ami(TaggedEC2Resource):
         source_ami=None,
         name=None,
         description=None,
-        owner_id=ACCOUNT_ID,
+        owner_id=get_account_id(),
         owner_alias=None,
         public=False,
         virtualization_type=None,
@@ -142,14 +142,13 @@ class Ami(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeImages")
 
 
-class AmiBackend(object):
+class AmiBackend:
     AMI_REGEX = re.compile("ami-[a-z0-9]+")
 
     def __init__(self):
         self.amis = {}
         self.deleted_amis = list()
         self._load_amis()
-        super().__init__()
 
     def _load_amis(self):
         for ami in AMIS:
@@ -186,7 +185,7 @@ class AmiBackend(object):
             source_ami=None,
             name=name,
             description=description,
-            owner_id=ACCOUNT_ID,
+            owner_id=get_account_id(),
             snapshot_description=f"Created by CreateImage({instance_id}) for {ami_id}",
         )
         for tag in tags:
@@ -246,7 +245,7 @@ class AmiBackend(object):
                 # support filtering by Owners=['self']
                 if "self" in owners:
                     owners = list(
-                        map(lambda o: ACCOUNT_ID if o == "self" else o, owners)
+                        map(lambda o: get_account_id() if o == "self" else o, owners)
                     )
                 images = [
                     ami
