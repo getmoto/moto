@@ -329,9 +329,9 @@ class FakeScheduledAction(CloudFormationModel):
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
             scheduled_action_name=scheduled_action_name,
-            start_time.properties("StartTime"),
-            end_time.properties("EndTime"),
-            recurrence.properties("Recurrence"),
+            start_time=start_time.properties("StartTime"),
+            end_time=end_time.properties("EndTime"),
+            recurrence=recurrence.properties("Recurrence"),
         )
         return group
 
