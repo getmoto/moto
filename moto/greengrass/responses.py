@@ -1,5 +1,7 @@
+from datetime import datetime
 import json
 
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core.responses import BaseResponse
 from .models import greengrass_backends
 
@@ -677,3 +679,50 @@ class GreengrassResponse(BaseResponse):
             group_version_id=group_version_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def role(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "PUT":
+            return self.associate_role_to_group()
+
+        if self.method == "GET":
+            return self.get_associated_role()
+
+        if self.method == "DELETE":
+            return self.disassociate_role_from_group()
+
+    def associate_role_to_group(self):
+
+        group_id = self.path.split("/")[-2]
+        role_arn = self._get_param("RoleArn")
+        res = self.greengrass_backend.associate_role_to_group(
+            group_id=group_id,
+            role_arn=role_arn,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def get_associated_role(self):
+
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.get_associated_role(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def disassociate_role_from_group(self):
+        group_id = self.path.split("/")[-2]
+        self.greengrass_backend.disassociate_role_from_group(
+            group_id=group_id,
+        )
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {
+                    "DisassociatedAt": iso_8601_datetime_with_milliseconds(
+                        datetime.utcnow()
+                    )
+                }
+            ),
+        )
