@@ -858,6 +858,7 @@ class AutoScalingBackend(BaseBackend):
         self.scheduled_actions[scheduled_action_name] = scheduled_action
         return scheduled_action
 
+
     def describe_scheduled_actions(
         self, autoscaling_group_name=None, scheduled_action_names=None
     ):
