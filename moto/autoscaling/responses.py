@@ -104,7 +104,7 @@ class AutoScalingResponse(BaseResponse):
 
     def put_scheduled_update_group_action(self):
         self.autoscaling_backend.put_scheduled_update_group_action(
-            asg_name=self._get_param("AutoScalingGroupName"),
+            name=self._get_param("AutoScalingGroupName"),
             desired_capacity=self._get_int_param("DesiredCapacity"),
             max_size=self._get_int_param("MaxSize"),
             min_size=self._get_int_param("MinSize"),

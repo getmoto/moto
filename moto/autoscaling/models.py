@@ -317,21 +317,18 @@ class FakeScheduledAction(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
 
-        # TODO: This should create the scheduled action on the ASG passed
-        #       in the cloudformation_json
-        # TODO: This should validate the allowed cloudformation "Properties"
-
-        print(f"\n RESOURCE_NAME: {resource_name}")
         properties = cloudformation_json["Properties"]
 
         backend = autoscaling_backends[region_name]
 
+        scheduled_action_name = kwargs["LogicalId"] if kwargs.get("LogicalId") else "ScheduledScalingAction-{random.randint(0,100)}"
+
         group = backend.put_scheduled_update_group_action(
-            asg_name=properties.get("AutoScalingGroupName"),
+            name=properties.get("AutoScalingGroupName"),
             desired_capacity=properties.get("DesiredCapacity"),
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
-            scheduled_action_name = kwargs["LogicalId"],
+            scheduled_action_name=scheduled_action_name,
             start_time.properties("StartTime"),
             end_time.properties("EndTime"),
             recurrence.properties("Recurrence"),
@@ -851,7 +848,7 @@ class AutoScalingBackend(BaseBackend):
 
     def put_scheduled_update_group_action(
         self,
-        asg_name,
+        name,
         desired_capacity,
         max_size,
         min_size,
@@ -868,7 +865,7 @@ class AutoScalingBackend(BaseBackend):
         desired_capacity = make_int(desired_capacity)
 
         group = FakeScheduledAction(
-            asg_name=asg_name,
+            name=name,
             desired_capacity=desired_capacity,
             max_size=max_size,
             min_size=min_size,
@@ -877,7 +874,7 @@ class AutoScalingBackend(BaseBackend):
             end_time=None,
             recurrence=None
         )
-        self.autoscaling_groups[asg_name] = group
+        #self.autoscaling_groups[asg_name] = group
 
         return group
 
