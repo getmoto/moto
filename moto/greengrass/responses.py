@@ -733,3 +733,17 @@ class GreengrassResponse(BaseResponse):
             deployment_id=deployment_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def deployments_reset(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.reset_deployments()
+
+    def reset_deployments(self):
+        group_id = self.path.split("/")[-3]
+
+        res = self.greengrass_backend.reset_deployments(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())

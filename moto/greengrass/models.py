@@ -1187,5 +1187,29 @@ class GreengrassBackend(BaseBackend):
             deployment.deployment_status,
         )
 
+    def reset_deployments(self, group_id, force=False):
+
+        if group_id not in self.groups:
+            raise ResourceNotFoundException("That Group Definition does not exist.")
+
+        deployment_type = "ForceResetDeployment"
+        if not force:
+            deployments = list(self.deployments.values())
+            reset_error_msg = (
+                f"Group id: {group_id} has not been deployed or has already been reset."
+            )
+            if not deployments:
+                raise ResourceNotFoundException(reset_error_msg)
+            if deployments[-1].deployment_type not in ["NewDeployment", "Redeployment"]:
+                raise ResourceNotFoundException(reset_error_msg)
+            deployment_type = "ResetDeployment"
+
+        group = self.groups[group_id]
+        deployment = FakeDeployment(
+            self.region_name, group_id, group.arn, deployment_type
+        )
+        self.deployments[deployment.id] = deployment
+        return deployment
+
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")
