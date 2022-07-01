@@ -365,19 +365,28 @@ class FakeGroupVersion(BaseModel):
 
 
 class FakeDeployment(BaseModel):
-    def __init__(self, region_name, group_id, group_version_id, deployment_type):
+    def __init__(self, region_name, group_id, group_arn, deployment_type):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
         self.group_id = group_id
-        self.group_version_id = group_version_id
+        self.group_arn = group_arn
         self.created_at_datetime = datetime.utcnow()
         self.update_at_datetime = datetime.utcnow()
         self.deployment_status = "InProgress"
         self.deployment_type = deployment_type
         self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}/deployments/{self.id}"
 
-    def to_dict(self):
-        return {"DeploymentId": self.id, "DeploymentArn": self.arn}
+    def to_dict(self, include_detail=False):
+        obj = {"DeploymentId": self.id, "DeploymentArn": self.arn}
+
+        if include_detail:
+            obj["CreatedAt"] = iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            )
+            obj["DeploymentType"] = self.deployment_type
+            obj["GroupArn"] = self.group_arn
+
+        return obj
 
 
 class GreengrassBackend(BaseBackend):
@@ -1132,12 +1141,21 @@ class GreengrassBackend(BaseBackend):
             }
 
             raise MissingCoreException(json.dumps(err))
-
+        group_version_arn = self.group_versions[group_id][group_version_id].arn
         deployment = FakeDeployment(
-            self.region_name, group_id, group_version_id, deployment_type
+            self.region_name, group_id, group_version_arn, deployment_type
         )
         self.deployments[deployment.id] = deployment
         return deployment
+
+    def list_deployments(self, group_id):
+
+        # ListDeployments API does not check specified group is exists
+        return [
+            deployment
+            for deployment in self.deployments.values()
+            if deployment.group_id == group_id
+        ]
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

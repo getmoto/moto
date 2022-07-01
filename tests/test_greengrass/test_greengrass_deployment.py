@@ -2,10 +2,12 @@ import json
 
 import boto3
 from botocore.client import ClientError
+import freezegun
 import pytest
 
 from moto import mock_greengrass
 from moto.core import get_account_id
+from moto.settings import TEST_SERVER_MODE
 
 ACCOUNT_ID = get_account_id()
 
@@ -214,3 +216,46 @@ def test_create_deployment_with_invalid_deployment_type():
     ex.value.response["Error"]["Message"].should.equal(
         "That deployment type is not valid.  Please specify one of the following types: {NewDeployment,Redeployment,ResetDeployment,ForceResetDeployment}."
     )
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_list_deployments():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    cores = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123456789",
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+        }
+    ]
+
+    create_core_res = client.create_core_definition(
+        InitialVersion={"Cores": cores}, Name="TestCore"
+    )
+    core_def_ver_arn = create_core_res["LatestVersionArn"]
+
+    create_group_res = client.create_group(
+        Name="TestGroup", InitialVersion={"CoreDefinitionVersionArn": core_def_ver_arn}
+    )
+    group_id = create_group_res["Id"]
+    latest_grp_ver = create_group_res["LatestVersion"]
+    latest_grp_ver_arn = create_group_res["LatestVersionArn"]
+    deployment_type = "NewDeployment"
+    client.create_deployment(
+        GroupId=group_id, GroupVersionId=latest_grp_ver, DeploymentType=deployment_type
+    )
+
+    res = client.list_deployments(GroupId=group_id)
+    res.should.have.key("Deployments")
+    deployments = res["Deployments"][0]
+
+    deployments.should.have.key("CreatedAt")
+    deployments.should.have.key("DeploymentArn")
+    deployments.should.have.key("DeploymentId")
+    deployments.should.have.key("DeploymentType").equals(deployment_type)
+    deployments.should.have.key("GroupArn").equals(latest_grp_ver_arn)
+
+    if not TEST_SERVER_MODE:
+        deployments.should.have.key("CreatedAt").equal("2022-06-01T12:00:00.000Z")

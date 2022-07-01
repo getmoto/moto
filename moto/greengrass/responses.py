@@ -684,6 +684,9 @@ class GreengrassResponse(BaseResponse):
         if self.method == "POST":
             return self.create_deployment()
 
+        if self.method == "GET":
+            return self.list_deployments()
+
     def create_deployment(self):
 
         group_id = self.path.split("/")[-2]
@@ -698,3 +701,19 @@ class GreengrassResponse(BaseResponse):
             deployment_id=deployment_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def list_deployments(self):
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_deployments(group_id=group_id)
+
+        deployments = (
+            []
+            if len(res) == 0
+            else [deployment.to_dict(include_detail=True) for deployment in res]
+        )
+
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Deployments": deployments}),
+        )
