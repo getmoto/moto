@@ -280,7 +280,7 @@ class FakeScheduledAction(CloudFormationModel):
 
     def __init__(
         self,
-        asg_name,
+        name,
         desired_capacity,
         max_size,
         min_size,
@@ -290,7 +290,7 @@ class FakeScheduledAction(CloudFormationModel):
         recurrence=None
     ):
 
-        self.asg_name = asg_name
+        self.name = name
         self.desired_capacity = desired_capacity
         self.max_size = max_size
         self.min_size = min_size
@@ -874,7 +874,7 @@ class AutoScalingBackend(BaseBackend):
             end_time=None,
             recurrence=None
         )
-        #self.autoscaling_groups[asg_name] = group
+        #self.autoscaling_groups[name] = group
 
         return group
 
