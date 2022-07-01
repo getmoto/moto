@@ -5971,6 +5971,61 @@
 - [ ] update_web_acl
 </details>
 
+
+## codebuild
+<details>
+- [ ] batch_delete_builds
+- [ ] batch_get_build_batches
+- [x] batch_get_builds
+- [ ] batch_get_projects
+- [ ] batch_get_report_groups
+- [ ] batch_get_reports
+- [ ] can_paginate
+- [ ] close
+- [x] create_project
+- [ ] create_report_group
+- [ ] create_webhook
+- [ ] delete_build_batch
+- [x] delete_project
+- [ ] delete_report
+- [ ] delete_report_group
+- [ ] delete_resource_policy
+- [ ] delete_source_credentials
+- [ ] delete_webhook
+- [ ] describe_code_coverages
+- [ ] describe_test_cases
+- [ ] get_paginator
+- [ ] get_report_group_trend
+- [ ] get_resource_policy
+- [ ] get_waiter
+- [ ] import_source_credentials
+- [ ] invalidate_project_cache
+- [ ] list_build_batches
+- [ ] list_build_batches_for_project
+- [x] list_builds
+- [x] list_builds_for_project
+- [ ] list_curated_environment_images
+- [x] list_projects
+- [ ] list_report_groups
+- [ ] list_reports
+- [ ] list_reports_for_report_group
+- [ ] list_shared_projects
+- [ ] list_shared_report_groups
+- [ ] list_source_credentials
+- [ ] put_resource_policy
+- [ ] retry_build
+- [ ] retry_build_batch
+- [x] start_build
+- [ ] start_build_batch
+- [x] stop_build
+- [ ] stop_build_batch
+- [ ] update_project
+- [ ] update_project_visibility
+- [ ] update_report_group
+- [ ] update_webhook
+</details>
+
+
 ## Unimplemented:
 <details>
 
@@ -6012,7 +6067,6 @@
 - cloudsearch
 - cloudsearchdomain
 - codeartifact
-- codebuild
 - codedeploy
 - codeguru-reviewer
 - codeguruprofiler
