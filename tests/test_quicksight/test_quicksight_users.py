@@ -146,7 +146,7 @@ def test_create_group_membership():
         Namespace="default",
         Email="fakeemail@example.com",
         IdentityType="QUICKSIGHT",
-        UserName="user1",
+        UserName="user.1",
         UserRole="READER",
     )
     client.create_group(
@@ -154,7 +154,7 @@ def test_create_group_membership():
     )
 
     resp = client.create_group_membership(
-        MemberName="user1",
+        MemberName="user.1",
         GroupName="group1",
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
@@ -162,8 +162,8 @@ def test_create_group_membership():
 
     resp.should.have.key("GroupMember").equals(
         {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user1",
-            "MemberName": "user1",
+            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user.1",
+            "MemberName": "user.1",
         }
     )
     resp.should.have.key("Status").equals(200)

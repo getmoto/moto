@@ -2,6 +2,7 @@ import os
 
 import boto3
 from dateutil.tz import tzlocal
+import re
 
 from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import ACCOUNT_ID
@@ -24,6 +25,22 @@ def test_get_secret_value():
     conn.create_secret(Name="java-util-test-password", SecretString="foosecret")
     result = conn.get_secret_value(SecretId="java-util-test-password")
     assert result["SecretString"] == "foosecret"
+
+
+@mock_secretsmanager
+def test_secret_arn():
+    region = "us-west-2"
+    conn = boto3.client("secretsmanager", region_name=region)
+
+    create_dict = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="secret_string",
+    )
+    assert re.match(
+        f"arn:aws:secretsmanager:{region}:{ACCOUNT_ID}:secret:{DEFAULT_SECRET_NAME}-"
+        + r"\w{6}",
+        create_dict["ARN"],
+    )
 
 
 @mock_secretsmanager
@@ -133,6 +150,33 @@ def test_get_secret_version_that_does_not_exist():
     assert (
         "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
         "Manager can't find the specified secret value for VersionId: 00000000-0000-0000-0000-000000000000"
+    ) == cm.value.response["Error"]["Message"]
+
+
+@mock_secretsmanager
+def test_get_secret_version_stage_mismatch():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    result = conn.create_secret(Name="test-secret", SecretString="secret")
+    secret_arn = result["ARN"]
+
+    rotated_secret = conn.rotate_secret(
+        SecretId=secret_arn, RotationRules={"AutomaticallyAfterDays": 42}
+    )
+
+    desc_secret = conn.describe_secret(SecretId=secret_arn)
+    versions_to_stages = desc_secret["VersionIdsToStages"]
+    version_for_test = rotated_secret["VersionId"]
+    stages_for_version = versions_to_stages[version_for_test]
+
+    assert "AWSPENDING" not in stages_for_version
+    with pytest.raises(ClientError) as cm:
+        conn.get_secret_value(
+            SecretId=secret_arn, VersionId=version_for_test, VersionStage="AWSPENDING"
+        )
+
+    assert (
+        "You provided a VersionStage that is not associated to the provided VersionId."
     ) == cm.value.response["Error"]["Message"]
 
 

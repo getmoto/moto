@@ -26,9 +26,11 @@ route53
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_key_signing_key
-- [ ] associate_vpc_with_hosted_zone
+- [X] associate_vpc_with_hosted_zone
+- [ ] change_cidr_collection
 - [X] change_resource_record_sets
 - [X] change_tags_for_resource
+- [ ] create_cidr_collection
 - [X] create_health_check
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
@@ -41,6 +43,7 @@ route53
 - [ ] create_traffic_policy_version
 - [ ] create_vpc_association_authorization
 - [ ] deactivate_key_signing_key
+- [ ] delete_cidr_collection
 - [X] delete_health_check
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
@@ -52,14 +55,14 @@ route53
 - [ ] delete_traffic_policy_instance
 - [ ] delete_vpc_association_authorization
 - [ ] disable_hosted_zone_dnssec
-- [ ] disassociate_vpc_from_hosted_zone
+- [X] disassociate_vpc_from_hosted_zone
 - [ ] enable_hosted_zone_dnssec
 - [ ] get_account_limit
 - [ ] get_change
 - [ ] get_checker_ip_ranges
-- [ ] get_dnssec
+- [X] get_dnssec
 - [ ] get_geo_location
-- [ ] get_health_check
+- [X] get_health_check
 - [ ] get_health_check_count
 - [ ] get_health_check_last_failure_reason
 - [ ] get_health_check_status
@@ -74,6 +77,9 @@ route53
 - [ ] get_traffic_policy
 - [ ] get_traffic_policy_instance
 - [ ] get_traffic_policy_instance_count
+- [ ] list_cidr_blocks
+- [ ] list_cidr_collections
+- [ ] list_cidr_locations
 - [ ] list_geo_locations
 - [X] list_health_checks
 - [X] list_hosted_zones
@@ -105,8 +111,8 @@ route53
 - [ ] list_traffic_policy_versions
 - [ ] list_vpc_association_authorizations
 - [ ] test_dns_answer
-- [ ] update_health_check
-- [ ] update_hosted_zone_comment
+- [X] update_health_check
+- [X] update_hosted_zone_comment
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
 

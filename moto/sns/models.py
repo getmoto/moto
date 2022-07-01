@@ -30,7 +30,7 @@ from .exceptions import (
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -41,7 +41,7 @@ class Topic(CloudFormationModel):
     def __init__(self, name, sns_backend):
         self.name = name
         self.sns_backend = sns_backend
-        self.account_id = DEFAULT_ACCOUNT_ID
+        self.account_id = get_account_id()
         self.display_name = ""
         self.delivery_policy = ""
         self.kms_master_key_id = ""
@@ -142,7 +142,7 @@ class Topic(CloudFormationModel):
 
         topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
         topic_arn = make_arn_for_topic(
-            DEFAULT_ACCOUNT_ID, topic_name, sns_backend.region_name
+            get_account_id(), topic_name, sns_backend.region_name
         )
         subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
         for subscription in subscriptions:
@@ -334,7 +334,7 @@ class Subscription(BaseModel):
             "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
             "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55".format(
-                DEFAULT_ACCOUNT_ID
+                get_account_id()
             ),
         }
         if subject:
@@ -357,7 +357,7 @@ class PlatformApplication(BaseModel):
             region=self.region,
             platform=self.platform,
             name=self.name,
-            AccountId=DEFAULT_ACCOUNT_ID,
+            AccountId=get_account_id(),
         )
 
 
@@ -392,7 +392,7 @@ class PlatformEndpoint(BaseModel):
         return (
             "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
                 region=self.region,
-                AccountId=DEFAULT_ACCOUNT_ID,
+                AccountId=get_account_id(),
                 platform=self.application.platform,
                 name=self.application.name,
                 id=self.id,
@@ -424,8 +424,8 @@ class SNSBackend(BaseBackend):
     Note that, as this is an internal API, the exact format may differ per versions.
     """
 
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.topics = OrderedDict()
         self.subscriptions: OrderedDict[str, Subscription] = OrderedDict()
         self.applications = {}
@@ -443,11 +443,6 @@ class SNSBackend(BaseBackend):
             "+447700900545",
             "+447700900907",
         ]
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -558,7 +553,7 @@ class SNSBackend(BaseBackend):
             "TopicArn": topic_arn,
             "Protocol": protocol,
             "SubscriptionArn": subscription.arn,
-            "Owner": DEFAULT_ACCOUNT_ID,
+            "Owner": get_account_id(),
             "RawMessageDelivery": "false",
         }
 
@@ -667,6 +662,9 @@ class SNSBackend(BaseBackend):
 
     def delete_platform_application(self, platform_arn):
         self.applications.pop(platform_arn)
+        endpoints = self.list_endpoints_by_platform_application(platform_arn)
+        for endpoint in endpoints:
+            self.platform_endpoints.pop(endpoint.arn)
 
     def create_platform_endpoint(
         self, region, application, custom_user_data, token, attributes

@@ -13,7 +13,7 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 
 
 AWS_ROOT_CA = b"""-----BEGIN CERTIFICATE-----
@@ -161,7 +161,7 @@ class CertBundle(BaseModel):
 
         # Used for when one wants to overwrite an arn
         if arn is None:
-            self.arn = make_arn_for_certificate(DEFAULT_ACCOUNT_ID, region)
+            self.arn = make_arn_for_certificate(get_account_id(), region)
         else:
             self.arn = arn
 
@@ -423,16 +423,10 @@ class CertBundle(BaseModel):
 
 
 class AWSCertificateManagerBackend(BaseBackend):
-    def __init__(self, region):
-        super().__init__()
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self._certificates = {}
         self._idempotency_tokens = {}
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -444,7 +438,7 @@ class AWSCertificateManagerBackend(BaseBackend):
     @staticmethod
     def _arn_not_found(arn):
         msg = "Certificate with arn {0} not found in account {1}".format(
-            arn, DEFAULT_ACCOUNT_ID
+            arn, get_account_id()
         )
         return AWSResourceNotFoundException(msg)
 
@@ -491,12 +485,16 @@ class AWSCertificateManagerBackend(BaseBackend):
             else:
                 # Will reuse provided ARN
                 bundle = CertBundle(
-                    certificate, private_key, chain=chain, region=self.region, arn=arn
+                    certificate,
+                    private_key,
+                    chain=chain,
+                    region=self.region_name,
+                    arn=arn,
                 )
         else:
             # Will generate a random ARN
             bundle = CertBundle(
-                certificate, private_key, chain=chain, region=self.region
+                certificate, private_key, chain=chain, region=self.region_name
             )
 
         self._certificates[bundle.arn] = bundle
@@ -548,7 +546,7 @@ class AWSCertificateManagerBackend(BaseBackend):
                 return arn
 
         cert = CertBundle.generate_cert(
-            domain_name, region=self.region, sans=subject_alt_names
+            domain_name, region=self.region_name, sans=subject_alt_names
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)

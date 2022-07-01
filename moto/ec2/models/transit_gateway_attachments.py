@@ -1,5 +1,5 @@
 from datetime import datetime
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.utils import merge_multiple_dicts, filter_resources
 from .core import TaggedEC2Resource
@@ -32,11 +32,11 @@ class TransitGatewayAttachment(TaggedEC2Resource):
 
     @property
     def resource_owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @property
     def transit_gateway_owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
 
 class TransitGatewayVpcAttachment(TransitGatewayAttachment):
@@ -95,13 +95,12 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
 
     @property
     def resource_owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
 
-class TransitGatewayAttachmentBackend(object):
+class TransitGatewayAttachmentBackend:
     def __init__(self):
         self.transit_gateway_attachments = {}
-        super().__init__()
 
     def create_transit_gateway_vpn_attachment(
         self, vpn_id, transit_gateway_id, tags=None

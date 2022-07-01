@@ -13,6 +13,7 @@ from .exceptions import (
     InvalidParameterException,
     ResourceExistsException,
     ResourceNotFoundException,
+    SecretStageVersionMismatchException,
     InvalidRequestException,
     ClientError,
 )
@@ -190,15 +191,9 @@ class SecretsStore(dict):
 
 
 class SecretsManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.secrets = SecretsStore()
-
-    def reset(self):
-        region_name = self.region
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -231,6 +226,14 @@ class SecretsManagerBackend(BaseBackend):
     def get_secret_value(self, secret_id, version_id, version_stage):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
+
+        if version_id and version_stage:
+            versions_dict = self.secrets[secret_id].versions
+            if (
+                version_id in versions_dict
+                and version_stage not in versions_dict[version_id]["version_stages"]
+            ):
+                raise SecretStageVersionMismatchException()
 
         if not version_id and version_stage:
             # set version_id to match version_stage
@@ -281,9 +284,7 @@ class SecretsManagerBackend(BaseBackend):
         ):
             raise SecretHasNoValueException(version_stage or "AWSCURRENT")
 
-        response = json.dumps(response_data)
-
-        return response
+        return response_data
 
     def update_secret(
         self,
@@ -390,7 +391,7 @@ class SecretsManagerBackend(BaseBackend):
                 secret.versions[version_id] = secret_version
         else:
             secret = FakeSecret(
-                region_name=self.region,
+                region_name=self.region_name,
                 secret_id=secret_id,
                 secret_string=secret_string,
                 secret_binary=secret_binary,
@@ -442,7 +443,7 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
-        return json.dumps(secret.to_dict())
+        return secret.to_dict()
 
     def rotate_secret(
         self,
@@ -532,7 +533,7 @@ class SecretsManagerBackend(BaseBackend):
         if secret.rotation_lambda_arn:
             from moto.awslambda.models import lambda_backends
 
-            lambda_backend = lambda_backends[self.region]
+            lambda_backend = lambda_backends[self.region_name]
 
             request_headers = {}
             response_headers = {}
@@ -638,32 +639,6 @@ class SecretsManagerBackend(BaseBackend):
     def list_secrets(
         self, filters: List, max_results: int = 100, next_token: str = None
     ) -> Tuple[List, str]:
-        """
-        Returns secrets from secretsmanager.
-        The result is paginated and page items depends on the token value, because token contains start element
-        number of secret list.
-        Response example:
-        {
-            SecretList: [
-                {
-                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test1-gEcah',
-                    Name: 'test1',
-                    ...
-                },
-                {
-                    ARN: 'arn:aws:secretsmanager:us-east-1:1234567890:secret:test2-KZwml',
-                    Name: 'test2',
-                    ...
-                }
-            ],
-            NextToken: '2'
-        }
-
-        :param filters: (List) Filter parameters.
-        :param max_results: (int) Max number of results per page.
-        :param next_token: (str) Page token.
-        :return: (Tuple[List,str]) Returns result list and next token.
-        """
         secret_list = []
         for secret in self.secrets.values():
             if _matches(secret, filters):
@@ -698,7 +673,7 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                secret = FakeSecret(self.region, secret_id)
+                secret = FakeSecret(self.region_name, secret_id)
                 arn = secret.arn
                 name = secret.name
                 deletion_date = datetime.datetime.utcnow()

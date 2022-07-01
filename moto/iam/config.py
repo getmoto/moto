@@ -1,7 +1,7 @@
 import json
 import boto3
 from moto.core.exceptions import InvalidNextTokenException
-from moto.core.models import ConfigQueryModel
+from moto.core.common_models import ConfigQueryModel
 from moto.iam import iam_backends
 
 

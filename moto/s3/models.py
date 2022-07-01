@@ -2,7 +2,6 @@ import json
 import os
 import base64
 import datetime
-import hashlib
 import copy
 import itertools
 import codecs
@@ -14,11 +13,12 @@ import pytz
 import sys
 import time
 import uuid
+import urllib.parse
 
 from bisect import insort
 from importlib import reload
 from moto.core import (
-    ACCOUNT_ID,
+    get_account_id,
     BaseBackend,
     BaseModel,
     CloudFormationModel,
@@ -29,10 +29,13 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
     unix_time_millis,
+    BackendDict,
 )
 from moto.cloudwatch.models import MetricDatum
+from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import LowercaseDict
+from moto.utilities.utils import LowercaseDict, md5_hash
 from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
@@ -58,6 +61,7 @@ from moto.s3.exceptions import (
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
 from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
+from ..events.notifications import send_notification as events_send_notification
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -78,9 +82,9 @@ OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
 
 def get_moto_s3_account_id():
     """This makes it easy for mocking AWS Account IDs when using AWS Config
-    -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
+    -- Simply mock.patch get_account_id() here, and Config gets it for free.
     """
-    return ACCOUNT_ID
+    return get_account_id()
 
 
 class FakeDeleteMarker(BaseModel):
@@ -99,7 +103,7 @@ class FakeDeleteMarker(BaseModel):
         return self._version_id
 
 
-class FakeKey(BaseModel):
+class FakeKey(BaseModel, ManagedState):
     def __init__(
         self,
         name,
@@ -117,8 +121,15 @@ class FakeKey(BaseModel):
         lock_mode=None,
         lock_legal_status=None,
         lock_until=None,
-        s3_backend=None,
     ):
+        ManagedState.__init__(
+            self,
+            "s3::keyrestore",
+            transitions=[
+                (None, "IN_PROGRESS"),
+                ("IN_PROGRESS", "RESTORED"),
+            ],
+        )
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl("private")
@@ -150,7 +161,10 @@ class FakeKey(BaseModel):
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
 
-        self.s3_backend = s3_backend
+    def safe_name(self, encoding_type=None):
+        if encoding_type == "url":
+            return urllib.parse.quote(self.name)
+        return self.name
 
     @property
     def version_id(self):
@@ -206,7 +220,7 @@ class FakeKey(BaseModel):
     @property
     def etag(self):
         if self._etag is None:
-            value_md5 = hashlib.md5()
+            value_md5 = md5_hash()
             self._value_buffer.seek(0)
             while True:
                 block = self._value_buffer.read(16 * 1024 * 1024)  # read in 16MB chunks
@@ -249,8 +263,13 @@ class FakeKey(BaseModel):
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
-            rhdr = 'ongoing-request="false", expiry-date="{0}"'
-            res["x-amz-restore"] = rhdr.format(self.expiry_date)
+            if self.status == "IN_PROGRESS":
+                header = 'ongoing-request="true"'
+            else:
+                header = 'ongoing-request="false", expiry-date="{0}"'.format(
+                    self.expiry_date
+                )
+            res["x-amz-restore"] = header
 
         if self._is_versioned:
             res["x-amz-version-id"] = str(self.version_id)
@@ -270,9 +289,9 @@ class FakeKey(BaseModel):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
-        tags = s3_backend.tagger.get_tag_dict_for_resource(self.arn)
+        tags = s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn)
         if tags:
-            res["x-amz-tagging-count"] = len(tags.keys())
+            res["x-amz-tagging-count"] = str(len(tags.keys()))
 
         return res
 
@@ -332,11 +351,12 @@ class FakeKey(BaseModel):
 
 
 class FakeMultipart(BaseModel):
-    def __init__(self, key_name, metadata, storage=None, tags=None):
+    def __init__(self, key_name, metadata, storage=None, tags=None, acl=None):
         self.key_name = key_name
         self.metadata = metadata
         self.storage = storage
         self.tags = tags
+        self.acl = acl
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
@@ -369,7 +389,7 @@ class FakeMultipart(BaseModel):
         if count == 0:
             raise MalformedXML
 
-        etag = hashlib.md5()
+        etag = md5_hash()
         etag.update(bytes(md5s))
         return total, "{0}-{1}".format(etag.hexdigest(), count)
 
@@ -1206,13 +1226,13 @@ class FakeBucket(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name, **kwargs
     ):
-        bucket = s3_backend.create_bucket(resource_name, region_name)
+        bucket = s3_backends["global"].create_bucket(resource_name, region_name)
 
         properties = cloudformation_json.get("Properties", {})
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backend.put_bucket_encryption(
+            s3_backends["global"].put_bucket_encryption(
                 bucket_name=resource_name, encryption=bucket_encryption
             )
 
@@ -1242,7 +1262,7 @@ class FakeBucket(CloudFormationModel):
                 bucket_encryption = cfn_to_api_encryption(
                     properties["BucketEncryption"]
                 )
-                s3_backend.put_bucket_encryption(
+                s3_backends["global"].put_bucket_encryption(
                     bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
@@ -1251,7 +1271,7 @@ class FakeBucket(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        s3_backend.delete_bucket(resource_name)
+        s3_backends["global"].delete_bucket(resource_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1276,7 +1296,7 @@ class FakeBucket(CloudFormationModel):
             "resourceCreationTime": str(self.creation_date),
             "relatedEvents": [],
             "relationships": [],
-            "tags": s3_backend.tagger.get_tag_dict_for_resource(self.arn),
+            "tags": s3_backends["global"].tagger.get_tag_dict_for_resource(self.arn),
             "configuration": {
                 "name": self.name,
                 "owner": {"id": OWNER},
@@ -1368,9 +1388,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     Note that this only works if the environment variable is set **before** the mock is initialized.
     """
 
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.buckets = {}
         self.tagger = TaggingService()
+
+        state_manager.register_default_transition(
+            "s3::keyrestore", transition={"progression": "immediate"}
+        )
 
     @property
     def _url_module(self):
@@ -1422,7 +1447,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     @classmethod
     def get_cloudwatch_metrics(cls):
         metrics = []
-        for name, bucket in s3_backend.buckets.items():
+        for name, bucket in s3_backends["global"].buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1463,6 +1488,23 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
 
         self.buckets[bucket_name] = new_bucket
+
+        notification_detail = {
+            "version": "0",
+            "bucket": {"name": bucket_name},
+            "request-id": "N4N7GDK58NMKJ12R",
+            "requester": get_account_id(),
+            "source-ip-address": "1.2.3.4",
+            "reason": "PutObject",
+        }
+        events_send_notification(
+            source="aws.s3",
+            event_name="CreateBucket",
+            region=region_name,
+            resources=[f"arn:aws:s3:::{bucket_name}"],
+            detail=notification_detail,
+        )
+
         return new_bucket
 
     def list_buckets(self):
@@ -1656,7 +1698,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
-            s3_backend=s3_backend,
         )
 
         keys = [
@@ -1716,6 +1757,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 key = key.multipart.parts[part_number]
 
         if isinstance(key, FakeKey):
+            key.advance()
             return key
         else:
             return None
@@ -1840,13 +1882,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             pub_block_config.get("RestrictPublicBuckets"),
         )
 
-    def initiate_multipart(self, bucket_name, key_name, metadata):
-        bucket = self.get_bucket(bucket_name)
-        new_multipart = FakeMultipart(key_name, metadata)
-        bucket.multiparts[new_multipart.id] = new_multipart
-
-        return new_multipart
-
     def complete_multipart(self, bucket_name, multipart_id, body):
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
@@ -1883,9 +1918,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return len(bucket.multiparts[multipart_id].parts) > next_part_number_marker
 
     def create_multipart_upload(
-        self, bucket_name, key_name, metadata, storage_type, tags
+        self, bucket_name, key_name, metadata, storage_type, tags, acl
     ):
-        multipart = FakeMultipart(key_name, metadata, storage=storage_type, tags=tags)
+        multipart = FakeMultipart(
+            key_name, metadata, storage=storage_type, tags=tags, acl=acl
+        )
 
         bucket = self.get_bucket(bucket_name)
         bucket.multiparts[multipart.id] = multipart
@@ -2125,4 +2162,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return bucket.notification_configuration
 
 
-s3_backend = S3Backend()
+s3_backends = BackendDict(
+    S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
+)

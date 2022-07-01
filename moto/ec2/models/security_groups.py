@@ -3,8 +3,7 @@ import itertools
 import json
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from moto.core.utils import aws_api_matches
 from ..exceptions import (
     DependencyViolationError,
@@ -70,7 +69,7 @@ class SecurityRule(object):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
@@ -127,7 +126,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.egress_rules = []
         self.enis = {}
         self.vpc_id = vpc_id
-        self.owner_id = ACCOUNT_ID
+        self.owner_id = get_account_id()
         self.add_tags(tags or {})
         self.is_default = is_default or False
 
@@ -455,15 +454,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         )
 
 
-class SecurityGroupBackend(object):
+class SecurityGroupBackend:
     def __init__(self):
         # the key in the dict group is the vpc_id or None (non-vpc)
         self.groups = defaultdict(dict)
         # This will help us in RuleLimitExceed errors.
         self.sg_old_ingress_ruls = {}
         self.sg_old_egress_ruls = {}
-
-        super().__init__()
 
     def create_security_group(
         self, name, description, vpc_id=None, tags=None, force=False, is_default=None
@@ -1011,7 +1008,7 @@ class SecurityGroupBackend(object):
         _source_groups = []
         for item in source_groups or []:
             if "OwnerId" not in item:
-                item["OwnerId"] = ACCOUNT_ID
+                item["OwnerId"] = get_account_id()
             # for VPCs
             if "GroupId" in item:
                 if not self.get_security_group_by_name_or_id(

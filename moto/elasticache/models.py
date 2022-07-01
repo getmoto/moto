@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .exceptions import UserAlreadyExists, UserNotFound
@@ -28,14 +28,14 @@ class User(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:elasticache:{self.region}:{ACCOUNT_ID}:user:{self.id}"
+        return f"arn:aws:elasticache:{self.region}:{get_account_id()}:user:{self.id}"
 
 
 class ElastiCacheBackend(BaseBackend):
     """Implementation of ElastiCache APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.users = dict()
         self.users["default"] = User(
             region=self.region_name,
@@ -45,11 +45,6 @@ class ElastiCacheBackend(BaseBackend):
             access_string="on ~* +@all",
             no_password_required=True,
         )
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_user(
         self, user_id, user_name, engine, passwords, access_string, no_password_required

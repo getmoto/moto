@@ -4,7 +4,7 @@ from datetime import datetime
 import random
 from uuid import uuid4
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import unix_time, BackendDict
 from moto.organizations import organizations_backends
 from moto.ram.exceptions import (
@@ -43,13 +43,13 @@ class ResourceShare(BaseModel):
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
         self.arn = "arn:aws:ram:{0}:{1}:resource-share/{2}".format(
-            self.region, ACCOUNT_ID, uuid4()
+            self.region, get_account_id(), uuid4()
         )
         self.creation_time = datetime.utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = datetime.utcnow()
         self.name = kwargs["name"]
-        self.owning_account_id = ACCOUNT_ID
+        self.owning_account_id = get_account_id()
         self.principals = []
         self.resource_arns = []
         self.status = "ACTIVE"
@@ -87,12 +87,13 @@ class ResourceShare(BaseModel):
                 )
 
                 if root_id:
-                    ous = (
-                        self.organizations_backend.list_organizational_units_for_parent(
-                            ParentId=root_id
-                        )
+                    (
+                        ous,
+                        _,
+                    ) = self.organizations_backend.list_organizational_units_for_parent(
+                        parent_id=root_id
                     )
-                    if any(principal == ou["Arn"] for ou in ous["OrganizationalUnits"]):
+                    if any(principal == ou["Arn"] for ou in ous):
                         continue
 
                 raise UnknownResourceException(
@@ -154,19 +155,13 @@ class ResourceShare(BaseModel):
 
 
 class ResourceAccessManagerBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.resource_shares = []
 
     @property
     def organizations_backend(self):
         return organizations_backends["global"]
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_resource_share(self, **kwargs):
         resource = ResourceShare(self.region_name, **kwargs)

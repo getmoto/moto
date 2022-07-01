@@ -261,7 +261,9 @@ class ApiGatewayV2Response(BaseResponse):
         params = json.loads(self.body)
 
         auth_creds_arn = params.get("authorizerCredentialsArn")
-        auth_payload_format_version = params.get("authorizerPayloadFormatVersion")
+        auth_payload_format_version = (
+            params.get("authorizerPayloadFormatVersion") or "2.0"
+        )
         auth_result_ttl = params.get("authorizerResultTtlInSeconds")
         authorizer_type = params.get("authorizerType")
         authorizer_uri = params.get("authorizerUri")

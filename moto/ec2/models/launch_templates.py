@@ -73,12 +73,11 @@ class LaunchTemplate(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeLaunchTemplates")
 
 
-class LaunchTemplateBackend(object):
+class LaunchTemplateBackend:
     def __init__(self):
         self.launch_template_name_to_ids = {}
         self.launch_templates = OrderedDict()
         self.launch_template_insert_order = []
-        super().__init__()
 
     def create_launch_template(self, name, description, template_data):
         if name in self.launch_template_name_to_ids:

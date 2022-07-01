@@ -105,10 +105,9 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         return super().get_filter_value(filter_name, "DescribeVpnGateways")
 
 
-class VpnGatewayBackend(object):
+class VpnGatewayBackend:
     def __init__(self):
         self.vpn_gateways = {}
-        super().__init__()
 
     def create_vpn_gateway(
         self,

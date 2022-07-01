@@ -1,8 +1,11 @@
-from moto.core.models import BaseBackend
+from moto.core import BaseBackend
 
 
 class MotoAPIBackend(BaseBackend):
     def reset(self):
+        region_name = self.region_name
+        account_id = self.account_id
+
         import moto.backends as backends
 
         for name, backends_ in backends.loaded_backends():
@@ -10,7 +13,7 @@ class MotoAPIBackend(BaseBackend):
                 continue
             for backend in backends_.values():
                 backend.reset()
-        self.__init__()
+        self.__init__(region_name, account_id)
 
     def get_transition(self, model_name):
         from moto.moto_api import state_manager
@@ -28,4 +31,4 @@ class MotoAPIBackend(BaseBackend):
         state_manager.unset_transition(model_name)
 
 
-moto_api_backend = MotoAPIBackend()
+moto_api_backend = MotoAPIBackend(region_name="global")

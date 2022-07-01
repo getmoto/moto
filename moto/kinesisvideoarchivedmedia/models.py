@@ -5,15 +5,6 @@ from moto.sts.utils import random_session_token
 
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
     def _get_streaming_url(self, stream_name, stream_arn, api_name):
         stream = kinesisvideo_backends[self.region_name]._get_stream(
             stream_name, stream_arn

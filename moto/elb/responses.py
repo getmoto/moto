@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from .models import elb_backends
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
@@ -59,7 +59,7 @@ class ELBResponse(BaseResponse):
 
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(
-            ACCOUNT_ID=ACCOUNT_ID,
+            ACCOUNT_ID=get_account_id(),
             load_balancers=load_balancers_resp,
             marker=next_marker,
         )
@@ -288,21 +288,10 @@ class ELBResponse(BaseResponse):
         return template.render(policies=policies)
 
     def describe_instance_health(self):
-        load_balancer_name = self._get_param("LoadBalancerName")
-        provided_instance_ids = [
-            list(param.values())[0]
-            for param in self._get_list_prefix("Instances.member")
-        ]
-        registered_instances_id = self.elb_backend.get_load_balancer(
-            load_balancer_name
-        ).instance_ids
-        if len(provided_instance_ids) == 0:
-            provided_instance_ids = registered_instances_id
+        lb_name = self._get_param("LoadBalancerName")
+        instances = self._get_params().get("Instances", [])
+        instances = self.elb_backend.describe_instance_health(lb_name, instances)
         template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
-        instances = []
-        for instance_id in provided_instance_ids:
-            state = "InService" if instance_id in registered_instances_id else "Unknown"
-            instances.append({"InstanceId": instance_id, "State": state})
         return template.render(instances=instances)
 
     def add_tags(self):

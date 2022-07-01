@@ -1,5 +1,6 @@
 import ipaddress
-from moto.core import ACCOUNT_ID, CloudFormationModel
+
+from moto.core import get_account_id, CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
     DependencyViolationError,
@@ -7,6 +8,7 @@ from ..exceptions import (
     InvalidRouteTableIdError,
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
+    RouteAlreadyExistsError,
 )
 from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -30,7 +32,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():
@@ -76,14 +78,19 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
             return self.associations.keys()
         elif filter_name == "association.subnet-id":
             return self.associations.values()
+        elif filter_name == "route.gateway-id":
+            return [
+                route.gateway.id
+                for route in self.routes.values()
+                if route.gateway is not None
+            ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 
 
-class RouteTableBackend(object):
+class RouteTableBackend:
     def __init__(self):
         self.route_tables = {}
-        super().__init__()
 
     def create_route_table(self, vpc_id, tags=None, main=False):
         route_table_id = random_route_table_id()
@@ -278,10 +285,7 @@ class Route(CloudFormationModel):
         return route_table
 
 
-class RouteBackend(object):
-    def __init__(self):
-        super().__init__()
-
+class RouteBackend:
     def create_route(
         self,
         route_table_id,
@@ -321,11 +325,10 @@ class RouteBackend(object):
                 elif EC2_RESOURCE_TO_PREFIX["vpc-endpoint"] in gateway_id:
                     gateway = self.get_vpc_end_point(gateway_id)
 
-            try:
-                if destination_cidr_block:
-                    ipaddress.IPv4Network(str(destination_cidr_block), strict=False)
-            except ValueError:
-                raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
+            if destination_cidr_block:
+                self.__validate_destination_cidr_block(
+                    destination_cidr_block, route_table
+                )
 
             if nat_gateway_id is not None:
                 nat_gateway = self.nat_gateways.get(nat_gateway_id)
@@ -438,3 +441,25 @@ class RouteBackend(object):
         if not deleted:
             raise InvalidRouteError(route_table_id, cidr)
         return deleted
+
+    def __validate_destination_cidr_block(self, destination_cidr_block, route_table):
+        """
+        Utility function to check the destination CIDR block
+        Will validate the format and check for overlap with existing routes
+        """
+        try:
+            ip_v4_network = ipaddress.IPv4Network(
+                str(destination_cidr_block), strict=False
+            )
+        except ValueError:
+            raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
+
+        if not route_table.routes:
+            return
+        for route in route_table.routes.values():
+            if not route.destination_cidr_block:
+                continue
+            if not route.local and ip_v4_network.overlaps(
+                ipaddress.IPv4Network(str(route.destination_cidr_block))
+            ):
+                raise RouteAlreadyExistsError(destination_cidr_block)

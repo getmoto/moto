@@ -12,12 +12,11 @@ from ..utils import (
 )
 
 
-class TagBackend(object):
+class TagBackend:
     VALID_TAG_FILTERS = ["key", "resource-id", "resource-type", "value"]
 
     def __init__(self):
         self.tags = defaultdict(dict)
-        super().__init__()
 
     def create_tags(self, resource_ids, tags):
         if None in set([tags[tag] for tag in tags]):

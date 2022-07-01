@@ -1,7 +1,7 @@
 import random
 import string
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.utilities.tagging_service import TaggingService
 
@@ -33,7 +33,9 @@ class Namespace(BaseModel):
     ):
         super().__init__()
         self.id = f"ns-{random_id(20)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{ACCOUNT_ID}:namespace/{self.id}"
+        self.arn = (
+            f"arn:aws:servicediscovery:{region}:{get_account_id()}:namespace/{self.id}"
+        )
         self.name = name
         self.type = ns_type
         self.creator_request_id = creator_request_id
@@ -76,7 +78,9 @@ class Service(BaseModel):
     ):
         super().__init__()
         self.id = f"srv-{random_id(8)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{ACCOUNT_ID}:service/{self.id}"
+        self.arn = (
+            f"arn:aws:servicediscovery:{region}:{get_account_id()}:service/{self.id}"
+        )
         self.name = name
         self.namespace_id = namespace_id
         self.description = description
@@ -145,18 +149,12 @@ class Operation(BaseModel):
 class ServiceDiscoveryBackend(BaseBackend):
     """Implementation of ServiceDiscovery APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.operations = dict()
         self.namespaces = dict()
         self.services = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def list_namespaces(self):
         """

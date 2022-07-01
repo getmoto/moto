@@ -5,7 +5,7 @@ import warnings
 
 import pytz
 from dateutil.parser import parse as dtparse
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.emr.exceptions import (
     InvalidRequestException,
@@ -280,7 +280,7 @@ class FakeCluster(BaseModel):
     @property
     def arn(self):
         return "arn:aws:elasticmapreduce:{0}:{1}:cluster/{2}".format(
-            self.emr_backend.region_name, ACCOUNT_ID, self.id
+            self.emr_backend.region_name, get_account_id(), self.id
         )
 
     @property
@@ -390,17 +390,11 @@ class FakeSecurityConfiguration(BaseModel):
 
 
 class ElasticMapReduceBackend(BaseBackend):
-    def __init__(self, region_name):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.clusters = {}
         self.instance_groups = {}
         self.security_configurations = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -435,6 +429,7 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def add_instances(self, cluster_id, instances, instance_group):
         cluster = self.clusters[cluster_id]
+        instances["is_instance_type_default"] = not instances.get("instance_type")
         response = self.ec2_backend.add_instances(
             EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
         )

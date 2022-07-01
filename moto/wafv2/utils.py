@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import pascal_to_camelcase, camelcase_to_underscores
 
 
@@ -10,7 +10,7 @@ def make_arn_for_wacl(name, region_name, wacl_id, scope):
     elif scope == "CLOUDFRONT":
         scope = "global"
     return "arn:aws:wafv2:{}:{}:{}/webacl/{}/{}".format(
-        region_name, ACCOUNT_ID, scope, name, wacl_id
+        region_name, get_account_id(), scope, name, wacl_id
     )
 
 

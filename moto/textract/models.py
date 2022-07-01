@@ -32,16 +32,9 @@ class TextractBackend(BaseBackend):
     PAGES = {"Pages": randint(5, 500)}
     BLOCKS = []
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.async_text_detection_jobs = defaultdict()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.async_text_detection_jobs = defaultdict()
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def get_document_text_detection(self, job_id):
         """

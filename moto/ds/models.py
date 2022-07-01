@@ -180,16 +180,10 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
 class DirectoryServiceBackend(BaseBackend):
     """Implementation of DirectoryService APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.directories = {}
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -508,4 +502,4 @@ class DirectoryServiceBackend(BaseBackend):
         return self.tagger.list_tags_for_resource(resource_id).get("Tags")
 
 
-ds_backends = BackendDict(fn=DirectoryServiceBackend, service_name="ds")
+ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")

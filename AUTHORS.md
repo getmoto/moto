@@ -61,3 +61,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Mickaël Schoentgen](https://github.com/BoboTiG)
 * [Ariel Beck](https://github.com/arielb135)
 * [Roman Rader](https://github.com/rrader/)
+* [Bryan Chen](https://github.com/bchen1116)

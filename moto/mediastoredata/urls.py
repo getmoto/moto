@@ -1,7 +1,7 @@
 from .responses import MediaStoreDataResponse
 
 url_bases = [
-    r"https?://data.mediastore\.(.+)\.amazonaws.com",
+    r"https?://data\.mediastore\.(.+)\.amazonaws.com",
 ]
 
 response = MediaStoreDataResponse()

@@ -48,16 +48,10 @@ class CognitoIdentity(BaseModel):
 
 
 class CognitoIdentityBackend(BaseBackend):
-    def __init__(self, region):
-        super().__init__()
-        self.region = region
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.identity_pools = OrderedDict()
         self.pools_identities = {}
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     def describe_identity_pool(self, identity_pool_id):
         identity_pool = self.identity_pools.get(identity_pool_id, None)
@@ -93,7 +87,7 @@ class CognitoIdentityBackend(BaseBackend):
         tags=None,
     ):
         new_identity = CognitoIdentity(
-            self.region,
+            self.region_name,
             identity_pool_name,
             allow_unauthenticated_identities=allow_unauthenticated_identities,
             supported_login_providers=supported_login_providers,
@@ -151,7 +145,7 @@ class CognitoIdentityBackend(BaseBackend):
         return response
 
     def get_id(self, identity_pool_id: str):
-        identity_id = {"IdentityId": get_random_identity_id(self.region)}
+        identity_id = {"IdentityId": get_random_identity_id(self.region_name)}
         self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)
 
@@ -175,13 +169,19 @@ class CognitoIdentityBackend(BaseBackend):
 
     def get_open_id_token_for_developer_identity(self, identity_id):
         response = json.dumps(
-            {"IdentityId": identity_id, "Token": get_random_identity_id(self.region)}
+            {
+                "IdentityId": identity_id,
+                "Token": get_random_identity_id(self.region_name),
+            }
         )
         return response
 
     def get_open_id_token(self, identity_id):
         response = json.dumps(
-            {"IdentityId": identity_id, "Token": get_random_identity_id(self.region)}
+            {
+                "IdentityId": identity_id,
+                "Token": get_random_identity_id(self.region_name),
+            }
         )
         return response
 

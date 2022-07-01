@@ -20,6 +20,7 @@ from moto.core.utils import (
     tags_from_cloudformation_tags_list,
     BackendDict,
 )
+from moto.utilities.utils import md5_hash
 from .utils import generate_receipt_handle
 from .exceptions import (
     MessageAttributesInvalid,
@@ -37,7 +38,7 @@ from .exceptions import (
     InvalidAttributeValue,
 )
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
@@ -85,14 +86,14 @@ class Message(BaseModel):
 
     @property
     def body_md5(self):
-        md5 = hashlib.md5()
+        md5 = md5_hash()
         md5.update(self._body.encode("utf-8"))
         return md5.hexdigest()
 
     @property
     def attribute_md5(self):
 
-        md5 = hashlib.md5()
+        md5 = md5_hash()
 
         for attrName in sorted(self.message_attributes.keys()):
             self.validate_attribute_name(attrName)
@@ -262,7 +263,7 @@ class Queue(CloudFormationModel):
         now = unix_time()
         self.created_timestamp = now
         self.queue_arn = "arn:aws:sqs:{0}:{1}:{2}".format(
-            self.region, ACCOUNT_ID, self.name
+            self.region, get_account_id(), self.name
         )
         self.dead_letter_queue = None
 
@@ -474,7 +475,7 @@ class Queue(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return f"https://sqs.{self.region}.amazonaws.com/{ACCOUNT_ID}/{self.name}"
+        return f"https://sqs.{self.region}.amazonaws.com/{get_account_id()}/{self.name}"
 
     @property
     def attributes(self):
@@ -508,7 +509,7 @@ class Queue(CloudFormationModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, ACCOUNT_ID, self.name
+            request_url.scheme, request_url.netloc, get_account_id(), self.name
         )
 
     @property
@@ -630,16 +631,9 @@ def _filter_message_attributes(message, input_message_attributes):
 
 
 class SQSBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.queues: Dict[str, Queue] = {}
-        super().__init__()
-
-    def reset(self):
-        region_name = self.region_name
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):

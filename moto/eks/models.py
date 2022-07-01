@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from moto.core import ACCOUNT_ID, BaseBackend
+from moto.core import get_account_id, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 
 from ..utilities.utils import random_string
@@ -15,16 +15,16 @@ from .utils import get_partition, validate_role_arn
 
 # String Templates
 CLUSTER_ARN_TEMPLATE = (
-    "arn:{partition}:eks:{region}:" + str(ACCOUNT_ID) + ":cluster/{name}"
+    "arn:{partition}:eks:{region}:" + str(get_account_id()) + ":cluster/{name}"
 )
 FARGATE_PROFILE_ARN_TEMPLATE = (
     "arn:{partition}:eks:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
 )
 NODEGROUP_ARN_TEMPLATE = (
     "arn:{partition}:eks:{region}:"
-    + str(ACCOUNT_ID)
+    + str(get_account_id())
     + ":nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
 )
 ISSUER_TEMPLATE = "https://oidc.eks.{region}.amazonaws.com/id/" + random_string(10)
@@ -311,17 +311,11 @@ class ManagedNodegroup:
 
 
 class EKSBackend(BaseBackend):
-    def __init__(self, region_name):
-        super().__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.clusters = dict()
         self.cluster_count = 0
-        self.region_name = region_name
         self.partition = get_partition(region_name)
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_cluster(
         self,
@@ -636,6 +630,78 @@ class EKSBackend(BaseBackend):
 
         cluster.nodegroup_count -= 1
         return result
+
+    def tag_resource(self, resource_arn, tags):
+        """
+        This function currently will tag an EKS cluster only.  It does not tag a managed node group
+        """
+
+        try:
+            cluster = next(
+                self.clusters[x]
+                for x in self.clusters
+                if self.clusters[x].arn == resource_arn
+            )
+        except StopIteration:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message="An error occurred (NotFoundException) when calling the TagResource operation: Resource was not found",
+            )
+        cluster.tags.update(tags)
+        return ""
+
+    def untag_resource(self, resource_arn, tag_keys):
+        """
+        This function currently will remove tags on an EKS cluster only.  It does not remove tags from a managed node group
+        """
+        if not isinstance(tag_keys, list):
+            tag_keys = [tag_keys]
+
+        try:
+            cluster = next(
+                self.clusters[x]
+                for x in self.clusters
+                if self.clusters[x].arn == resource_arn
+            )
+        except StopIteration:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message="An error occurred (NotFoundException) when calling the UntagResource operation: Resource was not found",
+            )
+        for name in tag_keys:
+            if name in cluster.tags:
+                del cluster.tags[name]
+        return ""
+
+    def list_tags_for_resource(self, resource_arn):
+        """
+        This function currently will list tags on an EKS cluster only.  It does not list tags from a managed node group
+        """
+
+        try:
+            cluster = next(
+                self.clusters[x]
+                for x in self.clusters
+                if self.clusters[x].arn == resource_arn
+            )
+        except StopIteration:
+            # Cluster does not exist.
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message="An error occurred (NotFoundException) when calling the ListTagsForResource operation: Resource was not found",
+            )
+        return cluster.tags
 
     def list_clusters(self, max_results, next_token):
         return paginated_list(self.clusters.keys(), max_results, next_token)

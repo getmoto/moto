@@ -144,6 +144,25 @@ def test_list_organizational_units_for_parent():
 
 
 @mock_organizations
+def test_list_organizational_units_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    for i in range(20):
+        name = "ou" + str(i)
+        client.create_organizational_unit(ParentId=root_id, Name=name)
+    response = client.list_organizational_units_for_parent(ParentId=root_id)
+    response.should_not.have.key("NextToken")
+    len(response["OrganizationalUnits"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_organizational_units_for_parent")
+    page_iterator = paginator.paginate(MaxResults=5, ParentId=root_id)
+    for page in page_iterator:
+        len(page["OrganizationalUnits"]).should.be.lower_than_or_equal_to(5)
+    page["OrganizationalUnits"][-1]["Name"].should.contain("19")
+
+
+@mock_organizations
 def test_list_organizational_units_for_parent_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -306,6 +325,28 @@ def test_list_accounts_for_parent():
     ]["AccountId"]
     response = client.list_accounts_for_parent(ParentId=root_id)
     account_id.should.be.within([account["Id"] for account in response["Accounts"]])
+
+
+@mock_organizations
+def test_list_accounts_for_parent_pagination():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    response.should_not.have.key("NextToken")
+    num_existing_accounts = len(response["Accounts"])
+    for i in range(num_existing_accounts, 21):
+        name = mockname + str(i)
+        email = name + "@" + mockdomain
+        client.create_account(AccountName=name, Email=email)
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    len(response["Accounts"]).should.be.greater_than_or_equal_to(i)
+
+    paginator = client.get_paginator("list_accounts_for_parent")
+    page_iterator = paginator.paginate(MaxResults=5, ParentId=root_id)
+    for page in page_iterator:
+        len(page["Accounts"]).should.be.lower_than_or_equal_to(5)
+    page["Accounts"][-1]["Name"].should.contain("20")
 
 
 @mock_organizations
@@ -1202,14 +1243,14 @@ def test__get_resource_for_tagging_existing_root():
     org = FakeOrganization("ALL")
     root = FakeRoot(org)
 
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     org_backend.ou.append(root)
     response = org_backend._get_resource_for_tagging(root.id)
     response.id.should.equal(root.id)
 
 
 def test__get_resource_for_tagging_existing_non_root():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("r-abcd")
     ex = e.value
@@ -1221,7 +1262,7 @@ def test__get_resource_for_tagging_existing_non_root():
 def test__get_resource_for_tagging_existing_ou():
     org = FakeOrganization("ALL")
     ou = FakeOrganizationalUnit(org)
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
 
     org_backend.ou.append(ou)
     response = org_backend._get_resource_for_tagging(ou.id)
@@ -1229,7 +1270,7 @@ def test__get_resource_for_tagging_existing_ou():
 
 
 def test__get_resource_for_tagging_non_existing_ou():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("ou-9oyc-lv2q36ln")
     ex = e.value
@@ -1240,7 +1281,7 @@ def test__get_resource_for_tagging_non_existing_ou():
 
 def test__get_resource_for_tagging_existing_account():
     org = FakeOrganization("ALL")
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     account = FakeAccount(org, AccountName="test", Email="test@test.test")
 
     org_backend.accounts.append(account)
@@ -1249,7 +1290,7 @@ def test__get_resource_for_tagging_existing_account():
 
 
 def test__get_resource_for_tagging_non_existing_account():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("100326223992")
     ex = e.value
@@ -1260,7 +1301,7 @@ def test__get_resource_for_tagging_non_existing_account():
 
 def test__get_resource_for_tagging_existing_policy():
     org = FakeOrganization("ALL")
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
 
     org_backend.policies.append(policy)
@@ -1269,7 +1310,7 @@ def test__get_resource_for_tagging_existing_policy():
 
 
 def test__get_resource_for_tagging_non_existing_policy():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(TargetNotFoundException) as e:
         org_backend._get_resource_for_tagging("p-y1vas4da")
     ex = e.value
@@ -1279,7 +1320,7 @@ def test__get_resource_for_tagging_non_existing_policy():
 
 
 def test__get_resource_to_tag_incorrect_resource():
-    org_backend = OrganizationsBackend()
+    org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     with pytest.raises(InvalidInputException) as e:
         org_backend._get_resource_for_tagging("10032622399200")
     ex = e.value

@@ -1,6 +1,4 @@
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
-from moto.kms import kms_backends
+from moto.core import get_account_id, CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,
@@ -152,7 +150,7 @@ class Snapshot(TaggedEC2Resource):
         volume,
         description,
         encrypted=False,
-        owner_id=ACCOUNT_ID,
+        owner_id=get_account_id(),
         from_ami=None,
     ):
         self.id = snapshot_id
@@ -188,12 +186,11 @@ class Snapshot(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeSnapshots")
 
 
-class EBSBackend(object):
+class EBSBackend:
     def __init__(self):
         self.volumes = {}
         self.attachments = {}
         self.snapshots = {}
-        super().__init__()
 
     def create_volume(
         self,
@@ -406,13 +403,15 @@ class EBSBackend(object):
         # https://aws.amazon.com/kms/features/#AWS_Service_Integration
         # An AWS managed CMK is created automatically when you first create
         # an encrypted resource using an AWS service integrated with KMS.
+        from moto.kms import kms_backends
+
         kms = kms_backends[self.region_name]
         ebs_alias = "alias/aws/ebs"
         if not kms.alias_exists(ebs_alias):
             key = kms.create_key(
                 policy="",
                 key_usage="ENCRYPT_DECRYPT",
-                customer_master_key_spec="SYMMETRIC_DEFAULT",
+                key_spec="SYMMETRIC_DEFAULT",
                 description="Default master key that protects my EBS volumes when no other key is defined",
                 tags=None,
                 region=self.region_name,

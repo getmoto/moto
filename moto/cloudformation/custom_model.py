@@ -2,7 +2,7 @@ import json
 import threading
 
 from moto import settings
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.awslambda import lambda_backends
 from uuid import uuid4
 

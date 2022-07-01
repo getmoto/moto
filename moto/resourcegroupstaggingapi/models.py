@@ -1,6 +1,6 @@
 import uuid
 
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
@@ -23,20 +23,14 @@ from moto.awslambda import lambda_backends
 
 
 class ResourceGroupsTaggingAPIBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
 
         self._pages = {}
         # Like 'someuuid': {'gen': <generator>, 'misc': None}
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # theres not really any point to clean up
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @property
     def s3_backend(self):
@@ -421,7 +415,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {
                     "ResourceARN": "arn:aws:ec2:{0}:{1}:vpc/{2}".format(
-                        self.region_name, ACCOUNT_ID, vpc.id
+                        self.region_name, get_account_id(), vpc.id
                     ),
                     "Tags": tags,
                 }

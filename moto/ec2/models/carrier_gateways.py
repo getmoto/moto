@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from moto.utilities.utils import filter_resources
 
 from .core import TaggedEC2Resource
@@ -20,13 +20,12 @@ class CarrierGateway(TaggedEC2Resource):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
 
-class CarrierGatewayBackend(object):
+class CarrierGatewayBackend:
     def __init__(self):
         self.carrier_gateways = {}
-        super().__init__()
 
     def create_carrier_gateway(self, vpc_id, tags=None):
         vpc = self.get_vpc(vpc_id)

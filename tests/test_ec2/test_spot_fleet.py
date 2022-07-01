@@ -147,7 +147,7 @@ def test_request_spot_fleet_using_launch_template_config__name(allocation_strate
     conn = boto3.client("ec2", region_name="us-east-2")
 
     template_data = {
-        "ImageId": "ami-04d4e25790238c5f4",
+        "ImageId": EXAMPLE_AMI_ID,
         "InstanceType": "t2.medium",
         "DisableApiTermination": False,
         "TagSpecifications": [
@@ -194,7 +194,7 @@ def test_request_spot_fleet_using_launch_template_config__id():
     conn = boto3.client("ec2", region_name="us-east-2")
 
     template_data = {
-        "ImageId": "ami-04d4e25790238c5f4",
+        "ImageId": EXAMPLE_AMI_ID,
         "InstanceType": "t2.medium",
         "DisableApiTermination": False,
         "TagSpecifications": [
@@ -238,7 +238,7 @@ def test_request_spot_fleet_using_launch_template_config__overrides():
     subnet_id = get_subnet_id(conn)
 
     template_data = {
-        "ImageId": "ami-04d4e25790238c5f4",
+        "ImageId": EXAMPLE_AMI_ID,
         "InstanceType": "t2.medium",
         "DisableApiTermination": False,
         "TagSpecifications": [

@@ -41,6 +41,7 @@ def test_http_integration():
         type="HTTP",
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="GET",
+        requestParameters={"integration.request.header.X-Custom": "'Custom'"},
     )
 
     stage_name = "staging"

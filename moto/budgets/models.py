@@ -2,7 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, BackendDict
 
 from .exceptions import BudgetMissingLimit, DuplicateRecordException, NotFoundException
 
@@ -69,7 +69,8 @@ class Budget(BaseModel):
 class BudgetsBackend(BaseBackend):
     """Implementation of Budgets APIs."""
 
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         # {"account_id": {"budget_name": Budget}}
         self.budgets = defaultdict(dict)
 
@@ -123,4 +124,6 @@ class BudgetsBackend(BaseBackend):
         return self.budgets[account_id][budget_name].get_notifications()
 
 
-budgets_backend = BudgetsBackend()
+budgets_backends = BackendDict(
+    BudgetsBackend, "budgets", use_boto3_regions=False, additional_regions=["global"]
+)

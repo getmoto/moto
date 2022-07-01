@@ -12,7 +12,7 @@ from operator import lt, le, eq, ge, gt
 
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel, BaseModel
+from moto.core import get_account_id, BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import (
     unix_time,
     unix_time_millis,
@@ -32,6 +32,9 @@ from moto.utilities.tagging_service import TaggingService
 from uuid import uuid4
 
 from .utils import PAGINATION_MODEL
+
+# Sentinel to signal the absence of a field for `Exists` pattern matching
+UNDEFINED = object()
 
 
 class Rule(CloudFormationModel):
@@ -59,7 +62,7 @@ class Rule(CloudFormationModel):
         self.event_bus_name = event_bus_name
         self.state = state or "ENABLED"
         self.managed_by = managed_by  # can only be set by AWS services
-        self.created_by = ACCOUNT_ID
+        self.created_by = get_account_id()
         self.targets = targets or []
 
     @property
@@ -73,7 +76,7 @@ class Rule(CloudFormationModel):
         return (
             "arn:aws:events:{region}:{account_id}:rule/{event_bus_name}{name}".format(
                 region=self.region_name,
-                account_id=ACCOUNT_ID,
+                account_id=get_account_id(),
                 event_bus_name=event_bus_name,
                 name=self.name,
             )
@@ -321,7 +324,7 @@ class EventBus(CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:event-bus/{name}".format(
-            region=self.region, account_id=ACCOUNT_ID, name=self.name
+            region=self.region, account_id=get_account_id(), name=self.name
         )
 
     @property
@@ -507,7 +510,7 @@ class Archive(CloudFormationModel):
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:archive/{name}".format(
-            region=self.region, account_id=ACCOUNT_ID, name=self.name
+            region=self.region, account_id=get_account_id(), name=self.name
         )
 
     def describe_short(self):
@@ -640,7 +643,7 @@ class Replay(BaseModel):
     @property
     def arn(self):
         return "arn:aws:events:{region}:{account_id}:replay/{name}".format(
-            region=self.region, account_id=ACCOUNT_ID, name=self.name
+            region=self.region, account_id=get_account_id(), name=self.name
         )
 
     def describe_short(self):
@@ -695,7 +698,7 @@ class Connection(BaseModel):
     @property
     def arn(self):
         return "arn:aws:events:{0}:{1}:connection/{2}/{3}".format(
-            self.region, ACCOUNT_ID, self.name, self.uuid
+            self.region, get_account_id(), self.name, self.uuid
         )
 
     def describe_short(self):
@@ -776,12 +779,13 @@ class Destination(BaseModel):
     @property
     def arn(self):
         return "arn:aws:events:{0}:{1}:api-destination/{2}/{3}".format(
-            self.region, ACCOUNT_ID, self.name, self.uuid
+            self.region, get_account_id(), self.name, self.uuid
         )
 
     def describe(self):
         """
         Describes the Destination object as a dict
+
         Docs:
             Response Syntax in
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
@@ -820,6 +824,9 @@ class EventPattern:
         self._raw_pattern = raw_pattern
         self._pattern = pattern
 
+    def get_pattern(self):
+        return self._pattern
+
     def matches_event(self, event):
         if not self._pattern:
             return True
@@ -827,7 +834,7 @@ class EventPattern:
         return self._does_event_match(event, self._pattern)
 
     def _does_event_match(self, event, pattern):
-        items_and_filters = [(event.get(k), v) for k, v in pattern.items()]
+        items_and_filters = [(event.get(k, UNDEFINED), v) for k, v in pattern.items()]
         nested_filter_matches = [
             self._does_event_match(item, nested_filter)
             for item, nested_filter in items_and_filters
@@ -856,7 +863,7 @@ class EventPattern:
         filter_name, filter_value = list(pattern.items())[0]
         if filter_name == "exists":
             is_leaf_node = not isinstance(item, dict)
-            leaf_exists = is_leaf_node and item is not None
+            leaf_exists = is_leaf_node and item is not UNDEFINED
             should_exist = filter_value
             return leaf_exists if should_exist else not leaf_exists
         if filter_name == "prefix":
@@ -917,15 +924,23 @@ class EventPatternParser:
 
 
 class EventsBackend(BaseBackend):
+    """
+    When a event occurs, the appropriate targets are triggered for a subset of usecases.
+
+    Supported events: S3:CreateBucket
+
+    Supported targets: AWSLambda functions
+    """
+
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
     _CRON_REGEX = re.compile(r"^cron\(.*\)")
     _RATE_REGEX = re.compile(r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)")
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.rules = OrderedDict()
         self.next_tokens = {}
-        self.region_name = region_name
         self.event_buses = {}
         self.event_sources = {}
         self.archives = {}
@@ -935,11 +950,6 @@ class EventsBackend(BaseBackend):
         self._add_default_event_bus()
         self.connections = {}
         self.destinations = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -1221,7 +1231,7 @@ class EventsBackend(BaseBackend):
                             "id": event_id,
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
-                            "account": ACCOUNT_ID,
+                            "account": get_account_id(),
                             "time": event.get("Time", unix_time(datetime.utcnow())),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),
@@ -1673,6 +1683,7 @@ class EventsBackend(BaseBackend):
     def describe_connection(self, name):
         """
         Retrieves details about a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeConnection.html
 
@@ -1696,6 +1707,7 @@ class EventsBackend(BaseBackend):
     def delete_connection(self, name):
         """
         Deletes a connection.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteConnection.html
 
@@ -1727,6 +1739,7 @@ class EventsBackend(BaseBackend):
     ):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateApiDestination.html
 
@@ -1752,6 +1765,7 @@ class EventsBackend(BaseBackend):
     def describe_api_destination(self, name):
         """
         Retrieves details about an API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DescribeApiDestination.html
         Args:
@@ -1770,6 +1784,7 @@ class EventsBackend(BaseBackend):
     def update_api_destination(self, *, name, **kwargs):
         """
         Creates an API destination, which is an HTTP invocation endpoint configured as a target for events.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_UpdateApiDestination.html
 
@@ -1790,6 +1805,7 @@ class EventsBackend(BaseBackend):
     def delete_api_destination(self, name):
         """
         Deletes the specified API destination.
+
         Docs:
             https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_DeleteApiDestination.html
 
