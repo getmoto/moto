@@ -24,6 +24,7 @@ def test_codebuild_create_project_s3_artifacts():
     environment["type"] = "LINUX_CONTAINER"
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
+
     service_role = (
         "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
             ACCOUNT_ID
