@@ -5974,6 +5974,7 @@
 
 ## codebuild
 <details>
+<summary>16% implemented</summary>
 - [ ] batch_delete_builds
 - [ ] batch_get_build_batches
 - [x] batch_get_builds
