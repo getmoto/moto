@@ -389,6 +389,20 @@ class FakeDeployment(BaseModel):
         return obj
 
 
+class FakeDeploymentStatus(BaseModel):
+    def __init__(self, deployment_type, updated_at, deployment_status="InProgress"):
+        self.deployment_type = deployment_type
+        self.update_at_datetime = updated_at
+        self.deployment_status = deployment_status
+
+    def to_dict(self):
+        return {
+            "DeploymentStatus": self.deployment_status,
+            "DeploymentType": self.deployment_type,
+            "UpdatedAt": iso_8601_datetime_with_milliseconds(self.update_at_datetime),
+        }
+
+
 class GreengrassBackend(BaseBackend):
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
@@ -1156,6 +1170,22 @@ class GreengrassBackend(BaseBackend):
             for deployment in self.deployments.values()
             if deployment.group_id == group_id
         ]
+
+    def get_deployment_status(self, group_id, deployment_id):
+
+        if deployment_id not in self.deployments:
+            raise InvalidInputException(f"Deployment '{deployment_id}' does not exist.")
+
+        deployment = self.deployments[deployment_id]
+
+        if deployment.group_id != group_id:
+            raise InvalidInputException(f"Deployment '{deployment_id}' does not exist.")
+
+        return FakeDeploymentStatus(
+            deployment.deployment_type,
+            deployment.update_at_datetime,
+            deployment.deployment_status,
+        )
 
 
 greengrass_backends = BackendDict(GreengrassBackend, "greengrass")

@@ -33,5 +33,6 @@ url_paths = {
     "{0}/greengrass/groups/(?P<group_id>[^/]+)/?$": response.group,
     "{0}/greengrass/groups/(?P<group_id>[^/]+)/versions$": response.group_versions,
     "{0}/greengrass/groups/(?P<group_id>[^/]+)/deployments$": response.deployments,
+    "{0}/greengrass/groups/(?P<group_id>[^/]+)/deployments/(?P<group_version_id>[^/]+)/status$": response.deployment_satus,
     "{0}/greengrass/groups/(?P<group_id>[^/]+)/versions/(?P<group_version_id>[^/]+)/?$": response.group_version,
 }

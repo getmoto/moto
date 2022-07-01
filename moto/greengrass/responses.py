@@ -717,3 +717,19 @@ class GreengrassResponse(BaseResponse):
             {"status": 200},
             json.dumps({"Deployments": deployments}),
         )
+
+    def deployment_satus(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_deployment_status()
+
+    def get_deployment_status(self):
+        group_id = self.path.split("/")[-4]
+        deployment_id = self.path.split("/")[-2]
+
+        res = self.greengrass_backend.get_deployment_status(
+            group_id=group_id,
+            deployment_id=deployment_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())

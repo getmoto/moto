@@ -259,3 +259,99 @@ def test_list_deployments():
 
     if not TEST_SERVER_MODE:
         deployments.should.have.key("CreatedAt").equal("2022-06-01T12:00:00.000Z")
+
+
+@freezegun.freeze_time("2022-06-01 12:00:00")
+@mock_greengrass
+def test_get_deployment_status():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    cores = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123456789",
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+        }
+    ]
+
+    create_core_res = client.create_core_definition(
+        InitialVersion={"Cores": cores}, Name="TestCore"
+    )
+    core_def_ver_arn = create_core_res["LatestVersionArn"]
+
+    create_group_res = client.create_group(
+        Name="TestGroup", InitialVersion={"CoreDefinitionVersionArn": core_def_ver_arn}
+    )
+    group_id = create_group_res["Id"]
+    latest_grp_ver = create_group_res["LatestVersion"]
+    deployment_type = "NewDeployment"
+    create_deployment_res = client.create_deployment(
+        GroupId=group_id, GroupVersionId=latest_grp_ver, DeploymentType=deployment_type
+    )
+
+    deployment_id = create_deployment_res["DeploymentId"]
+    res = client.get_deployment_status(GroupId=group_id, DeploymentId=deployment_id)
+
+    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    res.should.have.key("DeploymentStatus").equal("InProgress")
+    res.should.have.key("DeploymentType").equal(deployment_type)
+    res.should.have.key("UpdatedAt")
+
+    if not TEST_SERVER_MODE:
+        res.should.have.key("UpdatedAt").equal("2022-06-01T12:00:00.000Z")
+
+
+@mock_greengrass
+def test_get_deployment_status_with_invalid_deployment_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    create_group_res = client.create_group(Name="TestGroup")
+    group_id = create_group_res["Id"]
+
+    deployment_id = "7b0bdeae-54c7-47cf-9f93-561e672efd9c"
+
+    with pytest.raises(ClientError) as ex:
+        client.get_deployment_status(GroupId=group_id, DeploymentId=deployment_id)
+    ex.value.response["Error"]["Message"].should.equal(
+        f"Deployment '{deployment_id}' does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_greengrass
+def test_get_deployment_status_with_invalid_group_id():
+
+    client = boto3.client("greengrass", region_name="ap-northeast-1")
+    cores = [
+        {
+            "CertificateArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/36ed61be9c6271ae8da174e29d0e033c06af149d7b21672f3800fe322044554d",
+            "Id": "123456789",
+            "ThingArn": f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/CoreThing",
+        }
+    ]
+
+    create_core_res = client.create_core_definition(
+        InitialVersion={"Cores": cores}, Name="TestCore"
+    )
+    core_def_ver_arn = create_core_res["LatestVersionArn"]
+
+    create_group_res = client.create_group(
+        Name="TestGroup", InitialVersion={"CoreDefinitionVersionArn": core_def_ver_arn}
+    )
+    group_id = create_group_res["Id"]
+    latest_grp_ver = create_group_res["LatestVersion"]
+    deployment_type = "NewDeployment"
+    create_deployment_res = client.create_deployment(
+        GroupId=group_id, GroupVersionId=latest_grp_ver, DeploymentType=deployment_type
+    )
+
+    deployment_id = create_deployment_res["DeploymentId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.get_deployment_status(
+            GroupId="7b0bdeae-54c7-47cf-9f93-561e672efd9c", DeploymentId=deployment_id
+        )
+    ex.value.response["Error"]["Message"].should.equal(
+        f"Deployment '{deployment_id}' does not exist."
+    )
+    ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
