@@ -357,6 +357,10 @@ def test_get_deployment_status_with_invalid_group_id():
     ex.value.response["Error"]["Code"].should.equal("InvalidInputException")
 
 
+@pytest.mark.skipif(
+    TEST_SERVER_MODE,
+    reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
+)
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_reset_deployments():
@@ -403,6 +407,10 @@ def test_reset_deployments():
         reset_deployment["CreatedAt"].should.equal("2022-06-01T12:00:00.000Z")
 
 
+@pytest.mark.skipif(
+    TEST_SERVER_MODE,
+    reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
+)
 @mock_greengrass
 def test_reset_deployments_with_invalid_group_id():
 
@@ -416,6 +424,10 @@ def test_reset_deployments_with_invalid_group_id():
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
+@pytest.mark.skipif(
+    TEST_SERVER_MODE,
+    reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
+)
 @mock_greengrass
 def test_reset_deployments_with_never_deployed_group():
 
@@ -445,6 +457,10 @@ def test_reset_deployments_with_never_deployed_group():
     ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
+@pytest.mark.skipif(
+    TEST_SERVER_MODE,
+    reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
+)
 @mock_greengrass
 def test_reset_deployments_with_already_reset_group():
 
