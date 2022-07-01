@@ -7,8 +7,6 @@ from dateutil import parser
 import datetime
 import uuid
 
-# from .exceptions import InvalidInputException
-
 
 class CodeBuildProjectMetadata(BaseModel):
     def __init__(self, project_name, source_version, artifacts, build_id, service_role):
