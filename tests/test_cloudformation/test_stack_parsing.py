@@ -15,7 +15,7 @@ from moto.cloudformation.parsing import (
     Output,
 )
 from moto import mock_cloudformation, mock_sqs, mock_ssm, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor

@@ -1,12 +1,9 @@
 import json
 import moto.server as server
-from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_sign_up_user_without_authentication():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="cognito-idp"
-    )
+    backend = server.create_backend_app("cognito-idp")
     test_client = backend.test_client()
 
     # Create User Pool
@@ -100,9 +97,7 @@ def test_sign_up_user_without_authentication():
 
 
 def test_admin_create_user_without_authentication():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="cognito-idp"
-    )
+    backend = server.create_backend_app("cognito-idp")
     test_client = backend.test_client()
 
     # Create User Pool

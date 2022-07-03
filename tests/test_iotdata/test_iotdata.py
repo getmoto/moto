@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 
 import moto.iotdata.models
 from moto import mock_iotdata, mock_iot, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_iot

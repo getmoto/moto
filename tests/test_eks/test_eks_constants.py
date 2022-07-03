@@ -6,7 +6,7 @@ from enum import Enum
 
 from boto3 import Session
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.eks import REGION as DEFAULT_REGION
 
 DEFAULT_ENCODING = "utf-8"

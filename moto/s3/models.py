@@ -17,13 +17,8 @@ import urllib.parse
 
 from bisect import insort
 from importlib import reload
-from moto.core import (
-    get_account_id,
-    BaseBackend,
-    BaseModel,
-    CloudFormationModel,
-    CloudWatchMetricProvider,
-)
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import CloudWatchMetricProvider
 
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
@@ -1505,7 +1500,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             "version": "0",
             "bucket": {"name": bucket_name},
             "request-id": "N4N7GDK58NMKJ12R",
-            "requester": get_account_id(),
+            "requester": self.account_id,
             "source-ip-address": "1.2.3.4",
             "reason": "PutObject",
         }

@@ -413,7 +413,7 @@ class SNSResponse(BaseResponse):
         platform = self._get_param("Platform")
         attributes = self._get_attributes()
         platform_application = self.backend.create_platform_application(
-            self.region, name, platform, attributes
+            name, platform, attributes
         )
 
         if self.request_json:
@@ -528,7 +528,7 @@ class SNSResponse(BaseResponse):
         attributes = self._get_attributes()
 
         platform_endpoint = self.backend.create_platform_endpoint(
-            self.region, application, custom_user_data, token, attributes
+            application, custom_user_data, token, attributes
         )
 
         if self.request_json:

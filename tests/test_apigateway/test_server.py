@@ -2,7 +2,6 @@ import sure  # noqa # pylint: disable=unused-import
 import json
 
 import moto.server as server
-from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -10,9 +9,7 @@ Test the different server responses
 
 
 def test_list_apis():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="apigateway"
-    )
+    backend = server.create_backend_app("apigateway")
     test_client = backend.test_client()
 
     res = test_client.get("/restapis")
@@ -20,9 +17,7 @@ def test_list_apis():
 
 
 def test_usage_plans_apis():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="apigateway"
-    )
+    backend = server.create_backend_app("apigateway")
     test_client = backend.test_client()
 
     # List usage plans (expect empty)
@@ -57,9 +52,7 @@ def test_usage_plans_apis():
 
 
 def test_usage_plans_keys():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="apigateway"
-    )
+    backend = server.create_backend_app("apigateway")
     test_client = backend.test_client()
     usage_plan_id = "test_plan_id"
 
@@ -119,9 +112,7 @@ def test_usage_plans_keys():
 
 
 def test_create_usage_plans_key_non_existent_api_key():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="apigateway"
-    )
+    backend = server.create_backend_app("apigateway")
     test_client = backend.test_client()
     usage_plan_id = "test_plan_id"
 
@@ -151,9 +142,7 @@ def test_put_integration_response_without_body():
     # As a workaround, we can create a PUT-request without body, which will force the error
     # Related: # https://github.com/aws/aws-sdk-js/issues/2588
     #
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="apigateway"
-    )
+    backend = server.create_backend_app("apigateway")
     test_client = backend.test_client()
 
     res = test_client.put(

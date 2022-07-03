@@ -3,7 +3,7 @@ import boto3
 import sure  # noqa # pylint: disable=unused-import
 import json
 
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import utils as ec2_utils
 
 from moto import mock_ecs, mock_ec2

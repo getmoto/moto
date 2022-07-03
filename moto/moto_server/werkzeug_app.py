@@ -8,7 +8,7 @@ from flask_cors import CORS
 
 import moto.backends as backends
 import moto.backend_index as backend_index
-from moto.core import get_account_id
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import convert_to_flask_response, BackendDict
 
 from .utilities import AWSTestHelper, RegexConverter
@@ -16,8 +16,6 @@ from .utilities import AWSTestHelper, RegexConverter
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
 
-# TODO
-DEFAULT_ACCOUNT_ID = get_account_id()
 DEFAULT_SERVICE_REGION = ("s3", "us-east-1")
 
 # Map of unsigned calls to service-region as per AWS API docs
@@ -173,7 +171,6 @@ class DomainDispatcherApplication(object):
 
         with self.lock:
             backend = self.get_backend_for_host(host)
-            account_id = self._get_account_id(environ)
             if not backend:
                 # No regular backend found; try parsing body/other headers
                 body = self._get_body(environ)
@@ -182,17 +179,9 @@ class DomainDispatcherApplication(object):
 
             app = self.app_instances.get(backend, None)
             if app is None:
-                app = self.create_app(account_id, backend)
+                app = self.create_app(backend)
                 self.app_instances[backend] = app
             return app
-
-    def _get_account_id(self, environ):
-        try:
-            auth = environ["HTTP_AUTHORIZATION"]
-            credential_scope = auth.split(",")[0].split()[1]
-            return credential_scope.split("/")[0]
-        except (ValueError, KeyError):
-            return DEFAULT_ACCOUNT_ID
 
     def _get_body(self, environ):
         body = None
@@ -252,7 +241,7 @@ class DomainDispatcherApplication(object):
         return backend_app(environ, start_response)
 
 
-def create_backend_app(account_id, service):
+def create_backend_app(service):
     from werkzeug.routing import Map
 
     current_file = os.path.abspath(__file__)
@@ -271,11 +260,13 @@ def create_backend_app(account_id, service):
     backend_app.url_map.converters["regex"] = RegexConverter
 
     backend_dict = backends.get_backend(service)
+    # Get an instance of this backend.
+    # We'll only use this backend to resolve the URL's, so the exact region/account_id is irrelevant
     if isinstance(backend_dict, BackendDict):
-        if "us-east-1" in backend_dict[account_id]:
-            backend = backend_dict[account_id]["us-east-1"]
+        if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
+            backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
         else:
-            backend = backend_dict[account_id]["global"]
+            backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
     else:
         backend = backend_dict["global"]
 

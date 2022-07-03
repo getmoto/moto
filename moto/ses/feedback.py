@@ -1,5 +1,3 @@
-from moto.core import get_account_id
-
 """
 SES Feedback messages
 Extracted from https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html
@@ -12,7 +10,7 @@ COMMON_MAIL = {
         "source": "sender@example.com",
         "sourceArn": "arn:aws:ses:us-west-2:888888888888:identity/example.com",
         "sourceIp": "127.0.3.0",
-        "sendingAccountId": get_account_id(),
+        "sendingAccountId": None,
         "destination": ["recipient@example.com"],
         "headersTruncated": False,
         "headers": [

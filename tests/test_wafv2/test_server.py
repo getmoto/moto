@@ -3,7 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 import moto.server as server
 from moto import mock_wafv2
 from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 CREATE_WEB_ACL_HEADERS = {
     "X-Amz-Target": "AWSWAF_20190729.CreateWebACL",
@@ -19,7 +19,7 @@ LIST_WEB_ACL_HEADERS = {
 
 @mock_wafv2
 def test_create_web_acl():
-    backend = server.create_backend_app(account_id=ACCOUNT_ID, service="wafv2")
+    backend = server.create_backend_app("wafv2")
     test_client = backend.test_client()
 
     res = test_client.post(
@@ -61,7 +61,7 @@ def test_create_web_acl():
 
 @mock_wafv2
 def test_list_web_ac_ls():
-    backend = server.create_backend_app(account_id=ACCOUNT_ID, service="wafv2")
+    backend = server.create_backend_app("wafv2")
     test_client = backend.test_client()
 
     test_client.post(

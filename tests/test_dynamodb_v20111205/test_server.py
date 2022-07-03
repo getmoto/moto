@@ -4,7 +4,6 @@ import pytest
 
 import moto.server as server
 from moto.dynamodb_v20111205 import dynamodb_backends
-from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -18,9 +17,7 @@ TABLE_WITH_RANGE_NAME = "my_table_with_range_name"
 
 @pytest.fixture(autouse=True)
 def test_client():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="dynamodb_v20111205"
-    )
+    backend = server.create_backend_app("dynamodb_v20111205")
     test_client = backend.test_client()
 
     yield test_client

@@ -1,4 +1,3 @@
-from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from .models import elb_backends
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
@@ -62,7 +61,7 @@ class ELBResponse(BaseResponse):
 
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(
-            ACCOUNT_ID=get_account_id(),
+            ACCOUNT_ID=self.current_account,
             load_balancers=load_balancers_resp,
             marker=next_marker,
         )

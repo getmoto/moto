@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from moto.apigateway.exceptions import ValidationException
 
-from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex, unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
@@ -55,16 +55,16 @@ class Grant(BaseModel):
 
 
 class Key(CloudFormationModel):
-    def __init__(self, policy, key_usage, key_spec, description, region):
+    def __init__(self, policy, key_usage, key_spec, description, account_id, region):
         self.id = generate_key_id()
         self.creation_date = unix_time()
+        self.account_id = account_id
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
         self.description = description or ""
         self.enabled = True
         self.region = region
-        self.account_id = get_account_id()
         self.key_rotation_status = False
         self.deletion_date = None
         self.key_material = generate_master_key()
@@ -72,6 +72,7 @@ class Key(CloudFormationModel):
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
+        self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
 
         self.grants = dict()
 
@@ -122,7 +123,7 @@ class Key(CloudFormationModel):
                     {
                         "Sid": "Enable IAM User Permissions",
                         "Effect": "Allow",
-                        "Principal": {"AWS": f"arn:aws:iam::{get_account_id()}:root"},
+                        "Principal": {"AWS": f"arn:aws:iam::{self.account_id}:root"},
                         "Action": "kms:*",
                         "Resource": "*",
                     }
@@ -133,12 +134,6 @@ class Key(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.id
-
-    @property
-    def arn(self):
-        return "arn:aws:kms:{0}:{1}:key/{2}".format(
-            self.region, self.account_id, self.id
-        )
 
     @property
     def encryption_algorithms(self):
@@ -217,7 +212,6 @@ class Key(CloudFormationModel):
             key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags", []),
-            region=region_name,
         )
         key.key_rotation_status = properties["EnableKeyRotation"]
         key.enabled = properties["Enabled"]
@@ -259,13 +253,14 @@ class KmsBackend(BaseBackend):
                 "SYMMETRIC_DEFAULT",
                 "Default key",
                 None,
-                self.region_name,
             )
             self.add_alias(key.id, alias_name)
             return key.id
 
-    def create_key(self, policy, key_usage, key_spec, description, tags, region):
-        key = Key(policy, key_usage, key_spec, description, region)
+    def create_key(self, policy, key_usage, key_spec, description, tags):
+        key = Key(
+            policy, key_usage, key_spec, description, self.account_id, self.region_name
+        )
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)

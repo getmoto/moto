@@ -1,5 +1,6 @@
 import boto3
 
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.swf.models import ActivityType, Domain, WorkflowType, WorkflowExecution
 
 
@@ -31,7 +32,7 @@ for key, value in ACTIVITY_TASK_TIMEOUTS.items():
 
 # A test Domain
 def get_basic_domain():
-    return Domain("test-domain", "90", "us-east-1")
+    return Domain("test-domain", "90", DEFAULT_ACCOUNT_ID, "us-east-1")
 
 
 # A test WorkflowType

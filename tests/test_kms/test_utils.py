@@ -101,7 +101,7 @@ def test_deserialize_ciphertext_blob(raw, serialized):
 )
 def test_encrypt_decrypt_cycle(encryption_context):
     plaintext = b"some secret plaintext"
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
     ciphertext_blob = encrypt(
@@ -132,7 +132,7 @@ def test_encrypt_unknown_key_id():
 
 
 def test_decrypt_invalid_ciphertext_format():
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
     with pytest.raises(InvalidCiphertextException):
@@ -152,7 +152,7 @@ def test_decrypt_unknwown_key_id():
 
 
 def test_decrypt_invalid_ciphertext():
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
     ciphertext_blob = (
         master_key.id.encode("utf-8") + b"123456789012"
@@ -170,7 +170,7 @@ def test_decrypt_invalid_ciphertext():
 
 def test_decrypt_invalid_encryption_context():
     plaintext = b"some secret plaintext"
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
+    master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
     ciphertext_blob = encrypt(

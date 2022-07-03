@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_emr
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 run_job_flow_args = dict(

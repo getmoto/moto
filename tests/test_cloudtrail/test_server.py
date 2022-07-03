@@ -4,14 +4,11 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_cloudtrail
-from tests import DEFAULT_ACCOUNT_ID
 
 
 @mock_cloudtrail
 def test_cloudtrail_list():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="cloudtrail"
-    )
+    backend = server.create_backend_app("cloudtrail")
     test_client = backend.test_client()
 
     headers = {

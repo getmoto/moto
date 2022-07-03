@@ -9,7 +9,6 @@ import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core import get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
@@ -371,16 +370,14 @@ class CognitoIdpUserPool(BaseModel):
 
     MAX_ID_LENGTH = 56
 
-    def __init__(self, region, name, extended_config):
+    def __init__(self, account_id, region, name, extended_config):
         self.region = region
 
         user_pool_id = generate_id(
             get_cognito_idp_user_pool_id_strategy(), region, name, extended_config
         )
         self.id = "{}_{}".format(self.region, user_pool_id)[: self.MAX_ID_LENGTH]
-        self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
-            self.region, get_account_id(), self.id
-        )
+        self.arn = f"arn:aws:cognito-idp:{self.region}:{account_id}:userpool/{self.id}"
 
         self.name = name
         self.status = None
@@ -846,7 +843,9 @@ class CognitoIdpBackend(BaseBackend):
 
     # User pool
     def create_user_pool(self, name, extended_config):
-        user_pool = CognitoIdpUserPool(self.region_name, name, extended_config)
+        user_pool = CognitoIdpUserPool(
+            self.account_id, self.region_name, name, extended_config
+        )
         self.user_pools[user_pool.id] = user_pool
         return user_pool
 
@@ -1814,24 +1813,24 @@ class RegionAgnosticBackend:
     # This backend will cycle through all backends as a workaround
 
     def _find_backend_by_access_token(self, access_token):
-        account_specific_backends = cognitoidp_backends[get_account_id()]
-        for region, backend in account_specific_backends.items():
-            if region == "global":
-                continue
-            for p in backend.user_pools.values():
-                if access_token in p.access_tokens:
-                    return backend
-        return account_specific_backends["us-east-1"]
+        for account_specific_backends in cognitoidp_backends.values():
+            for region, backend in account_specific_backends.items():
+                if region == "global":
+                    continue
+                for p in backend.user_pools.values():
+                    if access_token in p.access_tokens:
+                        return backend
+        return backend
 
     def _find_backend_for_clientid(self, client_id):
-        account_specific_backends = cognitoidp_backends[get_account_id()]
-        for region, backend in account_specific_backends.items():
-            if region == "global":
-                continue
-            for p in backend.user_pools.values():
-                if client_id in p.clients:
-                    return backend
-        return account_specific_backends["us-east-1"]
+        for account_specific_backends in cognitoidp_backends.values():
+            for region, backend in account_specific_backends.items():
+                if region == "global":
+                    continue
+                for p in backend.user_pools.values():
+                    if client_id in p.clients:
+                        return backend
+        return backend
 
     def sign_up(self, client_id, username, password, attributes):
         backend = self._find_backend_for_clientid(client_id)

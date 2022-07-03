@@ -1,4 +1,3 @@
-from moto.core import get_account_id
 from moto.core.responses import BaseResponse
 from .models import elastictranscoder_backends
 import json
@@ -84,9 +83,7 @@ class ElasticTranscoderResponse(BaseResponse):
             self.elastictranscoder_backend.read_pipeline(pipeline_id)
             return None
         except KeyError:
-            msg = "The specified pipeline was not found: account={}, pipelineId={}.".format(
-                get_account_id(), pipeline_id
-            )
+            msg = f"The specified pipeline was not found: account={self.current_account}, pipelineId={pipeline_id}."
             return (
                 404,
                 {"status": 404, "x-amzn-ErrorType": "ResourceNotFoundException"},

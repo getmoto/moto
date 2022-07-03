@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from .utils import PAGINATION_MODEL
 
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.utilities.utils import random_string
 from moto.utilities.paginator import paginate
@@ -32,12 +32,12 @@ from .exceptions import (
 
 
 class FakeThing(BaseModel):
-    def __init__(self, thing_name, thing_type, attributes, region_name):
+    def __init__(self, thing_name, thing_type, attributes, account_id, region_name):
         self.region_name = region_name
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
-        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:thing/{thing_name}"
+        self.arn = f"arn:aws:iot:{region_name}:{account_id}:thing/{thing_name}"
         self.version = 1
         # TODO: we need to handle "version"?
 
@@ -149,17 +149,17 @@ class FakeThingGroup(BaseModel):
 
 
 class FakeCertificate(BaseModel):
-    def __init__(self, certificate_pem, status, region_name, ca_certificate_id=None):
+    def __init__(
+        self, certificate_pem, status, account_id, region_name, ca_certificate_id=None
+    ):
         m = hashlib.sha256()
         m.update(certificate_pem.encode("utf-8"))
         self.certificate_id = m.hexdigest()
-        self.arn = (
-            f"arn:aws:iot:{region_name}:{get_account_id()}:cert/{self.certificate_id}"
-        )
+        self.arn = f"arn:aws:iot:{region_name}:{account_id}:cert/{self.certificate_id}"
         self.certificate_pem = certificate_pem
         self.status = status
 
-        self.owner = get_account_id()
+        self.owner = account_id
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
@@ -199,10 +199,13 @@ class FakeCertificate(BaseModel):
 
 
 class FakeCaCertificate(FakeCertificate):
-    def __init__(self, ca_certificate, status, region_name, registration_config):
+    def __init__(
+        self, ca_certificate, status, account_id, region_name, registration_config
+    ):
         super().__init__(
             certificate_pem=ca_certificate,
             status=status,
+            account_id=account_id,
             region_name=region_name,
             ca_certificate_id=None,
         )
@@ -210,12 +213,14 @@ class FakeCaCertificate(FakeCertificate):
 
 
 class FakePolicy(BaseModel):
-    def __init__(self, name, document, region_name, default_version_id="1"):
+    def __init__(self, name, document, account_id, region_name, default_version_id="1"):
         self.name = name
         self.document = document
-        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{name}"
+        self.arn = f"arn:aws:iot:{region_name}:{account_id}:policy/{name}"
         self.default_version_id = default_version_id
-        self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
+        self.versions = [
+            FakePolicyVersion(self.name, document, True, account_id, region_name)
+        ]
 
     def to_get_dict(self):
         return {
@@ -238,9 +243,9 @@ class FakePolicy(BaseModel):
 
 
 class FakePolicyVersion(object):
-    def __init__(self, policy_name, document, is_default, region_name):
+    def __init__(self, policy_name, document, is_default, account_id, region_name):
         self.name = policy_name
-        self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{policy_name}"
+        self.arn = f"arn:aws:iot:{region_name}:{account_id}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
         self.version_id = "1"
@@ -658,7 +663,9 @@ class IoTBackend(BaseBackend):
             attributes = {}
         else:
             attributes = attribute_payload["attributes"]
-        thing = FakeThing(thing_name, thing_type, attributes, self.region_name)
+        thing = FakeThing(
+            thing_name, thing_type, attributes, self.account_id, self.region_name
+        )
         self.things[thing.arn] = thing
         return thing.thing_name, thing.arn
 
@@ -838,7 +845,9 @@ class IoTBackend(BaseBackend):
         }
         certificate_pem = self._random_string()
         status = "ACTIVE" if set_as_active else "INACTIVE"
-        certificate = FakeCertificate(certificate_pem, status, self.region_name)
+        certificate = FakeCertificate(
+            certificate_pem, status, self.account_id, self.region_name
+        )
         self.certificates[certificate.certificate_id] = certificate
         return certificate, key_pair
 
@@ -932,6 +941,7 @@ class IoTBackend(BaseBackend):
         certificate = FakeCaCertificate(
             ca_certificate=ca_certificate,
             status="ACTIVE" if set_as_active else "INACTIVE",
+            account_id=self.account_id,
             region_name=self.region_name,
             registration_config=registration_config,
         )
@@ -952,6 +962,7 @@ class IoTBackend(BaseBackend):
         certificate = FakeCertificate(
             certificate_pem,
             "ACTIVE" if set_as_active else status,
+            self.account_id,
             self.region_name,
             ca_certificate_id,
         )
@@ -963,7 +974,9 @@ class IoTBackend(BaseBackend):
         return certificate
 
     def register_certificate_without_ca(self, certificate_pem, status):
-        certificate = FakeCertificate(certificate_pem, status, self.region_name)
+        certificate = FakeCertificate(
+            certificate_pem, status, self.account_id, self.region_name
+        )
         self.__raise_if_certificate_already_exists(
             certificate.certificate_id, certificate_arn=certificate.arn
         )
@@ -987,7 +1000,9 @@ class IoTBackend(BaseBackend):
         cert.status = new_status
 
     def create_policy(self, policy_name, policy_document):
-        policy = FakePolicy(policy_name, policy_document, self.region_name)
+        policy = FakePolicy(
+            policy_name, policy_document, self.account_id, self.region_name
+        )
         self.policies[policy.name] = policy
         return policy
 
@@ -1044,7 +1059,11 @@ class IoTBackend(BaseBackend):
         if len(policy.versions) >= 5:
             raise VersionsLimitExceededException(policy_name)
         version = FakePolicyVersion(
-            policy_name, policy_document, set_as_default, self.region_name
+            policy_name,
+            policy_document,
+            set_as_default,
+            self.account_id,
+            self.region_name,
         )
         policy.versions.append(version)
         version.version_id = "{0}".format(len(policy.versions))

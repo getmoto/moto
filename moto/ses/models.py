@@ -49,8 +49,9 @@ class SESFeedback(BaseModel):
     FORWARDING_ENABLED = "feedback_forwarding_enabled"
 
     @staticmethod
-    def generate_message(msg_type):
+    def generate_message(account_id, msg_type):
         msg = dict(COMMON_MAIL)
+        msg["mail"]["sendingAccountId"] = account_id
         if msg_type == SESFeedback.BOUNCE:
             msg["bounce"] = BOUNCE
         elif msg_type == SESFeedback.COMPLAINT:
@@ -235,7 +236,7 @@ class SESBackend(BaseBackend):
 
     def __generate_feedback__(self, msg_type):
         """Generates the SNS message for the feedback"""
-        return SESFeedback.generate_message(msg_type)
+        return SESFeedback.generate_message(self.account_id, msg_type)
 
     def __process_sns_feedback__(self, source, destinations, region):
         domain = str(source)

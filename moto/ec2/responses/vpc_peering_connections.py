@@ -1,5 +1,4 @@
 from moto.core.responses import BaseResponse
-from moto.core import get_account_id
 
 
 class VPCPeeringConnections(BaseResponse):
@@ -21,7 +20,7 @@ class VPCPeeringConnections(BaseResponse):
         vpc = self.ec2_backend.get_vpc(self._get_param("VpcId"))
         vpc_pcx = self.ec2_backend.create_vpc_peering_connection(vpc, peer_vpc, tags)
         template = self.response_template(CREATE_VPC_PEERING_CONNECTION_RESPONSE)
-        return template.render(vpc_pcx=vpc_pcx)
+        return template.render(account_id=self.current_account, vpc_pcx=vpc_pcx)
 
     def delete_vpc_peering_connection(self):
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
@@ -35,13 +34,13 @@ class VPCPeeringConnections(BaseResponse):
             vpc_peering_ids=ids
         )
         template = self.response_template(DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE)
-        return template.render(vpc_pcxs=vpc_pcxs)
+        return template.render(account_id=self.current_account, vpc_pcxs=vpc_pcxs)
 
     def accept_vpc_peering_connection(self):
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
         vpc_pcx = self.ec2_backend.accept_vpc_peering_connection(vpc_pcx_id)
         template = self.response_template(ACCEPT_VPC_PEERING_CONNECTION_RESPONSE)
-        return template.render(vpc_pcx=vpc_pcx)
+        return template.render(account_id=self.current_account, vpc_pcx=vpc_pcx)
 
     def reject_vpc_peering_connection(self):
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
@@ -68,16 +67,13 @@ class VPCPeeringConnections(BaseResponse):
 
 # we are assuming that the owner id for accepter and requester vpc are same
 # as we are checking for the vpc exsistance
-CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
-    """
+CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
 <CreateVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
  <vpcPeeringConnection>
   <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-     <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+     <ownerId>{{ account_id }}</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
      <peeringOptions>
@@ -87,9 +83,7 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+      <ownerId>{{ account_id }}</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <peeringOptions>
         <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
@@ -113,10 +107,8 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
  </vpcPeeringConnection>
 </CreateVpcPeeringConnectionResponse>
 """
-)
 
-DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
-    """
+DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
 <DescribeVpcPeeringConnectionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
 <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
  <vpcPeeringConnectionSet>
@@ -124,9 +116,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
  <item>
   <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-     <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+     <ownerId>{{ account_id }}</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
      <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
@@ -137,9 +127,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
-     <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+     <ownerId>{{ account_id }}</ownerId>
      <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
      <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
@@ -166,7 +154,6 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
  </vpcPeeringConnectionSet>
 </DescribeVpcPeeringConnectionsResponse>
 """
-)
 
 DELETE_VPC_PEERING_CONNECTION_RESPONSE = """
 <DeleteVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -175,24 +162,19 @@ DELETE_VPC_PEERING_CONNECTION_RESPONSE = """
 </DeleteVpcPeeringConnectionResponse>
 """
 
-ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
-    """
+ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
 <AcceptVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpcPeeringConnection>
     <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-      <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+      <ownerId>{{ account_id }}</ownerId>
       <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
       <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>"""
-    + get_account_id()
-    + """</ownerId>
+      <ownerId>{{ account_id }}</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
       <peeringOptions>
@@ -217,7 +199,6 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
   </vpcPeeringConnection>
 </AcceptVpcPeeringConnectionResponse>
 """
-)
 
 REJECT_VPC_PEERING_CONNECTION_RESPONSE = """
 <RejectVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

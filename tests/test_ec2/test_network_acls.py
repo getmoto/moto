@@ -4,7 +4,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
-from moto.ec2.models import OWNER_ID
+from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from random import randint
 from unittest import SkipTest
 

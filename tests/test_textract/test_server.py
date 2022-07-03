@@ -4,14 +4,11 @@ import sure  # noqa # pylint: disable=unused-import
 import json
 import moto.server as server
 from moto import mock_textract
-from tests import DEFAULT_ACCOUNT_ID
 
 
 @mock_textract
 def test_textract_start_text_detection():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="textract"
-    )
+    backend = server.create_backend_app("textract")
     test_client = backend.test_client()
 
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentTextDetection"}
@@ -29,9 +26,7 @@ def test_textract_start_text_detection():
 
 @mock_textract
 def test_textract_start_text_detection_without_document_location():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="textract"
-    )
+    backend = server.create_backend_app("textract")
     test_client = backend.test_client()
 
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentTextDetection"}
@@ -46,9 +41,7 @@ def test_textract_start_text_detection_without_document_location():
 
 @mock_textract
 def test_textract_get_text_detection():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="textract"
-    )
+    backend = server.create_backend_app("textract")
     test_client = backend.test_client()
 
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentTextDetection"}
@@ -73,9 +66,7 @@ def test_textract_get_text_detection():
 
 @mock_textract
 def test_textract_get_text_detection_without_job_id():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="textract"
-    )
+    backend = server.create_backend_app("textract")
     test_client = backend.test_client()
 
     headers = {"X-Amz-Target": "X-Amz-Target=Textract.GetDocumentTextDetection"}

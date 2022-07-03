@@ -3,7 +3,7 @@ import sure  # noqa  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_iam
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID
 import pytest
 
 from datetime import datetime
@@ -18,7 +18,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.com".format(ACCOUNT_ID)
+        "arn:aws:iam::{}:oidc-provider/example.com".format(DEFAULT_ACCOUNT_ID)
     )
 
     response = client.create_open_id_connect_provider(
@@ -26,7 +26,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org".format(ACCOUNT_ID)
+        "arn:aws:iam::{}:oidc-provider/example.org".format(DEFAULT_ACCOUNT_ID)
     )
 
     response = client.create_open_id_connect_provider(
@@ -34,7 +34,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org/oidc".format(ACCOUNT_ID)
+        "arn:aws:iam::{}:oidc-provider/example.org/oidc".format(DEFAULT_ACCOUNT_ID)
     )
 
     response = client.create_open_id_connect_provider(
@@ -42,7 +42,9 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::{}:oidc-provider/example.org/oidc-query".format(ACCOUNT_ID)
+        "arn:aws:iam::{}:oidc-provider/example.org/oidc-query".format(
+            DEFAULT_ACCOUNT_ID
+        )
     )
 
 

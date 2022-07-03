@@ -8,7 +8,7 @@ import pytest
 
 from moto import mock_firehose
 from moto import settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import get_random_hex
 from moto.firehose.models import DeliveryStream
 

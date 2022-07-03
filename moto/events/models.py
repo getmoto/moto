@@ -12,7 +12,7 @@ from operator import lt, le, eq, ge, gt
 
 from collections import OrderedDict
 from moto.core.exceptions import JsonRESTError
-from moto.core import get_account_id, BaseBackend, CloudFormationModel, BaseModel
+from moto.core import BaseBackend, CloudFormationModel, BaseModel
 from moto.core.utils import (
     unix_time,
     unix_time_millis,
@@ -64,7 +64,7 @@ class Rule(CloudFormationModel):
         self.event_bus_name = event_bus_name
         self.state = state or "ENABLED"
         self.managed_by = managed_by  # can only be set by AWS services
-        self.created_by = get_account_id()
+        self.created_by = account_id
         self.targets = targets or []
 
     @property
@@ -324,18 +324,14 @@ class Rule(CloudFormationModel):
 
 
 class EventBus(CloudFormationModel):
-    def __init__(self, region_name, name, tags=None):
+    def __init__(self, account_id, region_name, name, tags=None):
+        self.account_id = account_id
         self.region = region_name
         self.name = name
+        self.arn = f"arn:aws:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
 
         self._statements = {}
-
-    @property
-    def arn(self):
-        return "arn:aws:events:{region}:{account_id}:event-bus/{name}".format(
-            region=self.region, account_id=get_account_id(), name=self.name
-        )
 
     @property
     def policy(self):
@@ -506,7 +502,14 @@ class Archive(CloudFormationModel):
     ]
 
     def __init__(
-        self, region_name, name, source_arn, description, event_pattern, retention
+        self,
+        account_id,
+        region_name,
+        name,
+        source_arn,
+        description,
+        event_pattern,
+        retention,
     ):
         self.region = region_name
         self.name = name
@@ -515,18 +518,13 @@ class Archive(CloudFormationModel):
         self.event_pattern = EventPattern.load(event_pattern)
         self.retention = retention if retention else 0
 
+        self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "ENABLED"
         self.uuid = str(uuid4())
 
         self.events = []
         self.event_bus_name = source_arn.split("/")[-1]
-
-    @property
-    def arn(self):
-        return "arn:aws:events:{region}:{account_id}:archive/{name}".format(
-            region=self.region, account_id=get_account_id(), name=self.name
-        )
 
     def describe_short(self):
         return {
@@ -658,15 +656,10 @@ class Replay(BaseModel):
         self.event_end_time = end_time
         self.destination = destination
 
+        self.arn = f"arn:aws:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
         self.start_time = unix_time(datetime.utcnow())
         self.end_time = None
-
-    @property
-    def arn(self):
-        return "arn:aws:events:{region}:{account_id}:replay/{name}".format(
-            region=self.region, account_id=get_account_id(), name=self.name
-        )
 
     def describe_short(self):
         return {
@@ -707,7 +700,13 @@ class Replay(BaseModel):
 
 class Connection(BaseModel):
     def __init__(
-        self, name, region_name, description, authorization_type, auth_parameters
+        self,
+        name,
+        account_id,
+        region_name,
+        description,
+        authorization_type,
+        auth_parameters,
     ):
         self.uuid = uuid4()
         self.name = name
@@ -718,11 +717,7 @@ class Connection(BaseModel):
         self.creation_time = unix_time(datetime.utcnow())
         self.state = "AUTHORIZED"
 
-    @property
-    def arn(self):
-        return "arn:aws:events:{0}:{1}:connection/{2}/{3}".format(
-            self.region, get_account_id(), self.name, self.uuid
-        )
+        self.arn = f"arn:aws:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
 
     def describe_short(self):
         """
@@ -781,6 +776,7 @@ class Destination(BaseModel):
     def __init__(
         self,
         name,
+        account_id,
         region_name,
         description,
         connection_arn,
@@ -798,12 +794,7 @@ class Destination(BaseModel):
         self.creation_time = unix_time(datetime.utcnow())
         self.http_method = http_method
         self.state = "ACTIVE"
-
-    @property
-    def arn(self):
-        return "arn:aws:events:{0}:{1}:api-destination/{2}/{3}".format(
-            self.region, get_account_id(), self.name, self.uuid
-        )
+        self.arn = f"arn:aws:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
 
     def describe(self):
         """
@@ -982,7 +973,9 @@ class EventsBackend(BaseBackend):
         )
 
     def _add_default_event_bus(self):
-        self.event_buses["default"] = EventBus(self.region_name, "default")
+        self.event_buses["default"] = EventBus(
+            self.account_id, self.region_name, "default"
+        )
 
     def _gen_next_token(self, index):
         token = os.urandom(128).encode("base64")
@@ -1255,7 +1248,7 @@ class EventsBackend(BaseBackend):
                             "id": event_id,
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
-                            "account": get_account_id(),
+                            "account": self.account_id,
                             "time": event.get("Time", unix_time(datetime.utcnow())),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),
@@ -1395,7 +1388,7 @@ class EventsBackend(BaseBackend):
                 "Event source {} does not exist.".format(event_source_name),
             )
 
-        event_bus = EventBus(self.region_name, name, tags=tags)
+        event_bus = EventBus(self.account_id, self.region_name, name, tags=tags)
         self.event_buses[name] = event_bus
         if tags:
             self.tagger.tag_resource(event_bus.arn, tags)
@@ -1469,7 +1462,13 @@ class EventsBackend(BaseBackend):
             )
 
         archive = Archive(
-            self.region_name, name, source_arn, description, event_pattern, retention
+            self.account_id,
+            self.region_name,
+            name,
+            source_arn,
+            description,
+            event_pattern,
+            retention,
         )
 
         rule_event_pattern = json.loads(event_pattern or "{}")
@@ -1685,7 +1684,12 @@ class EventsBackend(BaseBackend):
 
     def create_connection(self, name, description, authorization_type, auth_parameters):
         connection = Connection(
-            name, self.region_name, description, authorization_type, auth_parameters
+            name,
+            self.account_id,
+            self.region_name,
+            description,
+            authorization_type,
+            auth_parameters,
         )
         self.connections[name] = connection
         return connection
@@ -1773,6 +1777,7 @@ class EventsBackend(BaseBackend):
         """
         destination = Destination(
             name=name,
+            account_id=self.account_id,
             region_name=self.region_name,
             description=description,
             connection_arn=connection_arn,

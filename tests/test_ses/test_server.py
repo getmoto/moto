@@ -4,7 +4,6 @@ import re
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
-from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -12,7 +11,7 @@ Test the different server responses
 
 
 def test_ses_list_identities():
-    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="ses")
+    backend = server.create_backend_app("ses")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=ListIdentities")
@@ -20,7 +19,7 @@ def test_ses_list_identities():
 
 
 def test_ses_get_send_statistics():
-    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="ses")
+    backend = server.create_backend_app("ses")
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=GetSendStatistics")

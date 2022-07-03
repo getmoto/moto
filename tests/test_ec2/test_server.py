@@ -3,7 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 import xmltodict
 
 import moto.server as server
-from tests import EXAMPLE_AMI_ID, DEFAULT_ACCOUNT_ID
+from tests import EXAMPLE_AMI_ID
 
 """
 Test the different server responses
@@ -11,7 +11,7 @@ Test the different server responses
 
 
 def test_ec2_server_get():
-    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="ec2")
+    backend = server.create_backend_app("ec2")
     test_client = backend.test_client()
 
     res = test_client.get(
@@ -32,7 +32,7 @@ def test_ec2_get_unknown_vpc():
     Terraform will throw errors when destroying a VPC otherwise
     :return:
     """
-    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="ec2")
+    backend = server.create_backend_app("ec2")
     test_client = backend.test_client()
 
     res = test_client.get(
@@ -56,7 +56,7 @@ def test_ec2_get_unknown_route_table():
     Terraform will throw errors when destroying a RouteTable otherwise
     :return:
     """
-    backend = server.create_backend_app(account_id=DEFAULT_ACCOUNT_ID, service="ec2")
+    backend = server.create_backend_app("ec2")
     test_client = backend.test_client()
 
     res = test_client.get(

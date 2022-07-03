@@ -1,4 +1,4 @@
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 from moto.ecs import ecs_backends
 from .exceptions import AWSValidationException
@@ -301,6 +301,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 start_time,
                 end_time,
                 scalable_target_action,
+                self.account_id,
                 self.region_name,
             )
             self.scheduled_actions.append(action)
@@ -446,9 +447,10 @@ class FakeScheduledAction(BaseModel):
         start_time,
         end_time,
         scalable_target_action,
+        account_id,
         region,
     ):
-        self.arn = f"arn:aws:autoscaling:{region}:{get_account_id()}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
+        self.arn = f"arn:aws:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
         self.timezone = timezone

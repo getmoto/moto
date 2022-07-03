@@ -20,7 +20,7 @@ from moto import (
     settings,
 )
 from moto.cloudformation import cloudformation_backends
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID
 

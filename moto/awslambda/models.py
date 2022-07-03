@@ -51,7 +51,6 @@ from .utils import (
 from moto.sqs import sqs_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
-from moto.core import get_account_id
 from moto.utilities.docker_utilities import DockerModel, parse_image_ref
 from tempfile import TemporaryDirectory
 from uuid import uuid4
@@ -264,7 +263,7 @@ class LayerVersion(CloudFormationModel):
     def arn(self):
         if self.version:
             return make_layer_ver_arn(
-                self.region, get_account_id(), self.name, self.version
+                self.region, self.account_id, self.name, self.version
             )
         raise ValueError("Layer version is not set")
 
@@ -321,9 +320,18 @@ class LayerVersion(CloudFormationModel):
 
 class LambdaAlias(BaseModel):
     def __init__(
-        self, region, name, function_name, function_version, description, routing_config
+        self,
+        account_id,
+        region,
+        name,
+        function_name,
+        function_version,
+        description,
+        routing_config,
     ):
-        self.arn = f"arn:aws:lambda:{region}:{get_account_id()}:function:{function_name}:{name}"
+        self.arn = (
+            f"arn:aws:lambda:{region}:{account_id}:function:{function_name}:{name}"
+        )
         self.name = name
         self.function_version = function_version
         self.description = description
@@ -350,11 +358,13 @@ class LambdaAlias(BaseModel):
 
 
 class Layer(object):
-    def __init__(self, name, region):
-        self.region = region
-        self.name = name
+    def __init__(self, layer_version: LayerVersion):
+        self.region = layer_version.region
+        self.name = layer_version.name
 
-        self.layer_arn = make_layer_arn(region, get_account_id(), self.name)
+        self.layer_arn = make_layer_arn(
+            self.region, layer_version.account_id, self.name
+        )
         self._latest_version = 0
         self.layer_versions = {}
 
@@ -447,7 +457,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.code_size = 0
 
         self.function_arn = make_function_arn(
-            self.region, get_account_id(), self.function_name
+            self.region, self.account_id, self.function_name
         )
 
         if spec.get("Tags"):
@@ -459,7 +469,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
-            self.region, get_account_id(), self.function_name, version
+            self.region, self.account_id, self.function_name, version
         )
         self.version = version
         self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -839,7 +849,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
-            return make_function_arn(self.region, get_account_id(), self.function_name)
+            return make_function_arn(self.region, self.account_id, self.function_name)
         raise UnformattedGetAttTemplateException()
 
     @classmethod
@@ -879,11 +889,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def get_alias(self, name):
         if name in self._aliases:
             return self._aliases[name]
-        arn = f"arn:aws:lambda:{self.region}:{get_account_id()}:function:{self.function_name}:{name}"
+        arn = f"arn:aws:lambda:{self.region}:{self.account_id}:function:{self.function_name}:{name}"
         raise UnknownAliasException(arn)
 
     def put_alias(self, name, description, function_version, routing_config):
         alias = LambdaAlias(
+            account_id=self.account_id,
             region=self.region,
             name=name,
             function_name=self.function_name,
@@ -1131,7 +1142,7 @@ class LambdaStorage(object):
             if name_or_arn.startswith("arn:aws"):
                 arn = name_or_arn
             else:
-                arn = make_function_arn(self.region_name, get_account_id(), name_or_arn)
+                arn = make_function_arn(self.region_name, self.account_id, name_or_arn)
             if qualifier:
                 arn = f"{arn}:{qualifier}"
             raise UnknownFunctionException(arn)
@@ -1145,7 +1156,7 @@ class LambdaStorage(object):
         valid_role = re.match(InvalidRoleFormat.pattern, fn.role)
         if valid_role:
             account = valid_role.group(2)
-            if account != get_account_id():
+            if account != self.account_id:
                 raise CrossAccountNotAllowed()
             try:
                 iam_backend = iam_backends[self.account_id]["global"]
@@ -1252,9 +1263,7 @@ class LayerStorage(object):
         :param layer_version: LayerVersion
         """
         if layer_version.name not in self._layers:
-            self._layers[layer_version.name] = Layer(
-                layer_version.name, layer_version.region
-            )
+            self._layers[layer_version.name] = Layer(layer_version)
         self._layers[layer_version.name].attach_version(layer_version)
 
     def list_layers(self):
@@ -1610,7 +1619,7 @@ class LambdaBackend(BaseBackend):
     ):
         data = {
             "messageType": "DATA_MESSAGE",
-            "owner": get_account_id(),
+            "owner": self.account_id,
             "logGroup": log_group_name,
             "logStream": log_stream_name,
             "subscriptionFilters": [filter_name],

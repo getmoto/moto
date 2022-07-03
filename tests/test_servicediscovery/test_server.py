@@ -2,13 +2,10 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
-from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_servicediscovery_list():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="servicediscovery"
-    )
+    backend = server.create_backend_app("servicediscovery")
     test_client = backend.test_client()
 
     headers = {"X-Amz-Target": "Route53AutoNaming_v20170314.ListNamespaces"}

@@ -1,6 +1,6 @@
 """EBSBackend class with methods for supported APIs."""
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.ec2 import ec2_backends
 from moto.ec2.models.elastic_block_store import Snapshot
@@ -17,7 +17,8 @@ class Block(BaseModel):
 
 
 class EBSSnapshot(BaseModel):
-    def __init__(self, snapshot: Snapshot):
+    def __init__(self, account_id, snapshot: Snapshot):
+        self.account_id = account_id
         self.snapshot_id = snapshot.id
         self.status = "pending"
         self.start_time = unix_time()
@@ -39,7 +40,7 @@ class EBSSnapshot(BaseModel):
     def to_json(self):
         return {
             "SnapshotId": self.snapshot_id,
-            "OwnerId": ACCOUNT_ID,
+            "OwnerId": self.account_id,
             "Status": self.status,
             "StartTime": self.start_time,
             "VolumeSize": self.volume_size,
@@ -69,7 +70,7 @@ class EBSBackend(BaseBackend):
         if tags:
             tags = {tag["Key"]: tag["Value"] for tag in tags}
             snapshot.add_tags(tags)
-        ebs_snapshot = EBSSnapshot(snapshot=snapshot)
+        ebs_snapshot = EBSSnapshot(account_id=self.account_id, snapshot=snapshot)
         self.snapshots[ebs_snapshot.snapshot_id] = ebs_snapshot
         return ebs_snapshot
 

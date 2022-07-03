@@ -23,7 +23,7 @@ from moto import (
     mock_sqs,
     mock_elbv2,
 )
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume

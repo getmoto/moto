@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2 import ec2_backends
 from random import randint
 from uuid import uuid4
@@ -1203,7 +1203,7 @@ def test_non_existent_security_group_raises_error_on_authorize():
 def test_security_group_rules_added_via_the_backend_can_be_revoked_via_the_api():
     if settings.TEST_SERVER_MODE:
         raise unittest.SkipTest("Can't test backend directly in server mode.")
-    ec2_backend = ec2_backends[ACCOUNT_ID]["us-east-1"]
+    ec2_backend = ec2_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
     ec2_resource = boto3.resource("ec2", region_name="us-east-1")
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     vpc = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16")

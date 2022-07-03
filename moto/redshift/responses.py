@@ -393,7 +393,6 @@ class RedshiftResponse(BaseResponse):
         security_group = self.redshift_backend.create_cluster_security_group(
             cluster_security_group_name=cluster_security_group_name,
             description=description,
-            region_name=self.region,
             tags=tags,
         )
 

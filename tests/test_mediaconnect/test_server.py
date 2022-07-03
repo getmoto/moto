@@ -2,7 +2,6 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_mediaconnect
-from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -11,9 +10,7 @@ Test the different server responses
 
 @mock_mediaconnect
 def test_mediaconnect_list_flows():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="mediaconnect"
-    )
+    backend = server.create_backend_app("mediaconnect")
     test_client = backend.test_client()
 
     res = test_client.get("/v1/flows")

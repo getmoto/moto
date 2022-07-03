@@ -1,5 +1,4 @@
 from datetime import datetime
-from moto.core import get_account_id
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.utils import merge_multiple_dicts, filter_resources
 from .core import TaggedEC2Resource
@@ -24,19 +23,13 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         self.add_tags(tags or {})
 
         self._created_at = datetime.utcnow()
-        self.owner_id = self.resource_owner_id
+        self.resource_owner_id = backend.account_id
+        self.transit_gateway_owner_id = backend.account_id
+        self.owner_id = backend.account_id
 
     @property
     def create_time(self):
         return iso_8601_datetime_with_milliseconds(self._created_at)
-
-    @property
-    def resource_owner_id(self):
-        return get_account_id()
-
-    @property
-    def transit_gateway_owner_id(self):
-        return get_account_id()
 
 
 class TransitGatewayVpcAttachment(TransitGatewayAttachment):
@@ -92,10 +85,6 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
             "transitGatewayId": transit_gateway_id,
         }
         self.status = PeeringConnectionStatus()
-
-    @property
-    def resource_owner_id(self):
-        return get_account_id()
 
 
 class TransitGatewayAttachmentBackend:

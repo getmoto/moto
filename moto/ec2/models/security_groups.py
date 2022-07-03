@@ -3,7 +3,7 @@ import itertools
 import json
 from collections import defaultdict
 
-from moto.core import get_account_id, CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.core.utils import aws_api_matches
 from ..exceptions import (
     DependencyViolationError,
@@ -30,6 +30,7 @@ from ..utils import (
 class SecurityRule(object):
     def __init__(
         self,
+        account_id,
         ip_protocol,
         from_port,
         to_port,
@@ -37,6 +38,7 @@ class SecurityRule(object):
         source_groups,
         prefix_list_ids=None,
     ):
+        self.account_id = account_id
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol)
         self.ip_ranges = ip_ranges or []
@@ -69,7 +71,7 @@ class SecurityRule(object):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.account_id
 
     def __eq__(self, other):
         if self.ip_protocol != other.ip_protocol:
@@ -126,7 +128,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.egress_rules = []
         self.enis = {}
         self.vpc_id = vpc_id
-        self.owner_id = get_account_id()
+        self.owner_id = ec2_backend.account_id
         self.add_tags(tags or {})
         self.is_default = is_default or False
 
@@ -135,11 +137,15 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             vpc = self.ec2_backend.vpcs.get(vpc_id)
             if vpc:
                 self.egress_rules.append(
-                    SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], [])
+                    SecurityRule(
+                        self.owner_id, "-1", None, None, [{"CidrIp": "0.0.0.0/0"}], []
+                    )
                 )
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(
-                    SecurityRule("-1", None, None, [{"CidrIpv6": "::/0"}], [])
+                    SecurityRule(
+                        self.owner_id, "-1", None, None, [{"CidrIpv6": "::/0"}], []
+                    )
                 )
 
         # each filter as a simple function in a mapping
@@ -612,7 +618,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         if security_rule in group.ingress_rules:
@@ -669,7 +681,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         # To match drift property of the security rules.
@@ -757,7 +775,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         if security_rule in group.egress_rules:
@@ -829,7 +853,13 @@ class SecurityGroupBackend:
                         ip_ranges.remove(item)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
 
         # To match drift property of the security rules.
@@ -910,7 +940,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
         for rule in group.ingress_rules:
             if (
@@ -960,7 +996,13 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
-            ip_protocol, from_port, to_port, ip_ranges, _source_groups, prefix_list_ids
+            self.account_id,
+            ip_protocol,
+            from_port,
+            to_port,
+            ip_ranges,
+            _source_groups,
+            prefix_list_ids,
         )
         for rule in group.egress_rules:
             if (
@@ -1017,7 +1059,7 @@ class SecurityGroupBackend:
         _source_groups = []
         for item in source_groups or []:
             if "OwnerId" not in item:
-                item["OwnerId"] = get_account_id()
+                item["OwnerId"] = self.account_id
             # for VPCs
             if "GroupId" in item:
                 if not self.get_security_group_by_name_or_id(

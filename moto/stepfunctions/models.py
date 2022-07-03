@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from dateutil.tz import tzlocal
 
-from moto.core import get_account_id, BaseBackend, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from uuid import uuid4
 from .exceptions import (
@@ -456,14 +456,7 @@ class StepFunctionBackend(BaseBackend):
     def create_state_machine(self, name, definition, roleArn, tags=None):
         self._validate_name(name)
         self._validate_role_arn(roleArn)
-        arn = (
-            "arn:aws:states:"
-            + self.region_name
-            + ":"
-            + str(self._get_account_id())
-            + ":stateMachine:"
-            + name
-        )
+        arn = f"arn:aws:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
@@ -504,7 +497,7 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self.describe_state_machine(state_machine_arn)
         execution = state_machine.start_execution(
             region_name=self.region_name,
-            account_id=self._get_account_id(),
+            account_id=self.account_id,
             execution_name=name or str(uuid4()),
             execution_input=execution_input,
         )
@@ -617,9 +610,6 @@ class StepFunctionBackend(BaseBackend):
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
         return self.describe_state_machine(state_machine_arn)
-
-    def _get_account_id(self):
-        return get_account_id()
 
 
 stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")

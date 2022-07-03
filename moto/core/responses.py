@@ -3,6 +3,7 @@ from collections import defaultdict
 import datetime
 import json
 import logging
+import os
 import re
 import requests
 
@@ -333,6 +334,16 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return "AKIAEXAMPLE"
 
     def get_current_account(self):
+        # PRIO 1: Check if we have a Environment Variable set
+        if "MOTO_ACCOUNT_ID" in os.environ:
+            return os.environ["MOTO_ACCOUNT_ID"]
+
+        # PRIO 2: Check if we have a specific request header that specifies the Account ID
+        if "x-moto-account-id" in self.headers:
+            return self.headers["x-moto-account-id"]
+
+        # PRIO 3: Use the access key to get the Account ID
+        # PRIO 4: This method will return the default Account ID as a last resort
         from moto.iam.models import get_account_id_from
 
         return get_account_id_from(self.get_access_key())

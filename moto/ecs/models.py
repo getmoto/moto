@@ -7,7 +7,7 @@ from random import random, randint
 import pytz
 
 from moto import settings
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import (
     unix_time,
@@ -61,11 +61,9 @@ class AccountSetting(BaseObject):
 
 
 class Cluster(BaseObject, CloudFormationModel):
-    def __init__(self, cluster_name, region_name, cluster_settings=None):
+    def __init__(self, cluster_name, account_id, region_name, cluster_settings=None):
         self.active_services_count = 0
-        self.arn = "arn:aws:ecs:{0}:{1}:cluster/{2}".format(
-            region_name, get_account_id(), cluster_name
-        )
+        self.arn = f"arn:aws:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
         self.name = cluster_name
         self.pending_tasks_count = 0
         self.registered_container_instances_count = 0
@@ -145,6 +143,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         family,
         revision,
         container_definitions,
+        account_id,
         region_name,
         network_mode=None,
         volumes=None,
@@ -158,9 +157,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     ):
         self.family = family
         self.revision = revision
-        self.arn = "arn:aws:ecs:{0}:{1}:task-definition/{2}:{3}".format(
-            region_name, get_account_id(), family, revision
-        )
+        self.arn = f"arn:aws:ecs:{region_name}:{account_id}:task-definition/{family}:{revision}"
 
         default_container_definition = {
             "cpu": 0,
@@ -320,15 +317,14 @@ class Task(BaseObject):
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
         self.region_name = cluster.region_name
+        self._account_id = backend.account_id
         self._backend = backend
 
     @property
     def task_arn(self):
         if self._backend.enable_long_arn_for_name(name="taskLongArnFormat"):
-            return f"arn:aws:ecs:{self.region_name}:{get_account_id()}:task/{self.cluster_name}/{self.id}"
-        return "arn:aws:ecs:{0}:{1}:task/{2}".format(
-            self.region_name, get_account_id(), self.id
-        )
+            return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.cluster_name}/{self.id}"
+        return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.id}"
 
     @property
     def response_object(self):
@@ -338,9 +334,9 @@ class Task(BaseObject):
 
 
 class CapacityProvider(BaseObject):
-    def __init__(self, region_name, name, asg_details, tags):
+    def __init__(self, account_id, region_name, name, asg_details, tags):
         self._id = str(uuid.uuid4())
-        self.capacity_provider_arn = f"arn:aws:ecs:{region_name}:{get_account_id()}:capacity_provider/{name}/{self._id}"
+        self.capacity_provider_arn = f"arn:aws:ecs:{region_name}:{account_id}:capacity_provider/{name}/{self._id}"
         self.name = name
         self.status = "ACTIVE"
         self.auto_scaling_group_provider = asg_details
@@ -348,11 +344,9 @@ class CapacityProvider(BaseObject):
 
 
 class CapacityProviderFailure(BaseObject):
-    def __init__(self, reason, name, region_name):
+    def __init__(self, reason, name, account_id, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:{0}:{1}:capacity_provider/{2}".format(
-            region_name, get_account_id(), name
-        )
+        self.arn = f"arn:aws:ecs:{region_name}:{account_id}:capacity_provider/{name}"
 
     @property
     def response_object(self):
@@ -415,15 +409,14 @@ class Service(BaseObject, CloudFormationModel):
         self.tags = tags if tags is not None else []
         self.pending_count = 0
         self.region_name = cluster.region_name
+        self._account_id = backend.account_id
         self._backend = backend
 
     @property
     def arn(self):
         if self._backend.enable_long_arn_for_name(name="serviceLongArnFormat"):
-            return f"arn:aws:ecs:{self.region_name}:{get_account_id()}:service/{self.cluster_name}/{self.name}"
-        return "arn:aws:ecs:{0}:{1}:service/{2}".format(
-            self.region_name, get_account_id(), self.name
-        )
+            return f"arn:aws:ecs:{self.region_name}:{self._account_id}:service/{self.cluster_name}/{self.name}"
+        return f"arn:aws:ecs:{self.region_name}:{self._account_id}:service/{self.name}"
 
     @property
     def physical_resource_id(self):
@@ -509,7 +502,10 @@ class Service(BaseObject, CloudFormationModel):
 
         ecs_backend = ecs_backends[account_id][region_name]
         service_name = original_resource.name
-        if original_resource.cluster_arn != Cluster(cluster_name, region_name).arn:
+        if (
+            original_resource.cluster_arn
+            != Cluster(cluster_name, account_id, region_name).arn
+        ):
             # TODO: LoadBalancers
             # TODO: Role
             ecs_backend.delete_service(cluster_name, service_name)
@@ -626,6 +622,7 @@ class ContainerInstance(BaseObject):
         self.region_name = region_name
         self.id = str(uuid.uuid4())
         self.cluster_name = cluster_name
+        self._account_id = backend.account_id
         self._backend = backend
 
     @property
@@ -633,8 +630,8 @@ class ContainerInstance(BaseObject):
         if self._backend.enable_long_arn_for_name(
             name="containerInstanceLongArnFormat"
         ):
-            return f"arn:aws:ecs:{self.region_name}:{get_account_id()}:container-instance/{self.cluster_name}/{self.id}"
-        return f"arn:aws:ecs:{self.region_name}:{get_account_id()}:container-instance/{self.id}"
+            return f"arn:aws:ecs:{self.region_name}:{self._account_id}:container-instance/{self.cluster_name}/{self.id}"
+        return f"arn:aws:ecs:{self.region_name}:{self._account_id}:container-instance/{self.id}"
 
     @property
     def response_object(self):
@@ -658,11 +655,9 @@ class ContainerInstance(BaseObject):
 
 
 class ClusterFailure(BaseObject):
-    def __init__(self, reason, cluster_name, region_name):
+    def __init__(self, reason, cluster_name, account_id, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:{0}:{1}:cluster/{2}".format(
-            region_name, get_account_id(), cluster_name
-        )
+        self.arn = f"arn:aws:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
 
     @property
     def response_object(self):
@@ -673,11 +668,9 @@ class ClusterFailure(BaseObject):
 
 
 class ContainerInstanceFailure(BaseObject):
-    def __init__(self, reason, container_instance_id, region_name):
+    def __init__(self, reason, container_instance_id, account_id, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:{0}:{1}:container-instance/{2}".format(
-            region_name, get_account_id(), container_instance_id
-        )
+        self.arn = f"arn:aws:ecs:{region_name}:{account_id}:container-instance/{container_instance_id}"
 
     @property
     def response_object(self):
@@ -693,6 +686,7 @@ class TaskSet(BaseObject):
         service,
         cluster,
         task_definition,
+        account_id,
         region_name,
         external_id=None,
         network_configuration=None,
@@ -730,9 +724,7 @@ class TaskSet(BaseObject):
 
         cluster_name = self.cluster.split("/")[-1]
         service_name = self.service.split("/")[-1]
-        self.task_set_arn = "arn:aws:ecs:{0}:{1}:task-set/{2}/{3}/{4}".format(
-            region_name, get_account_id(), cluster_name, service_name, self.id
-        )
+        self.task_set_arn = f"arn:aws:ecs:{region_name}:{account_id}:task-set/{cluster_name}/{service_name}/{self.id}"
 
     @property
     def response_object(self):
@@ -795,7 +787,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         return cluster
 
     def create_capacity_provider(self, name, asg_details, tags):
-        capacity_provider = CapacityProvider(self.region_name, name, asg_details, tags)
+        capacity_provider = CapacityProvider(
+            self.account_id, self.region_name, name, asg_details, tags
+        )
         self.capacity_providers[name] = capacity_provider
         if tags:
             self.tagger.tag_resource(capacity_provider.capacity_provider_arn, tags)
@@ -822,7 +816,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         """
         The following parameters are not yet implemented: configuration, capacityProviders, defaultCapacityProviderStrategy
         """
-        cluster = Cluster(cluster_name, self.region_name, cluster_settings)
+        cluster = Cluster(
+            cluster_name, self.account_id, self.region_name, cluster_settings
+        )
         self.clusters[cluster_name] = cluster
         if tags:
             self.tagger.tag_resource(cluster.arn, tags)
@@ -845,7 +841,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                 providers.append(provider)
             else:
                 failures.append(
-                    CapacityProviderFailure("MISSING", name, self.region_name)
+                    CapacityProviderFailure(
+                        "MISSING", name, self.account_id, self.region_name
+                    )
                 )
         return providers, failures
 
@@ -876,7 +874,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                     list_clusters.append(self.clusters[cluster_name].response_object)
                 else:
                     failures.append(
-                        ClusterFailure("MISSING", cluster_name, self.region_name)
+                        ClusterFailure(
+                            "MISSING", cluster_name, self.account_id, self.region_name
+                        )
                     )
 
         if "TAGS" in (include or []):
@@ -917,6 +917,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             family,
             revision,
             container_definitions,
+            self.account_id,
             self.region_name,
             volumes=volumes,
             network_mode=network_mode,
@@ -1319,7 +1320,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 result.append(self.services[cluster_service_pair])
             else:
                 missing_arn = (
-                    f"arn:aws:ecs:{self.region_name}:{get_account_id()}:service/{name}"
+                    f"arn:aws:ecs:{self.region_name}:{self.account_id}:service/{name}"
                 )
                 failures.append({"arn": missing_arn, "reason": "MISSING"})
 
@@ -1405,7 +1406,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             else:
                 failures.append(
                     ContainerInstanceFailure(
-                        "MISSING", container_instance_id, self.region_name
+                        "MISSING",
+                        container_instance_id,
+                        self.account_id,
+                        self.region_name,
                     )
                 )
 
@@ -1436,7 +1440,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             else:
                 failures.append(
                     ContainerInstanceFailure(
-                        "MISSING", container_instance_id, self.region_name
+                        "MISSING",
+                        container_instance_id,
+                        self.account_id,
+                        self.region_name,
                     )
                 )
 
@@ -1741,6 +1748,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             service,
             cluster_str,
             task_definition,
+            self.account_id,
             self.region_name,
             external_id=external_id,
             network_configuration=network_configuration,

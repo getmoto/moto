@@ -3,13 +3,10 @@ import sure  # noqa # pylint: disable=unused-import
 
 
 from moto import server
-from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_set_transition():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="moto_api"
-    )
+    backend = server.create_backend_app("moto_api")
     test_client = backend.test_client()
 
     post_body = dict(
@@ -30,9 +27,7 @@ def test_set_transition():
 
 
 def test_unset_transition():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="moto_api"
-    )
+    backend = server.create_backend_app("moto_api")
     test_client = backend.test_client()
 
     post_body = dict(
@@ -59,9 +54,7 @@ def test_unset_transition():
 
 
 def test_get_default_transition():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="moto_api"
-    )
+    backend = server.create_backend_app("moto_api")
     test_client = backend.test_client()
 
     resp = test_client.get(

@@ -1,4 +1,4 @@
-from moto.core import get_account_id, BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .exceptions import UserAlreadyExists, UserNotFound
@@ -7,6 +7,7 @@ from .exceptions import UserAlreadyExists, UserNotFound
 class User(BaseModel):
     def __init__(
         self,
+        account_id,
         region,
         user_id,
         user_name,
@@ -25,10 +26,7 @@ class User(BaseModel):
         self.minimum_engine_version = "6.0"
         self.usergroupids = []
         self.region = region
-
-    @property
-    def arn(self):
-        return f"arn:aws:elasticache:{self.region}:{get_account_id()}:user:{self.id}"
+        self.arn = f"arn:aws:elasticache:{self.region}:{account_id}:user:{self.id}"
 
 
 class ElastiCacheBackend(BaseBackend):
@@ -38,6 +36,7 @@ class ElastiCacheBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.users = dict()
         self.users["default"] = User(
+            account_id=self.account_id,
             region=self.region_name,
             user_id="default",
             user_name="default",
@@ -52,6 +51,7 @@ class ElastiCacheBackend(BaseBackend):
         if user_id in self.users:
             raise UserAlreadyExists
         user = User(
+            account_id=self.account_id,
             region=self.region_name,
             user_id=user_id,
             user_name=user_name,

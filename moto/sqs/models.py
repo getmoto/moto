@@ -38,8 +38,6 @@ from .exceptions import (
     InvalidAttributeValue,
 )
 
-from moto.core import get_account_id
-
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -263,9 +261,7 @@ class Queue(CloudFormationModel):
 
         now = unix_time()
         self.created_timestamp = now
-        self.queue_arn = "arn:aws:sqs:{0}:{1}:{2}".format(
-            self.region, get_account_id(), self.name
-        )
+        self.queue_arn = f"arn:aws:sqs:{region}:{account_id}:{name}"
         self.dead_letter_queue = None
 
         self.lambda_event_source_mappings = {}
@@ -482,7 +478,7 @@ class Queue(CloudFormationModel):
 
     @property
     def physical_resource_id(self):
-        return f"https://sqs.{self.region}.amazonaws.com/{get_account_id()}/{self.name}"
+        return f"https://sqs.{self.region}.amazonaws.com/{self.account_id}/{self.name}"
 
     @property
     def attributes(self):
@@ -516,7 +512,7 @@ class Queue(CloudFormationModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, get_account_id(), self.name
+            request_url.scheme, request_url.netloc, self.account_id, self.name
         )
 
     @property

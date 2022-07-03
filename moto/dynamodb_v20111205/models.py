@@ -5,7 +5,6 @@ import json
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, BackendDict
-from moto.core import get_account_id
 from .comparisons import get_comparison_func
 
 
@@ -90,6 +89,7 @@ class Item(BaseModel):
 class Table(CloudFormationModel):
     def __init__(
         self,
+        account_id,
         name,
         hash_key_attr,
         hash_key_type,
@@ -98,6 +98,7 @@ class Table(CloudFormationModel):
         read_capacity=None,
         write_capacity=None,
     ):
+        self.account_id = account_id
         self.name = name
         self.hash_key_attr = hash_key_attr
         self.hash_key_type = hash_key_type
@@ -165,6 +166,7 @@ class Table(CloudFormationModel):
             if i["AttributeName"] == key_attr
         ][0]
         spec = {
+            "account_id": account_id,
             "name": properties["TableName"],
             "hash_key_attr": key_attr,
             "hash_key_type": key_type,
@@ -306,9 +308,7 @@ class Table(CloudFormationModel):
         if attribute_name == "StreamArn":
             region = "us-east-1"
             time = "2000-01-01T00:00:00.000"
-            return "arn:aws:dynamodb:{0}:{1}:table/{2}/stream/{3}".format(
-                region, get_account_id(), self.name, time
-            )
+            return f"arn:aws:dynamodb:{region}:{self.account_id}:table/{self.name}/stream/{time}"
         raise UnformattedGetAttTemplateException()
 
 
@@ -318,7 +318,7 @@ class DynamoDBBackend(BaseBackend):
         self.tables = OrderedDict()
 
     def create_table(self, name, **params):
-        table = Table(name, **params)
+        table = Table(self.account_id, name, **params)
         self.tables[name] = table
         return table
 

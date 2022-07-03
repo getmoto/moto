@@ -4,12 +4,12 @@ from .exceptions import ResourceNotFoundException, ResourceInUseException
 import random
 import string
 from moto.core.utils import get_random_hex, BackendDict
-from moto.core import get_account_id
 
 
 class Stream(BaseModel):
     def __init__(
         self,
+        account_id,
         region_name,
         device_name,
         stream_name,
@@ -28,9 +28,7 @@ class Stream(BaseModel):
         self.status = "ACTIVE"
         self.version = self._get_random_string()
         self.creation_time = datetime.utcnow()
-        stream_arn = "arn:aws:kinesisvideo:{}:{}:stream/{}/1598784211076".format(
-            self.region_name, get_account_id(), self.stream_name
-        )
+        stream_arn = f"arn:aws:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
         self.data_endpoint_number = get_random_hex()
         self.arn = stream_arn
 
@@ -79,6 +77,7 @@ class KinesisVideoBackend(BaseBackend):
                 "The stream {} already exists.".format(stream_name)
             )
         stream = Stream(
+            self.account_id,
             self.region_name,
             device_name,
             stream_name,

@@ -7,7 +7,6 @@ import re
 import uuid
 
 from collections import OrderedDict
-from moto.core import get_account_id
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, BackendDict
 from moto.core.exceptions import JsonRESTError
@@ -488,7 +487,6 @@ class Table(CloudFormationModel):
                 key_spec="SYMMETRIC_DEFAULT",
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
-                region=region,
             )
             kms.add_alias(key.id, ddb_alias)
         ebs_key = kms.describe_key(ddb_alias)
@@ -568,7 +566,7 @@ class Table(CloudFormationModel):
         return table
 
     def _generate_arn(self, name):
-        return f"arn:aws:dynamodb:us-east-1:{get_account_id()}:table/{name}"
+        return f"arn:aws:dynamodb:us-east-1:{self.account_id}:table/{name}"
 
     def set_stream_specification(self, streams):
         self.stream_specification = streams
@@ -1134,7 +1132,7 @@ class Backup(object):
     def arn(self):
         return "arn:aws:dynamodb:{region}:{account}:table/{table_name}/backup/{identifier}".format(
             region=self.backend.region_name,
-            account=get_account_id(),
+            account=self.backend.account_id,
             table_name=self.table.name,
             identifier=self.identifier,
         )

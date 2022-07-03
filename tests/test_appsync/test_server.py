@@ -2,13 +2,10 @@ import json
 import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
-from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_appsync_list_tags_for_resource():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="appsync"
-    )
+    backend = server.create_backend_app("appsync")
     test_client = backend.test_client()
 
     resp = test_client.get(

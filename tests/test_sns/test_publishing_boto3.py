@@ -10,7 +10,7 @@ from botocore.exceptions import ClientError
 from unittest import SkipTest
 import pytest
 from moto import mock_sns, mock_sqs, settings
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.models import responses_mock
 from moto.sns import sns_backends
 

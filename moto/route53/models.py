@@ -21,7 +21,7 @@ from moto.route53.exceptions import (
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
@@ -609,7 +609,7 @@ class Route53Backend(BaseBackend):
                             {
                                 "HostedZoneId": zone.id,
                                 "Name": zone.name,
-                                "Owner": {"OwningAccount": get_account_id()},
+                                "Owner": {"OwningAccount": self.account_id},
                             }
                         )
 

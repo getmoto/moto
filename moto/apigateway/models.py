@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 import responses
 
 from openapi_spec_validator.exceptions import OpenAPIValidationError
-from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
 from .integration_parsers.aws_parser import TypeAwsParser
@@ -1582,7 +1582,7 @@ class APIGatewayBackend(BaseBackend):
     ):
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
-            "^arn:aws:iam::" + str(get_account_id()), credentials
+            "^arn:aws:iam::" + str(self.account_id), credentials
         ):
             raise CrossAccountNotAllowed()
         if not integration_method and integration_type in [

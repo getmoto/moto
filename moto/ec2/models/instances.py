@@ -4,7 +4,6 @@ from collections import OrderedDict
 from datetime import datetime
 from moto import settings
 
-from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.models.instance_types import (
@@ -68,7 +67,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         super().__init__()
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
-        self.owner_id = get_account_id()
+        self.owner_id = ec2_backend.account_id
         self.lifecycle = kwargs.get("lifecycle")
 
         nics = kwargs.get("nics", {})

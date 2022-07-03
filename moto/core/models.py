@@ -23,18 +23,7 @@ from .custom_responses_mock import (
 )
 from .utils import convert_flask_to_responses_response
 
-ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
-
-
-def _get_default_account_id():
-    return ACCOUNT_ID
-
-
-account_id_resolver = _get_default_account_id
-
-
-def get_account_id():
-    return account_id_resolver()
+DEFAULT_ACCOUNT_ID = "123456789012"
 
 
 class BaseMockAWS:
@@ -48,7 +37,7 @@ class BaseMockAWS:
         self.backends = backends
 
         self.backends_for_urls = []
-        default_account_id = get_account_id()
+        default_account_id = DEFAULT_ACCOUNT_ID
         default_backends = [
             instance_metadata_backends[default_account_id]["global"],
             moto_api_backend,

@@ -30,7 +30,6 @@ from .exceptions import (
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
-from moto.core import get_account_id
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -41,7 +40,7 @@ class Topic(CloudFormationModel):
     def __init__(self, name, sns_backend):
         self.name = name
         self.sns_backend = sns_backend
-        self.account_id = get_account_id()
+        self.account_id = sns_backend.account_id
         self.display_name = ""
         self.delivery_policy = ""
         self.kms_master_key_id = ""
@@ -146,9 +145,7 @@ class Topic(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         topic_name = properties.get(cls.cloudformation_name_type()) or resource_name
-        topic_arn = make_arn_for_topic(
-            get_account_id(), topic_name, sns_backend.region_name
-        )
+        topic_arn = make_arn_for_topic(account_id, topic_name, sns_backend.region_name)
         subscriptions, _ = sns_backend.list_subscriptions(topic_arn)
         for subscription in subscriptions:
             sns_backend.unsubscribe(subscription.arn)
@@ -339,9 +336,7 @@ class Subscription(BaseModel):
             "SignatureVersion": "1",
             "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
-            "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55".format(
-                get_account_id()
-            ),
+            "UnsubscribeURL": f"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{self.account_id}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
         }
         if subject:
             post_data["Subject"] = subject
@@ -351,30 +346,25 @@ class Subscription(BaseModel):
 
 
 class PlatformApplication(BaseModel):
-    def __init__(self, region, name, platform, attributes):
+    def __init__(self, account_id, region, name, platform, attributes):
         self.region = region
         self.name = name
         self.platform = platform
         self.attributes = attributes
-
-    @property
-    def arn(self):
-        return "arn:aws:sns:{region}:{AccountId}:app/{platform}/{name}".format(
-            region=self.region,
-            platform=self.platform,
-            name=self.name,
-            AccountId=get_account_id(),
-        )
+        self.arn = f"arn:aws:sns:{region}:{account_id}:app/{platform}/{name}"
 
 
 class PlatformEndpoint(BaseModel):
-    def __init__(self, region, application, custom_user_data, token, attributes):
+    def __init__(
+        self, account_id, region, application, custom_user_data, token, attributes
+    ):
         self.region = region
         self.application = application
         self.custom_user_data = custom_user_data
         self.token = token
         self.attributes = attributes
         self.id = uuid.uuid4()
+        self.arn = f"arn:aws:sns:{region}:{account_id}:endpoint/{self.application.platform}/{self.application.name}/{self.id}"
         self.messages = OrderedDict()
         self.__fixup_attributes()
 
@@ -392,18 +382,6 @@ class PlatformEndpoint(BaseModel):
     @property
     def enabled(self):
         return json.loads(self.attributes.get("Enabled", "true").lower())
-
-    @property
-    def arn(self):
-        return (
-            "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
-                region=self.region,
-                AccountId=get_account_id(),
-                platform=self.application.platform,
-                name=self.application.name,
-                id=self.id,
-            )
-        )
 
     def publish(self, message):
         if not self.enabled:
@@ -559,7 +537,7 @@ class SNSBackend(BaseBackend):
             "TopicArn": topic_arn,
             "Protocol": protocol,
             "SubscriptionArn": subscription.arn,
-            "Owner": get_account_id(),
+            "Owner": self.account_id,
             "RawMessageDelivery": "false",
         }
 
@@ -647,8 +625,10 @@ class SNSBackend(BaseBackend):
             message_id = endpoint.publish(message)
         return message_id
 
-    def create_platform_application(self, region, name, platform, attributes):
-        application = PlatformApplication(region, name, platform, attributes)
+    def create_platform_application(self, name, platform, attributes):
+        application = PlatformApplication(
+            self.account_id, self.region_name, name, platform, attributes
+        )
         self.applications[application.arn] = application
         return application
 
@@ -673,7 +653,7 @@ class SNSBackend(BaseBackend):
             self.platform_endpoints.pop(endpoint.arn)
 
     def create_platform_endpoint(
-        self, region, application, custom_user_data, token, attributes
+        self, application, custom_user_data, token, attributes
     ):
         for endpoint in self.platform_endpoints.values():
             if token == endpoint.token:
@@ -686,7 +666,12 @@ class SNSBackend(BaseBackend):
                     "Duplicate endpoint token with different attributes: %s" % token
                 )
         platform_endpoint = PlatformEndpoint(
-            region, application, custom_user_data, token, attributes
+            self.account_id,
+            self.region_name,
+            application,
+            custom_user_data,
+            token,
+            attributes,
         )
         self.platform_endpoints[platform_endpoint.arn] = platform_endpoint
         return platform_endpoint

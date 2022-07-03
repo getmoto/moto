@@ -7,7 +7,7 @@ from collections import OrderedDict
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
-from moto.core import BaseBackend, BaseModel, get_account_id
+from moto.core import BaseBackend, BaseModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
@@ -31,6 +31,7 @@ class FakeStackSet(BaseModel):
     def __init__(
         self,
         stackset_id,
+        account_id,
         name,
         template,
         region="us-east-1",
@@ -42,13 +43,14 @@ class FakeStackSet(BaseModel):
         execution_role="AWSCloudFormationStackSetExecutionRole",
     ):
         self.id = stackset_id
-        self.arn = generate_stackset_arn(stackset_id, region)
+        self.arn = generate_stackset_arn(stackset_id, region, account_id)
         self.name = name
         self.template = template
         self.description = description
         self.parameters = parameters
         self.tags = tags
         self.admin_role = admin_role
+        self.admin_role_arn = f"arn:aws:iam::{account_id}:role/{self.admin_role}"
         self.execution_role = execution_role
         self.status = status
         self.instances = FakeStackInstances(parameters, self.id, self.name)
@@ -505,7 +507,7 @@ ClientRequestToken='{client_request_token}'""".format(
             timestamp=iso_8601_datetime_with_milliseconds(self.timestamp),
             event_id=self.event_id,
             logical_resource_id=self.logical_resource_id,
-            account_id=get_account_id(),
+            account_id=account_id,
             resource_properties=self.resource_properties,
             resource_status=self.resource_status,
             resource_status_reason=self.resource_status_reason,
@@ -587,6 +589,7 @@ class CloudFormationBackend(BaseBackend):
         stackset_id = generate_stackset_id(name)
         new_stackset = FakeStackSet(
             stackset_id=stackset_id,
+            account_id=self.account_id,
             name=name,
             template=template,
             parameters=parameters,
@@ -674,7 +677,7 @@ class CloudFormationBackend(BaseBackend):
         tags=None,
         role_arn=None,
     ):
-        stack_id = generate_stack_id(name, self.region_name)
+        stack_id = generate_stack_id(name, self.region_name, self.account_id)
         new_stack = FakeStack(
             stack_id=stack_id,
             name=name,
@@ -716,7 +719,7 @@ class CloudFormationBackend(BaseBackend):
             else:
                 raise ValidationError(stack_name)
         else:
-            stack_id = generate_stack_id(stack_name, self.region_name)
+            stack_id = generate_stack_id(stack_name, self.region_name, self.account_id)
             stack = FakeStack(
                 stack_id=stack_id,
                 name=stack_name,
@@ -734,7 +737,9 @@ class CloudFormationBackend(BaseBackend):
                 "REVIEW_IN_PROGRESS", resource_status_reason="User Initiated"
             )
 
-        change_set_id = generate_changeset_id(change_set_name, self.region_name)
+        change_set_id = generate_changeset_id(
+            change_set_name, self.region_name, self.account_id
+        )
 
         new_change_set = FakeChangeSet(
             change_set_type=change_set_type,

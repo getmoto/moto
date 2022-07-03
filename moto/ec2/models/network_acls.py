@@ -1,4 +1,3 @@
-from moto.core import get_account_id
 from ..exceptions import (
     InvalidNetworkAclIdError,
     InvalidRouteTableIdError,
@@ -10,9 +9,6 @@ from ..utils import (
     random_network_acl_id,
     random_network_acl_subnet_association_id,
 )
-
-
-OWNER_ID = get_account_id()
 
 
 class NetworkAclBackend:
@@ -210,12 +206,12 @@ class NetworkAclAssociation(object):
 
 class NetworkAcl(TaggedEC2Resource):
     def __init__(
-        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=OWNER_ID
+        self, ec2_backend, network_acl_id, vpc_id, default=False, owner_id=None
     ):
         self.ec2_backend = ec2_backend
         self.id = network_acl_id
         self.vpc_id = vpc_id
-        self.owner_id = owner_id
+        self.owner_id = owner_id or ec2_backend.account_id
         self.network_acl_entries = []
         self.associations = {}
         self.default = "true" if default is True else "false"

@@ -4,7 +4,6 @@ import weakref
 from collections import defaultdict
 from operator import itemgetter
 
-from moto.core import get_account_id
 from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
@@ -85,7 +84,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @property
     def physical_resource_id(self):
@@ -165,7 +164,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return get_account_id()
+        return self.ec2_backend.account_id
 
     @staticmethod
     def cloudformation_name_type():

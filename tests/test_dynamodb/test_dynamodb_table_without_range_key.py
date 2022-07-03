@@ -5,7 +5,7 @@ import pytest
 from datetime import datetime
 from botocore.exceptions import ClientError
 from moto import mock_dynamodb
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import botocore
 
 

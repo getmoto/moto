@@ -4,7 +4,6 @@ from collections import OrderedDict
 from datetime import datetime
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.models import get_account_id
 from moto.core.utils import BackendDict
 from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
 from .exceptions import (
@@ -307,7 +306,7 @@ class GlueBackend(BaseBackend):
         if tags and len(tags) > max_tags_allowed:
             raise InvalidNumberOfTagsException(operation_name)
 
-        registry = FakeRegistry(registry_name, description, tags)
+        registry = FakeRegistry(self.account_id, registry_name, description, tags)
         self.registries[registry_name] = registry
         return registry
 
@@ -475,7 +474,7 @@ class FakeCrawler(BaseModel):
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
-        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:crawler/{self.name}"
+        self.arn = f"arn:aws:glue:us-east-1:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -598,7 +597,7 @@ class FakeJob:
         self.worker_type = worker_type
         self.created_on = datetime.utcnow()
         self.last_modified_on = datetime.utcnow()
-        self.arn = f"arn:aws:glue:us-east-1:{get_account_id()}:job/{self.name}"
+        self.arn = f"arn:aws:glue:us-east-1:{backend.account_id}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -696,15 +695,13 @@ class FakeJobRun:
 
 
 class FakeRegistry(BaseModel):
-    def __init__(self, registry_name, description=None, tags=None):
+    def __init__(self, account_id, registry_name, description=None, tags=None):
         self.name = registry_name
         self.description = description
         self.tags = tags
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
-        self.registry_arn = (
-            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.name}"
-        )
+        self.registry_arn = f"arn:aws:glue:us-east-1:{account_id}:registry/{self.name}"
 
     def as_dict(self):
         return {

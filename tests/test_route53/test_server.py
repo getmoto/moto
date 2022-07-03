@@ -2,13 +2,10 @@ import sure  # noqa # pylint: disable=unused-import
 import xmltodict
 
 import moto.server as server
-from tests import DEFAULT_ACCOUNT_ID
 
 
 def test_list_recordset():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="route53"
-    )
+    backend = server.create_backend_app("route53")
     test_client = backend.test_client()
 
     # create hosted zone

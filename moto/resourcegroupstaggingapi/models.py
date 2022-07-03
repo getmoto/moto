@@ -1,6 +1,5 @@
 import uuid
 
-from moto.core import get_account_id
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 from moto.core.utils import BackendDict
@@ -414,9 +413,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": "arn:aws:ec2:{0}:{1}:vpc/{2}".format(
-                        self.region_name, get_account_id(), vpc.id
-                    ),
+                    "ResourceARN": f"arn:aws:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
                     "Tags": tags,
                 }
         # VPC Customer Gateway

@@ -3,7 +3,7 @@ import pytest
 import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_rds2
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 def test_deprecation_warning():

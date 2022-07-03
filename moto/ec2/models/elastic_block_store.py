@@ -1,4 +1,4 @@
-from moto.core import get_account_id, CloudFormationModel
+from moto.core import CloudFormationModel
 from moto.kms import kms_backends
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 from ..exceptions import (
@@ -151,7 +151,7 @@ class Snapshot(TaggedEC2Resource):
         volume,
         description,
         encrypted=False,
-        owner_id=get_account_id(),
+        owner_id=None,
         from_ami=None,
     ):
         self.id = snapshot_id
@@ -163,7 +163,7 @@ class Snapshot(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.status = "completed"
         self.encrypted = encrypted
-        self.owner_id = owner_id
+        self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
 
     def get_filter_value(self, filter_name):
@@ -413,7 +413,6 @@ class EBSBackend:
                 key_spec="SYMMETRIC_DEFAULT",
                 description="Default master key that protects my EBS volumes when no other key is defined",
                 tags=None,
-                region=self.region_name,
             )
             kms.add_alias(key.id, ebs_alias)
         ebs_key = kms.describe_key(ebs_alias)

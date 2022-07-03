@@ -2,7 +2,6 @@ import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_kinesisvideoarchivedmedia
-from tests import DEFAULT_ACCOUNT_ID
 
 """
 Test the different server responses
@@ -11,9 +10,7 @@ Test the different server responses
 
 @mock_kinesisvideoarchivedmedia
 def test_kinesisvideoarchivedmedia_server_is_up():
-    backend = server.create_backend_app(
-        account_id=DEFAULT_ACCOUNT_ID, service="kinesis-video-archived-media"
-    )
+    backend = server.create_backend_app("kinesis-video-archived-media")
     test_client = backend.test_client()
     res = test_client.post("/getHLSStreamingSessionURL")
     # Just checking server is up

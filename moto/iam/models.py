@@ -16,7 +16,7 @@ from jinja2 import Template
 from typing import Mapping
 from urllib import parse
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, get_account_id, CloudFormationModel
+from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
@@ -64,8 +64,7 @@ def get_account_id_from(access_key):
     for account_id, account in iam_backends.items():
         if access_key in account["global"].access_keys:
             return account_id
-    # TODO: figure out the source of truth for the account ID
-    return get_account_id()
+    return DEFAULT_ACCOUNT_ID
 
 
 def mark_account_as_visited(account_id, access_key, service, region):
