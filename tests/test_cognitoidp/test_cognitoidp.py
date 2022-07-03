@@ -870,6 +870,8 @@ def test_describe_user_pool_domain():
     result["DomainDescription"]["Domain"].should.equal(domain)
     result["DomainDescription"]["UserPoolId"].should.equal(user_pool_id)
     result["DomainDescription"]["AWSAccountId"].should_not.equal(None)
+    result = conn.describe_user_pool(UserPoolId=user_pool_id)
+    result["UserPool"]["Domain"].should.equal(domain)
 
 
 @mock_cognitoidp
