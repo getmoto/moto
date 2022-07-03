@@ -91,8 +91,8 @@ def _validate_required_params_environment(environment):
 
 def _validate_required_params_project_name(name):
     try:
-        # isalnum with dashes or underscores
-        assert re.match(r"^[A-Za-z0-9_-]+$", name)
+        assert len(name) <= 150
+        assert re.match(r"^[A-Za-z]{1}.*[^!£$%^&*()+=|?`¬{}@~#:;<>\\/\[\]]$", name)
     except AssertionError:
         raise InvalidInputException(
             "Only alphanumeric characters, dash, and underscore are supported"
