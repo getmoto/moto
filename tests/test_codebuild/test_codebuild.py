@@ -3,6 +3,7 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_codebuild
 from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
+from uuid import uuid1
 import pytest
 
 
@@ -368,7 +369,18 @@ def test_codebuild_get_batch_builds_for_project_no_history():
         err.response["Error"]["Code"].should.equal("ParamValidationError")
 
 
-# # mock start_build() here with hsitroy single projects single build history WILL FAIL WITH non-existent project name
+@mock_codebuild
+def test_codebuild_start_build_no_project():
+
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    name = "some_project"
+
+    with pytest.raises(client.exceptions.from_code("ResourceNotFoundException")) as err:
+        client.start_build(projectName=name)
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+
 @mock_codebuild
 def test_codebuild_start_build_no_overrides():
 
@@ -403,7 +415,6 @@ def test_codebuild_start_build_no_overrides():
     response.should_not.be.none
     response["build"].should_not.be.none
     response["build"]["sourceVersion"].should.equal("refs/heads/main")
-    # must test for default artifacts here
 
 
 @mock_codebuild
@@ -483,9 +494,6 @@ def test_codebuild_start_build_with_overrides():
     response.should_not.be.none
     response["build"].should_not.be.none
     response["build"]["sourceVersion"].should.equal("fix/testing")
-
-    # this is not overriding the artifacts, this must be fixed
-    # response["build"]["artifacts"].should.equal({"type": "NO_ARTIFACTS"})
 
 
 @mock_codebuild
@@ -585,6 +593,24 @@ def test_codebuild_batch_get_builds_2_projects():
 
 
 @mock_codebuild
+def test_codebuild_batch_get_builds_invalid_build_id():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    with pytest.raises(client.exceptions.InvalidInputException) as err:
+        client.batch_get_builds(ids=["some_project{}".format(uuid1())])
+    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_codebuild
+def test_codebuild_batch_get_builds_empty_build_id():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    with pytest.raises(ParamValidationError) as err:
+        client.batch_get_builds(ids=[])
+        err.response["Error"]["Code"].should.equal("ParamValidationError")
+
+
+@mock_codebuild
 def test_codebuild_delete_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -658,3 +684,21 @@ def test_codebuild_stop_build():
 
     response = client.stop_build(id=builds["ids"][0])
     response["build"]["buildStatus"].should.equal("STOPPED")
+
+
+@mock_codebuild
+def test_codebuild_stop_build_no_build():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    with pytest.raises(client.exceptions.ResourceNotFoundException) as err:
+        client.stop_build(id="some_project:{0}".format(uuid1()))
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+
+@mock_codebuild
+def test_codebuild_stop_build_bad_uid():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    with pytest.raises(client.exceptions.InvalidInputException) as err:
+        client.stop_build(id="some_project{0}".format(uuid1()))
+    err.value.response["Error"]["Code"].should.equal("InvalidInputException")

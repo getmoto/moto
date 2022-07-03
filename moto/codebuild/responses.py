@@ -99,6 +99,18 @@ def _validate_required_params_project_name(name):
         )
 
 
+def _validate_required_params_id(build_id, build_ids):
+    try:
+        assert ":" in build_id
+    except AssertionError:
+        raise InvalidInputException("Invalid build ID provided")
+
+    try:
+        assert build_id in build_ids
+    except AssertionError:
+        raise ResourceNotFoundException("Build {0} does not exist".format(build_id))
+
+
 class CodeBuildResponse(BaseResponse):
     @property
     def codebuild_backend(self):
@@ -202,11 +214,9 @@ class CodeBuildResponse(BaseResponse):
         return
 
     def stop_build(self):
-
-        try:
-            assert ":" in self._get_param("id")
-        except AssertionError:
-            raise InvalidInputException("Invalid build ID provided")
+        _validate_required_params_id(
+            self._get_param("id"), self.codebuild_backend.list_builds()
+        )
 
         metadata = self.codebuild_backend.stop_build(self._get_param("id"))
         return json.dumps({"build": metadata})
