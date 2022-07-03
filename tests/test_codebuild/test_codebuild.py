@@ -112,6 +112,72 @@ def test_codebuild_create_project_no_artifacts():
 
 
 @mock_codebuild
+def test_codebuild_create_project_with_invalid_name():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    name = "!some_project"
+    source = dict()
+    source["type"] = "S3"
+    # repository location for S3
+    source["location"] = "bucketname/path/file.zip"
+    # output artifacts
+    artifacts = {"type": "NO_ARTIFACTS"}
+
+    environment = dict()
+    environment["type"] = "LINUX_CONTAINER"
+    environment["image"] = "contents_not_validated"
+    environment["computeType"] = "BUILD_GENERAL1_SMALL"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
+
+    with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
+        client.create_project(
+            name=name,
+            source=source,
+            artifacts=artifacts,
+            environment=environment,
+            serviceRole=service_role,
+        )
+    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_codebuild
+def test_codebuild_create_project_with_invalid_name_length():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    name = "some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project"
+    source = dict()
+    source["type"] = "S3"
+    # repository location for S3
+    source["location"] = "bucketname/path/file.zip"
+    # output artifacts
+    artifacts = {"type": "NO_ARTIFACTS"}
+
+    environment = dict()
+    environment["type"] = "LINUX_CONTAINER"
+    environment["image"] = "contents_not_validated"
+    environment["computeType"] = "BUILD_GENERAL1_SMALL"
+    service_role = (
+        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
+            ACCOUNT_ID
+        )
+    )
+
+    with pytest.raises(client.exceptions.from_code("InvalidInputException")) as err:
+        client.create_project(
+            name=name,
+            source=source,
+            artifacts=artifacts,
+            environment=environment,
+            serviceRole=service_role,
+        )
+    err.value.response["Error"]["Code"].should.equal("InvalidInputException")
+
+
+@mock_codebuild
 def test_codebuild_create_project_when_exists():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
