@@ -680,6 +680,76 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
+    def deployments(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_deployment()
+
+        if self.method == "GET":
+            return self.list_deployments()
+
+    def create_deployment(self):
+
+        group_id = self.path.split("/")[-2]
+        group_version_id = self._get_param("GroupVersionId")
+        deployment_type = self._get_param("DeploymentType")
+        deployment_id = self._get_param("DeploymentId")
+
+        res = self.greengrass_backend.create_deployment(
+            group_id=group_id,
+            group_version_id=group_version_id,
+            deployment_type=deployment_type,
+            deployment_id=deployment_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def list_deployments(self):
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_deployments(group_id=group_id)
+
+        deployments = (
+            []
+            if len(res) == 0
+            else [deployment.to_dict(include_detail=True) for deployment in res]
+        )
+
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Deployments": deployments}),
+        )
+
+    def deployment_satus(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_deployment_status()
+
+    def get_deployment_status(self):
+        group_id = self.path.split("/")[-4]
+        deployment_id = self.path.split("/")[-2]
+
+        res = self.greengrass_backend.get_deployment_status(
+            group_id=group_id,
+            deployment_id=deployment_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def deployments_reset(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.reset_deployments()
+
+    def reset_deployments(self):
+        group_id = self.path.split("/")[-3]
+
+        res = self.greengrass_backend.reset_deployments(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
     def role(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 

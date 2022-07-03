@@ -1,3 +1,4 @@
+import json
 import uuid
 from collections import OrderedDict
 from datetime import datetime
@@ -10,6 +11,8 @@ from .exceptions import (
     IdNotFoundException,
     InvalidInputException,
     InvalidContainerDefinitionException,
+    MissingCoreException,
+    ResourceNotFoundException,
     VersionNotFoundException,
 )
 
@@ -361,6 +364,31 @@ class FakeGroupVersion(BaseModel):
         return obj
 
 
+class FakeDeployment(BaseModel):
+    def __init__(self, region_name, group_id, group_arn, deployment_type):
+        self.region_name = region_name
+        self.id = str(uuid.uuid4())
+        self.group_id = group_id
+        self.group_arn = group_arn
+        self.created_at_datetime = datetime.utcnow()
+        self.update_at_datetime = datetime.utcnow()
+        self.deployment_status = "InProgress"
+        self.deployment_type = deployment_type
+        self.arn = f"arn:aws:greengrass:{self.region_name}:{get_account_id()}:/greengrass/groups/{self.group_id}/deployments/{self.id}"
+
+    def to_dict(self, include_detail=False):
+        obj = {"DeploymentId": self.id, "DeploymentArn": self.arn}
+
+        if include_detail:
+            obj["CreatedAt"] = iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            )
+            obj["DeploymentType"] = self.deployment_type
+            obj["GroupArn"] = self.group_arn
+
+        return obj
+
+
 class FakeAssociatedRole(BaseModel):
     def __init__(self, role_arn):
         self.role_arn = role_arn
@@ -373,6 +401,20 @@ class FakeAssociatedRole(BaseModel):
             obj["RoleArn"] = self.role_arn
 
         return obj
+
+
+class FakeDeploymentStatus(BaseModel):
+    def __init__(self, deployment_type, updated_at, deployment_status="InProgress"):
+        self.deployment_type = deployment_type
+        self.update_at_datetime = updated_at
+        self.deployment_status = deployment_status
+
+    def to_dict(self):
+        return {
+            "DeploymentStatus": self.deployment_status,
+            "DeploymentType": self.deployment_type,
+            "UpdatedAt": iso_8601_datetime_with_milliseconds(self.update_at_datetime),
+        }
 
 
 class GreengrassBackend(BaseBackend):
@@ -1080,6 +1122,109 @@ class GreengrassBackend(BaseBackend):
             )
 
         return self.group_versions[group_id][group_version_id]
+
+    def create_deployment(
+        self, group_id, group_version_id, deployment_type, deployment_id=None
+    ):
+
+        deployment_types = (
+            "NewDeployment",
+            "Redeployment",
+            "ResetDeployment",
+            "ForceResetDeployment",
+        )
+        if deployment_type not in deployment_types:
+            raise InvalidInputException(
+                f"That deployment type is not valid.  Please specify one of the following types: {{{','.join(deployment_types)}}}."
+            )
+        if deployment_type == "Redeployment":
+            if deployment_id is None:
+                raise InvalidInputException(
+                    "Your request is missing the following required parameter(s): {DeploymentId}."
+                )
+            if deployment_id not in self.deployments:
+                raise InvalidInputException(
+                    f"Deployment ID '{deployment_id}' is invalid."
+                )
+
+        if group_id not in self.groups:
+            raise ResourceNotFoundException("That group definition does not exist.")
+
+        if group_version_id not in self.group_versions[group_id]:
+            raise ResourceNotFoundException(
+                f"Version {group_version_id} of Group Definition {group_id} does not exist."
+            )
+
+        if (
+            self.group_versions[group_id][group_version_id].core_definition_version_arn
+            is None
+        ):
+
+            err = {
+                "ErrorDetails": [
+                    {
+                        "DetailedErrorCode": "GG-303",
+                        "DetailedErrorMessage": "You need a Greengrass Core in this Group before you can deploy.",
+                    }
+                ]
+            }
+
+            raise MissingCoreException(json.dumps(err))
+        group_version_arn = self.group_versions[group_id][group_version_id].arn
+        deployment = FakeDeployment(
+            self.region_name, group_id, group_version_arn, deployment_type
+        )
+        self.deployments[deployment.id] = deployment
+        return deployment
+
+    def list_deployments(self, group_id):
+
+        # ListDeployments API does not check specified group is exists
+        return [
+            deployment
+            for deployment in self.deployments.values()
+            if deployment.group_id == group_id
+        ]
+
+    def get_deployment_status(self, group_id, deployment_id):
+
+        if deployment_id not in self.deployments:
+            raise InvalidInputException(f"Deployment '{deployment_id}' does not exist.")
+
+        deployment = self.deployments[deployment_id]
+
+        if deployment.group_id != group_id:
+            raise InvalidInputException(f"Deployment '{deployment_id}' does not exist.")
+
+        return FakeDeploymentStatus(
+            deployment.deployment_type,
+            deployment.update_at_datetime,
+            deployment.deployment_status,
+        )
+
+    def reset_deployments(self, group_id, force=False):
+
+        if group_id not in self.groups:
+            raise ResourceNotFoundException("That Group Definition does not exist.")
+
+        deployment_type = "ForceResetDeployment"
+        if not force:
+            deployments = list(self.deployments.values())
+            reset_error_msg = (
+                f"Group id: {group_id} has not been deployed or has already been reset."
+            )
+            if not deployments:
+                raise ResourceNotFoundException(reset_error_msg)
+            if deployments[-1].deployment_type not in ["NewDeployment", "Redeployment"]:
+                raise ResourceNotFoundException(reset_error_msg)
+            deployment_type = "ResetDeployment"
+
+        group = self.groups[group_id]
+        deployment = FakeDeployment(
+            self.region_name, group_id, group.arn, deployment_type
+        )
+        self.deployments[deployment.id] = deployment
+        return deployment
 
     def associate_role_to_group(self, group_id, role_arn):
 

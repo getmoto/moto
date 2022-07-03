@@ -27,3 +27,15 @@ class InvalidInputException(GreengrassClientError):
     def __init__(self, msg):
         self.code = 400
         super().__init__("InvalidInputException", msg)
+
+
+class MissingCoreException(GreengrassClientError):
+    def __init__(self, msg):
+        self.code = 400
+        super().__init__("MissingCoreException", msg)
+
+
+class ResourceNotFoundException(GreengrassClientError):
+    def __init__(self, msg):
+        self.code = 404
+        super().__init__("ResourceNotFoundException", msg)
