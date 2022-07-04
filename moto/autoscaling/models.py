@@ -302,8 +302,6 @@ class FakeScheduledAction(CloudFormationModel):
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
 
-        # self.scheduled_action_name = scheduled_action_name if scheduled_action_name else "autoscaling-scheduled-action"
-
     @staticmethod
     def cloudformation_name_type():
 
@@ -341,50 +339,6 @@ class FakeScheduledAction(CloudFormationModel):
             recurrence=properties.get("Recurrence"),
         )
         return group
-
-        """kwargs = {}
-
-        if "StartTime" in properties:
-
-            kwargs.update({"start_time": properties["StartTime"]})
-
-        if "EndTime" in properties:
-
-            kwargs.update({"end_time": properties["EndTime"]})
-
-        if "Recurrence" in properties:
-
-            kwargs.update({"recurrence": properties["Recurrence"]})
-
-        return cls(
-            cloudformation_json["Properties"]["AutoScalingGroupName"],
-            cloudformation_json["Properties"]["DesiredCapacity"],
-            cloudformation_json["Properties"]["MaxSize"],
-            cloudformation_json["Properties"]["MinSize"],
-            **kwargs
-        )"""
-
-    @classmethod
-    def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
-    ):
-
-        cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, region_name
-        )
-
-        return cls.create_from_cloudformation_json(
-            new_resource_name, cloudformation_json, region_name
-        )
-
-    @classmethod
-    def delete_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
-
-        # TODO: This should remove the scheduled action from the ASG
-        #       passed in the cloudformation json
-        return None
 
 
 class FakeAutoScalingGroup(CloudFormationModel):
