@@ -77,7 +77,11 @@ def test_create_autoscaling_group_within_elb():
 
     as_client.put_scheduled_update_group_action(
 <<<<<<< HEAD
+<<<<<<< HEAD
         AutoScalingGroupName="tester_group",
+=======
+        AutoScalingGroupName="schedule-scaling-auto-sclaing-group",
+>>>>>>> Run black
         ScheduledActionName="my-scheduled-action",
         StartTime="2022-07-01T00:00:00Z",
         EndTime="2022-09-01T00:00:00Z",
@@ -85,6 +89,7 @@ def test_create_autoscaling_group_within_elb():
         MinSize=10,
         MaxSize=12,
         DesiredCapacity=9,
+<<<<<<< HEAD
 =======
         "ScheduledActionName": 'string',
         "StartTime": "2022-07-01T00:00:00Z",
@@ -94,6 +99,8 @@ def test_create_autoscaling_group_within_elb():
         "MaxSize": 12,
         "DesiredCapacity": 9,
 >>>>>>> Add tests
+=======
+>>>>>>> Run black
     )
 
     group = as_client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
