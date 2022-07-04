@@ -849,8 +849,6 @@ class AutoScalingBackend(BaseBackend):
             end_time=None,
             recurrence=None,
         )
-        # self.autoscaling_groups[name] = group
-
         return group
 
     def create_auto_scaling_group(
