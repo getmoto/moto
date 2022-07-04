@@ -29,7 +29,7 @@ kms
 - [ ] connect_custom_key_store
 - [ ] create_alias
 - [ ] create_custom_key_store
-- [ ] create_grant
+- [X] create_grant
 - [X] create_key
 - [X] decrypt
 - [X] delete_alias
@@ -57,24 +57,38 @@ kms
 - [ ] get_public_key
 - [ ] import_key_material
 - [ ] list_aliases
-- [ ] list_grants
+- [X] list_grants
 - [ ] list_key_policies
 - [X] list_keys
 - [X] list_resource_tags
-- [ ] list_retirable_grants
+- [X] list_retirable_grants
 - [X] put_key_policy
 - [X] re_encrypt
 - [ ] replicate_key
-- [ ] retire_grant
-- [ ] revoke_grant
+- [X] retire_grant
+- [X] revoke_grant
 - [X] schedule_key_deletion
-- [ ] sign
+- [X] sign
+  Sign message using generated private key.
+
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
+        - grant_tokens are not implemented
+        
+
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_alias
 - [ ] update_custom_key_store
 - [X] update_key_description
 - [ ] update_primary_region
-- [ ] verify
+- [X] verify
+  Verify message using public key from generated private key.
+
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
+        - grant_tokens are not implemented
+        
+
 - [ ] verify_mac
 

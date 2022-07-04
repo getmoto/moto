@@ -7,11 +7,8 @@ import datetime
 class BatchSimpleBackend(BaseBackend):
     """
     Implements a Batch-Backend that does not use Docker containers. Submitted Jobs are simply marked as Success
-    Use the `@mock_batch_simple`-decorator to use this class.
+    Annotate your tests with `@mock_batch_simple`-decorator to use this Batch-implementation.
     """
-
-    def __init__(self, region_name=None):
-        self.region_name = region_name
 
     @property
     def backend(self):

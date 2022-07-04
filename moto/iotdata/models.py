@@ -139,15 +139,9 @@ class FakeShadow(BaseModel):
 
 
 class IoTDataPlaneBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.published_payloads = list()
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def update_thing_shadow(self, thing_name, payload):
         """
@@ -186,9 +180,6 @@ class IoTDataPlaneBackend(BaseBackend):
         return thing.thing_shadow
 
     def delete_thing_shadow(self, thing_name):
-        """after deleting, get_thing_shadow will raise ResourceNotFound.
-        But version of the shadow keep increasing...
-        """
         thing = iot_backends[self.region_name].describe_thing(thing_name)
         if thing.thing_shadow is None:
             raise ResourceNotFoundException()

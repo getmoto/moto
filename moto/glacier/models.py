@@ -2,8 +2,9 @@ import hashlib
 
 import datetime
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
+from moto.utilities.utils import md5_hash
 
 from .utils import get_job_id
 
@@ -99,7 +100,7 @@ class Vault(BaseModel):
     @property
     def arn(self):
         return "arn:aws:glacier:{0}:{1}:vaults/{2}".format(
-            self.region, ACCOUNT_ID, self.vault_name
+            self.region, get_account_id(), self.vault_name
         )
 
     def to_dict(self):
@@ -117,7 +118,7 @@ class Vault(BaseModel):
         return d
 
     def create_archive(self, body, description):
-        archive_id = hashlib.md5(body).hexdigest()
+        archive_id = md5_hash(body).hexdigest()
         self.archives[archive_id] = {}
         self.archives[archive_id]["archive_id"] = archive_id
         self.archives[archive_id]["body"] = body
@@ -187,14 +188,9 @@ class Vault(BaseModel):
 
 
 class GlacierBackend(BaseBackend):
-    def __init__(self, region_name):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.vaults = {}
-        self.region_name = region_name
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def get_vault(self, vault_name):
         return self.vaults[vault_name]

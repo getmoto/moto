@@ -15,6 +15,11 @@ autoscaling:
   - TestAccAutoScalingLaunchConfiguration_
 batch:
   - TestAccBatchJobDefinition
+ce:
+  - TestAccCECostCategory
+cloudfront:
+  - TestAccCloudFrontDistributionDataSource_basic
+  - TestAccCloudFrontDistribution_isIPV6Enabled
 cloudtrail:
   - TestAccCloudTrailServiceAccount
 cloudwatch:
@@ -30,6 +35,9 @@ cognitoidp:
   - TestAccCognitoUserInGroup_
   - TestAccCognitoIDPUserPoolClients
   - TestAccCognitoIDPUserPoolClientDataSource
+dax:
+  - TestAccDAXCluster_basic
+  - TestAccDAXCluster_Encryption
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
@@ -40,13 +48,18 @@ ec2:
   - TestAccEC2InternetGateway_
   - TestAccEC2NATGateway_
   - TestAccEC2RouteTableAssociation_
+  - TestAccEC2SecurityGroups
   - TestAccEC2SpotInstanceRequest_disappears
   - TestAccEC2SpotInstanceRequest_interruptUpdate
   - TestAccEC2VPCEndpointService_
+  - TestAccEC2VPCPeeringConnectionAccepter_
+  - TestAccEC2VPCsDataSource
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_
 ecr:
   - TestAccECRLifecyclePolicy
+  - TestAccECRRegistryPolicy
+  - TestAccECRReplicationConfiguration
   - TestAccECRRepository
   - TestAccECRRepositoryDataSource
   - TestAccECRRepositoryPolicy
@@ -76,6 +89,9 @@ events:
   - TestAccEventsConnection
   - TestAccEventsConnectionDataSource
   - TestAccEventsPermission
+guardduty:
+  - TestAccGuardDuty_serial/Detector/basic
+  - TestAccGuardDuty_serial/Filter/basic
 iam:
   - TestAccIAMAccessKey_
   - TestAccIAMAccountAlias_
@@ -101,26 +117,97 @@ iot:
   - TestAccIoTEndpointDataSource
 kms:
   - TestAccKMSAlias
+  - TestAccKMSGrant_arn
+  - TestAccKMSGrant_asymmetricKey
+  - TestAccKMSGrant_basic
+  - TestAccKMSGrant_bare
+  - TestAccKMSGrant_withConstraints
+  - TestAccKMSGrant_withRetiringPrincipal
   - TestAccKMSKey_Policy_basic
   - TestAccKMSKey_Policy_iamRole
   - TestAccKMSKey_Policy_iamRoleOrder
   - TestAccKMSKey_Policy_iamServiceLinkedRole
   - TestAccKMSSecretDataSource
   - TestAccKMSSecretsDataSource
+lambda:
+  - TestAccLambdaAlias_
+  - TestAccLambdaLayerVersion_
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:
-  - TestAccMQBroker
+  - TestAccMQBrokerDataSource
+  - TestAccMQBroker_
 quicksight:
   - TestAccQuickSightUser
 redshift:
   - TestAccRedshiftServiceAccountDataSource
+route53:
+  - TestAccRoute53Record_basic
+  - TestAccRoute53Record_underscored
+  - TestAccRoute53Record_disappears
+  - TestAccRoute53Record_Disappears_multipleRecords
+  - TestAccRoute53Record_Basic_fqdn
+  - TestAccRoute53Record_Basic_trailingPeriodAndZoneID
+  - TestAccRoute53Record_txtSupport
+  - TestAccRoute53Record_spfSupport
+  - TestAccRoute53Record_caaSupport
+  - TestAccRoute53Record_dsSupport
+  - TestAccRoute53Record_generatesSuffix
+  - TestAccRoute53Record_wildcard
+  - TestAccRoute53Record_failover
+  - TestAccRoute53Record_Weighted_basic
+  - TestAccRoute53Record_WeightedToSimple_basic
+  - TestAccRoute53Record_Alias_s3
+  - TestAccRoute53Record_Geolocation_basic
+  - TestAccRoute53Record_HealthCheckID_setIdentifierChange
+  - TestAccRoute53Record_HealthCheckID_typeChange
+  - TestAccRoute53Record_Latency_basic
+  - TestAccRoute53Record_typeChange
+  - TestAccRoute53Record_nameChange
+  - TestAccRoute53Record_setIdentifierChange
+  - TestAccRoute53Record_empty
+  - TestAccRoute53Record_longTXTrecord
+  - TestAccRoute53Record_doNotAllowOverwrite
+  - TestAccRoute53Record_allowOverwrite
+  - TestAccRoute53Zone_basic
+  - TestAccRoute53Zone_disappears
+  - TestAccRoute53Zone_multiple
+  - TestAccRoute53Zone_comment
+  - TestAccRoute53Zone_delegationSetID
+  - TestAccRoute53Zone_forceDestroy
+  - TestAccRoute53Zone_ForceDestroy_trailingPeriod
+  - TestAccRoute53Zone_tags
+  - TestAccRoute53Zone_VPC_single
+  - TestAccRoute53Zone_VPC_multiple
+  - TestAccRoute53Zone_VPC_updates
+  - TestAccRoute53ZoneAssociation
+  - TestAccRoute53ZoneDataSource_id
+  - TestAccRoute53ZoneDataSource_name
+  - TestAccRoute53ZoneDataSource_tags
+  - TestAccRoute53ZoneDataSource_vpc
+  - TestAccRoute53HealthCheck_basic
+  - TestAccRoute53HealthCheck_tags
+  - TestAccRoute53HealthCheck_withSearchString
+  - TestAccRoute53HealthCheck_withChildHealthChecks
+  - TestAccRoute53HealthCheck_withHealthCheckRegions
+  - TestAccRoute53HealthCheck_ip
+  - TestAccRoute53HealthCheck_ipv6
+  - TestAccRoute53HealthCheck_withSNI
+  - TestAccRoute53HealthCheck_disabled
+  - TestAccRoute53HealthCheck_disappears
+  - TestAccRoute53ResolverEndpoint
 s3:
   - TestAccS3BucketPolicy
   - TestAccS3BucketPublicAccessBlock
   - TestAccS3ObjectCopy
 sagemaker:
   - TestAccSageMakerPrebuiltECRImageDataSource
+servicediscovery:
+  - TestAccServiceDiscoveryDNSNamespaceDataSource
+  - TestAccServiceDiscoveryHTTPNamespace
+  - TestAccServiceDiscoveryPrivateDNSNamespace
+  - TestAccServiceDiscoveryPublicDNSNamespace
+  - TestAccServiceDiscoveryService
 sns:
   - TestAccSNSTopicPolicy
   - TestAccSNSTopicDataSource

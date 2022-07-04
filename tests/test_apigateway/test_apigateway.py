@@ -367,6 +367,7 @@ def test_create_method():
             "httpMethod": "GET",
             "authorizationType": "none",
             "apiKeyRequired": False,
+            "methodResponses": {},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -401,6 +402,7 @@ def test_create_method_apikeyrequired():
             "httpMethod": "GET",
             "authorizationType": "none",
             "apiKeyRequired": True,
+            "methodResponses": {},
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
@@ -453,6 +455,19 @@ def test_create_method_response():
 
 
 @mock_apigateway
+def test_get_method_unknown_resource_id():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    with pytest.raises(ClientError) as ex:
+        client.get_method(restApiId=api_id, resourceId="sth", httpMethod="GET")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("NotFoundException")
+    err["Message"].should.equal("Invalid resource identifier specified")
+
+
+@mock_apigateway
 def test_delete_method():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -502,8 +517,10 @@ def test_integrations():
         resourceId=root_id,
         httpMethod="GET",
         type="HTTP",
+        passthroughBehavior="WHEN_NO_TEMPLATES",
         uri="http://httpbin.org/robots.txt",
         integrationHttpMethod="POST",
+        requestParameters={"integration.request.header.X-Custom": "'Custom'"},
     )
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
@@ -514,6 +531,9 @@ def test_integrations():
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "cacheKeyParameters": [],
+            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
         }
     )
 
@@ -529,6 +549,9 @@ def test_integrations():
             "httpMethod": "POST",
             "type": "HTTP",
             "uri": "http://httpbin.org/robots.txt",
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "cacheKeyParameters": [],
+            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
         }
     )
 
@@ -539,7 +562,14 @@ def test_integrations():
     response["resourceMethods"]["GET"]["httpMethod"].should.equal("GET")
     response["resourceMethods"]["GET"]["authorizationType"].should.equal("none")
     response["resourceMethods"]["GET"]["methodIntegration"].should.equal(
-        {"httpMethod": "POST", "type": "HTTP", "uri": "http://httpbin.org/robots.txt"}
+        {
+            "httpMethod": "POST",
+            "type": "HTTP",
+            "uri": "http://httpbin.org/robots.txt",
+            "cacheKeyParameters": [],
+            "passthroughBehavior": "WHEN_NO_TEMPLATES",
+            "requestParameters": {"integration.request.header.X-Custom": "'Custom'"},
+        }
     )
 
     client.delete_integration(restApiId=api_id, resourceId=root_id, httpMethod="GET")
@@ -569,6 +599,7 @@ def test_integrations():
         type="HTTP",
         uri=test_uri,
         requestTemplates=templates,
+        passthroughBehavior="WHEN_NO_MATCH",
         integrationHttpMethod="POST",
         timeoutInMillis=29000,
     )
@@ -578,6 +609,7 @@ def test_integrations():
     )
     response["uri"].should.equal(test_uri)
     response["requestTemplates"].should.equal(templates)
+    response["passthroughBehavior"].should.equal("WHEN_NO_MATCH")
     response.should.have.key("timeoutInMillis").equals(29000)
 
 

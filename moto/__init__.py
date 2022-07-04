@@ -57,6 +57,7 @@ mock_batch_simple = lazy_load(
     backend="batch_simple_backends",
 )
 mock_budgets = lazy_load(".budgets", "mock_budgets")
+mock_ce = lazy_load(".ce", "mock_ce")
 mock_cloudformation = lazy_load(".cloudformation", "mock_cloudformation")
 mock_cloudfront = lazy_load(".cloudfront", "mock_cloudfront")
 mock_cloudtrail = lazy_load(".cloudtrail", "mock_cloudtrail")
@@ -82,6 +83,7 @@ mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(
     ".elasticbeanstalk", "mock_elasticbeanstalk", backend="eb_backends"
 )
+mock_ebs = lazy_load(".ebs", "mock_ebs")
 mock_ec2 = lazy_load(".ec2", "mock_ec2")
 mock_ec2instanceconnect = lazy_load(".ec2instanceconnect", "mock_ec2instanceconnect")
 mock_ecr = lazy_load(".ecr", "mock_ecr")
@@ -102,6 +104,7 @@ mock_es = lazy_load(".es", "mock_es")
 mock_events = lazy_load(".events", "mock_events")
 mock_firehose = lazy_load(".firehose", "mock_firehose")
 mock_forecast = lazy_load(".forecast", "mock_forecast")
+mock_greengrass = lazy_load(".greengrass", "mock_greengrass")
 mock_glacier = lazy_load(".glacier", "mock_glacier")
 mock_glue = lazy_load(".glue", "mock_glue")
 mock_guardduty = lazy_load(".guardduty", "mock_guardduty")
@@ -177,6 +180,9 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
+mock_emrserverless = lazy_load(
+    ".emrserverless", "mock_emrserverless", boto3_name="emr-serverless"
+)
 
 
 class MockAll(ContextDecorator):
@@ -205,7 +211,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "3.1.8.dev"
+__version__ = "3.1.17.dev"
 
 
 try:

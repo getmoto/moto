@@ -21,6 +21,7 @@ def test_create_database():
         Port=1234,
         DBSecurityGroups=["my_sg"],
         VpcSecurityGroupIds=["sg-123456"],
+        EnableCloudwatchLogsExports=["audit", "error"],
     )
     db_instance = database["DBInstance"]
     db_instance["AllocatedStorage"].should.equal(10)
@@ -40,6 +41,7 @@ def test_create_database():
     db_instance["InstanceCreateTime"].should.be.a("datetime.datetime")
     db_instance["VpcSecurityGroups"][0]["VpcSecurityGroupId"].should.equal("sg-123456")
     db_instance["DeletionProtection"].should.equal(False)
+    db_instance["EnabledCloudwatchLogsExports"].should.equal(["audit", "error"])
 
 
 @mock_rds

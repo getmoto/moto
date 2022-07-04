@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from ..exceptions import (
     InvalidNetworkAclIdError,
     InvalidRouteTableIdError,
@@ -12,13 +12,12 @@ from ..utils import (
 )
 
 
-OWNER_ID = ACCOUNT_ID
+OWNER_ID = get_account_id()
 
 
-class NetworkAclBackend(object):
+class NetworkAclBackend:
     def __init__(self):
         self.network_acls = {}
-        super().__init__()
 
     def get_network_acl(self, network_acl_id):
         network_acl = self.network_acls.get(network_acl_id, None)
@@ -238,6 +237,8 @@ class NetworkAcl(TaggedEC2Resource):
             return [entry.rule_number for entry in self.network_acl_entries]
         elif filter_name == "entry.rule-action":
             return [entry.rule_action for entry in self.network_acl_entries]
+        elif filter_name == "entry.egress":
+            return [entry.egress for entry in self.network_acl_entries]
         elif filter_name == "owner-id":
             return self.owner_id
         else:

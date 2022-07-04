@@ -281,6 +281,7 @@ def lambda_handler(event, context):
                     "Description": "Test Layer",
                     "CompatibleRuntimes": ["python2.7", "python3.6"],
                     "LicenseInfo": "MIT",
+                    "CompatibleArchitectures": [],
                 },
             },
         },
@@ -305,6 +306,7 @@ def lambda_handler(event, context):
                 "CompatibleRuntimes": ["python2.7", "python3.6"],
                 "Description": "Test Layer",
                 "LicenseInfo": "MIT",
+                "CompatibleArchitectures": [],
             }
         ]
     )

@@ -1,6 +1,6 @@
 import time
 
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, get_account_id
 from moto.core.utils import BackendDict
 
 from uuid import uuid4
@@ -18,7 +18,9 @@ class TaggableResourceMixin(object):
     @property
     def arn(self):
         return "arn:aws:athena:{region}:{account_id}:{resource_name}".format(
-            region=self.region, account_id=ACCOUNT_ID, resource_name=self.resource_name
+            region=self.region,
+            account_id=get_account_id(),
+            resource_name=self.resource_name,
         )
 
     def create_tags(self, tags):
@@ -83,9 +85,8 @@ class NamedQuery(BaseModel):
 class AthenaBackend(BaseBackend):
     region_name = None
 
-    def __init__(self, region_name=None):
-        if region_name is not None:
-            self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.work_groups = {}
         self.executions = {}
         self.named_queries = {}

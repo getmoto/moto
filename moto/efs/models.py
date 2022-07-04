@@ -7,9 +7,8 @@ https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html
 import json
 import time
 from copy import deepcopy
-from hashlib import md5
 
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_hex,
@@ -32,6 +31,7 @@ from moto.efs.exceptions import (
     SecurityGroupLimitExceeded,
 )
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import md5_hash
 
 
 def _lookup_az_id(az_name):
@@ -55,7 +55,9 @@ class AccessPoint(BaseModel):
     ):
         self.access_point_id = get_random_hex(8)
         self.access_point_arn = "arn:aws:elasticfilesystem:{region}:{user_id}:access-point/fsap-{file_system_id}".format(
-            region=region_name, user_id=ACCOUNT_ID, file_system_id=self.access_point_id
+            region=region_name,
+            user_id=get_account_id(),
+            file_system_id=self.access_point_id,
         )
         self.client_token = client_token
         self.file_system_id = file_system_id
@@ -79,7 +81,7 @@ class AccessPoint(BaseModel):
             "FileSystemId": self.file_system_id,
             "PosixUser": self.posix_user,
             "RootDirectory": self.root_directory,
-            "OwnerId": ACCOUNT_ID,
+            "OwnerId": get_account_id(),
             "LifeCycleState": "available",
         }
 
@@ -128,10 +130,12 @@ class FileSystem(CloudFormationModel):
         # Generate AWS-assigned parameters
         self.file_system_id = file_system_id
         self.file_system_arn = "arn:aws:elasticfilesystem:{region}:{user_id}:file-system/{file_system_id}".format(
-            region=region_name, user_id=ACCOUNT_ID, file_system_id=self.file_system_id
+            region=region_name,
+            user_id=get_account_id(),
+            file_system_id=self.file_system_id,
         )
         self.creation_time = time.time()
-        self.owner_id = ACCOUNT_ID
+        self.owner_id = get_account_id()
 
         # Initialize some state parameters
         self.life_cycle_state = "available"
@@ -288,7 +292,7 @@ class MountTarget(CloudFormationModel):
         self.ip_address = ip_address
 
         # Init non-user-assigned values.
-        self.owner_id = ACCOUNT_ID
+        self.owner_id = get_account_id()
         self.mount_target_id = "fsmt-{}".format(get_random_hex())
         self.life_cycle_state = "available"
         self.network_interface_id = None
@@ -358,9 +362,8 @@ class EFSBackend(BaseBackend):
     such resources should always go through this class.
     """
 
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.creation_tokens = set()
         self.access_points = dict()
         self.file_systems_by_id = {}
@@ -368,17 +371,11 @@ class EFSBackend(BaseBackend):
         self.next_markers = {}
         self.tagging_service = TaggingService()
 
-    def reset(self):
-        # preserve region
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
-
     def _mark_description(self, corpus, max_items):
         if max_items < len(corpus):
             new_corpus = corpus[max_items:]
             new_corpus_dict = [c.info_json() for c in new_corpus]
-            new_hash = md5(json.dumps(new_corpus_dict).encode("utf-8"))
+            new_hash = md5_hash(json.dumps(new_corpus_dict).encode("utf-8"))
             next_marker = new_hash.hexdigest()
             self.next_markers[next_marker] = new_corpus
         else:

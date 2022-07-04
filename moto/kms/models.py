@@ -2,25 +2,60 @@ import json
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
 
-from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
-from moto.core.utils import unix_time, BackendDict
+from cryptography.hazmat.primitives.asymmetric import padding
+
+from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import get_random_hex, unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
+from .exceptions import ValidationException
 from .utils import (
     RESERVED_ALIASES,
     decrypt,
     encrypt,
     generate_key_id,
     generate_master_key,
+    generate_private_key,
 )
 
 
-class Key(CloudFormationModel):
+class Grant(BaseModel):
     def __init__(
-        self, policy, key_usage, customer_master_key_spec, description, region
+        self,
+        key_id,
+        name,
+        grantee_principal,
+        operations,
+        constraints,
+        retiring_principal,
     ):
+        self.key_id = key_id
+        self.name = name
+        self.grantee_principal = grantee_principal
+        self.retiring_principal = retiring_principal
+        self.operations = operations
+        self.constraints = constraints
+        self.id = get_random_hex()
+        self.token = get_random_hex()
+
+    def to_json(self):
+        return {
+            "KeyId": self.key_id,
+            "GrantId": self.id,
+            "Name": self.name,
+            "GranteePrincipal": self.grantee_principal,
+            "RetiringPrincipal": self.retiring_principal,
+            "Operations": self.operations,
+            "Constraints": self.constraints,
+        }
+
+
+class Key(CloudFormationModel):
+    def __init__(self, policy, key_usage, key_spec, description, region):
         self.id = generate_key_id()
         self.creation_date = unix_time()
         self.policy = policy or self.generate_default_policy()
@@ -29,13 +64,54 @@ class Key(CloudFormationModel):
         self.description = description or ""
         self.enabled = True
         self.region = region
-        self.account_id = ACCOUNT_ID
+        self.account_id = get_account_id()
         self.key_rotation_status = False
         self.deletion_date = None
         self.key_material = generate_master_key()
+        self.private_key = generate_private_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
-        self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+        self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
+
+        self.grants = dict()
+
+    def add_grant(
+        self, name, grantee_principal, operations, constraints, retiring_principal
+    ) -> Grant:
+        grant = Grant(
+            self.id,
+            name,
+            grantee_principal,
+            operations,
+            constraints=constraints,
+            retiring_principal=retiring_principal,
+        )
+        self.grants[grant.id] = grant
+        return grant
+
+    def list_grants(self, grant_id) -> [Grant]:
+        grant_ids = [grant_id] if grant_id else self.grants.keys()
+        return [grant for _id, grant in self.grants.items() if _id in grant_ids]
+
+    def list_retirable_grants(self, retiring_principal) -> [Grant]:
+        return [
+            grant
+            for grant in self.grants.values()
+            if grant.retiring_principal == retiring_principal
+        ]
+
+    def revoke_grant(self, grant_id) -> None:
+        self.grants.pop(grant_id, None)
+
+    def retire_grant(self, grant_id) -> None:
+        self.grants.pop(grant_id, None)
+
+    def retire_grant_by_token(self, grant_token) -> None:
+        self.grants = {
+            _id: grant
+            for _id, grant in self.grants.items()
+            if grant.token != grant_token
+        }
 
     def generate_default_policy(self):
         return json.dumps(
@@ -46,7 +122,7 @@ class Key(CloudFormationModel):
                     {
                         "Sid": "Enable IAM User Permissions",
                         "Effect": "Allow",
-                        "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                        "Principal": {"AWS": f"arn:aws:iam::{get_account_id()}:root"},
                         "Action": "kms:*",
                         "Resource": "*",
                     }
@@ -68,7 +144,7 @@ class Key(CloudFormationModel):
     def encryption_algorithms(self):
         if self.key_usage == "SIGN_VERIFY":
             return None
-        elif self.customer_master_key_spec == "SYMMETRIC_DEFAULT":
+        elif self.key_spec == "SYMMETRIC_DEFAULT":
             return ["SYMMETRIC_DEFAULT"]
         else:
             return ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
@@ -77,11 +153,11 @@ class Key(CloudFormationModel):
     def signing_algorithms(self):
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None
-        elif self.customer_master_key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
+        elif self.key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
             return ["ECDSA_SHA_256"]
-        elif self.customer_master_key_spec == "ECC_NIST_P384":
+        elif self.key_spec == "ECC_NIST_P384":
             return ["ECDSA_SHA_384"]
-        elif self.customer_master_key_spec == "ECC_NIST_P521":
+        elif self.key_spec == "ECC_NIST_P521":
             return ["ECDSA_SHA_512"]
         else:
             return [
@@ -99,7 +175,8 @@ class Key(CloudFormationModel):
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
                 "CreationDate": self.creation_date,
-                "CustomerMasterKeySpec": self.customer_master_key_spec,
+                "CustomerMasterKeySpec": self.key_spec,
+                "KeySpec": self.key_spec,
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "EncryptionAlgorithms": self.encryption_algorithms,
@@ -137,7 +214,7 @@ class Key(CloudFormationModel):
         key = kms_backend.create_key(
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
-            customer_master_key_spec="SYMMETRIC_DEFAULT",
+            key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags", []),
             region=region_name,
@@ -160,17 +237,11 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_name, account_id=None):
+        super().__init__(region_name=region_name, account_id=account_id)
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
-
-    def reset(self):
-        region = self.region
-        self._reset_model_refs()
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -188,15 +259,13 @@ class KmsBackend(BaseBackend):
                 "SYMMETRIC_DEFAULT",
                 "Default key",
                 None,
-                self.region,
+                self.region_name,
             )
             self.add_alias(key.id, alias_name)
             return key.id
 
-    def create_key(
-        self, policy, key_usage, customer_master_key_spec, description, tags, region
-    ):
-        key = Key(policy, key_usage, customer_master_key_spec, description, region)
+    def create_key(self, policy, key_usage, key_spec, description, tags, region):
+        key = Key(policy, key_usage, key_spec, description, region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
@@ -214,7 +283,7 @@ class KmsBackend(BaseBackend):
 
             return self.keys.pop(key_id)
 
-    def describe_key(self, key_id):
+    def describe_key(self, key_id) -> Key:
         # allow the different methods (alias, ARN :key/, keyId, ARN alias) to
         # describe key not just KeyId
         key_id = self.get_key_id(key_id)
@@ -237,7 +306,7 @@ class KmsBackend(BaseBackend):
     def get_alias_name(alias_name):
         # Allow use of ARN as well as alias name
         if alias_name.startswith("arn:") and ":alias/" in alias_name:
-            return alias_name.split(":alias/")[1]
+            return "alias/" + alias_name.split(":alias/")[1]
 
         return alias_name
 
@@ -409,6 +478,133 @@ class KmsBackend(BaseBackend):
             "NotFoundException",
             "The request was rejected because the specified entity or resource could not be found.",
         )
+
+    def create_grant(
+        self,
+        key_id,
+        grantee_principal,
+        operations,
+        name,
+        constraints,
+        retiring_principal,
+    ):
+        key = self.describe_key(key_id)
+        grant = key.add_grant(
+            name,
+            grantee_principal,
+            operations,
+            constraints=constraints,
+            retiring_principal=retiring_principal,
+        )
+        return grant.id, grant.token
+
+    def list_grants(self, key_id, grant_id) -> [Grant]:
+        key = self.describe_key(key_id)
+        return key.list_grants(grant_id)
+
+    def list_retirable_grants(self, retiring_principal):
+        grants = []
+        for key in self.keys.values():
+            grants.extend(key.list_retirable_grants(retiring_principal))
+        return grants
+
+    def revoke_grant(self, key_id, grant_id) -> None:
+        key = self.describe_key(key_id)
+        key.revoke_grant(grant_id)
+
+    def retire_grant(self, key_id, grant_id, grant_token) -> None:
+        if grant_token:
+            for key in self.keys.values():
+                key.retire_grant_by_token(grant_token)
+        else:
+            key = self.describe_key(key_id)
+            key.retire_grant(grant_id)
+
+    def __ensure_valid_sign_and_verify_key(self, key: Key):
+        if key.key_usage != "SIGN_VERIFY":
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{key_id}' at 'KeyId' failed "
+                    "to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
+                ).format(key_id=key.id)
+            )
+
+    def __ensure_valid_signing_augorithm(self, key: Key, signing_algorithm):
+        if signing_algorithm not in key.signing_algorithms:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_sign_algorithms}"
+                ).format(
+                    signing_algorithm=signing_algorithm,
+                    valid_sign_algorithms=key.signing_algorithms,
+                )
+            )
+
+    def sign(self, key_id, message, signing_algorithm):
+        """Sign message using generated private key.
+
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
+        - grant_tokens are not implemented
+        """
+        key = self.describe_key(key_id)
+
+        self.__ensure_valid_sign_and_verify_key(key)
+        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+
+        # TODO: support more than one hardcoded algorithm based on KeySpec
+        signature = key.private_key.sign(
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+
+        return key.arn, signature, signing_algorithm
+
+    def verify(self, key_id, message, signature, signing_algorithm):
+        """Verify message using public key from generated private key.
+
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
+        - grant_tokens are not implemented
+        """
+        key = self.describe_key(key_id)
+
+        self.__ensure_valid_sign_and_verify_key(key)
+        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+
+        if signing_algorithm not in key.signing_algorithms:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_sign_algorithms}"
+                ).format(
+                    signing_algorithm=signing_algorithm,
+                    valid_sign_algorithms=key.signing_algorithms,
+                )
+            )
+
+        public_key = key.private_key.public_key()
+
+        try:
+            # TODO: support more than one hardcoded algorithm based on KeySpec
+            public_key.verify(
+                signature,
+                message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH,
+                ),
+                hashes.SHA256(),
+            )
+            return key.arn, True, signing_algorithm
+        except InvalidSignature:
+            return key.arn, False, signing_algorithm
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

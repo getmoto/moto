@@ -6,12 +6,59 @@ import boto3
 import sure  # noqa # pylint: disable=unused-import
 import random
 
-from moto import mock_ec2
+from moto import mock_ec2, settings
+from unittest import SkipTest
 from uuid import uuid4
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
 SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
+
+
+@mock_ec2
+def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Lets not start deleting VPC's while other tests are using it")
+    # Delete VPC that's created by default
+    client = boto3.client("ec2", region_name="eu-north-1")
+    all_vpcs = retrieve_all_vpcs(client)
+    for vpc in all_vpcs:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    # create vpc
+    client.create_vpc(CidrBlock="10.0.0.0/16")
+    # verify this is not the default
+    all_vpcs = retrieve_all_vpcs(client)
+    all_vpcs.should.have.length_of(1)
+    all_vpcs[0].should.have.key("IsDefault").equals(False)
+
+
+@mock_ec2
+def test_create_default_vpc():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Lets not start deleting VPC's while other tests are using it")
+    # Delete VPC that's created by default
+    client = boto3.client("ec2", region_name="eu-north-1")
+    all_vpcs = retrieve_all_vpcs(client)
+    for vpc in all_vpcs:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    # create default vpc
+    client.create_default_vpc()
+    # verify this is the default
+    all_vpcs = retrieve_all_vpcs(client)
+    all_vpcs.should.have.length_of(1)
+    all_vpcs[0].should.have.key("IsDefault").equals(True)
+
+
+@mock_ec2
+def test_create_multiple_default_vpcs():
+    client = boto3.client("ec2", region_name="eu-north-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_default_vpc()
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("DefaultVpcAlreadyExists")
+    err["Message"].should.equal(
+        "A Default VPC already exists for this account in this region."
+    )
 
 
 @mock_ec2
@@ -947,7 +994,7 @@ def test_describe_vpc_gateway_end_points():
         VpcId=vpc["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
         RouteTableIds=[route_table["RouteTableId"]],
-        VpcEndpointType="gateway",
+        VpcEndpointType="Gateway",
     )["VpcEndpoint"]
     our_id = vpc_end_point["VpcEndpointId"]
 
@@ -960,7 +1007,7 @@ def test_describe_vpc_gateway_end_points():
     our_endpoint["VpcId"].should.equal(vpc["VpcId"])
     our_endpoint["RouteTableIds"].should.equal([route_table["RouteTableId"]])
 
-    our_endpoint.should.have.key("VpcEndpointType").equal("gateway")
+    our_endpoint.should.have.key("VpcEndpointType").equal("Gateway")
     our_endpoint.should.have.key("ServiceName").equal("com.amazonaws.us-east-1.s3")
     our_endpoint.should.have.key("State").equal("available")
 
@@ -970,9 +1017,14 @@ def test_describe_vpc_gateway_end_points():
     endpoint_by_id["VpcEndpointId"].should.equal(our_id)
     endpoint_by_id["VpcId"].should.equal(vpc["VpcId"])
     endpoint_by_id["RouteTableIds"].should.equal([route_table["RouteTableId"]])
-    endpoint_by_id["VpcEndpointType"].should.equal("gateway")
+    endpoint_by_id["VpcEndpointType"].should.equal("Gateway")
     endpoint_by_id["ServiceName"].should.equal("com.amazonaws.us-east-1.s3")
     endpoint_by_id["State"].should.equal("available")
+
+    gateway_endpoints = ec2.describe_vpc_endpoints(
+        Filters=[{"Name": "vpc-endpoint-type", "Values": ["Gateway"]}]
+    )["VpcEndpoints"]
+    [e["VpcEndpointId"] for e in gateway_endpoints].should.contain(our_id)
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_vpc_endpoints(VpcEndpointIds=[route_table["RouteTableId"]])

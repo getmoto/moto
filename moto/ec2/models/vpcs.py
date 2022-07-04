@@ -4,12 +4,13 @@ import weakref
 from collections import defaultdict
 from operator import itemgetter
 
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id
+from moto.core import CloudFormationModel
 from .core import TaggedEC2Resource
 from ..exceptions import (
     CidrLimitExceeded,
     UnsupportedTenancy,
+    DefaultVpcAlreadyExists,
     DependencyViolationError,
     InvalidCIDRBlockParameterError,
     InvalidServiceName,
@@ -76,9 +77,15 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
         self.created_at = utc_date_and_time()
 
+    def get_filter_value(self, filter_name):
+        if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
+            return self.endpoint_type
+        else:
+            return super().get_filter_value(filter_name, "DescribeVpcs")
+
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @property
     def physical_resource_id(self):
@@ -158,7 +165,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():
@@ -318,14 +325,20 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         ]
 
 
-class VPCBackend(object):
+class VPCBackend:
     vpc_refs = defaultdict(set)
 
     def __init__(self):
         self.vpcs = {}
         self.vpc_end_points = {}
         self.vpc_refs[self.__class__].add(weakref.ref(self))
-        super().__init__()
+
+    def create_default_vpc(self):
+        default_vpc = self.describe_vpcs(filters={"is-default": "true"})
+        if default_vpc:
+            raise DefaultVpcAlreadyExists
+        cidr_block = "172.31.0.0/16"
+        return self.create_vpc(cidr_block=cidr_block, is_default=True)
 
     def create_vpc(
         self,
@@ -333,6 +346,7 @@ class VPCBackend(object):
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
         tags=None,
+        is_default=False,
     ):
         vpc_id = random_vpc_id()
         try:
@@ -345,9 +359,9 @@ class VPCBackend(object):
             self,
             vpc_id,
             cidr_block,
-            len(self.vpcs) == 0,
-            instance_tenancy,
-            amazon_provided_ipv6_cidr_block,
+            is_default=is_default,
+            instance_tenancy=instance_tenancy,
+            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
         )
 
         for tag in tags or []:

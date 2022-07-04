@@ -2053,7 +2053,12 @@ def test_delete_lifecycle_policy_error_policy_not_exists():
 
 
 @mock_ecr
-def test_put_registry_policy():
+@pytest.mark.parametrize(
+    "actions",
+    ["ecr:CreateRepository", ["ecr:CreateRepository", "ecr:ReplicateImage"]],
+    ids=["single-action", "multiple-actions"],
+)
+def test_put_registry_policy(actions):
     # given
     client = boto3.client("ecr", region_name="eu-central-1")
     policy = {
@@ -2064,7 +2069,7 @@ def test_put_registry_policy():
                 "Principal": {
                     "AWS": ["arn:aws:iam::111111111111:root", "222222222222"]
                 },
-                "Action": ["ecr:CreateRepository", "ecr:ReplicateImage"],
+                "Action": actions,
                 "Resource": "*",
             }
         ],

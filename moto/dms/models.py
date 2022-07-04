@@ -1,7 +1,7 @@
 import json
 
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 
 from .exceptions import (
@@ -13,15 +13,9 @@ from .utils import filter_tasks
 
 
 class DatabaseMigrationServiceBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.replication_tasks = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -132,7 +126,7 @@ class FakeReplicationTask(BaseModel):
     @property
     def arn(self):
         return "arn:aws:dms:{region}:{account_id}:task:{task_id}".format(
-            region=self.region, account_id=ACCOUNT_ID, task_id=self.id
+            region=self.region, account_id=get_account_id(), task_id=self.id
         )
 
     def to_dict(self):

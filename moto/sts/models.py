@@ -2,8 +2,8 @@ from base64 import b64decode
 import datetime
 import xmltodict
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.core import ACCOUNT_ID
+from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
+from moto.core import get_account_id
 from moto.sts.utils import (
     random_access_key_id,
     random_secret_access_key,
@@ -11,6 +11,7 @@ from moto.sts.utils import (
     random_assumed_role_id,
     DEFAULT_STS_SESSION_DURATION,
 )
+from typing import Mapping
 
 
 class Token(BaseModel):
@@ -50,7 +51,7 @@ class AssumedRole(BaseModel):
     def arn(self):
         return (
             "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-                account_id=ACCOUNT_ID,
+                account_id=get_account_id(),
                 role_name=self.role_arn.split("/")[-1],
                 session_name=self.session_name,
             )
@@ -58,7 +59,8 @@ class AssumedRole(BaseModel):
 
 
 class STSBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.assumed_roles = []
 
     @staticmethod
@@ -137,4 +139,6 @@ class STSBackend(BaseBackend):
         pass
 
 
-sts_backend = STSBackend()
+sts_backends: Mapping[str, STSBackend] = BackendDict(
+    STSBackend, "sts", use_boto3_regions=False, additional_regions=["global"]
+)

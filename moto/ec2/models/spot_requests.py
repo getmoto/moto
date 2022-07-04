@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from moto.core.models import Model, CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.packages.boto.ec2.launchspecification import LaunchSpecification
 from moto.packages.boto.ec2.spotinstancerequest import (
     SpotInstanceRequest as BotoSpotRequest,
@@ -104,6 +104,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             count=1,
             user_data=self.user_data,
             instance_type=self.launch_specification.instance_type,
+            is_instance_type_default=not self.launch_specification.instance_type,
             subnet_id=self.launch_specification.subnet_id,
             key_name=self.launch_specification.key_name,
             security_group_names=[],
@@ -116,10 +117,9 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         return instance
 
 
-class SpotRequestBackend(object, metaclass=Model):
+class SpotRequestBackend:
     def __init__(self):
         self.spot_instance_requests = {}
-        super().__init__()
 
     def request_spot_instances(
         self,
@@ -175,7 +175,6 @@ class SpotRequestBackend(object, metaclass=Model):
             requests.append(request)
         return requests
 
-    @Model.prop("SpotInstanceRequest")
     def describe_spot_instance_requests(self, filters=None, spot_instance_ids=None):
         requests = self.spot_instance_requests.copy().values()
 
@@ -411,10 +410,9 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend.terminate_instances(instance_ids)
 
 
-class SpotFleetBackend(object):
+class SpotFleetBackend:
     def __init__(self):
         self.spot_fleet_requests = {}
-        super().__init__()
 
     def request_spot_fleet(
         self,
@@ -485,7 +483,7 @@ class SpotFleetBackend(object):
         return True
 
 
-class SpotPriceBackend(object):
+class SpotPriceBackend:
     def describe_spot_price_history(self, instance_types=None, filters=None):
         matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
         matches = matches.get(self.region_name, [])

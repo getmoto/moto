@@ -137,6 +137,46 @@ def test_create_launch_configuration_additional_parameters():
 
 
 @mock_autoscaling
+@mock_ec2
+def test_create_launch_configuration_without_public_ip():
+    ec2 = boto3.resource("ec2", "us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/27")
+
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    random_image_id = ec2_client.describe_images()["Images"][0]["ImageId"]
+
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_launch_configuration(
+        LaunchConfigurationName="tester",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t1.micro",
+        AssociatePublicIpAddress=False,
+    )
+
+    launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
+    launch_config["AssociatePublicIpAddress"].should.equal(False)
+
+    asg_name = f"asg-{random_image_id}"
+    client.create_auto_scaling_group(
+        AutoScalingGroupName=asg_name,
+        LaunchConfigurationName=launch_config["LaunchConfigurationName"],
+        MinSize=1,
+        MaxSize=1,
+        DesiredCapacity=1,
+        VPCZoneIdentifier=subnet.id,
+    )
+
+    instances = client.describe_auto_scaling_instances()["AutoScalingInstances"]
+    instance_id = instances[0]["InstanceId"]
+
+    instance = ec2_client.describe_instances(InstanceIds=[instance_id])["Reservations"][
+        0
+    ]["Instances"][0]
+    instance.shouldnt.have.key("PublicIpAddress")
+
+
+@mock_autoscaling
 def test_create_launch_configuration_additional_params_default_to_false():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(

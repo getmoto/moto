@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID, CloudFormationModel
+from moto.core import get_account_id, CloudFormationModel
 from .core import TaggedEC2Resource
 
 from ..exceptions import (
@@ -30,10 +30,9 @@ class EgressOnlyInternetGateway(TaggedEC2Resource):
         return self.id
 
 
-class EgressOnlyInternetGatewayBackend(object):
+class EgressOnlyInternetGatewayBackend:
     def __init__(self):
         self.egress_only_internet_gateway_backend = {}
-        super().__init__()
 
     def create_egress_only_internet_gateway(self, vpc_id, tags=None):
         vpc = self.get_vpc(vpc_id)
@@ -81,7 +80,7 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def owner_id(self):
-        return ACCOUNT_ID
+        return get_account_id()
 
     @staticmethod
     def cloudformation_name_type():
@@ -113,10 +112,9 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
             return "detached"
 
 
-class InternetGatewayBackend(object):
+class InternetGatewayBackend:
     def __init__(self):
         self.internet_gateways = {}
-        super().__init__()
 
     def create_internet_gateway(self, tags=None):
         igw = InternetGateway(self)

@@ -2,7 +2,7 @@ import re
 import time
 
 from datetime import datetime
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -109,12 +109,12 @@ class Trail(BaseModel):
 
     @property
     def arn(self):
-        return f"arn:aws:cloudtrail:{self.region_name}:{ACCOUNT_ID}:trail/{self.trail_name}"
+        return f"arn:aws:cloudtrail:{self.region_name}:{get_account_id()}:trail/{self.trail_name}"
 
     @property
     def topic_arn(self):
         if self.sns_topic_name:
-            return f"arn:aws:sns:{self.region_name}:{ACCOUNT_ID}:{self.sns_topic_name}"
+            return f"arn:aws:sns:{self.region_name}:{get_account_id()}:{self.sns_topic_name}"
         return None
 
     def check_name(self):
@@ -130,10 +130,10 @@ class Trail(BaseModel):
             raise TrailNameInvalidChars()
 
     def check_bucket_exists(self):
-        from moto.s3 import s3_backend
+        from moto.s3.models import s3_backends
 
         try:
-            s3_backend.get_bucket(self.bucket_name)
+            s3_backends["global"].get_bucket(self.bucket_name)
         except Exception:
             raise S3BucketDoesNotExistException(
                 f"S3 bucket {self.bucket_name} does not exist!"
@@ -242,8 +242,8 @@ class Trail(BaseModel):
 class CloudTrailBackend(BaseBackend):
     """Implementation of CloudTrail APIs."""
 
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.trails = dict()
         self.tagging_service = TaggingService(tag_name="TagsList")
 
@@ -303,7 +303,9 @@ class CloudTrailBackend(BaseBackend):
         )
         if not trail_name:
             # This particular method returns the ARN as part of the error message
-            arn = f"arn:aws:cloudtrail:{self.region_name}:{ACCOUNT_ID}:trail/{name}"
+            arn = (
+                f"arn:aws:cloudtrail:{self.region_name}:{get_account_id()}:trail/{name}"
+            )
             raise TrailNotFoundException(name=arn)
         trail = self.trails[trail_name]
         return trail.status
@@ -311,7 +313,8 @@ class CloudTrailBackend(BaseBackend):
     def describe_trails(self, include_shadow_trails):
         all_trails = []
         if include_shadow_trails:
-            for backend in cloudtrail_backends.values():
+            current_account = cloudtrail_backends[self.account_id]
+            for backend in current_account.values():
                 all_trails.extend(backend.trails.values())
         else:
             all_trails.extend(self.trails.values())
@@ -360,12 +363,6 @@ class CloudTrailBackend(BaseBackend):
             kms_key_id=kms_key_id,
         )
         return trail
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def put_event_selectors(
         self, trail_name, event_selectors, advanced_event_selectors

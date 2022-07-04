@@ -94,6 +94,8 @@ def test_route_tables_filters_standard():
 
     vpc2 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     route_table2 = ec2.create_route_table(VpcId=vpc2.id)
+    igw = ec2.create_internet_gateway()
+    route_table2.create_route(DestinationCidrBlock="10.0.0.4/24", GatewayId=igw.id)
 
     all_route_tables = client.describe_route_tables()["RouteTables"]
     all_ids = [rt["RouteTableId"] for rt in all_route_tables]
@@ -134,6 +136,16 @@ def test_route_tables_filters_standard():
     ]
     vpc2_main_route_table_ids.should_not.contain(route_table1.id)
     vpc2_main_route_table_ids.should_not.contain(route_table2.id)
+
+    # Filter by route gateway id
+    resp = client.describe_route_tables(
+        Filters=[
+            {"Name": "route.gateway-id", "Values": [igw.id]},
+        ]
+    )["RouteTables"]
+    assert any(
+        [route["GatewayId"] == igw.id for table in resp for route in table["Routes"]]
+    )
 
     # Unsupported filter
     if not settings.TEST_SERVER_MODE:
@@ -506,6 +518,56 @@ def test_routes_replace():
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["ResponseMetadata"].should.have.key("RequestId")
     ex.value.response["Error"]["Code"].should.equal("InvalidRouteTableID.NotFound")
+
+
+@mock_ec2
+def test_routes_already_exist():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    main_route_table_id = client.describe_route_tables(
+        Filters=[
+            {"Name": "vpc-id", "Values": [vpc.id]},
+            {"Name": "association.main", "Values": ["true"]},
+        ]
+    )["RouteTables"][0]["RouteTableId"]
+    main_route_table = ec2.RouteTable(main_route_table_id)
+    ROUTE_CIDR = "10.0.0.0/23"
+    ROUTE_SUB_CIDR = "10.0.0.0/24"
+    ROUTE_NO_CONFLICT_CIDR = "10.0.2.0/24"
+
+    # Various route targets
+    igw = ec2.create_internet_gateway()
+
+    # Create initial route
+    main_route_table.create_route(DestinationCidrBlock=ROUTE_CIDR, GatewayId=igw.id)
+    main_route_table.create_route(
+        DestinationCidrBlock=ROUTE_NO_CONFLICT_CIDR, GatewayId=igw.id
+    )
+
+    # Create
+    with pytest.raises(ClientError) as ex:
+        client.create_route(
+            RouteTableId=main_route_table.id,
+            DestinationCidrBlock=ROUTE_CIDR,
+            GatewayId=igw.id,
+        )
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("RouteAlreadyExists")
+
+    with pytest.raises(ClientError) as ex:
+        client.create_route(
+            RouteTableId=main_route_table.id,
+            DestinationCidrBlock=ROUTE_SUB_CIDR,
+            GatewayId=igw.id,
+        )
+
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
+    ex.value.response["Error"]["Code"].should.equal("RouteAlreadyExists")
 
 
 @mock_ec2

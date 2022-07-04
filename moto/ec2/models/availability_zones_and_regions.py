@@ -15,7 +15,7 @@ class Zone(object):
         self.zone_id = zone_id
 
 
-class RegionsAndZonesBackend(object):
+class RegionsAndZonesBackend:
     regions_opt_in_not_required = [
         "af-south-1",
         "ap-northeast-1",

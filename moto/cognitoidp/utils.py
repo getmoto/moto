@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import base64
 import re
+import uuid
 
 FORMATS = {
     "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
@@ -66,3 +67,26 @@ def flatten_attrs(attrs):
 
 def expand_attrs(attrs):
     return [{"Name": k, "Value": v} for k, v in attrs.items()]
+
+
+ID_HASH_STRATEGY = "HASH"
+
+
+def generate_id(strategy, *args):
+    if strategy == ID_HASH_STRATEGY:
+        return _generate_id_hash(args)
+    else:
+        return _generate_id_uuid()
+
+
+def _generate_id_uuid():
+    return uuid.uuid4().hex
+
+
+def _generate_id_hash(args):
+    hasher = hashlib.sha256()
+
+    for arg in args:
+        hasher.update(str(arg).encode())
+
+    return hasher.hexdigest()

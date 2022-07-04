@@ -1,6 +1,7 @@
 import json
 
 from moto.core.responses import BaseResponse
+from .exceptions import ValidationException
 from .models import ssm_backends
 
 
@@ -177,6 +178,14 @@ class SimpleSystemManagerResponse(BaseResponse):
     def get_parameter(self):
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
+
+        if (
+            name.startswith("/aws/reference/secretsmanager/")
+            and with_decryption is not True
+        ):
+            raise ValidationException(
+                "WithDecryption flag must be True for retrieving a Secret Manager secret."
+            )
 
         result = self.ssm_backend.get_parameter(name)
 

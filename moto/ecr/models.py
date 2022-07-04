@@ -9,7 +9,7 @@ from typing import Dict, List
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
 from moto.core.utils import iso_8601_datetime_without_milliseconds, BackendDict
 from moto.ecr.exceptions import (
     ImageNotFoundException,
@@ -29,7 +29,7 @@ from moto.iam.exceptions import MalformedPolicyDocument
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.utilities.tagging_service import TaggingService
 
-DEFAULT_REGISTRY_ID = ACCOUNT_ID
+DEFAULT_REGISTRY_ID = get_account_id()
 ECR_REPOSITORY_ARN_PATTERN = "^arn:(?P<partition>[^:]+):ecr:(?P<region>[^:]+):(?P<account_id>[^:]+):repository/(?P<repo_name>.*)$"
 
 EcrRepositoryArn = namedtuple(
@@ -96,7 +96,7 @@ class Repository(BaseObject, CloudFormationModel):
         if encryption_config == {"encryptionType": "KMS"}:
             encryption_config[
                 "kmsKey"
-            ] = f"arn:aws:kms:{self.region_name}:{ACCOUNT_ID}:key/{uuid.uuid4()}"
+            ] = f"arn:aws:kms:{self.region_name}:{get_account_id()}:key/{uuid.uuid4()}"
         return encryption_config
 
     def _get_image(self, image_tag, image_digest):
@@ -326,17 +326,12 @@ class Image(BaseObject):
 
 
 class ECRBackend(BaseBackend):
-    def __init__(self, region_name):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.registry_policy = None
         self.replication_config = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
         self.tagger = TaggingService(tag_name="tags")
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -806,7 +801,10 @@ class ECRBackend(BaseBackend):
 
         policy = json.loads(policy_text)
         for statement in policy["Statement"]:
-            if set(statement["Action"]) - VALID_ACTIONS:
+            action = statement["Action"]
+            if isinstance(action, str):
+                action = [action]
+            if set(action) - VALID_ACTIONS:
                 raise MalformedPolicyDocument()
 
     def put_registry_policy(self, policy_text):
@@ -824,28 +822,28 @@ class ECRBackend(BaseBackend):
         self.registry_policy = policy_text
 
         return {
-            "registryId": ACCOUNT_ID,
+            "registryId": get_account_id(),
             "policyText": policy_text,
         }
 
     def get_registry_policy(self):
         if not self.registry_policy:
-            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+            raise RegistryPolicyNotFoundException(get_account_id())
 
         return {
-            "registryId": ACCOUNT_ID,
+            "registryId": get_account_id(),
             "policyText": self.registry_policy,
         }
 
     def delete_registry_policy(self):
         policy = self.registry_policy
         if not policy:
-            raise RegistryPolicyNotFoundException(ACCOUNT_ID)
+            raise RegistryPolicyNotFoundException(get_account_id())
 
         self.registry_policy = None
 
         return {
-            "registryId": ACCOUNT_ID,
+            "registryId": get_account_id(),
             "policyText": policy,
         }
 

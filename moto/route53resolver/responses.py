@@ -257,3 +257,27 @@ class Route53ResolverResponse(BaseResponse):
             resolver_endpoint_id=resolver_endpoint_id, name=name
         )
         return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
+    def associate_resolver_endpoint_ip_address(self):
+        ip_address = self._get_param("IpAddress")
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+        resolver_endpoint = (
+            self.route53resolver_backend.associate_resolver_endpoint_ip_address(
+                region=self.region,
+                resolver_endpoint_id=resolver_endpoint_id,
+                ip_address=ip_address,
+            )
+        )
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})
+
+    def disassociate_resolver_endpoint_ip_address(self):
+        ip_address = self._get_param("IpAddress")
+        resolver_endpoint_id = self._get_param("ResolverEndpointId")
+
+        resolver_endpoint = (
+            self.route53resolver_backend.disassociate_resolver_endpoint_ip_address(
+                resolver_endpoint_id=resolver_endpoint_id,
+                ip_address=ip_address,
+            )
+        )
+        return json.dumps({"ResolverEndpoint": resolver_endpoint.description()})

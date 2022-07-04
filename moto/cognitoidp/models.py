@@ -1,5 +1,4 @@
 import datetime
-import hashlib
 import json
 import os
 import time
@@ -10,7 +9,7 @@ import random
 from jose import jws
 from collections import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import get_account_id
 from moto.core.utils import BackendDict
 from .exceptions import (
     GroupExistsException,
@@ -25,12 +24,15 @@ from .exceptions import (
 from .utils import (
     create_id,
     check_secret_hash,
+    generate_id,
     validate_username_format,
     flatten_attrs,
     expand_attrs,
     PAGINATION_MODEL,
 )
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import md5_hash
+from ..settings import get_cognito_idp_user_pool_id_strategy
 
 
 class UserStatus(str, enum.Enum):
@@ -366,12 +368,20 @@ DEFAULT_USER_POOL_CONFIG = {
 
 
 class CognitoIdpUserPool(BaseModel):
+
+    MAX_ID_LENGTH = 56
+
     def __init__(self, region, name, extended_config):
         self.region = region
-        self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
-        self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
-            self.region, DEFAULT_ACCOUNT_ID, self.id
+
+        user_pool_id = generate_id(
+            get_cognito_idp_user_pool_id_strategy(), region, name, extended_config
         )
+        self.id = "{}_{}".format(self.region, user_pool_id)[: self.MAX_ID_LENGTH]
+        self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
+            self.region, get_account_id(), self.id
+        )
+
         self.name = name
         self.status = None
 
@@ -433,6 +443,21 @@ class CognitoIdpUserPool(BaseModel):
         ) as f:
             self.json_web_key = json.loads(f.read())
 
+    @property
+    def backend(self):
+        return cognitoidp_backends[self.region]
+
+    @property
+    def domain(self):
+        return next(
+            (
+                upd
+                for upd in self.backend.user_pool_domains.values()
+                if upd.user_pool_id == self.id
+            ),
+            None,
+        )
+
     def _account_recovery_setting(self):
         # AccountRecoverySetting is not present in DescribeUserPool response if the pool was created without
         # specifying it, ForgotPassword works on default settings nonetheless
@@ -473,7 +498,8 @@ class CognitoIdpUserPool(BaseModel):
             user_pool_json["LambdaConfig"] = (
                 self.extended_config.get("LambdaConfig") or {}
             )
-
+        if self.domain:
+            user_pool_json["Domain"] = self.domain.domain
         return user_pool_json
 
     def _get_user(self, username):
@@ -595,11 +621,11 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
     def _distribution_name(self):
         if self.custom_domain_config and "CertificateArn" in self.custom_domain_config:
-            unique_hash = hashlib.md5(
+            unique_hash = md5_hash(
                 self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
             return f"{unique_hash[:16]}.cloudfront.net"
-        unique_hash = hashlib.md5(self.user_pool_id.encode("utf-8")).hexdigest()
+        unique_hash = md5_hash(self.user_pool_id.encode("utf-8")).hexdigest()
         return f"{unique_hash[:16]}.amazoncognito.com"
 
     def to_json(self, extended=True):
@@ -821,21 +847,22 @@ class CognitoResourceServer(BaseModel):
 
 
 class CognitoIdpBackend(BaseBackend):
-    def __init__(self, region):
-        super().__init__()
-        self.region = region
+    """
+    In some cases, you need to have reproducible IDs for the user pool.
+    For example, a single initialization before the start of integration tests.
+
+    This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
+    """
+
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.user_pools = OrderedDict()
         self.user_pool_domains = OrderedDict()
         self.sessions = {}
 
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
-
     # User pool
     def create_user_pool(self, name, extended_config):
-        user_pool = CognitoIdpUserPool(self.region, name, extended_config)
+        user_pool = CognitoIdpUserPool(self.region_name, name, extended_config)
         self.user_pools[user_pool.id] = user_pool
         return user_pool
 
@@ -1270,8 +1297,8 @@ class CognitoIdpBackend(BaseBackend):
         elif auth_flow is AuthFlow.REFRESH_TOKEN:
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
             (
-                id_token,
                 access_token,
+                id_token,
                 expires_in,
             ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
@@ -1384,7 +1411,9 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(client_id)
 
     def forgot_password(self, client_id, username):
-        """The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+        """
+        The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
+
         Otherwise you get semi-random garbage and HTTP 200 OK, for example:
         - recovery for username which is not registered in any cognito pool
         - recovery for username belonging to a different user pool than the client id is registered to
@@ -1795,28 +1824,30 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError(access_token)
 
 
-class GlobalCognitoIdpBackend(CognitoIdpBackend):
+class RegionAgnosticBackend:
     # Some operations are unauthenticated
     # Without authentication-header, we lose the context of which region the request was send to
     # This backend will cycle through all backends as a workaround
 
     def _find_backend_by_access_token(self, access_token):
-        for region, backend in cognitoidp_backends.items():
+        account_specific_backends = cognitoidp_backends[get_account_id()]
+        for region, backend in account_specific_backends.items():
             if region == "global":
                 continue
             for p in backend.user_pools.values():
                 if access_token in p.access_tokens:
                     return backend
-        return cognitoidp_backends["us-east-1"]
+        return account_specific_backends["us-east-1"]
 
     def _find_backend_for_clientid(self, client_id):
-        for region, backend in cognitoidp_backends.items():
+        account_specific_backends = cognitoidp_backends[get_account_id()]
+        for region, backend in account_specific_backends.items():
             if region == "global":
                 continue
             for p in backend.user_pools.values():
                 if client_id in p.clients:
                     return backend
-        return cognitoidp_backends["us-east-1"]
+        return account_specific_backends["us-east-1"]
 
     def sign_up(self, client_id, username, password, attributes):
         backend = self._find_backend_for_clientid(client_id)
@@ -1834,16 +1865,24 @@ class GlobalCognitoIdpBackend(CognitoIdpBackend):
         backend = self._find_backend_by_access_token(access_token)
         return backend.get_user(access_token)
 
+    def respond_to_auth_challenge(
+        self, session, client_id, challenge_name, challenge_responses
+    ):
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.respond_to_auth_challenge(
+            session, client_id, challenge_name, challenge_responses
+        )
+
 
 cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
-cognitoidp_backends["global"] = GlobalCognitoIdpBackend("global")
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
 # password) have no authorization header from which to extract the region.
 def find_region_by_value(key, value):
-    for region in cognitoidp_backends:
+    account_specific_backends = cognitoidp_backends[get_account_id()]
+    for region in account_specific_backends:
         backend = cognitoidp_backends[region]
         for user_pool in backend.user_pools.values():
             if key == "client_id" and value in user_pool.clients:
@@ -1854,4 +1893,4 @@ def find_region_by_value(key, value):
     # If we can't find the `client_id` or `access_token`, we just pass
     # back a default backend region, which will raise the appropriate
     # error message (e.g. NotAuthorized or NotFound).
-    return list(cognitoidp_backends)[0]
+    return list(account_specific_backends)[0]

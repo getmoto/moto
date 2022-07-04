@@ -6,14 +6,6 @@ import string
 from urllib.parse import parse_qs, urlparse
 
 
-def region_from_managedblckchain_url(url):
-    domain = urlparse(url).netloc
-    region = "us-east-1"
-    if "." in domain:
-        region = domain.split(".")[1]
-    return region
-
-
 def networkid_from_managedblockchain_url(full_url):
     id_search = re.search(r"\/n-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None

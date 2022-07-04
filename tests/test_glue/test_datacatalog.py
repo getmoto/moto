@@ -118,6 +118,7 @@ def test_delete_unknown_database():
 
 
 @mock_glue
+@freeze_time(FROZEN_CREATE_TIME)
 def test_create_table():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -129,6 +130,9 @@ def test_create_table():
 
     response = helpers.get_table(client, database_name, table_name)
     table = response["Table"]
+
+    if not settings.TEST_SERVER_MODE:
+        table["CreateTime"].should.equal(FROZEN_CREATE_TIME)
 
     table["Name"].should.equal(table_input["Name"])
     table["StorageDescriptor"].should.equal(table_input["StorageDescriptor"])

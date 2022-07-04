@@ -48,7 +48,7 @@ input_instance_groups = [
     {
         "InstanceCount": 6,
         "InstanceRole": "TASK",
-        "InstanceType": "c1.large",
+        "InstanceType": "c3.large",
         "Market": "SPOT",
         "Name": "task-1",
         "BidPrice": "0.07",
@@ -117,6 +117,7 @@ def test_describe_cluster():
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
     args["SecurityConfiguration"] = "my-security-configuration"
     args["AutoScalingRole"] = "EMR_AutoScaling_DefaultRole"
+    args["AutoTerminationPolicy"] = {"IdleTimeout": 123}
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 

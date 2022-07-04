@@ -1,4 +1,4 @@
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict
 import random
 import string
@@ -20,7 +20,7 @@ class Pipeline(BaseModel):
         self.id = "{}-{}".format(a, b)
         self.name = name
         self.arn = "arn:aws:elastictranscoder:{}:{}:pipeline/{}".format(
-            region, ACCOUNT_ID, self.id
+            region, get_account_id(), self.id
         )
         self.status = "Active"
         self.input_bucket = input_bucket
@@ -62,15 +62,9 @@ class Pipeline(BaseModel):
 
 
 class ElasticTranscoderBackend(BaseBackend):
-    def __init__(self, region_name=None):
-        super().__init__()
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.pipelines = {}
-
-    def reset(self):
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_pipeline(
         self,

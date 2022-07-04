@@ -160,7 +160,7 @@ def test_create_autoscaling_groups_defaults():
     group["HealthCheckType"].should.equal("EC2")
     group["LoadBalancerNames"].should.equal([])
     group.shouldnt.have.key("PlacementGroup")
-    group["TerminationPolicies"].should.equal([])
+    group["TerminationPolicies"].should.equal(["Default"])
     group["Tags"].should.equal([])
 
 
@@ -2681,7 +2681,7 @@ def test_attach_instances():
 
     kwargs = {
         "KeyName": "foobar",
-        "ImageId": "ami-pytest",
+        "ImageId": EXAMPLE_AMI_ID,
         "MinCount": 1,
         "MaxCount": 1,
         "InstanceType": "c4.2xlarge",

@@ -1,7 +1,7 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
 from datetime import datetime
-from moto.core import ACCOUNT_ID
+from moto.core import get_account_id
 from .exceptions import RepositoryDoesNotExistException, RepositoryNameExistsException
 import uuid
 
@@ -26,20 +26,15 @@ class CodeCommit(BaseModel):
         self.repository_metadata["repositoryDescription"] = repository_description
         self.repository_metadata["repositoryId"] = str(uuid.uuid4())
         self.repository_metadata["Arn"] = "arn:aws:codecommit:{0}:{1}:{2}".format(
-            region, ACCOUNT_ID, repository_name
+            region, get_account_id(), repository_name
         )
-        self.repository_metadata["accountId"] = ACCOUNT_ID
+        self.repository_metadata["accountId"] = get_account_id()
 
 
 class CodeCommitBackend(BaseBackend):
-    def __init__(self, region=None):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.repositories = {}
-        self.region = region
-
-    def reset(self):
-        region = self.region
-        self.__dict__ = {}
-        self.__init__(region)
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -54,7 +49,7 @@ class CodeCommitBackend(BaseBackend):
             raise RepositoryNameExistsException(repository_name)
 
         self.repositories[repository_name] = CodeCommit(
-            self.region, repository_description, repository_name
+            self.region_name, repository_description, repository_name
         )
 
         return self.repositories[repository_name].repository_metadata

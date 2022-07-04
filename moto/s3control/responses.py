@@ -5,10 +5,14 @@ from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
-from .models import s3control_backend
+from .models import s3control_backends
 
 
 class S3ControlResponse(BaseResponse):
+    @property
+    def backend(self):
+        return s3control_backends["global"]
+
     @amzn_request_id
     def public_access_block(
         self, request, full_url, headers
@@ -25,7 +29,7 @@ class S3ControlResponse(BaseResponse):
 
     def get_public_access_block(self, request):
         account_id = request.headers.get("x-amz-account-id")
-        public_block_config = s3control_backend.get_public_access_block(
+        public_block_config = self.backend.get_public_access_block(
             account_id=account_id
         )
         template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
@@ -35,14 +39,14 @@ class S3ControlResponse(BaseResponse):
         account_id = request.headers.get("x-amz-account-id")
         data = request.body if hasattr(request, "body") else request.data
         pab_config = self._parse_pab_config(data)
-        s3control_backend.put_public_access_block(
+        self.backend.put_public_access_block(
             account_id, pab_config["PublicAccessBlockConfiguration"]
         )
         return 201, {}, json.dumps({})
 
     def delete_public_access_block(self, request):
         account_id = request.headers.get("x-amz-account-id")
-        s3control_backend.delete_public_access_block(account_id=account_id)
+        self.backend.delete_public_access_block(account_id=account_id)
         return 204, {}, json.dumps({})
 
     def _parse_pab_config(self, body):
@@ -82,7 +86,7 @@ class S3ControlResponse(BaseResponse):
         bucket = params["Bucket"]
         vpc_configuration = params.get("VpcConfiguration")
         public_access_block_configuration = params.get("PublicAccessBlockConfiguration")
-        access_point = s3control_backend.create_access_point(
+        access_point = self.backend.create_access_point(
             account_id=account_id,
             name=name,
             bucket=bucket,
@@ -95,38 +99,36 @@ class S3ControlResponse(BaseResponse):
     def get_access_point(self, full_url):
         account_id, name = self._get_accountid_and_name_from_accesspoint(full_url)
 
-        access_point = s3control_backend.get_access_point(
-            account_id=account_id, name=name
-        )
+        access_point = self.backend.get_access_point(account_id=account_id, name=name)
         template = self.response_template(GET_ACCESS_POINT_TEMPLATE)
         return 200, {}, template.render(access_point=access_point)
 
     def delete_access_point(self, full_url):
         account_id, name = self._get_accountid_and_name_from_accesspoint(full_url)
-        s3control_backend.delete_access_point(account_id=account_id, name=name)
+        self.backend.delete_access_point(account_id=account_id, name=name)
         return 204, {}, ""
 
     def create_access_point_policy(self, full_url):
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
         params = xmltodict.parse(self.body)
         policy = params["PutAccessPointPolicyRequest"]["Policy"]
-        s3control_backend.create_access_point_policy(account_id, name, policy)
+        self.backend.create_access_point_policy(account_id, name, policy)
         return 200, {}, ""
 
     def get_access_point_policy(self, full_url):
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
-        policy = s3control_backend.get_access_point_policy(account_id, name)
+        policy = self.backend.get_access_point_policy(account_id, name)
         template = self.response_template(GET_ACCESS_POINT_POLICY_TEMPLATE)
         return 200, {}, template.render(policy=policy)
 
     def delete_access_point_policy(self, full_url):
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
-        s3control_backend.delete_access_point_policy(account_id=account_id, name=name)
+        self.backend.delete_access_point_policy(account_id=account_id, name=name)
         return 204, {}, ""
 
     def get_access_point_policy_status(self, full_url):
         account_id, name = self._get_accountid_and_name_from_policy(full_url)
-        s3control_backend.get_access_point_policy_status(account_id, name)
+        self.backend.get_access_point_policy_status(account_id, name)
         template = self.response_template(GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE)
         return 200, {}, template.render()
 

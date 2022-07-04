@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from moto.core.models import CloudFormationModel
+from moto.core import CloudFormationModel
 from ..exceptions import (
     FlowLogAlreadyExists,
     InvalidAggregationIntervalParameterError,
@@ -128,10 +128,9 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
             return super().get_filter_value(filter_name, "DescribeFlowLogs")
 
 
-class FlowLogsBackend(object):
+class FlowLogsBackend:
     def __init__(self):
         self.flow_logs = defaultdict(dict)
-        super().__init__()
 
     def _validate_request(
         self,
@@ -215,12 +214,12 @@ class FlowLogsBackend(object):
                 self.get_network_interface(resource_id)
 
             if log_destination_type == "s3":
-                from moto.s3.models import s3_backend
+                from moto.s3.models import s3_backends
                 from moto.s3.exceptions import MissingBucket
 
                 arn = log_destination.split(":", 5)[5]
                 try:
-                    s3_backend.get_bucket(arn)
+                    s3_backends["global"].get_bucket(arn)
                 except MissingBucket:
                     # Instead of creating FlowLog report
                     # the unsuccessful status for the

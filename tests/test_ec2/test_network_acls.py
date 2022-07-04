@@ -385,6 +385,21 @@ def test_describe_network_acls():
     )
     resp4["NetworkAcls"].should.have.length_of(0)
 
+    # Ensure filtering by egress flag
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.egress", "Values": ["false"]}]
+    )
+    [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]].should.contain(
+        network_acl_id
+    )
+    # the ACL with network_acl_id contains no entries with Egress=True
+    resp4 = conn.describe_network_acls(
+        Filters=[{"Name": "entry.egress", "Values": ["true"]}]
+    )
+    [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]].shouldnt.contain(
+        network_acl_id
+    )
+
     # Ensure filtering by rule action
     resp4 = conn.describe_network_acls(
         Filters=[

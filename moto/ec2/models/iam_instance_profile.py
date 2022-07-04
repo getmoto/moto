@@ -1,5 +1,5 @@
-from moto.core import ACCOUNT_ID
-from moto.core.models import CloudFormationModel
+from moto.core import get_account_id
+from moto.core import CloudFormationModel
 from ..exceptions import (
     IncorrectStateIamProfileAssociationError,
     InvalidAssociationIDIamProfileAssociationError,
@@ -10,7 +10,7 @@ from ..utils import (
     filter_iam_instance_profiles,
 )
 
-OWNER_ID = ACCOUNT_ID
+OWNER_ID = get_account_id()
 
 
 class IamInstanceProfileAssociation(CloudFormationModel):
@@ -22,10 +22,9 @@ class IamInstanceProfileAssociation(CloudFormationModel):
         self.state = "associated"
 
 
-class IamInstanceProfileAssociationBackend(object):
+class IamInstanceProfileAssociationBackend:
     def __init__(self):
         self.iam_instance_profile_associations = {}
-        super().__init__()
 
     def associate_iam_instance_profile(
         self, instance_id, iam_instance_profile_name=None, iam_instance_profile_arn=None

@@ -9,14 +9,20 @@ import uuid
 from jinja2 import Template
 
 from moto.route53.exceptions import (
-    InvalidInput,
+    HostedZoneNotEmpty,
+    InvalidActionValue,
+    InvalidCloudWatchArn,
+    LastVPCAssociation,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
+    NoSuchHealthCheck,
     NoSuchHostedZone,
     NoSuchQueryLoggingConfig,
+    PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
 )
-from moto.core import BaseBackend, BaseModel, CloudFormationModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, CloudFormationModel, get_account_id
+from moto.core.utils import BackendDict
 from moto.utilities.paginator import paginate
 from .utils import PAGINATION_MODEL
 
@@ -58,9 +64,22 @@ class HealthCheck(CloudFormationModel):
         self.measure_latency = health_check_args.get("measure_latency") or False
         self.inverted = health_check_args.get("inverted") or False
         self.disabled = health_check_args.get("disabled") or False
-        self.enable_sni = health_check_args.get("enable_sni") or False
-        self.children = health_check_args.get("children") or None
+        self.enable_sni = health_check_args.get("enable_sni") or True
         self.caller_reference = caller_reference
+        self.children = None
+        self.regions = None
+
+    def set_children(self, children):
+        if children and isinstance(children, list):
+            self.children = children
+        elif children and isinstance(children, str):
+            self.children = [children]
+
+    def set_regions(self, regions):
+        if regions and isinstance(regions, list):
+            self.regions = regions
+        elif regions and isinstance(regions, str):
+            self.regions = [regions]
 
     @property
     def physical_resource_id(self):
@@ -129,9 +148,16 @@ class HealthCheck(CloudFormationModel):
                 {% if health_check.children %}
                     <ChildHealthChecks>
                     {% for child in health_check.children %}
-                        <member>{{ child }}</member>
+                        <ChildHealthCheck>{{ child }}</ChildHealthCheck>
                     {% endfor %}
                     </ChildHealthChecks>
+                {% endif %}
+                {% if health_check.regions %}
+                    <Regions>
+                    {% for region in health_check.regions %}
+                        <Region>{{ region }}</Region>
+                    {% endfor %}
+                    </Regions>
                 {% endif %}
             </HealthCheckConfig>
             <HealthCheckVersion>1</HealthCheckVersion>
@@ -152,9 +178,9 @@ class RecordSet(CloudFormationModel):
         self.health_check = kwargs.get("HealthCheckId")
         self.hosted_zone_name = kwargs.get("HostedZoneName")
         self.hosted_zone_id = kwargs.get("HostedZoneId")
-        self.alias_target = kwargs.get("AliasTarget")
-        self.failover = kwargs.get("Failover")
-        self.geo_location = kwargs.get("GeoLocation")
+        self.alias_target = kwargs.get("AliasTarget", [])
+        self.failover = kwargs.get("Failover", [])
+        self.geo_location = kwargs.get("GeoLocation", [])
 
     @staticmethod
     def cloudformation_name_type():
@@ -233,19 +259,14 @@ class FakeZone(CloudFormationModel):
         name,
         id_,
         private_zone,
-        vpcid=None,
-        vpcregion=None,
         comment=None,
         delegation_set=None,
     ):
         self.name = name
         self.id = id_
+        self.vpcs = []
         if comment is not None:
             self.comment = comment
-        if vpcid is not None:
-            self.vpcid = vpcid
-        if vpcregion is not None:
-            self.vpcregion = vpcregion
         self.private_zone = private_zone
         self.rrsets = []
         self.delegation_set = delegation_set
@@ -283,6 +304,19 @@ class FakeZone(CloudFormationModel):
             for record_set in self.rrsets
             if record_set.set_identifier != set_identifier
         ]
+
+    def add_vpc(self, vpc_id, vpc_region):
+        vpc = {}
+        if vpc_id is not None:
+            vpc["vpc_id"] = vpc_id
+        if vpc_region is not None:
+            vpc["vpc_region"] = vpc_region
+        if vpc_id or vpc_region:
+            self.vpcs.append(vpc)
+        return vpc
+
+    def delete_vpc(self, vpc_id):
+        self.vpcs = [vpc for vpc in self.vpcs if vpc["vpc_id"] != vpc_id]
 
     def get_record_sets(self, start_type, start_name):
         def predicate(rrset):
@@ -389,7 +423,8 @@ class QueryLoggingConfig(BaseModel):
 
 
 class Route53Backend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.zones = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
@@ -409,17 +444,45 @@ class Route53Backend(BaseBackend):
         delegation_set = self.create_reusable_delegation_set(
             caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
         )
+        # default delegation set does not contains id
+        if not delegation_set_id:
+            delegation_set.id = ""
         new_zone = FakeZone(
             name,
             new_id,
             private_zone=private_zone,
-            vpcid=vpcid,
-            vpcregion=vpcregion,
             comment=comment,
             delegation_set=delegation_set,
         )
+        # default nameservers are also part of rrset
+        record_set = {
+            "Name": name,
+            "ResourceRecords": delegation_set.name_servers,
+            "TTL": "172800",
+            "Type": "NS",
+        }
+        new_zone.add_rrset(record_set)
+        new_zone.add_vpc(vpcid, vpcregion)
         self.zones[new_id] = new_zone
         return new_zone
+
+    def get_dnssec(self, zone_id):
+        # check if hosted zone exists
+        self.get_hosted_zone(zone_id)
+
+    def associate_vpc_with_hosted_zone(self, zone_id, vpcid, vpcregion):
+        zone = self.get_hosted_zone(zone_id)
+        if not zone.private_zone:
+            raise PublicZoneVPCAssociation()
+        zone.add_vpc(vpcid, vpcregion)
+        return zone
+
+    def disassociate_vpc_from_hosted_zone(self, zone_id, vpcid):
+        zone = self.get_hosted_zone(zone_id)
+        if len(zone.vpcs) <= 1:
+            raise LastVPCAssociation()
+        zone.delete_vpc(vpcid)
+        return zone
 
     def change_tags_for_resource(self, resource_id, tags):
         if "Tag" in tags:
@@ -459,6 +522,10 @@ class Route53Backend(BaseBackend):
         the_zone = self.get_hosted_zone(zoneid)
         for value in change_list:
             action = value["Action"]
+
+            if action not in ("CREATE", "UPSERT", "DELETE"):
+                raise InvalidActionValue(action)
+
             record_set = value["ResourceRecordSet"]
 
             cleaned_record_name = record_set["Name"].strip(".")
@@ -526,15 +593,15 @@ class Route53Backend(BaseBackend):
         for zone in self.list_hosted_zones():
             if zone.private_zone is True:
                 this_zone = self.get_hosted_zone(zone.id)
-                if this_zone.vpcid == vpc_id:
-                    this_id = f"/hostedzone/{zone.id}"
-                    zone_list.append(
-                        {
-                            "HostedZoneId": this_id,
-                            "Name": zone.name,
-                            "Owner": {"OwningAccount": ACCOUNT_ID},
-                        }
-                    )
+                for vpc in this_zone.vpcs:
+                    if vpc["vpc_id"] == vpc_id:
+                        zone_list.append(
+                            {
+                                "HostedZoneId": zone.id,
+                                "Name": zone.name,
+                                "Owner": {"OwningAccount": get_account_id()},
+                            }
+                        )
 
         return zone_list
 
@@ -555,13 +622,58 @@ class Route53Backend(BaseBackend):
 
     def delete_hosted_zone(self, id_):
         # Verify it exists
-        self.get_hosted_zone(id_)
+        zone = self.get_hosted_zone(id_)
+        if len(zone.rrsets) > 0:
+            for rrset in zone.rrsets:
+                if rrset.type_ != "NS" and rrset.type_ != "SOA":
+                    raise HostedZoneNotEmpty()
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
+
+    def update_hosted_zone_comment(self, id_, comment):
+        zone = self.get_hosted_zone(id_)
+        zone.comment = comment
+        return zone
 
     def create_health_check(self, caller_reference, health_check_args):
         health_check_id = str(uuid.uuid4())
         health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
+        health_check.set_children(health_check_args.get("children"))
+        health_check.set_regions(health_check_args.get("regions"))
         self.health_checks[health_check_id] = health_check
+        return health_check
+
+    def update_health_check(self, health_check_id, health_check_args):
+        health_check = self.health_checks.get(health_check_id)
+        if not health_check:
+            raise NoSuchHealthCheck()
+
+        if health_check_args.get("ip_address"):
+            health_check.ip_address = health_check_args.get("ip_address")
+        if health_check_args.get("port"):
+            health_check.port = health_check_args.get("port")
+        if health_check_args.get("resource_path"):
+            health_check.resource_path = health_check_args.get("resource_path")
+        if health_check_args.get("fqdn"):
+            health_check.fqdn = health_check_args.get("fqdn")
+        if health_check_args.get("search_string"):
+            health_check.search_string = health_check_args.get("search_string")
+        if health_check_args.get("request_interval"):
+            health_check.request_interval = health_check_args.get("request_interval")
+        if health_check_args.get("failure_threshold"):
+            health_check.failure_threshold = health_check_args.get("failure_threshold")
+        if health_check_args.get("health_threshold"):
+            health_check.health_threshold = health_check_args.get("health_threshold")
+        if health_check_args.get("inverted"):
+            health_check.inverted = health_check_args.get("inverted")
+        if health_check_args.get("disabled"):
+            health_check.disabled = health_check_args.get("disabled")
+        if health_check_args.get("enable_sni"):
+            health_check.enable_sni = health_check_args.get("enable_sni")
+        if health_check_args.get("children"):
+            health_check.set_children(health_check_args.get("children"))
+        if health_check_args.get("regions"):
+            health_check.set_regions(health_check_args.get("regions"))
+
         return health_check
 
     def list_health_checks(self):
@@ -570,16 +682,22 @@ class Route53Backend(BaseBackend):
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
 
+    def get_health_check(self, health_check_id):
+        health_check = self.health_checks.get(health_check_id)
+        if not health_check:
+            raise NoSuchHealthCheck(health_check_id)
+        return health_check
+
     @staticmethod
     def _validate_arn(region, arn):
         match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
         if not arn or not match:
-            raise InvalidInput()
+            raise InvalidCloudWatchArn()
 
         # The CloudWatch Logs log group must be in the "us-east-1" region.
         match = re.match(r"^(?:[^:]+:){3}(?P<region>[^:]+).*", arn)
         if match.group("region") != "us-east-1":
-            raise InvalidInput()
+            raise InvalidCloudWatchArn()
 
     def create_query_logging_config(self, region, hosted_zone_id, log_group_arn):
         """Process the create_query_logging_config request."""
@@ -683,4 +801,7 @@ class Route53Backend(BaseBackend):
         return self.delegation_sets[delegation_set_id]
 
 
-route53_backend = Route53Backend()
+route53_backends = BackendDict(
+    Route53Backend, "route53", use_boto3_regions=False, additional_regions=["global"]
+)
+route53_backend = route53_backends["global"]

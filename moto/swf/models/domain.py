@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from moto.core import ACCOUNT_ID, BaseModel
+from moto.core import get_account_id, BaseModel
 from ..exceptions import (
     SWFUnknownResourceFault,
     SWFWorkflowExecutionAlreadyStartedFault,
@@ -32,7 +32,7 @@ class Domain(BaseModel):
         if self.description:
             hsh["description"] = self.description
         hsh["arn"] = "arn:aws:swf:{0}:{1}:/domain/{2}".format(
-            self.region_name, ACCOUNT_ID, self.name
+            self.region_name, get_account_id(), self.name
         )
         return hsh
 

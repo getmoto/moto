@@ -1,48 +1,52 @@
 import base64
 
 from moto.core.responses import BaseResponse
-from .models import ses_backend
+from .models import ses_backends
 from datetime import datetime
 
 
 class EmailResponse(BaseResponse):
+    @property
+    def backend(self):
+        return ses_backends["global"]
+
     def verify_email_identity(self):
         address = self.querystring.get("EmailAddress")[0]
-        ses_backend.verify_email_identity(address)
+        self.backend.verify_email_identity(address)
         template = self.response_template(VERIFY_EMAIL_IDENTITY)
         return template.render()
 
     def verify_email_address(self):
         address = self.querystring.get("EmailAddress")[0]
-        ses_backend.verify_email_address(address)
+        self.backend.verify_email_address(address)
         template = self.response_template(VERIFY_EMAIL_ADDRESS)
         return template.render()
 
     def list_identities(self):
-        identities = ses_backend.list_identities()
+        identities = self.backend.list_identities()
         template = self.response_template(LIST_IDENTITIES_RESPONSE)
         return template.render(identities=identities)
 
     def list_verified_email_addresses(self):
-        email_addresses = ses_backend.list_verified_email_addresses()
+        email_addresses = self.backend.list_verified_email_addresses()
         template = self.response_template(LIST_VERIFIED_EMAIL_RESPONSE)
         return template.render(email_addresses=email_addresses)
 
     def verify_domain_dkim(self):
         domain = self.querystring.get("Domain")[0]
-        ses_backend.verify_domain(domain)
+        self.backend.verify_domain(domain)
         template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
         return template.render()
 
     def verify_domain_identity(self):
         domain = self.querystring.get("Domain")[0]
-        ses_backend.verify_domain(domain)
+        self.backend.verify_domain(domain)
         template = self.response_template(VERIFY_DOMAIN_IDENTITY_RESPONSE)
         return template.render()
 
     def delete_identity(self):
         domain = self.querystring.get("Identity")[0]
-        ses_backend.delete_identity(domain)
+        self.backend.delete_identity(domain)
         template = self.response_template(DELETE_IDENTITY_RESPONSE)
         return template.render()
 
@@ -63,7 +67,7 @@ class EmailResponse(BaseResponse):
                     break
                 destinations[dest_type].append(address[0])
 
-        message = ses_backend.send_email(
+        message = self.backend.send_email(
             source, subject, body, destinations, self.region
         )
         template = self.response_template(SEND_EMAIL_RESPONSE)
@@ -84,7 +88,7 @@ class EmailResponse(BaseResponse):
                     break
                 destinations[dest_type].append(address[0])
 
-        message = ses_backend.send_templated_email(
+        message = self.backend.send_templated_email(
             source, template, template_data, destinations, self.region
         )
         template = self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE)
@@ -107,27 +111,27 @@ class EmailResponse(BaseResponse):
                 break
             destinations.append(address[0])
 
-        message = ses_backend.send_raw_email(
+        message = self.backend.send_raw_email(
             source, destinations, raw_data, self.region
         )
         template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 
     def get_send_quota(self):
-        quota = ses_backend.get_send_quota()
+        quota = self.backend.get_send_quota()
         template = self.response_template(GET_SEND_QUOTA_RESPONSE)
         return template.render(quota=quota)
 
     def get_identity_notification_attributes(self):
         identities = self._get_params()["Identities"]
-        identities = ses_backend.get_identity_notification_attributes(identities)
+        identities = self.backend.get_identity_notification_attributes(identities)
         template = self.response_template(GET_IDENTITY_NOTIFICATION_ATTRIBUTES)
         return template.render(identities=identities)
 
     def set_identity_feedback_forwarding_enabled(self):
         identity = self._get_param("Identity")
         enabled = self._get_bool_param("ForwardingEnabled")
-        ses_backend.set_identity_feedback_forwarding_enabled(identity, enabled)
+        self.backend.set_identity_feedback_forwarding_enabled(identity, enabled)
         template = self.response_template(SET_IDENTITY_FORWARDING_ENABLED_RESPONSE)
         return template.render()
 
@@ -139,18 +143,18 @@ class EmailResponse(BaseResponse):
         if sns_topic:
             sns_topic = sns_topic[0]
 
-        ses_backend.set_identity_notification_topic(identity, not_type, sns_topic)
+        self.backend.set_identity_notification_topic(identity, not_type, sns_topic)
         template = self.response_template(SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE)
         return template.render()
 
     def get_send_statistics(self):
-        statistics = ses_backend.get_send_statistics()
+        statistics = self.backend.get_send_statistics()
         template = self.response_template(GET_SEND_STATISTICS)
         return template.render(all_statistics=[statistics])
 
     def create_configuration_set(self):
         configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]
-        ses_backend.create_configuration_set(
+        self.backend.create_configuration_set(
             configuration_set_name=configuration_set_name
         )
         template = self.response_template(CREATE_CONFIGURATION_SET)
@@ -177,7 +181,7 @@ class EmailResponse(BaseResponse):
             "SNSDestination": event_topic_arn,
         }
 
-        ses_backend.create_configuration_set_event_destination(
+        self.backend.create_configuration_set_event_destination(
             configuration_set_name=configuration_set_name,
             event_destination=event_destination,
         )
@@ -193,7 +197,7 @@ class EmailResponse(BaseResponse):
         template_info["template_name"] = template_data.get("._name", "")
         template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = datetime.utcnow()
-        ses_backend.add_template(template_info=template_info)
+        self.backend.add_template(template_info=template_info)
         template = self.response_template(CREATE_TEMPLATE)
         return template.render()
 
@@ -205,44 +209,44 @@ class EmailResponse(BaseResponse):
         template_info["template_name"] = template_data.get("._name", "")
         template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = datetime.utcnow()
-        ses_backend.update_template(template_info=template_info)
+        self.backend.update_template(template_info=template_info)
         template = self.response_template(UPDATE_TEMPLATE)
         return template.render()
 
     def get_template(self):
         template_name = self._get_param("TemplateName")
-        template_data = ses_backend.get_template(template_name)
+        template_data = self.backend.get_template(template_name)
         template = self.response_template(GET_TEMPLATE)
         return template.render(template_data=template_data)
 
     def list_templates(self):
-        email_templates = ses_backend.list_templates()
+        email_templates = self.backend.list_templates()
         template = self.response_template(LIST_TEMPLATES)
         return template.render(templates=email_templates)
 
     def test_render_template(self):
         render_info = self._get_dict_param("Template")
-        rendered_template = ses_backend.render_template(render_info)
+        rendered_template = self.backend.render_template(render_info)
         template = self.response_template(RENDER_TEMPLATE)
         return template.render(template=rendered_template)
 
     def create_receipt_rule_set(self):
         rule_set_name = self._get_param("RuleSetName")
-        ses_backend.create_receipt_rule_set(rule_set_name)
+        self.backend.create_receipt_rule_set(rule_set_name)
         template = self.response_template(CREATE_RECEIPT_RULE_SET)
         return template.render()
 
     def create_receipt_rule(self):
         rule_set_name = self._get_param("RuleSetName")
         rule = self._get_dict_param("Rule.")
-        ses_backend.create_receipt_rule(rule_set_name, rule)
+        self.backend.create_receipt_rule(rule_set_name, rule)
         template = self.response_template(CREATE_RECEIPT_RULE)
         return template.render()
 
     def describe_receipt_rule_set(self):
         rule_set_name = self._get_param("RuleSetName")
 
-        rule_set = ses_backend.describe_receipt_rule_set(rule_set_name)
+        rule_set = self.backend.describe_receipt_rule_set(rule_set_name)
 
         for i, rule in enumerate(rule_set):
             formatted_rule = {}
@@ -260,7 +264,7 @@ class EmailResponse(BaseResponse):
         rule_set_name = self._get_param("RuleSetName")
         rule_name = self._get_param("RuleName")
 
-        receipt_rule = ses_backend.describe_receipt_rule(rule_set_name, rule_name)
+        receipt_rule = self.backend.describe_receipt_rule(rule_set_name, rule_name)
 
         rule = {}
 
@@ -274,7 +278,7 @@ class EmailResponse(BaseResponse):
         rule_set_name = self._get_param("RuleSetName")
         rule = self._get_dict_param("Rule.")
 
-        ses_backend.update_receipt_rule(rule_set_name, rule)
+        self.backend.update_receipt_rule(rule_set_name, rule)
 
         template = self.response_template(UPDATE_RECEIPT_RULE)
         return template.render()
@@ -284,7 +288,7 @@ class EmailResponse(BaseResponse):
         mail_from_domain = self._get_param("MailFromDomain")
         behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
 
-        ses_backend.set_identity_mail_from_domain(
+        self.backend.set_identity_mail_from_domain(
             identity, mail_from_domain, behavior_on_mx_failure
         )
 
@@ -293,7 +297,7 @@ class EmailResponse(BaseResponse):
 
     def get_identity_mail_from_domain_attributes(self):
         identities = self._get_multi_param("Identities.member.")
-        identities = ses_backend.get_identity_mail_from_domain_attributes(identities)
+        identities = self.backend.get_identity_mail_from_domain_attributes(identities)
         template = self.response_template(GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES)
 
         return template.render(identities=identities)
@@ -301,7 +305,7 @@ class EmailResponse(BaseResponse):
     def get_identity_verification_attributes(self):
         params = self._get_params()
         identities = params.get("Identities")
-        verification_attributes = ses_backend.get_identity_verification_attributes(
+        verification_attributes = self.backend.get_identity_verification_attributes(
             identities=identities,
         )
 

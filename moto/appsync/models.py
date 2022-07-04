@@ -1,6 +1,6 @@
 import base64
 from datetime import timedelta, datetime, timezone
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import get_account_id, BaseBackend, BaseModel
 from moto.core.utils import BackendDict, unix_time
 from moto.utilities.tagging_service import TaggingService
 
@@ -74,7 +74,9 @@ class GraphqlAPI(BaseModel):
         self.user_pool_config = user_pool_config
         self.xray_enabled = xray_enabled
 
-        self.arn = f"arn:aws:appsync:{self.region}:{ACCOUNT_ID}:apis/{self.api_id}"
+        self.arn = (
+            f"arn:aws:appsync:{self.region}:{get_account_id()}:apis/{self.api_id}"
+        )
         self.graphql_schema = None
 
         self.api_keys = dict()
@@ -185,16 +187,10 @@ class GraphqlAPIKey(BaseModel):
 class AppSyncBackend(BaseBackend):
     """Implementation of AppSync APIs."""
 
-    def __init__(self, region_name=None):
-        self.region_name = region_name
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.graphql_apis = dict()
         self.tagger = TaggingService()
-
-    def reset(self):
-        """Re-initialize all attributes for this instance."""
-        region_name = self.region_name
-        self.__dict__ = {}
-        self.__init__(region_name)
 
     def create_graphql_api(
         self,
