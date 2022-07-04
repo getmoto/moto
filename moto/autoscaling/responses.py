@@ -111,7 +111,7 @@ class AutoScalingResponse(BaseResponse):
             scheduled_action_name=None,
             start_time=self._get_param("StartTime"),
             end_time=self._get_param("EndTime"),
-            recurrence=self._get_param("Recurrence")
+            recurrence=self._get_param("Recurrence"),
         )
         template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
         return template.render()

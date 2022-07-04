@@ -281,7 +281,6 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
 
 class FakeScheduledAction(CloudFormationModel):
-
     def __init__(
         self,
         name,
@@ -291,7 +290,7 @@ class FakeScheduledAction(CloudFormationModel):
         scheduled_action_name=None,
         start_time=None,
         end_time=None,
-        recurrence=None
+        recurrence=None,
     ):
 
         self.name = name
@@ -303,7 +302,7 @@ class FakeScheduledAction(CloudFormationModel):
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
 
-        #self.scheduled_action_name = scheduled_action_name if scheduled_action_name else "autoscaling-scheduled-action"
+        # self.scheduled_action_name = scheduled_action_name if scheduled_action_name else "autoscaling-scheduled-action"
 
     @staticmethod
     def cloudformation_name_type():
@@ -325,7 +324,11 @@ class FakeScheduledAction(CloudFormationModel):
 
         backend = autoscaling_backends[region_name]
 
-        scheduled_action_name = kwargs["LogicalId"] if kwargs.get("LogicalId") else "ScheduledScalingAction-{random.randint(0,100)}"
+        scheduled_action_name = (
+            kwargs["LogicalId"]
+            if kwargs.get("LogicalId")
+            else "ScheduledScalingAction-{random.randint(0,100)}"
+        )
 
         group = backend.put_scheduled_update_group_action(
             name=properties.get("AutoScalingGroupName"),
@@ -873,7 +876,7 @@ class AutoScalingBackend(BaseBackend):
         scheduled_action_name=None,
         start_time=None,
         end_time=None,
-        recurrence=None
+        recurrence=None,
     ):
         def make_int(value):
             return int(value) if value is not None else value
@@ -890,9 +893,9 @@ class AutoScalingBackend(BaseBackend):
             scheduled_action_name=scheduled_action_name,
             start_time=None,
             end_time=None,
-            recurrence=None
+            recurrence=None,
         )
-        #self.autoscaling_groups[name] = group
+        # self.autoscaling_groups[name] = group
 
         return group
 
