@@ -846,9 +846,9 @@ class AutoScalingBackend(BaseBackend):
             max_size=max_size,
             min_size=min_size,
             scheduled_action_name=scheduled_action_name,
-            start_time=None,
-            end_time=None,
-            recurrence=None,
+            start_time=start_time,
+            end_time=end_time,
+            recurrence=recurrence,
         )
         return group
 
