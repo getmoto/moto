@@ -302,11 +302,6 @@ class FakeScheduledAction(CloudFormationModel):
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
 
-<<<<<<< HEAD
-=======
-        # self.scheduled_action_name = scheduled_action_name if scheduled_action_name else "autoscaling-scheduled-action"
-
->>>>>>> Run black
     @staticmethod
     def cloudformation_name_type():
 
@@ -855,18 +850,10 @@ class AutoScalingBackend(BaseBackend):
             max_size=max_size,
             min_size=min_size,
             scheduled_action_name=scheduled_action_name,
-<<<<<<< HEAD
             start_time=start_time,
             end_time=end_time,
             recurrence=recurrence,
         )
-=======
-            start_time=None,
-            end_time=None,
-            recurrence=None,
-        )
-        # self.autoscaling_groups[name] = group
->>>>>>> Run black
 
         self.scheduled_actions[scheduled_action_name] = scheduled_action
         return scheduled_action
