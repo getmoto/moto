@@ -4,6 +4,7 @@ import functools
 import importlib
 import json
 import logging
+import random
 import re
 from collections import OrderedDict, defaultdict
 from urllib.parse import parse_qs, parse_qsl, urlparse
@@ -385,7 +386,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return action
 
     def record_method_to_file(self, querystring, kwargs):
-        filepath = "methods_recorded"
+        filepath = settings.METHODS_RECORDED_FILEPATH
         with open(filepath, "a+") as file:
 
             file.write(
@@ -399,7 +400,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             file.write("\n")
 
     def reset_methods_record(self, request, full_url, headers):
-        filepath = "methods_recorded"
+        filepath = settings.METHODS_RECORDED_FILEPATH
         with open(filepath, "w"):
             pass
         return 200, {}, ""
@@ -412,13 +413,28 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         settings.ENABLE_RECORDING = False
         return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
 
-    def enable_set_seed_for_ids(self, request, full_url, headers):
-        settings.ENABLE_SET_SEED_FOR_IDS = True
-        return 200, {}, "Enable set seed is {0}".format(settings.ENABLE_SET_SEED_FOR_IDS)
+    def set_seed_for_ids(self, request, full_url, headers):
+        random.seed(request.args["seed"])
+        return 200, {}, "Rand seed is {0}".format(request.args["seed"])
+
+    def load_methods_record(self, request, full_url, headers):
+        methods_list = json.loads(request.data)
+        filepath = settings.METHODS_RECORDED_FILEPATH
+        with open(filepath, "w") as file:
+
+            file.write(json.dumps(methods_list))
+            file.write("\n")
+        return 200, {}, ""
+
+    def dump_methods_record(self, request, full_url, headers):
+        filepath = settings.METHODS_RECORDED_FILEPATH
+        with open(filepath, "r") as file:
+            methods_list = [json.loads(row) for row in file.readlines()]
+        return 200, {}, json.dumps(methods_list)
 
     def replay_methods_from_record(self, request, full_url, headers):
         old_querystring = copy.deepcopy(getattr(self, "querystring", {}))
-        filepath = "methods_recorded"
+        filepath = settings.METHODS_RECORDED_FILEPATH
         with open(filepath, "r") as file:
             methods_list = file.readlines()
 
@@ -431,7 +447,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             response = response_class()
             for attr in list(row_loaded):
                 setattr(response, attr, row_loaded.pop(attr))
+
+            old_setting = settings.ENABLE_RECORDING
+            settings.ENABLE_RECORDING = False
             response.call_action()
+            settings.ENABLE_RECORDING = old_setting
 
         self.querystring = copy.deepcopy(old_querystring)
 
