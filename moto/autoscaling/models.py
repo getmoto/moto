@@ -832,6 +832,7 @@ class AutoScalingBackend(BaseBackend):
         end_time=None,
         recurrence=None,
     ):
+        # TODO: Add validations for parameters
         def make_int(value):
             return int(value) if value is not None else value
 
