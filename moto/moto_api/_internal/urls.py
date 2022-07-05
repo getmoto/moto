@@ -16,7 +16,7 @@ url_paths = {
     "{0}/moto-api/reset-recording": response_instance.reset_recording,
     "{0}/moto-api/start-recording": response_instance.start_recording,
     "{0}/moto-api/stop-recording": response_instance.stop_recording,
-    "{0}/moto-api/replay-recording": response_instance.replay_recording,
     "{0}/moto-api/upload-recording": response_instance.upload_recording,
     "{0}/moto-api/download-recording": response_instance.download_recording,
+    "{0}/moto-api/replay-recording": response_instance.replay_recording,
 }
