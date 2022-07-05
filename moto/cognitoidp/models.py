@@ -1041,10 +1041,11 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.groups[group_name]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_groups(self, user_pool_id):
         user_pool = self.describe_user_pool(user_pool_id)
 
-        return user_pool.groups.values()
+        return list(user_pool.groups.values())
 
     def delete_group(self, user_pool_id, group_name):
         user_pool = self.describe_user_pool(user_pool_id)

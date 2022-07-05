@@ -1525,6 +1525,45 @@ def test_list_groups():
 
 
 @mock_cognitoidp
+def test_list_groups_returns_pagination_tokens():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 groups
+    group_count = 10
+    for _ in range(group_count):
+        conn.create_group(UserPoolId=user_pool_id, GroupName=str(uuid.uuid4()))
+
+    max_results = 5
+    result = conn.list_groups(UserPoolId=user_pool_id, Limit=max_results)
+    result["Groups"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+    next_token = result["NextToken"]
+    result_2 = conn.list_groups(
+        UserPoolId=user_pool_id, Limit=max_results, NextToken=next_token
+    )
+    result_2["Groups"].should.have.length_of(max_results)
+    result_2.shouldnt.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_groups_when_limit_more_than_total_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 users
+    group_count = 10
+    for _ in range(group_count):
+        conn.create_group(UserPoolId=user_pool_id, GroupName=str(uuid.uuid4()))
+
+    max_results = group_count + 5
+    result = conn.list_groups(UserPoolId=user_pool_id, Limit=max_results)
+    result["Groups"].should.have.length_of(group_count)
+    result.shouldnt.have.key("NextToken")
+
+
+@mock_cognitoidp
 def test_delete_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 

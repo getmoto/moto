@@ -249,8 +249,15 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_groups(self):
         user_pool_id = self._get_param("UserPoolId")
-        groups = self.backend.list_groups(user_pool_id)
-        return json.dumps({"Groups": [group.to_json() for group in groups]})
+        limit = self._get_param("Limit")
+        token = self._get_param("NextToken")
+        groups, token = self.backend.list_groups(
+            user_pool_id, limit=limit, next_token=token
+        )
+        response = {"Groups": [group.to_json() for group in groups]}
+        if token:
+            response["NextToken"] = token
+        return json.dumps(response)
 
     def delete_group(self):
         group_name = self._get_param("GroupName")
