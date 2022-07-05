@@ -448,9 +448,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         settings.ENABLE_RECORDING = False
 
         with open(filepath, "r") as file:
-            methods_list = file.readlines()
+            entries = file.readlines()
 
-        for row in methods_list:
+        for row in entries:
             row_loaded = json.loads(row)
             response_class = getattr(
                 importlib.import_module(row_loaded.pop("module")),
