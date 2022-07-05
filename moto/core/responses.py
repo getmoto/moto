@@ -394,8 +394,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._get_action_from_method_and_request_uri(self.method, self.path)
         return action
 
-    def record_method_to_file(self, querystring, kwargs):
-        filepath = settings.METHODS_RECORDED_FILEPATH
+    def set_seed(self, request, full_url, headers):
+        random.seed(request.args["seed"])
+        return 200, {}, "Rand seed is {0}".format(request.args["seed"])
+
+    def _record_method_to_file(self, querystring, kwargs):
+        filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "a+") as file:
 
             file.write(
@@ -408,8 +412,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             file.write("\n")
 
-    def reset_methods_record(self, request, full_url, headers):
-        filepath = settings.METHODS_RECORDED_FILEPATH
+    def reset_recording(self, request, full_url, headers):
+        filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "w"):
             pass
         return 200, {}, ""
@@ -422,28 +426,24 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         settings.ENABLE_RECORDING = False
         return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
 
-    def set_seed_for_ids(self, request, full_url, headers):
-        random.seed(request.args["seed"])
-        return 200, {}, "Rand seed is {0}".format(request.args["seed"])
-
-    def load_methods_record(self, request, full_url, headers):
+    def upload_recording(self, request, full_url, headers):
         methods_list = json.loads(request.data)
-        filepath = settings.METHODS_RECORDED_FILEPATH
+        filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "w") as file:
             for method in methods_list:
                 file.write(json.dumps(method))
                 file.write("\n")
         return 200, {}, ""
 
-    def dump_methods_record(self, request, full_url, headers):
-        filepath = settings.METHODS_RECORDED_FILEPATH
+    def download_recording(self, request, full_url, headers):
+        filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "r") as file:
             methods_list = [json.loads(row) for row in file.readlines()]
         return 200, {}, json.dumps(methods_list)
 
-    def replay_methods_from_record(self, request, full_url, headers):
+    def replay_recording(self, request, full_url, headers):
         old_querystring = copy.deepcopy(getattr(self, "querystring", {}))
-        filepath = settings.METHODS_RECORDED_FILEPATH
+        filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "r") as file:
             methods_list = file.readlines()
 
@@ -487,7 +487,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response = http_error.description, response_headers
 
             if settings.ENABLE_RECORDING and not action.lower().startswith("describe"):
-                self.record_method_to_file(
+                self._record_method_to_file(
                     self.querystring,
                     {
                         "module": self.__module__,
