@@ -430,9 +430,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         methods_list = json.loads(request.data)
         filepath = settings.METHODS_RECORDED_FILEPATH
         with open(filepath, "w") as file:
-
-            file.write(json.dumps(methods_list))
-            file.write("\n")
+            for method in methods_list:
+                file.write(json.dumps(method))
+                file.write("\n")
         return 200, {}, ""
 
     def dump_methods_record(self, request, full_url, headers):
