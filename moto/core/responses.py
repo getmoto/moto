@@ -443,8 +443,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, {}, json.dumps(methods_list)
 
     def replay_recording(self, request, full_url, headers):
-        old_querystring = copy.deepcopy(getattr(self, "querystring", {}))
         filepath = settings.MOTO_RECORDING_FILEPATH
+
+        # do not record the replay itself
+        old_setting = settings.ENABLE_RECORDING
+        settings.ENABLE_RECORDING = False
+
         with open(filepath, "r") as file:
             methods_list = file.readlines()
 
@@ -457,13 +461,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             response = response_class()
             for attr in list(row_loaded):
                 setattr(response, attr, row_loaded.pop(attr))
-
-            old_setting = settings.ENABLE_RECORDING
-            settings.ENABLE_RECORDING = False
             response.call_action()
-            settings.ENABLE_RECORDING = old_setting
 
-        self.querystring = copy.deepcopy(old_querystring)
+        # restore the recording setting
+        settings.ENABLE_RECORDING = old_setting
 
         return 200, {}, ""
 
