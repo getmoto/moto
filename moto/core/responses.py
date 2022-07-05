@@ -442,6 +442,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             methods_list = [json.loads(row) for row in file.readlines()]
         return 200, {}, json.dumps(methods_list)
 
+    # NOTE: Replaying assumes, for simplicity, that it is the only action
+    # running against moto at the time. No recording happens while replaying.
     def replay_recording(self, request, full_url, headers):
         filepath = settings.MOTO_RECORDING_FILEPATH
 
