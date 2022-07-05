@@ -215,7 +215,7 @@ def test_codebuild_create_project_when_exists():
             environment=environment,
             serviceRole=service_role,
         )
-        err.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
+    err.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
 
 
 @mock_codebuild
@@ -366,7 +366,7 @@ def test_codebuild_get_batch_builds_for_project_no_history():
 
     with pytest.raises(ParamValidationError) as err:
         client.batch_get_builds(ids=response["ids"])
-        err.response["Error"]["Code"].should.equal("ParamValidationError")
+    err.typename.should.equal("ParamValidationError")
 
 
 @mock_codebuild
@@ -578,18 +578,13 @@ def test_codebuild_batch_get_builds_2_projects():
     response = client.list_builds()
     response["ids"].should_not.be.empty
 
-    for build_id in response["ids"]:
-        try:
-            build_id.should.contain("project-1")
-        except AssertionError:
-            build_id.should.contain("project-2")
+    "project-1".should.be.within(response["ids"][0])
+    "project-2".should.be.within(response["ids"][1])
 
-    for metadata in client.batch_get_builds(ids=response["ids"])["builds"]:
-        metadata.should_not.be.none
-        try:
-            metadata["id"].should.contain("project-1")
-        except AssertionError:
-            metadata["id"].should.contain("project-2")
+    metadata = client.batch_get_builds(ids=response["ids"])["builds"]
+    metadata.should_not.be.none
+    "project-1".should.be.within(metadata[0]["id"])
+    "project-2".should.be.within(metadata[1]["id"])
 
 
 @mock_codebuild
@@ -607,7 +602,7 @@ def test_codebuild_batch_get_builds_empty_build_id():
 
     with pytest.raises(ParamValidationError) as err:
         client.batch_get_builds(ids=[])
-        err.response["Error"]["Code"].should.equal("ParamValidationError")
+    err.typename.should.equal("ParamValidationError")
 
 
 @mock_codebuild
@@ -647,7 +642,7 @@ def test_codebuild_delete_project():
 
     with pytest.raises(ClientError) as err:
         client.list_builds_for_project(projectName=name)
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    err.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_codebuild

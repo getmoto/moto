@@ -11,103 +11,88 @@ import re
 
 
 def _validate_required_params_source(source):
-    try:
-        assert source["type"] in [
-            "BITBUCKET",
-            "CODECOMMIT",
-            "CODEPIPELINE",
-            "GITHUB",
-            "GITHUB_ENTERPRISE",
-            "NO_SOURCE",
-            "S3",
-        ]
-    except AssertionError:
+    if source["type"] not in [
+        "BITBUCKET",
+        "CODECOMMIT",
+        "CODEPIPELINE",
+        "GITHUB",
+        "GITHUB_ENTERPRISE",
+        "NO_SOURCE",
+        "S3",
+    ]:
         raise InvalidInputException("Invalid type provided: Project source type")
-    # if type CODECOMMIT ensure https://git-codecommit.<region>.amazonaws.com in location value
-    # if type S3 ensure valid bucket name or use mock_s3
-    try:
-        assert source["location"]
-        assert source["location"] != ""
-    except (KeyError, AssertionError):
+
+    if "location" not in source:
+        raise InvalidInputException("Project source location is required")
+
+    if source["location"] == "":
         raise InvalidInputException("Project source location is required")
 
 
 def _validate_required_params_service_role(service_role):
-    try:
-        assert (
-            "arn:aws:iam::{0}:role/service-role/".format(get_account_id())
-            in service_role
-        )
-    except AssertionError:
+    if (
+        "arn:aws:iam::{0}:role/service-role/".format(get_account_id())
+        not in service_role
+    ):
         raise InvalidInputException(
             "Invalid service role: Service role account ID does not match caller's account"
         )
 
 
 def _validate_required_params_artifacts(artifacts):
-    try:
-        assert artifacts["type"] in ["CODEPIPELINE", "S3", "NO_ARTIFACTS"]
-    except AssertionError:
+
+    if artifacts["type"] not in ["CODEPIPELINE", "S3", "NO_ARTIFACTS"]:
         raise InvalidInputException("Invalid type provided: Artifact type")
-    try:
-        if artifacts["type"] == "NO_ARTIFACTS":
-            try:
-                assert "location" not in artifacts
-            except AssertionError:
-                raise InvalidInputException(
-                    "Invalid artifacts: artifact type NO_ARTIFACTS should have null location"
-                )
-        else:
-            assert artifacts["location"]
-            assert artifacts["location"] != ""
-    except (KeyError, AssertionError):
+
+    if artifacts["type"] == "NO_ARTIFACTS":
+        if "location" in artifacts:
+            raise InvalidInputException(
+                "Invalid artifacts: artifact type NO_ARTIFACTS should have null location"
+            )
+    elif "location" not in artifacts or artifacts["location"] == "":
         raise InvalidInputException("Project source location is required")
 
 
 def _validate_required_params_environment(environment):
-    try:
-        assert environment["type"] in [
-            "WINDOWS_CONTAINER",
-            "LINUX_CONTAINER",
-            "LINUX_GPU_CONTAINER",
-            "ARM_CONTAINER",
-        ]
-    except AssertionError:
+
+    if environment["type"] not in [
+        "WINDOWS_CONTAINER",
+        "LINUX_CONTAINER",
+        "LINUX_GPU_CONTAINER",
+        "ARM_CONTAINER",
+    ]:
         raise InvalidInputException(
             "Invalid type provided: {0}".format(environment["type"])
         )
-    try:
-        assert environment["computeType"] in [
-            "BUILD_GENERAL1_SMALL",
-            "BUILD_GENERAL1_MEDIUM",
-            "BUILD_GENERAL1_LARGE",
-            "BUILD_GENERAL1_2XLARGE",
-        ]
-    except AssertionError:
+
+    if environment["computeType"] not in [
+        "BUILD_GENERAL1_SMALL",
+        "BUILD_GENERAL1_MEDIUM",
+        "BUILD_GENERAL1_LARGE",
+        "BUILD_GENERAL1_2XLARGE",
+    ]:
         raise InvalidInputException(
             "Invalid compute type provided: {0}".format(environment["computeType"])
         )
 
 
 def _validate_required_params_project_name(name):
-    try:
-        assert len(name) <= 150
-        assert re.match(r"^[A-Za-z]{1}.*[^!£$%^&*()+=|?`¬{}@~#:;<>\\/\[\]]$", name)
-    except AssertionError:
+    if len(name) >= 150:
+        raise InvalidInputException(
+            "Only alphanumeric characters, dash, and underscore are supported"
+        )
+
+    if not re.match(r"^[A-Za-z]{1}.*[^!£$%^&*()+=|?`¬{}@~#:;<>\\/\[\]]$", name):
         raise InvalidInputException(
             "Only alphanumeric characters, dash, and underscore are supported"
         )
 
 
 def _validate_required_params_id(build_id, build_ids):
-    try:
-        assert ":" in build_id
-    except AssertionError:
+    if ":" not in build_id:
         raise InvalidInputException("Invalid build ID provided")
 
-    try:
-        assert build_id in build_ids
-    except AssertionError:
+    if build_id not in build_ids:
         raise ResourceNotFoundException("Build {0} does not exist".format(build_id))
 
 
@@ -119,12 +104,10 @@ class CodeBuildResponse(BaseResponse):
     def list_builds_for_project(self):
         _validate_required_params_project_name(self._get_param("projectName"))
 
-        try:
-            assert (
-                self._get_param("projectName")
-                in self.codebuild_backend.codebuild_projects.keys()
-            )
-        except AssertionError:
+        if (
+            self._get_param("projectName")
+            not in self.codebuild_backend.codebuild_projects.keys()
+        ):
             raise ResourceNotFoundException(
                 "The provided project arn:aws:codebuild:{0}:{1}:project/{2} does not exist".format(
                     self.region, get_account_id(), self._get_param("projectName")
@@ -144,12 +127,7 @@ class CodeBuildResponse(BaseResponse):
         _validate_required_params_environment(self._get_param("environment"))
         _validate_required_params_project_name(self._get_param("name"))
 
-        try:
-            assert (
-                self._get_param("name")
-                not in self.codebuild_backend.codebuild_projects.keys()
-            )
-        except AssertionError:
+        if self._get_param("name") in self.codebuild_backend.codebuild_projects.keys():
             raise ResourceAlreadyExistsException(
                 "Project already exists: arn:aws:codebuild:{0}:{1}:project/{2}".format(
                     self.region, get_account_id(), self._get_param("name")
@@ -173,12 +151,10 @@ class CodeBuildResponse(BaseResponse):
     def start_build(self):
         _validate_required_params_project_name(self._get_param("projectName"))
 
-        try:
-            assert (
-                self._get_param("projectName")
-                in self.codebuild_backend.codebuild_projects.keys()
-            )
-        except AssertionError:
+        if (
+            self._get_param("projectName")
+            not in self.codebuild_backend.codebuild_projects.keys()
+        ):
             raise ResourceNotFoundException(
                 "Project cannot be found: arn:aws:codebuild:{0}:{1}:project/{2}".format(
                     self.region, get_account_id(), self._get_param("projectName")
@@ -193,12 +169,9 @@ class CodeBuildResponse(BaseResponse):
         return json.dumps({"build": metadata})
 
     def batch_get_builds(self):
-
-        try:
-            for build_id in self._get_param("ids"):
-                assert ":" in build_id
-        except AssertionError:
-            raise InvalidInputException("Invalid build ID provided")
+        for build_id in self._get_param("ids"):
+            if ":" not in build_id:
+                raise InvalidInputException("Invalid build ID provided")
 
         metadata = self.codebuild_backend.batch_get_builds(self._get_param("ids"))
         return json.dumps({"builds": metadata})

@@ -123,8 +123,6 @@ class CodeBuild(BaseModel):
 
 
 class CodeBuildBackend(BaseBackend):
-    """find which functions I used in the dev branch stuff"""
-
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
         self.codebuild_projects = dict()
