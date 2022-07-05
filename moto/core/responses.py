@@ -458,7 +458,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             response = response_class()
             for attr in list(row_loaded):
-                setattr(response, attr, row_loaded.pop(attr))
+                setattr(response, attr, row_loaded[attr])
             response.call_action()
 
         # restore the recording setting
