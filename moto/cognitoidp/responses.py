@@ -290,8 +290,15 @@ class CognitoIdpResponse(BaseResponse):
     def list_users_in_group(self):
         user_pool_id = self._get_param("UserPoolId")
         group_name = self._get_param("GroupName")
-        users = self.backend.list_users_in_group(user_pool_id, group_name)
-        return json.dumps({"Users": [user.to_json(extended=True) for user in users]})
+        limit = self._get_param("Limit")
+        token = self._get_param("NextToken")
+        users, token = self.backend.list_users_in_group(
+            user_pool_id, group_name, limit=limit, next_token=token
+        )
+        response = {"Users": [user.to_json(extended=True) for user in users]}
+        if token:
+            response["NextToken"] = token
+        return json.dumps(response)
 
     def admin_list_groups_for_user(self):
         username = self._get_param("Username")
