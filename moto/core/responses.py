@@ -398,18 +398,19 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         random.seed(request.args["seed"])
         return 200, {}, "Rand seed is {0}".format(request.args["seed"])
 
-    def _record_method_to_file(self, querystring, kwargs):
+    def _record_to_file(self):
         filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "a+") as file:
-
-            file.write(
-                json.dumps(
-                    {
-                        "querystring": copy.deepcopy(querystring),
-                        **kwargs,
-                    }
-                )
-            )
+            entry = {
+                "module": self.__module__,
+                "response_type": self.__class__.__name__,
+                "response_headers": self.response_headers,
+                "region": self.region,
+                "body": self.body,
+                "uri_match": self.uri_match,
+                "querystring": self.querystring,
+            }
+            file.write(json.dumps(entry))
             file.write("\n")
 
     def reset_recording(self, request, full_url, headers):
@@ -487,17 +488,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response = http_error.description, response_headers
 
             if settings.ENABLE_RECORDING and not action.lower().startswith("describe"):
-                self._record_method_to_file(
-                    self.querystring,
-                    {
-                        "module": self.__module__,
-                        "response_type": self.__class__.__name__,
-                        "response_headers": headers,
-                        "region": self.region,
-                        "body": getattr(self, "body"),
-                        "uri_match": self.uri_match,
-                    },
-                )
+                self._record_to_file()
 
             if isinstance(response, str):
                 return 200, headers, response
