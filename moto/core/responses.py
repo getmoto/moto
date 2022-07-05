@@ -428,12 +428,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
 
     def upload_recording(self, request, full_url, headers):
-        methods_list = json.loads(request.data)
         filepath = settings.MOTO_RECORDING_FILEPATH
         with open(filepath, "w") as file:
-            for method in methods_list:
-                file.write(json.dumps(method))
-                file.write("\n")
+            file.write(request.data)
         return 200, {}, ""
 
     def download_recording(self, request, full_url, headers):
