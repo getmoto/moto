@@ -149,7 +149,7 @@ def test_codebuild_create_project_with_invalid_name():
 def test_codebuild_create_project_with_invalid_name_length():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
-    name = "some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project_some_project"
+    name = "some_project_" * 12
     source = dict()
     source["type"] = "S3"
     # repository location for S3
