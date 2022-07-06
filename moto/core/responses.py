@@ -1,29 +1,23 @@
-import functools
-from collections import defaultdict
 import datetime
+import functools
 import importlib
 import json
 import logging
 import random
 import re
-import requests
-
-import pytz
-
-from moto.core.exceptions import DryRunClientError
-
-from jinja2 import Environment, DictLoader, TemplateNotFound
-
+from collections import OrderedDict, defaultdict
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
-import xmltodict
-from werkzeug.exceptions import HTTPException
-
 import boto3
-from collections import OrderedDict
+import pytz
+import requests
+import xmltodict
+from jinja2 import DictLoader, Environment, TemplateNotFound
+from moto import settings
+from moto.core.exceptions import DryRunClientError
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
 from moto.utilities.utils import load_resource
-from moto import settings
+from werkzeug.exceptions import HTTPException
 
 log = logging.getLogger(__name__)
 
@@ -428,7 +422,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def upload_recording(self, request, full_url, headers):
         filepath = settings.RECORDING_FILEPATH
-        with open(filepath, "w") as file:
+        with open(filepath, "bw") as file:
             file.write(request.data)
         return 200, {}, ""
 
