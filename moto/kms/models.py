@@ -6,13 +6,13 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 
 from cryptography.hazmat.primitives.asymmetric import padding
-from moto.apigateway.exceptions import ValidationException
 
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex, unix_time, BackendDict
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
+from .exceptions import ValidationException
 from .utils import (
     RESERVED_ALIASES,
     decrypt,
@@ -540,8 +540,8 @@ class KmsBackend(BaseBackend):
     def sign(self, key_id, message, signing_algorithm):
         """Sign message using generated private key.
 
-        NOTES:
         - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
         - grant_tokens are not implemented
         """
         key = self.describe_key(key_id)
@@ -563,8 +563,8 @@ class KmsBackend(BaseBackend):
     def verify(self, key_id, message, signature, signing_algorithm):
         """Verify message using public key from generated private key.
 
-        NOTES:
         - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
         - grant_tokens are not implemented
         """
         key = self.describe_key(key_id)

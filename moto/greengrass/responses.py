@@ -1,5 +1,7 @@
+from datetime import datetime
 import json
 
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core.responses import BaseResponse
 from .models import greengrass_backends
 
@@ -678,3 +680,120 @@ class GreengrassResponse(BaseResponse):
             group_version_id=group_version_id,
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def deployments(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_deployment()
+
+        if self.method == "GET":
+            return self.list_deployments()
+
+    def create_deployment(self):
+
+        group_id = self.path.split("/")[-2]
+        group_version_id = self._get_param("GroupVersionId")
+        deployment_type = self._get_param("DeploymentType")
+        deployment_id = self._get_param("DeploymentId")
+
+        res = self.greengrass_backend.create_deployment(
+            group_id=group_id,
+            group_version_id=group_version_id,
+            deployment_type=deployment_type,
+            deployment_id=deployment_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def list_deployments(self):
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_deployments(group_id=group_id)
+
+        deployments = (
+            []
+            if len(res) == 0
+            else [deployment.to_dict(include_detail=True) for deployment in res]
+        )
+
+        return (
+            200,
+            {"status": 200},
+            json.dumps({"Deployments": deployments}),
+        )
+
+    def deployment_satus(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_deployment_status()
+
+    def get_deployment_status(self):
+        group_id = self.path.split("/")[-4]
+        deployment_id = self.path.split("/")[-2]
+
+        res = self.greengrass_backend.get_deployment_status(
+            group_id=group_id,
+            deployment_id=deployment_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def deployments_reset(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.reset_deployments()
+
+    def reset_deployments(self):
+        group_id = self.path.split("/")[-3]
+
+        res = self.greengrass_backend.reset_deployments(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def role(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "PUT":
+            return self.associate_role_to_group()
+
+        if self.method == "GET":
+            return self.get_associated_role()
+
+        if self.method == "DELETE":
+            return self.disassociate_role_from_group()
+
+    def associate_role_to_group(self):
+
+        group_id = self.path.split("/")[-2]
+        role_arn = self._get_param("RoleArn")
+        res = self.greengrass_backend.associate_role_to_group(
+            group_id=group_id,
+            role_arn=role_arn,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict())
+
+    def get_associated_role(self):
+
+        group_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.get_associated_role(
+            group_id=group_id,
+        )
+        return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
+
+    def disassociate_role_from_group(self):
+        group_id = self.path.split("/")[-2]
+        self.greengrass_backend.disassociate_role_from_group(
+            group_id=group_id,
+        )
+        return (
+            200,
+            {"status": 200},
+            json.dumps(
+                {
+                    "DisassociatedAt": iso_8601_datetime_with_milliseconds(
+                        datetime.utcnow()
+                    )
+                }
+            ),
+        )

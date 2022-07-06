@@ -948,6 +948,8 @@ def to_str(value, spec):
     vtype = spec["type"]
     if vtype == "boolean":
         return "true" if value else "false"
+    elif vtype == "long":
+        return int(value)
     elif vtype == "integer":
         return str(value)
     elif vtype == "float":

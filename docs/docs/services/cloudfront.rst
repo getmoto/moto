@@ -30,8 +30,7 @@ cloudfront
 - [ ] create_cloud_front_origin_access_identity
 - [X] create_distribution
   
-        This has been tested against an S3-distribution with the
-        simplest possible configuration.  Please raise an issue if
+        Not all configuration options are supported yet.  Please raise an issue if
         we're not persisting/returning the correct attributes for your
         use-case.
         
@@ -40,7 +39,7 @@ cloudfront
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
-- [ ] create_invalidation
+- [X] create_invalidation
 - [ ] create_key_group
 - [ ] create_monitoring_subscription
 - [ ] create_origin_request_policy
@@ -116,7 +115,7 @@ cloudfront
 - [ ] list_realtime_log_configs
 - [ ] list_response_headers_policies
 - [ ] list_streaming_distributions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] publish_function
 - [ ] tag_resource
 - [ ] test_function

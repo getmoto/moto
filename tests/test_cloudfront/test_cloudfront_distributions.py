@@ -127,17 +127,126 @@ def test_create_distribution_s3_minimum():
 
 
 @mock_cloudfront
-def test_create_distribution_with_additional_fields():
+def test_create_distribution_with_georestriction():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    config["Restrictions"] = {
+        "GeoRestriction": {
+            "RestrictionType": "whitelist",
+            "Quantity": 2,
+            "Items": ["GB", "US"],
+        }
+    }
+
+    resp = client.create_distribution(DistributionConfig=config)
+    resp.should.have.key("Distribution")
+
+    distribution = resp["Distribution"]
+
+    distribution.should.have.key("DistributionConfig")
+    config = distribution["DistributionConfig"]
+
+    config.should.have.key("Restrictions")
+    config["Restrictions"].should.have.key("GeoRestriction")
+    restriction = config["Restrictions"]["GeoRestriction"]
+    restriction.should.have.key("RestrictionType").equals("whitelist")
+    restriction.should.have.key("Quantity").equals(2)
+    restriction["Items"].should.contain("US")
+    restriction["Items"].should.contain("GB")
+
+
+@mock_cloudfront
+def test_create_distribution_with_allowed_methods():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    config["DefaultCacheBehavior"]["AllowedMethods"] = {
+        "Quantity": 3,
+        "Items": ["GET", "HEAD", "PUT"],
+        "CachedMethods": {
+            "Quantity": 7,
+            "Items": ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        },
+    }
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+
+    dist.should.have.key("DistributionConfig")
+    cache = dist["DistributionConfig"]["DefaultCacheBehavior"]
+
+    cache.should.have.key("AllowedMethods").equals(
+        {
+            "CachedMethods": {
+                "Items": ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+                "Quantity": 7,
+            },
+            "Items": ["GET", "HEAD", "PUT"],
+            "Quantity": 3,
+        }
+    )
+
+
+@mock_cloudfront
+def test_create_distribution_with_origins():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    config["Origins"]["Items"][0]["ConnectionAttempts"] = 1
+    config["Origins"]["Items"][0]["ConnectionTimeout"] = 2
+    config["Origins"]["Items"][0]["OriginShield"] = {
+        "Enabled": True,
+        "OriginShieldRegion": "east",
+    }
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+
+    origin = dist["DistributionConfig"]["Origins"]["Items"][0]
+    origin.should.have.key("ConnectionAttempts").equals(1)
+    origin.should.have.key("ConnectionTimeout").equals(2)
+    origin.should.have.key("OriginShield").equals(
+        {"Enabled": True, "OriginShieldRegion": "east"}
+    )
+
+
+@mock_cloudfront
+@pytest.mark.parametrize("compress", [True, False])
+@pytest.mark.parametrize("qs", [True, False])
+@pytest.mark.parametrize("smooth", [True, False])
+@pytest.mark.parametrize("ipv6", [True, False])
+def test_create_distribution_with_additional_fields(compress, qs, smooth, ipv6):
     client = boto3.client("cloudfront", region_name="us-west-1")
 
     config = scaffold.example_distribution_config("ref")
+    config["IsIPV6Enabled"] = ipv6
     config["Aliases"] = {"Quantity": 2, "Items": ["alias1", "alias2"]}
+    config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = {
+        "Forward": "whitelist",
+        "WhitelistedNames": {"Quantity": 1, "Items": ["x-amz-header"]},
+    }
+    config["DefaultCacheBehavior"]["ForwardedValues"]["QueryString"] = qs
+    config["DefaultCacheBehavior"]["Compress"] = compress
+    config["DefaultCacheBehavior"]["MinTTL"] = 10
+    config["DefaultCacheBehavior"]["SmoothStreaming"] = smooth
+    config["PriceClass"] = "PriceClass_100"
     resp = client.create_distribution(DistributionConfig=config)
     distribution = resp["Distribution"]
     distribution.should.have.key("DistributionConfig")
     config = distribution["DistributionConfig"]
     config.should.have.key("Aliases").equals(
         {"Items": ["alias1", "alias2"], "Quantity": 2}
+    )
+
+    config.should.have.key("PriceClass").equals("PriceClass_100")
+    config.should.have.key("IsIPV6Enabled").equals(ipv6)
+
+    config["DefaultCacheBehavior"].should.have.key("Compress").equals(compress)
+    config["DefaultCacheBehavior"].should.have.key("MinTTL").equals(10)
+    config["DefaultCacheBehavior"].should.have.key("SmoothStreaming").equals(smooth)
+
+    forwarded = config["DefaultCacheBehavior"]["ForwardedValues"]
+    forwarded.should.have.key("QueryString").equals(qs)
+    forwarded["Cookies"].should.have.key("Forward").equals("whitelist")
+    forwarded["Cookies"].should.have.key("WhitelistedNames")
+    forwarded["Cookies"]["WhitelistedNames"].should.have.key("Items").equals(
+        ["x-amz-header"]
     )
 
 
@@ -179,7 +288,9 @@ def test_create_distribution_needs_unique_caller_reference():
     dist2 = client.create_distribution(DistributionConfig=config)
     dist1_id.shouldnt.equal(dist2["Distribution"]["Id"])
 
-    # TODO: Verify two exist, using the list_distributions method
+    resp = client.list_distributions()["DistributionList"]
+    resp.should.have.key("Quantity").equals(2)
+    resp.should.have.key("Items").length_of(2)
 
 
 @mock_cloudfront
@@ -274,6 +385,29 @@ def test_create_distribution_with_invalid_s3_bucket():
     err["Code"].should.equal("InvalidArgument")
     err["Message"].should.equal(
         "The parameter Origin DomainName does not refer to a valid S3 bucket."
+    )
+
+
+@mock_cloudfront
+def test_create_distribution_custom_config():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_dist_custom_config("ref")
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"][
+        "DistributionConfig"
+    ]
+    dist.should.have.key("Origins")
+    dist["Origins"].should.have.key("Items").length_of(1)
+    origin = dist["Origins"]["Items"][0]
+
+    origin.should.have.key("CustomOriginConfig")
+    custom_config = origin["CustomOriginConfig"]
+
+    custom_config.should.have.key("HTTPPort").equals(80)
+    custom_config.should.have.key("HTTPSPort").equals(443)
+    custom_config.should.have.key("OriginProtocolPolicy").equals("http-only")
+    custom_config.should.have.key("OriginSslProtocols").equals(
+        {"Items": ["TLSv1", "SSLv3"], "Quantity": 2}
     )
 
 

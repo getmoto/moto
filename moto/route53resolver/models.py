@@ -182,6 +182,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.security_group_ids = security_group_ids
         self.direction = direction
         self.ip_addresses = ip_addresses
+        self.ec2_backend = ec2_backends[self.account_id][self.region]
 
         # Constructed members.
         self.id = endpoint_id  # pylint: disable=invalid-name
@@ -217,7 +218,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         of the subnets has already been checked.
         """
         first_subnet_id = self.ip_addresses[0]["SubnetId"]
-        subnet_info = ec2_backends[self.account_id][self.region].get_all_subnets(
+        subnet_info = self.ec2_backend.get_all_subnets(
             subnet_ids=[first_subnet_id]
         )[0]
         return subnet_info.vpc_id
@@ -237,9 +238,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         eni_ids = []
         for subnet, ip_info in self.subnets.items():
             for ip_addr, eni_id in ip_info.items():
-                eni_info = ec2_backends[self.account_id][
-                    self.region
-                ].create_network_interface(
+                eni_info = self.ec2_backend.create_network_interface(
                     description=f"Route 53 Resolver: {self.id}:{eni_id}",
                     group_ids=self.security_group_ids,
                     interface_type="interface",
@@ -255,7 +254,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
     def delete_eni(self):
         """Delete the VPC ENI created for the subnet and IP combos."""
         for eni_id in self.eni_ids:
-            ec2_backends[self.account_id][self.region].delete_network_interface(eni_id)
+            self.ec2_backend.delete_network_interface(eni_id)
 
     def description(self):
         """Return a dictionary of relevant info for this resolver endpoint."""
@@ -297,6 +296,46 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.name = name
         self.modification_time = datetime.now(timezone.utc).isoformat()
 
+    def associate_ip_address(self, ip_address):
+        self.ip_addresses.append(ip_address)
+        self.ip_address_count = len(self.ip_addresses)
+
+        eni_id = f"rni-{get_random_hex(17)}"
+        self.subnets[ip_address["SubnetId"]][ip_address["Ip"]] = eni_id
+
+        eni_info = self.ec2_backend.create_network_interface(
+            description=f"Route 53 Resolver: {self.id}:{eni_id}",
+            group_ids=self.security_group_ids,
+            interface_type="interface",
+            private_ip_address=ip_address.get("Ip"),
+            private_ip_addresses=[
+                {"Primary": True, "PrivateIpAddress": ip_address.get("Ip")}
+            ],
+            subnet=ip_address.get("SubnetId"),
+        )
+        self.eni_ids.append(eni_info.id)
+
+    def disassociate_ip_address(self, ip_address):
+        if not ip_address.get("Ip") and ip_address.get("IpId"):
+            for ip_addr, eni_id in self.subnets[ip_address.get("SubnetId")].items():
+                if ip_address.get("IpId") == eni_id:
+                    ip_address["Ip"] = ip_addr
+        if ip_address.get("Ip"):
+            self.ip_addresses = list(
+                filter(lambda i: i["Ip"] != ip_address.get("Ip"), self.ip_addresses)
+            )
+
+            if len(self.subnets[ip_address["SubnetId"]]) == 1:
+                self.subnets.pop(ip_address["SubnetId"])
+            else:
+                self.subnets[ip_address["SubnetId"]].pop(ip_address["Ip"])
+            for eni_id in self.eni_ids:
+                eni_info = self.ec2_backend.get_network_interface(eni_id)
+                if eni_info.private_ip_address == ip_address.get("Ip"):
+                    self.ec2_backend.delete_network_interface(eni_id)
+                    self.eni_ids.remove(eni_id)
+            self.ip_address_count = len(self.ip_addresses)
+
 
 class Route53ResolverBackend(BaseBackend):
     """Implementation of Route53Resolver APIs."""
@@ -308,6 +347,8 @@ class Route53ResolverBackend(BaseBackend):
         self.resolver_rule_associations = {}  # Key is resolver_rule_association_id)
         self.tagger = TaggingService()
 
+        self.ec2_backend = ec2_backends[self.account_id][self.region_name]
+
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
         """List of dicts representing default VPC endpoints for this service."""
@@ -315,14 +356,13 @@ class Route53ResolverBackend(BaseBackend):
             service_region, zones, "route53resolver"
         )
 
-    def associate_resolver_rule(self, region, resolver_rule_id, name, vpc_id):
-        """Return description for a newly created resolver rule association."""
+    def associate_resolver_rule(self, resolver_rule_id, name, vpc_id):
         validate_args(
             [("resolverRuleId", resolver_rule_id), ("name", name), ("vPCId", vpc_id)]
         )
 
         associations = [
-            x for x in self.resolver_rule_associations.values() if x.region == region
+            x for x in self.resolver_rule_associations.values() if x.region == self.region_name
         ]
         if len(associations) > ResolverRuleAssociation.MAX_RULE_ASSOCIATIONS_PER_REGION:
             # This error message was not verified to be the same for AWS.
@@ -335,7 +375,7 @@ class Route53ResolverBackend(BaseBackend):
                 f"Resolver rule with ID '{resolver_rule_id}' does not exist."
             )
 
-        vpcs = ec2_backends[self.account_id][region].describe_vpcs()
+        vpcs = self.ec2_backend.describe_vpcs()
         if vpc_id not in [x.id for x in vpcs]:
             raise InvalidParameterException(f"The vpc ID '{vpc_id}' does not exist")
 
@@ -352,25 +392,28 @@ class Route53ResolverBackend(BaseBackend):
 
         rule_association_id = f"rslvr-rrassoc-{get_random_hex(17)}"
         rule_association = ResolverRuleAssociation(
-            region, rule_association_id, resolver_rule_id, vpc_id, name
+            self.region_name, rule_association_id, resolver_rule_id, vpc_id, name
         )
         self.resolver_rule_associations[rule_association_id] = rule_association
         return rule_association
 
-    def _verify_subnet_ips(self, region, ip_addresses):
-        """Perform additional checks on the IPAddresses.
+    def _verify_subnet_ips(self, region, ip_addresses, initial=True):
+        """
+        Perform additional checks on the IPAddresses.
 
         NOTE: This does not include IPv6 addresses.
         """
-        if len(ip_addresses) < 2:
-            raise InvalidRequestException(
-                "Resolver endpoint needs to have at least 2 IP addresses"
-            )
+        # only initial endpoint creation requires atleast two ip addresses
+        if initial:
+            if len(ip_addresses) < 2:
+                raise InvalidRequestException(
+                    "Resolver endpoint needs to have at least 2 IP addresses"
+                )
 
         subnets = defaultdict(set)
         for subnet_id, ip_addr in [(x["SubnetId"], x["Ip"]) for x in ip_addresses]:
             try:
-                subnet_info = ec2_backends[self.account_id][region].get_all_subnets(
+                subnet_info = self.ec2_backend.get_all_subnets(
                     subnet_ids=[subnet_id]
                 )[0]
             except InvalidSubnetIdError as exc:
@@ -405,7 +448,7 @@ class Route53ResolverBackend(BaseBackend):
                     f"(expecting 'sg-...')"
                 )
             try:
-                ec2_backends[self.account_id][region].describe_security_groups(
+                self.ec2_backend.describe_security_groups(
                     group_ids=[group_id]
                 )
             except InvalidSecurityGroupNotFoundError as exc:
@@ -423,7 +466,8 @@ class Route53ResolverBackend(BaseBackend):
         ip_addresses,
         tags,
     ):  # pylint: disable=too-many-arguments
-        """Return description for a newly created resolver endpoint.
+        """
+        Return description for a newly created resolver endpoint.
 
         NOTE:  IPv6 IPs are currently not being filtered when
         calculating the create_resolver_endpoint() IpAddresses.
@@ -452,7 +496,7 @@ class Route53ResolverBackend(BaseBackend):
 
         for x in ip_addresses:
             if not x.get("Ip"):
-                subnet_info = ec2_backends[region].get_all_subnets(
+                subnet_info = self.ec2_backend.get_all_subnets(
                     subnet_ids=[x["SubnetId"]]
                 )[0]
                 x["Ip"] = subnet_info.get_available_subnet_ip(self)
@@ -589,7 +633,6 @@ class Route53ResolverBackend(BaseBackend):
             )
 
     def delete_resolver_endpoint(self, resolver_endpoint_id):
-        """Delete a resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
 
         # Can't delete an endpoint if there are rules associated with it.
@@ -623,7 +666,6 @@ class Route53ResolverBackend(BaseBackend):
             )
 
     def delete_resolver_rule(self, resolver_rule_id):
-        """Delete a resolver rule."""
         self._validate_resolver_rule_id(resolver_rule_id)
 
         # Can't delete an rule unless VPC's are disassociated.
@@ -647,7 +689,6 @@ class Route53ResolverBackend(BaseBackend):
         return resolver_rule
 
     def disassociate_resolver_rule(self, resolver_rule_id, vpc_id):
-        """Removes association between a resolver rule and a VPC."""
         validate_args([("resolverRuleId", resolver_rule_id), ("vPCId", vpc_id)])
 
         # Non-existent rule or vpc ids?
@@ -677,7 +718,6 @@ class Route53ResolverBackend(BaseBackend):
         return rule_association
 
     def get_resolver_endpoint(self, resolver_endpoint_id):
-        """Return info for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         return self.resolver_endpoints[resolver_endpoint_id]
 
@@ -687,7 +727,6 @@ class Route53ResolverBackend(BaseBackend):
         return self.resolver_rules[resolver_rule_id]
 
     def get_resolver_rule_association(self, resolver_rule_association_id):
-        """Return info for specified resolver rule association."""
         validate_args([("resolverRuleAssociationId", resolver_rule_association_id)])
         if resolver_rule_association_id not in self.resolver_rule_associations:
             raise ResourceNotFoundException(
@@ -697,7 +736,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoint_ip_addresses(self, resolver_endpoint_id):
-        """List IP endresses for specified resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
         return endpoint.ip_descriptions()
@@ -757,7 +795,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoints(self, filters):
-        """List all resolver endpoints, using filters if specified."""
         if not filters:
             filters = []
 
@@ -772,7 +809,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rules(self, filters):
-        """List all resolver rules, using filters if specified."""
         if not filters:
             filters = []
 
@@ -787,7 +823,6 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rule_associations(self, filters):
-        """List all resolver rule associations, using filters if specified."""
         if not filters:
             filters = []
 
@@ -816,12 +851,10 @@ class Route53ResolverBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(self, resource_arn):
-        """List all tags for the given resource."""
         self._matched_arn(resource_arn)
         return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
 
     def tag_resource(self, resource_arn, tags):
-        """Add or overwrite one or more tags for specified resource."""
         self._matched_arn(resource_arn)
         errmsg = self.tagger.validate_tags(
             tags, limit=ResolverEndpoint.MAX_TAGS_PER_RESOLVER_ENDPOINT
@@ -831,16 +864,44 @@ class Route53ResolverBackend(BaseBackend):
         self.tagger.tag_resource(resource_arn, tags)
 
     def untag_resource(self, resource_arn, tag_keys):
-        """Removes tags from a resource."""
         self._matched_arn(resource_arn)
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def update_resolver_endpoint(self, resolver_endpoint_id, name):
-        """Update name of Resolver endpoint."""
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         validate_args([("name", name)])
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
         resolver_endpoint.update_name(name)
+        return resolver_endpoint
+
+    def associate_resolver_endpoint_ip_address(
+        self, region, resolver_endpoint_id, ip_address
+    ):
+        self._validate_resolver_endpoint_id(resolver_endpoint_id)
+        resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
+
+        if not ip_address.get("Ip"):
+            subnet_info = self.ec2_backend.get_all_subnets(
+                subnet_ids=[ip_address.get("SubnetId")]
+            )[0]
+            ip_address["Ip"] = subnet_info.get_available_subnet_ip(self)
+        self._verify_subnet_ips(region, [ip_address], False)
+
+        resolver_endpoint.associate_ip_address(ip_address)
+        return resolver_endpoint
+
+    def disassociate_resolver_endpoint_ip_address(
+        self, resolver_endpoint_id, ip_address
+    ):
+        self._validate_resolver_endpoint_id(resolver_endpoint_id)
+        resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
+
+        if not (ip_address.get("Ip") or ip_address.get("IpId")):
+            raise InvalidRequestException(
+                "[RSLVR-00503] Need to specify either the IP ID or both subnet and IP address in order to remove IP address."
+            )
+
+        resolver_endpoint.disassociate_ip_address(ip_address)
         return resolver_endpoint
 
 

@@ -5,9 +5,56 @@ Multi-Account support
 =====================
 
 
-Moto processes all requests in a default account, `12345678910`. The exact credentials provided are ignored to make the process of getting started with Moto as hassle-free as possible.
+By default, Moto processes all requests in a default account: `12345678910`. The exact credentials provided are usually ignored to make the process of mocking requests as hassle-free as possible.
 
-There are two ways to change the account ID - assuming a role using STS, or overriding the account ID using an environment variable.
+If you want to mock resources in multiple accounts, or you want to change the default account ID, there are multiple ways to achieve this.
+
+Configure the default account
+------------------------------
+
+It is possible to configure the default account ID that will be used for all incoming requests, by setting the environment variable `MOTO_ACCOUNT_ID`.
+
+Here is an example of what this looks like in practice:
+
+.. sourcecode:: python
+
+    # Create a bucket in the default account
+    client = boto3.client("s3", region_name="us-east-1")
+    client.create_bucket(Bucket="bucket-default-account")
+
+    # Configure another account - all subsequent requests will use this account ID
+    os.environ["MOTO_ACCOUNT_ID"] = "111111111111"
+    client.create_bucket(Bucket="bucket-in-account-2")
+
+    assert [b["Name"] for b in client2.list_buckets()["Buckets"]] == ["bucket-in-account-2"]
+
+    # Now revert to the default account, by removing the environment variable
+    del os.environ["MOTO_ACCOUNT_ID"]
+    assert [b["Name"] for b in client2.list_buckets()["Buckets"]] == ["bucket-default-account"]
+
+
+
+Configure the account ID using a request header
+---------------------------------------------------
+
+If you are using Moto in ServerMode you can add a custom header to a request, to specify which account should be used.
+
+.. note::
+
+    Moto will only look at the request-header if the environment variable is not set.
+
+As an example, this is how you would create an S3-bucket in another account:
+
+.. sourcecode:: python
+
+    headers ={"x-moto-account-id": "333344445555"}
+    requests.put("http://bucket.localhost:5000/", headers=headers)
+
+    # This will return a list of all buckets in account 333344445555
+    requests.get("http://localhost:5000", headers=headers)
+
+    # This will return an empty list, as there are no buckets in the default account
+    requests.get("http://localhost:5000")
 
 Configure an account using STS
 ------------------------------
@@ -17,7 +64,12 @@ Passing in a role that belongs to a different account will return a set of crede
 
 .. note::
 
-    If you pass in a RoleARN with a non-existing account, Moto will create it for you.
+    To avoid any chicken-and-egg problems trying to create roles in non-existing accounts, these Roles do not need to exist.
+    Moto will only extract the account ID from the role, and create access credentials for that account.
+
+.. note::
+
+    Moto will only look at the access credentials if the environment variable and request header is not set.
 
 Let's look at some examples.
 
@@ -78,25 +130,4 @@ Things get interesting when assuming a role within a different account.
     client2.list_buckets()["Buckets"].should.have.length_of(0)
 
 Because we've assumed a role in a different account, no buckets were found. The `foobar`-bucket only exists in the default account, not in `111111111111`.
-
-Configure an account using environment variables
-------------------------------------------------
-
-It is possible to configure the environment variable `MOTO_ACCOUNT_ID` - any requests afterwards will use that account ID.
-
-.. sourcecode:: python
-
-    # Create a bucket in the default account
-    client = boto3.client("s3", region_name="us-east-1")
-    client.create_bucket(Bucket="bucket-default-account")
-
-    # Create another bucket in another account
-    os.environ["MOTO_ACCOUNT_ID"] = "111111111111"
-    client.create_bucket(Bucket="bucket-in-account-2")
-
-    assert [b["Name"] for b in client2.list_buckets()["Buckets"]] == ["bucket-in-account-2"]
-
-    # Switch to the default account to read the first bucket
-    del os.environ["MOTO_ACCOUNT_ID"]
-    assert [b["Name"] for b in client2.list_buckets()["Buckets"]] == ["bucket-default-account"]
 

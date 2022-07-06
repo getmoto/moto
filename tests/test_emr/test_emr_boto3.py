@@ -117,6 +117,7 @@ def test_describe_cluster():
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
     args["SecurityConfiguration"] = "my-security-configuration"
     args["AutoScalingRole"] = "EMR_AutoScaling_DefaultRole"
+    args["AutoTerminationPolicy"] = {"IdleTimeout": 123}
 
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
