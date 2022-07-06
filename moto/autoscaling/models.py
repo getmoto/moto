@@ -328,7 +328,7 @@ class FakeScheduledAction(CloudFormationModel):
             else "ScheduledScalingAction-{random.randint(0,100)}"
         )
 
-        group = backend.put_scheduled_update_group_action(
+        scheduled_action = backend.put_scheduled_update_group_action(
             name=properties.get("AutoScalingGroupName"),
             desired_capacity=properties.get("DesiredCapacity"),
             max_size=properties.get("MaxSize"),
@@ -338,7 +338,7 @@ class FakeScheduledAction(CloudFormationModel):
             end_time=properties.get("EndTime"),
             recurrence=properties.get("Recurrence"),
         )
-        return group
+        return scheduled_action
 
 
 class FakeAutoScalingGroup(CloudFormationModel):
@@ -737,6 +737,7 @@ class AutoScalingBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
+        self.scheduled_actions = OrderedDict()
         self.policies = {}
         self.lifecycle_hooks = {}
         self.ec2_backend = ec2_backends[region_name]
@@ -840,7 +841,7 @@ class AutoScalingBackend(BaseBackend):
         min_size = make_int(min_size)
         desired_capacity = make_int(desired_capacity)
 
-        group = FakeScheduledAction(
+        scheduled_action = FakeScheduledAction(
             name=name,
             desired_capacity=desired_capacity,
             max_size=max_size,
@@ -850,7 +851,9 @@ class AutoScalingBackend(BaseBackend):
             end_time=end_time,
             recurrence=recurrence,
         )
-        return group
+
+        self.scheduled_actions[scheduled_action_name] = scheduled_action
+        return scheduled_action
 
     def create_auto_scaling_group(
         self,
