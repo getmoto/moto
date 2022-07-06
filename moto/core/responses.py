@@ -398,7 +398,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, {}, "Rand seed is {0}".format(request.args["seed"])
 
     def _record_to_file(self):
-        filepath = settings.MOTO_RECORDING_FILEPATH
+        filepath = settings.RECORDING_FILEPATH
         with open(filepath, "a+") as file:
             entry = {
                 "module": self.__module__,
@@ -413,7 +413,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             file.write("\n")
 
     def reset_recording(self, request, full_url, headers):
-        filepath = settings.MOTO_RECORDING_FILEPATH
+        filepath = settings.RECORDING_FILEPATH
         with open(filepath, "w"):
             pass
         return 200, {}, ""
@@ -427,20 +427,20 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return 200, {}, "Recording is set to {0}".format(settings.ENABLE_RECORDING)
 
     def upload_recording(self, request, full_url, headers):
-        filepath = settings.MOTO_RECORDING_FILEPATH
+        filepath = settings.RECORDING_FILEPATH
         with open(filepath, "w") as file:
             file.write(request.data)
         return 200, {}, ""
 
     def download_recording(self, request, full_url, headers):
-        filepath = settings.MOTO_RECORDING_FILEPATH
+        filepath = settings.RECORDING_FILEPATH
         with open(filepath, "r") as file:
             return 200, {}, file.read()
 
     # NOTE: Replaying assumes, for simplicity, that it is the only action
     # running against moto at the time. No recording happens while replaying.
     def replay_recording(self, request, full_url, headers):
-        filepath = settings.MOTO_RECORDING_FILEPATH
+        filepath = settings.RECORDING_FILEPATH
 
         # do not record the replay itself
         old_setting = settings.ENABLE_RECORDING
