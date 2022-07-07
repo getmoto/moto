@@ -877,6 +877,7 @@ class AutoScalingBackend(BaseBackend):
         )
         if scheduled_action:
             self.scheduled_actions.pop(scheduled_action_name, None)
+    
 
     def create_auto_scaling_group(
         self,
