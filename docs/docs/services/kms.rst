@@ -68,13 +68,27 @@ kms
 - [X] retire_grant
 - [X] revoke_grant
 - [X] schedule_key_deletion
-- [ ] sign
+- [X] sign
+  Sign message using generated private key.
+
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
+        - grant_tokens are not implemented
+        
+
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_alias
 - [ ] update_custom_key_store
 - [X] update_key_description
 - [ ] update_primary_region
-- [ ] verify
+- [X] verify
+  Verify message using public key from generated private key.
+
+        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+
+        - grant_tokens are not implemented
+        
+
 - [ ] verify_mac
 
