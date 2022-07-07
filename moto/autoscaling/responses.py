@@ -124,7 +124,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_SCHEDULED_ACTIONS)
         return template.render(scheduled_actions=scheduled_actions)
 
-<<<<<<< HEAD
     def delete_scheduled_action(self):
         auto_scaling_group_name = self._get_param("AutoScalingGroupName")
         scheduled_action_name = self._get_param("ScheduledActionName")
@@ -135,8 +134,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DELETE_SCHEDULED_ACTION_TEMPLATE)
         return template.render()
 
-=======
->>>>>>> describe_scheduled_actions
     @amz_crc32
     @amzn_request_id
     def attach_instances(self):
@@ -644,6 +641,12 @@ DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://
   </ScheduledUpdateGroupActions>
 </DescribeScheduledActionsResults>
 """
+
+DELETE_SCHEDULED_ACTION_TEMPLATE = """<DeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteScheduledActionResponse>"""
 
 ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancerTargetGroupsResult>

@@ -340,6 +340,32 @@ class FakeScheduledAction(CloudFormationModel):
         )
         return scheduled_action
 
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+
+        cls.delete_from_cloudformation_json(
+            original_resource.name, cloudformation_json, region_name
+        )
+
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        backend = autoscaling_backends[region_name]
+        try:
+            backend.delete_scheduled_action(resource_name)
+        except KeyError:
+            pass
+
+    def delete(self, region_name):
+        backend = autoscaling_backends[region_name]
+        backend.delete_scheduled_action(self.name, self.scheduled_action_name)
 
 class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
@@ -858,6 +884,7 @@ class AutoScalingBackend(BaseBackend):
         self.scheduled_actions[scheduled_action_name] = scheduled_action
         return scheduled_action
 
+<<<<<<< HEAD
     def describe_scheduled_actions(
         self, autoscaling_group_name=None, scheduled_action_names=None
     ):
@@ -877,6 +904,18 @@ class AutoScalingBackend(BaseBackend):
         if scheduled_action:
             self.scheduled_actions.pop(scheduled_action_name, None)
     
+=======
+    def describe_scheduled_actions(self, autoscaling_group_name=None, scheduled_action_names=None):
+        return [
+            scheduled_action
+            for scheduled_action in self.scheduled_actions.values()
+            if (scheduled_action.scheduled_action_name in scheduled_action_names)
+        ]
+
+    def delete_scheduled_action(self, auto_scaling_group_name, scheduled_action_name):
+        self.scheduled_actions.pop(auto_scaling_group_name, scheduled_action_name)
+
+>>>>>>> Add delete
     def create_auto_scaling_group(
         self,
         name,
