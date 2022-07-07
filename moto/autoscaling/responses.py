@@ -624,11 +624,10 @@ PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionRe
 DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DescribeScheduledActionsResults>
   <ScheduledUpdateGroupActions>
-    {% for scheduled_action in scheduled_action %}
+    {% for scheduled_action in scheduled_actions %}
     <member>
-      <AutoScalingGroupName>{{ scheduled_action. asg_name }}</AutoScalingGroupName>
-      <ScheduledActionName> {{ scheduled_action.name }}</ScheduledActionName>
-      <ScheduledActionARN>{{ scheduled_action.arn }}</ScheduledActionARN>
+      <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
+      <ScheduledActionName> {{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
       {% if scheduled_action.start_time %}
       <StartTime>{{ scheduled_action.start_time }}</StartTime>
       {% endif %} 
