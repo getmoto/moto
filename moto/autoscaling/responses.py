@@ -619,27 +619,29 @@ PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionRe
 </PutScheduledUpdateGroupActionResponse>"""
 
 DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DescribeScheduledActionsResults>
-  <ScheduledUpdateGroupActions>
-    {% for scheduled_action in scheduled_actions %}
-    <member>
-      <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
-      <ScheduledActionName> {{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
-      {% if scheduled_action.start_time %}
-      <StartTime>{{ scheduled_action.start_time }}</StartTime>
-      {% endif %} 
-      {% if scheduled_action.end_time %}
-      <EndTime>{{ scheduled_action.end_time }}</EndTime>
-      {% endif %}
-      {% if scheduled_action.recurrence %}
-      <Recurrence>{{ scheduled_action.recurrence }}</Recurrence>
-      {% endif %}
-      <MinSize>{{ scheduled_action.min_size }}</MinSize>
-      <MaxSize>{{ scheduled_action.max_size }}</MaxSize>
-      <DesiredCapacity>{{ scheduled_action.desired_capacity }}</DesiredCapacity>
-    </member>
-  </ScheduledUpdateGroupActions>
-</DescribeScheduledActionsResults>
+  <DescribeScheduledActionsResult>
+    <ScheduledUpdateGroupActions>
+      {% for scheduled_action in scheduled_actions %}
+      <member>
+        <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
+        <ScheduledActionName> {{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
+        {% if scheduled_action.start_time %}
+        <StartTime>{{ scheduled_action.start_time }}</StartTime>
+        {% endif %}
+        {% if scheduled_action.end_time %}
+        <EndTime>{{ scheduled_action.end_time }}</EndTime>
+        {% endif %}
+        {% if scheduled_action.recurrence %}
+        <Recurrence>{{ scheduled_action.recurrence }}</Recurrence>
+        {% endif %}
+        <MinSize>{{ scheduled_action.min_size }}</MinSize>
+        <MaxSize>{{ scheduled_action.max_size }}</MaxSize>
+        <DesiredCapacity>{{ scheduled_action.desired_capacity }}</DesiredCapacity>
+      </member>
+      {% endfor %}
+    </ScheduledUpdateGroupActions>
+  </DescribeScheduledActionsResult>
+</DescribeScheduledActionsResponse>
 """
 
 DELETE_SCHEDULED_ACTION_TEMPLATE = """<DeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
