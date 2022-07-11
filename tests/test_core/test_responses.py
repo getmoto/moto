@@ -7,6 +7,13 @@ from botocore.awsrequest import AWSPreparedRequest
 from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
 
+from moto import settings, mock_ec2
+from tests import EXAMPLE_AMI_ID
+from unittest import SkipTest, mock
+import boto3
+import requests
+import json
+
 
 def test_flatten_json_request_body():
     spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json").input_spec("RunJobFlow")
@@ -163,3 +170,147 @@ def test_get_dict_list_params():
     result = subject._get_multi_param_dict("VpcSecurityGroupIds")
 
     result.should.equal({"VpcSecurityGroupId": ["sg-123", "sg-456", "sg-789"]})
+
+
+@mock_ec2
+@mock.patch(
+    "moto.core.responses.settings.ENABLE_RECORDING",
+    new_callable=mock.PropertyMock(return_value=True),
+)
+@mock.patch(
+    "moto.core.responses.open",
+)
+def test_recording(m_open, m_setting):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "It is not possible to set the environment variable in server mode"
+        )
+    ec2 = boto3.resource("ec2", "us-east-1")
+    expected_data = '{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+
+    ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        ClientToken="0ee5e722-d843-40f8-9f7b-62c92bb73d94",
+    )
+
+    assert m_open.return_value.__enter__.return_value.write.call_args_list[0].args[0] == expected_data
+    assert m_setting is True
+
+
+@mock_ec2
+@mock.patch(
+    "moto.core.responses.BaseResponse._record_to_file",
+)
+def test_start_stop_recording(m_record):
+    ec2 = boto3.resource("ec2", "us-east-1")
+    BASE_URL = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+
+    requests.get("{0}/moto-api/start-recording".format(BASE_URL))
+    ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        ClientToken="0ee5e722-d843-40f8-9f7b-62c92bb73d94",
+    )
+
+    requests.get("{0}/moto-api/stop-recording".format(BASE_URL))
+    ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        ClientToken="0ee5e722-d843-40f8-9f7b-62c92bb73d94",
+    )
+
+    assert m_record.call_count == 1
+
+
+@mock_ec2
+@mock.patch(
+    "moto.core.responses.open",
+    new=mock.mock_open(read_data='{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}')
+)
+def test_replay_recording():
+    boto3.resource("ec2", "us-east-1")
+    BASE_URL = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+
+    requests.get("{0}/moto-api/replay-recording".format(BASE_URL))
+
+    data_response = requests.get("{0}/moto-api/data.json".format(BASE_URL))
+    assert len(json.loads(data_response.text)["ec2"]["Instance"]) == 1
+
+
+@mock_ec2
+@mock.patch(
+    "moto.core.responses.open",
+    new=mock.mock_open(read_data='{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}')
+)
+def test_download_recording():
+    boto3.resource("ec2", "us-east-1")
+    BASE_URL = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+    recorded_data = '{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+
+    data_response = requests.get("{0}/moto-api/download-recording".format(BASE_URL))
+
+    assert data_response.text == recorded_data
+
+
+@mock_ec2
+@mock.patch(
+    "moto.core.responses.open",
+    new=mock.mock_open(read_data=b'{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}')
+)
+def test_upload_recording():
+    boto3.resource("ec2", "us-east-1")
+    BASE_URL = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+    recorded_data = b'{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+
+    requests.get("{0}/moto-api/upload-recording".format(BASE_URL), data=recorded_data)
+
+    from moto.core.responses import open
+    assert open.return_value.__enter__.return_value.write.call_args_list[0].args[0] == recorded_data
+
+
+@mock_ec2
+def test_set_seed():
+    ec2 = boto3.resource("ec2", "us-east-1")
+    BASE_URL = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+
+    requests.get("{0}/moto-api/set-seed?seed=42".format(BASE_URL),)
+    reservation_1 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        ClientToken="0ee5e722-d843-40f8-9f7b-62c92bb73d94",
+    )
+
+    requests.get("{0}/moto-api/set-seed?seed=42".format(BASE_URL))
+    reservation_2 = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        ClientToken="0ee5e722-d843-40f8-9f7b-62c92bb73d94",
+    )
+
+    assert reservation_1[0].id == reservation_2[0].id
