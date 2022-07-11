@@ -293,7 +293,7 @@ def test_upload_recording():
 
     requests.get("{0}/moto-api/upload-recording".format(BASE_URL), data=recorded_data)
 
-    from moto.core.responses import open
+    from moto.core.responses import open  # pylint: disable=redefined-builtin
 
     assert (
         open.return_value.__enter__.return_value.write.call_args_list[0].args[0]
