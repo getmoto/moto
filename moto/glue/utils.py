@@ -23,7 +23,22 @@ from pyparsing import (
     pyparsing_common,
 )
 
-from .exceptions import InvalidInputException, InvalidStateException
+from .constants import (
+    MAX_REGISTRY_NAME_LENGTH,
+    RESOURCE_NAME_PATTERN,
+    MAX_ARN_LENGTH,
+    ARN_PATTERN,
+    MAX_DESCRIPTION_LENGTH,
+    DESCRIPTION_PATTERN,
+    MAX_SCHEMA_NAME_LENGTH,
+)
+
+from .exceptions import (
+    InvalidInputException,
+    InvalidStateException,
+    ResourceNameTooLongException,
+    ParamValueContainsInvalidCharactersException,
+)
 
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
@@ -88,6 +103,59 @@ def _escape_regex(pattern: str) -> str:
     """Taken from Python 3.7 to avoid escaping '%'."""
     _special_chars_map = {i: "\\" + chr(i) for i in b"()[]{}?*+-|^$\\.&~# \t\n\r\v\f"}
     return pattern.translate(_special_chars_map)
+
+
+def validate_registry_name_pattern_and_length(param_value):
+    param_name = "registryName"
+    max_name_length = MAX_REGISTRY_NAME_LENGTH
+    pattern = RESOURCE_NAME_PATTERN
+    validate_param_pattern_and_length(param_value, param_name, max_name_length, pattern)
+
+
+def validate_arn_pattern_and_length(param_value):
+    param_name = "registryArn"
+    max_name_length = MAX_ARN_LENGTH
+    pattern = ARN_PATTERN
+    validate_param_pattern_and_length(param_value, param_name, max_name_length, pattern)
+
+
+def validate_description_pattern_and_length(param_value):
+    param_name = "description"
+    max_name_length = MAX_DESCRIPTION_LENGTH
+    pattern = DESCRIPTION_PATTERN
+    validate_param_pattern_and_length(param_value, param_name, max_name_length, pattern)
+
+
+def validate_schema_name_pattern_and_length(param_value):
+    param_name = "schemaName"
+    max_name_length = MAX_SCHEMA_NAME_LENGTH
+    pattern = RESOURCE_NAME_PATTERN
+    validate_param_pattern_and_length(param_value, param_name, max_name_length, pattern)
+
+
+def validate_param_pattern_and_length(
+    param_value, param_name, max_name_length, pattern
+):
+    if param_value == "" or len(param_value.encode("utf-8")) > max_name_length:
+        raise ResourceNameTooLongException(param_name)
+
+    if re.match(pattern, param_value) is None:
+        raise ParamValueContainsInvalidCharactersException(param_name)
+
+
+def compare_json_helper(item):
+    if isinstance(item, dict):
+        return sorted(
+            (key, compare_json_helper(values)) for key, values in item.items()
+        )
+    if isinstance(item, list):
+        return sorted(compare_json_helper(x) for x in item)
+    else:
+        return item
+
+
+def compare_json(a, b):
+    return compare_json_helper(a) == compare_json_helper(b)
 
 
 class _Expr(abc.ABC):

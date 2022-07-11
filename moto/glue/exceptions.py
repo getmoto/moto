@@ -65,6 +65,20 @@ class VersionNotFoundException(EntityNotFoundException):
         super().__init__("Version not found.")
 
 
+class SchemaNotFoundException(EntityNotFoundException):
+    def __init__(self):
+        super().__init__(
+            "Schema is not found.",
+        )
+
+
+class GSREntityNotFoundException(EntityNotFoundException):
+    def __init__(self, resource, param_name, param_value):
+        super().__init__(
+            resource + " is not found. " + param_name + ": " + param_value,
+        )
+
+
 class CrawlerRunningException(GlueClientError):
     def __init__(self, msg):
         super().__init__("CrawlerRunningException", msg)
@@ -80,6 +94,24 @@ class ConcurrentRunsExceededException(GlueClientError):
         super().__init__("ConcurrentRunsExceededException", msg)
 
 
+class ResourceNumberLimitExceededException(GlueClientError):
+    def __init__(self, resource):
+        super().__init__(
+            "ResourceNumberLimitExceededException",
+            "More "
+            + resource
+            + " cannot be created. The maximum limit has been reached.",
+        )
+
+
+class GSRAlreadyExistsException(GlueClientError):
+    def __init__(self, resource, param_name, param_value):
+        super().__init__(
+            "AlreadyExistsException",
+            resource + " already exists. " + param_name + ": " + param_value,
+        )
+
+
 class _InvalidOperationException(GlueClientError):
     def __init__(self, error_type, op, msg):
         super().__init__(
@@ -89,57 +121,95 @@ class _InvalidOperationException(GlueClientError):
         )
 
 
-class InvalidInputException(_InvalidOperationException):
-    def __init__(self, op, msg):
-        super().__init__("InvalidInputException", op, msg)
-
-
 class InvalidStateException(_InvalidOperationException):
     def __init__(self, op, msg):
         super().__init__("InvalidStateException", op, msg)
 
 
-class ResourceNumberLimitExceededException(_InvalidOperationException):
-    def __init__(self, op, resource):
+class InvalidInputException(_InvalidOperationException):
+    def __init__(self, op, msg):
+        super().__init__("InvalidInputException", op, msg)
+
+
+class GSRInvalidInputException(GlueClientError):
+    def __init__(self, msg):
+        super().__init__("InvalidInputException", msg)
+
+
+class ResourceNameTooLongException(GSRInvalidInputException):
+    def __init__(self, param_name):
         super().__init__(
-            "ResourceNumberLimitExceededException",
-            op,
-            "More "
-            + resource
-            + " cannot be created. The maximum limit has been reached.",
-        )
-
-
-class GSRAlreadyExistsException(_InvalidOperationException):
-    def __init__(self, op, resource, param_name, param_value):
-        super().__init__(
-            "AlreadyExistsException",
-            op,
-            resource + " already exists. " + param_name + ": " + param_value,
-        )
-
-
-class ResourceNameTooLongException(InvalidInputException):
-    def __init__(self, op, param_name):
-        super().__init__(
-            op,
             "The resource name contains too many or too few characters. Parameter Name: "
             + param_name,
         )
 
 
-class ParamValueContainsInvalidCharactersException(InvalidInputException):
-    def __init__(self, op, param_name):
+class ParamValueContainsInvalidCharactersException(GSRInvalidInputException):
+    def __init__(self, param_name):
         super().__init__(
-            op,
             "The parameter value contains one or more characters that are not valid. Parameter Name: "
             + param_name,
         )
 
 
-class InvalidNumberOfTagsException(InvalidInputException):
-    def __init__(self, op):
+class InvalidNumberOfTagsException(GSRInvalidInputException):
+    def __init__(self):
         super().__init__(
-            op,
             "New Tags cannot be empty or more than 50",
+        )
+
+
+class InvalidDataFormatException(GSRInvalidInputException):
+    def __init__(self):
+        super().__init__(
+            "Data format is not valid.",
+        )
+
+
+class InvalidCompatibilityException(GSRInvalidInputException):
+    def __init__(self):
+        super().__init__(
+            "Compatibility is not valid.",
+        )
+
+
+class InvalidSchemaDefinitionException(GSRInvalidInputException):
+    def __init__(self, data_format_name, err):
+        super().__init__(
+            "Schema definition of "
+            + data_format_name
+            + " data format is invalid: "
+            + str(err),
+        )
+
+
+class InvalidRegistryIdBothParamsProvidedException(GSRInvalidInputException):
+    def __init__(self):
+        super().__init__(
+            "One of registryName or registryArn has to be provided, both cannot be provided.",
+        )
+
+
+class InvalidSchemaIdBothParamsProvidedException(GSRInvalidInputException):
+    def __init__(self):
+        super().__init__(
+            "One of (registryName and schemaName) or schemaArn has to be provided, both cannot be provided.",
+        )
+
+
+class InvalidSchemaIdInsufficientParamsProvidedException(GSRInvalidInputException):
+    def __init__(self):
+        super().__init__(
+            "At least one of (registryName and schemaName) or schemaArn has to be provided.",
+        )
+
+
+class DisabledCompatibilityVersioningException(GSRInvalidInputException):
+    def __init__(self, schema_name, registry_name):
+        super().__init__(
+            "Compatibility DISABLED does not allow versioning. SchemaId: SchemaId(schemaName="
+            + schema_name
+            + ", registryName="
+            + registry_name
+            + ")"
         )

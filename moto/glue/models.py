@@ -1,11 +1,14 @@
 import time
-import re
+import json
 from collections import OrderedDict
 from datetime import datetime
+from uuid import uuid4
+
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.models import get_account_id
 from moto.core.utils import BackendDict
+from moto.glue import constants
 from moto.glue.exceptions import CrawlerRunningException, CrawlerNotRunningException
 from .exceptions import (
     JsonRESTError,
@@ -23,10 +26,25 @@ from .exceptions import (
     GSRAlreadyExistsException,
     ResourceNumberLimitExceededException,
     ResourceNameTooLongException,
-    ParamValueContainsInvalidCharactersException,
     InvalidNumberOfTagsException,
+    GSREntityNotFoundException,
+    InvalidDataFormatException,
+    InvalidCompatibilityException,
+    InvalidSchemaDefinitionException,
+    InvalidRegistryIdBothParamsProvidedException,
+    InvalidSchemaIdBothParamsProvidedException,
+    InvalidSchemaIdInsufficientParamsProvidedException,
+    SchemaNotFoundException,
+    DisabledCompatibilityVersioningException,
 )
-from .utils import PartitionFilter
+from .utils import (
+    PartitionFilter,
+    validate_registry_name_pattern_and_length,
+    validate_arn_pattern_and_length,
+    validate_description_pattern_and_length,
+    validate_schema_name_pattern_and_length,
+    compare_json,
+)
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
 
@@ -55,6 +73,8 @@ class GlueBackend(BaseBackend):
         self.job_runs = OrderedDict()
         self.tagger = TaggingService()
         self.registries = OrderedDict()
+        self.num_schemas = 0
+        self.num_schema_versions = 0
 
     @staticmethod
     def default_vpc_endpoint_service(service_region, zones):
@@ -254,62 +274,223 @@ class GlueBackend(BaseBackend):
     def untag_resource(self, resource_arn, tag_keys):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    # TODO: @Himani. Will Refactor validation logic as I find the common validation required for other APIs
-    def create_registry(self, registry_name, description, tags):
-        operation_name = "CreateRegistry"
+    def create_registry(self, registry_name, description=None, tags=None):
 
-        registry_name_pattern = re.compile(r"^[a-zA-Z0-9-_$#.]+$")
-        registry_description_pattern = re.compile(
-            r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*"
-        )
+        if registry_name == constants.DEFAULT_REGISTRY_NAME:
+            registry = FakeRegistry(registry_name, description, tags)
+            self.registries[registry_name] = registry
+            return registry
 
-        max_registry_name_length = 255
-        max_registries_allowed = 10
-        max_description_length = 2048
-        max_tags_allowed = 50
+        if len(self.registries) >= constants.MAX_REGISTRIES_ALLOWED:
+            raise ResourceNumberLimitExceededException(resource="registries")
 
-        if len(self.registries) >= max_registries_allowed:
-            raise ResourceNumberLimitExceededException(
-                operation_name, resource="registries"
-            )
-
-        if (
-            registry_name == ""
-            or len(registry_name.encode("utf-8")) > max_registry_name_length
-        ):
-            param_name = "registryName"
-            raise ResourceNameTooLongException(operation_name, param_name)
-
-        if re.match(registry_name_pattern, registry_name) is None:
-            param_name = "registryName"
-            raise ParamValueContainsInvalidCharactersException(
-                operation_name, param_name
-            )
+        validate_registry_name_pattern_and_length(registry_name)
 
         if registry_name in self.registries:
             raise GSRAlreadyExistsException(
-                operation_name,
                 resource="Registry",
                 param_name="RegistryName",
                 param_value=registry_name,
             )
 
-        if description and len(description.encode("utf-8")) > max_description_length:
-            param_name = "description"
-            raise ResourceNameTooLongException(operation_name, param_name)
+        if description:
+            validate_description_pattern_and_length(description)
 
-        if description and re.match(registry_description_pattern, description) is None:
-            param_name = "description"
-            raise ParamValueContainsInvalidCharactersException(
-                operation_name, param_name
-            )
-
-        if tags and len(tags) > max_tags_allowed:
-            raise InvalidNumberOfTagsException(operation_name)
+        if tags and len(tags) > constants.MAX_TAGS_ALLOWED:
+            raise InvalidNumberOfTagsException()
 
         registry = FakeRegistry(registry_name, description, tags)
         self.registries[registry_name] = registry
-        return registry
+        return registry.as_dict()
+
+    def create_schema(
+        self,
+        registry_id,
+        schema_name,
+        data_format,
+        compatibility,
+        schema_definition,
+        description=None,
+        tags=None,
+    ):
+        if registry_id:
+            if registry_id.get("RegistryName") is not None:
+                if registry_id.get("RegistryArn") is not None:
+                    raise InvalidRegistryIdBothParamsProvidedException()
+                registry_name = registry_id.get("RegistryName")
+                validate_registry_name_pattern_and_length(registry_name)
+            else:
+                registry_arn = registry_id.get("RegistryArn")
+                validate_arn_pattern_and_length(registry_arn)
+                registry_name = registry_arn.split("/")[-1]
+        else:
+            registry_name = constants.DEFAULT_REGISTRY_NAME
+
+        if registry_name not in self.registries:
+            if registry_name == constants.DEFAULT_REGISTRY_NAME:
+                self.create_registry(registry_name, registry_name)
+            else:
+                if registry_id.get("RegistryName"):
+                    raise GSREntityNotFoundException(
+                        resource="Registry",
+                        param_name="RegistryName",
+                        param_value=registry_name,
+                    )
+                if registry_id.get("RegistryArn"):
+                    raise GSREntityNotFoundException(
+                        resource="Registry",
+                        param_name="RegistryArn",
+                        param_value=registry_arn,
+                    )
+
+        registry = self.registries[registry_name]
+
+        validate_schema_name_pattern_and_length(schema_name)
+
+        if self.num_schemas >= constants.MAX_SCHEMAS_ALLOWED:
+            raise ResourceNumberLimitExceededException(resource="schemas")
+
+        if data_format not in ["AVRO", "JSON", "PROTOBUF"]:
+            raise InvalidDataFormatException()
+
+        if compatibility not in [
+            "NONE",
+            "DISABLED",
+            "BACKWARD",
+            "BACKWARD_ALL",
+            "FORWARD",
+            "FORWARD_ALL",
+            "FULL",
+            "FULL_ALL",
+        ]:
+            raise InvalidCompatibilityException()
+
+        if description:
+            validate_description_pattern_and_length(description)
+
+        if tags and len(tags) > constants.MAX_TAGS_ALLOWED:
+            raise InvalidNumberOfTagsException()
+
+        if len(schema_definition) > constants.MAX_SCHEMA_DEFINITION_LENGTH:
+            param_name = "schemaDefinition"
+            raise ResourceNameTooLongException(param_name)
+
+        if schema_name in registry.schemas:
+            raise GSRAlreadyExistsException(
+                resource="Schema",
+                param_name="SchemaName",
+                param_value=schema_name,
+            )
+
+        if data_format in ["AVRO", "JSON"]:
+            try:
+                json.loads(schema_definition)
+            except ValueError as err:
+                raise InvalidSchemaDefinitionException(data_format, err)
+
+        schema_version = FakeSchemaVersion(
+            registry_name, schema_name, schema_definition, version_number=1
+        )
+        schema_version_id = schema_version.get_schema_version_id()
+
+        schema = FakeSchema(
+            registry_name,
+            schema_name,
+            data_format,
+            compatibility,
+            schema_version_id,
+            description,
+            tags,
+        )
+        registry.schemas[schema_name] = schema
+        self.num_schemas += 1
+
+        schema.schema_versions[schema.schema_version_id] = schema_version
+        self.num_schema_versions += 1
+
+        return schema.as_dict()
+
+    def register_schema_version(self, schema_id, schema_definition):
+        if schema_id:
+            schema_arn = schema_id.get("SchemaArn")
+            registry_name = schema_id.get("RegistryName")
+            schema_name = schema_id.get("SchemaName")
+            if schema_arn:
+                if registry_name or schema_name:
+                    raise InvalidSchemaIdBothParamsProvidedException()
+                validate_arn_pattern_and_length(schema_arn)
+                arn_components = schema_arn.split("/")
+                schema_name = arn_components[-1]
+                registry_name = arn_components[-2]
+
+            else:
+                if registry_name is None or schema_name is None:
+                    raise InvalidSchemaIdInsufficientParamsProvidedException()
+                validate_registry_name_pattern_and_length(registry_name)
+                validate_schema_name_pattern_and_length(schema_name)
+
+        if self.num_schema_versions >= constants.MAX_SCHEMA_VERSIONS_ALLOWED:
+            raise ResourceNumberLimitExceededException(resource="schema versions")
+
+        if len(schema_definition) > constants.MAX_SCHEMA_DEFINITION_LENGTH:
+            param_name = "schemaDefinition"
+            raise ResourceNameTooLongException(param_name)
+
+        if (
+            registry_name not in self.registries
+            or schema_name not in self.registries[registry_name].schemas
+        ):
+            raise SchemaNotFoundException()
+
+        if (
+            self.registries[registry_name].schemas[schema_name].compatibility
+            == "DISABLED"
+        ):
+            raise DisabledCompatibilityVersioningException(schema_name, registry_name)
+
+        # If the same schema definition is already stored in Schema Registry as a version,
+        # the schema ID of the existing schema is returned to the caller
+        if self.registries[registry_name].schemas[schema_name].data_format in [
+            "AVRO",
+            "JSON",
+        ]:
+            try:
+                json.loads(schema_definition)
+            except ValueError as err:
+                raise InvalidSchemaDefinitionException(
+                    self.registries[registry_name].schemas[schema_name].data_format, err
+                )
+            for schema_version in (
+                self.registries[registry_name]
+                .schemas[schema_name]
+                .schema_versions.values()
+            ):
+                if compare_json(schema_definition, schema_version.schema_definition):
+                    return schema_version.as_dict()
+        else:
+            for schema_version in (
+                self.registries[registry_name]
+                .schemas[schema_name]
+                .schema_versions.values()
+            ):
+                if schema_definition == schema_version.schema_definition:
+                    return schema_version.as_dict()
+
+        version_number = (
+            self.registries[registry_name]
+            .schemas[schema_name]
+            .get_next_schema_version()
+        )
+        self.registries[registry_name].schemas[schema_name].update_next_schema_version()
+        self.num_schema_versions += 1
+
+        schema_version = FakeSchemaVersion(
+            registry_name, schema_name, schema_definition, version_number
+        )
+        self.registries[registry_name].schemas[schema_name].schema_versions[
+            schema_version.schema_version_id
+        ] = schema_version
+        return schema_version.as_dict()
 
 
 class FakeDatabase(BaseModel):
@@ -702,9 +883,11 @@ class FakeRegistry(BaseModel):
         self.tags = tags
         self.created_time = datetime.utcnow()
         self.updated_time = datetime.utcnow()
+        self.status = "AVAILABLE"
         self.registry_arn = (
             f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.name}"
         )
+        self.schemas = OrderedDict()
 
     def as_dict(self):
         return {
@@ -712,6 +895,85 @@ class FakeRegistry(BaseModel):
             "RegistryName": self.name,
             "Description": self.description,
             "Tags": self.tags,
+        }
+
+
+class FakeSchema(BaseModel):
+    def __init__(
+        self,
+        registry_name,
+        schema_name,
+        data_format,
+        compatibility,
+        schema_version_id,
+        description=None,
+        tags=None,
+    ):
+        self.registry_name = registry_name
+        self.registry_arn = (
+            f"arn:aws:glue:us-east-1:{get_account_id()}:registry/{self.registry_name}"
+        )
+        self.schema_name = schema_name
+        self.schema_arn = f"arn:aws:glue:us-east-1:{get_account_id()}:schema/{self.registry_name}/{self.schema_name}"
+        self.description = description
+        self.data_format = data_format
+        self.compatibility = compatibility
+        self.schema_checkpoint = 1
+        self.latest_schema_version = 1
+        self.next_schema_version = 2
+        self.schema_status = "AVAILABLE"
+        self.tags = tags
+        self.schema_version_id = schema_version_id
+        self.schema_version_status = "AVAILABLE"
+        self.created_time = datetime.utcnow()
+        self.updated_time = datetime.utcnow()
+        self.schema_versions = OrderedDict()
+
+    def update_next_schema_version(self):
+        self.next_schema_version += 1
+
+    def get_next_schema_version(self):
+        return self.next_schema_version
+
+    def as_dict(self):
+        return {
+            "RegistryArn": self.registry_arn,
+            "RegistryName": self.registry_name,
+            "SchemaName": self.schema_name,
+            "SchemaArn": self.schema_arn,
+            "DataFormat": self.data_format,
+            "Compatibility": self.compatibility,
+            "SchemaCheckpoint": self.schema_checkpoint,
+            "LatestSchemaVersion": self.latest_schema_version,
+            "NextSchemaVersion": self.next_schema_version,
+            "SchemaStatus": self.schema_status,
+            "SchemaVersionId": self.schema_version_id,
+            "SchemaVersionStatus": self.schema_version_status,
+            "Description": self.description,
+            "Tags": self.tags,
+        }
+
+
+class FakeSchemaVersion(BaseModel):
+    def __init__(self, registry_name, schema_name, schema_definition, version_number):
+        self.registry_name = registry_name
+        self.schema_name = schema_name
+        self.schema_arn = f"arn:aws:glue:us-east-1:{get_account_id()}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_definition = schema_definition
+        self.schema_version_status = "AVAILABLE"
+        self.version_number = version_number
+        self.schema_version_id = str(uuid4())
+        self.created_time = datetime.utcnow()
+        self.updated_time = datetime.utcnow()
+
+    def get_schema_version_id(self):
+        return self.schema_version_id
+
+    def as_dict(self):
+        return {
+            "SchemaVersionId": self.schema_version_id,
+            "VersionNumber": self.version_number,
+            "Status": self.schema_version_status,
         }
 
 

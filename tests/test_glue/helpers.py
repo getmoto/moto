@@ -1,6 +1,14 @@
 import copy
 
 from .fixtures.datacatalog import TABLE_INPUT, PARTITION_INPUT, DATABASE_INPUT
+from .fixtures.schema_registry import (
+    REGISTRY_NAME,
+    SCHEMA_NAME,
+    REGISTRY_ID,
+    BACKWARD_COMPATIBILITY,
+    AVRO_DATA_FORMAT,
+    AVRO_SCHEMA_DEFINITION,
+)
 
 
 def create_database_input(database_name):
@@ -152,4 +160,25 @@ def create_crawler(
 
     return client.create_crawler(
         Name=crawler_name, Role=crawler_role, Targets=crawler_targets, **params
+    )
+
+
+def create_registry(client, registry_name=REGISTRY_NAME):
+    return client.create_registry(RegistryName=registry_name)
+
+
+def create_schema(
+    client,
+    registry_id=REGISTRY_ID,
+    schema_name=SCHEMA_NAME,
+    data_format=AVRO_DATA_FORMAT,
+    compatibility=BACKWARD_COMPATIBILITY,
+    schema_definition=AVRO_SCHEMA_DEFINITION,
+):
+    return client.create_schema(
+        RegistryId=registry_id,
+        SchemaName=schema_name,
+        DataFormat=data_format,
+        Compatibility=compatibility,
+        SchemaDefinition=schema_definition,
     )

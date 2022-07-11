@@ -458,4 +458,31 @@ class GlueResponse(BaseResponse):
         description = self._get_param("Description")
         tags = self._get_param("Tags")
         registry = self.glue_backend.create_registry(registry_name, description, tags)
-        return json.dumps(registry.as_dict())
+        return json.dumps(registry)
+
+    def create_schema(self):
+        registry_id = self._get_param("RegistryId")
+        schema_name = self._get_param("SchemaName")
+        data_format = self._get_param("DataFormat")
+        compatibility = self._get_param("Compatibility")
+        description = self._get_param("Description")
+        tags = self._get_param("Tags")
+        schema_definition = self._get_param("SchemaDefinition")
+        schema = self.glue_backend.create_schema(
+            registry_id,
+            schema_name,
+            data_format,
+            compatibility,
+            schema_definition,
+            description,
+            tags,
+        )
+        return json.dumps(schema)
+
+    def register_schema_version(self):
+        schema_id = self._get_param("SchemaId")
+        schema_definition = self._get_param("SchemaDefinition")
+        schema_version = self.glue_backend.register_schema_version(
+            schema_id, schema_definition
+        )
+        return json.dumps(schema_version)
