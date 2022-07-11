@@ -195,7 +195,10 @@ def test_recording(m_open, m_setting):
         ClientToken="0ee5e722-d843-40f8-9f7b-62c92bb73d94",
     )
 
-    assert m_open.return_value.__enter__.return_value.write.call_args_list[0].args[0] == expected_data
+    assert (
+        m_open.return_value.__enter__.return_value.write.call_args_list[0].args[0]
+        == expected_data
+    )
     assert m_setting is True
 
 
@@ -233,7 +236,9 @@ def test_start_stop_recording(m_record):
 @mock_ec2
 @mock.patch(
     "moto.core.responses.open",
-    new=mock.mock_open(read_data='{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}')
+    new=mock.mock_open(
+        read_data='{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+    ),
 )
 def test_replay_recording():
     boto3.resource("ec2", "us-east-1")
@@ -252,7 +257,9 @@ def test_replay_recording():
 @mock_ec2
 @mock.patch(
     "moto.core.responses.open",
-    new=mock.mock_open(read_data='{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}')
+    new=mock.mock_open(
+        read_data='{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+    ),
 )
 def test_download_recording():
     boto3.resource("ec2", "us-east-1")
@@ -271,7 +278,9 @@ def test_download_recording():
 @mock_ec2
 @mock.patch(
     "moto.core.responses.open",
-    new=mock.mock_open(read_data=b'{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}')
+    new=mock.mock_open(
+        read_data=b'{"module": "moto.ec2.responses", "response_type": "EC2Response", "response_headers": {"server": "amazon.com"}, "region": "us-east-1", "body": "Action=RunInstances&Version=2016-11-15&ImageId=ami-12c6146b&MinCount=1&MaxCount=1&ClientToken=0ee5e722-d843-40f8-9f7b-62c92bb73d94", "uri_match": null, "querystring": {"Action": ["RunInstances"], "Version": ["2016-11-15"], "ImageId": ["ami-12c6146b"], "MinCount": ["1"], "MaxCount": ["1"], "ClientToken": ["0ee5e722-d843-40f8-9f7b-62c92bb73d94"]}}'
+    ),
 )
 def test_upload_recording():
     boto3.resource("ec2", "us-east-1")
@@ -285,7 +294,11 @@ def test_upload_recording():
     requests.get("{0}/moto-api/upload-recording".format(BASE_URL), data=recorded_data)
 
     from moto.core.responses import open
-    assert open.return_value.__enter__.return_value.write.call_args_list[0].args[0] == recorded_data
+
+    assert (
+        open.return_value.__enter__.return_value.write.call_args_list[0].args[0]
+        == recorded_data
+    )
 
 
 @mock_ec2
@@ -297,7 +310,9 @@ def test_set_seed():
         else "http://motoapi.amazonaws.com"
     )
 
-    requests.get("{0}/moto-api/set-seed?seed=42".format(BASE_URL),)
+    requests.get(
+        "{0}/moto-api/set-seed?seed=42".format(BASE_URL),
+    )
     reservation_1 = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
