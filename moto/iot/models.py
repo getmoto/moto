@@ -1047,7 +1047,8 @@ class IoTBackend(BaseBackend):
             policy_name, policy_document, set_as_default, self.region_name
         )
         policy.versions.append(version)
-        version.version_id = "{0}".format(len(policy.versions))
+        max_version_id = max(v.version_id for v in policy.versions)
+        version.version_id = "{0}".format(int(max_version_id) + 1)
         if set_as_default:
             self.set_default_policy_version(policy_name, version.version_id)
         return version
