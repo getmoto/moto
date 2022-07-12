@@ -178,10 +178,7 @@ def test_get_dict_list_params():
     "moto.core.responses.settings.ENABLE_RECORDING",
     new_callable=mock.PropertyMock(return_value=True),
 )
-@mock.patch(
-    "moto.core.responses.open",
-    return_value=mock.MagicMock(spec=io.IOBase)
-)
+@mock.patch("moto.core.responses.open", return_value=mock.MagicMock(spec=io.IOBase))
 def test_recording(m_open, m_setting):
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
@@ -198,10 +195,7 @@ def test_recording(m_open, m_setting):
     )
 
     file_handle = m_open.return_value.__enter__.return_value
-    assert (
-        file_handle.write.call_args_list[0].args[0]
-        == expected_data
-    )
+    assert file_handle.write.call_args_list[0].args[0] == expected_data
     assert m_setting is True
 
 
@@ -237,10 +231,7 @@ def test_start_stop_recording(m_record):
 
 
 @mock_ec2
-@mock.patch(
-    "moto.core.responses.open",
-    return_value=mock.MagicMock(spec=io.IOBase)
-)
+@mock.patch("moto.core.responses.open", return_value=mock.MagicMock(spec=io.IOBase))
 def test_replay_recording(m_open):
     boto3.resource("ec2", "us-east-1")
     BASE_URL = (
@@ -260,10 +251,7 @@ def test_replay_recording(m_open):
 
 
 @mock_ec2
-@mock.patch(
-    "moto.core.responses.open",
-    return_value=mock.MagicMock(spec=io.IOBase)
-)
+@mock.patch("moto.core.responses.open", return_value=mock.MagicMock(spec=io.IOBase))
 def test_download_recording(m_open):
     boto3.resource("ec2", "us-east-1")
     BASE_URL = (
@@ -283,9 +271,7 @@ def test_download_recording(m_open):
 @mock_ec2
 @mock.patch(
     "moto.core.responses.open",
-    return_value=mock.MagicMock(
-        spec=io.IOBase
-    ),
+    return_value=mock.MagicMock(spec=io.IOBase),
 )
 def test_upload_recording(m_open):
     boto3.resource("ec2", "us-east-1")
@@ -300,10 +286,7 @@ def test_upload_recording(m_open):
     file_handle.read.return_value = recorded_data
     requests.get("{0}/moto-api/upload-recording".format(BASE_URL), data=recorded_data)
 
-    assert (
-        file_handle.write.call_args_list[0].args[0]
-        == recorded_data
-    )
+    assert file_handle.write.call_args_list[0].args[0] == recorded_data
 
 
 @mock_ec2
