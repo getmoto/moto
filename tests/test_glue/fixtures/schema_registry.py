@@ -105,29 +105,28 @@ NEW_JSON_SCHEMA_DEFINITION = """{
     }"""
 
 PROTOBUF_SCHEMA_DEFINITION = """syntax = "proto2";
-
     package tutorial;
-    
+
     option java_multiple_files = true;
     option java_package = "com.example.tutorial.protos";
     option java_outer_classname = "AddressBookProtos";
-    
+
     message Person {
       optional string name = 1;
       optional int32 id = 2;
       optional string email = 3;
-    
+
       enum PhoneType {
         MOBILE = 0;
         HOME = 1;
         WORK = 2;
       }
-    
+
       message PhoneNumber {
         optional string number = 1;
         optional PhoneType type = 2 [default = HOME];
       }
-    
+
       repeated PhoneNumber phones = 4;
     }"""
 
