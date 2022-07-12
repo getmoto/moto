@@ -284,7 +284,7 @@ def test_create_schema_valid_partial_input():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    response = helpers.create_schema(client)
+    response = helpers.create_schema(client, REGISTRY_ID)
     response.should.have.key("RegistryName").equals(REGISTRY_NAME)
     response.should.have.key("RegistryArn").equals(REGISTRY_ARN)
     response.should.have.key("SchemaName").equals(SCHEMA_NAME)
@@ -374,7 +374,13 @@ def test_create_schema_invalid_schema_name():
     invalid_schema_name = "Invalid,Schema,Name"
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, schema_name=invalid_schema_name)
+        client.create_schema(
+            RegistryId=REGISTRY_ID,
+            SchemaName=invalid_schema_name,
+            DataFormat=AVRO_DATA_FORMAT,
+            Compatibility=BACKWARD_COMPATIBILITY,
+            SchemaDefinition=AVRO_SCHEMA_DEFINITION,
+        )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal(
@@ -392,7 +398,13 @@ def test_create_schema_invalid_schema_name_too_long():
         invalid_schema_name = invalid_schema_name + "toolong"
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, schema_name=invalid_schema_name)
+        client.create_schema(
+            RegistryId=REGISTRY_ID,
+            SchemaName=invalid_schema_name,
+            DataFormat=AVRO_DATA_FORMAT,
+            Compatibility=BACKWARD_COMPATIBILITY,
+            SchemaDefinition=AVRO_SCHEMA_DEFINITION,
+        )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal(
@@ -408,7 +420,7 @@ def test_create_schema_invalid_data_format():
     invalid_data_format = "INVALID"
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, data_format=invalid_data_format)
+        helpers.create_schema(client, REGISTRY_ID, data_format=invalid_data_format)
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal("Data format is not valid.")
@@ -422,7 +434,7 @@ def test_create_schema_invalid_compatibility():
     invalid_compatibility = "INVALID"
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, compatibility=invalid_compatibility)
+        helpers.create_schema(client, REGISTRY_ID, compatibility=invalid_compatibility)
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.equal("Compatibility is not valid.")
@@ -438,7 +450,9 @@ def test_create_schema_invalid_schema_definition():
                         }"""
 
     with pytest.raises(ClientError) as exc:
-        helpers.create_schema(client, schema_definition=invalid_schema_definition)
+        helpers.create_schema(
+            client, REGISTRY_ID, schema_definition=invalid_schema_definition
+        )
     err = exc.value.response["Error"]
     err["Code"].should.equal("InvalidInputException")
     err["Message"].should.have(
@@ -452,7 +466,7 @@ def test_register_schema_version_valid_input_avro():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    helpers.create_schema(client)
+    helpers.create_schema(client, REGISTRY_ID)
 
     response = client.register_schema_version(
         SchemaId=SCHEMA_ID, SchemaDefinition=NEW_AVRO_SCHEMA_DEFINITION
@@ -469,7 +483,10 @@ def test_register_schema_version_valid_input_json():
     helpers.create_registry(client)
 
     helpers.create_schema(
-        client, data_format="JSON", schema_definition=JSON_SCHEMA_DEFINITION
+        client,
+        REGISTRY_ID,
+        data_format="JSON",
+        schema_definition=JSON_SCHEMA_DEFINITION,
     )
 
     response = client.register_schema_version(
@@ -487,7 +504,10 @@ def test_register_schema_version_valid_input_protobuf():
     helpers.create_registry(client)
 
     helpers.create_schema(
-        client, data_format="PROTOBUF", schema_definition=PROTOBUF_SCHEMA_DEFINITION
+        client,
+        REGISTRY_ID,
+        data_format="PROTOBUF",
+        schema_definition=PROTOBUF_SCHEMA_DEFINITION,
     )
 
     response = client.register_schema_version(
@@ -504,7 +524,7 @@ def test_register_schema_version_valid_input_schema_arn():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    helpers.create_schema(client)
+    helpers.create_schema(client, REGISTRY_ID)
 
     schema_id = {"SchemaArn": SCHEMA_ARN}
     response = client.register_schema_version(
@@ -521,7 +541,7 @@ def test_register_schema_version_identical_schema_version_avro():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    response = helpers.create_schema(client)
+    response = helpers.create_schema(client, REGISTRY_ID)
 
     version_id = response["SchemaVersionId"]
 
@@ -540,7 +560,10 @@ def test_register_schema_version_identical_schema_version_json():
     helpers.create_registry(client)
 
     response = helpers.create_schema(
-        client, data_format=JSON_DATA_FORMAT, schema_definition=JSON_SCHEMA_DEFINITION
+        client,
+        REGISTRY_ID,
+        data_format=JSON_DATA_FORMAT,
+        schema_definition=JSON_SCHEMA_DEFINITION,
     )
 
     version_id = response["SchemaVersionId"]
@@ -561,6 +584,7 @@ def test_register_schema_version_identical_schema_version_protobuf():
 
     response = helpers.create_schema(
         client,
+        REGISTRY_ID,
         data_format=PROTOBUF_DATA_FORMAT,
         schema_definition=PROTOBUF_SCHEMA_DEFINITION,
     )
@@ -581,7 +605,7 @@ def test_register_schema_version_invalid_registry_schema_does_not_exist():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    helpers.create_schema(client)
+    helpers.create_schema(client, REGISTRY_ID)
 
     invalid_schema_id = {
         "RegistryName": "InvalidRegistryDoesNotExist",
@@ -603,7 +627,7 @@ def test_register_schema_version_invalid_schema_schema_does_not_exist():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    helpers.create_schema(client)
+    helpers.create_schema(client, REGISTRY_ID)
 
     invalid_schema_id = {
         "RegistryName": f"{REGISTRY_NAME}",
@@ -624,7 +648,7 @@ def test_register_schema_version_invalid_compatibility_disabled():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    helpers.create_schema(client, compatibility=DISABLED_COMPATIBILITY)
+    helpers.create_schema(client, REGISTRY_ID, compatibility=DISABLED_COMPATIBILITY)
 
     with pytest.raises(ClientError) as exc:
         client.register_schema_version(
@@ -646,7 +670,7 @@ def test_register_schema_version_invalid_schema_definition():
     client = create_glue_client()
     helpers.create_registry(client)
 
-    helpers.create_schema(client, compatibility=DISABLED_COMPATIBILITY)
+    helpers.create_schema(client, REGISTRY_ID, compatibility=DISABLED_COMPATIBILITY)
 
     with pytest.raises(ClientError) as exc:
         client.register_schema_version(
