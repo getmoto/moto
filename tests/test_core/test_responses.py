@@ -1,5 +1,5 @@
 import io
-import sure  # noqa # pylint: disable=unused-import
+# import sure  # noqa # pylint: disable=unused-import
 
 from collections import OrderedDict
 
@@ -195,7 +195,7 @@ def test_recording(m_open, m_setting):
     )
 
     file_handle = m_open.return_value.__enter__.return_value
-    assert file_handle.write.call_args_list[0].args[0] == expected_data
+    assert file_handle.write.mock_calls[0][1][0] == expected_data
     assert m_setting is True
 
 
@@ -286,7 +286,7 @@ def test_upload_recording(m_open):
     file_handle.read.return_value = recorded_data
     requests.get("{0}/moto-api/upload-recording".format(BASE_URL), data=recorded_data)
 
-    assert file_handle.write.call_args_list[0].args[0] == recorded_data
+    assert file_handle.write.mock_calls[0][1][0] == recorded_data
 
 
 @mock_ec2
