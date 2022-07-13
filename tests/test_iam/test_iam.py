@@ -86,16 +86,17 @@ def test_get_role__should_contain_last_used():
     role = conn.get_role(RoleName="my-role")["Role"]
     role["RoleLastUsed"].should.equal({})
 
-    iam_backend = get_backend("iam")["global"]
-    last_used = datetime.strptime(
-        "2015-04-09T15:03:43+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
-    )
-    region = "us-west-1"
-    iam_backend.roles[role["RoleId"]].last_used = last_used
-    iam_backend.roles[role["RoleId"]].last_used_region = region
-    role = conn.get_role(RoleName="my-role")["Role"]
-    role["RoleLastUsed"]["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
-    role["RoleLastUsed"]["Region"].should.equal(region)
+    if not settings.TEST_SERVER_MODE:
+        iam_backend = get_backend("iam")["global"]
+        last_used = datetime.strptime(
+            "2015-04-09T15:03:43+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
+        )
+        region = "us-west-1"
+        iam_backend.roles[role["RoleId"]].last_used = last_used
+        iam_backend.roles[role["RoleId"]].last_used_region = region
+        role = conn.get_role(RoleName="my-role")["Role"]
+        role["RoleLastUsed"]["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
+        role["RoleLastUsed"]["Region"].should.equal(region)
 
 
 @mock_iam
