@@ -1,4 +1,4 @@
-"""Unit tests for glue-supported APIs."""
+"""Unit tests for glue-schema-registry-supported APIs."""
 import boto3
 import pytest
 import sure  # noqa # pylint: disable=unused-import
