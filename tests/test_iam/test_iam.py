@@ -94,9 +94,9 @@ def test_get_role__should_contain_last_used():
         region = "us-west-1"
         iam_backend.roles[role["RoleId"]].last_used = last_used
         iam_backend.roles[role["RoleId"]].last_used_region = region
-        role = conn.get_role(RoleName="my-role")["Role"]
-        role["RoleLastUsed"]["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
-        role["RoleLastUsed"]["Region"].should.equal(region)
+        roleLastUsed = conn.get_role(RoleName="my-role")["Role"]["RoleLastUsed"]
+        roleLastUsed["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
+        roleLastUsed["Region"].should.equal(region)
 
 
 @mock_iam
