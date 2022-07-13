@@ -599,9 +599,8 @@ class Role(CloudFormationModel):
 
     @property
     def last_used_iso_8601(self):
-        if not self.last_used:
-            return None
-        return iso_8601_datetime_with_milliseconds(self.last_used)
+        if self.last_used:
+            return iso_8601_datetime_with_milliseconds(self.last_used)
 
     @staticmethod
     def cloudformation_name_type():
