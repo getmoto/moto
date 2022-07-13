@@ -586,6 +586,8 @@ class Role(CloudFormationModel):
         self.managed_policies = {}
         self.create_date = datetime.utcnow()
         self.tags = tags
+        self.last_used = None
+        self.last_used_region = None
         self.description = description
         self.permissions_boundary = permissions_boundary
         self.max_session_duration = max_session_duration
@@ -594,6 +596,12 @@ class Role(CloudFormationModel):
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @property
+    def last_used_iso_8601(self):
+        if not self.last_used:
+            return None
+        return iso_8601_datetime_with_milliseconds(self.last_used)
 
     @staticmethod
     def cloudformation_name_type():
@@ -782,6 +790,14 @@ class Role(CloudFormationModel):
         {% endfor %}
       </Tags>
       {% endif %}
+      <RoleLastUsed>
+        {% if role.last_used %}
+        <LastUsedDate>{{ role.last_used_iso_8601 }}</LastUsedDate>
+        {% endif %}
+        {% if role.last_used_region %}
+        <Region>{{ role.last_used_region }}</Region>
+        {% endif %}
+      </RoleLastUsed>
     </Role>"""
         )
         return template.render(role=self)
