@@ -78,12 +78,10 @@ def validate_param_pattern_and_length(
         raise ParamValueContainsInvalidCharactersException(param_name)
 
 
-def validate_number_of_tags(tags):
-    if len(tags) > MAX_TAGS_ALLOWED:
-        raise InvalidNumberOfTagsException()
-
-
-def validate_avro_json_schema_definition(data_format, schema_definition):
+def validate_schema_definition(schema_definition, data_format):
+    if len(schema_definition) > MAX_SCHEMA_DEFINITION_LENGTH:
+        param_name = SCHEMA_DEFINITION
+        raise ResourceNameTooLongException(param_name)
     if data_format in ["AVRO", "JSON"]:
         try:
             json.loads(schema_definition)
@@ -91,19 +89,9 @@ def validate_avro_json_schema_definition(data_format, schema_definition):
             raise InvalidSchemaDefinitionException(data_format, err)
 
 
-def compare_json_helper(item):
-    if isinstance(item, dict):
-        return sorted(
-            (key, compare_json_helper(values)) for key, values in item.items()
-        )
-    if isinstance(item, list):
-        return sorted(compare_json_helper(x) for x in item)
-    else:
-        return item
-
-
-def compare_json(a, b):
-    return compare_json_helper(a) == compare_json_helper(b)
+def validate_number_of_tags(tags):
+    if len(tags) > MAX_TAGS_ALLOWED:
+        raise InvalidNumberOfTagsException()
 
 
 def validate_registry_id(registry_id, registries):
@@ -141,10 +129,16 @@ def validate_registry_id(registry_id, registries):
 
 
 def validate_registry_params(registries, registry_name, description=None, tags=None):
+    validate_registry_name_pattern_and_length(registry_name)
+
+    if description:
+        validate_description_pattern_and_length(description)
+
+    if tags:
+        validate_number_of_tags(tags)
+
     if len(registries) >= MAX_REGISTRIES_ALLOWED:
         raise ResourceNumberLimitExceededException(resource="registries")
-
-    validate_registry_name_pattern_and_length(registry_name)
 
     if registry_name in registries:
         raise GSRAlreadyExistsException(
@@ -152,12 +146,6 @@ def validate_registry_params(registries, registry_name, description=None, tags=N
             param_name=REGISTRY_NAME,
             param_value=registry_name,
         )
-
-    if description:
-        validate_description_pattern_and_length(description)
-
-    if tags:
-        validate_number_of_tags(tags)
 
 
 def validate_schema_id(schema_id, registries):
@@ -200,9 +188,6 @@ def validate_schema_params(
 ):
     validate_schema_name_pattern_and_length(schema_name)
 
-    if num_schemas >= MAX_SCHEMAS_ALLOWED:
-        raise ResourceNumberLimitExceededException(resource="schemas")
-
     if data_format not in ["AVRO", "JSON", "PROTOBUF"]:
         raise InvalidDataFormatException()
 
@@ -224,9 +209,10 @@ def validate_schema_params(
     if tags:
         validate_number_of_tags(tags)
 
-    if len(schema_definition) > MAX_SCHEMA_DEFINITION_LENGTH:
-        param_name = SCHEMA_DEFINITION
-        raise ResourceNameTooLongException(param_name)
+    validate_schema_definition(schema_definition, data_format)
+
+    if num_schemas >= MAX_SCHEMAS_ALLOWED:
+        raise ResourceNumberLimitExceededException(resource="schemas")
 
     if schema_name in registry.schemas:
         raise GSRAlreadyExistsException(
@@ -234,8 +220,6 @@ def validate_schema_params(
             param_name=SCHEMA_NAME,
             param_value=schema_name,
         )
-
-    validate_avro_json_schema_definition(data_format, schema_definition)
 
 
 def validate_schema_version_params(
@@ -246,17 +230,13 @@ def validate_schema_version_params(
     compatibility,
     data_format,
 ):
-    if num_schema_versions >= MAX_SCHEMA_VERSIONS_ALLOWED:
-        raise ResourceNumberLimitExceededException(resource="schema versions")
-
-    if len(schema_definition) > MAX_SCHEMA_DEFINITION_LENGTH:
-        param_name = SCHEMA_DEFINITION
-        raise ResourceNameTooLongException(param_name)
-
     if compatibility == "DISABLED":
         raise DisabledCompatibilityVersioningException(schema_name, registry_name)
 
-    validate_avro_json_schema_definition(data_format, schema_definition)
+    validate_schema_definition(schema_definition, data_format)
+
+    if num_schema_versions >= MAX_SCHEMA_VERSIONS_ALLOWED:
+        raise ResourceNumberLimitExceededException(resource="schema versions")
 
 
 def get_schema_version_if_definition_exists(
@@ -264,7 +244,9 @@ def get_schema_version_if_definition_exists(
 ):
     if data_format in ["AVRO", "JSON"]:
         for schema_version in schema_versions:
-            if compare_json(schema_definition, schema_version.schema_definition):
+            if json.loads(schema_definition) == json.loads(
+                schema_version.schema_definition
+            ):
                 return schema_version.as_dict()
     else:
         for schema_version in schema_versions:
