@@ -400,8 +400,11 @@ def test_autoscaling_group_with_elb():
         tag_keys.should_not.contain("not-propagated-test-tag")
 
     # confirm scheduled scaling action was created
-    response = client.describe_scheduled_actions(AutoScalingGroupName="schedule-scaling-auto-sclaing-group")["ScheduledUpdateGroupActions"]
+    response = client.describe_scheduled_actions(
+        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+    )["ScheduledUpdateGroupActions"]
     response.should.have.length_of(1)
+
 
 @mock_autoscaling
 @mock_cloudformation
