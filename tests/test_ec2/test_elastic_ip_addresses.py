@@ -699,3 +699,4 @@ def test_describe_addresses_with_vpc_associated_eni():
     address["NetworkInterfaceId"].should.be.equal(eni.id)
     address["PrivateIpAddress"].should.be.equal(eni.private_ip_address)
     address["AssociationId"].should.be.equal(association_id)
+    address["NetworkInterfaceOwnerId"].should.be.equal(eni.owner_id)
