@@ -124,9 +124,13 @@ def test_create_autoscaling_group_within_elb():
     for ec2_instance_id in instances_ids:
         attached_ids.should.contain(ec2_instance_id)
 
-    scheduled_actions = as_client.describe_scheduled_actions(AutoScalingGroupName="schedule-scaling-auto-sclaing-group")
+    scheduled_actions = as_client.describe_scheduled_actions(
+        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+    )
     scheduled_action_1 = scheduled_actions["ScheduledUpdateGroupActions"][0]
-    scheduled_action_1["AutoScalingGroupName"].should.equal("schedule-scaling-auto-scaling-group")
+    scheduled_action_1["AutoScalingGroupName"].should.equal(
+        "schedule-scaling-auto-scaling-group"
+    )
     scheduled_action_1["DesiredCapacity"].should.equal(9)
     scheduled_action_1["MaxSize"].should.equal(12)
     scheduled_action_1["MinSize"].should.equal(5)
@@ -207,6 +211,7 @@ def test_list_many_autoscaling_groups():
     groups.should.have.length_of(51)
     assert "NextToken" not in response2.keys()
 
+
 @mock_autoscaling
 def test_list_many_scheduled_scaling_actions():
     conn = boto3.client("autoscaling", region_name="us-east-1")
@@ -218,14 +223,17 @@ def test_list_many_scheduled_scaling_actions():
             StartTime=f"2022-07-01T00:00:{i}Z",
             EndTime=f"2022-09-01T00:00:{i}Z",
             Recurrence="* * * * *",
-            MinSize=i+1,
-            MaxSize=i+5,
-            DesiredCapacity=i+3,
+            MinSize=i + 1,
+            MaxSize=i + 5,
+            DesiredCapacity=i + 3,
         )
 
-    response = conn.describe_scheduled_actions(AutoScalingGroupName="schedule-scaling-auto-sclaing-group")
+    response = conn.describe_scheduled_actions(
+        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+    )
     actions = response["ScheduledUpdateGroupActions"]
     actions.should.have.length_of(30)
+
 
 @mock_autoscaling
 @mock_ec2
@@ -290,6 +298,7 @@ def test_autoscaling_group_delete():
         0
     )
 
+
 @mock_autoscaling
 def test_scheduled_action_delete():
     as_client = boto3.client("autoscaling", region_name="us-east-1")
@@ -301,26 +310,31 @@ def test_scheduled_action_delete():
             StartTime=f"2022-07-01T00:00:{i}Z",
             EndTime=f"2022-09-01T00:00:{i}Z",
             Recurrence="* * * * *",
-            MinSize=i+1,
-            MaxSize=i+5,
-            DesiredCapacity=i+3,
+            MinSize=i + 1,
+            MaxSize=i + 5,
+            DesiredCapacity=i + 3,
         )
 
-    response = as_client.describe_scheduled_actions(AutoScalingGroupName="schedule-scaling-auto-sclaing-group")
+    response = as_client.describe_scheduled_actions(
+        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+    )
     actions = response["ScheduledUpdateGroupActions"]
     actions.should.have.length_of(3)
 
     as_client.delete_scheduled_action(
         AutoScalingGroupName="schedule-scaling-auto-scaling-group",
-        ScheduledActionName="my-scheduled-action-2"
+        ScheduledActionName="my-scheduled-action-2",
     )
     as_client.delete_scheduled_action(
         AutoScalingGroupName="schedule-scaling-auto-scaling-group",
-        ScheduledActionName="my-scheduled-action-1"
+        ScheduledActionName="my-scheduled-action-1",
     )
-    response = as_client.describe_scheduled_actions(AutoScalingGroupName="schedule-scaling-auto-sclaing-group")
+    response = as_client.describe_scheduled_actions(
+        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+    )
     actions = response["ScheduledUpdateGroupActions"]
     actions.should.have.length_of(1)
+
 
 @mock_autoscaling
 @mock_elb

@@ -858,7 +858,6 @@ class AutoScalingBackend(BaseBackend):
         self.scheduled_actions[scheduled_action_name] = scheduled_action
         return scheduled_action
 
-<<<<<<< HEAD
     def describe_scheduled_actions(
         self, autoscaling_group_name=None, scheduled_action_names=None
     ):
@@ -878,24 +877,6 @@ class AutoScalingBackend(BaseBackend):
         if scheduled_action:
             self.scheduled_actions.pop(scheduled_action_name, None)
     
-=======
-    def describe_scheduled_actions(self, autoscaling_group_name=None, scheduled_action_names=None):
-
-        scheduled_actions = []
-        for scheduled_action in self.scheduled_actions.values():
-            if scheduled_action.scheduled_action_name in scheduled_action_names:
-                scheduled_actions.append(scheduled_action)
-            elif not scheduled_action_names:
-                scheduled_actions.append(scheduled_action)
-
-        return scheduled_actions
-
-    def delete_scheduled_action(self, auto_scaling_group_name, scheduled_action_name):
-        scheduled_action = self.describe_scheduled_actions(auto_scaling_group_name, scheduled_action_name)
-        if scheduled_action:
-            self.scheduled_actions.pop(scheduled_action_name, None)
-
->>>>>>> Add delete
     def create_auto_scaling_group(
         self,
         name,
