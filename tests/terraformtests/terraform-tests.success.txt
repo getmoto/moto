@@ -56,6 +56,7 @@ ec2:
   - TestAccEC2VPCsDataSource
   - TestAccEC2VPNGateway_
   - TestAccEC2VPNGatewayAttachment_
+  - TestAccVPC_
 ecr:
   - TestAccECRLifecyclePolicy
   - TestAccECRRegistryPolicy
