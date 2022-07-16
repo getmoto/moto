@@ -37,7 +37,7 @@ class VPCs(EC2BaseResponse):
             cidr_block,
             instance_tenancy,
             amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
-            ipv6_cidr_block_network_border_group = ipv6_cidr_block_network_border_group,
+            ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
             tags=tags,
         )
         doc_date = self._get_doc_date()
