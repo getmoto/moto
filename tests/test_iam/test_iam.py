@@ -89,7 +89,7 @@ def test_get_role__should_contain_last_used():
     if not settings.TEST_SERVER_MODE:
         iam_backend = get_backend("iam")["global"]
         last_used = datetime.strptime(
-            "2015-04-09T15:03:43+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
+            "2022-07-18T15:03:43+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
         )
         region = "us-west-1"
         iam_backend.roles[role["RoleId"]].last_used = last_used
