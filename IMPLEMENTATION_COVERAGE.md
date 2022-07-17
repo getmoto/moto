@@ -338,7 +338,7 @@
 
 ## autoscaling
 <details>
-<summary>49% implemented</summary>
+<summary>50% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -382,7 +382,7 @@
 - [X] detach_load_balancer_target_groups
 - [X] detach_load_balancers
 - [ ] disable_metrics_collection
-- [ ] enable_metrics_collection
+- [X] enable_metrics_collection
 - [ ] enter_standby
 - [X] execute_policy
 - [ ] exit_standby
@@ -460,6 +460,47 @@
 - [ ] update_budget_action
 - [ ] update_notification
 - [ ] update_subscriber
+</details>
+
+## ce
+<details>
+<summary>11% implemented</summary>
+
+- [ ] create_anomaly_monitor
+- [ ] create_anomaly_subscription
+- [X] create_cost_category_definition
+- [ ] delete_anomaly_monitor
+- [ ] delete_anomaly_subscription
+- [X] delete_cost_category_definition
+- [X] describe_cost_category_definition
+- [ ] get_anomalies
+- [ ] get_anomaly_monitors
+- [ ] get_anomaly_subscriptions
+- [ ] get_cost_and_usage
+- [ ] get_cost_and_usage_with_resources
+- [ ] get_cost_categories
+- [ ] get_cost_forecast
+- [ ] get_dimension_values
+- [ ] get_reservation_coverage
+- [ ] get_reservation_purchase_recommendation
+- [ ] get_reservation_utilization
+- [ ] get_rightsizing_recommendation
+- [ ] get_savings_plans_coverage
+- [ ] get_savings_plans_purchase_recommendation
+- [ ] get_savings_plans_utilization
+- [ ] get_savings_plans_utilization_details
+- [ ] get_tags
+- [ ] get_usage_forecast
+- [ ] list_cost_allocation_tags
+- [ ] list_cost_category_definitions
+- [ ] list_tags_for_resource
+- [ ] provide_anomaly_feedback
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_anomaly_monitor
+- [ ] update_anomaly_subscription
+- [ ] update_cost_allocation_tags_status
+- [X] update_cost_category_definition
 </details>
 
 ## cloudformation
@@ -707,6 +748,57 @@
 - [ ] stop_metric_streams
 - [X] tag_resource
 - [X] untag_resource
+</details>
+
+## codebuild
+<details>
+<summary>17% implemented</summary>
+
+- [ ] batch_delete_builds
+- [ ] batch_get_build_batches
+- [X] batch_get_builds
+- [ ] batch_get_projects
+- [ ] batch_get_report_groups
+- [ ] batch_get_reports
+- [X] create_project
+- [ ] create_report_group
+- [ ] create_webhook
+- [ ] delete_build_batch
+- [X] delete_project
+- [ ] delete_report
+- [ ] delete_report_group
+- [ ] delete_resource_policy
+- [ ] delete_source_credentials
+- [ ] delete_webhook
+- [ ] describe_code_coverages
+- [ ] describe_test_cases
+- [ ] get_report_group_trend
+- [ ] get_resource_policy
+- [ ] import_source_credentials
+- [ ] invalidate_project_cache
+- [ ] list_build_batches
+- [ ] list_build_batches_for_project
+- [X] list_builds
+- [X] list_builds_for_project
+- [ ] list_curated_environment_images
+- [X] list_projects
+- [ ] list_report_groups
+- [ ] list_reports
+- [ ] list_reports_for_report_group
+- [ ] list_shared_projects
+- [ ] list_shared_report_groups
+- [ ] list_source_credentials
+- [ ] put_resource_policy
+- [ ] retry_build
+- [ ] retry_build_batch
+- [X] start_build
+- [ ] start_build_batch
+- [X] stop_build
+- [ ] stop_build_batch
+- [ ] update_project
+- [ ] update_project_visibility
+- [ ] update_report_group
+- [ ] update_webhook
 </details>
 
 ## codecommit
@@ -1289,7 +1381,7 @@
 
 ## ds
 <details>
-<summary>18% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -1320,7 +1412,6 @@
 - [ ] describe_event_topics
 - [ ] describe_ldaps_settings
 - [ ] describe_regions
-- [ ] describe_settings
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
 - [ ] describe_trusts
@@ -1353,7 +1444,6 @@
 - [ ] update_conditional_forwarder
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
-- [ ] update_settings
 - [ ] update_trust
 - [ ] verify_trust
 </details>
@@ -2457,7 +2547,7 @@
 
 ## emr-serverless
 <details>
-<summary>71% implemented</summary>
+<summary>50% implemented</summary>
 
 - [ ] cancel_job_run
 - [X] create_application
@@ -2468,7 +2558,7 @@
 - [ ] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
-- [X] start_job_run
+- [ ] start_job_run
 - [X] stop_application
 - [ ] tag_resource
 - [ ] untag_resource
@@ -2828,7 +2918,6 @@
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [X] list_crawlers
-- [ ] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
@@ -5998,7 +6087,6 @@
 - backup-gateway
 - billingconductor
 - braket
-- ce
 - chime
 - chime-sdk-identity
 - chime-sdk-media-pipelines
@@ -6012,7 +6100,6 @@
 - cloudsearch
 - cloudsearchdomain
 - codeartifact
-- codebuild
 - codedeploy
 - codeguru-reviewer
 - codeguruprofiler
@@ -6040,7 +6127,6 @@
 - drs
 - ecr-public
 - elastic-inference
-- emr-serverless
 - evidently
 - finspace
 - finspace-data
@@ -6138,6 +6224,7 @@
 - qldb-session
 - rbin
 - rds-data
+- redshiftserverless
 - resiliencehub
 - robomaker
 - route53-recovery-cluster
