@@ -1022,7 +1022,7 @@ index 5ad62e86c0..68209e7fb8 100644
 -	vpcIPv6CIDRBlockAssociationCreatedTimeout = 10 * time.Minute
 -	vpcIPv6CIDRBlockAssociationDeletedTimeout = 5 * time.Minute
 +	vpcIPv6CIDRBlockAssociationCreatedTimeout = 10 * time.Second
-+	vpcIPv6CIDRBlockAssociationDeletedTimeout = 5 * time.Second
++	vpcIPv6CIDRBlockAssociationDeletedTimeout = 15 * time.Second
  )
 
  func WaitVPCIPv6CIDRBlockAssociationCreated(conn *ec2.EC2, id string, timeout time.Duration) (*ec2.VpcCidrBlockState, error) {
