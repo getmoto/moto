@@ -281,7 +281,7 @@ index d42232fc09..8f7f983957 100644
  )
 
 -const EventualConsistencyTimeout = 5 * time.Minute
-+const EventualConsistencyTimeout = 10 * time.Second
++const EventualConsistencyTimeout = 5 * time.Second
 
  // CreateTags creates {{ .ServicePackage }} service tags for new resources.
  // The identifier is typically the Amazon Resource Name (ARN), although
@@ -820,9 +820,9 @@ index 5ad62e86c0..68209e7fb8 100644
 -	InstanceReadyTimeout = 10 * time.Minute
 -	InstanceStartTimeout = 10 * time.Minute
 -	InstanceStopTimeout  = 10 * time.Minute
-+	InstanceReadyTimeout = 20 * time.Second
-+	InstanceStartTimeout = 20 * time.Second
-+	InstanceStopTimeout  = 20 * time.Second
++	InstanceReadyTimeout = 10 * time.Second
++	InstanceStartTimeout = 10 * time.Second
++	InstanceStopTimeout  = 10 * time.Second
 
  	// General timeout for EC2 resource creations to propagate.
  	// See https://docs.aws.amazon.com/AWSEC2/latest/APIReference/query-api-troubleshooting.html#eventual-consistency.
