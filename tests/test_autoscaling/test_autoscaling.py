@@ -76,7 +76,7 @@ def test_create_autoscaling_group_within_elb():
     )
 
     as_client.put_scheduled_update_group_action(
-        AutoScalingGroupName="schedule-scaling-auto-sclaing-group",
+        AutoScalingGroupName="tester_group",
         ScheduledActionName="my-scheduled-action",
         StartTime="2022-07-01T00:00:00Z",
         EndTime="2022-09-01T00:00:00Z",
