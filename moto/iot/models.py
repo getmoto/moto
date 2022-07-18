@@ -1172,6 +1172,9 @@ class IoTBackend(BaseBackend):
         return principals
 
     def list_targets_for_policy(self, policy_name):
+        # This behaviour is different to list_policy_principals which will just return an empty list
+        if policy_name not in self.policies:
+            raise ResourceNotFoundException("Policy not found")
         return self.list_policy_principals(policy_name=policy_name)
 
     def attach_thing_principal(self, thing_name, principal_arn):

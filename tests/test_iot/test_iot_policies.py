@@ -406,3 +406,11 @@ def test_list_targets_for_policy_one_attached_certificate(iot_client, policy):
     res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
     res.should.have.key("targets").which.should.have.length_of(1)
     res["targets"][0].should.equal(cert_arn)
+
+
+def test_list_targets_for_policy_resource_not_found(iot_client):
+    with pytest.raises(ClientError) as e:
+        iot_client.list_targets_for_policy(policyName="NON_EXISTENT_POLICY_NAME")
+
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Message"].should.contain("Policy not found")
