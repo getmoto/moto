@@ -216,7 +216,7 @@ class FakePolicy(BaseModel):
         self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
-        self.max_version_id = self.versions[0].version_id
+        self._max_version_id = self.versions[0]._version_id
 
     def to_get_dict(self):
         return {
@@ -239,15 +239,19 @@ class FakePolicy(BaseModel):
 
 
 class FakePolicyVersion(object):
-    def __init__(self, policy_name, document, is_default, region_name):
+    def __init__(self, policy_name, document, is_default, region_name, version_id=1):
         self.name = policy_name
         self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
-        self.version_id = "1"
+        self._version_id = version_id
 
         self.create_datetime = time.mktime(datetime(2015, 1, 1).timetuple())
         self.last_modified_datetime = time.mktime(datetime(2015, 1, 2).timetuple())
+
+    @property
+    def version_id(self):
+        return str(self._version_id)
 
     def to_get_dict(self):
         return {
@@ -1044,12 +1048,16 @@ class IoTBackend(BaseBackend):
             raise ResourceNotFoundException()
         if len(policy.versions) >= 5:
             raise VersionsLimitExceededException(policy_name)
+
+        policy._max_version_id += 1
         version = FakePolicyVersion(
-            policy_name, policy_document, set_as_default, self.region_name
+            policy_name,
+            policy_document,
+            set_as_default,
+            self.region_name,
+            version_id=policy._max_version_id,
         )
         policy.versions.append(version)
-        version.version_id = "{0}".format(int(policy.max_version_id) + 1)
-        policy.max_version_id = version.version_id
         if set_as_default:
             self.set_default_policy_version(policy_name, version.version_id)
         return version

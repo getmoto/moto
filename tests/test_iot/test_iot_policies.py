@@ -261,6 +261,7 @@ def test_policy_versions_increment_beyond_5(iot_client, policy):
             policyName=policy_name, policyVersionId=str(v - 1)
         )
 
+
 def test_policy_versions_increment_even_after_version_delete(iot_client, policy):
     """Version ids increment even if the max version was deleted."""
 
@@ -271,9 +272,7 @@ def test_policy_versions_increment_even_after_version_delete(iot_client, policy)
         policyDocument=json.dumps({"version": "version_2"}),
     )
     new_version.should.have.key("policyVersionId").which.should.equal("2")
-    iot_client.delete_policy_version(
-        policyName=policy_name, policyVersionId="2"
-    )
+    iot_client.delete_policy_version(policyName=policy_name, policyVersionId="2")
     third_version = iot_client.create_policy_version(
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_3"}),
