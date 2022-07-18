@@ -1021,7 +1021,7 @@ index 5ad62e86c0..68209e7fb8 100644
  const (
 -	vpcIPv6CIDRBlockAssociationCreatedTimeout = 10 * time.Minute
 -	vpcIPv6CIDRBlockAssociationDeletedTimeout = 5 * time.Minute
-+	vpcIPv6CIDRBlockAssociationCreatedTimeout = 10 * time.Second
++	vpcIPv6CIDRBlockAssociationCreatedTimeout = 15 * time.Second
 +	vpcIPv6CIDRBlockAssociationDeletedTimeout = 15 * time.Second
  )
 
