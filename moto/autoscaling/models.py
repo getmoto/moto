@@ -822,6 +822,9 @@ class AutoScalingBackend(BaseBackend):
     def delete_launch_configuration(self, launch_configuration_name):
         self.launch_configurations.pop(launch_configuration_name, None)
 
+    def make_int(self, value):
+        return int(value) if value is not None else value
+
     def put_scheduled_update_group_action(
         self,
         name,
@@ -834,12 +837,9 @@ class AutoScalingBackend(BaseBackend):
         recurrence=None,
     ):
         # TODO: Add validations for parameters
-        def make_int(value):
-            return int(value) if value is not None else value
-
-        max_size = make_int(max_size)
-        min_size = make_int(min_size)
-        desired_capacity = make_int(desired_capacity)
+        max_size = self.make_int(max_size)
+        min_size = self.make_int(min_size)
+        desired_capacity = self.make_int(desired_capacity)
 
         scheduled_action = FakeScheduledAction(
             name=name,
@@ -876,17 +876,14 @@ class AutoScalingBackend(BaseBackend):
         new_instances_protected_from_scale_in=False,
         instance_id=None,
     ):
-        def make_int(value):
-            return int(value) if value is not None else value
-
-        max_size = make_int(max_size)
-        min_size = make_int(min_size)
-        desired_capacity = make_int(desired_capacity)
-        default_cooldown = make_int(default_cooldown)
+        max_size = self.make_int(max_size)
+        min_size = self.make_int(min_size)
+        desired_capacity = self.make_int(desired_capacity)
+        default_cooldown = self.make_int(default_cooldown)
         if health_check_period is None:
             health_check_period = 300
         else:
-            health_check_period = make_int(health_check_period)
+            health_check_period = self.make_int(health_check_period)
 
         # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.
