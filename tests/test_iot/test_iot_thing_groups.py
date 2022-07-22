@@ -615,3 +615,73 @@ def test_thing_group_updates_description():
     thing_group.should.have.key("thingGroupProperties").which.should.have.key(
         "thingGroupDescription"
     ).which.should.equal(new_description)
+
+
+@mock_iot
+def test_thing_group_update_with_no_previous_attributes_no_merge():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-group-name"
+    client.create_thing_group(thingGroupName=name)
+
+    client.update_thing_group(
+        thingGroupName=name,
+        thingGroupProperties={
+            "attributePayload": {
+                "attributes": {
+                    "key1": "val01",
+                },
+                "merge": False,
+            }
+        },
+    )
+
+    updated_thing_group = client.describe_thing_group(thingGroupName=name)
+    updated_thing_group.should.have.key("thingGroupProperties").which.should.have.key(
+        "attributePayload"
+    ).which.should.have.key("attributes").which.should.equal({"key1": "val01"})
+
+
+@mock_iot
+def test_thing_group_update_with_no_previous_attributes_with_merge():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-group-name"
+    client.create_thing_group(thingGroupName=name)
+
+    client.update_thing_group(
+        thingGroupName=name,
+        thingGroupProperties={
+            "attributePayload": {
+                "attributes": {
+                    "key1": "val01",
+                },
+                "merge": True,
+            }
+        },
+    )
+
+    updated_thing_group = client.describe_thing_group(thingGroupName=name)
+    updated_thing_group.should.have.key("thingGroupProperties").which.should.have.key(
+        "attributePayload"
+    ).which.should.have.key("attributes").which.should.equal({"key1": "val01"})
+
+
+@mock_iot
+def test_thing_group_updated_with_empty_attributes_no_merge_no_attributes_added():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-group-name"
+    client.create_thing_group(thingGroupName=name)
+
+    client.update_thing_group(
+        thingGroupName=name,
+        thingGroupProperties={
+            "attributePayload": {
+                "attributes": {},
+                "merge": False,
+            }
+        },
+    )
+
+    updated_thing_group = client.describe_thing_group(thingGroupName=name)
+    updated_thing_group.should.have.key(
+        "thingGroupProperties"
+    ).which.should_not.have.key("attributePayload")

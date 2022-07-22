@@ -1301,14 +1301,17 @@ class IoTBackend(BaseBackend):
         if attribute_payload is not None and "attributes" in attribute_payload:
             do_merge = attribute_payload.get("merge", False)
             attributes = attribute_payload["attributes"]
-            if not do_merge:
-                thing_group.thing_group_properties["attributePayload"][
-                    "attributes"
-                ] = attributes
-            else:
-                thing_group.thing_group_properties["attributePayload"][
-                    "attributes"
-                ].update(attributes)
+            if attributes:
+                # might not exist yet, for example when the thing group was created without attributes
+                current_attribute_payload = (
+                    thing_group.thing_group_properties.setdefault(
+                        "attributePayload", {"attributes": {}}
+                    )
+                )
+                if not do_merge:
+                    current_attribute_payload["attributes"] = attributes
+                else:
+                    current_attribute_payload["attributes"].update(attributes)
         elif attribute_payload is not None and "attributes" not in attribute_payload:
             thing_group.attributes = {}
         if "thingGroupDescription" in thing_group_properties:
