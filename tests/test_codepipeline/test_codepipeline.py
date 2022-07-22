@@ -648,8 +648,8 @@ def test_untag_resource_errors():
         "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
     )
 
-    
-simple_trust_policy =  {
+
+simple_trust_policy = {
     "Version": "2012-10-17",
     "Statement": [
         {
@@ -660,8 +660,9 @@ simple_trust_policy =  {
     ],
 }
 
+
 @mock_iam
-def get_role_arn(name = "test-role", trust_policy = None):
+def get_role_arn(name="test-role", trust_policy=None):
     client = boto3.client("iam", region_name="us-east-1")
     try:
         return client.get_role(name)["Role"]["Arn"]
@@ -724,7 +725,7 @@ def create_basic_codepipeline(client, name, role_arn=None):
         tags=[{"key": "key", "value": "value"}],
     )
 
-extended_trust_policy =  {
+extended_trust_policy = {
     "Version": "2012-10-17",
     "Statement": [
         {
@@ -744,7 +745,7 @@ extended_trust_policy =  {
 
 
 @mock_codepipeline
-def test_create_pipeline():
+def test_create_pipeline_with_extended_trust_policy():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
     role_arn = get_role_arn(name="test-role-extended", trust_policy=extended_trust_policy)
@@ -752,6 +753,6 @@ def test_create_pipeline():
     basic_role_arn = get_role_arn()
 
     extended_pipeline_details = expected_pipeline_details.replace(basic_role_arn, role_arn)
-    
+
     response["pipeline"].should.equal(extended_pipeline_details)
     response["tags"].should.equal([{"key": "key", "value": "value"}])
