@@ -715,7 +715,7 @@ def test_create_pipeline_with_extended_trust_policy():
 def test_create_pipeline_without_tags():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
-    response = create_basic_codepipeline(client, "test-pipeline-no-tags", tags=[])
+    response = create_basic_codepipeline(client, "test-pipeline", tags=[])
 
     response["pipeline"].should.equal(expected_pipeline_details)
     response["tags"].should.equal([])
