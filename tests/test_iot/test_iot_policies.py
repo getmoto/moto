@@ -241,6 +241,45 @@ def test_policy_versions(iot_client):
     err["Message"].should.equal("Cannot delete the default version of a policy")
 
 
+def test_policy_versions_increment_beyond_5(iot_client, policy):
+    """
+    Version ids increment by one each time.
+
+    Previously there was a bug where the version id was not incremented beyond 5.
+    This prevents a regression.
+    """
+    policy_name = policy["policyName"]
+
+    for v in range(2, 11):
+        new_version = iot_client.create_policy_version(
+            policyName=policy_name,
+            policyDocument=json.dumps({"version": f"version_{v}"}),
+            setAsDefault=True,
+        )
+        new_version.should.have.key("policyVersionId").which.should.equal(str(v))
+        iot_client.delete_policy_version(
+            policyName=policy_name, policyVersionId=str(v - 1)
+        )
+
+
+def test_policy_versions_increment_even_after_version_delete(iot_client, policy):
+    """Version ids increment even if the max version was deleted."""
+
+    policy_name = policy["policyName"]
+
+    new_version = iot_client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_2"}),
+    )
+    new_version.should.have.key("policyVersionId").which.should.equal("2")
+    iot_client.delete_policy_version(policyName=policy_name, policyVersionId="2")
+    third_version = iot_client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_3"}),
+    )
+    third_version.should.have.key("policyVersionId").which.should.equal("3")
+
+
 def test_delete_policy_validation(iot_client):
     doc = """{
     "Version": "2012-10-17",
