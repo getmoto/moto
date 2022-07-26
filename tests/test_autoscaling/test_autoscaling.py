@@ -76,7 +76,7 @@ def test_create_autoscaling_group_within_elb():
     )
 
     as_client.put_scheduled_update_group_action(
-        AutoScalingGroupName="schedule-scaling-auto-scaling-group",
+        AutoScalingGroupName="tester_group",
         ScheduledActionName="my-scheduled-action",
         StartTime="2022-07-01T00:00:00Z",
         EndTime="2022-09-01T00:00:00Z",
@@ -125,12 +125,10 @@ def test_create_autoscaling_group_within_elb():
         attached_ids.should.contain(ec2_instance_id)
 
     scheduled_actions = as_client.describe_scheduled_actions(
-        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+        AutoScalingGroupName="tester_group"
     )
     scheduled_action_1 = scheduled_actions["ScheduledUpdateGroupActions"][0]
-    scheduled_action_1["AutoScalingGroupName"].should.equal(
-        "schedule-scaling-auto-scaling-group"
-    )
+    scheduled_action_1["AutoScalingGroupName"].should.equal("tester_group")
     scheduled_action_1["DesiredCapacity"].should.equal(9)
     scheduled_action_1["MaxSize"].should.equal(12)
     scheduled_action_1["MinSize"].should.equal(5)
@@ -218,7 +216,7 @@ def test_list_many_scheduled_scaling_actions():
 
     for i in range(30):
         conn.put_scheduled_update_group_action(
-            AutoScalingGroupName="schedule-scaling-auto-scaling-group",
+            AutoScalingGroupName="tester_group",
             ScheduledActionName=f"my-scheduled-action-{i}",
             StartTime=f"2022-07-01T00:00:{i}Z",
             EndTime=f"2022-09-01T00:00:{i}Z",
@@ -228,9 +226,7 @@ def test_list_many_scheduled_scaling_actions():
             DesiredCapacity=i + 3,
         )
 
-    response = conn.describe_scheduled_actions(
-        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
-    )
+    response = conn.describe_scheduled_actions(AutoScalingGroupName="tester_group")
     actions = response["ScheduledUpdateGroupActions"]
     actions.should.have.length_of(30)
 
@@ -305,7 +301,7 @@ def test_scheduled_action_delete():
 
     for i in range(3):
         as_client.put_scheduled_update_group_action(
-            AutoScalingGroupName="schedule-scaling-auto-scaling-group",
+            AutoScalingGroupName="tester_group",
             ScheduledActionName=f"my-scheduled-action-{i}",
             StartTime=f"2022-07-01T00:00:{i}Z",
             EndTime=f"2022-09-01T00:00:{i}Z",
@@ -315,23 +311,19 @@ def test_scheduled_action_delete():
             DesiredCapacity=i + 3,
         )
 
-    response = as_client.describe_scheduled_actions(
-        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
-    )
+    response = as_client.describe_scheduled_actions(AutoScalingGroupName="tester_group")
     actions = response["ScheduledUpdateGroupActions"]
     actions.should.have.length_of(3)
 
     as_client.delete_scheduled_action(
-        AutoScalingGroupName="schedule-scaling-auto-scaling-group",
+        AutoScalingGroupName="tester_group",
         ScheduledActionName="my-scheduled-action-2",
     )
     as_client.delete_scheduled_action(
-        AutoScalingGroupName="schedule-scaling-auto-scaling-group",
+        AutoScalingGroupName="tester_group",
         ScheduledActionName="my-scheduled-action-1",
     )
-    response = as_client.describe_scheduled_actions(
-        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
-    )
+    response = as_client.describe_scheduled_actions(AutoScalingGroupName="tester_group")
     actions = response["ScheduledUpdateGroupActions"]
     actions.should.have.length_of(1)
 

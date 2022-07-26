@@ -836,13 +836,10 @@ class AutoScalingBackend(BaseBackend):
         end_time=None,
         recurrence=None,
     ):
-        # TODO: Add validations for parameters
-        def make_int(value):
-            return int(value) if value is not None else value
 
-        max_size = make_int(max_size)
-        min_size = make_int(min_size)
-        desired_capacity = make_int(desired_capacity)
+        max_size = self.make_int(max_size)
+        min_size = self.make_int(min_size)
+        desired_capacity = self.make_int(desired_capacity)
 
         scheduled_action = FakeScheduledAction(
             name=name,
@@ -876,7 +873,7 @@ class AutoScalingBackend(BaseBackend):
         )
         if scheduled_action:
             self.scheduled_actions.pop(scheduled_action_name, None)
-    
+
     def create_auto_scaling_group(
         self,
         name,
