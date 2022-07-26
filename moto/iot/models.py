@@ -1226,7 +1226,21 @@ class IoTBackend(BaseBackend):
             self.region_name,
             self.thing_groups,
         )
-        self.thing_groups[thing_group.arn] = thing_group
+        # this behavior is not documented, but AWS does it like that
+        # if a thing group with the same name exists, it's properties are compared
+        # if they differ, an error is returned.
+        # Otherwise, the old thing group is returned
+        if thing_group.arn in self.thing_groups:
+            current_thing_group = self.thing_groups[thing_group.arn]
+            if current_thing_group.thing_group_properties != thing_group_properties:
+                raise ResourceAlreadyExistsException(
+                    msg=f"Thing Group {thing_group_name} already exists in current account with different properties",
+                    resource_arn=thing_group.arn,
+                    resource_id=current_thing_group.thing_group_id,
+                )
+            thing_group = current_thing_group
+        else:
+            self.thing_groups[thing_group.arn] = thing_group
         return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
 
     def delete_thing_group(self, thing_group_name):
