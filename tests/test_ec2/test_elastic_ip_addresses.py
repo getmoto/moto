@@ -689,7 +689,9 @@ def test_describe_addresses_with_vpc_associated_eni():
         NetworkInterfaceId=eni.id, PublicIp=eip["PublicIp"]
     )["AssociationId"]
 
-    result = client.describe_addresses()
+    result = client.describe_addresses(
+        Filters=[{"Name": "association-id", "Values": [association_id]}]
+    )
 
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     result["Addresses"].should.have.length_of(1)
