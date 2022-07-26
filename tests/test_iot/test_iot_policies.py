@@ -324,3 +324,17 @@ def test_attach_policy_to_non_existant_thing_group_raises_ResourceNotFoundExcept
 
     with pytest.raises(ClientError, match=thing_group_arn):
         iot_client.attach_policy(policyName=policy_name, target=thing_group_arn)
+
+
+def test_policy_delete_fails_when_versions_exist(iot_client, policy):
+    policy_name = policy["policyName"]
+    iot_client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=policy["policyDocument"],
+        setAsDefault=True,
+    )
+    with pytest.raises(ClientError) as e:
+        iot_client.delete_policy(policyName=policy_name)
+    e.value.response["Error"]["Message"].should.contain(
+        "Cannot delete the policy because it has one or more policy versions attached to it"
+    )

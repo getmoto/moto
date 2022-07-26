@@ -1024,7 +1024,6 @@ class IoTBackend(BaseBackend):
         return policies[0]
 
     def delete_policy(self, policy_name):
-
         policies = [
             k[1] for k, v in self.principal_policies.items() if k[1] == policy_name
         ]
@@ -1035,6 +1034,11 @@ class IoTBackend(BaseBackend):
             )
 
         policy = self.get_policy(policy_name)
+        if len(policy.versions) > 1:
+            raise DeleteConflictException(
+                "Cannot delete the policy because it has one or more policy versions attached to it (name=%s)"
+                % policy_name
+            )
         del self.policies[policy.name]
 
     def create_policy_version(self, policy_name, policy_document, set_as_default):
