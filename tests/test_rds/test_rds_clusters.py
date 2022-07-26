@@ -375,10 +375,8 @@ def test_create_db_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -401,10 +399,8 @@ def test_create_db_cluster_snapshot_copy_tags():
 
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -446,10 +442,8 @@ def test_copy_db_cluster_snapshot():
 
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -479,10 +473,8 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
 
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -513,10 +505,8 @@ def test_describe_db_cluster_snapshots():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -554,10 +544,8 @@ def test_delete_db_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -578,10 +566,8 @@ def test_restore_db_cluster_from_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -592,24 +578,33 @@ def test_restore_db_cluster_from_snapshot():
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
     )
 
-    # restore
+    # restore cluster
     new_cluster = conn.restore_db_cluster_from_snapshot(
         DBClusterIdentifier="db-restore-1",
         SnapshotIdentifier="snapshot-1",
         Engine="postgres",
     )["DBCluster"]
+
+    # Verify it exists
+    conn.describe_db_clusters()["DBClusters"].should.have.length_of(2)
+
     new_cluster["DBClusterIdentifier"].should.equal("db-restore-1")
-    new_cluster["DBClusterInstanceClass"].should.equal("db.m1.small")
-    new_cluster["StorageType"].should.equal("gp2")
     new_cluster["Engine"].should.equal("postgres")
     new_cluster["DatabaseName"].should.equal("staging-postgres")
     new_cluster["Port"].should.equal(1234)
 
-    # Verify it exists
-    conn.describe_db_clusters()["DBClusters"].should.have.length_of(2)
-    conn.describe_db_clusters(DBClusterIdentifier="db-restore-1")[
-        "DBClusters"
-    ].should.have.length_of(1)
+    # create instance
+    new_instance = conn.create_db_instance(
+        DBClusterIdentifier="db-restore-1",
+        DBInstanceIdentifier="db-restore-1-0",
+        DBInstanceClass="db.m1.small",
+        Engine="postgres",
+    )["DBInstance"]
+
+    new_instance["DBClusterIdentifier"].should.equal("db-restore-1")
+    new_instance["Engine"].should.equal("postgres")
+    new_instance["DBInstanceClass"].should.equal("db.m1.small")
+    new_instance["StorageType"].should.equal("gp2")
 
 
 @mock_rds
@@ -617,15 +612,15 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
     )
+
     conn.describe_db_clusters()["DBClusters"].should.have.length_of(1)
+
     conn.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
     )
@@ -636,12 +631,20 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
         SnapshotIdentifier="snapshot-1",
         Engine="postgres",
         Port=10000,
-        DBClusterInstanceClass="db.r6g.xlarge",
     )["DBCluster"]
+
     new_cluster["DBClusterIdentifier"].should.equal("db-restore-1")
     new_cluster["DBClusterParameterGroup"].should.equal("default.aurora8.0")
-    new_cluster["DBClusterInstanceClass"].should.equal("db.r6g.xlarge")
     new_cluster["Port"].should.equal(10000)
+
+    new_instance = conn.create_db_instance(
+        AllocatedStorage=10,
+        DBClusterIdentifier="db-restore-1",
+        DBInstanceIdentifier="db-restore-1-0",
+        DBInstanceClass="db.r6g.xlarge",
+        Engine="postgres",
+    )["DBInstance"]
+    new_instance["DBInstanceClass"].should.equal("db.r6g.xlarge")
 
 
 @mock_rds
@@ -649,10 +652,8 @@ def test_add_tags_to_cluster():
     conn = boto3.client("rds", region_name="us-west-2")
     resp = conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
@@ -678,10 +679,8 @@ def test_add_tags_to_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
         DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
         MasterUsername="root",
         MasterUserPassword="hunter2000",
         Port=1234,
