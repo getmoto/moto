@@ -87,7 +87,7 @@ class VirtualMfaDevice(object):
         ).decode("ascii")
         self.qr_code_png = base64.b64encode(
             os.urandom(64)
-        )  # this would be a generated PNG
+        ).decode("ascii")  # this would be a generated PNG
 
         self.enable_date = None
         self.user_attribute = None
