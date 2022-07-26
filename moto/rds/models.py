@@ -1801,6 +1801,8 @@ class RDSBackend(BaseBackend):
 
     def describe_db_clusters(self, cluster_identifier):
         if cluster_identifier:
+            if cluster_identifier not in self.clusters:
+                raise DBClusterNotFoundError(cluster_identifier)
             return [self.clusters[cluster_identifier]]
         return self.clusters.values()
 
