@@ -25,6 +25,8 @@ from moto import settings
 
 log = logging.getLogger(__name__)
 
+JINJA_ENVS = {}
+
 
 def _decode_dict(d):
     decoded = OrderedDict()
@@ -81,20 +83,30 @@ class _TemplateEnvironmentMixin(object):
     LEFT_PATTERN = re.compile(r"[\s\n]+<")
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
-    def __init__(self):
-        super().__init__()
-        self.loader = DynamicDictLoader({})
-        self.environment = Environment(
-            loader=self.loader, autoescape=self.should_autoescape
-        )
-
     @property
     def should_autoescape(self):
         # Allow for subclass to overwrite
         return False
 
+    @property
+    def environment(self):
+        key = type(self)
+        try:
+            environment = JINJA_ENVS[key]
+        except KeyError:
+            loader = DynamicDictLoader({})
+            environment = Environment(
+                loader=loader,
+                autoescape=self.should_autoescape,
+                trim_blocks=True,
+                lstrip_blocks=True,
+            )
+            JINJA_ENVS[key] = environment
+
+        return environment
+
     def contains_template(self, template_id):
-        return self.loader.contains(template_id)
+        return self.environment.loader.contains(template_id)
 
     def response_template(self, source):
         template_id = id(source)
@@ -102,13 +114,7 @@ class _TemplateEnvironmentMixin(object):
             collapsed = re.sub(
                 self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
             )
-            self.loader.update({template_id: collapsed})
-            self.environment = Environment(
-                loader=self.loader,
-                autoescape=self.should_autoescape,
-                trim_blocks=True,
-                lstrip_blocks=True,
-            )
+            self.environment.loader.update({template_id: collapsed})
         return self.environment.get_template(template_id)
 
 

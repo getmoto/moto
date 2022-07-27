@@ -1566,6 +1566,25 @@ def test_run_instance_with_keypair():
 
 
 @mock_ec2
+def test_describe_instances_with_keypair_filter():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    for i in range(3):
+        key_name = "kp-single" if i % 2 else "kp-multiple"
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName=key_name
+        )
+    test_data = [
+        (["kp-single"], 1),
+        (["kp-multiple"], 2),
+        (["kp-single", "kp-multiple"], 3),
+    ]
+    for filter_values, expected_instance_count in test_data:
+        _filter = [{"Name": "key-name", "Values": filter_values}]
+        instances_found = list(ec2.instances.filter(Filters=_filter))
+        instances_found.should.have.length_of(expected_instance_count)
+
+
+@mock_ec2
 @mock.patch(
     "moto.ec2.models.instances.settings.ENABLE_KEYPAIR_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),

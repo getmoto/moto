@@ -563,3 +563,34 @@ def test_thing_group_relations():
     things = client.list_things_in_thing_group(thingGroupName=group_name)
     things.should.have.key("things")
     things["things"].should.have.length_of(0)
+
+
+@mock_iot
+def test_thing_group_already_exists_with_different_properties_raises():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_group_name = "my-group-name"
+    client.create_thing_group(
+        thingGroupName=thing_group_name,
+        thingGroupProperties={"thingGroupDescription": "Current description"},
+    )
+
+    with pytest.raises(
+        client.exceptions.ResourceAlreadyExistsException,
+        match=f"Thing Group {thing_group_name} already exists in current account with different properties",
+    ):
+        client.create_thing_group(thingGroupName=thing_group_name)
+
+
+@mock_iot
+def test_thing_group_already_exists_with_same_properties_returned():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_group_name = "my-group-name"
+    thing_group_properties = {"thingGroupDescription": "Current description"}
+    current_thing_group = client.create_thing_group(
+        thingGroupName=thing_group_name, thingGroupProperties=thing_group_properties
+    )
+
+    thing_group = client.create_thing_group(
+        thingGroupName=thing_group_name, thingGroupProperties=thing_group_properties
+    )
+    assert thing_group == current_thing_group

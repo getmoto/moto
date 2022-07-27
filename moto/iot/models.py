@@ -216,6 +216,7 @@ class FakePolicy(BaseModel):
         self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
+        self._max_version_id = self.versions[0]._version_id
 
     def to_get_dict(self):
         return {
@@ -238,15 +239,19 @@ class FakePolicy(BaseModel):
 
 
 class FakePolicyVersion(object):
-    def __init__(self, policy_name, document, is_default, region_name):
+    def __init__(self, policy_name, document, is_default, region_name, version_id=1):
         self.name = policy_name
         self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
-        self.version_id = "1"
+        self._version_id = version_id
 
         self.create_datetime = time.mktime(datetime(2015, 1, 1).timetuple())
         self.last_modified_datetime = time.mktime(datetime(2015, 1, 2).timetuple())
+
+    @property
+    def version_id(self):
+        return str(self._version_id)
 
     def to_get_dict(self):
         return {
@@ -1024,7 +1029,6 @@ class IoTBackend(BaseBackend):
         return policies[0]
 
     def delete_policy(self, policy_name):
-
         policies = [
             k[1] for k, v in self.principal_policies.items() if k[1] == policy_name
         ]
@@ -1035,6 +1039,11 @@ class IoTBackend(BaseBackend):
             )
 
         policy = self.get_policy(policy_name)
+        if len(policy.versions) > 1:
+            raise DeleteConflictException(
+                "Cannot delete the policy because it has one or more policy versions attached to it (name=%s)"
+                % policy_name
+            )
         del self.policies[policy.name]
 
     def create_policy_version(self, policy_name, policy_document, set_as_default):
@@ -1043,11 +1052,16 @@ class IoTBackend(BaseBackend):
             raise ResourceNotFoundException()
         if len(policy.versions) >= 5:
             raise VersionsLimitExceededException(policy_name)
+
+        policy._max_version_id += 1
         version = FakePolicyVersion(
-            policy_name, policy_document, set_as_default, self.region_name
+            policy_name,
+            policy_document,
+            set_as_default,
+            self.region_name,
+            version_id=policy._max_version_id,
         )
         policy.versions.append(version)
-        version.version_id = "{0}".format(len(policy.versions))
         if set_as_default:
             self.set_default_policy_version(policy_name, version.version_id)
         return version
@@ -1212,7 +1226,21 @@ class IoTBackend(BaseBackend):
             self.region_name,
             self.thing_groups,
         )
-        self.thing_groups[thing_group.arn] = thing_group
+        # this behavior is not documented, but AWS does it like that
+        # if a thing group with the same name exists, it's properties are compared
+        # if they differ, an error is returned.
+        # Otherwise, the old thing group is returned
+        if thing_group.arn in self.thing_groups:
+            current_thing_group = self.thing_groups[thing_group.arn]
+            if current_thing_group.thing_group_properties != thing_group_properties:
+                raise ResourceAlreadyExistsException(
+                    msg=f"Thing Group {thing_group_name} already exists in current account with different properties",
+                    resource_arn=thing_group.arn,
+                    resource_id=current_thing_group.thing_group_id,
+                )
+            thing_group = current_thing_group
+        else:
+            self.thing_groups[thing_group.arn] = thing_group
         return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
 
     def delete_thing_group(self, thing_group_name):
