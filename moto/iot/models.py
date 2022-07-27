@@ -1311,6 +1311,10 @@ class IoTBackend(BaseBackend):
                 ].update(attributes)
         elif attribute_payload is not None and "attributes" not in attribute_payload:
             thing_group.attributes = {}
+        if "thingGroupDescription" in thing_group_properties:
+            thing_group.thing_group_properties[
+                "thingGroupDescription"
+            ] = thing_group_properties["thingGroupDescription"]
         thing_group.version = thing_group.version + 1
         return thing_group.version
 
