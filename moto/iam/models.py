@@ -59,6 +59,9 @@ SERVICE_NAME_CONVERSION = {
 }
 
 
+LIMIT_KEYS_PER_USER = 2
+
+
 class MFADevice(object):
     """MFA Device class."""
 
@@ -2423,6 +2426,12 @@ class IAMBackend(BaseBackend):
 
     def create_access_key(self, user_name=None, status="Active"):
         user = self.get_user(user_name)
+        keys = self.list_access_keys(user_name)
+        if len(keys) >= LIMIT_KEYS_PER_USER:
+            raise IAMLimitExceededException(
+                f"Cannot exceed quota for AccessKeysPerUser: {LIMIT_KEYS_PER_USER}"
+            )
+
         key = user.create_access_key(status)
         self.access_keys[key.physical_resource_id] = key
         return key
