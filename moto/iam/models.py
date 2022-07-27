@@ -2427,7 +2427,7 @@ class IAMBackend(BaseBackend):
     def create_access_key(self, user_name=None, status="Active"):
         user = self.get_user(user_name)
         keys = self.list_access_keys(user_name)
-        if len(keys) == LIMIT_KEYS_PER_USER:
+        if len(keys) >= LIMIT_KEYS_PER_USER:
             raise IAMLimitExceededException(
                 f"Cannot exceed quota for AccessKeysPerUser: {LIMIT_KEYS_PER_USER}"
             )
