@@ -594,3 +594,24 @@ def test_thing_group_already_exists_with_same_properties_returned():
         thingGroupName=thing_group_name, thingGroupProperties=thing_group_properties
     )
     assert thing_group == current_thing_group
+
+
+@mock_iot
+def test_thing_group_updates_description():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-thing-group"
+    new_description = "new description"
+    client.create_thing_group(
+        thingGroupName=name,
+        thingGroupProperties={"thingGroupDescription": "initial-description"},
+    )
+
+    client.update_thing_group(
+        thingGroupName=name,
+        thingGroupProperties={"thingGroupDescription": new_description},
+    )
+
+    thing_group = client.describe_thing_group(thingGroupName=name)
+    thing_group.should.have.key("thingGroupProperties").which.should.have.key(
+        "thingGroupDescription"
+    ).which.should.equal(new_description)
