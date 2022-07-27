@@ -12,10 +12,14 @@ def create_database_input(database_name):
     return database_input
 
 
-def create_database(client, database_name, database_input=None):
+def create_database(client, database_name, database_input=None, catalog_id=None):
     if database_input is None:
         database_input = create_database_input(database_name)
-    return client.create_database(DatabaseInput=database_input)
+
+    database_kwargs = {"DatabaseInput": database_input}
+    if catalog_id is not None:
+        database_kwargs["CatalogId"] = catalog_id
+    return client.create_database(**database_kwargs)
 
 
 def get_database(client, database_name):

@@ -4,7 +4,8 @@ from moto.core.responses import BaseResponse
 class AvailabilityZonesAndRegions(BaseResponse):
     def describe_availability_zones(self):
         self.error_on_dryrun()
-        zones = self.ec2_backend.describe_availability_zones()
+        filters = self._filters_from_querystring()
+        zones = self.ec2_backend.describe_availability_zones(filters)
         template = self.response_template(DESCRIBE_ZONES_RESPONSE)
         return template.render(zones=zones)
 
@@ -38,6 +39,7 @@ DESCRIBE_ZONES_RESPONSE = """<DescribeAvailabilityZonesResponse xmlns="http://ec
           <zoneState>available</zoneState>
           <regionName>{{ zone.region_name }}</regionName>
           <zoneId>{{ zone.zone_id }}</zoneId>
+          <zoneType>{{ zone.zone_type }}</zoneType>
           <messageSet/>
        </item>
    {% endfor %}

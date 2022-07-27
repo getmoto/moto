@@ -15,6 +15,8 @@ from datetime import datetime
 from uuid import uuid4
 from urllib import parse
 
+from moto.s3.responses import DEFAULT_REGION_NAME
+
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
 MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
@@ -1442,6 +1444,22 @@ def test_create_access_key():
     access_key["AccessKeyId"].should.have.length_of(20)
     access_key["SecretAccessKey"].should.have.length_of(40)
     assert access_key["AccessKeyId"].startswith("AKIA")
+
+
+@mock_iam
+def test_limit_access_key_per_user():
+    conn = boto3.client("iam", region_name=DEFAULT_REGION_NAME)
+    user_name = "test-user"
+    conn.create_user(UserName=user_name)
+
+    conn.create_access_key(UserName=user_name)
+    conn.create_access_key(UserName=user_name)
+    with pytest.raises(ClientError) as ex:
+        conn.create_access_key(UserName=user_name)
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("LimitExceeded")
+    err["Message"].should.equal("Cannot exceed quota for AccessKeysPerUser: 2")
 
 
 @mock_iam

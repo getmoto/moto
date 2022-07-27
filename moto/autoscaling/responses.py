@@ -102,6 +102,20 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
+    def put_scheduled_update_group_action(self):
+        self.autoscaling_backend.put_scheduled_update_group_action(
+            name=self._get_param("AutoScalingGroupName"),
+            desired_capacity=self._get_int_param("DesiredCapacity"),
+            max_size=self._get_int_param("MaxSize"),
+            min_size=self._get_int_param("MinSize"),
+            scheduled_action_name=None,
+            start_time=self._get_param("StartTime"),
+            end_time=self._get_param("EndTime"),
+            recurrence=self._get_param("Recurrence"),
+        )
+        template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
+        return template.render()
+
     @amz_crc32
     @amzn_request_id
     def attach_instances(self):
@@ -579,6 +593,12 @@ CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="ht
 <RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
 </ResponseMetadata>
 </CreateAutoScalingGroupResponse>"""
+
+PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+<RequestId></RequestId>
+</ResponseMetadata>
+</PutScheduledUpdateGroupActionResponse>"""
 
 ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancerTargetGroupsResult>

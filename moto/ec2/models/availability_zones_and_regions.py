@@ -1,4 +1,5 @@
 from boto3 import Session
+from moto.utilities.utils import filter_resources
 
 
 class Region(object):
@@ -9,10 +10,11 @@ class Region(object):
 
 
 class Zone(object):
-    def __init__(self, name, region_name, zone_id):
+    def __init__(self, name, region_name, zone_id, zone_type="availability-zone"):
         self.name = name
         self.region_name = region_name
         self.zone_id = zone_id
+        self.zone_type = zone_type
 
 
 class RegionsAndZonesBackend:
@@ -304,9 +306,19 @@ class RegionsAndZonesBackend:
                     ret.append(region)
         return ret
 
-    def describe_availability_zones(self):
+    def describe_availability_zones(self, filters=None):
         # We might not have any zones for the current region, if it was introduced recently
-        return self.zones.get(self.region_name, [])
+        zones = self.zones.get(self.region_name, [])
+        attr_pairs = (
+            ("zone-id", "zone_id"),
+            ("zone-type", "zone_type"),
+            ("zone-name", "name"),
+            ("region-name", "region_name"),
+        )
+        result = zones
+        if filters:
+            result = filter_resources(zones, filters, attr_pairs)
+        return result
 
     def get_zone_by_name(self, name):
         for zone in self.describe_availability_zones():

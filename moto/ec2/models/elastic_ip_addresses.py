@@ -37,7 +37,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-eip.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-eip.html
         return "AWS::EC2::EIP"
 
     @classmethod

@@ -1,6 +1,7 @@
 import json
 import os
 from collections import defaultdict
+from copy import copy
 from datetime import datetime, timedelta
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
@@ -55,8 +56,10 @@ class Grant(BaseModel):
 
 
 class Key(CloudFormationModel):
-    def __init__(self, policy, key_usage, key_spec, description, region):
-        self.id = generate_key_id()
+    def __init__(
+        self, policy, key_usage, key_spec, description, region, multi_region=False
+    ):
+        self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
@@ -64,6 +67,7 @@ class Key(CloudFormationModel):
         self.description = description or ""
         self.enabled = True
         self.region = region
+        self.multi_region = multi_region
         self.account_id = get_account_id()
         self.key_rotation_status = False
         self.deletion_date = None
@@ -184,6 +188,7 @@ class Key(CloudFormationModel):
                 "KeyManager": self.key_manager,
                 "KeyUsage": self.key_usage,
                 "KeyState": self.key_state,
+                "MultiRegion": self.multi_region,
                 "Origin": self.origin,
                 "SigningAlgorithms": self.signing_algorithms,
             }
@@ -264,12 +269,30 @@ class KmsBackend(BaseBackend):
             self.add_alias(key.id, alias_name)
             return key.id
 
-    def create_key(self, policy, key_usage, key_spec, description, tags, region):
-        key = Key(policy, key_usage, key_spec, description, region)
+    def create_key(
+        self, policy, key_usage, key_spec, description, tags, region, multi_region=False
+    ):
+        key = Key(policy, key_usage, key_spec, description, region, multi_region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
         return key
+
+    # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html#mrk-sync-properties
+    # In AWS replicas of a key only share some properties with the original key. Some of those properties get updated
+    # in all replicas automatically if those properties change in the original key. Also, such properties can not be
+    # changed for replicas directly.
+    #
+    # In our implementation with just create a copy of all the properties once without any protection from change,
+    # as the exact implementation is currently infeasible.
+    def replicate_key(self, key_id, replica_region):
+        # Using copy() instead of deepcopy(), as the latter results in exception:
+        #    TypeError: cannot pickle '_cffi_backend.FFI' object
+        # Since we only update top level properties, copy() should suffice.
+        replica_key = copy(self.keys[key_id])
+        replica_key.region = replica_region
+        to_region_backend = kms_backends[replica_region]
+        to_region_backend.keys[replica_key.id] = replica_key
 
     def update_key_description(self, key_id, description):
         key = self.keys[self.get_key_id(key_id)]

@@ -11,6 +11,7 @@ import pytz
 from freezegun import freeze_time
 
 from moto import mock_glue, settings
+from moto.core import ACCOUNT_ID
 from . import helpers
 
 
@@ -22,8 +23,9 @@ FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0)
 def test_create_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
+    database_catalog_id = ACCOUNT_ID
     database_input = helpers.create_database_input(database_name)
-    helpers.create_database(client, database_name, database_input)
+    helpers.create_database(client, database_name, database_input, database_catalog_id)
 
     response = helpers.get_database(client, database_name)
     database = response["Database"]
@@ -38,7 +40,7 @@ def test_create_database():
         database_input.get("CreateTableDefaultPermissions")
     )
     database.get("TargetDatabase").should.equal(database_input.get("TargetDatabase"))
-    database.get("CatalogId").should.equal(database_input.get("CatalogId"))
+    database.get("CatalogId").should.equal(database_catalog_id)
 
 
 @mock_glue
