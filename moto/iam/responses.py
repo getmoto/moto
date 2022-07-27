@@ -255,8 +255,8 @@ class IamResponse(BaseResponse):
 
     def update_assume_role_policy(self):
         role_name = self._get_param("RoleName")
-        role = self.backend.get_role(role_name)
-        role.assume_role_policy_document = self._get_param("PolicyDocument")
+        policy_document = self._get_param("PolicyDocument")
+        self.backend.update_assume_role_policy(role_name, policy_document)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicy")
 
