@@ -108,12 +108,30 @@ class AutoScalingResponse(BaseResponse):
             desired_capacity=self._get_int_param("DesiredCapacity"),
             max_size=self._get_int_param("MaxSize"),
             min_size=self._get_int_param("MinSize"),
-            scheduled_action_name=None,
+            scheduled_action_name=self._get_param("ScheduledActionName"),
             start_time=self._get_param("StartTime"),
             end_time=self._get_param("EndTime"),
             recurrence=self._get_param("Recurrence"),
         )
         template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
+        return template.render()
+
+    def describe_scheduled_actions(self):
+        scheduled_actions = self.autoscaling_backend.describe_scheduled_actions(
+            autoscaling_group_name=self._get_param("AutoScalingGroupName"),
+            scheduled_action_names=self._get_multi_param("ScheduledActionNames.member"),
+        )
+        template = self.response_template(DESCRIBE_SCHEDULED_ACTIONS)
+        return template.render(scheduled_actions=scheduled_actions)
+
+    def delete_scheduled_action(self):
+        auto_scaling_group_name = self._get_param("AutoScalingGroupName")
+        scheduled_action_name = self._get_param("ScheduledActionName")
+        self.autoscaling_backend.delete_scheduled_action(
+            auto_scaling_group_name=auto_scaling_group_name,
+            scheduled_action_name=scheduled_action_name,
+        )
+        template = self.response_template(DELETE_SCHEDULED_ACTION_TEMPLATE)
         return template.render()
 
     @amz_crc32
@@ -599,6 +617,38 @@ PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionRe
 <RequestId></RequestId>
 </ResponseMetadata>
 </PutScheduledUpdateGroupActionResponse>"""
+
+DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <DescribeScheduledActionsResult>
+    <ScheduledUpdateGroupActions>
+      {% for scheduled_action in scheduled_actions %}
+      <member>
+        <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
+        <ScheduledActionName> {{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
+        {% if scheduled_action.start_time %}
+        <StartTime>{{ scheduled_action.start_time }}</StartTime>
+        {% endif %}
+        {% if scheduled_action.end_time %}
+        <EndTime>{{ scheduled_action.end_time }}</EndTime>
+        {% endif %}
+        {% if scheduled_action.recurrence %}
+        <Recurrence>{{ scheduled_action.recurrence }}</Recurrence>
+        {% endif %}
+        <MinSize>{{ scheduled_action.min_size }}</MinSize>
+        <MaxSize>{{ scheduled_action.max_size }}</MaxSize>
+        <DesiredCapacity>{{ scheduled_action.desired_capacity }}</DesiredCapacity>
+      </member>
+      {% endfor %}
+    </ScheduledUpdateGroupActions>
+  </DescribeScheduledActionsResult>
+</DescribeScheduledActionsResponse>
+"""
+
+DELETE_SCHEDULED_ACTION_TEMPLATE = """<DeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteScheduledActionResponse>"""
 
 ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancerTargetGroupsResult>
