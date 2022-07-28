@@ -860,10 +860,14 @@ class AutoScalingBackend(BaseBackend):
     ):
         scheduled_actions = []
         for scheduled_action in self.scheduled_actions.values():
-            if scheduled_action.scheduled_action_name in scheduled_action_names:
-                scheduled_actions.append(scheduled_action)
-            elif not scheduled_action_names and autoscaling_group_name:
-                scheduled_actions.append(scheduled_action)
+            if (
+                not autoscaling_group_name
+                or scheduled_action.name == autoscaling_group_name
+            ):
+                if scheduled_action.scheduled_action_name in scheduled_action_names:
+                    scheduled_actions.append(scheduled_action)
+                elif not scheduled_action_names:
+                    scheduled_actions.append(scheduled_action)
 
         return scheduled_actions
 
