@@ -401,7 +401,7 @@ def test_autoscaling_group_with_elb():
 
     # confirm scheduled scaling action was created
     response = client.describe_scheduled_actions(
-        AutoScalingGroupName="schedule-scaling-auto-sclaing-group"
+        AutoScalingGroupName="test-scaling-group"
     )["ScheduledUpdateGroupActions"]
     response.should.have.length_of(1)
 
