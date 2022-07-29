@@ -184,20 +184,24 @@ def test_response_environment_preserved_by_type():
     source_1 = "template"
     source_2 = "amother template"
 
-    assert not resp_a.contains_template(id(source_1))
+    assert not resp_a.contains_template(BaseResponse._make_template_id(source_1))
     resp_a.response_template(source_1)
-    assert resp_a.contains_template(id(source_1))
+    assert resp_a.contains_template(BaseResponse._make_template_id(source_1))
 
-    assert not resp_a.contains_template(id(source_2))
+    assert not resp_a.contains_template(BaseResponse._make_template_id(source_2))
     resp_a.response_template(source_2)
-    assert resp_a.contains_template(id(source_2))
+    assert resp_a.contains_template(BaseResponse._make_template_id(source_2))
 
-    assert not resp_b.contains_template(id(source_1))
-    assert not resp_b.contains_template(id(source_2))
+    assert not resp_b.contains_template(BaseResponse._make_template_id(source_1))
+    assert not resp_b.contains_template(BaseResponse._make_template_id(source_2))
 
-    assert another_resp_a.contains_template(id(source_1))
-    assert another_resp_a.contains_template(id(source_2))
+    assert another_resp_a.contains_template(BaseResponse._make_template_id(source_1))
+    assert another_resp_a.contains_template(BaseResponse._make_template_id(source_2))
 
     resp_a_new_instance = ResponseA()
-    assert resp_a_new_instance.contains_template(id(source_1))
-    assert resp_a_new_instance.contains_template(id(source_2))
+    assert resp_a_new_instance.contains_template(
+        BaseResponse._make_template_id(source_1)
+    )
+    assert resp_a_new_instance.contains_template(
+        BaseResponse._make_template_id(source_2)
+    )

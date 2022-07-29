@@ -108,8 +108,17 @@ class _TemplateEnvironmentMixin(object):
     def contains_template(self, template_id):
         return self.environment.loader.contains(template_id)
 
+    @classmethod
+    def _make_template_id(cls, source):
+        """
+        Return a numeric string that's unique for the lifetime of the source.
+
+        Jinja2 expects to template IDs to be strings.
+        """
+        return str(id(source))
+
     def response_template(self, source):
-        template_id = id(source)
+        template_id = self._make_template_id(source)
         if not self.contains_template(template_id):
             collapsed = re.sub(
                 self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
