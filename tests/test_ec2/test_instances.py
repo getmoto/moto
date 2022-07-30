@@ -1991,6 +1991,22 @@ def test_modify_delete_on_termination():
 
 
 @mock_ec2
+def test_create_instance_with_default_options():
+    client = boto3.client("ec2", region_name="eu-west-1")
+
+    def assert_instance(instance):
+        # TODO: Add additional asserts for default instance response
+        assert instance["ImageId"] == EXAMPLE_AMI_ID
+        assert "KeyName" not in instance
+
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1)
+    assert_instance(resp["Instances"][0])
+
+    resp = client.describe_instances(InstanceIds=[resp["Instances"][0]["InstanceId"]])
+    assert_instance(resp["Reservations"][0]["Instances"][0])
+
+
+@mock_ec2
 def test_create_instance_ebs_optimized():
     ec2_resource = boto3.resource("ec2", region_name="eu-west-1")
 
