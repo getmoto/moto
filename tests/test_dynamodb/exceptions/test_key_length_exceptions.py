@@ -296,3 +296,29 @@ def test_update_item_with_long_string_range_key_exception():
     ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
+
+
+@mock_dynamodb
+def test_item_add_empty_key_exception():
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.put_item(
+            TableName=name,
+            Item={
+                "forum_name": {"S": ""},
+                "subject": {"S": "Check this out!"},
+            },
+        )
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+    )

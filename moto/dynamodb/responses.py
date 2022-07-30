@@ -434,6 +434,12 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         self.dynamodb_backend.get_table(name)
         key = self.body["Key"]
+        empty_keys = [k for k, v in key.items() if not next(iter(v.values()))]
+        if empty_keys:
+            raise MockValidationException(
+                "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an "
+                "empty string value. Key: " + empty_keys[0]
+            )
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames")
         if expression_attribute_names == {}:
