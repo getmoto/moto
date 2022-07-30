@@ -21,7 +21,10 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     BackendDict,
 )
-from moto.iam.policy_validation import IAMPolicyDocumentValidator
+from moto.iam.policy_validation import (
+    IAMPolicyDocumentValidator,
+    IAMTrustPolicyDocumentValidator,
+)
 from moto.utilities.utils import md5_hash
 
 from .aws_managed_policies import aws_managed_policies_data
@@ -1850,6 +1853,12 @@ class IAMBackend(BaseBackend):
 
     def get_roles(self):
         return self.roles.values()
+
+    def update_assume_role_policy(self, role_name, policy_document):
+        role = self.get_role(role_name)
+        iam_policy_document_validator = IAMTrustPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+        role.assume_role_policy_document = policy_document
 
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)

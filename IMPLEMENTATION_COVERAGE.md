@@ -3290,7 +3290,7 @@
 - [X] untag_user
 - [X] update_access_key
 - [X] update_account_password_policy
-- [ ] update_assume_role_policy
+- [X] update_assume_role_policy
 - [X] update_group
 - [X] update_login_profile
 - [X] update_open_id_connect_provider_thumbprint
