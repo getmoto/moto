@@ -377,3 +377,40 @@ def test_policy_delete_fails_when_versions_exist(iot_client, policy):
     e.value.response["Error"]["Message"].should.contain(
         "Cannot delete the policy because it has one or more policy versions attached to it"
     )
+
+
+def test_list_targets_for_policy_empty(iot_client, policy):
+    res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
+    res.should.have.key("targets").which.should.have.length_of(0)
+
+
+def test_list_targets_for_policy_one_attached_thing_group(iot_client, policy):
+    thing_group = iot_client.create_thing_group(thingGroupName="my-thing-group")
+    thing_group_arn = thing_group["thingGroupArn"]
+
+    policy_name = policy["policyName"]
+    iot_client.attach_policy(policyName=policy_name, target=thing_group_arn)
+
+    res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
+    res.should.have.key("targets").which.should.have.length_of(1)
+    res["targets"][0].should.equal(thing_group_arn)
+
+
+def test_list_targets_for_policy_one_attached_certificate(iot_client, policy):
+    cert = iot_client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert["certificateArn"]
+
+    policy_name = policy["policyName"]
+    iot_client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
+    res.should.have.key("targets").which.should.have.length_of(1)
+    res["targets"][0].should.equal(cert_arn)
+
+
+def test_list_targets_for_policy_resource_not_found(iot_client):
+    with pytest.raises(ClientError) as e:
+        iot_client.list_targets_for_policy(policyName="NON_EXISTENT_POLICY_NAME")
+
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Message"].should.contain("Policy not found")

@@ -1163,10 +1163,19 @@ class IoTBackend(BaseBackend):
         return policies
 
     def list_policy_principals(self, policy_name):
+        # this action is deprecated
+        # https://docs.aws.amazon.com/iot/latest/apireference/API_ListTargetsForPolicy.html
+        # should use ListTargetsForPolicy instead
         principals = [
             k[0] for k, v in self.principal_policies.items() if k[1] == policy_name
         ]
         return principals
+
+    def list_targets_for_policy(self, policy_name):
+        # This behaviour is different to list_policy_principals which will just return an empty list
+        if policy_name not in self.policies:
+            raise ResourceNotFoundException("Policy not found")
+        return self.list_policy_principals(policy_name=policy_name)
 
     def attach_thing_principal(self, thing_name, principal_arn):
         principal = self._get_principal(principal_arn)
