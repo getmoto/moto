@@ -992,6 +992,13 @@ class IoTBackend(BaseBackend):
         cert.status = new_status
 
     def create_policy(self, policy_name, policy_document):
+        if policy_name in self.policies:
+            current_policy = self.policies[policy_name]
+            raise ResourceAlreadyExistsException(
+                f"Policy cannot be created - name already exists (name={policy_name})",
+                current_policy.name,
+                current_policy.arn,
+            )
         policy = FakePolicy(policy_name, policy_document, self.region_name)
         self.policies[policy.name] = policy
         return policy
