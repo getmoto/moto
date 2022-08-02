@@ -704,7 +704,7 @@ class DynamoHandler(BaseResponse):
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
             filter_expression=filter_expression,
-            **filter_kwargs
+            **filter_kwargs,
         )
 
         result = {
