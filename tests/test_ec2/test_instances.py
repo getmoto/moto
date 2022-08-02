@@ -1566,6 +1566,25 @@ def test_run_instance_with_keypair():
 
 
 @mock_ec2
+def test_describe_instances_with_keypair_filter():
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    for i in range(3):
+        key_name = "kp-single" if i % 2 else "kp-multiple"
+        ec2.create_instances(
+            ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, KeyName=key_name
+        )
+    test_data = [
+        (["kp-single"], 1),
+        (["kp-multiple"], 2),
+        (["kp-single", "kp-multiple"], 3),
+    ]
+    for filter_values, expected_instance_count in test_data:
+        _filter = [{"Name": "key-name", "Values": filter_values}]
+        instances_found = list(ec2.instances.filter(Filters=_filter))
+        instances_found.should.have.length_of(expected_instance_count)
+
+
+@mock_ec2
 @mock.patch(
     "moto.ec2.models.instances.settings.ENABLE_KEYPAIR_VALIDATION",
     new_callable=mock.PropertyMock(return_value=True),
@@ -1969,6 +1988,22 @@ def test_modify_delete_on_termination():
     )
     instance.load()
     instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(False)
+
+
+@mock_ec2
+def test_create_instance_with_default_options():
+    client = boto3.client("ec2", region_name="eu-west-1")
+
+    def assert_instance(instance):
+        # TODO: Add additional asserts for default instance response
+        assert instance["ImageId"] == EXAMPLE_AMI_ID
+        assert "KeyName" not in instance
+
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1)
+    assert_instance(resp["Instances"][0])
+
+    resp = client.describe_instances(InstanceIds=[resp["Instances"][0]["InstanceId"]])
+    assert_instance(resp["Reservations"][0]["Instances"][0])
 
 
 @mock_ec2

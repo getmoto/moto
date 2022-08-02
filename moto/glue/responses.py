@@ -21,6 +21,8 @@ class GlueResponse(BaseResponse):
     def create_database(self):
         database_input = self.parameters.get("DatabaseInput")
         database_name = database_input.get("Name")
+        if "CatalogId" in self.parameters:
+            database_input["CatalogId"] = self.parameters.get("CatalogId")
         self.glue_backend.create_database(database_name, database_input)
         return ""
 

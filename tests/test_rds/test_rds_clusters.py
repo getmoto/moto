@@ -16,6 +16,19 @@ def test_describe_db_cluster_initial():
 
 
 @mock_rds
+def test_describe_db_cluster_fails_for_non_existent_cluster():
+    client = boto3.client("rds", region_name="eu-north-1")
+
+    resp = client.describe_db_clusters()
+    resp.should.have.key("DBClusters").should.have.length_of(0)
+    with pytest.raises(ClientError) as ex:
+        client.describe_db_clusters(DBClusterIdentifier="cluster-id")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("DBClusterNotFoundFault")
+    err["Message"].should.equal("DBCluster cluster-id not found.")
+
+
+@mock_rds
 def test_create_db_cluster_needs_master_username():
     client = boto3.client("rds", region_name="eu-north-1")
 
