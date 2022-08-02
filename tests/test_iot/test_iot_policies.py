@@ -414,3 +414,24 @@ def test_list_targets_for_policy_resource_not_found(iot_client):
 
     e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
     e.value.response["Error"]["Message"].should.contain("Policy not found")
+
+
+def test_create_policy_fails_when_name_taken(iot_client, policy):
+    policy_name = policy["policyName"]
+
+    with pytest.raises(ClientError) as e:
+        iot_client.create_policy(
+            policyName=policy_name,
+            policyDocument='{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]}',
+        )
+
+    current_policy = iot_client.get_policy(policyName=policy_name)
+    e.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
+    e.value.response["Error"]["Message"].should.equal(
+        f"Policy cannot be created - name already exists (name={policy_name})"
+    )
+
+    # the policy should not have been overwritten
+    current_policy.should.have.key("policyDocument").which.should.equal(
+        policy["policyDocument"]
+    )
