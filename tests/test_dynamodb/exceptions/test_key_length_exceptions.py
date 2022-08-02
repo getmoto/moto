@@ -310,15 +310,13 @@ def test_item_add_empty_key_exception():
     )
 
     with pytest.raises(ClientError) as ex:
-        conn.put_item(
+        conn.get_item(
             TableName=name,
-            Item={
-                "forum_name": {"S": ""},
-                "subject": {"S": "Check this out!"},
-            },
+            Key={"forum_name": {"S": ""}},
         )
     ex.value.response["Error"]["Code"].should.equal("ValidationException")
     ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+        "One or more parameter values are not valid. The AttributeValue for a key attribute "
+        "cannot contain an empty string value. Key: forum_name"
     )
