@@ -360,7 +360,9 @@ class Route53ResolverBackend(BaseBackend):
         )
 
         associations = [
-            x for x in self.resolver_rule_associations.values() if x.region == self.region_name
+            x
+            for x in self.resolver_rule_associations.values()
+            if x.region == self.region_name
         ]
         if len(associations) > ResolverRuleAssociation.MAX_RULE_ASSOCIATIONS_PER_REGION:
             # This error message was not verified to be the same for AWS.

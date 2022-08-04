@@ -58,7 +58,10 @@ class FakeApplication(BaseModel):
         # Service-generated-parameters
         self.id = random_appplication_id()
         self.arn = APPLICATION_ARN_TEMPLATE.format(
-            partition="aws", region=region_name, account_id=account_id, application_id=self.id
+            partition="aws",
+            region=region_name,
+            account_id=account_id,
+            application_id=self.id,
         )
         self.state = APPLICATION_STATUS
         self.state_details = ""

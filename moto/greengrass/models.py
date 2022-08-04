@@ -1190,7 +1190,11 @@ class GreengrassBackend(BaseBackend):
             raise MissingCoreException(json.dumps(err))
         group_version_arn = self.group_versions[group_id][group_version_id].arn
         deployment = FakeDeployment(
-            self.account_id, self.region_name, group_id, group_version_arn, deployment_type
+            self.account_id,
+            self.region_name,
+            group_id,
+            group_version_arn,
+            deployment_type,
         )
         self.deployments[deployment.id] = deployment
         return deployment
