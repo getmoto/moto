@@ -286,6 +286,67 @@ class FakeLaunchConfiguration(CloudFormationModel):
         return block_device_map
 
 
+class FakeScheduledAction(CloudFormationModel):
+    def __init__(
+        self,
+        name,
+        desired_capacity,
+        max_size,
+        min_size,
+        scheduled_action_name=None,
+        start_time=None,
+        end_time=None,
+        recurrence=None,
+    ):
+
+        self.name = name
+        self.desired_capacity = desired_capacity
+        self.max_size = max_size
+        self.min_size = min_size
+        self.start_time = start_time
+        self.end_time = end_time
+        self.recurrence = recurrence
+        self.scheduled_action_name = scheduled_action_name
+
+    @staticmethod
+    def cloudformation_name_type():
+
+        return "ScheduledActionName"
+
+    @staticmethod
+    def cloudformation_type():
+
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-as-scheduledaction.html
+        return "AWS::AutoScaling::ScheduledAction"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name, **kwargs
+    ):
+
+        properties = cloudformation_json["Properties"]
+
+        backend = autoscaling_backends[region_name]
+
+        scheduled_action_name = (
+            kwargs["LogicalId"]
+            if kwargs.get("LogicalId")
+            else "ScheduledScalingAction-{random.randint(0,100)}"
+        )
+
+        scheduled_action = backend.put_scheduled_update_group_action(
+            name=properties.get("AutoScalingGroupName"),
+            desired_capacity=properties.get("DesiredCapacity"),
+            max_size=properties.get("MaxSize"),
+            min_size=properties.get("MinSize"),
+            scheduled_action_name=scheduled_action_name,
+            start_time=properties.get("StartTime"),
+            end_time=properties.get("EndTime"),
+            recurrence=properties.get("Recurrence"),
+        )
+        return scheduled_action
+
+
 class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
         self,
@@ -688,6 +749,7 @@ class AutoScalingBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.autoscaling_groups = OrderedDict()
         self.launch_configurations = OrderedDict()
+        self.scheduled_actions = OrderedDict()
         self.policies = {}
         self.lifecycle_hooks = {}
         self.ec2_backend = ec2_backends[self.account_id][region_name]
@@ -773,6 +835,62 @@ class AutoScalingBackend(BaseBackend):
     def delete_launch_configuration(self, launch_configuration_name):
         self.launch_configurations.pop(launch_configuration_name, None)
 
+    def make_int(self, value):
+        return int(value) if value is not None else value
+
+    def put_scheduled_update_group_action(
+        self,
+        name,
+        desired_capacity,
+        max_size,
+        min_size,
+        scheduled_action_name=None,
+        start_time=None,
+        end_time=None,
+        recurrence=None,
+    ):
+
+        max_size = self.make_int(max_size)
+        min_size = self.make_int(min_size)
+        desired_capacity = self.make_int(desired_capacity)
+
+        scheduled_action = FakeScheduledAction(
+            name=name,
+            desired_capacity=desired_capacity,
+            max_size=max_size,
+            min_size=min_size,
+            scheduled_action_name=scheduled_action_name,
+            start_time=start_time,
+            end_time=end_time,
+            recurrence=recurrence,
+        )
+
+        self.scheduled_actions[scheduled_action_name] = scheduled_action
+        return scheduled_action
+
+    def describe_scheduled_actions(
+        self, autoscaling_group_name=None, scheduled_action_names=None
+    ):
+        scheduled_actions = []
+        for scheduled_action in self.scheduled_actions.values():
+            if (
+                not autoscaling_group_name
+                or scheduled_action.name == autoscaling_group_name
+            ):
+                if scheduled_action.scheduled_action_name in scheduled_action_names:
+                    scheduled_actions.append(scheduled_action)
+                elif not scheduled_action_names:
+                    scheduled_actions.append(scheduled_action)
+
+        return scheduled_actions
+
+    def delete_scheduled_action(self, auto_scaling_group_name, scheduled_action_name):
+        scheduled_action = self.describe_scheduled_actions(
+            auto_scaling_group_name, scheduled_action_name
+        )
+        if scheduled_action:
+            self.scheduled_actions.pop(scheduled_action_name, None)
+
     def create_auto_scaling_group(
         self,
         name,
@@ -794,17 +912,14 @@ class AutoScalingBackend(BaseBackend):
         new_instances_protected_from_scale_in=False,
         instance_id=None,
     ):
-        def make_int(value):
-            return int(value) if value is not None else value
-
-        max_size = make_int(max_size)
-        min_size = make_int(min_size)
-        desired_capacity = make_int(desired_capacity)
-        default_cooldown = make_int(default_cooldown)
+        max_size = self.make_int(max_size)
+        min_size = self.make_int(min_size)
+        desired_capacity = self.make_int(desired_capacity)
+        default_cooldown = self.make_int(default_cooldown)
         if health_check_period is None:
             health_check_period = 300
         else:
-            health_check_period = make_int(health_check_period)
+            health_check_period = self.make_int(health_check_period)
 
         # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.

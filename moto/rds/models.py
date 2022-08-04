@@ -645,6 +645,9 @@ class Database(CloudFormationModel):
     @staticmethod
     def default_port(engine):
         return {
+            "aurora": 3306,
+            "aurora-mysql": 3306,
+            "aurora-postgresql": 5432,
             "mysql": 3306,
             "mariadb": 3306,
             "postgres": 5432,
@@ -669,6 +672,8 @@ class Database(CloudFormationModel):
     def default_allocated_storage(engine, storage_type):
         return {
             "aurora": {"gp2": 0, "io1": 0, "standard": 0},
+            "aurora-mysql": {"gp2": 20, "io1": 100, "standard": 10},
+            "aurora-postgresql": {"gp2": 20, "io1": 100, "standard": 10},
             "mysql": {"gp2": 20, "io1": 100, "standard": 5},
             "mariadb": {"gp2": 20, "io1": 100, "standard": 5},
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
@@ -1786,6 +1791,8 @@ class RDSBackend(BaseBackend):
 
     def describe_db_clusters(self, cluster_identifier):
         if cluster_identifier:
+            if cluster_identifier not in self.clusters:
+                raise DBClusterNotFoundError(cluster_identifier)
             return [self.clusters[cluster_identifier]]
         return self.clusters.values()
 

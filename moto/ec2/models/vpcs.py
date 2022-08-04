@@ -138,6 +138,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         is_default,
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
+        ipv6_cidr_block_network_border_group=None,
     ):
 
         self.ec2_backend = ec2_backend
@@ -160,6 +161,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             self.associate_vpc_cidr_block(
                 cidr_block,
                 amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
+                ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
             )
 
     @property
@@ -245,7 +247,10 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         return True
 
     def associate_vpc_cidr_block(
-        self, cidr_block, amazon_provided_ipv6_cidr_block=False
+        self,
+        cidr_block,
+        amazon_provided_ipv6_cidr_block=False,
+        ipv6_cidr_block_network_border_group=None,
     ):
         max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
@@ -273,6 +278,11 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         association_set["cidr_block"] = (
             random_ipv6_cidr() if amazon_provided_ipv6_cidr_block else cidr_block
         )
+        if amazon_provided_ipv6_cidr_block:
+            association_set["ipv6_pool"] = "Amazon"
+            association_set[
+                "ipv6_cidr_block_network_border_group"
+            ] = ipv6_cidr_block_network_border_group
         self.cidr_block_association_set[association_id] = association_set
         return association_set
 
@@ -344,6 +354,7 @@ class VPCBackend:
         cidr_block,
         instance_tenancy="default",
         amazon_provided_ipv6_cidr_block=False,
+        ipv6_cidr_block_network_border_group=None,
         tags=None,
         is_default=False,
     ):
@@ -361,6 +372,7 @@ class VPCBackend:
             is_default=is_default,
             instance_tenancy=instance_tenancy,
             amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
+            ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
         )
 
         for tag in tags or []:

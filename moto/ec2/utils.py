@@ -412,6 +412,7 @@ filter_dict_attribute_mapping = {
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
     "dns-name": "public_dns",
+    "key-name": "key_name",
 }
 
 

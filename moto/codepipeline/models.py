@@ -89,10 +89,13 @@ class CodePipelineBackend(BaseBackend):
 
         try:
             role = self.iam_backend.get_role_by_arn(pipeline["roleArn"])
-            service_principal = json.loads(role.assume_role_policy_document)[
+            trust_policy_statements = json.loads(role.assume_role_policy_document)[
                 "Statement"
-            ][0]["Principal"]["Service"]
-            if "codepipeline.amazonaws.com" not in service_principal:
+            ]
+            trusted_service_principals = [
+                i["Principal"]["Service"] for i in trust_policy_statements
+            ]
+            if "codepipeline.amazonaws.com" not in trusted_service_principals:
                 raise IAMNotFoundException("")
         except IAMNotFoundException:
             raise InvalidStructureException(
@@ -110,11 +113,13 @@ class CodePipelineBackend(BaseBackend):
             self.account_id, self.region_name, pipeline
         )
 
-        if tags:
+        if tags is not None:
             self.pipelines[pipeline["name"]].validate_tags(tags)
 
             new_tags = {tag["key"]: tag["value"] for tag in tags}
             self.pipelines[pipeline["name"]].tags.update(new_tags)
+        else:
+            tags = []
 
         return pipeline, sorted(tags, key=lambda i: i["key"])
 

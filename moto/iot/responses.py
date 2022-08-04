@@ -539,6 +539,12 @@ class IoTResponse(BaseResponse):
         next_marker = None
         return json.dumps(dict(principals=principals, nextMarker=next_marker))
 
+    def list_targets_for_policy(self):
+        """https://docs.aws.amazon.com/iot/latest/apireference/API_ListTargetsForPolicy.html"""
+        policy_name = self._get_param("policyName")
+        principals = self.iot_backend.list_targets_for_policy(policy_name=policy_name)
+        return json.dumps(dict(targets=principals, nextMarker=None))
+
     def attach_thing_principal(self):
         thing_name = self._get_param("thingName")
         principal = self.headers.get("x-amzn-principal")

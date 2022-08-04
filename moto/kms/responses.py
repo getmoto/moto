@@ -51,8 +51,11 @@ class KmsResponse(BaseResponse):
         - key ARN
         """
         is_arn = key_id.startswith("arn:") and ":key/" in key_id
+        # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
+        # "Notice that multi-Region keys have a distinctive key ID that begins with mrk-. You can use the mrk- prefix to
+        # identify MRKs programmatically."
         is_raw_key_id = re.match(
-            r"^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$",
+            r"^(mrk-)?[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$",
             key_id,
             re.IGNORECASE,
         )
@@ -114,11 +117,18 @@ class KmsResponse(BaseResponse):
         )
         description = self.parameters.get("Description")
         tags = self.parameters.get("Tags")
+        multi_region = self.parameters.get("MultiRegion")
 
         key = self.kms_backend.create_key(
-            policy, key_usage, key_spec, description, tags
+            policy, key_usage, key_spec, description, tags, multi_region
         )
         return json.dumps(key.to_dict())
+
+    def replicate_key(self):
+        key_id = self.parameters.get("KeyId")
+        self._validate_key_id(key_id)
+        replica_region = self.parameters.get("ReplicaRegion")
+        self.kms_backend.replicate_key(key_id, replica_region)
 
     def update_key_description(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateKeyDescription.html"""

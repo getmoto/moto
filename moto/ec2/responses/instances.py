@@ -412,7 +412,9 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <dnsName>{{ instance.public_dns }}</dnsName>
           <reason/>
-          <keyName>{{ instance.key_name }}</keyName>
+          {% if instance.key_name is not none %}
+             <keyName>{{ instance.key_name }}</keyName>
+          {% endif %}
           <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
@@ -555,7 +557,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <publicDnsName>{{ instance.public_dns }}</publicDnsName>
                     <dnsName>{{ instance.public_dns }}</dnsName>
                     <reason>{{ instance._reason }}</reason>
-                    <keyName>{{ instance.key_name }}</keyName>
+                    {% if instance.key_name is not none %}
+                        <keyName>{{ instance.key_name }}</keyName>
+                    {% endif %}
                     <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
                     <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
                     <productCodes/>

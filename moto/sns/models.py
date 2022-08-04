@@ -718,6 +718,7 @@ class SNSBackend(BaseBackend):
             "DeliveryPolicy",
             "FilterPolicy",
             "RedrivePolicy",
+            "SubscriptionRoleArn",
         ]:
             raise SNSInvalidParameter("AttributeName")
 
