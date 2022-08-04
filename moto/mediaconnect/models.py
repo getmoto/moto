@@ -241,6 +241,71 @@ class MediaConnectBackend(BaseBackend):
             )
         return flow_arn, output_name
 
+    def add_flow_sources(self, flow_arn, sources):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        for source in sources:
+            source_id = uuid4().hex
+            name = source["name"]
+            arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source:{source_id}:{name}"
+            source["sourceArn"] = arn
+        flow.sources = sources
+        return flow_arn, sources
+
+    def update_flow_source(
+        self,
+        flow_arn,
+        source_arn,
+        decryption,
+        description,
+        entitlement_arn,
+        ingest_port,
+        max_bitrate,
+        max_latency,
+        max_sync_buffer,
+        media_stream_source_configurations,
+        min_latency,
+        protocol,
+        sender_control_port,
+        sender_ip_address,
+        stream_id,
+        vpc_interface_name,
+        whitelist_cidr,
+    ):
+        if flow_arn not in self._flows:
+            raise NotFoundException(
+                message="flow with arn={} not found".format(flow_arn)
+            )
+        flow = self._flows[flow_arn]
+        source = next(
+            iter(
+                [source for source in flow.sources if source["sourceArn"] == source_arn]
+            ),
+            {},
+        )
+        if source:
+            source["decryption"] = decryption
+            source["description"] = description
+            source["entitlementArn"] = entitlement_arn
+            source["ingestPort"] = ingest_port
+            source["maxBitrate"] = max_bitrate
+            source["maxLatency"] = max_latency
+            source["maxSyncBuffer"] = max_sync_buffer
+            source[
+                "mediaStreamSourceConfigurations"
+            ] = media_stream_source_configurations
+            source["minLatency"] = min_latency
+            source["protocol"] = protocol
+            source["senderControlPort"] = sender_control_port
+            source["senderIpAddress"] = sender_ip_address
+            source["streamId"] = stream_id
+            source["vpcInterfaceName"] = vpc_interface_name
+            source["whitelistCidr"] = whitelist_cidr
+        return flow_arn, source
+
     # add methods from here
 
 

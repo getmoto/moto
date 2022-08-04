@@ -3846,11 +3846,11 @@
 
 ## mediaconnect
 <details>
-<summary>40% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] add_flow_media_streams
 - [X] add_flow_outputs
-- [ ] add_flow_sources
+- [x] add_flow_sources
 - [X] add_flow_vpc_interfaces
 - [X] create_flow
 - [X] delete_flow
@@ -3877,7 +3877,7 @@
 - [ ] update_flow_entitlement
 - [ ] update_flow_media_stream
 - [ ] update_flow_output
-- [ ] update_flow_source
+- [x] update_flow_source
 </details>
 
 ## medialive

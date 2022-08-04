@@ -81,6 +81,28 @@ def test_get_role__should_throw__when_role_does_not_exist():
 
 
 @mock_iam
+def test_get_role__should_contain_last_used():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/"
+    )
+    role = conn.get_role(RoleName="my-role")["Role"]
+    role["RoleLastUsed"].should.equal({})
+
+    if not settings.TEST_SERVER_MODE:
+        iam_backend = get_backend("iam")["global"]
+        last_used = datetime.strptime(
+            "2022-07-18T10:30:00+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
+        )
+        region = "us-west-1"
+        iam_backend.roles[role["RoleId"]].last_used = last_used
+        iam_backend.roles[role["RoleId"]].last_used_region = region
+        roleLastUsed = conn.get_role(RoleName="my-role")["Role"]["RoleLastUsed"]
+        roleLastUsed["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
+        roleLastUsed["Region"].should.equal(region)
+
+
+@mock_iam
 def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
