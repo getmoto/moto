@@ -111,3 +111,52 @@ class MediaConnectResponse(BaseResponse):
             flow_arn=flow_arn, output_name=output_name
         )
         return json.dumps(dict(flow_arn=flow_arn, output_name=output_name))
+
+    def add_flow_sources(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        sources = self._get_param("sources")
+        flow_arn, sources = self.mediaconnect_backend.add_flow_sources(
+            flow_arn=flow_arn, sources=sources
+        )
+        return json.dumps(dict(flow_arn=flow_arn, sources=sources))
+
+    def update_flow_source(self):
+        flow_arn = unquote(self._get_param("flowArn"))
+        source_arn = unquote(self._get_param("sourceArn"))
+        description = self._get_param("description")
+        decryption = self._get_param("decryption")
+        entitlement_arn = self._get_param("entitlementArn")
+        ingest_port = self._get_param("ingestPort")
+        max_bitrate = self._get_param("maxBitrate")
+        max_latency = self._get_param("maxLatency")
+        max_sync_buffer = self._get_param("maxSyncbuffer")
+        media_stream_source_configurations = self._get_param(
+            "mediaStreamSourceConfigurations"
+        )
+        min_latency = self._get_param("minLatency")
+        protocol = self._get_param("protocol")
+        sender_control_port = self._get_param("senderControlPort")
+        sender_ip_address = self._get_param("senderIpAddress")
+        stream_id = self._get_param("streamId")
+        vpc_interface_name = self._get_param("vpcInterfaceName")
+        whitelist_cidr = self._get_param("whitelistCidr")
+        flow_arn, source = self.mediaconnect_backend.update_flow_source(
+            flow_arn=flow_arn,
+            source_arn=source_arn,
+            decryption=decryption,
+            description=description,
+            entitlement_arn=entitlement_arn,
+            ingest_port=ingest_port,
+            max_bitrate=max_bitrate,
+            max_latency=max_latency,
+            max_sync_buffer=max_sync_buffer,
+            media_stream_source_configurations=media_stream_source_configurations,
+            min_latency=min_latency,
+            protocol=protocol,
+            sender_control_port=sender_control_port,
+            sender_ip_address=sender_ip_address,
+            stream_id=stream_id,
+            vpc_interface_name=vpc_interface_name,
+            whitelist_cidr=whitelist_cidr,
+        )
+        return json.dumps(dict(flow_arn=flow_arn, source=source))
