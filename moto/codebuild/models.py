@@ -1,6 +1,5 @@
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, BackendDict
-from moto.core import get_account_id
 from collections import defaultdict
 from random import randint
 from dateutil import parser
@@ -9,14 +8,23 @@ import uuid
 
 
 class CodeBuildProjectMetadata(BaseModel):
-    def __init__(self, project_name, source_version, artifacts, build_id, service_role):
+    def __init__(
+        self,
+        account_id,
+        region_name,
+        project_name,
+        source_version,
+        artifacts,
+        build_id,
+        service_role,
+    ):
         current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         self.build_metadata = dict()
 
         self.build_metadata["id"] = build_id
-        self.build_metadata["arn"] = "arn:aws:codebuild:eu-west-2:{0}:build/{1}".format(
-            get_account_id(), build_id
-        )
+        self.build_metadata[
+            "arn"
+        ] = f"arn:aws:codebuild:{region_name}:{account_id}:build/{build_id}"
 
         self.build_metadata["buildNumber"] = randint(1, 100)
         self.build_metadata["startTime"] = current_date
@@ -66,9 +74,7 @@ class CodeBuildProjectMetadata(BaseModel):
 
         self.build_metadata["logs"] = {
             "deepLink": "https://console.aws.amazon.com/cloudwatch/home?region=eu-west-2#logEvent:group=null;stream=null",
-            "cloudWatchLogsArn": "arn:aws:logs:eu-west-2:{0}:log-group:null:log-stream:null".format(
-                get_account_id()
-            ),
+            "cloudWatchLogsArn": f"arn:aws:logs:{region_name}:{account_id}:log-group:null:log-stream:null",
             "cloudWatchLogs": {"status": "ENABLED"},
             "s3Logs": {"status": "DISABLED", "encryptionDisabled": False},
         }
@@ -79,12 +85,13 @@ class CodeBuildProjectMetadata(BaseModel):
         self.build_metadata["initiator"] = "rootme"
         self.build_metadata[
             "encryptionKey"
-        ] = "arn:aws:kms:eu-west-2:{0}:alias/aws/s3".format(get_account_id())
+        ] = f"arn:aws:kms:{region_name}:{account_id}:alias/aws/s3"
 
 
 class CodeBuild(BaseModel):
     def __init__(
         self,
+        account_id,
         region,
         project_name,
         project_source,
@@ -97,16 +104,14 @@ class CodeBuild(BaseModel):
 
         self.project_metadata["name"] = project_name
         self.project_metadata["arn"] = "arn:aws:codebuild:{0}:{1}:project/{2}".format(
-            region, get_account_id(), self.project_metadata["name"]
+            region, account_id, self.project_metadata["name"]
         )
         self.project_metadata[
             "encryptionKey"
-        ] = "arn:aws:kms:{0}:{1}:alias/aws/s3".format(region, get_account_id())
+        ] = f"arn:aws:kms:{region}:{account_id}:alias/aws/s3"
         self.project_metadata[
             "serviceRole"
-        ] = "arn:aws:iam::{0}:role/service-role/{1}".format(
-            get_account_id(), serviceRole
-        )
+        ] = f"arn:aws:iam::{account_id}:role/service-role/{serviceRole}"
         self.project_metadata["lastModifiedDate"] = current_date
         self.project_metadata["created"] = current_date
         self.project_metadata["badge"] = dict()
@@ -138,6 +143,7 @@ class CodeBuildBackend(BaseBackend):
         self.service_role = service_role
 
         self.codebuild_projects[project_name] = CodeBuild(
+            self.account_id,
             self.region_name,
             project_name,
             project_source,
@@ -166,7 +172,13 @@ class CodeBuildBackend(BaseBackend):
 
         # construct a new build
         self.build_metadata[project_name] = CodeBuildProjectMetadata(
-            project_name, source_version, artifact_override, build_id, self.service_role
+            self.account_id,
+            self.region_name,
+            project_name,
+            source_version,
+            artifact_override,
+            build_id,
+            self.service_role,
         )
 
         self.build_history[project_name].append(build_id)

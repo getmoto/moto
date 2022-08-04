@@ -1,7 +1,7 @@
 import boto3
 import sure  # noqa # pylint: disable=unused-import
 from moto import mock_codebuild
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from botocore.exceptions import ClientError, ParamValidationError
 from uuid import uuid1
 import pytest
@@ -40,10 +40,9 @@ def test_codebuild_create_project_s3_artifacts():
         serviceRole=service_role,
     )
 
-    response.should_not.be.none
-    response["project"].should_not.be.none
-    response["project"]["serviceRole"].should_not.be.none
-    response["project"]["name"].should_not.be.none
+    response.should.have.key("project")
+    response["project"].should.have.key("serviceRole")
+    response["project"].should.have.key("name").equals(name)
 
     response["project"]["environment"].should.equal(
         {
@@ -92,10 +91,9 @@ def test_codebuild_create_project_no_artifacts():
         serviceRole=service_role,
     )
 
-    response.should_not.be.none
-    response["project"].should_not.be.none
-    response["project"]["serviceRole"].should_not.be.none
-    response["project"]["name"].should_not.be.none
+    response.should.have.key("project")
+    response["project"].should.have.key("serviceRole")
+    response["project"].should.have.key("name").equals(name)
 
     response["project"]["environment"].should.equal(
         {
@@ -258,7 +256,6 @@ def test_codebuild_list_projects():
 
     projects = client.list_projects()
 
-    projects["projects"].should_not.be.none
     projects["projects"].should.equal(["project1", "project2"])
 
 
@@ -293,7 +290,7 @@ def test_codebuild_list_builds_for_project_no_history():
     history = client.list_builds_for_project(projectName=name)
 
     # no build history if it's never started
-    history["ids"].should.be.empty
+    history["ids"].should.equal([])
 
 
 @mock_codebuild
@@ -327,7 +324,7 @@ def test_codebuild_list_builds_for_project_with_history():
     client.start_build(projectName=name)
     response = client.list_builds_for_project(projectName=name)
 
-    response["ids"].should_not.be.empty
+    response["ids"].should.have.length_of(1)
 
 
 # project never started
@@ -347,9 +344,7 @@ def test_codebuild_get_batch_builds_for_project_no_history():
     environment["image"] = "contents_not_validated"
     environment["computeType"] = "BUILD_GENERAL1_SMALL"
     service_role = (
-        "arn:aws:iam::{0}:role/service-role/my-codebuild-service-role".format(
-            ACCOUNT_ID
-        )
+        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
     )
 
     client.create_project(
@@ -361,8 +356,7 @@ def test_codebuild_get_batch_builds_for_project_no_history():
     )
 
     response = client.list_builds_for_project(projectName=name)
-    response.should_not.be.none
-    response["ids"].should.be.empty
+    response["ids"].should.equal([])
 
     with pytest.raises(ParamValidationError) as err:
         client.batch_get_builds(ids=response["ids"])
@@ -412,8 +406,7 @@ def test_codebuild_start_build_no_overrides():
     )
     response = client.start_build(projectName=name)
 
-    response.should_not.be.none
-    response["build"].should_not.be.none
+    response.should.have.key("build")
     response["build"]["sourceVersion"].should.equal("refs/heads/main")
 
 
@@ -491,8 +484,7 @@ def test_codebuild_start_build_with_overrides():
         artifactsOverride=artifacts_override,
     )
 
-    response.should_not.be.none
-    response["build"].should_not.be.none
+    response.should.have.key("build")
     response["build"]["sourceVersion"].should.equal("fix/testing")
 
 
@@ -529,11 +521,10 @@ def test_codebuild_batch_get_builds_1_project():
     history = client.list_builds_for_project(projectName=name)
     response = client.batch_get_builds(ids=history["ids"])
 
-    response.should_not.be.none
-    response["builds"].should_not.be.none
+    response.should.have.key("builds").length_of(1)
     response["builds"][0]["currentPhase"].should.equal("COMPLETED")
     response["builds"][0]["buildNumber"].should.be.a(int)
-    response["builds"][0]["phases"].should_not.be.none
+    response["builds"][0].should.have.key("phases")
     len(response["builds"][0]["phases"]).should.equal(11)
 
 
@@ -576,13 +567,14 @@ def test_codebuild_batch_get_builds_2_projects():
     client.start_build(projectName="project-2")
 
     response = client.list_builds()
-    response["ids"].should_not.be.empty
+    response["ids"].should.have.length_of(2)
 
     "project-1".should.be.within(response["ids"][0])
     "project-2".should.be.within(response["ids"][1])
 
     metadata = client.batch_get_builds(ids=response["ids"])["builds"]
-    metadata.should_not.be.none
+    metadata.should.have.length_of(2)
+
     "project-1".should.be.within(metadata[0]["id"])
     "project-2".should.be.within(metadata[1]["id"])
 
@@ -636,7 +628,7 @@ def test_codebuild_delete_project():
     client.start_build(projectName=name)
 
     response = client.list_builds_for_project(projectName=name)
-    response["ids"].should_not.be.empty
+    response["ids"].should.have.length_of(1)
 
     client.delete_project(name=name)
 
