@@ -248,7 +248,6 @@ class InvalidSchemaIdBothParamsProvidedException(GSRInvalidInputException):
         )
 
 
-
 class InvalidSchemaIdNotProvidedException(GSRInvalidInputException):
     def __init__(self):
         super().__init__(

@@ -159,7 +159,6 @@ def validate_registry_id(registry_id, registries):
         validate_arn_pattern_and_length(registry_arn)
         registry_name = registry_arn.split("/")[-1]
 
-
     if registry_name != DEFAULT_REGISTRY_NAME and registry_name not in registries:
         if registry_id.get(REGISTRY_NAME):
             raise RegistryNotFoundException(

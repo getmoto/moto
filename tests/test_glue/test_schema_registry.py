@@ -83,7 +83,6 @@ def test_create_registry_invalid_registry_name_too_long(client):
 
 @mock_glue
 def test_create_registry_more_than_allowed(client):
-
     for i in range(10):
         client.create_registry(RegistryName=TEST_REGISTRY_NAME + str(i))
 
@@ -112,7 +111,6 @@ def test_create_registry_invalid_registry_name(client):
 
 @mock_glue
 def test_create_registry_already_exists(client):
-
     client.create_registry(RegistryName=TEST_REGISTRY_NAME)
 
     with pytest.raises(ClientError) as exc:
