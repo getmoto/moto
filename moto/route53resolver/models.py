@@ -218,9 +218,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         of the subnets has already been checked.
         """
         first_subnet_id = self.ip_addresses[0]["SubnetId"]
-        subnet_info = self.ec2_backend.get_all_subnets(
-            subnet_ids=[first_subnet_id]
-        )[0]
+        subnet_info = self.ec2_backend.get_all_subnets(subnet_ids=[first_subnet_id])[0]
         return subnet_info.vpc_id
 
     def _build_subnet_info(self):
@@ -397,7 +395,7 @@ class Route53ResolverBackend(BaseBackend):
         self.resolver_rule_associations[rule_association_id] = rule_association
         return rule_association
 
-    def _verify_subnet_ips(self, region, ip_addresses, initial=True):
+    def _verify_subnet_ips(self, ip_addresses, initial=True):
         """
         Perform additional checks on the IPAddresses.
 
@@ -413,9 +411,9 @@ class Route53ResolverBackend(BaseBackend):
         subnets = defaultdict(set)
         for subnet_id, ip_addr in [(x["SubnetId"], x["Ip"]) for x in ip_addresses]:
             try:
-                subnet_info = self.ec2_backend.get_all_subnets(
-                    subnet_ids=[subnet_id]
-                )[0]
+                subnet_info = self.ec2_backend.get_all_subnets(subnet_ids=[subnet_id])[
+                    0
+                ]
             except InvalidSubnetIdError as exc:
                 raise InvalidParameterException(
                     f"The subnet ID '{subnet_id}' does not exist"
@@ -436,7 +434,7 @@ class Route53ResolverBackend(BaseBackend):
                 )
             subnets[subnet_id].add(ip_addr)
 
-    def _verify_security_group_ids(self, region, security_group_ids):
+    def _verify_security_group_ids(self, security_group_ids):
         """Perform additional checks on the security groups."""
         if len(security_group_ids) > 10:
             raise InvalidParameterException("Maximum of 10 security groups are allowed")
@@ -448,9 +446,7 @@ class Route53ResolverBackend(BaseBackend):
                     f"(expecting 'sg-...')"
                 )
             try:
-                self.ec2_backend.describe_security_groups(
-                    group_ids=[group_id]
-                )
+                self.ec2_backend.describe_security_groups(group_ids=[group_id])
             except InvalidSecurityGroupNotFoundError as exc:
                 raise ResourceNotFoundException(
                     f"The security group '{group_id}' does not exist"
@@ -501,8 +497,8 @@ class Route53ResolverBackend(BaseBackend):
                 )[0]
                 x["Ip"] = subnet_info.get_available_subnet_ip(self)
 
-        self._verify_subnet_ips(region, ip_addresses)
-        self._verify_security_group_ids(region, security_group_ids)
+        self._verify_subnet_ips(ip_addresses)
+        self._verify_security_group_ids(security_group_ids)
         if creator_request_id in [
             x.creator_request_id for x in self.resolver_endpoints.values()
         ]:
@@ -874,9 +870,7 @@ class Route53ResolverBackend(BaseBackend):
         resolver_endpoint.update_name(name)
         return resolver_endpoint
 
-    def associate_resolver_endpoint_ip_address(
-        self, region, resolver_endpoint_id, ip_address
-    ):
+    def associate_resolver_endpoint_ip_address(self, resolver_endpoint_id, ip_address):
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         resolver_endpoint = self.resolver_endpoints[resolver_endpoint_id]
 
@@ -885,7 +879,7 @@ class Route53ResolverBackend(BaseBackend):
                 subnet_ids=[ip_address.get("SubnetId")]
             )[0]
             ip_address["Ip"] = subnet_info.get_available_subnet_ip(self)
-        self._verify_subnet_ips(region, [ip_address], False)
+        self._verify_subnet_ips([ip_address], False)
 
         resolver_endpoint.associate_ip_address(ip_address)
         return resolver_endpoint

@@ -1,10 +1,6 @@
-import os
-
 import requests
-import xmltodict
 
 from moto import settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.server import ThreadedMotoServer
 from unittest import SkipTest
 

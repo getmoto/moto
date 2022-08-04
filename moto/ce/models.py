@@ -7,7 +7,9 @@ from uuid import uuid4
 
 
 class CostCategoryDefinition(BaseModel):
-    def __init__(self, account_id, name, rule_version, rules, default_value, split_charge_rules):
+    def __init__(
+        self, account_id, name, rule_version, rules, default_value, split_charge_rules
+    ):
         self.name = name
         self.rule_version = rule_version
         self.rules = rules
@@ -51,7 +53,12 @@ class CostExplorerBackend(BaseBackend):
         The EffectiveOn and ResourceTags-parameters are not yet implemented
         """
         ccd = CostCategoryDefinition(
-            self.account_id, name, rule_version, rules, default_value, split_charge_rules
+            self.account_id,
+            name,
+            rule_version,
+            rules,
+            default_value,
+            split_charge_rules,
         )
         self.cost_categories[ccd.arn] = ccd
         return ccd.arn, ""

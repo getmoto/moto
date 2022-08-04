@@ -1381,7 +1381,7 @@
 
 ## ds
 <details>
-<summary>19% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -1412,6 +1412,7 @@
 - [ ] describe_event_topics
 - [ ] describe_ldaps_settings
 - [ ] describe_regions
+- [ ] describe_settings
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
 - [ ] describe_trusts
@@ -1444,6 +1445,7 @@
 - [ ] update_conditional_forwarder
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
+- [ ] update_settings
 - [ ] update_trust
 - [ ] verify_trust
 </details>
@@ -2558,7 +2560,7 @@
 - [ ] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
-- [ ] start_job_run
+- [X] start_job_run
 - [X] stop_application
 - [ ] tag_resource
 - [ ] untag_resource
@@ -2918,6 +2920,7 @@
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [X] list_crawlers
+- [ ] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_dev_endpoints
 - [X] list_jobs
@@ -6224,7 +6227,6 @@
 - qldb-session
 - rbin
 - rds-data
-- redshiftserverless
 - resiliencehub
 - robomaker
 - route53-recovery-cluster
