@@ -79,6 +79,15 @@ class TemplateMessage(BaseModel):
         self.destinations = destinations
 
 
+class BulkTemplateMessage(BaseModel):
+    def __init__(self, message_ids, source, template, template_data, destinations):
+        self.ids = message_ids
+        self.source = source
+        self.template = template
+        self.template_data = template_data
+        self.destinations = destinations
+
+
 class RawMessage(BaseModel):
     def __init__(self, message_id, source, destinations, raw_data):
         self.id = message_id
@@ -180,6 +189,37 @@ class SESBackend(BaseBackend):
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
         return message
+
+    def send_bulk_templated_email(
+        self, source, template, template_data, destinations, region
+    ):
+        recipient_count = len(destinations)
+        if recipient_count > RECIPIENT_LIMIT:
+            raise MessageRejectedError("Too many destinations.")
+
+        total_recipient_count = sum(map(lambda d: sum(map(len, d['Destination'].values())),
+                                        destinations))
+        if total_recipient_count > RECIPIENT_LIMIT:
+            raise MessageRejectedError("Too many destinations.")
+
+        if not self._is_verified_address(source):
+            self.rejected_messages_count += 1
+            raise MessageRejectedError("Email address not verified %s" % source)
+
+        if not self.templates.get(template[0]):
+            raise TemplateDoesNotExist("Template (%s) does not exist" % template[0])
+
+        message_id = get_random_message_id()
+        message = TemplateMessage(
+            message_id, source, template, template_data, destinations
+        )
+        self.sent_messages.append(message)
+        self.sent_message_count += total_recipient_count
+
+        ids = list(map(lambda x:  get_random_message_id(), range(len(destinations))))
+        return BulkTemplateMessage(ids, source, template,
+                                   template_data, destinations)
+
 
     def send_templated_email(
         self, source, template, template_data, destinations, region

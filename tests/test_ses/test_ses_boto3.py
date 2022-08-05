@@ -175,6 +175,68 @@ def test_send_email_invalid_address():
 
 
 @mock_ses
+def test_send_bulk_templated_email():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Source="test@example.com",
+        Destinations=[{
+            'Destination': {
+                "ToAddresses": ["test_to@example.com"],
+                "CcAddresses": ["test_cc@example.com"],
+                "BccAddresses": ["test_bcc@example.com"],
+            }
+        }, {
+            'Destination': {
+                "ToAddresses": ["test_to1@example.com"],
+                "CcAddresses": ["test_cc1@example.com"],
+                "BccAddresses": ["test_bcc1@example.com"],
+            }
+        }
+        ],
+        Template="test_template",
+        DefaultTemplateData='{"name": "test"}',
+    )
+
+    conn.send_bulk_templated_email.when.called_with(**kwargs).should.throw(ClientError)
+
+    conn.verify_domain_identity(Domain="example.com")
+
+    with pytest.raises(ClientError) as ex:
+        conn.send_bulk_templated_email(**kwargs)
+
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+
+    conn.create_template(
+        Template={
+            "TemplateName": "test_template",
+            "SubjectPart": "lalala",
+            "HtmlPart": "",
+            "TextPart": "",
+        }
+    )
+
+    conn.send_bulk_templated_email(**kwargs)
+
+    too_many_destinations = list({"Destination": {"ToAddresses": ["to%s@example.com" %i ], "CcAddresses": [],
+                                                  "BccAddresses": [] }} for i in range(51))
+    conn.send_bulk_templated_email.when.called_with(
+        **dict(kwargs, Destinations=too_many_destinations)
+    ).should.throw(ClientError)
+
+    too_many_destinations = list("to%s@example.com" % i for i in range(51))
+
+    conn.send_bulk_templated_email.when.called_with(
+         **dict(kwargs, Destinations=[{"Destination": {"ToAddresses": too_many_destinations,
+                                                       "CcAddresses": [], "BccAddresses": []}}])
+    ).should.throw(ClientError)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(6)
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
