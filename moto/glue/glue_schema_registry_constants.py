@@ -11,9 +11,8 @@ DESCRIPTION_PATTERN = re.compile(
     r"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\n\\t]*"
 )
 ARN_PATTERN = re.compile(r"^arn:(aws|aws-us-gov|aws-cn):glue:.*$")
-SCHEMA_VERSION_ID_PATTERN = re.compile(
-    r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
-)
+AVAILABLE_STATUS = "AVAILABLE"
+DELETING_STATUS = "DELETING"
 
 # registry constants
 MAX_REGISTRY_NAME_LENGTH = 255
@@ -28,8 +27,20 @@ MAX_SCHEMAS_ALLOWED = 1000
 MAX_SCHEMA_DEFINITION_LENGTH = 170000
 SCHEMA_NAME = "SchemaName"
 SCHEMA_ARN = "SchemaArn"
-SCHEMA_DEFINITION = "schemaDefinition"
+SCHEMA_DEFINITION = "SchemaDefinition"
 
 # schema version number constants
 MAX_VERSION_NUMBER = 100000
 MAX_SCHEMA_VERSIONS_ALLOWED = 1000
+SCHEMA_VERSION_ID = "SchemaVersionId"
+LATEST_VERSION = "LatestVersion"
+VERSION_NUMBER = "VersionNumber"
+SCHEMA_VERSION_ID_PATTERN = re.compile(
+    r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+)
+MIN_SCHEMA_VERSION_ID_LENGTH = 36
+SCHEMA_VERSION_METADATA_PATTERN = re.compile(r"^[a-zA-Z0-9+-=._./@]+$")
+MAX_SCHEMA_VERSION_METADATA_ALLOWED = 10
+MAX_SCHEMA_VERSION_METADATA_LENGTH = 128
+METADATA_KEY = "MetadataKey"
+METADATA_VALUE = "MetadataValue"
