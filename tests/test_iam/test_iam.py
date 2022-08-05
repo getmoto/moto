@@ -90,7 +90,7 @@ def test_get_role__should_contain_last_used():
     role["RoleLastUsed"].should.equal({})
 
     if not settings.TEST_SERVER_MODE:
-        iam_backend = get_backend("iam")["global"]
+        iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
         last_used = datetime.strptime(
             "2022-07-18T10:30:00+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
         )

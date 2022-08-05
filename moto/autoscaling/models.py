@@ -321,12 +321,12 @@ class FakeScheduledAction(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name, **kwargs
+        cls, resource_name, cloudformation_json, account_id, region_name, **kwargs
     ):
 
         properties = cloudformation_json["Properties"]
 
-        backend = autoscaling_backends[region_name]
+        backend = autoscaling_backends[account_id][region_name]
 
         scheduled_action_name = (
             kwargs["LogicalId"]
