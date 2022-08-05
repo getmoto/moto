@@ -44,11 +44,11 @@ from .fixtures.schema_registry import (
 
 @pytest.fixture
 def client():
-    return boto3.client("glue", region_name="us-east-1")
+    with mock_glue():
+        yield boto3.client("glue", region_name="us-east-1")
 
 
 # Test create_registry
-@mock_glue
 def test_create_registry_valid_input(client):
     response = client.create_registry(
         RegistryName=TEST_REGISTRY_NAME, Description=TEST_DESCRIPTION, Tags=TEST_TAGS
@@ -59,14 +59,12 @@ def test_create_registry_valid_input(client):
     response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
 
 
-@mock_glue
 def test_create_registry_valid_partial_input(client):
     response = client.create_registry(RegistryName=TEST_REGISTRY_NAME)
     response.should.have.key("RegistryName").equals(TEST_REGISTRY_NAME)
     response.should.have.key("RegistryArn").equals(TEST_REGISTRY_ARN)
 
 
-@mock_glue
 def test_create_registry_invalid_registry_name_too_long(client):
     registry_name = ""
     for _ in range(80):
@@ -81,7 +79,6 @@ def test_create_registry_invalid_registry_name_too_long(client):
     )
 
 
-@mock_glue
 def test_create_registry_more_than_allowed(client):
     for i in range(10):
         client.create_registry(RegistryName=TEST_REGISTRY_NAME + str(i))
@@ -96,7 +93,6 @@ def test_create_registry_more_than_allowed(client):
     )
 
 
-@mock_glue
 def test_create_registry_invalid_registry_name(client):
     invalid_registry_name = "A,B,C"
 
@@ -109,7 +105,6 @@ def test_create_registry_invalid_registry_name(client):
     )
 
 
-@mock_glue
 def test_create_registry_already_exists(client):
     client.create_registry(RegistryName=TEST_REGISTRY_NAME)
 
@@ -122,7 +117,6 @@ def test_create_registry_already_exists(client):
     )
 
 
-@mock_glue
 def test_create_registry_invalid_description_too_long(client):
     description = ""
     for _ in range(350):
@@ -140,7 +134,6 @@ def test_create_registry_invalid_description_too_long(client):
     )
 
 
-@mock_glue
 def test_create_registry_invalid_number_of_tags(client):
     tags = {}
     for i in range(51):
@@ -159,7 +152,6 @@ def test_create_registry_invalid_number_of_tags(client):
 
 
 # Test create_schema
-@mock_glue
 def test_create_schema_valid_input_registry_name_avro(client):
     helpers.create_registry(client)
 
@@ -188,7 +180,6 @@ def test_create_schema_valid_input_registry_name_avro(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_valid_input_registry_name_json(client):
     helpers.create_registry(client)
 
@@ -217,7 +208,6 @@ def test_create_schema_valid_input_registry_name_json(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_valid_input_registry_name_protobuf(client):
     helpers.create_registry(client)
 
@@ -246,7 +236,6 @@ def test_create_schema_valid_input_registry_name_protobuf(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_valid_input_registry_arn(client):
     helpers.create_registry(client)
 
@@ -276,7 +265,6 @@ def test_create_schema_valid_input_registry_arn(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_valid_partial_input(client):
     helpers.create_registry(client)
 
@@ -296,7 +284,6 @@ def test_create_schema_valid_partial_input(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_valid_default_registry(client):
     helpers.create_registry(client)
 
@@ -323,7 +310,6 @@ def test_create_schema_valid_default_registry(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_valid_default_registry_in_registry_id(client):
     helpers.create_registry(client)
 
@@ -351,7 +337,6 @@ def test_create_schema_valid_default_registry_in_registry_id(client):
     response.should.have.key("SchemaVersionStatus").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_create_schema_invalid_registry_arn(client):
     helpers.create_registry(client)
 
@@ -369,7 +354,6 @@ def test_create_schema_invalid_registry_arn(client):
     )
 
 
-@mock_glue
 def test_create_schema_invalid_registry_id_both_params_provided(client):
     helpers.create_registry(client)
 
@@ -387,7 +371,6 @@ def test_create_schema_invalid_registry_id_both_params_provided(client):
     )
 
 
-@mock_glue
 def test_create_schema_invalid_schema_name(client):
     helpers.create_registry(client)
 
@@ -408,7 +391,6 @@ def test_create_schema_invalid_schema_name(client):
     )
 
 
-@mock_glue
 def test_create_schema_invalid_schema_name_too_long(client):
     helpers.create_registry(client)
 
@@ -431,7 +413,6 @@ def test_create_schema_invalid_schema_name_too_long(client):
     )
 
 
-@mock_glue
 def test_create_schema_invalid_data_format(client):
     helpers.create_registry(client)
 
@@ -444,7 +425,6 @@ def test_create_schema_invalid_data_format(client):
     err["Message"].should.equal("Data format is not valid.")
 
 
-@mock_glue
 def test_create_schema_invalid_compatibility(client):
     helpers.create_registry(client)
 
@@ -459,7 +439,6 @@ def test_create_schema_invalid_compatibility(client):
     err["Message"].should.equal("Compatibility is not valid.")
 
 
-@mock_glue
 def test_create_schema_invalid_schema_definition(client):
     helpers.create_registry(client)
 
@@ -479,7 +458,6 @@ def test_create_schema_invalid_schema_definition(client):
 
 
 # test register_schema_version
-@mock_glue
 def test_register_schema_version_valid_input_avro(client):
     helpers.create_registry(client)
 
@@ -494,7 +472,6 @@ def test_register_schema_version_valid_input_avro(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_valid_input_json(client):
     helpers.create_registry(client)
 
@@ -514,7 +491,6 @@ def test_register_schema_version_valid_input_json(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_valid_input_protobuf(client):
     helpers.create_registry(client)
 
@@ -534,7 +510,6 @@ def test_register_schema_version_valid_input_protobuf(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_valid_input_schema_arn(client):
     helpers.create_registry(client)
 
@@ -550,7 +525,6 @@ def test_register_schema_version_valid_input_schema_arn(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_identical_schema_version_avro(client):
     helpers.create_registry(client)
 
@@ -567,7 +541,6 @@ def test_register_schema_version_identical_schema_version_avro(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_identical_schema_version_json(client):
     helpers.create_registry(client)
 
@@ -589,7 +562,6 @@ def test_register_schema_version_identical_schema_version_json(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_identical_schema_version_protobuf(client):
     helpers.create_registry(client)
 
@@ -611,7 +583,6 @@ def test_register_schema_version_identical_schema_version_protobuf(client):
     response.should.have.key("Status").equals(TEST_AVAILABLE_STATUS)
 
 
-@mock_glue
 def test_register_schema_version_invalid_registry_schema_does_not_exist(client):
     helpers.create_registry(client)
 
@@ -628,7 +599,6 @@ def test_register_schema_version_invalid_registry_schema_does_not_exist(client):
     err["Message"].should.have("Schema is not found.")
 
 
-@mock_glue
 def test_register_schema_version_invalid_schema_schema_does_not_exist(client):
     helpers.create_registry(client)
 
@@ -644,7 +614,6 @@ def test_register_schema_version_invalid_schema_schema_does_not_exist(client):
     err["Message"].should.have("Schema is not found.")
 
 
-@mock_glue
 def test_register_schema_version_invalid_compatibility_disabled(client):
     helpers.create_registry(client)
 
@@ -668,7 +637,6 @@ def test_register_schema_version_invalid_compatibility_disabled(client):
     )
 
 
-@mock_glue
 def test_register_schema_version_invalid_schema_definition(client):
     helpers.create_registry(client)
 
@@ -685,7 +653,6 @@ def test_register_schema_version_invalid_schema_definition(client):
     err["Message"].should.have("Schema definition of JSON data format is invalid:")
 
 
-@mock_glue
 def test_register_schema_version_invalid_schema_id(client):
     helpers.create_registry(client)
 
@@ -708,7 +675,6 @@ def test_register_schema_version_invalid_schema_id(client):
 
 
 # test get_schema_version
-@mock_glue
 def test_get_schema_version_valid_input_schema_version_id(client):
     helpers.create_registry(client)
 
@@ -728,7 +694,6 @@ def test_get_schema_version_valid_input_schema_version_id(client):
     response.should.have.key("CreatedTime")
 
 
-@mock_glue
 def test_get_schema_version_valid_input_version_number(client):
     helpers.create_registry(client)
 
@@ -749,7 +714,6 @@ def test_get_schema_version_valid_input_version_number(client):
     response.should.have.key("CreatedTime")
 
 
-@mock_glue
 def test_get_schema_version_valid_input_version_number_latest_version(client):
     helpers.create_registry(client)
 
@@ -772,7 +736,6 @@ def test_get_schema_version_valid_input_version_number_latest_version(client):
     response.should.have.key("CreatedTime")
 
 
-@mock_glue
 def test_get_schema_version_empty_input(client):
 
     with pytest.raises(ClientError) as exc:
@@ -785,7 +748,6 @@ def test_get_schema_version_empty_input(client):
     )
 
 
-@mock_glue
 def test_get_schema_version_invalid_schema_id_schema_version_number_both_provided(
     client,
 ):
@@ -804,7 +766,6 @@ def test_get_schema_version_invalid_schema_id_schema_version_number_both_provide
     )
 
 
-@mock_glue
 def test_get_schema_version_insufficient_params_provided(client):
     helpers.create_registry(client)
 
@@ -822,7 +783,6 @@ def test_get_schema_version_insufficient_params_provided(client):
     )
 
 
-@mock_glue
 def test_get_schema_version_invalid_schema_version_number(client):
     helpers.create_registry(client)
 
@@ -842,7 +802,6 @@ def test_get_schema_version_invalid_schema_version_number(client):
     )
 
 
-@mock_glue
 def test_get_schema_version_invalid_version_number(client):
     helpers.create_registry(client)
 
@@ -860,7 +819,6 @@ def test_get_schema_version_invalid_version_number(client):
     err["Message"].should.have("Schema is not found.")
 
 
-@mock_glue
 def test_get_schema_version_invalid_schema_id_schema_name(client):
     helpers.create_registry(client)
 
@@ -879,7 +837,6 @@ def test_get_schema_version_invalid_schema_id_schema_name(client):
     )
 
 
-@mock_glue
 def test_get_schema_version_invalid_schema_id_registry_name(client):
     helpers.create_registry(client)
 
@@ -896,7 +853,6 @@ def test_get_schema_version_invalid_schema_id_registry_name(client):
     err["Message"].should.have("Schema is not found.")
 
 
-@mock_glue
 def test_get_schema_version_invalid_schema_version(client):
     helpers.create_registry(client)
 
@@ -915,7 +871,6 @@ def test_get_schema_version_invalid_schema_version(client):
 
 
 # Test get_schema_by_definition
-@mock_glue
 def test_get_schema_by_definition_valid_input(client):
     helpers.create_registry(client)
 
@@ -934,7 +889,6 @@ def test_get_schema_by_definition_valid_input(client):
     response.should.have.key("CreatedTime")
 
 
-@mock_glue
 def test_get_schema_by_definition_invalid_schema_id_schema_does_not_exist(client):
     helpers.create_registry(client)
 
@@ -951,7 +905,6 @@ def test_get_schema_by_definition_invalid_schema_id_schema_does_not_exist(client
     err["Message"].should.have("Schema is not found.")
 
 
-@mock_glue
 def test_get_schema_by_definition_invalid_schema_definition_does_not_exist(client):
     helpers.create_registry(client)
 
@@ -969,7 +922,6 @@ def test_get_schema_by_definition_invalid_schema_definition_does_not_exist(clien
 
 
 # test put_schema_version_metadata
-@mock_glue
 def test_put_schema_version_metadata_valid_input_schema_version_number(client):
     helpers.create_registry(client)
 
@@ -993,7 +945,6 @@ def test_put_schema_version_metadata_valid_input_schema_version_number(client):
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_valid_input_schema_version_id(client):
     helpers.create_registry(client)
 
@@ -1012,7 +963,6 @@ def test_put_schema_version_metadata_valid_input_schema_version_id(client):
     response.should.have.key("MetadataValue").equals(TEST_METADATA_VALUE)
 
 
-@mock_glue
 def test_put_schema_version_metadata_more_than_allowed_schema_version_id(client):
     helpers.create_registry(client)
 
@@ -1041,7 +991,6 @@ def test_put_schema_version_metadata_more_than_allowed_schema_version_id(client)
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_already_exists_schema_version_id(client):
     helpers.create_registry(client)
 
@@ -1066,7 +1015,6 @@ def test_put_schema_version_metadata_already_exists_schema_version_id(client):
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_invalid_characters_metadata_key_schema_version_id(
     client,
 ):
@@ -1093,7 +1041,6 @@ def test_put_schema_version_metadata_invalid_characters_metadata_key_schema_vers
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_invalid_characters_metadata_value_schema_version_id(
     client,
 ):
@@ -1120,7 +1067,6 @@ def test_put_schema_version_metadata_invalid_characters_metadata_value_schema_ve
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_more_than_allowed_schema_version_number(client):
     helpers.create_registry(client)
 
@@ -1150,7 +1096,6 @@ def test_put_schema_version_metadata_more_than_allowed_schema_version_number(cli
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_already_exists_schema_version_number(client):
     helpers.create_registry(client)
 
@@ -1177,7 +1122,6 @@ def test_put_schema_version_metadata_already_exists_schema_version_number(client
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_invalid_characters_metadata_key_schema_version_number(
     client,
 ):
@@ -1204,7 +1148,6 @@ def test_put_schema_version_metadata_invalid_characters_metadata_key_schema_vers
     )
 
 
-@mock_glue
 def test_put_schema_version_metadata_invalid_characters_metadata_value_schema_version_number(
     client,
 ):
@@ -1232,7 +1175,6 @@ def test_put_schema_version_metadata_invalid_characters_metadata_value_schema_ve
 
 
 # test delete_schema
-@mock_glue
 def test_delete_schema_valid_input(client):
     helpers.create_registry(client)
 
@@ -1247,7 +1189,6 @@ def test_delete_schema_valid_input(client):
     response.should.have.key("Status").equals(TEST_DELETING_STATUS)
 
 
-@mock_glue
 def test_delete_schema_valid_input_schema_arn(client):
     helpers.create_registry(client)
 
@@ -1273,7 +1214,6 @@ def test_delete_schema_valid_input_schema_arn(client):
     err["Message"].should.have("Schema is not found.")
 
 
-@mock_glue
 def test_delete_schema_schema_not_found(client):
     helpers.create_registry(client)
 

@@ -1,5 +1,4 @@
 import time
-import warnings
 from collections import OrderedDict
 from datetime import datetime
 from uuid import uuid4
@@ -304,12 +303,10 @@ class GlueBackend(BaseBackend):
         tags=None,
     ):
         """CrateSchema API"""
-        warnings.warn(
-            "CreateSchema : Following compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL are not yet implemented."
-        )
-        warnings.warn(
-            "CreateSchema: Data format parsing and syntax validation is not implemented "
-        )
+        """
+        The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
+        ....
+        """
 
         # Validate Registry Id
         registry_name = validate_registry_id(registry_id, self.registries)
@@ -505,30 +502,17 @@ class GlueBackend(BaseBackend):
             for registry in self.registries.values():
                 for schema in registry.schemas.values():
                     if schema.schema_versions.get(schema_version_id, None):
-                        validate_number_of_schema_version_metadata_allowed(
-                            schema.schema_versions[schema_version_id].metadata
-                        )
+                        metadata = schema.schema_versions[schema_version_id].metadata
+                        validate_number_of_schema_version_metadata_allowed(metadata)
 
-                        if (
-                            metadata_key
-                            in schema.schema_versions[schema_version_id].metadata
-                        ):
-                            if (
-                                metadata_value
-                                in schema.schema_versions[schema_version_id].metadata[
-                                    metadata_key
-                                ]
-                            ):
+                        if metadata_key in metadata:
+                            if metadata_value in metadata[metadata_key]:
                                 raise SchemaVersionMetadataAlreadyExistsException(
                                     schema_version_id, metadata_key, metadata_value
                                 )
-                            schema.schema_versions[schema_version_id].metadata[
-                                metadata_key
-                            ].append(metadata_value)
+                            metadata[metadata_key].append(metadata_value)
 
-                        schema.schema_versions[schema_version_id].metadata[
-                            metadata_key
-                        ] = [metadata_value]
+                        metadata[metadata_key] = [metadata_value]
                         return get_put_schema_version_metadata_response(
                             schema_id,
                             schema_version_number,
