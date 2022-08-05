@@ -511,8 +511,8 @@ class GlueBackend(BaseBackend):
                                     schema_version_id, metadata_key, metadata_value
                                 )
                             metadata[metadata_key].append(metadata_value)
-
-                        metadata[metadata_key] = [metadata_value]
+                        else:
+                            metadata[metadata_key] = [metadata_value]
                         return get_put_schema_version_metadata_response(
                             schema_id,
                             schema_version_number,
@@ -537,8 +537,8 @@ class GlueBackend(BaseBackend):
                             metadata_value,
                         )
                     schema_version.metadata[metadata_key].append(metadata_value)
-
-                schema_version.metadata[metadata_key] = [metadata_value]
+                else:
+                    schema_version.metadata[metadata_key] = [metadata_value]
                 return get_put_schema_version_metadata_response(
                     schema_id,
                     schema_version_number,

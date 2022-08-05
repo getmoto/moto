@@ -991,6 +991,36 @@ def test_put_schema_version_metadata_more_than_allowed_schema_version_id(client)
     )
 
 
+def test_put_schema_version_metadata_more_than_allowed_schema_version_id_same_key(
+    client,
+):
+    helpers.create_registry(client)
+
+    response = helpers.create_schema(client, TEST_REGISTRY_ID)
+    version_id = response["SchemaVersionId"]
+
+    for i in range(10):
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue={
+                "MetadataKey": f"test_metadata_key",
+                "MetadataValue": f"test_metadata_value{i}",
+            },
+        )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_schema_version_metadata(
+            SchemaVersionId=version_id,
+            MetadataKeyValue=TEST_METADATA_KEY_VALUE,
+        )
+
+    err = exc.value.response["Error"]
+    err["Code"].should.equal("ResourceNumberLimitExceededException")
+    err["Message"].should.equal(
+        "Your resource limits for Schema Version Metadata have been exceeded."
+    )
+
+
 def test_put_schema_version_metadata_already_exists_schema_version_id(client):
     helpers.create_registry(client)
 
