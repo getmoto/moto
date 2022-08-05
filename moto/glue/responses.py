@@ -491,3 +491,36 @@ class GlueResponse(BaseResponse):
             schema_id, schema_definition
         )
         return json.dumps(schema_version)
+
+    def get_schema_version(self):
+        schema_id = self._get_param("SchemaId")
+        schema_version_id = self._get_param("SchemaVersionId")
+        schema_version_number = self._get_param("SchemaVersionNumber")
+
+        schema_version = self.glue_backend.get_schema_version(
+            schema_id, schema_version_id, schema_version_number
+        )
+        return json.dumps(schema_version)
+
+    def get_schema_by_definition(self):
+        schema_id = self._get_param("SchemaId")
+        schema_definition = self._get_param("SchemaDefinition")
+        schema_version = self.glue_backend.get_schema_by_definition(
+            schema_id, schema_definition
+        )
+        return json.dumps(schema_version)
+
+    def put_schema_version_metadata(self):
+        schema_id = self._get_param("SchemaId")
+        schema_version_number = self._get_param("SchemaVersionNumber")
+        schema_version_id = self._get_param("SchemaVersionId")
+        metadata_key_value = self._get_param("MetadataKeyValue")
+        schema_version = self.glue_backend.put_schema_version_metadata(
+            schema_id, schema_version_number, schema_version_id, metadata_key_value
+        )
+        return json.dumps(schema_version)
+
+    def delete_schema(self):
+        schema_id = self._get_param("SchemaId")
+        schema = self.glue_backend.delete_schema(schema_id)
+        return json.dumps(schema)

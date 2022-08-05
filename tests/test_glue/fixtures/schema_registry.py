@@ -1,34 +1,53 @@
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-DESCRIPTION = "test_description"
+TEST_DESCRIPTION = "test_description"
 
-TAGS = {"key1": "value1", "key2": "value2"}
+TEST_TAGS = {"key1": "value1", "key2": "value2"}
 
-AVAILABLE_STATUS = "AVAILABLE"
+TEST_AVAILABLE_STATUS = "AVAILABLE"
+TEST_DELETING_STATUS = "DELETING"
 
-REGISTRY_NAME = "TestRegistry"
+TEST_REGISTRY_NAME = "TestRegistry"
+TEST_INVALID_REGISTRY_NAME_DOES_NOT_EXIST = "InvalidRegistryDoesNotExist"
+TEST_REGISTRY_ARN = f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/{TEST_REGISTRY_NAME}"
+TEST_REGISTRY_ID = {"RegistryName": f"{TEST_REGISTRY_NAME}"}
 
-REGISTRY_ARN = f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:registry/{REGISTRY_NAME}"
+TEST_SCHEMA_NAME = "TestSchema"
+TEST_INVALID_SCHEMA_NAME_DOES_NOT_EXIST = "InvalidSchemaDoesNotExist"
+TEST_SCHEMA_ARN = f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:schema/{TEST_REGISTRY_NAME}/{TEST_SCHEMA_NAME}"
+TEST_SCHEMA_ID = {
+    "RegistryName": f"{TEST_REGISTRY_NAME}",
+    "SchemaName": f"{TEST_SCHEMA_NAME}",
+}
+TEST_INVALID_SCHEMA_ID_SCHEMA_DOES_NOT_EXIST = {
+    "RegistryName": TEST_REGISTRY_NAME,
+    "SchemaName": TEST_INVALID_SCHEMA_NAME_DOES_NOT_EXIST,
+}
+TEST_INVALID_SCHEMA_ID_REGISTRY_DOES_NOT_EXIST = {
+    "RegistryName": TEST_INVALID_REGISTRY_NAME_DOES_NOT_EXIST,
+    "SchemaName": TEST_SCHEMA_NAME,
+}
 
-SCHEMA_NAME = "TestSchema"
+TEST_AVRO_DATA_FORMAT = "AVRO"
+TEST_JSON_DATA_FORMAT = "JSON"
+TEST_PROTOBUF_DATA_FORMAT = "PROTOBUF"
 
-REGISTRY_ID = {"RegistryName": f"{REGISTRY_NAME}"}
+TEST_BACKWARD_COMPATIBILITY = "BACKWARD"
+TEST_DISABLED_COMPATIBILITY = "DISABLED"
 
-SCHEMA_ID = {"RegistryName": f"{REGISTRY_NAME}", "SchemaName": f"{SCHEMA_NAME}"}
+TEST_SCHEMA_VERSION_NUMBER = {"VersionNumber": 1, "LatestVersion": False}
+TEST_SCHEMA_VERSION_NUMBER_LATEST_VERSION = {"LatestVersion": True}
+TEST_VERSION_ID = "00000000-0000-0000-0000-000000000000"
 
-SCHEMA_ARN = f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:schema/{REGISTRY_NAME}/{SCHEMA_NAME}"
 
-AVRO_DATA_FORMAT = "AVRO"
+TEST_METADATA_KEY = "test_metadata_key"
+TEST_METADATA_VALUE = "test_metadata_value"
+TEST_METADATA_KEY_VALUE = {
+    "MetadataKey": TEST_METADATA_KEY,
+    "MetadataValue": TEST_METADATA_VALUE,
+}
 
-JSON_DATA_FORMAT = "JSON"
-
-PROTOBUF_DATA_FORMAT = "PROTOBUF"
-
-BACKWARD_COMPATIBILITY = "BACKWARD"
-
-DISABLED_COMPATIBILITY = "DISABLED"
-
-AVRO_SCHEMA_DEFINITION = """{
+TEST_AVRO_SCHEMA_DEFINITION = """{
         "type": "record",
         "namespace": "Moto_Test",
         "name": "Person",
@@ -44,7 +63,7 @@ AVRO_SCHEMA_DEFINITION = """{
         ]
     }"""
 
-NEW_AVRO_SCHEMA_DEFINITION = """{
+TEST_NEW_AVRO_SCHEMA_DEFINITION = """{
         "type": "record",
         "namespace": "Moto_Test",
         "name": "Person",
@@ -65,7 +84,7 @@ NEW_AVRO_SCHEMA_DEFINITION = """{
         ]
     }"""
 
-JSON_SCHEMA_DEFINITION = """{
+TEST_JSON_SCHEMA_DEFINITION = """{
         "$id": "https://example.com/person.schema.json",
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "Person",
@@ -82,7 +101,7 @@ JSON_SCHEMA_DEFINITION = """{
         }
     }"""
 
-NEW_JSON_SCHEMA_DEFINITION = """{
+TEST_NEW_JSON_SCHEMA_DEFINITION = """{
         "$id": "https://example.com/person.schema.json",
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "Person",
@@ -104,7 +123,7 @@ NEW_JSON_SCHEMA_DEFINITION = """{
         }
     }"""
 
-PROTOBUF_SCHEMA_DEFINITION = """syntax = "proto2";
+TEST_PROTOBUF_SCHEMA_DEFINITION = """syntax = "proto2";
     package tutorial;
 
     option java_multiple_files = true;
@@ -130,7 +149,7 @@ PROTOBUF_SCHEMA_DEFINITION = """syntax = "proto2";
       repeated PhoneNumber phones = 4;
     }"""
 
-NEW_PROTOBUF_SCHEMA_DEFINITION = """syntax = "proto2";
+TEST_NEW_PROTOBUF_SCHEMA_DEFINITION = """syntax = "proto2";
 
     package tutorial;
 
