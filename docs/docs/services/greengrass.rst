@@ -25,13 +25,13 @@ greengrass
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] associate_role_to_group
+- [X] associate_role_to_group
 - [ ] associate_service_role_to_account
 - [ ] create_connector_definition
 - [ ] create_connector_definition_version
 - [X] create_core_definition
 - [X] create_core_definition_version
-- [ ] create_deployment
+- [X] create_deployment
 - [X] create_device_definition
 - [X] create_device_definition_version
 - [X] create_function_definition
@@ -54,16 +54,16 @@ greengrass
 - [ ] delete_logger_definition
 - [X] delete_resource_definition
 - [X] delete_subscription_definition
-- [ ] disassociate_role_from_group
+- [X] disassociate_role_from_group
 - [ ] disassociate_service_role_from_account
-- [ ] get_associated_role
+- [X] get_associated_role
 - [ ] get_bulk_deployment_status
 - [ ] get_connectivity_info
 - [ ] get_connector_definition
 - [ ] get_connector_definition_version
 - [X] get_core_definition
 - [X] get_core_definition_version
-- [ ] get_deployment_status
+- [X] get_deployment_status
 - [X] get_device_definition
 - [X] get_device_definition_version
 - [X] get_function_definition
@@ -86,7 +86,7 @@ greengrass
 - [ ] list_connector_definitions
 - [X] list_core_definition_versions
 - [X] list_core_definitions
-- [ ] list_deployments
+- [X] list_deployments
 - [X] list_device_definition_versions
 - [X] list_device_definitions
 - [X] list_function_definition_versions
@@ -101,7 +101,7 @@ greengrass
 - [X] list_subscription_definition_versions
 - [X] list_subscription_definitions
 - [ ] list_tags_for_resource
-- [ ] reset_deployments
+- [X] reset_deployments
 - [ ] start_bulk_deployment
 - [ ] stop_bulk_deployment
 - [ ] tag_resource

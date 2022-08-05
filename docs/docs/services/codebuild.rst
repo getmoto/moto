@@ -12,8 +12,6 @@
 codebuild
 =========
 
-.. autoclass:: moto.codebuild.models.CodeBuildBackend
-
 |start-h3| Example usage |end-h3|
 
 .. sourcecode:: python
