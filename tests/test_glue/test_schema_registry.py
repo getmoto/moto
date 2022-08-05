@@ -1003,7 +1003,7 @@ def test_put_schema_version_metadata_more_than_allowed_schema_version_id_same_ke
         client.put_schema_version_metadata(
             SchemaVersionId=version_id,
             MetadataKeyValue={
-                "MetadataKey": f"test_metadata_key",
+                "MetadataKey": "test_metadata_key",
                 "MetadataValue": f"test_metadata_value{i}",
             },
         )
