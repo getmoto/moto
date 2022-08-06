@@ -1646,7 +1646,7 @@ def filter_items_with_path_prefix(path_prefix, items):
 
 
 class IAMBackend(BaseBackend):
-    def __init__(self, region_name, account_id=None):
+    def __init__(self, region_name, account_id=None, aws_policies=None):
         super().__init__(region_name=region_name, account_id=account_id)
         self.instance_profiles = {}
         self.roles = {}
@@ -1654,7 +1654,7 @@ class IAMBackend(BaseBackend):
         self.groups = {}
         self.users = {}
         self.credential_report = None
-        self.aws_managed_policies = self._init_aws_policies()
+        self.aws_managed_policies = aws_policies or self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
@@ -1679,6 +1679,15 @@ class IAMBackend(BaseBackend):
 
     def _init_managed_policies(self):
         return dict((p.arn, p) for p in self.aws_managed_policies)
+
+    def reset(self):
+        region_name = self.region_name
+        account_id = self.account_id
+        # Do not reset these policies, as they take a long time to load
+        aws_policies = self.aws_managed_policies
+        self._reset_model_refs()
+        self.__dict__ = {}
+        self.__init__(region_name, account_id, aws_policies)
 
     def attach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())

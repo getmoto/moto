@@ -14,7 +14,7 @@ class ExampleBackend(BaseBackend):
 
 def test_backend_dict_returns_nothing_by_default():
     backend_dict = BackendDict(ExampleBackend, "ebs")
-    backend_dict.should.equal({})
+    list(backend_dict.items()).should.equal([])
 
 
 def test_account_specific_dict_contains_known_regions():
@@ -90,7 +90,7 @@ class TestMultiThreadedAccess:
         self.backend = BackendDict(TestMultiThreadedAccess.SlowExampleBackend, "ec2")
 
     def test_access_a_slow_backend_concurrently(self):
-        """
+        """None
         Usecase that we want to avoid:
 
         Thread 1 comes in, and sees the backend does not exist for this region
@@ -124,3 +124,61 @@ class TestMultiThreadedAccess:
             x.join()
 
         self.backend["123456789012"]["us-east-1"].data.should.have.length_of(15)
+
+
+def test_backend_dict_can_be_hashed():
+    hashes = []
+    for service in ["ec2", "iam", "kms", "redshift"]:
+        hashes.append(BackendDict(None, service).__hash__())
+    # Hash is different for different service names
+    set(hashes).should.have.length_of(4)
+
+
+@pytest.mark.parametrize(
+    "service1,service2,eq",
+    [("acm", "apm", False), ("acm", "acm", True), ("acm", "ec2", False)],
+)
+def test_multiple_backend_dicts_are_not_equal(service1, service2, eq):
+    if eq:
+        assert BackendDict(None, service1) == BackendDict(None, service2)
+    else:
+        assert BackendDict(None, service1) != BackendDict(None, service2)
+
+
+def test_multiple_account_specific_dicts_are_equal():
+    asb1a = _create_asb("ec2", "01234567912")
+    asb1b = _create_asb("ec2", "01234567912", use_boto3_regions=True)
+    asb1c = _create_asb("ec2", "01234567912", regions=["sth"])
+    asb1d = _create_asb("ec2", "01234567912", use_boto3_regions=True, regions=["sth"])
+
+    assert asb1a == asb1b
+    assert asb1a == asb1c
+    assert asb1a == asb1d
+
+    asb2 = _create_asb("iam", "01234567912")
+    assert asb1a != asb2
+
+    asb3 = _create_asb("iam", "0123450000")
+    assert asb1a != asb3
+    assert asb2 != asb3
+
+
+def test_account_specific_dict_can_be_hashed():
+    hashes = []
+    for service in ["ec2", "iam", "kms", "redshift"]:
+        ids = ["01234567912", "01234567911", "01234567913", "000000000000", "0"]
+        for accnt_id in ids:
+            asb = _create_asb(service, accnt_id)
+            hashes.append(asb.__hash__())
+    # Hash is different for different service names + accounts
+    set(hashes).should.have.length_of(20)
+
+
+def _create_asb(service_name, account_id, use_boto3_regions=False, regions=None):
+    return AccountSpecificBackend(
+        service_name,
+        account_id,
+        backend=None,
+        use_boto3_regions=use_boto3_regions,
+        additional_regions=regions,
+    )

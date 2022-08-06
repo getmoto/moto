@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import lru_cache, wraps
 
 import binascii
 import datetime
@@ -437,6 +437,20 @@ class AccountSpecificBackend(dict):
             )
         self.regions.extend(additional_regions or [])
 
+    def __hash__(self):
+        return hash((self.service_name, self.account_id))
+
+    def __eq__(self, other):
+        return (
+            other is not None
+            and isinstance(other, AccountSpecificBackend)
+            and other.service_name == self.service_name
+            and other.account_id == self.account_id
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def reset(self):
         for region_specific_backend in self.values():
             region_specific_backend.reset()
@@ -444,6 +458,7 @@ class AccountSpecificBackend(dict):
     def __contains__(self, region):
         return region in self.regions or region in self.keys()
 
+    @lru_cache()
     def __getitem__(self, region_name):
         if region_name in self.keys():
             return super().__getitem__(region_name)
@@ -476,6 +491,22 @@ class BackendDict(dict):
         self._use_boto3_regions = use_boto3_regions
         self._additional_regions = additional_regions
 
+    def __hash__(self):
+        # Required for the LRUcache to work.
+        # service_name is enough to determine uniqueness - other properties are dependent
+        return hash(self.service_name)
+
+    def __eq__(self, other):
+        return (
+            other is not None
+            and isinstance(other, BackendDict)
+            and other.service_name == self.service_name
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    @lru_cache()
     def __getitem__(self, account_id) -> AccountSpecificBackend:
         self._create_account_specific_backend(account_id)
         return super().__getitem__(account_id)
