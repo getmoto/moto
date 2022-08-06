@@ -1435,6 +1435,18 @@ def test_autoscaling_propagate_tags():
                     "InstanceType": "t2.medium",
                 },
             },
+            "ScheduledAction": {
+                "Type": "AWS::AutoScaling::ScheduledAction",
+                "Properties": {
+                    "AutoScalingGroupName": "test-scaling-group",
+                    "DesiredCapacity": 10,
+                    "EndTime": "2022-08-01T00:00:00Z",
+                    "MaxSize": 15,
+                    "MinSize": 5,
+                    "Recurrence": "* * * * *",
+                    "StartTime": "2022-07-01T00:00:00Z",
+                },
+            },
         },
     }
     boto3.client("cloudformation", "us-east-1").create_stack(

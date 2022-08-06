@@ -216,6 +216,7 @@ class FakePolicy(BaseModel):
         self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
+        self._max_version_id = self.versions[0]._version_id
 
     def to_get_dict(self):
         return {
@@ -238,15 +239,19 @@ class FakePolicy(BaseModel):
 
 
 class FakePolicyVersion(object):
-    def __init__(self, policy_name, document, is_default, region_name):
+    def __init__(self, policy_name, document, is_default, region_name, version_id=1):
         self.name = policy_name
         self.arn = f"arn:aws:iot:{region_name}:{get_account_id()}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
-        self.version_id = "1"
+        self._version_id = version_id
 
         self.create_datetime = time.mktime(datetime(2015, 1, 1).timetuple())
         self.last_modified_datetime = time.mktime(datetime(2015, 1, 2).timetuple())
+
+    @property
+    def version_id(self):
+        return str(self._version_id)
 
     def to_get_dict(self):
         return {
@@ -987,6 +992,13 @@ class IoTBackend(BaseBackend):
         cert.status = new_status
 
     def create_policy(self, policy_name, policy_document):
+        if policy_name in self.policies:
+            current_policy = self.policies[policy_name]
+            raise ResourceAlreadyExistsException(
+                f"Policy cannot be created - name already exists (name={policy_name})",
+                current_policy.name,
+                current_policy.arn,
+            )
         policy = FakePolicy(policy_name, policy_document, self.region_name)
         self.policies[policy.name] = policy
         return policy
@@ -1024,7 +1036,6 @@ class IoTBackend(BaseBackend):
         return policies[0]
 
     def delete_policy(self, policy_name):
-
         policies = [
             k[1] for k, v in self.principal_policies.items() if k[1] == policy_name
         ]
@@ -1035,6 +1046,11 @@ class IoTBackend(BaseBackend):
             )
 
         policy = self.get_policy(policy_name)
+        if len(policy.versions) > 1:
+            raise DeleteConflictException(
+                "Cannot delete the policy because it has one or more policy versions attached to it (name=%s)"
+                % policy_name
+            )
         del self.policies[policy.name]
 
     def create_policy_version(self, policy_name, policy_document, set_as_default):
@@ -1043,11 +1059,16 @@ class IoTBackend(BaseBackend):
             raise ResourceNotFoundException()
         if len(policy.versions) >= 5:
             raise VersionsLimitExceededException(policy_name)
+
+        policy._max_version_id += 1
         version = FakePolicyVersion(
-            policy_name, policy_document, set_as_default, self.region_name
+            policy_name,
+            policy_document,
+            set_as_default,
+            self.region_name,
+            version_id=policy._max_version_id,
         )
         policy.versions.append(version)
-        version.version_id = "{0}".format(len(policy.versions))
         if set_as_default:
             self.set_default_policy_version(policy_name, version.version_id)
         return version
@@ -1149,10 +1170,19 @@ class IoTBackend(BaseBackend):
         return policies
 
     def list_policy_principals(self, policy_name):
+        # this action is deprecated
+        # https://docs.aws.amazon.com/iot/latest/apireference/API_ListTargetsForPolicy.html
+        # should use ListTargetsForPolicy instead
         principals = [
             k[0] for k, v in self.principal_policies.items() if k[1] == policy_name
         ]
         return principals
+
+    def list_targets_for_policy(self, policy_name):
+        # This behaviour is different to list_policy_principals which will just return an empty list
+        if policy_name not in self.policies:
+            raise ResourceNotFoundException("Policy not found")
+        return self.list_policy_principals(policy_name=policy_name)
 
     def attach_thing_principal(self, thing_name, principal_arn):
         principal = self._get_principal(principal_arn)
@@ -1212,7 +1242,21 @@ class IoTBackend(BaseBackend):
             self.region_name,
             self.thing_groups,
         )
-        self.thing_groups[thing_group.arn] = thing_group
+        # this behavior is not documented, but AWS does it like that
+        # if a thing group with the same name exists, it's properties are compared
+        # if they differ, an error is returned.
+        # Otherwise, the old thing group is returned
+        if thing_group.arn in self.thing_groups:
+            current_thing_group = self.thing_groups[thing_group.arn]
+            if current_thing_group.thing_group_properties != thing_group_properties:
+                raise ResourceAlreadyExistsException(
+                    msg=f"Thing Group {thing_group_name} already exists in current account with different properties",
+                    resource_arn=thing_group.arn,
+                    resource_id=current_thing_group.thing_group_id,
+                )
+            thing_group = current_thing_group
+        else:
+            self.thing_groups[thing_group.arn] = thing_group
         return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
 
     def delete_thing_group(self, thing_group_name):
@@ -1273,16 +1317,23 @@ class IoTBackend(BaseBackend):
         if attribute_payload is not None and "attributes" in attribute_payload:
             do_merge = attribute_payload.get("merge", False)
             attributes = attribute_payload["attributes"]
-            if not do_merge:
-                thing_group.thing_group_properties["attributePayload"][
-                    "attributes"
-                ] = attributes
-            else:
-                thing_group.thing_group_properties["attributePayload"][
-                    "attributes"
-                ].update(attributes)
+            if attributes:
+                # might not exist yet, for example when the thing group was created without attributes
+                current_attribute_payload = (
+                    thing_group.thing_group_properties.setdefault(
+                        "attributePayload", {"attributes": {}}
+                    )
+                )
+                if not do_merge:
+                    current_attribute_payload["attributes"] = attributes
+                else:
+                    current_attribute_payload["attributes"].update(attributes)
         elif attribute_payload is not None and "attributes" not in attribute_payload:
             thing_group.attributes = {}
+        if "thingGroupDescription" in thing_group_properties:
+            thing_group.thing_group_properties[
+                "thingGroupDescription"
+            ] = thing_group_properties["thingGroupDescription"]
         thing_group.version = thing_group.version + 1
         return thing_group.version
 

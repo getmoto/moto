@@ -15,6 +15,8 @@ from datetime import datetime
 from uuid import uuid4
 from urllib import parse
 
+from moto.s3.responses import DEFAULT_REGION_NAME
+
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
 MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
@@ -75,6 +77,28 @@ def test_get_role__should_throw__when_role_does_not_exist():
     err = ex.value.response["Error"]
     err["Code"].should.equal("NoSuchEntity")
     err["Message"].should.contain("not found")
+
+
+@mock_iam
+def test_get_role__should_contain_last_used():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/"
+    )
+    role = conn.get_role(RoleName="my-role")["Role"]
+    role["RoleLastUsed"].should.equal({})
+
+    if not settings.TEST_SERVER_MODE:
+        iam_backend = get_backend("iam")["global"]
+        last_used = datetime.strptime(
+            "2022-07-18T10:30:00+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
+        )
+        region = "us-west-1"
+        iam_backend.roles[role["RoleId"]].last_used = last_used
+        iam_backend.roles[role["RoleId"]].last_used_region = region
+        roleLastUsed = conn.get_role(RoleName="my-role")["Role"]["RoleLastUsed"]
+        roleLastUsed["LastUsedDate"].replace(tzinfo=None).should.equal(last_used)
+        roleLastUsed["Region"].should.equal(region)
 
 
 @mock_iam
@@ -377,14 +401,107 @@ def test_get_role_policy():
 
 
 @mock_iam
-def test_update_assume_role_policy():
+def test_update_assume_role_invalid_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
     )
-    conn.update_assume_role_policy(RoleName="my-role", PolicyDocument="new policy")
+    with pytest.raises(ClientError) as ex:
+        conn.update_assume_role_policy(RoleName="my-role", PolicyDocument="new policy")
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MalformedPolicyDocument")
+    err["Message"].should.contain("Syntax errors in policy.")
+
+
+@mock_iam
+def test_update_assume_role_valid_policy():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
+    )
+    policy_document = """
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": ["ec2.amazonaws.com"]
+                },
+                "Action": ["sts:AssumeRole"]
+            }
+        ]
+    }
+"""
+    conn.update_assume_role_policy(RoleName="my-role", PolicyDocument=policy_document)
     role = conn.get_role(RoleName="my-role")["Role"]
-    role["AssumeRolePolicyDocument"].should.equal("new policy")
+    role["AssumeRolePolicyDocument"]["Statement"][0]["Action"][0].should.equal(
+        "sts:AssumeRole"
+    )
+
+
+@mock_iam
+def test_update_assume_role_invalid_policy_bad_action():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
+    )
+    policy_document = """
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": ["ec2.amazonaws.com"]
+                },
+                "Action": ["sts:BadAssumeRole"]
+            }
+        ]
+    }
+"""
+
+    with pytest.raises(ClientError) as ex:
+        conn.update_assume_role_policy(
+            RoleName="my-role", PolicyDocument=policy_document
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MalformedPolicyDocument")
+    err["Message"].should.contain(
+        "Trust Policy statement actions can only be sts:AssumeRole, "
+        "sts:AssumeRoleWithSAML,  and sts:AssumeRoleWithWebIdentity"
+    )
+
+
+@mock_iam
+def test_update_assume_role_invalid_policy_with_resource():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
+    )
+    policy_document = """
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": ["ec2.amazonaws.com"]
+                },
+                "Action": ["sts:AssumeRole"],
+                "Resource" : "arn:aws:s3:::example_bucket"
+            }
+        ]
+    }
+    """
+
+    with pytest.raises(ClientError) as ex:
+        conn.update_assume_role_policy(
+            RoleName="my-role", PolicyDocument=policy_document
+        )
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("MalformedPolicyDocument")
+    err["Message"].should.contain("Has prohibited field Resource.")
 
 
 @mock_iam
@@ -1420,6 +1537,22 @@ def test_create_access_key():
     access_key["AccessKeyId"].should.have.length_of(20)
     access_key["SecretAccessKey"].should.have.length_of(40)
     assert access_key["AccessKeyId"].startswith("AKIA")
+
+
+@mock_iam
+def test_limit_access_key_per_user():
+    conn = boto3.client("iam", region_name=DEFAULT_REGION_NAME)
+    user_name = "test-user"
+    conn.create_user(UserName=user_name)
+
+    conn.create_access_key(UserName=user_name)
+    conn.create_access_key(UserName=user_name)
+    with pytest.raises(ClientError) as ex:
+        conn.create_access_key(UserName=user_name)
+
+    err = ex.value.response["Error"]
+    err["Code"].should.equal("LimitExceeded")
+    err["Message"].should.equal("Cannot exceed quota for AccessKeysPerUser: 2")
 
 
 @mock_iam

@@ -21,7 +21,10 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     BackendDict,
 )
-from moto.iam.policy_validation import IAMPolicyDocumentValidator
+from moto.iam.policy_validation import (
+    IAMPolicyDocumentValidator,
+    IAMTrustPolicyDocumentValidator,
+)
 from moto.utilities.utils import md5_hash
 
 from .aws_managed_policies import aws_managed_policies_data
@@ -59,6 +62,9 @@ SERVICE_NAME_CONVERSION = {
 }
 
 
+LIMIT_KEYS_PER_USER = 2
+
+
 class MFADevice(object):
     """MFA Device class."""
 
@@ -85,8 +91,8 @@ class VirtualMfaDevice(object):
         self.base32_string_seed = base64.b64encode(
             random_base32_string.encode("ascii")
         ).decode("ascii")
-        self.qr_code_png = base64.b64encode(
-            os.urandom(64)
+        self.qr_code_png = base64.b64encode(os.urandom(64)).decode(
+            "ascii"
         )  # this would be a generated PNG
 
         self.enable_date = None
@@ -586,6 +592,8 @@ class Role(CloudFormationModel):
         self.managed_policies = {}
         self.create_date = datetime.utcnow()
         self.tags = tags
+        self.last_used = None
+        self.last_used_region = None
         self.description = description
         self.permissions_boundary = permissions_boundary
         self.max_session_duration = max_session_duration
@@ -594,6 +602,11 @@ class Role(CloudFormationModel):
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @property
+    def last_used_iso_8601(self):
+        if self.last_used:
+            return iso_8601_datetime_with_milliseconds(self.last_used)
 
     @staticmethod
     def cloudformation_name_type():
@@ -782,6 +795,14 @@ class Role(CloudFormationModel):
         {% endfor %}
       </Tags>
       {% endif %}
+      <RoleLastUsed>
+        {% if role.last_used %}
+        <LastUsedDate>{{ role.last_used_iso_8601 }}</LastUsedDate>
+        {% endif %}
+        {% if role.last_used_region %}
+        <Region>{{ role.last_used_region }}</Region>
+        {% endif %}
+      </RoleLastUsed>
     </Role>"""
         )
         return template.render(role=self)
@@ -1848,6 +1869,12 @@ class IAMBackend(BaseBackend):
     def get_roles(self):
         return self.roles.values()
 
+    def update_assume_role_policy(self, role_name, policy_document):
+        role = self.get_role(role_name)
+        iam_policy_document_validator = IAMTrustPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+        role.assume_role_policy_document = policy_document
+
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)
 
@@ -2423,6 +2450,12 @@ class IAMBackend(BaseBackend):
 
     def create_access_key(self, user_name=None, status="Active"):
         user = self.get_user(user_name)
+        keys = self.list_access_keys(user_name)
+        if len(keys) >= LIMIT_KEYS_PER_USER:
+            raise IAMLimitExceededException(
+                f"Cannot exceed quota for AccessKeysPerUser: {LIMIT_KEYS_PER_USER}"
+            )
+
         key = user.create_access_key(status)
         self.access_keys[key.physical_resource_id] = key
         return key

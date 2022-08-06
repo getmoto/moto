@@ -3290,7 +3290,7 @@
 - [X] untag_user
 - [X] update_access_key
 - [X] update_account_password_policy
-- [ ] update_assume_role_policy
+- [X] update_assume_role_policy
 - [X] update_group
 - [X] update_login_profile
 - [X] update_open_id_connect_provider_thumbprint
@@ -3483,7 +3483,7 @@
 - [ ] list_security_profiles_for_target
 - [ ] list_streams
 - [ ] list_tags_for_resource
-- [ ] list_targets_for_policy
+- [x] list_targets_for_policy
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
@@ -3843,11 +3843,11 @@
 
 ## mediaconnect
 <details>
-<summary>40% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] add_flow_media_streams
 - [X] add_flow_outputs
-- [ ] add_flow_sources
+- [x] add_flow_sources
 - [X] add_flow_vpc_interfaces
 - [X] create_flow
 - [X] delete_flow
@@ -3874,7 +3874,7 @@
 - [ ] update_flow_entitlement
 - [ ] update_flow_media_stream
 - [ ] update_flow_output
-- [ ] update_flow_source
+- [x] update_flow_source
 </details>
 
 ## medialive
