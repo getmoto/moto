@@ -11,6 +11,7 @@ from boto3 import Session
 from moto.settings import allow_unknown_region
 from threading import RLock
 from urllib.parse import urlparse
+from uuid import uuid4
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
@@ -436,16 +437,16 @@ class AccountSpecificBackend(dict):
                 sess.get_available_regions(service_name, partition_name="aws-cn")
             )
         self.regions.extend(additional_regions or [])
+        self._id = str(uuid4())
 
     def __hash__(self):
-        return hash((self.service_name, self.account_id))
+        return hash(self._id)
 
     def __eq__(self, other):
         return (
-            other is not None
+            other
             and isinstance(other, AccountSpecificBackend)
-            and other.service_name == self.service_name
-            and other.account_id == self.account_id
+            and other._id == self._id
         )
 
     def __ne__(self, other):
@@ -490,18 +491,15 @@ class BackendDict(dict):
         self.service_name = service_name
         self._use_boto3_regions = use_boto3_regions
         self._additional_regions = additional_regions
+        self._id = str(uuid4())
 
     def __hash__(self):
         # Required for the LRUcache to work.
         # service_name is enough to determine uniqueness - other properties are dependent
-        return hash(self.service_name)
+        return hash(self._id)
 
     def __eq__(self, other):
-        return (
-            other is not None
-            and isinstance(other, BackendDict)
-            and other.service_name == self.service_name
-        )
+        return other and isinstance(other, BackendDict) and other._id == self._id
 
     def __ne__(self, other):
         return not self.__eq__(other)

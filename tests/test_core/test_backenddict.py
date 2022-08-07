@@ -2,8 +2,13 @@ import random
 import time
 import pytest
 
-from moto.core import BaseBackend
+from moto.core import BaseBackend, DEFAULT_ACCOUNT_ID
 from moto.core.utils import AccountSpecificBackend, BackendDict
+
+from moto.autoscaling.models import AutoScalingBackend
+from moto.ec2.models import EC2Backend
+from moto.elbv2.models import ELBv2Backend
+
 from threading import Thread
 
 
@@ -128,57 +133,136 @@ class TestMultiThreadedAccess:
 
 def test_backend_dict_can_be_hashed():
     hashes = []
-    for service in ["ec2", "iam", "kms", "redshift"]:
-        hashes.append(BackendDict(None, service).__hash__())
-    # Hash is different for different service names
+    for backend in [ExampleBackend, set, list, BaseBackend]:
+        hashes.append(BackendDict(backend, "n/a").__hash__())
+    # Hash is different for different backends
     set(hashes).should.have.length_of(4)
-
-
-@pytest.mark.parametrize(
-    "service1,service2,eq",
-    [("acm", "apm", False), ("acm", "acm", True), ("acm", "ec2", False)],
-)
-def test_multiple_backend_dicts_are_not_equal(service1, service2, eq):
-    if eq:
-        assert BackendDict(None, service1) == BackendDict(None, service2)
-    else:
-        assert BackendDict(None, service1) != BackendDict(None, service2)
-
-
-def test_multiple_account_specific_dicts_are_equal():
-    asb1a = _create_asb("ec2", "01234567912")
-    asb1b = _create_asb("ec2", "01234567912", use_boto3_regions=True)
-    asb1c = _create_asb("ec2", "01234567912", regions=["sth"])
-    asb1d = _create_asb("ec2", "01234567912", use_boto3_regions=True, regions=["sth"])
-
-    assert asb1a == asb1b
-    assert asb1a == asb1c
-    assert asb1a == asb1d
-
-    asb2 = _create_asb("iam", "01234567912")
-    assert asb1a != asb2
-
-    asb3 = _create_asb("iam", "0123450000")
-    assert asb1a != asb3
-    assert asb2 != asb3
 
 
 def test_account_specific_dict_can_be_hashed():
     hashes = []
-    for service in ["ec2", "iam", "kms", "redshift"]:
-        ids = ["01234567912", "01234567911", "01234567913", "000000000000", "0"]
-        for accnt_id in ids:
-            asb = _create_asb(service, accnt_id)
-            hashes.append(asb.__hash__())
-    # Hash is different for different service names + accounts
-    set(hashes).should.have.length_of(20)
+    ids = ["01234567912", "01234567911", "01234567913", "000000000000", "0"]
+    for accnt_id in ids:
+        asb = _create_asb(accnt_id)
+        hashes.append(asb.__hash__())
+    # Hash is different for different accounts
+    set(hashes).should.have.length_of(5)
 
 
-def _create_asb(service_name, account_id, use_boto3_regions=False, regions=None):
+def _create_asb(account_id, backend=None, use_boto3_regions=False, regions=None):
     return AccountSpecificBackend(
-        service_name,
-        account_id,
-        backend=None,
+        service_name="ec2",
+        account_id=account_id,
+        backend=backend or ExampleBackend,
         use_boto3_regions=use_boto3_regions,
         additional_regions=regions,
     )
+
+
+def test_multiple_backends_cache_behaviour():
+
+    ec2 = BackendDict(EC2Backend, "ec2")
+    ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    assert type(ec2_useast1) == EC2Backend
+
+    autoscaling = BackendDict(AutoScalingBackend, "autoscaling")
+    as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    assert type(as_1) == AutoScalingBackend
+
+    from moto.elbv2 import elbv2_backends
+
+    elbv2_useast = elbv2_backends["00000000"]["us-east-1"]
+    assert type(elbv2_useast) == ELBv2Backend
+    elbv2_useast2 = elbv2_backends[DEFAULT_ACCOUNT_ID]["us-east-2"]
+    assert type(elbv2_useast2) == ELBv2Backend
+
+    ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    assert type(ec2_useast1) == EC2Backend
+    ec2_useast2 = ec2[DEFAULT_ACCOUNT_ID]["us-east-2"]
+    assert type(ec2_useast2) == EC2Backend
+
+    as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    assert type(as_1) == AutoScalingBackend
+
+
+def test_backenddict_cache_hits_and_misses():
+    backend = BackendDict(ExampleBackend, "ebs")
+    backend.__getitem__.cache_clear()
+
+    assert backend.__getitem__.cache_info().hits == 0
+    assert backend.__getitem__.cache_info().misses == 0
+    assert backend.__getitem__.cache_info().currsize == 0
+
+    # Create + Retrieve an account - verify it is stored in cache
+    accnt_1 = backend["accnt1"]
+    assert accnt_1.account_id == "accnt1"
+
+    assert backend.__getitem__.cache_info().hits == 0
+    assert backend.__getitem__.cache_info().misses == 1
+    assert backend.__getitem__.cache_info().currsize == 1
+
+    # Creating + Retrieving a second account
+    accnt_2 = backend["accnt2"]
+    assert accnt_2.account_id == "accnt2"
+
+    assert backend.__getitem__.cache_info().hits == 0
+    assert backend.__getitem__.cache_info().misses == 2
+    assert backend.__getitem__.cache_info().currsize == 2
+
+    # Retrieving the first account from cache
+    accnt_1_again = backend["accnt1"]
+    assert accnt_1_again.account_id == "accnt1"
+
+    assert backend.__getitem__.cache_info().hits == 1
+    assert backend.__getitem__.cache_info().misses == 2
+    assert backend.__getitem__.cache_info().currsize == 2
+
+    # Retrieving the second account from cache
+    accnt_2_again = backend["accnt2"]
+    assert accnt_2_again.account_id == "accnt2"
+
+    assert backend.__getitem__.cache_info().hits == 2
+    assert backend.__getitem__.cache_info().misses == 2
+    assert backend.__getitem__.cache_info().currsize == 2
+
+
+def test_asb_cache_hits_and_misses():
+    backend = BackendDict(ExampleBackend, "ebs")
+    acb = backend["accnt_id"]
+    acb.__getitem__.cache_clear()
+
+    assert acb.__getitem__.cache_info().hits == 0
+    assert acb.__getitem__.cache_info().misses == 0
+    assert acb.__getitem__.cache_info().currsize == 0
+
+    # Create + Retrieve an account - verify it is stored in cache
+    region_1 = acb["us-east-1"]
+    assert region_1.region_name == "us-east-1"
+
+    assert acb.__getitem__.cache_info().hits == 0
+    assert acb.__getitem__.cache_info().misses == 1
+    assert acb.__getitem__.cache_info().currsize == 1
+
+    # Creating + Retrieving a second account
+    region_2 = acb["us-east-2"]
+    assert region_2.region_name == "us-east-2"
+
+    assert acb.__getitem__.cache_info().hits == 0
+    assert acb.__getitem__.cache_info().misses == 2
+    assert acb.__getitem__.cache_info().currsize == 2
+
+    # Retrieving the first account from cache
+    region_1_again = acb["us-east-1"]
+    assert region_1_again.region_name == "us-east-1"
+
+    assert acb.__getitem__.cache_info().hits == 1
+    assert acb.__getitem__.cache_info().misses == 2
+    assert acb.__getitem__.cache_info().currsize == 2
+
+    # Retrieving the second account from cache
+    region_2_again = acb["us-east-2"]
+    assert region_2_again.region_name == "us-east-2"
+
+    assert acb.__getitem__.cache_info().hits == 2
+    assert acb.__getitem__.cache_info().misses == 2
+    assert acb.__getitem__.cache_info().currsize == 2
