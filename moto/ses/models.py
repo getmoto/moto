@@ -216,10 +216,9 @@ class SESBackend(BaseBackend):
         self.sent_messages.append(message)
         self.sent_message_count += total_recipient_count
 
-        ids = list(map(lambda x:  get_random_message_id(), range(len(destinations))))
+        ids = list(map(lambda x: get_random_message_id(), range(len(destinations))))
         return BulkTemplateMessage(ids, source, template,
                                    template_data, destinations)
-
 
     def send_templated_email(
         self, source, template, template_data, destinations, region

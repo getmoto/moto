@@ -1,14 +1,11 @@
 import json
-
 import boto3
 from botocore.exceptions import ClientError
 from botocore.exceptions import ParamValidationError
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pytest
-
 import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_ses
 
 
@@ -218,8 +215,8 @@ def test_send_bulk_templated_email():
 
     conn.send_bulk_templated_email(**kwargs)
 
-    too_many_destinations = list({"Destination": {"ToAddresses": ["to%s@example.com" %i ], "CcAddresses": [],
-                                                  "BccAddresses": [] }} for i in range(51))
+    too_many_destinations = list({"Destination": {"ToAddresses": ["to%s@example.com" % i], "CcAddresses": [],
+                                                  "BccAddresses": []}} for i in range(51))
     conn.send_bulk_templated_email.when.called_with(
         **dict(kwargs, Destinations=too_many_destinations)
     ).should.throw(ClientError)
@@ -227,8 +224,8 @@ def test_send_bulk_templated_email():
     too_many_destinations = list("to%s@example.com" % i for i in range(51))
 
     conn.send_bulk_templated_email.when.called_with(
-         **dict(kwargs, Destinations=[{"Destination": {"ToAddresses": too_many_destinations,
-                                                       "CcAddresses": [], "BccAddresses": []}}])
+        **dict(kwargs, Destinations=[{"Destination": {"ToAddresses": too_many_destinations,
+                                                      "CcAddresses": [], "BccAddresses": []}}])
     ).should.throw(ClientError)
 
     send_quota = conn.get_send_quota()
@@ -1115,9 +1112,9 @@ def test_create_ses_template():
             "TemplateName": "MyTemplate",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-            "\r\nYour favorite animal is {{favoriteanimal}}.",
+                        "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+                        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
     with pytest.raises(ClientError) as ex:
@@ -1126,9 +1123,9 @@ def test_create_ses_template():
                 "TemplateName": "MyTemplate",
                 "SubjectPart": "Greetings, {{name}}!",
                 "TextPart": "Dear {{name}},"
-                "\r\nYour favorite animal is {{favoriteanimal}}.",
+                            "\r\nYour favorite animal is {{favoriteanimal}}.",
                 "HtmlPart": "<h1>Hello {{name}},"
-                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+                            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
             }
         )
 
@@ -1169,9 +1166,9 @@ def test_render_template():
             "TemplateName": "MyTestTemplate",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-            "\r\nYour favorite animal is {{favoriteanimal}}.",
+                        "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+                        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
     result = conn.test_render_template(**kwargs)
@@ -1190,9 +1187,9 @@ def test_render_template():
             "TemplateName": "MyTestTemplate1",
             "SubjectPart": "Greetings, {{name}}!",
             "TextPart": "Dear {{name}},"
-            "\r\nYour favorite animal is {{favoriteanimal}}.",
+                        "\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
-            "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
+                        "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
         }
     )
 
@@ -1209,10 +1206,7 @@ def test_render_template():
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
     assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "Attribute 'favoriteanimal' is not present in the rendering data."
-    )
+    assert (ex.value.response["Error"]["Message"] == "Attribute 'favoriteanimal' is not present in the rendering data.")
 
 
 @mock_ses
@@ -1223,7 +1217,7 @@ def test_update_ses_template():
         "SubjectPart": "Greetings, {{name}}!",
         "TextPart": "Dear {{name}}," "\r\nYour favorite animal is {{favoriteanimal}}.",
         "HtmlPart": "<h1>Hello {{name}},"
-        "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
+                    "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
     }
 
     with pytest.raises(ClientError) as ex:

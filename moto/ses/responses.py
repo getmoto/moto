@@ -115,7 +115,6 @@ class EmailResponse(BaseResponse):
                     destination[dest_type].append(address[0])
             destinations.append({"Destination": destination})
 
-
         message = self.backend.send_bulk_templated_email(
             source, template, template_data, destinations, self.region
         )
