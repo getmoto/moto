@@ -441,10 +441,12 @@ class SpotFleetBackend:
         return request
 
     def get_spot_fleet_request(self, spot_fleet_request_id):
-        return self.spot_fleet_requests[spot_fleet_request_id]
+        return self.spot_fleet_requests.get(spot_fleet_request_id)
 
     def describe_spot_fleet_instances(self, spot_fleet_request_id):
         spot_fleet = self.get_spot_fleet_request(spot_fleet_request_id)
+        if not spot_fleet:
+            return []
         return spot_fleet.spot_requests
 
     def describe_spot_fleet_requests(self, spot_fleet_request_ids):

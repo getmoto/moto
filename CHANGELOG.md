@@ -1,6 +1,87 @@
 Moto Changelog
 ==============
 
+3.1.17
+-----
+Docker Digest for 3.1.17: <autopopulateddigest>
+
+    General:
+        * Werkzeug has been pinned to 2.1.x, as the latest 2.2.x releases cause some issues
+
+    New Services:
+
+        * CodeBuild:
+            * batch_get_builds()
+            * delete_project()
+            * list_builds()
+            * list_builds_for_project()
+            * start_build()
+            * stop_build()
+
+        * Cost Explorer:
+            * create_cost_category_definition()
+            * delete_cost_category_definition()
+            * describe_cost_category_definition()
+            * update_cost_category_definition()
+
+        * EMR Serverless:
+            * create_application()
+            * delete_application()
+            * get_application()
+            * list_applications()
+            * start_application()
+            * start_job_run()
+            * stop_application()
+            * update_application()
+
+    New Methods:
+
+        * Autoscaling:
+            * delete_scheduled_action()
+            * describe_scheduled_actions()
+            * put_scheduled_update_group_action()
+
+        * CloudFront:
+            * create_distribution_with_tags()
+            * create_invalidation()
+            * list_tags_for_resource()
+
+        * Glue:
+            * create_schema()
+            * delete_schema()
+            * get_schema_by_definition()
+            * get_schema_version()
+            * put_schema_version_metadata()
+            * register_schema_version()
+
+        * Greengrass:
+            * associate_role_to_group()
+            * create_deployment()
+            * disassociate_role_from_group()
+            * get_associated_role()
+            * get_deployment_status()
+            * list_deployments()
+            * reset_deployments()
+
+        * IAM:
+            * update_assume_role_policy()
+
+        * IOT:
+            * list_targets_for_policy()
+
+        * KMS:
+            * replicate_key()
+
+        * MediaConnect:
+            * add_flow_sources()
+            * update_flow_source()
+
+    Miscellaneous:
+        * CloudFormation now supports the creation of AWS::AutoScaling::ScheduledAction
+        * CognitoIDP now supports pagination for list_groups() and list_users_in_group()
+        * EC2:describe_instances() now supports the filter 'key-name'
+        * IAM:create_access_key() now limits the number of keys per user to 2
+
 3.1.16
 -----
 Docker Digest for 3.1.16: _sha256:e7d79262fac1553966fb8c894dc81a750c4a18745977da6a15dffc35c596f8c4_

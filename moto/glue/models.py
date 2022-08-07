@@ -136,6 +136,22 @@ class GlueBackend(BaseBackend):
             raise TableNotFoundException(table_name)
         return {}
 
+    def get_partitions(self, database_name, table_name, expression):
+        """
+        See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
+        for supported expressions.
+
+        Expression caveats:
+
+        - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
+        - Nanosecond expressions on timestamp columns are rounded to microseconds.
+        - Literal dates and timestamps must be valid, i.e. no support for February 31st.
+        - LIKE expressions are converted to Python regexes, escaping special characters.
+          Only % and _ wildcards are supported, and SQL escaping using [] does not work.
+        """
+        table = self.get_table(database_name, table_name)
+        return table.get_partitions(expression)
+
     def create_crawler(
         self,
         name,
@@ -277,7 +293,6 @@ class GlueBackend(BaseBackend):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_registry(self, registry_name, description=None, tags=None):
-        """CreateRegistry API"""
         # If registry name id default-registry, create default-registry
         if registry_name == DEFAULT_REGISTRY_NAME:
             registry = FakeRegistry(self.account_id, registry_name, description, tags)
@@ -301,10 +316,8 @@ class GlueBackend(BaseBackend):
         description=None,
         tags=None,
     ):
-        """CrateSchema API"""
         """
         The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
-        ....
         """
 
         # Validate Registry Id
@@ -356,7 +369,6 @@ class GlueBackend(BaseBackend):
         return schema.as_dict()
 
     def register_schema_version(self, schema_id, schema_definition):
-        """RegisterSchemaVersion API"""
         # Validate Schema Id
         registry_name, schema_name, schema_arn = validate_schema_id(
             schema_id, self.registries
@@ -417,8 +429,6 @@ class GlueBackend(BaseBackend):
     def get_schema_version(
         self, schema_id=None, schema_version_id=None, schema_version_number=None
     ):
-        """GetSchemaVersion API"""
-
         # Validate Schema Parameters
         (
             schema_version_id,
@@ -464,7 +474,6 @@ class GlueBackend(BaseBackend):
         )
 
     def get_schema_by_definition(self, schema_id, schema_definition):
-        """GetSchemaByDefinition API"""
         # Validate SchemaId
         validate_schema_definition_length(schema_definition)
         registry_name, schema_name, schema_arn = validate_schema_id(
@@ -488,7 +497,6 @@ class GlueBackend(BaseBackend):
     def put_schema_version_metadata(
         self, schema_id, schema_version_number, schema_version_id, metadata_key_value
     ):
-        """PutSchemaVersionMetadata API"""
         # Validate metadata_key_value and schema version params
         (
             metadata_key,
@@ -559,7 +567,6 @@ class GlueBackend(BaseBackend):
         )
 
     def delete_schema(self, schema_id):
-        """DeleteSchema API"""
         # Validate schema_id
         registry_name, schema_name, _ = validate_schema_id(schema_id, self.registries)
 
@@ -643,17 +650,6 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression):
-        """See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
-        for supported expressions.
-
-        Expression caveats:
-
-        - Column names must consist of UPPERCASE, lowercase, dots and underscores only.
-        - Nanosecond expressions on timestamp columns are rounded to microseconds.
-        - Literal dates and timestamps must be valid, i.e. no support for February 31st.
-        - LIKE expressions are converted to Python regexes, escaping special characters.
-          Only % and _ wildcards are supported, and SQL escaping using [] does not work.
-        """
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values):

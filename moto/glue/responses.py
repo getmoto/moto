@@ -135,11 +135,11 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
         expression = self.parameters.get("Expression")
-        table = self.glue_backend.get_table(database_name, table_name)
-
-        return json.dumps(
-            {"Partitions": [p.as_dict() for p in table.get_partitions(expression)]}
+        partitions = self.glue_backend.get_partitions(
+            database_name, table_name, expression
         )
+
+        return json.dumps({"Partitions": [p.as_dict() for p in partitions]})
 
     def get_partition(self):
         database_name = self.parameters.get("DatabaseName")

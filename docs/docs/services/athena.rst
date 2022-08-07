@@ -26,6 +26,7 @@ athena
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_get_named_query
+- [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
 - [X] create_data_catalog
 - [X] create_named_query
@@ -41,6 +42,7 @@ athena
 - [ ] get_prepared_statement
 - [ ] get_query_execution
 - [ ] get_query_results
+- [ ] get_query_runtime_statistics
 - [ ] get_table_metadata
 - [X] get_work_group
 - [X] list_data_catalogs

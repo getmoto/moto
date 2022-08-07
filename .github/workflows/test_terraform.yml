@@ -45,7 +45,10 @@ jobs:
           ${{ runner.os }}-go-${{ matrix.go-version }}-2-
     - name: Get list of tests for  this service
       id: get-list
-      run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py ${{ matrix.service }})"
+      run: echo "::set-output name=testlist::$(python tests/terraformtests/get_tf_tests.py '${{ matrix.service }}')"
+    - name: Get original AWS service name
+      id: get-service-name
+      run: echo "::set-output name=servicename::$(python -c "print('${{ matrix.service }}'[:'${{ matrix.service }}'.index('|') if '|' in '${{ matrix.service }}' else len('${{ matrix.service }}')])")"
     - name: Execute tests
       run: |
-        make terraformtests SERVICE_NAME=${{ matrix.service }} TEST_NAMES=${{ steps.get-list.outputs.testlist }}
+        make terraformtests SERVICE_NAME=${{ steps.get-service-name.outputs.servicename }} TEST_NAMES=${{ steps.get-list.outputs.testlist }}
