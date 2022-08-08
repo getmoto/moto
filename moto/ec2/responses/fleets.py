@@ -17,7 +17,7 @@ class Fleets(BaseResponse):
         return template.render(fleet_id=fleet_id, instances=instances)
 
     def describe_fleets(self):
-        fleet_ids = self._get_multi_param("FleetIds.")
+        fleet_ids = self._get_multi_param("FleetId.")
 
         requests = self.ec2_backend.describe_fleets(fleet_ids)
         template = self.response_template(DESCRIBE_FLEETS_TEMPLATE)

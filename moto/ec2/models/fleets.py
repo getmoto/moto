@@ -292,12 +292,12 @@ class FleetsBackend:
         return fleet.spot_requests + fleet.on_demand_instances
 
     def describe_fleets(self, fleet_ids):
-        requests = self.fleets.values()
+        fleets = self.fleets.values()
 
         if fleet_ids:
-            requests = [request for request in requests if request.id in fleet_ids]
+            fleets = [fleet for fleet in fleets if fleet.id in fleet_ids]
 
-        return requests
+        return fleets
 
     def delete_fleets(self, fleet_ids, terminate_instances):
         fleets = []
