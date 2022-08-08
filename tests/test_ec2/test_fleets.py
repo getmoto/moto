@@ -388,7 +388,13 @@ def test_delete_fleet():
     )
     fleet_id = fleet_res["FleetId"]
 
-    conn.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
+    delete_fleet_out = conn.delete_fleets(FleetIds=[fleet_id], TerminateInstances=True)
+
+    delete_fleet_out["SuccessfulFleetDeletions"].should.have.length_of(1)
+    delete_fleet_out["SuccessfulFleetDeletions"][0]["FleetId"].should.equal(fleet_id)
+    delete_fleet_out["SuccessfulFleetDeletions"][0]["CurrentFleetState"].should.equal(
+        "deleted"
+    )
 
     fleets = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"]
     len(fleets).should.equal(1)
@@ -401,6 +407,101 @@ def test_delete_fleet():
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     len(instances).should.equal(0)
+
+
+@mock_ec2
+def test_describe_fleet_instences_api():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    launch_template_id, _ = get_launch_template(conn)
+
+    fleet_res = conn.create_fleet(
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": launch_template_id,
+                    "Version": "1",
+                },
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "OnDemandTargetCapacity": 1,
+            "SpotTargetCapacity": 2,
+            "TotalTargetCapacity": 3,
+        },
+        SpotOptions={
+            "AllocationStrategy": "lowestPrice",
+            "InstanceInterruptionBehavior": "terminate",
+        },
+        Type="maintain",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+    )
+
+    fleet_id = fleet_res["FleetId"]
+    fleet_res = conn.describe_fleet_instances(FleetId=fleet_id)
+
+    fleet_res["FleetId"].should.equal(fleet_id)
+    fleet_res["ActiveInstances"].should.have.length_of(3)
+
+    instance_ids = [i["InstanceId"] for i in fleet_res["ActiveInstances"]]
+    for instance_id in instance_ids:
+        instance_id.startswith("i-").should.be.true
+
+    instance_types = [i["InstanceType"] for i in fleet_res["ActiveInstances"]]
+    instance_types.should.equal(["t2.micro", "t2.micro", "t2.micro"])
+
+    instance_healths = [i["InstanceHealth"] for i in fleet_res["ActiveInstances"]]
+    instance_healths.should.equal(["healthy", "healthy", "healthy"])
+
+
+@mock_ec2
+def test_create_fleet_api():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    launch_template_id, _ = get_launch_template(conn)
+
+    fleet_res = conn.create_fleet(
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": launch_template_id,
+                    "Version": "1",
+                },
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "OnDemandTargetCapacity": 1,
+            "SpotTargetCapacity": 2,
+            "TotalTargetCapacity": 3,
+        },
+        SpotOptions={
+            "AllocationStrategy": "lowestPrice",
+            "InstanceInterruptionBehavior": "terminate",
+        },
+        Type="instant",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+    )
+
+    fleet_res.should.have.key("FleetId")
+    fleet_res["FleetId"].startswith("fleet-").should.be.true
+
+    fleet_res.should.have.key("Instances")
+    fleet_res["Instances"].should.have.length_of(3)
+
+    instance_ids = [i["InstanceIds"] for i in fleet_res["Instances"]]
+    for instance_id in instance_ids:
+        instance_id[0].startswith("i-").should.be.true
+
+    instance_types = [i["InstanceType"] for i in fleet_res["Instances"]]
+    instance_types.should.equal(["t2.micro", "t2.micro", "t2.micro"])
+
+    lifecycle = [i["Lifecycle"] for i in fleet_res["Instances"]]
+    lifecycle.should.contain("spot")
+    lifecycle.should.contain("on-demand")
 
 
 @mock_ec2
