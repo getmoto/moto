@@ -5,8 +5,10 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /moto/
 RUN  pip3 --no-cache-dir install --upgrade pip setuptools && \
-     pip3 --no-cache-dir install ".[server]"
+     pip3 --no-cache-dir install ".[server]" && \
+     python3 setup.py develop && \
+     pip3 --no-cache-dir install -r requirements-dev.txt
 
-ENTRYPOINT ["/usr/local/bin/moto_server", "-H", "0.0.0.0"]
+CMD ["python3", "/moto/moto/server.py", "-H", "0.0.0.0"]
 
 EXPOSE 5000
