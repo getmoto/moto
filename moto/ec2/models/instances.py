@@ -384,9 +384,14 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             fleet.spot_requests = [
                 req for req in fleet.spot_requests if req.instance != self
             ]
-            fleet.on_demand_instances = [
-                inst for inst in fleet.on_demand_instances if inst["instance"] != self
-            ]
+            try:
+                fleet.on_demand_instances = [
+                    inst
+                    for inst in fleet.on_demand_instances
+                    if inst["instance"] != self
+                ]
+            except AttributeError:
+                pass
 
         self._state.name = "terminated"
         self._state.code = 48
